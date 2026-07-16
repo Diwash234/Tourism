@@ -1,4 +1,4 @@
-t"""
+"""
 Utility helpers used across the tourists app:
   - Haversine distance calculation (used for "nearby" queries)
   - GeoIP lookup (fallback when the browser does not supply GPS coordinates)

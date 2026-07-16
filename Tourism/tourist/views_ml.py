@@ -28,7 +28,7 @@ from .serializers import (
     SafetyPredictionRequestSerializer,
     BudgetPredictionRequestSerializer,
 )
-from .utils import get_ml_recommendations, get_ml_safety_prediction, get_ml_budget_prediction
+#from .utils import get_ml_recommendations, get_ml_safety_prediction, get_ml_budget_prediction
 
 
 class RecommendedDestinationsView(APIView):

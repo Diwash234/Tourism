@@ -58,13 +58,13 @@ const Register = () => {
               type="password"
               placeholder="Confirm Password"
               className="input-field pl-11"
-              {...register("confirmPassword", {
+              {...register("password_confirm", {
                 required: true,
                 validate: (value) => value === password || "Passwords do not match",
               })}
             />
-            {errors.confirmPassword && (
-              <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>
+            {errors.password_confirm && (
+              <p className="text-xs text-red-500 mt-1">{errors.password_confirm.message}</p>
             )}
           </div>
           <button type="submit" className="btn-primary w-full" disabled={loading}>

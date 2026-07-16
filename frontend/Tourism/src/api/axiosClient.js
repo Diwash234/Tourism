@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api"
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1"
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,
@@ -9,7 +9,7 @@ const axiosClient = axios.create({
 
 // Attach access token to every request
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken")
+  const token = localStorage.getItem("access")
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -45,20 +45,20 @@ axiosClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken")
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh-token`, {
+        const refreshToken = localStorage.getItem("refresh")
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh/`, {
           refreshToken,
         })
-        const newAccessToken = data.accessToken
-        localStorage.setItem("accessToken", newAccessToken)
+        const newAccessToken = data.access
+        localStorage.setItem("access", newAccessToken)
         axiosClient.defaults.headers.Authorization = `Bearer ${newAccessToken}`
         processQueue(null, newAccessToken)
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
         return axiosClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        localStorage.removeItem("accessToken")
-        localStorage.removeItem("refreshToken")
+        localStorage.removeItem("access")
+        localStorage.removeItem("refresh")
         localStorage.removeItem("user")
         window.location.href = "/login"
         return Promise.reject(refreshError)

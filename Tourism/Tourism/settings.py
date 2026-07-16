@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "django_extensions",
 
     # Third party
     "rest_framework",
@@ -71,7 +72,7 @@ WSGI_APPLICATION = "Tourism.wsgi.application"
 ASGI_APPLICATION = "Tourism.asgi.application"
 
 # ------------------------------------------------------------------
-# Database (PostgreSQL)
+
 # ------------------------------------------------------------------
 DATABASES = {
     'default': {
@@ -119,8 +120,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000",
+    default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173",
     cast=Csv(),
+
 )
 CORS_ALLOW_CREDENTIALS = True
 
@@ -184,7 +186,7 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@tourism-portal.local")
 
-FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
 
 # ------------------------------------------------------------------
 # SMS (Twilio) - optional, disabled unless credentials are supplied
