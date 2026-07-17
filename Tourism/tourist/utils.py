@@ -215,3 +215,79 @@ def notify_user(user, title, message, channel="in_app", related_alert=None):
     notification.is_sent = sent
     notification.save(update_fields=["is_sent"])
     return notification
+# ---------------------------------------------------------------------------
+# ML Service Helpers
+# ---------------------------------------------------------------------------
+
+def get_ml_recommendations(user=None, latitude=None, longitude=None, top_n=10):
+    """
+    Call the ML microservice for destination recommendations.
+    Returns a list or None if the service is unavailable.
+    """
+    try:
+        url = f"{settings.ML_SERVICE_URL}/recommend"
+
+        payload = {
+            "user_id": getattr(user, "id", None),
+            "latitude": latitude,
+            "longitude": longitude,
+            "top_n": top_n,
+        }
+
+        response = requests.post(url, json=payload, timeout=5)
+        response.raise_for_status()
+
+        return response.json().get("recommendations", [])
+
+    except requests.RequestException as e:
+        logger.error("ML recommendation service error: %s", e)
+        return None
+
+
+def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
+    """
+    Call ML service for safety prediction.
+    """
+    try:
+        url = f"{settings.ML_SERVICE_URL}/predict-safety"
+
+        payload = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "city": city,
+            "country": country,
+        }
+
+        response = requests.post(url, json=payload, timeout=5)
+        response.raise_for_status()
+
+        return response.json()
+
+    except requests.RequestException as e:
+        logger.error("Safety prediction failed: %s", e)
+        return None
+
+
+def get_ml_budget_prediction(city, country, days, travelers, budget_level):
+    """
+    Call ML service for budget prediction.
+    """
+    try:
+        url = f"{settings.ML_SERVICE_URL}/predict-budget"
+
+        payload = {
+            "city": city,
+            "country": country,
+            "days": days,
+            "travelers": travelers,
+            "budget_level": budget_level,
+        }
+
+        response = requests.post(url, json=payload, timeout=5)
+        response.raise_for_status()
+
+        return response.json()
+
+    except requests.RequestException as e:
+        logger.error("Budget prediction failed: %s", e)
+        return None
