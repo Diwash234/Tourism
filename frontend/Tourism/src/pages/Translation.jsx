@@ -5,29 +5,60 @@ import useToast from "../hooks/useToast"
 
 
 const LANGUAGES = [
-  { name: "English", code: "english" },
-  { name: "Nepali", code: "nepali" },
-  { name: "Hindi", code: "hindi" },
-  { name: "French", code: "french" },
-  { name: "Spanish", code: "spanish" },
-  { name: "Chinese", code: "chinese (simplified)" },
+  // Global Languages
+  { name: "English", code: "en" },
+  { name: "Nepali", code: "ne" },
+  { name: "Hindi", code: "hi" },
+  { name: "Chinese Simplified", code: "zh-CN" },
+  { name: "French", code: "fr" },
+  { name: "Spanish", code: "es" },
+  { name: "German", code: "de" },
+  { name: "Arabic", code: "ar" },
+  { name: "Japanese", code: "ja" },
+  { name: "Korean", code: "ko" },
+  { name: "Russian", code: "ru" },
+  { name: "Portuguese", code: "pt" },
+  { name: "Italian", code: "it" },
+  { name: "Thai", code: "th" },
+  { name: "Vietnamese", code: "vi" },
+  { name: "Indonesian", code: "id" },
+
+
+  // Nepal Regional Languages
+  { name: "Maithili", code: "mai" },
+  { name: "Bhojpuri", code: "bho" },
+  { name: "Tamang", code: "tmg" },
+  { name: "Gurung", code: "gvr" },
+  { name: "Magar", code: "mgp" },
+  { name: "Rai", code: "rai" },
+  { name: "Limbu", code: "lif" },
+  { name: "Newari (Nepal Bhasa)", code: "new" },
+  { name: "Tharu", code: "thl" },
+  { name: "Sherpa", code: "xsr" },
+  { name: "Doteli", code: "dty" },
+  { name: "Awadhi", code: "awa" },
+
 ]
 
 
 const Translation = () => {
 
   const [sourceText, setSourceText] = useState("")
-  const [targetLang, setTargetLang] = useState("nepali")
+  const [targetLang, setTargetLang] = useState("ne")
   const [result, setResult] = useState("")
   const [loading, setLoading] = useState(false)
 
   const { showToast } = useToast()
 
 
+
   const handleTranslate = async () => {
 
     if (!sourceText.trim()) {
-      showToast("Please enter text to translate", "error")
+      showToast(
+        "Please enter text to translate",
+        "error"
+      )
       return
     }
 
@@ -38,7 +69,7 @@ const Translation = () => {
 
     try {
 
-      const { data } = await translationApi.translateText({
+      const response = await translationApi.translateText({
 
         text: sourceText,
 
@@ -48,23 +79,22 @@ const Translation = () => {
 
 
       setResult(
-        data.translated_text ||
-        data.translation ||
-        data.translated ||
+        response.data.translated_text ||
+        response.data.translation ||
+        response.data.result ||
         ""
       )
 
 
-    } catch (error) {
+    } catch(error){
 
       console.error(
-        "Translation error:",
         error.response?.data || error
       )
 
 
       showToast(
-        "Translation service unavailable",
+        "Translation failed. Please try again.",
         "error"
       )
 
@@ -81,29 +111,29 @@ const Translation = () => {
 
   return (
 
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-4xl mx-auto">
 
 
       <h1 className="text-2xl font-bold mb-6">
-        Translate
+        🌎 Universal Language Translator
       </h1>
 
 
 
-      <div className="card-base p-6 space-y-4">
+      <div className="card-base p-6 space-y-5">
 
 
         <textarea
 
-          rows={5}
+          rows={6}
 
           className="input-field"
 
-          placeholder="Type text to translate..."
+          placeholder="Enter any language text..."
 
           value={sourceText}
 
-          onChange={(e) =>
+          onChange={(e)=>
             setSourceText(e.target.value)
           }
 
@@ -111,22 +141,20 @@ const Translation = () => {
 
 
 
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <select
 
+          value={targetLang}
 
-          <select
+          onChange={(e)=>
+            setTargetLang(e.target.value)
+          }
 
-            value={targetLang}
+          className="input-field"
 
-            onChange={(e) =>
-              setTargetLang(e.target.value)
-            }
+        >
 
-            className="input-field sm:w-56"
-
-          >
-
-            {LANGUAGES.map((language) => (
+          {
+            LANGUAGES.map(language=>(
 
               <option
 
@@ -140,52 +168,65 @@ const Translation = () => {
 
               </option>
 
-            ))}
+            ))
+          }
 
 
-          </select>
+        </select>
 
 
 
-          <button
 
-            onClick={handleTranslate}
+        <button
 
-            className="btn-primary flex items-center gap-2"
+          onClick={handleTranslate}
 
-            disabled={loading}
+          disabled={loading}
 
-          >
+          className="
+          btn-primary 
+          flex 
+          items-center 
+          justify-center 
+          gap-2
+          "
 
-            <FiRefreshCw
+        >
 
-              className={
-                loading
-                  ? "animate-spin"
-                  : ""
-              }
+          <FiRefreshCw
 
-            />
-
-
-            {
+            className={
               loading
-                ? "Translating..."
-                : "Translate"
+              ? "animate-spin"
+              : ""
             }
 
+          />
 
-          </button>
+
+          {
+            loading
+            ? "Translating..."
+            : "Translate"
+          }
 
 
-        </div>
+        </button>
 
 
 
         {
           result && (
 
-            <div className="bg-gray-50 rounded-xl p-4 text-sm text-dark border border-gray-100">
+            <div
+              className="
+              bg-gray-50
+              border
+              rounded-xl
+              p-5
+              text-lg
+              "
+            >
 
               {result}
 
