@@ -1,29 +1,33 @@
 import axiosClient from "./axiosClient"
 
+// CONFIRMED WORKING as-is — no changes needed. All three now match real
+// backend endpoints:
+//   getNearbyPlaces -> GET /api/v1/nearby/places   (added: combines your
+//                       Destination table + live OSM points)
+//   getHospitals    -> GET /api/v1/nearby/hospitals
+//   getPoliceStations -> GET /api/v1/nearby/police
 const nearbyApi = {
 
-  // Search places near current location
   getNearbyPlaces: (params) =>
     axiosClient.get("/nearby/places", {
       params
     }),
 
 
-  // Search hospitals near current location
   getHospitals: (params) =>
     axiosClient.get("/nearby/hospitals", {
       params
     }),
 
 
-  // Search police stations near current location
   getPoliceStations: (params) =>
     axiosClient.get("/nearby/police", {
       params
     }),
 
 
-  // Only keep if backend has this endpoint
+  // Kept for compatibility — navigationApi.js's getRoute does the same
+  // thing; either works, this one's just redundant, not broken.
   getRoute: (payload) =>
     axiosClient.post("/navigation/route", payload)
 

@@ -21,7 +21,12 @@ const Recommendation = () => {
     setLoading(true)
     recommendationApi
       .getRecommendations({ category })
-      .then(({ data }) => setItems(data.items || data || []))
+      // FIXED: was `data.items || data || []` — the backend returns
+      // `{ source, results: [...] }`, so `.items` is always undefined and
+      // this fell through to the whole response OBJECT (not an array),
+      // making `.length` undefined -> always showed the empty state even
+      // when recommendations came back fine.
+      .then(({ data }) => setItems(data.results || data.items || data || []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [category])

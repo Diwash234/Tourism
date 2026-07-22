@@ -3,6 +3,7 @@ import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
 import DestinationCard from "../../components/cards/DestinationCard"
 import SearchBar from "../../components/common/SearchBar"
+import useGeolocation from "../../hooks/useGeolocation"
 import Filter from "../../components/common/Filter"
 import Pagination from "../../components/common/Pagination"
 import Loader from "../../components/common/Loader"
@@ -19,7 +20,7 @@ const CATEGORY_OPTIONS = [
 
 const PAGE_SIZE = 9
 
-const DestinationList = () => {
+const Destinationlist = () => {
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
   const [destinations, setDestinations] = useState([])
@@ -29,18 +30,26 @@ const DestinationList = () => {
   const [query, setQuery] = useState("")
   const [favoriteIds, setFavoriteIds] = useState([])
   const [loading, setLoading] = useState(true)
+  const { position } = useGeolocation()
 
   useEffect(() => {
     setLoading(true)
+    const params = { page, limit: PAGE_SIZE }
+    if (category) params.category = category
+    if (query) params.q = query
+    if (position) {
+      params.latitude = position.lat
+      params.longitude = position.lng
+    }
     destinationApi
-      .getAll({ page, limit: PAGE_SIZE, category, q: query })
+      .getAll(params)
       .then(({ data }) => {
-        setDestinations(data.items || data || [])
-        setTotalPages(data.totalPages || 1)
+        setDestinations(data.results || data || [])
+        setTotalPages(data.total_pages || data.totalPages || 1)
       })
       .catch(() => setDestinations([]))
       .finally(() => setLoading(false))
-  }, [page, category, query])
+  }, [page, category, query, position])
 
   const handleToggleFavorite = async (id) => {
     if (!isAuthenticated) {
@@ -97,4 +106,4 @@ const DestinationList = () => {
   )
 }
 
-export default DestinationList
+export default Destinationlist

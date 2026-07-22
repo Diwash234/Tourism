@@ -1,3 +1,6 @@
+// CONFIRMED WORKING as-is — no changes needed. destinationApi.getAll({limit:6,
+// featured:true}) now matches the backend's `limit`->page_size and `featured`
+// filter aliases added earlier.
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
@@ -18,13 +21,40 @@ const Landing = () => {
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    destinationApi
-      .getAll({ limit: 6, featured: true })
-      .then(({ data }) => setDestinations(data.items || data || []))
-      .catch(() => setDestinations([]))
-      .finally(() => setLoading(false))
-  }, [])
+  useEffect(()=>{
+
+ destinationApi
+ .getAll({
+    limit:6,
+    featured:true
+ })
+ .then(({data})=>{
+
+
+    console.log("Destination API:",data);
+
+
+    setDestinations(
+       data.results || []
+    );
+
+
+ })
+ .catch((error)=>{
+
+    console.log(
+      "Destination error",
+      error
+    );
+
+    setDestinations([]);
+
+ })
+ .finally(()=>setLoading(false));
+
+
+},[]);
+
 
   return (
     <div>

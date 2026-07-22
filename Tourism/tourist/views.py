@@ -12,18 +12,25 @@ from .filters import DestinationFilter, AlertFilter, EmergencyContactFilter, Bud
 from .models import (
     Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
-    Alert, EmergencyContact, Notification, DeviceToken,
+    Alert, EmergencyContact, Notification, DeviceToken, Hotel,
+    OSMEssentialService, OSMTourismPlace,
+
 )
-from .permission import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
+from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
     LanguageSerializer, CategorySerializer, DestinationListSerializer,
     DestinationDetailSerializer, DestinationWriteSerializer, DestinationApprovalSerializer,
     DestinationImageSerializer, DestinationVideoSerializer, DestinationTranslationSerializer,
     ReviewSerializer, RatingSerializer, FavoriteSerializer, VisitHistorySerializer, BudgetSerializer,
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
-    NearbyDestinationQuerySerializer, TranslateRequestSerializer,
+    NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
+    OSMTourismPlaceSerializer,
 )
-from .utils import haversine_distance, bounding_box, translate_text, notify_user
+from .utils import (
+    haversine_distance, bounding_box, translate_text, notify_user,
+    get_destination_photos, register_photo_view, get_current_weather, overpass_search_nearby,
+    find_nearby_places, get_disaster_helplines,
+)
 
 
 class UserLocationContextMixin:
@@ -76,7 +83,25 @@ class CategoryViewSet(viewsets.ModelViewSet):
     lookup_field = "slug"
 
 
-class DestinationViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
+class QueryParamAliasMixin:
+    """
+    Accepts a few common alternate query param names so frontends built
+    against a slightly different API contract don't silently get
+    unfiltered/wrongly-paginated results: `q` as an alias for `search`,
+    `limit` as an alias for `page_size`.
+    """
+
+    def filter_queryset(self, queryset):
+        params = self.request.query_params.copy()
+        if "q" in params and not params.get("search"):
+            params["search"] = params["q"]
+        if "limit" in params and not params.get("page_size"):
+            params["page_size"] = params["limit"]
+        self.request._request.GET = params
+        return super().filter_queryset(queryset)
+
+
+class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewsets.ModelViewSet):
     queryset = Destination.objects.select_related("category", "created_by")
     permission_classes = [CanSubmitPlace]
     filterset_class = DestinationFilter
@@ -209,12 +234,101 @@ class DestinationViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
+    def photos(self, request, slug=None):
+        """
+        GET  — the destination's photo gallery: local uploads (community +
+               admin, most-viewed/promoted first). If none exist yet, one
+               Unsplash/Wikimedia fallback image is fetched ONCE and cached
+               as a real gallery entry (source=unsplash/wikimedia) — see
+               tourist/utils.py::ensure_cover_photo() — so this never
+               re-hits the external API on subsequent calls.
+        POST — any authenticated user ("local people") can contribute a
+               photo here. It's tagged as a community upload and starts
+               un-promoted; if it becomes popular (crosses
+               PHOTO_PROMOTION_IMPRESSION_THRESHOLD views), it's
+               automatically promoted to the official cover photo — see
+               tourist/utils.py::maybe_promote_photo().
+        """
+        destination = self.get_object()
+
+        if request.method == "POST":
+            serializer = PhotoUploadSerializer(data={**request.data, "destination": destination.id}, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            photo = serializer.save()
+            return Response(DestinationImageSerializer(photo, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+        photos = get_destination_photos(destination)
+        for photo in photos:
+            register_photo_view(photo)
+
+        return Response({
+            "photos": DestinationImageSerializer(photos, many=True, context={"request": request}).data,
+        })
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.AllowAny])
+    def weather(self, request, slug=None):
+        """Current weather at this destination's coordinates, via OpenWeatherMap."""
+        destination = self.get_object()
+        result = get_current_weather(destination.latitude, destination.longitude)
+        if result is None:
+            return Response(
+                {"detail": "Weather data is currently unavailable (check OPENWEATHER_API_KEY)."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response(result)
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.AllowAny])
+    def essentials(self, request, slug=None):
+        """
+        GET /api/v1/destinations/{slug}/essentials/
+        One combined "everything you need for this place" bundle: hotels
+        (from your own Hotel table, sourced via import_hotels or the
+        dataset), nearby restaurants/shops (live from Foursquare/Google
+        Places if configured), current weather, and — if there's an active
+        disaster alert covering this area — the nearest police/hospital/
+        ward contacts to call right now (see utils.py::get_disaster_helplines).
+        Every section degrades independently: a missing API key or down
+        service empties that one section rather than failing the request.
+        """
+        destination = self.get_object()
+
+        hotels = HotelSerializer(destination.hotels.all(), many=True).data
+        restaurants = find_nearby_places(destination.latitude, destination.longitude, "restaurant")
+        shops = find_nearby_places(destination.latitude, destination.longitude, "shop")
+        weather = get_current_weather(destination.latitude, destination.longitude)
+        disaster_info = get_disaster_helplines(destination)
+
+        return Response({
+            "hotels": hotels,
+            "restaurants": restaurants,
+            "shops": shops,
+            "weather": weather,
+            "active_alert": disaster_info["active_alert"],
+            "emergency_helplines": disaster_info["helplines"],
+        })
+
 
 class DestinationImageViewSet(viewsets.ModelViewSet):
     queryset = DestinationImage.objects.all()
     serializer_class = DestinationImageSerializer
     permission_classes = [IsAdminOrReadOnly]
     filterset_fields = ["destination"]
+
+
+class HotelViewSet(viewsets.ModelViewSet):
+    """
+    Accommodation options with booking-availability status. Public read;
+    admin write. Populate via `python manage.py import_hotels` from your
+    dataset, or by syncing from Google Places/Foursquare.
+    """
+
+    queryset = Hotel.objects.select_related("destination")
+    serializer_class = HotelSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filterset_fields = ["destination", "booking_status", "source"]
+    ordering_fields = ["price_per_night", "rating"]
+    search_fields = ["name", "address"]
 
 
 class DestinationVideoViewSet(viewsets.ModelViewSet):
@@ -371,7 +485,7 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
             return Notification.objects.none()
         return Notification.objects.filter(user=self.request.user)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post", "put"])
     def mark_read(self, request, pk=None):
         notification = self.get_object()
         notification.is_read = True
@@ -412,3 +526,51 @@ class TranslateTextView(APIView):
             serializer.validated_data.get("source_language", "auto"),
         )
         return Response({"translated_text": translated})
+
+
+class OSMNearbyPlacesView(APIView):
+    """
+    GET /api/v1/places/osm-nearby/?latitude=&longitude=&radius_m=
+    Raw OpenStreetMap (Overpass API) tourism/amenity points near a
+    location — useful for discovering places not yet in your own
+    Destination table. Free, no API key required.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = NearbyDestinationQuerySerializer
+
+    def get(self, request):
+        try:
+            latitude = float(request.query_params["latitude"])
+            longitude = float(request.query_params["longitude"])
+        except (KeyError, ValueError):
+            return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
+        radius_m = int(request.query_params.get("radius_m", 2000))
+
+        places = overpass_search_nearby(latitude, longitude, radius_m)
+        return Response({"count": len(places), "results": places})
+    
+class OSMTourismPlaceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Returns tourism places imported from OpenStreetMap.
+    """
+
+    queryset = OSMTourismPlace.objects.all()
+    serializer_class = OSMTourismPlaceSerializer
+    permission_classes = [permissions.AllowAny]
+
+    filterset_fields = ["category"]
+    search_fields = ["name", "address"]
+
+
+class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Returns emergency and essential services imported from OpenStreetMap.
+    """
+
+    queryset = OSMEssentialService.objects.all()
+    serializer_class = OSMEssentialServiceSerializer
+    permission_classes = [permissions.AllowAny]
+
+    filterset_fields = ["category"]
+    search_fields = ["name", "address"]

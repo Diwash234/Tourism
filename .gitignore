@@ -1,0 +1,148 @@
+#################################
+# ENVIRONMENT VARIABLES
+#################################
+
+.env
+.env.*
+!.env.example
+
+
+#################################
+# PYTHON
+#################################
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Python build files
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+
+#################################
+# DJANGO BACKEND
+#################################
+
+# Django local database
+db.sqlite3
+db.sqlite3-journal
+
+# Django static/media
+staticfiles/
+media/
+
+# Logs
+*.log
+
+
+#################################
+# REACT FRONTEND
+#################################
+
+# Node dependencies
+node_modules/
+
+# React builds
+build/
+dist/
+
+# Vite cache
+.vite/
+
+# Environment files
+frontend/**/.env
+frontend/**/.env.*
+
+# Keep example env
+frontend/**/.env.example
+
+
+#################################
+# IDE FILES
+#################################
+
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+
+#################################
+# ML SERVICE
+#################################
+
+# Python cache
+ml-service/**/__pycache__/
+
+# Virtual environment
+ml-service/venv/
+ml-service/.venv/
+
+
+#################################
+# ML DATASETS
+#################################
+
+# Raw datasets can be huge
+ml-service/data/images/raw/
+ml-service/data/routes/*.osm.pbf
+
+# Generated datasets
+ml-service/processed_data/
+
+
+#################################
+# MACHINE LEARNING MODELS
+#################################
+
+# Large trained models
+*.joblib
+*.pkl
+*.pt
+*.pth
+
+# Keep model folders but not large binaries
+ml-service/model/**/model/
+ml-service/model/**/*.joblib
+ml-service/model/**/*.pt
+
+
+#################################
+# LOGS
+#################################
+
+logs/
+ml-service/logs/*
+
+
+#################################
+# JUPYTER
+#################################
+
+.ipynb_checkpoints/
+
+
+#################################
+# TEMP FILES
+#################################
+
+*.tmp
+*.temp
+*.bak
+*.swpfirebase/serviceAccountKey.json
+*.json

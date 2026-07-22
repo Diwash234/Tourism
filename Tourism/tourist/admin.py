@@ -5,7 +5,8 @@ from .models import (
     User, Language, Category, Destination, DestinationTranslation,
     DestinationImage, DestinationVideo, Review, Rating, Favorite,
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
-    DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight,
+    DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
+    OSMEssentialService, OSMTourismPlace,
 )
 
 
@@ -46,6 +47,15 @@ class CategoryAdmin(admin.ModelAdmin):
 class DestinationImageInline(admin.TabularInline):
     model = DestinationImage
     extra = 1
+    fields = ["image", "external_url", "caption", "is_cover", "source", "uploaded_by", "is_promoted", "view_count"]
+    readonly_fields = ["view_count"]
+
+
+@admin.register(Hotel)
+class HotelAdmin(admin.ModelAdmin):
+    list_display = ["name", "destination", "booking_status", "price_per_night", "currency", "rating", "source"]
+    list_filter = ["booking_status", "source", "currency"]
+    search_fields = ["name", "destination__name", "address"]
 
 
 class DestinationVideoInline(admin.TabularInline):
@@ -116,9 +126,9 @@ class AlertAdmin(admin.ModelAdmin):
 
 @admin.register(EmergencyContact)
 class EmergencyContactAdmin(admin.ModelAdmin):
-    list_display = ["name", "contact_type", "city", "phone_number", "is_24_hours"]
-    list_filter = ["contact_type", "city"]
-    search_fields = ["name", "city"]
+    list_display = ["name", "contact_type", "ward_number", "designation", "city", "phone_number", "is_24_hours"]
+    list_filter = ["contact_type", "city", "ward_number"]
+    search_fields = ["name", "city", "designation"]
 
 
 @admin.register(Notification)
@@ -140,3 +150,17 @@ class MLInsightAdmin(admin.ModelAdmin):
 admin.site.site_header = "Local Tourism Information Portal Administration"
 admin.site.site_title = "Tourism Portal Admin"
 admin.site.index_title = "Manage Destinations, Alerts & Users"
+
+
+@admin.register(OSMEssentialService)
+class OSMEssentialServiceAdmin(admin.ModelAdmin):
+    list_display = ["name", "category", "phone", "address"]
+    list_filter = ["category"]
+    search_fields = ["name", "address"]
+
+
+@admin.register(OSMTourismPlace)
+class OSMTourismPlaceAdmin(admin.ModelAdmin):
+    list_display = ["name", "category", "address"]
+    list_filter = ["category"]
+    search_fields = ["name", "address"]

@@ -20,6 +20,9 @@ const Emergency = () => {
       nearbyApi.getHospitals({ lat: position.lat, lng: position.lng }),
       nearbyApi.getPoliceStations({ lat: position.lat, lng: position.lng }),
     ]).then(([c, h, p]) => {
+      // These three backend endpoints return plain arrays (not paginated),
+      // so `.items` is undefined and it correctly falls through to
+      // `.data` itself — this part was already fine.
       if (c.status === "fulfilled") setContacts(c.value.data.items || c.value.data || [])
       if (h.status === "fulfilled") setHospitals(h.value.data.items || h.value.data || [])
       if (p.status === "fulfilled") setPolice(p.value.data.items || p.value.data || [])
@@ -46,10 +49,14 @@ const Emergency = () => {
             <Loader />
           ) : contacts.length ? (
             contacts.map((c) => (
-              <a key={c.id} href={`tel:${c.phone}`} className="card-base p-4 flex items-center justify-between hover:shadow-hover">
+              // FIXED: the backend's EmergencyContactSerializer fields are
+              // `phone_number` and `contact_type` — this was reading
+              // `c.phone` and `c.type`, which don't exist, so every card
+              // rendered a dead `tel:undefined` link and a blank type line.
+              <a key={c.id} href={`tel:${c.phone_number}`} className="card-base p-4 flex items-center justify-between hover:shadow-hover">
                 <div>
                   <p className="font-medium text-sm">{c.name}</p>
-                  <p className="text-xs text-gray-400">{c.type}</p>
+                  <p className="text-xs text-gray-400">{c.contact_type}</p>
                 </div>
                 <FiPhoneCall className="text-primary-500" />
               </a>

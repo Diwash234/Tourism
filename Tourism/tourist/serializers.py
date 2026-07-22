@@ -21,8 +21,11 @@ from .models import (
     Notification,
     DeviceToken,
     MLInsight,
+    Hotel,
+    OSMEssentialService,
+    OSMTourismPlace,
 )
-from .utils import haversine_distance
+from .utils import haversine_distance, ensure_cover_photo
 
 
 # ---------------------------------------------------------------------------
@@ -114,10 +117,42 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class DestinationImageSerializer(serializers.ModelSerializer):
+    display_url = serializers.SerializerMethodField()
+    uploaded_by_name = serializers.CharField(source="uploaded_by.full_name", read_only=True)
+
     class Meta:
         model = DestinationImage
-        fields = ["id", "destination", "image", "caption", "is_cover", "created_at"]
-        read_only_fields = ["created_at"]
+        fields = [
+            "id", "destination", "image", "external_url", "display_url", "caption", "is_cover",
+            "source", "uploaded_by", "uploaded_by_name", "attribution", "is_promoted", "view_count", "created_at",
+        ]
+        read_only_fields = ["source", "uploaded_by", "is_promoted", "view_count", "created_at"]
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_display_url(self, obj):
+        """Single field the frontend can always render, whether the photo is locally hosted or external."""
+        if obj.image:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return obj.external_url or None
+
+
+class PhotoUploadSerializer(serializers.ModelSerializer):
+    """
+    Used by the community photo-upload endpoint. Any authenticated user can
+    submit a photo for a destination; it's tagged `source=user_upload` and
+    starts un-promoted — see utils.py::maybe_promote_photo() for how it can
+    later become the official cover image based on popularity.
+    """
+
+    class Meta:
+        model = DestinationImage
+        fields = ["id", "destination", "image", "caption"]
+
+    def create(self, validated_data):
+        validated_data["uploaded_by"] = self.context["request"].user
+        validated_data["source"] = DestinationImage.Source.USER_UPLOAD
+        return super().create(validated_data)
 
 
 class DestinationVideoSerializer(serializers.ModelSerializer):
@@ -219,8 +254,16 @@ class DestinationListSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
+        if not cover:
+            # No local photo yet — fetch + permanently cache one from
+            # Unsplash/Wikimedia (only happens once per destination; see
+            # utils.py::ensure_cover_photo). This is what makes images show
+            # up in search/list results, not just the dedicated /photos/ endpoint.
+            cover = ensure_cover_photo(obj)
         if cover:
-            return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+            if cover.image:
+                return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+            return cover.external_url or None
         return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -262,6 +305,13 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if obj.cover_image:
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
+        cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
+        if not cover:
+            cover = ensure_cover_photo(obj)
+        if cover:
+            if cover.image:
+                return request.build_absolute_uri(cover.image.url) if request else cover.image.url
+            return cover.external_url or None
         return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -337,6 +387,15 @@ class BudgetSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_at"]
 
 
+class HotelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hotel
+        fields = [
+            "id", "destination", "name", "price_per_night", "currency", "rating",
+            "booking_status", "booking_url", "address", "latitude", "longitude", "source",
+        ]
+
+
 # ---------------------------------------------------------------------------
 # Alerts & Emergency
 # ---------------------------------------------------------------------------
@@ -368,7 +427,7 @@ class EmergencyContactSerializer(serializers.ModelSerializer):
         fields = [
             "id", "contact_type", "name", "phone_number", "alternate_phone",
             "address", "city", "country", "latitude", "longitude",
-            "is_24_hours", "distance_km",
+            "is_24_hours", "ward_number", "designation", "distance_km",
         ]
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -446,3 +505,34 @@ class BudgetPredictionRequestSerializer(serializers.Serializer):
     days = serializers.IntegerField(default=3, min_value=1, max_value=90)
     travelers = serializers.IntegerField(default=1, min_value=1, max_value=20)
     budget_level = serializers.ChoiceField(choices=["budget", "mid", "luxury"], default="mid")
+
+
+class BestRouteRequestSerializer(serializers.Serializer):
+    """
+    Either pass `destination` as the end point (its coordinates are used
+    automatically) or `end_latitude`/`end_longitude` directly. The start
+    point is always explicit — it's wherever the tourist currently is.
+    """
+
+    start_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    start_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
+    end_latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    end_longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+
+    def validate(self, attrs):
+        if "destination" not in attrs and ("end_latitude" not in attrs or "end_longitude" not in attrs):
+            raise serializers.ValidationError("Provide either `destination` or both `end_latitude` and `end_longitude`.")
+        return attrs
+
+
+class OSMEssentialServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OSMEssentialService
+        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address"]
+
+
+class OSMTourismPlaceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OSMTourismPlace
+        fields = ["id", "osm_id", "category", "name", "latitude", "longitude", "address"]

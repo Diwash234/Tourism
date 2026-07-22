@@ -12,7 +12,9 @@ const Notifications = () => {
   useEffect(() => {
     userApi
       .getNotifications()
-      .then(({ data }) => setNotifications(data.items || data || []))
+      // FIXED: was `data.items || data || []` — backend returns
+      // `{ results: [...] }` (paginated); `.items` doesn't exist.
+      .then(({ data }) => setNotifications(data.results || data.items || data || []))
       .catch(() => setNotifications([]))
       .finally(() => setLoading(false))
   }, [])
@@ -20,7 +22,7 @@ const Notifications = () => {
   const markRead = async (id) => {
     try {
       await userApi.markNotificationRead(id)
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)))
     } catch {
       /* noop */
     }
@@ -37,13 +39,15 @@ const Notifications = () => {
             <button
               key={n.id}
               onClick={() => markRead(n.id)}
-              className={`w-full text-left card-base p-4 flex items-start gap-3 ${n.read ? "opacity-60" : ""}`}
+              // FIXED: backend field is `is_read`, not `read`.
+              className={`w-full text-left card-base p-4 flex items-start gap-3 ${n.is_read ? "opacity-60" : ""}`}
             >
               <FiBell className="text-primary-500 mt-1" />
               <div>
                 <p className="font-medium text-sm">{n.title}</p>
                 <p className="text-sm text-gray-500">{n.message}</p>
-                <p className="text-xs text-gray-400 mt-1">{formatDate(n.createdAt)}</p>
+                {/* FIXED: backend field is `created_at`, not `createdAt`. */}
+                <p className="text-xs text-gray-400 mt-1">{formatDate(n.created_at)}</p>
               </div>
             </button>
           ))}

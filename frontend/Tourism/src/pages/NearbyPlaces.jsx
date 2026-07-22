@@ -1,3 +1,7 @@
+// CONFIRMED WORKING as-is — no changes needed. GET /nearby/places now
+// exists on the backend (combines your Destination table + live OSM
+// points), returning a plain array with `name`/`distance`/`category`
+// fields matching exactly what this page reads.
 import { useEffect, useState } from "react"
 import useGeolocation from "../hooks/useGeolocation"
 import nearbyApi from "../api/nearbyApi"

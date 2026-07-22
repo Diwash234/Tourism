@@ -46,8 +46,13 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refresh")
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh/`, {
-          refreshToken,
+        // FIXED: was POSTing to `${BASE_URL}/auth/refresh/` with body
+        // `{ refreshToken }` — the backend's actual endpoint is
+        // `/auth/token/refresh/` and it expects the field named `refresh`,
+        // not `refreshToken`. This bug meant EVERY 401 retry silently
+        // failed and force-logged-out the user.
+        const { data } = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
+          refresh: refreshToken,
         })
         const newAccessToken = data.access
         localStorage.setItem("access", newAccessToken)

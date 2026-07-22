@@ -1,10 +1,10 @@
 from django.apps import AppConfig
 
 
-class TouristConfig(AppConfig):
+class TouristsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "tourist"
     verbose_name = "Tourism Portal"
 
     def ready(self):
-        from . import signals
+        import tourist.signals  # noqa: F401

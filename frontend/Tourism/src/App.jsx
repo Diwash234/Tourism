@@ -14,7 +14,7 @@ import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
 import ForgotPassword from "./pages/auth/ForgotPassword"
 
-import DestinationList from "./pages/destinations/DestinationList"
+import Destinationlist from "./pages/destinations/Destinationlist"
 import DestinationDetails from "./pages/destinations/DestinationDetails"
 
 import Dashboard from "./pages/Dashboard"
@@ -44,8 +44,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/destinations" element={<DestinationList />} />
-        <Route path="/destinations/:id" element={<DestinationDetails />} />
+        <Route path="/destinations" element={<Destinationlist />} />
+        <Route path="/destinations/:slug" element={<DestinationDetails />} />
         <Route path="/emergency" element={<Emergency />} />
       </Route>
 

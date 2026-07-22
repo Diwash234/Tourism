@@ -1,4 +1,3 @@
-
 import uuid
 
 from django.conf import settings
@@ -225,13 +224,39 @@ class DestinationTranslation(models.Model):
 
 
 class DestinationImage(TimeStampedModel):
+    class Source(models.TextChoices):
+        ADMIN = "admin", "Admin Upload"
+        USER_UPLOAD = "user_upload", "Community Upload"
+        UNSPLASH = "unsplash", "Unsplash"
+        WIKIMEDIA = "wikimedia", "Wikimedia Commons"
+        GOOGLE_PLACES = "google_places", "Google Places"
+        FOURSQUARE = "foursquare", "Foursquare"
+
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery")
-    image = models.ImageField(upload_to="destinations/gallery/")
+    image = models.ImageField(upload_to="destinations/gallery/", blank=True, null=True)
+    external_url = models.URLField(
+        blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
+    )
     caption = models.CharField(max_length=200, blank=True)
     is_cover = models.BooleanField(default=False)
 
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.ADMIN)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="uploaded_photos"
+    )
+    attribution = models.CharField(
+        max_length=255, blank=True, help_text="Required for Unsplash/Wikimedia per their license terms"
+    )
+    is_promoted = models.BooleanField(
+        default=False, help_text="Auto-set true once a community upload crosses the popularity threshold"
+    )
+    view_count = models.PositiveIntegerField(default=0)
+
     class Meta:
-        ordering = ["-is_cover", "-created_at"]
+        ordering = ["-is_cover", "-is_promoted", "-view_count", "-created_at"]
+
+    def __str__(self):
+        return f"{self.destination.name} photo ({self.get_source_display()})"
 
 
 class DestinationVideo(TimeStampedModel):
@@ -283,6 +308,43 @@ class VisitHistory(models.Model):
     class Meta:
         ordering = ["-viewed_at"]
         verbose_name_plural = "Visit history"
+
+
+class Hotel(TimeStampedModel):
+    """
+    Accommodation options near a destination. Populated either from your
+    dataset (see `import_hotels` management command) or from external APIs
+    (Google Places / Foursquare) via `tourist/utils.py`.
+    """
+
+    class BookingStatus(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        UNAVAILABLE = "unavailable", "Unavailable"
+        UNKNOWN = "unknown", "Unknown"
+
+    class Source(models.TextChoices):
+        DATASET = "dataset", "Imported Dataset"
+        GOOGLE_PLACES = "google_places", "Google Places"
+        FOURSQUARE = "foursquare", "Foursquare"
+        MANUAL = "manual", "Manually Added"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="hotels")
+    name = models.CharField(max_length=200)
+    price_per_night = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=10, default="USD")
+    rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
+    booking_status = models.CharField(max_length=20, choices=BookingStatus.choices, default=BookingStatus.UNKNOWN)
+    booking_url = models.URLField(blank=True, help_text="Link to book externally (e.g. Booking.com, Google)")
+    address = models.CharField(max_length=255, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.DATASET)
+
+    class Meta:
+        ordering = ["-rating", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_booking_status_display()})"
 
 
 class Budget(TimeStampedModel):
@@ -356,6 +418,8 @@ class EmergencyContact(TimeStampedModel):
         FIRE_STATION = "fire_station", "Fire Station"
         AMBULANCE = "ambulance", "Ambulance"
         EMBASSY = "embassy", "Embassy"
+        WARD_OFFICE = "ward_office", "Ward Office"
+        WARD_MEMBER = "ward_member", "Local Ward Member"
 
     contact_type = models.CharField(max_length=20, choices=ContactType.choices)
     name = models.CharField(max_length=200)
@@ -368,11 +432,21 @@ class EmergencyContact(TimeStampedModel):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     is_24_hours = models.BooleanField(default=True)
 
+    # Only meaningful for WARD_OFFICE / WARD_MEMBER rows — local governance
+    # contacts tied to a specific municipal ward.
+    ward_number = models.PositiveIntegerField(null=True, blank=True, help_text="Local ward number (ward contacts only)")
+    designation = models.CharField(
+        max_length=100, blank=True,
+        help_text="Role, e.g. 'Ward Chairperson', 'Ward Member - Female', 'Ward Secretary' (ward contacts only)",
+    )
+
     class Meta:
-        ordering = ["contact_type", "name"]
-        indexes = [models.Index(fields=["latitude", "longitude"])]
+        ordering = ["contact_type", "ward_number", "name"]
+        indexes = [models.Index(fields=["latitude", "longitude"]), models.Index(fields=["ward_number"])]
 
     def __str__(self):
+        if self.ward_number:
+            return f"{self.get_contact_type_display()} (Ward {self.ward_number}) - {self.name}"
         return f"{self.get_contact_type_display()} - {self.name}"
 
 
@@ -433,3 +507,68 @@ class MLInsight(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+# ---------------------------------------------------------------------------
+# OpenStreetMap (Overpass API) data — persisted, not just live pass-through.
+# See tourist/services/overpass.py for the sync functions that populate these.
+# ---------------------------------------------------------------------------
+class OSMEssentialService(TimeStampedModel):
+    class Category(models.TextChoices):
+        HOSPITAL = "hospital", "Hospital"
+        CLINIC = "clinic", "Clinic"
+        PHARMACY = "pharmacy", "Pharmacy"
+        POLICE = "police", "Police"
+        ARMED_FORCE = "armed_force", "Armed Force"
+        FIRE_STATION = "fire_station", "Fire Station"
+        BANK = "bank", "Bank"
+        AMBULANCE = "ambulance", "Ambulance"
+        MUNICIPALITY_OFFICE = "municipality_office", "Municipality Office"
+        TOURISM_OFFICE = "tourism_office", "Tourism Information Office"
+
+    osm_id = models.CharField(max_length=50, unique=True, help_text="OSM type/id, e.g. 'node/123456'")
+    category = models.CharField(max_length=30, choices=Category.choices)
+    name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=50, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    address = models.CharField(max_length=255, blank=True)
+    raw_tags = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["category", "name"]
+        indexes = [models.Index(fields=["latitude", "longitude"]), models.Index(fields=["category"])]
+
+    def __str__(self):
+        return f"{self.get_category_display()} - {self.name}"
+
+
+class OSMTourismPlace(TimeStampedModel):
+    class Category(models.TextChoices):
+        ATTRACTION = "attraction", "Attraction"
+        VIEWPOINT = "viewpoint", "Viewpoint"
+        MUSEUM = "museum", "Museum"
+        HOTEL = "hotel", "Hotel"
+        INFORMATION = "information", "Information"
+        RESTAURANT = "restaurant", "Restaurant"
+        CAFE = "cafe", "Cafe"
+        MONUMENT = "monument", "Monument"
+        PEAK = "peak", "Natural Peak"
+        WATERFALL = "waterfall", "Waterfall"
+        HIKING_PATH = "hiking_path", "Hiking Path"
+        HIKING_ROUTE = "hiking_route", "Hiking Route"
+
+    osm_id = models.CharField(max_length=50, unique=True, help_text="OSM type/id, e.g. 'way/123456'")
+    category = models.CharField(max_length=30, choices=Category.choices)
+    name = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    address = models.CharField(max_length=255, blank=True)
+    raw_tags = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["category", "name"]
+        indexes = [models.Index(fields=["latitude", "longitude"]), models.Index(fields=["category"])]
+
+    def __str__(self):
+        return f"{self.get_category_display()} - {self.name}"

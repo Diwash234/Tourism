@@ -1,0 +1,18 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==2.7.1
+python-dotenv==1.0.1
+scikit-learn==1.5.0
+joblib==1.4.2
+pandas==2.2.2
+numpy==1.26.4
+networkx==3.3
+requests==2.32.3
+python-multipart==0.0.9
+
+# Optional - only needed if you wire up the real image/translation models
+# instead of the lightweight fallback engines included here.
+# torch==2.3.1
+# torchvision==0.18.1
+# transformers==4.42.3
+# sentencepiece==0.2.0

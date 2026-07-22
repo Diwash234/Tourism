@@ -1,3 +1,4 @@
+// CONFIRMED WORKING as-is — static page, no backend calls.
 import { Link } from "react-router-dom"
 
 const NotFound = () => (

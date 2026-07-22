@@ -1,0 +1,14 @@
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+GOOGLE_MAPS_API_KEY=
+OPENWEATHER_API_KEY=
+#Places
+FOURSQUARE_API_KEY=
+UNSPLASH_ACCESS_KEY=
+#Images 
+UNSPLASH_SECRET_KEY=
+OPENAI_API_KEY=sk-
+GEONAMES_USERNAME=

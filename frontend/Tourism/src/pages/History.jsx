@@ -12,7 +12,10 @@ const History = () => {
   useEffect(() => {
     userApi
       .getHistory()
-      .then(({ data }) => setHistory(data.items || data || []))
+      // FIXED: was `data.items || data || []` — the backend returns
+      // `{ results: [...] }` (paginated), so this always fell through to
+      // the whole response object, never an array.
+      .then(({ data }) => setHistory(data.results || data.items || data || []))
       .catch(() => setHistory([]))
       .finally(() => setLoading(false))
   }, [])
@@ -30,9 +33,14 @@ const History = () => {
                 <FiMapPin />
               </div>
               <div className="flex-1">
-                <p className="font-semibold">{item.destinationName}</p>
+                {/*
+                  FIXED: `item.destinationName` / `item.visitedAt` don't
+                  exist on the backend's VisitHistorySerializer — the real
+                  fields are `destination_detail.name` and `viewed_at`.
+                */}
+                <p className="font-semibold">{item.destination_detail?.name}</p>
                 <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                  <FiClock size={12} /> {formatDate(item.visitedAt)}
+                  <FiClock size={12} /> {formatDate(item.viewed_at)}
                 </p>
               </div>
             </div>

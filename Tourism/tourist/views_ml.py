@@ -27,8 +27,9 @@ from .serializers import (
     MLWebhookResultSerializer,
     SafetyPredictionRequestSerializer,
     BudgetPredictionRequestSerializer,
+    BestRouteRequestSerializer,
 )
-#from .utils import get_ml_recommendations, get_ml_safety_prediction, get_ml_budget_prediction
+from .utils import get_ml_recommendations, get_ml_safety_prediction, get_ml_budget_prediction, get_ml_best_route
 
 
 class RecommendedDestinationsView(APIView):
@@ -172,7 +173,29 @@ class BudgetPredictionView(APIView):
     serializer_class = BudgetPredictionRequestSerializer
 
     def post(self, request):
-        serializer = BudgetPredictionRequestSerializer(data=request.data)
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+
+        # Accept `style` as an alias for `budget_level` (BudgetEstimator.jsx
+        # sends "style": "budget"|"standard"|"luxury" — map "standard" -> "mid").
+        if "budget_level" not in data and "style" in data:
+            data["budget_level"] = {"standard": "mid"}.get(data["style"], data["style"])
+
+        # `destination` may be a real PK (int) OR free text like "Pokhara"
+        # (BudgetEstimator.jsx sends the destination NAME, not an ID).
+        # Resolve free text against real Destination rows; if no match,
+        # just use it directly as the city so the estimate still runs.
+        destination_value = data.get("destination")
+        if destination_value and not str(destination_value).isdigit():
+            from .models import Destination
+
+            match = Destination.objects.filter(name__icontains=destination_value).first()
+            if match:
+                data["destination"] = match.id
+            else:
+                data.pop("destination", None)
+                data.setdefault("city", destination_value)
+
+        serializer = BudgetPredictionRequestSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -187,6 +210,45 @@ class BudgetPredictionView(APIView):
         if result is None:
             return Response(
                 {"detail": "Budget prediction service is currently unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        # Flatten so BudgetEstimator.jsx's `estimate.total` / `estimate.accommodation`
+        # etc. work directly, while keeping the original nested shape too
+        # (`estimated_total`, `breakdown`) for any other caller.
+        flattened = dict(result)
+        flattened["total"] = result["estimated_total"]
+        flattened.update(result.get("breakdown", {}))
+        return Response(flattened)
+
+
+class BestRouteView(APIView):
+    """
+    POST /api/v1/ml/best-route/
+    Proxies to the ML service's /best-route for a routed path (OSM-based
+    once the ML teammate's road graph exists; straight-line fallback until
+    then — same response shape either way). Pass `start_latitude`/
+    `start_longitude` (always required — it's the tourist's current
+    location) plus either `destination` (its coordinates are used) or
+    `end_latitude`/`end_longitude` directly.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = BestRouteRequestSerializer
+
+    def post(self, request):
+        serializer = BestRouteRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        destination = data.get("destination")
+        end_lat = destination.latitude if destination else data["end_latitude"]
+        end_lon = destination.longitude if destination else data["end_longitude"]
+
+        result = get_ml_best_route(data["start_latitude"], data["start_longitude"], end_lat, end_lon)
+        if result is None:
+            return Response(
+                {"detail": "Routing service is currently unavailable."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         return Response(result)

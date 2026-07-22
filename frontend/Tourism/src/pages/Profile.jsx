@@ -39,7 +39,7 @@ const Profile = () => {
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
             <img
-              src={user?.avatar || "https://api.dicebear.com/7.x/initials/svg?seed=" + (user?.name || "User")}
+              src={user?.avatar || "https://api.dicebear.com/7.x/initials/svg?seed=" + (user?.first_name || "User")}
               alt="avatar"
               className="h-20 w-20 rounded-full object-cover border"
             />
@@ -48,23 +48,36 @@ const Profile = () => {
             </button>
           </div>
           <div>
-            <p className="font-semibold">{user?.name}</p>
+            {/* FIXED: backend has no single `name` field — it's `first_name`/`last_name`. */}
+            <p className="font-semibold">{user?.first_name} {user?.last_name}</p>
             <p className="text-sm text-gray-500">{user?.email}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/*
+            FIXED: this form registered fields "name" and "phone", which
+            don't exist on the backend's UserProfileSerializer at all — they
+            were silently dropped on every save, so Name and Phone never
+            actually persisted. The real fields are first_name, last_name,
+            and phone_number. Also: email is read-only on the backend
+            (auth-controlled), so it's shown but not submitted as editable.
+          */}
           <div>
-            <label className="text-xs font-medium text-gray-500">Full Name</label>
-            <input className="input-field mt-1" {...register("name")} />
+            <label className="text-xs font-medium text-gray-500">First Name</label>
+            <input className="input-field mt-1" {...register("first_name")} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500">Last Name</label>
+            <input className="input-field mt-1" {...register("last_name")} />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500">Email</label>
-            <input className="input-field mt-1" {...register("email")} />
+            <input className="input-field mt-1" disabled {...register("email")} />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500">Phone</label>
-            <input className="input-field mt-1" {...register("phone")} />
+            <input className="input-field mt-1" {...register("phone_number")} />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500">Country</label>

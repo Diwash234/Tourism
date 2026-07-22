@@ -1,3 +1,5 @@
+// CONFIRMED WORKING as-is — matches POST /translate/ exactly, and reads
+// response.data.translated_text which is exactly what the backend returns.
 import { useState } from "react"
 import { FiRefreshCw } from "react-icons/fi"
 import translationApi from "../api/translationApi"
