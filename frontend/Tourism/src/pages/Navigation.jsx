@@ -3,6 +3,7 @@ import MapView from "../components/map/MapView"
 import useGeolocation from "../hooks/useGeolocation"
 import nearbyApi from "../api/nearbyApi"
 import Loader from "../components/common/Loader"
+import PageHeader from "../components/common/PageHeader"
 import { FiNavigation, FiMapPin } from "react-icons/fi"
 
 const Navigation = () => {
@@ -32,7 +33,7 @@ const Navigation = () => {
 
   return (
     <div className="container-app py-10">
-      <h1 className="section-title flex items-center gap-2"><FiNavigation className="text-primary-500" /> Navigation</h1>
+      <PageHeader title="Navigation" subtitle="Get directions from your current location to any destination." icon={FiNavigation} theme="blue" />
       <form onSubmit={handleGetRoute} className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -43,7 +44,7 @@ const Navigation = () => {
             onChange={(e) => setDestinationQuery(e.target.value)}
           />
         </div>
-        <button className="btn-primary" disabled={loading}>
+        <button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl transition" disabled={loading}>
           {loading ? "Locating route..." : "Get Directions"}
         </button>
       </form>

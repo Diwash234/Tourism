@@ -2,6 +2,8 @@ import { useForm } from "react-hook-form"
 import { useState } from "react"
 import userApi from "../api/userApi"
 import useToast from "../hooks/useToast"
+import PageHeader from "../components/common/PageHeader"
+import { FiSettings } from "react-icons/fi"
 
 const Settings = () => {
   const { register, handleSubmit } = useForm()
@@ -22,7 +24,7 @@ const Settings = () => {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      <PageHeader title="Settings" subtitle="Manage your preferences, language, and notification options." icon={FiSettings} theme="purple" />
       <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-6">
         <div>
           <h3 className="font-semibold mb-3">Preferences</h3>
@@ -61,7 +63,7 @@ const Settings = () => {
           </select>
         </div>
 
-        <button type="submit" className="btn-primary" disabled={saving}>
+        <button type="submit" className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-5 py-2.5 rounded-xl transition" disabled={saving}>
           {saving ? "Saving..." : "Save Settings"}
         </button>
       </form>

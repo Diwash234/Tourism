@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "dev": "npm --prefix Tourism run dev",
+    "build": "npm --prefix Tourism run build",
+    "lint": "npm --prefix Tourism run lint",
+    "preview": "npm --prefix Tourism run preview"
   },
   "dependencies": {
     "react": "^19.2.7",

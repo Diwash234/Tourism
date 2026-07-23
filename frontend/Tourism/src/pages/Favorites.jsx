@@ -2,8 +2,10 @@ import { useEffect, useState } from "react"
 import userApi from "../api/userApi"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
+import PageHeader from "../components/common/PageHeader"
 import DestinationCard from "../components/cards/DestinationCard"
 import useToast from "../hooks/useToast"
+import { FiHeart } from "react-icons/fi"
 
 const Favorites = () => {
   const [favorites, setFavorites] = useState([])
@@ -35,7 +37,7 @@ const Favorites = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Favorite Places</h1>
+      <PageHeader title="Favorite Places" subtitle="Destinations you've saved for later." icon={FiHeart} theme="rose" />
       {favorites.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {favorites.map((d) => (

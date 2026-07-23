@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import userApi from "../api/userApi"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
+import PageHeader from "../components/common/PageHeader"
 import { FiBell } from "react-icons/fi"
 import { formatDate } from "../utils/helpers"
 
@@ -30,7 +31,7 @@ const Notifications = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Notifications</h1>
+      <PageHeader title="Notifications" subtitle="Updates, alerts, and activity related to your account." icon={FiBell} theme="amber" />
       {notifications.length ? (
         <div className="space-y-3">
           {notifications.map((n) => (

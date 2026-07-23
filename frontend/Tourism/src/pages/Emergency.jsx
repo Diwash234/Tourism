@@ -4,6 +4,7 @@ import alertApi from "../api/alertApi"
 import MapView from "../components/map/MapView"
 import nearbyApi from "../api/nearbyApi"
 import Loader from "../components/common/Loader"
+import PageHeader from "../components/common/PageHeader"
 import { FiPhoneCall, FiAlertOctagon } from "react-icons/fi"
 
 const Emergency = () => {
@@ -29,12 +30,12 @@ const Emergency = () => {
 
   return (
     <div className="container-app py-10">
-      <h1 className="section-title flex items-center gap-2 text-red-500">
-        <FiAlertOctagon /> Emergency Assistance
-      </h1>
-      <p className="text-gray-500 text-sm mb-6">
-        Quick access to nearby hospitals, police stations and emergency contacts.
-      </p>
+      <PageHeader
+        title="Emergency Assistance"
+        subtitle="Quick access to nearby hospitals, police stations and emergency contacts."
+        icon={FiAlertOctagon}
+        theme="red"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

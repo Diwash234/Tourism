@@ -1,10 +1,11 @@
 import { useForm } from "react-hook-form"
 import { useEffect, useState } from "react"
-import { FiCamera } from "react-icons/fi"
+import { FiCamera, FiUser } from "react-icons/fi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import userApi from "../api/userApi"
 import Loader from "../components/common/Loader"
+import PageHeader from "../components/common/PageHeader"
 
 const Profile = () => {
   const { user, setUser } = useAuth()
@@ -34,7 +35,7 @@ const Profile = () => {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+      <PageHeader title="My Profile" subtitle="Update your personal information and photo." icon={FiUser} theme="blue" />
       <div className="card-base p-6">
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
@@ -75,7 +76,7 @@ const Profile = () => {
             <textarea rows={3} className="input-field mt-1" {...register("bio")} />
           </div>
           <div className="sm:col-span-2">
-            <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl transition" disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>

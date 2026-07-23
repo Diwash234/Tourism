@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
-import { FiStar, FiMapPin, FiHeart, FiGlobe, FiPhoneCall, FiDollarSign } from "react-icons/fi"
+import { useParams, Link } from "react-router-dom"
+import { FiStar, FiMapPin, FiHeart, FiGlobe, FiPhoneCall, FiDollarSign, FiBookOpen } from "react-icons/fi"
 import destinationApi from "../../api/destinationApi"
 import alertApi from "../../api/alertApi"
 import budgetApi from "../../api/budgetApi"
@@ -11,6 +11,7 @@ import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import { RISK_LEVELS } from "../../utils/constants"
 import { formatCurrency } from "../../utils/helpers"
+import { getDestinationById } from "../../data/nepalDestinations"
 
 const DestinationDetails = () => {
   const { id } = useParams()
@@ -29,9 +30,18 @@ const DestinationDetails = () => {
       alertApi.getRiskStatus(id),
       budgetApi.estimate({ destinationId: id, travelers: 1, days: 3 }),
     ]).then(([destRes, riskRes, budgetRes]) => {
-      if (destRes.status === "fulfilled") setDestination(destRes.value.data)
+      if (destRes.status === "fulfilled" && destRes.value.data) {
+        setDestination(destRes.value.data)
+      } else {
+        setDestination(getDestinationById(id) || null)
+      }
       if (riskRes.status === "fulfilled") setRisk(riskRes.value.data)
-      if (budgetRes.status === "fulfilled") setBudget(budgetRes.value.data)
+      if (budgetRes.status === "fulfilled") {
+        setBudget(budgetRes.value.data)
+      } else {
+        const fallback = getDestinationById(id)
+        if (fallback) setBudget({ total: fallback.price })
+      }
       setLoading(false)
     })
   }, [id])
@@ -97,7 +107,50 @@ const DestinationDetails = () => {
           <div>
             <h2 className="font-semibold text-lg mb-2">About this place</h2>
             <p className="text-gray-600 text-sm leading-relaxed">{destination.description || "No description available yet."}</p>
+            {destination.localLanguage && (
+              <span className="inline-block mt-3 text-xs font-medium text-secondary-600 bg-secondary-500/10 rounded-full px-3 py-1">
+                Local language: {destination.localLanguage}
+              </span>
+            )}
           </div>
+
+          {(destination.isHeritage || destination.heritageSites?.length) && (
+            <div>
+              <h2 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                <FiBookOpen className="text-primary-500" /> Local Heritage & Culture
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                {destination.heritageDescription ||
+                  "This destination is home to historic sites and cultural traditions passed down through generations."}
+              </p>
+              {destination.heritageSites?.length ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {destination.heritageSites.map((site, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden group relative">
+                      <img
+                        src={site.image || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400"}
+                        alt={site.name}
+                        className="h-28 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2">
+                        <p className="text-white text-xs font-medium">{site.name}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400",
+                    "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400",
+                    "https://images.unsplash.com/photo-1518002171953-a080ee817e1f?w=400",
+                  ].map((src, idx) => (
+                    <img key={idx} src={src} alt="heritage" className="h-28 w-full object-cover rounded-xl" />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {destination.videoUrl && (
             <div>
@@ -137,7 +190,7 @@ const DestinationDetails = () => {
             <p className="text-sm text-gray-500">Police: 100 · Ambulance: 102 · Fire: 101</p>
           </div>
 
-          <button className="btn-outline w-full">Translate Page</button>
+          <Link to="/translation" className="btn-outline w-full text-center block">Translate Page</Link>
         </div>
       </div>
     </div>

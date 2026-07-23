@@ -4,6 +4,7 @@ import nearbyApi from "../api/nearbyApi"
 import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
+import PageHeader from "../components/common/PageHeader"
 import { FiMapPin } from "react-icons/fi"
 
 const NearbyPlaces = () => {
@@ -22,7 +23,7 @@ const NearbyPlaces = () => {
 
   return (
     <div className="container-app py-10">
-      <h1 className="section-title">Nearby Places</h1>
+      <PageHeader title="Nearby Places" subtitle="Attractions, cafes, and points of interest close to your current location." icon={FiMapPin} theme="teal" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <MapView userLocation={position} nearbyAttractions={places} height="450px" />

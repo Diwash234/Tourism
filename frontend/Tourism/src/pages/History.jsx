@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import userApi from "../api/userApi"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
+import PageHeader from "../components/common/PageHeader"
 import { formatDate } from "../utils/helpers"
 import { FiClock, FiMapPin } from "react-icons/fi"
 
@@ -21,7 +22,7 @@ const History = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Visit History</h1>
+      <PageHeader title="Visit History" subtitle="A timeline of destinations you've explored." icon={FiClock} theme="indigo" />
       {history.length ? (
         <div className="space-y-4">
           {history.map((item) => (

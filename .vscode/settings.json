@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "c:/Users/15716/OneDrive/Desktop/tourism/env/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "c:/Users/15716/OneDrive/Desktop/tourism/Tourism/Tourism"
+  ],
+  "python.analysis.autoImportCompletions": true
+}
