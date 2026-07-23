@@ -43,7 +43,12 @@ ml_urlpatterns = [
     path("ml/budget/", views_ml.BudgetPredictionView.as_view(), name="ml-budget"),
     path("ml/best-route/", views_ml.BestRouteView.as_view(), name="ml-best-route"),
     path("ml/results/", views_ml.MLResultWebhookView.as_view(), name="ml-results-webhook"),
-]
+    path("ml/budget/estimate/", views_ml.budget_estimate),
+    path("ml/risk/predict/", views_ml.risk_predict),
+    path("ml/recommendation/", views_ml.recommendations),
+    path("ml/emergency/nearest/", views_ml.emergency_nearest),
+    # ...one Django view per ml-service route you want to expose
+    ]
 
 urlpatterns = [
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
