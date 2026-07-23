@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign } from "react-icons/fi"
-import adminApi from "../../api/adminApi"
+import adminPanelApi from "../../api/adminPanelApi"
 import Loader from "../../components/common/Loader"
 import LineChartCard from "../../components/charts/LineChartCard"
 import BarChartCard from "../../components/charts/BarChartCard"
@@ -22,8 +22,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    adminApi
-      .getStats()
+    adminPanelApi
+      .getDashboardStats()
       .then(({ data }) => setStats(data))
       .catch(() => setStats(null))
       .finally(() => setLoading(false))

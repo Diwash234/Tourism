@@ -27,7 +27,7 @@ from math import radians, sin, cos, sqrt, atan2
 import networkx as nx
 import pandas as pd
 
-DESTINATIONS_PATH = "data/destinations/nepal_destinations_sample.csv"
+DESTINATIONS_PATH = "data/destinations/nepal_destination_sample.csv"
 GRAPH_OUT = "model/route/nepal_graph.graphml"
 
 

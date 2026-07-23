@@ -36,7 +36,10 @@ const Destinationlist = () => {
     setLoading(true)
     const params = { page, limit: PAGE_SIZE }
     if (category) params.category = category
-    if (query) params.q = query
+    if (query) {
+      params.search = query
+      params.q = query
+    }
     if (position) {
       params.latitude = position.lat
       params.longitude = position.lng

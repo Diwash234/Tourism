@@ -5,7 +5,6 @@
 import { useState } from "react";
 import MapView from "../components/map/MapView";
 import useGeolocation from "../hooks/useGeolocation";
-import Loader from "../components/common/Loader";
 import { FiNavigation, FiMapPin } from "react-icons/fi";
 
 import navigationApi from "../api/navigationApi";
@@ -18,6 +17,7 @@ const Navigation = () => {
   const [destinationQuery, setDestinationQuery] = useState("");
   const [destination, setDestination] = useState(null);
   const [route, setRoute] = useState([]);
+  const [error, setError] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -70,10 +70,16 @@ const Navigation = () => {
 
 
 
+      setError("");
       setDestination(
-        response.data.destination || null
+        response.data.destination
+          ? {
+              ...response.data.destination,
+              lat: parseFloat(response.data.destination.latitude),
+              lng: parseFloat(response.data.destination.longitude),
+            }
+          : null
       );
-
 
       setRoute(
         response.data.route || []
@@ -84,12 +90,18 @@ const Navigation = () => {
     } catch(error) {
 
 
+      const message =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to load route."
+
       console.error(
         "Navigation error:",
         error.response?.data || error.message
       );
 
-
+      setError(message)
       setRoute([]);
 
     }
@@ -178,18 +190,17 @@ const Navigation = () => {
 
 
 
+      {error && (
+        <p className="text-sm text-red-500 mb-4">{error}</p>
+      )}
+
       <MapView
-
+        center={destination || position}
         userLocation={position}
-
         destination={destination}
-
         route={route}
-
         height="500px"
-
       />
-
 
     </div>
 

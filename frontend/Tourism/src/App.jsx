@@ -23,6 +23,7 @@ import Recommendation from "./pages/Recommendation"
 import BudgetEstimator from "./pages/BudgetEstimator"
 import RiskAlertDashboard from "./pages/RiskAlertDashboard"
 import Navigation from "./pages/Navigation"
+import Language from "./pages/Language"
 import Emergency from "./pages/Emergency"
 import NearbyPlaces from "./pages/NearbyPlaces"
 import Translation from "./pages/Translation"
@@ -58,6 +59,7 @@ function App() {
           <Route path="/budget-estimator" element={<BudgetEstimator />} />
           <Route path="/risk-alerts" element={<RiskAlertDashboard />} />
           <Route path="/navigation" element={<Navigation />} />
+          <Route path="/language" element={<Language />} />
           <Route path="/nearby-places" element={<NearbyPlaces />} />
           <Route path="/translation" element={<Translation />} />
           <Route path="/settings" element={<Settings />} />

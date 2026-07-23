@@ -186,23 +186,33 @@ class NavigationRouteView(APIView):
 
         # Your Navigation.jsx sends `destination_name` (free text) rather
         # than raw coordinates — resolve it against real Destination rows
-        # first (case-insensitive partial match), falling back to explicit
-        # end_latitude/end_longitude if those were sent instead.
+        # first. Match destination name, city, country or slug so queries like
+        # "kathmandu" still work even when the user is searching by district/city.
         destination_obj = None
         destination_name = pick("destination_name", "destinationName")
         if destination_name:
             from .models import Destination
 
-            destination_obj = (
-                Destination.objects.filter(
-                    name__icontains=destination_name, is_active=True, status=Destination.SubmissionStatus.APPROVED
-                ).first()
+            candidates = Destination.objects.filter(
+                Q(name__icontains=destination_name)
+                | Q(city__icontains=destination_name)
+                | Q(country__icontains=destination_name)
+                | Q(slug__icontains=destination_name),
+                is_active=True,
+                status=Destination.SubmissionStatus.APPROVED,
             )
-            if destination_obj is None:
+            if not candidates.exists():
                 return Response(
                     {"detail": f"No destination found matching '{destination_name}'."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
+            if start_lat is not None and start_lon is not None:
+                destination_obj = min(
+                    candidates,
+                    key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude),
+                )
+            else:
+                destination_obj = candidates.first()
             end_lat, end_lon = destination_obj.latitude, destination_obj.longitude
         else:
             try:

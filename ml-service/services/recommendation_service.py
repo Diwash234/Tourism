@@ -12,7 +12,7 @@ from model.risk.risk_engine import predict_risk
 from model.route.route_engine import haversine_km
 
 DESTINATIONS_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "data", "destinations", "nepal_destinations_sample.csv"
+    os.path.dirname(__file__), "..", "data", "destinations", "nepal_destination_sample.csv"
 )
 
 KATHMANDU = (27.7172, 85.3240)

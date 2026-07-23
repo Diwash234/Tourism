@@ -14,7 +14,7 @@ const api = axios.create({ baseURL: API_BASE_URL });
 
 // --- Attach the JWT access token to every request ---------------------
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem("access");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -51,15 +51,15 @@ api.interceptors.response.use(
     original._retry = true;
     isRefreshing = true;
     try {
-      const refresh = localStorage.getItem("refresh_token");
+      const refresh = localStorage.getItem("refresh");
       const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
-      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("access", data.access);
       resolvePending(data.access);
       original.headers.Authorization = `Bearer ${data.access}`;
       return api(original);
     } catch (refreshError) {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
       window.location.href = "/login";
       return Promise.reject(refreshError);
     } finally {
@@ -75,15 +75,15 @@ export const authApi = {
   register: (payload) => api.post("/auth/register/", payload),
   login: async (email, password) => {
     const { data } = await api.post("/auth/login/", { email, password });
-    localStorage.setItem("access_token", data.access);
-    localStorage.setItem("refresh_token", data.refresh);
+    localStorage.setItem("access", data.access);
+    localStorage.setItem("refresh", data.refresh);
     return data;
   },
   logout: async () => {
-    const refresh = localStorage.getItem("refresh_token");
+    const refresh = localStorage.getItem("refresh");
     await api.post("/auth/logout/", { refresh });
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
   },
   verifyEmail: (token) => api.post("/auth/verify-email/", { token }),
   forgotPassword: (email) => api.post("/auth/forgot-password/", { email }),
