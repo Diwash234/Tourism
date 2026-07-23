@@ -22,3 +22,6 @@ const budgetApi = {
 }
 
 export default budgetApi
+
+export const estimateBudget = (payload) =>
+  axiosClient.post("/api/ml/budget/estimate/", payload)

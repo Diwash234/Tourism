@@ -1,74 +1,125 @@
 """
 training/train_budget_model.py
 
-Trains a regression model that predicts total trip cost (USD) from:
-    num_destinations, num_days, avg_daily_cost_usd, travel_style_code
-
-Expects processed_data/budget_features.csv. Falls back to synthesizing
-a small training set from trip_expenses.csv-style logic if it's missing,
-so the pipeline runs end to end before your real expense data is ready.
-
-Run:
-    python training/train_budget_model.py
+Train travel budget prediction model
 """
+
 import os
-import numpy as np
+import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
-import joblib
 
-PROCESSED_PATH = "processed_data/budget_features.csv"
+
+DATA_PATH = "processed_data/budget_features.csv"
 MODEL_OUT = "model/budget/budget_model.joblib"
 
-STYLE_MAP = {"budget": 0, "mid_range": 1, "luxury": 2}
 
+def convert_range(value):
+    """
+    Convert values like:
+    8-20 -> 14
+    50-150 -> 100
+    """
+    if isinstance(value, str):
+        value = value.strip()
 
-def synthesize_training_data(n=300, seed=42):
-    rng = np.random.default_rng(seed)
-    num_destinations = rng.integers(1, 8, size=n)
-    num_days = num_destinations * rng.integers(1, 3, size=n)
-    avg_daily_cost = rng.uniform(10, 80, size=n)
-    travel_style_code = rng.integers(0, 3, size=n)
+        if "-" in value:
+            parts = value.split("-")
 
-    style_multiplier = np.array([0.8, 1.0, 1.8])[travel_style_code]
-    total_cost = num_days * avg_daily_cost * style_multiplier + rng.normal(0, 15, size=n)
-    total_cost = np.clip(total_cost, 20, None)
+            try:
+                low = float(parts[0])
+                high = float(parts[1])
+                return (low + high) / 2
+            except:
+                return None
 
-    df = pd.DataFrame({
-        "num_destinations": num_destinations,
-        "num_days": num_days,
-        "avg_daily_cost_usd": avg_daily_cost,
-        "travel_style_code": travel_style_code,
-        "total_cost_usd": total_cost,
-    })
-    os.makedirs("processed_data", exist_ok=True)
-    df.to_csv(PROCESSED_PATH, index=False)
-    return df
+        try:
+            return float(value)
+
+        except:
+            return None
+
+    return value
 
 
 def main():
-    if os.path.exists(PROCESSED_PATH):
-        df = pd.read_csv(PROCESSED_PATH)
-    else:
-        print(f"{PROCESSED_PATH} not found - synthesizing training data")
-        df = synthesize_training_data()
 
-    X = df[["num_destinations", "num_days", "avg_daily_cost_usd", "travel_style_code"]]
+    df = pd.read_csv(DATA_PATH)
+
+    # Clean column names
+    df.columns = df.columns.str.strip()
+
+    print("Columns found:")
+    print(df.columns.tolist())
+
+
+    # Columns containing cost ranges
+    cost_columns = df.columns[4:]
+
+
+    # Convert ranges to numbers
+    for col in cost_columns:
+        df[col] = df[col].apply(convert_range)
+
+
+    # Remove invalid rows
+    df = df.dropna()
+
+
+    # Create total cost target
+    df["total_cost_usd"] = df[cost_columns].sum(axis=1)
+
+
+    # Select features
+    X = df[cost_columns]
+
+    # Target
     y = df["total_cost_usd"]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    reg = RandomForestRegressor(n_estimators=200, random_state=42)
-    reg.fit(X_train, y_train)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42
+    )
 
-    preds = reg.predict(X_test)
-    print(f"MAE: {mean_absolute_error(y_test, preds):.2f} USD")
 
-    os.makedirs("model/budget", exist_ok=True)
-    joblib.dump(reg, MODEL_OUT)
-    print(f"Saved budget model to {MODEL_OUT}")
+    model = RandomForestRegressor(
+        n_estimators=200,
+        random_state=42
+    )
+
+
+    model.fit(X_train, y_train)
+
+
+    prediction = model.predict(X_test)
+
+    error = mean_absolute_error(
+        y_test,
+        prediction
+    )
+
+    print(f"MAE: {error:.2f} USD")
+
+
+    os.makedirs(
+        "model/budget",
+        exist_ok=True
+    )
+
+    joblib.dump(
+        model,
+        MODEL_OUT
+    )
+
+
+    print("Model saved:")
+    print(MODEL_OUT)
+
 
 
 if __name__ == "__main__":
