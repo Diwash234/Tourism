@@ -1,64 +1,237 @@
-"""
-Imports a hotels/accommodation dataset CSV into the Hotel table, linking
-each row to an existing Destination by name.
+import time
+import requests
 
-Expected CSV columns:
-    destination_name, name, price_per_night, currency, rating,
-    booking_status (available|unavailable|unknown), booking_url, address,
-    latitude, longitude
+from django.core.management.base import BaseCommand
 
-Usage:
-    python manage.py import_hotels path/to/hotels_dataset.csv
-"""
-import csv
+from tourist.models import Destination
 
-from django.core.management.base import BaseCommand, CommandError
 
-from tourist.models import Destination, Hotel
+
+def get_english_city(latitude, longitude):
+
+    """
+    Get English city name using latitude and longitude
+    """
+
+    if not latitude or not longitude:
+        return ""
+
+
+    url = "https://nominatim.openstreetmap.org/reverse"
+
+
+    params = {
+        "lat": float(latitude),
+        "lon": float(longitude),
+        "format": "json",
+        "zoom": 10,
+        "accept-language": "en"
+    }
+
+
+    headers = {
+        "User-Agent": "Tourism-Django-App"
+    }
+
+
+    try:
+
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=10
+        )
+
+
+        data = response.json()
+
+
+        address = data.get(
+            "address",
+            {}
+        )
+
+
+        city = (
+
+            address.get("city")
+            or address.get("town")
+            or address.get("municipality")
+            or address.get("village")
+            or address.get("county")
+            or ""
+
+        )
+
+
+        return city
+
+
+
+    except Exception as e:
+
+        print(
+            "API Error:",
+            e
+        )
+
+        return ""
+
+
+
 
 
 class Command(BaseCommand):
-    help = "Imports a hotels/accommodation CSV into the Hotel table."
 
-    def add_arguments(self, parser):
-        parser.add_argument("csv_path", type=str)
+    help = "Update destination city names using coordinates"
 
-    def handle(self, *args, **options):
-        csv_path = options["csv_path"]
-        created, skipped_no_destination = 0, 0
 
-        try:
-            with open(csv_path, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    try:
-                        destination = Destination.objects.get(name__iexact=row["destination_name"].strip())
-                    except Destination.DoesNotExist:
-                        skipped_no_destination += 1
-                        continue
 
-                    Hotel.objects.update_or_create(
-                        destination=destination,
-                        name=row["name"].strip(),
-                        defaults={
-                            "price_per_night": row.get("price_per_night") or None,
-                            "currency": row.get("currency") or "USD",
-                            "rating": row.get("rating") or None,
-                            "booking_status": row.get("booking_status") or Hotel.BookingStatus.UNKNOWN,
-                            "booking_url": row.get("booking_url", "").strip(),
-                            "address": row.get("address", "").strip(),
-                            "latitude": row.get("latitude") or None,
-                            "longitude": row.get("longitude") or None,
-                            "source": Hotel.Source.DATASET,
-                        },
+    def handle(self, *args, **kwargs):
+
+
+        destinations = Destination.objects.filter(
+
+            latitude__isnull=False,
+
+            longitude__isnull=False
+
+        )
+
+
+        total = destinations.count()
+
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                f"Found {total} destinations"
+
+            )
+
+        )
+
+
+
+        updated = 0
+        failed = 0
+
+
+
+        for index, destination in enumerate(
+            destinations,
+            start=1
+        ):
+
+
+            self.stdout.write(
+
+                f"{index}/{total}: {destination.name}"
+
+            )
+
+
+
+            changed = False
+
+
+
+            # Existing Nepali city
+
+            if destination.city:
+
+                destination.city_nepali = destination.city
+
+                changed = True
+
+
+
+            # Get English city
+
+            english_city = get_english_city(
+
+                destination.latitude,
+
+                destination.longitude
+
+            )
+
+
+
+            if english_city:
+
+                destination.city_english = english_city
+
+                changed = True
+
+            else:
+
+                failed += 1
+
+
+
+            if changed:
+
+                destination.save(
+
+                    update_fields=[
+
+                        "city_nepali",
+
+                        "city_english"
+
+                    ]
+
+                )
+
+
+                updated += 1
+
+
+
+                self.stdout.write(
+
+                    self.style.SUCCESS(
+
+                        f"{destination.city_nepali} -> {destination.city_english}"
+
                     )
-                    created += 1
-        except FileNotFoundError:
-            raise CommandError(f"File not found: {csv_path}")
-        except KeyError as exc:
-            raise CommandError(f"Missing required column in CSV: {exc}")
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Imported/updated {created} hotels, skipped {skipped_no_destination} "
-            f"rows with no matching destination."
-        ))
+                )
+
+            else:
+
+                self.stdout.write(
+
+                    self.style.WARNING(
+
+                        "No city information"
+
+                    )
+
+                )
+
+
+
+            # avoid overloading Nominatim
+
+            time.sleep(0.3)
+
+
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                f"""
+Completed
+
+Updated: {updated}
+Failed: {failed}
+"""
+
+            )
+
+        )

@@ -13,7 +13,10 @@ STYLE_MULTIPLIER = {"budget": 0.8, "mid_range": 1.0, "luxury": 1.8}
 
 _model = None
 if os.path.exists(MODEL_PATH):
-    _model = joblib.load(MODEL_PATH)
+    try:
+        _model = joblib.load(MODEL_PATH)
+    except Exception:
+        _model = None
 
 
 def estimate_budget(num_destinations: int, num_days: int,

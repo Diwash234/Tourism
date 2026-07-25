@@ -131,78 +131,265 @@ class Category(models.Model):
 
 
 class Destination(TimeStampedModel):
+
     class SubmissionStatus(models.TextChoices):
         PENDING = "pending", "Pending Review"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
 
-    name = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=220, unique=True, blank=True)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="destinations")
-    description = models.TextField()
-    short_description = models.CharField(max_length=300, blank=True)
 
-    # Cover photo supplied directly by whoever submits the place (in addition
-    # to the richer multi-image DestinationImage gallery below).
-    cover_image = models.ImageField(upload_to="destinations/cover/", blank=True, null=True)
-
-    # GPS coordinates
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    address = models.CharField(max_length=255, blank=True)
-    city = models.CharField(max_length=100, blank=True)
-    country = models.CharField(max_length=100, blank=True)
-
-    opening_hours = models.CharField(max_length=255, blank=True)
-    entry_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    contact_phone = PhoneNumberField(blank=True, null=True)
-    contact_email = models.EmailField(blank=True)
-    website = models.URLField(blank=True)
-
-    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
-    ratings_count = models.PositiveIntegerField(default=0)
-    views_count = models.PositiveIntegerField(default=0)
-
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="destinations_created"
+    external_id = models.IntegerField(
+        unique=True,
+        null=True,
+        blank=True
     )
 
-    # Any logged-in tourist can submit a place. Staff-created places are
-    # auto-approved; tourist-submitted places start as "pending" and only
-    # become publicly visible once an admin approves them.
-    is_user_submitted = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=SubmissionStatus.choices, default=SubmissionStatus.APPROVED)
-    review_note = models.CharField(max_length=255, blank=True, help_text="Admin note, e.g. reason for rejection")
+    name = models.CharField(
+        max_length=200
+    )
 
-    is_active = models.BooleanField(default=True)
+    slug = models.SlugField(
+        max_length=220,
+        unique=True,
+        blank=True
+    )
+
+    city_nepali = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
+    )
+
+    city_english = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.PROTECT,
+        related_name="destinations",
+        null=True,
+        blank=True
+    )
+
+
+    type = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+
+    description = models.TextField(
+        blank=True,
+        null=True
+    )
+
+
+    short_description = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True
+    )
+
+
+    district = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+
+    province = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+
+    source = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+
+    cover_image = models.ImageField(
+        upload_to="destinations/cover/",
+        blank=True,
+        null=True
+    )
+
+
+    # GPS coordinates
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        blank=True,
+        null=True
+    )
+
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        blank=True,
+        null=True
+    )
+
+
+    address = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+
+    city = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+
+    country = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+
+    opening_hours = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+
+    entry_fee = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        blank=True,
+        null=True
+    )
+
+
+    contact_phone = PhoneNumberField(
+        blank=True,
+        null=True
+    )
+
+
+    contact_email = models.EmailField(
+        blank=True,
+        null=True
+    )
+
+
+    website = models.URLField(
+        blank=True,
+        null=True
+    )
+
+
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0
+    )
+
+
+    ratings_count = models.PositiveIntegerField(
+        default=0
+    )
+
+
+    views_count = models.PositiveIntegerField(
+        default=0
+    )
+
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="destinations_created"
+    )
+
+
+    is_user_submitted = models.BooleanField(
+        default=False
+    )
+
+
+    status = models.CharField(
+        max_length=20,
+        choices=SubmissionStatus.choices,
+        default=SubmissionStatus.APPROVED
+    )
+
+
+    review_note = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Admin note, e.g. reason for rejection"
+    )
+
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
 
     class Meta:
         ordering = ["-created_at"]
+
         indexes = [
             models.Index(fields=["latitude", "longitude"]),
             models.Index(fields=["city", "country"]),
             models.Index(fields=["status"]),
         ]
 
+
     def save(self, *args, **kwargs):
+
         if not self.slug:
             base_slug = slugify(self.name)
             slug = base_slug
             counter = 1
+
             while Destination.objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
+
             self.slug = slug
+
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.name
 
+
     def recalculate_rating(self):
-        agg = self.ratings.aggregate(avg=models.Avg("value"), count=models.Count("id"))
+
+        agg = self.ratings.aggregate(
+            avg=models.Avg("value"),
+            count=models.Count("id")
+        )
+
         self.average_rating = round(agg["avg"] or 0, 2)
         self.ratings_count = agg["count"] or 0
-        self.save(update_fields=["average_rating", "ratings_count"])
+
+        self.save(
+            update_fields=[
+                "average_rating",
+                "ratings_count"
+            ]
+        )
 
 
 class DestinationTranslation(models.Model):
@@ -316,11 +503,13 @@ class Hotel(TimeStampedModel):
     dataset (see `import_hotels` management command) or from external APIs
     (Google Places / Foursquare) via `tourist/utils.py`.
     """
+    phone = models.CharField(max_length=30, blank=True)
 
     class BookingStatus(models.TextChoices):
         AVAILABLE = "available", "Available"
         UNAVAILABLE = "unavailable", "Unavailable"
         UNKNOWN = "unknown", "Unknown"
+    
 
     class Source(models.TextChoices):
         DATASET = "dataset", "Imported Dataset"
@@ -344,7 +533,88 @@ class Hotel(TimeStampedModel):
         ordering = ["-rating", "name"]
 
     def __str__(self):
-        return f"{self.name} ({self.get_booking_status_display()})"
+        return f"{self.name} ({self.get_booking_status_display()})";
+
+class Hospital(models.Model):
+
+    destination = models.ForeignKey(
+        Destination,
+        on_delete=models.CASCADE,
+        related_name="hospitals"
+    )
+
+    name = models.CharField(max_length=200)
+
+    address = models.CharField(max_length=300)
+
+    phone = models.CharField(max_length=50)
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+    district = models.CharField(max_length=100)
+class Hospital(models.Model):
+
+    destination = models.ForeignKey(
+        Destination,
+        on_delete=models.CASCADE,
+        related_name="hospitals"
+    )
+
+    name = models.CharField(max_length=200)
+
+    address = models.CharField(max_length=300)
+
+    phone = models.CharField(max_length=50)
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+    district = models.CharField(max_length=100)
+class PoliceStation(models.Model):
+
+    destination = models.ForeignKey(
+        Destination,
+        on_delete=models.CASCADE,
+        related_name="police_stations"
+    )
+
+    name = models.CharField(max_length=200)
+
+    address = models.CharField(max_length=300)
+
+    phone = models.CharField(max_length=50)
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+class BudgetEstimation(models.Model):
+    destination = models.OneToOneField(
+        Destination,
+        on_delete=models.CASCADE,
+        related_name="budget_estimation"
+    )
+
+    district = models.CharField(max_length=100)
+
+    province = models.CharField(max_length=100)
+
+    transport_cost = models.DecimalField(max_digits=8, decimal_places=2)
+
+    food_cost_per_day = models.DecimalField(max_digits=8, decimal_places=2)
+
+    accommodation_per_night = models.DecimalField(max_digits=8, decimal_places=2)
+
+    local_transport = models.DecimalField(max_digits=8, decimal_places=2)
+
+    entry_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+
+    estimated_daily_budget = models.DecimalField(max_digits=8, decimal_places=2)
+
+    estimated_trip_budget = models.DecimalField(max_digits=8, decimal_places=2)
 
 
 class Budget(TimeStampedModel):
@@ -448,7 +718,37 @@ class EmergencyContact(TimeStampedModel):
         if self.ward_number:
             return f"{self.get_contact_type_display()} (Ward {self.ward_number}) - {self.name}"
         return f"{self.get_contact_type_display()} - {self.name}"
+class RiskAnalysis(models.Model):
 
+    destination = models.OneToOneField(
+        Destination,
+        on_delete=models.CASCADE,
+        related_name="risk_analysis"
+    )
+
+    accidents = models.IntegerField(default=0)
+
+    landslide = models.IntegerField(default=0)
+
+    avalanche = models.IntegerField(default=0)
+
+    flood = models.IntegerField(default=0)
+
+    earthquake_damage = models.IntegerField(default=0)
+
+    hospital_count = models.IntegerField(default=0)
+
+    police_count = models.IntegerField(default=0)
+
+    fire_station_count = models.IntegerField(default=0)
+
+    emergency_risk = models.FloatField()
+
+    natural_disaster_risk = models.FloatField()
+
+    tourism_risk_index = models.FloatField()
+
+    risk_category = models.CharField(max_length=50)
 
 # ---------------------------------------------------------------------------
 # Notifications

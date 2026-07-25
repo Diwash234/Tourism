@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 # Load data
 
 df = pd.read_csv(
-    "processed_data/destinations_clean.csv"
+    "../processed_data/destinations_clean.csv"
 )
 
 

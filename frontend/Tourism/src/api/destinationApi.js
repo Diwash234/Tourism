@@ -14,6 +14,10 @@ const destinationApi = {
     axiosClient.get(`/destinations/${slug}/essentials/`, { params }),
 
 
+  translate: (slug, languageCode) =>
+    axiosClient.post(`/destinations/${slug}/translate/`, { language_code: languageCode }),
+
+
   getNearby: (params = {}) =>
     axiosClient.get("/destinations/nearby/", { params }),
 

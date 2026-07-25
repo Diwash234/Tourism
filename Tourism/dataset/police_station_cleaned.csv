@@ -1,0 +1,793 @@
+id,police_station,destination,address,phone,latitude,longitude,district,province,data_quality_score
+26,District Police Office Bhaktapur,Bhaktapur,"Bhaktapur Durbar Square Area, Nepal",,27.672,85.429,Bhaktapur,Bagmati,100.0
+451,District Police Office Bhaktapur,Bhaktapur,"Bhaktapur, Nepal",,27.672,85.429,Bhaktapur,Bagmati,100.0
+636,Police Station Bhaktapur,Bhaktapur,"Bhaktapur, Nepal",,27.672,85.429,Bhaktapur,Bagmati,100.0
+1919,Police Station Bhaktapur Durbar,Bhaktapur,"Bhaktapur, Nepal",,27.672,85.429,Bhaktapur,Bagmati,100.0
+870,Police Station Bhaktapur Durbar Square,Bhaktapur,"Bhaktapur, Nepal",,27.671,85.429,Bhaktapur,Bagmati,100.0
+1610,Police Station Bhaktapur Metropolitan,Bhaktapur,"Bhaktapur, Nepal",,27.672,85.429,Bhaktapur,Bagmati,100.0
+199,Police Station Bode,Bode,"Bhaktapur, Nepal",,27.69,85.41,Bhaktapur,Bagmati,100.0
+30,Police Station Changunarayan,Bhaktapur,"Changunarayan, Bhaktapur, Nepal",,27.716,85.427,Bhaktapur,Bagmati,100.0
+455,Police Station Changunarayan,Changunarayan,"Bhaktapur, Nepal",,27.716,85.427,Bhaktapur,Bagmati,100.0
+196,Police Station Dadhikot,Dadhikot,"Bhaktapur, Nepal",,27.67,85.45,Bhaktapur,Bagmati,100.0
+29,Police Station Jagati,Bhaktapur,"Jagati, Bhaktapur, Nepal",,27.65,85.445,Bhaktapur,Bagmati,100.0
+454,Police Station Jagati,Jagati,"Bhaktapur, Nepal",,27.65,85.445,Bhaktapur,Bagmati,100.0
+640,Police Station Kamalbinayak,Kamalbinayak,"Bhaktapur, Nepal",,27.69,85.44,Bhaktapur,Bagmati,100.0
+1921,Police Station Madhyapur Thimi,Thimi,"Bhaktapur, Nepal",,27.68,85.387,Bhaktapur,Bagmati,100.0
+642,Police Station Nagarkot,Nagarkot,"Bhaktapur, Nepal",,27.715,85.52,Bhaktapur,Bagmati,100.0
+197,Police Station Nangkhel,Nangkhel,"Bhaktapur, Nepal",,27.65,85.45,Bhaktapur,Bagmati,100.0
+1922,Police Station Sallaghari,Sallaghari,"Bhaktapur, Nepal",,27.67,85.41,Bhaktapur,Bagmati,100.0
+200,Police Station Sanga,Sanga,"Bhaktapur/Kavre Border, Nepal",,27.67,85.5,Bhaktapur,Bagmati,100.0
+198,Police Station Sipadol,Sipadol,"Bhaktapur, Nepal",,27.65,85.42,Bhaktapur,Bagmati,100.0
+28,Police Station Suryabinayak,Bhaktapur,"Suryabinayak, Bhaktapur, Nepal",,27.665,85.43,Bhaktapur,Bagmati,100.0
+453,Police Station Suryabinayak,Suryabinayak,"Bhaktapur, Nepal",,27.665,85.43,Bhaktapur,Bagmati,100.0
+27,Police Station Thimi,Bhaktapur,"Madhyapur Thimi, Bhaktapur, Nepal",,27.68,85.387,Bhaktapur,Bagmati,100.0
+452,Police Station Thimi,Madhyapur Thimi,"Bhaktapur, Nepal",,27.68,85.387,Bhaktapur,Bagmati,100.0
+571,Traffic Police Office Bhaktapur,Bhaktapur,"Bhaktapur, Nepal",,27.672,85.429,Bhaktapur,Bagmati,100.0
+44,District Police Office Chitwan,Bharatpur,"Bharatpur, Chitwan, Nepal",,27.683,84.43,Chitwan,Bagmati,100.0
+415,District Police Office Chitwan,Bharatpur,"Chitwan, Nepal",,27.68,84.43,Chitwan,Bagmati,100.0
+826,Police Station Bharatpur,Bharatpur,"Chitwan, Nepal",,27.68,84.43,Chitwan,Bagmati,100.0
+1340,Police Station Chitwan,Bharatpur,"Chitwan, Nepal",,27.68,84.43,Chitwan,Bagmati,100.0
+677,Police Station Khairahani,Khairahani,"Chitwan, Nepal",,27.57,84.65,Chitwan,Bagmati,100.0
+418,Police Station Madi,Madi,"Chitwan, Nepal",,27.35,84.35,Chitwan,Bagmati,100.0
+45,Police Station Narayangarh,Narayangarh,"Narayangarh, Chitwan, Nepal",,27.683,84.435,Chitwan,Bagmati,100.0
+416,Police Station Narayangarh,Narayangarh,"Chitwan, Nepal",,27.68,84.43,Chitwan,Bagmati,100.0
+46,Police Station Ratnanagar,Ratnanagar,"Tandi, Chitwan, Nepal",,27.615,84.5,Chitwan,Bagmati,100.0
+417,Police Station Ratnanagar,Tandi,"Chitwan, Nepal",,27.62,84.5,Chitwan,Bagmati,100.0
+828,Police Station Tandi,Tandi,"Chitwan, Nepal",,27.62,84.5,Chitwan,Bagmati,100.0
+39,District Police Office Dhading,Dhadingbesi,"Dhadingbesi, Dhading, Nepal",,27.873,84.92,Dhading,Bagmati,100.0
+423,District Police Office Dhading,Dhadingbesi,"Dhading, Nepal",,27.87,84.92,Dhading,Bagmati,100.0
+682,Police Station Benighat,Benighat,"Dhading, Nepal",,27.8,84.88,Dhading,Bagmati,100.0
+1260,Police Station Dhading,Dhadingbesi,"Dhading, Nepal",,27.87,84.92,Dhading,Bagmati,100.0
+834,Police Station Dhadingbesi,Dhadingbesi,"Dhading, Nepal",,27.87,84.92,Dhading,Bagmati,100.0
+425,Police Station Gajuri,Gajuri,"Dhading, Nepal",,27.82,84.88,Dhading,Bagmati,100.0
+1937,Police Station Malekhu,Malekhu,"Dhading, Nepal",,27.83,84.83,Dhading,Bagmati,100.0
+40,Police Station Naubise,Naubise,"Naubise, Dhading, Nepal",,27.75,85.08,Dhading,Bagmati,100.0
+424,Police Station Naubise,Naubise,"Dhading, Nepal",,27.75,85.08,Dhading,Bagmati,100.0
+131,District Police Office Dolakha,Charikot,"Charikot, Dolakha, Nepal",,27.67,86.05,Dolakha,Bagmati,100.0
+434,District Police Office Dolakha,Charikot,"Dolakha, Nepal",,27.67,86.05,Dolakha,Bagmati,100.0
+661,Police Station Baiteshwor,Baiteshwor,"Dolakha, Nepal",,27.7,86.1,Dolakha,Bagmati,100.0
+1057,Police Station Bhimeshwar,Charikot,"Dolakha, Nepal",,27.67,86.05,Dolakha,Bagmati,100.0
+845,Police Station Charikot,Charikot,"Dolakha, Nepal",,27.67,86.05,Dolakha,Bagmati,100.0
+1250,Police Station Dolakha,Charikot,"Dolakha, Nepal",,27.67,86.05,Dolakha,Bagmati,100.0
+132,Police Station Jiri,Jiri,"Jiri, Dolakha, Nepal",,27.63,86.23,Dolakha,Bagmati,100.0
+435,Police Station Jiri,Jiri,"Dolakha, Nepal",,27.63,86.23,Dolakha,Bagmati,100.0
+1058,Police Station Lamabagar,Lamabagar,"Dolakha, Nepal",,27.85,86.35,Dolakha,Bagmati,100.0
+436,Police Station Singati,Singati,"Dolakha, Nepal",,27.78,86.03,Dolakha,Bagmati,100.0
+601,District Police Office Kathmandu,Kathmandu,"Kathmandu, Nepal",,27.7172,85.324,Kathmandu,Bagmati,100.0
+565,District Police Office Kathmandu Traffic,Kathmandu,"Kathmandu, Nepal",,27.7,85.32,Kathmandu,Bagmati,100.0
+3,District Police Range Kathmandu,Kathmandu,"Teku, Kathmandu, Nepal",+97714261945,27.6958,85.3075,Kathmandu,Bagmati,100.0
+2,Kathmandu Valley Police Office,Kathmandu,"Ratna Park, Kathmandu, Nepal",+97714231466,27.7048,85.3157,Kathmandu,Bagmati,100.0
+4,Metropolitan Police Circle Balaju,Kathmandu,"Balaju, Kathmandu, Nepal",,27.735,85.3,Kathmandu,Bagmati,100.0
+182,Metropolitan Police Circle Chhetrapati,Chhetrapati,"Kathmandu, Nepal",,27.715,85.305,Kathmandu,Bagmati,100.0
+184,Metropolitan Police Circle Darbar Marg,Darbar Marg,"Kathmandu, Nepal",,27.711,85.318,Kathmandu,Bagmati,100.0
+5,Metropolitan Police Circle Gaushala,Kathmandu,"Gaushala, Kathmandu, Nepal",,27.709,85.348,Kathmandu,Bagmati,100.0
+7,Metropolitan Police Circle Kalimati,Kathmandu,"Kalimati, Kathmandu, Nepal",+97714270536,27.6965,85.2975,Kathmandu,Bagmati,100.0
+181,Metropolitan Police Circle Kapan,Kapan,"Kapan, Kathmandu, Nepal",,27.74,85.36,Kathmandu,Bagmati,100.0
+8,Metropolitan Police Circle Koteshwor,Kathmandu,"Koteshwor, Kathmandu, Nepal",,27.678,85.348,Kathmandu,Bagmati,100.0
+6,Metropolitan Police Circle Maharajgunj,Kathmandu,"Maharajgunj, Kathmandu, Nepal",,27.736,85.337,Kathmandu,Bagmati,100.0
+183,Metropolitan Police Circle New Baneshwor,Baneshwor,"Kathmandu, Nepal",,27.69,85.34,Kathmandu,Bagmati,100.0
+10,Metropolitan Police Circle Singha Durbar,Kathmandu,"Singha Durbar, Kathmandu, Nepal",,27.7,85.324,Kathmandu,Bagmati,100.0
+185,Metropolitan Police Circle Swayambhu,Swayambhu,"Kathmandu, Nepal",,27.714,85.29,Kathmandu,Bagmati,100.0
+9,Metropolitan Police Circle Thamel,Kathmandu,"Thamel, Kathmandu, Nepal",,27.715,85.312,Kathmandu,Bagmati,100.0
+1,Nepal Police Headquarters,Kathmandu,"Naxal, Kathmandu, Nepal",+97714412100,27.7172,85.324,Kathmandu,Bagmati,100.0
+581,Police Station Airport,Kathmandu Airport,"Kathmandu, Nepal",,27.6966,85.3591,Kathmandu,Bagmati,100.0
+616,Police Station Anamnagar,Anamnagar,"Kathmandu, Nepal",,27.705,85.33,Kathmandu,Bagmati,100.0
+589,Police Station Ason,Ason,"Kathmandu, Nepal",,27.708,85.312,Kathmandu,Bagmati,100.0
+618,Police Station Babarmahal,Babarmahal,"Kathmandu, Nepal",,27.69,85.325,Kathmandu,Bagmati,100.0
+573,Police Station Balaju,Balaju,"Kathmandu, Nepal",,27.735,85.3,Kathmandu,Bagmati,100.0
+608,Police Station Baluwatar,Baluwatar,"Kathmandu, Nepal",,27.72,85.33,Kathmandu,Bagmati,100.0
+13,Police Station Baneshwor,Kathmandu,"New Baneshwor, Kathmandu, Nepal",,27.692,85.342,Kathmandu,Bagmati,100.0
+595,Police Station Baneshwor,New Baneshwor,"Kathmandu, Nepal",,27.692,85.342,Kathmandu,Bagmati,100.0
+590,Police Station Basantapur,Basantapur,"Kathmandu, Nepal",,27.704,85.307,Kathmandu,Bagmati,100.0
+14,Police Station Bouddha,Kathmandu,"Boudha, Kathmandu, Nepal",,27.721,85.362,Kathmandu,Bagmati,100.0
+582,Police Station Boudha,Boudha,"Kathmandu, Nepal",,27.721,85.362,Kathmandu,Bagmati,100.0
+186,Police Station Budhanilkantha,Budhanilkantha,"Kathmandu, Nepal",,27.78,85.36,Kathmandu,Bagmati,100.0
+15,Police Station Chabahil,Kathmandu,"Chabahil, Kathmandu, Nepal",,27.718,85.348,Kathmandu,Bagmati,100.0
+583,Police Station Chabahil,Chabahil,"Kathmandu, Nepal",,27.718,85.348,Kathmandu,Bagmati,100.0
+577,Police Station Chandragiri,Chandragiri,"Kathmandu, Nepal",,27.68,85.23,Kathmandu,Bagmati,100.0
+1908,Police Station Chhetrapati,Chhetrapati,"Kathmandu, Nepal",,27.715,85.305,Kathmandu,Bagmati,100.0
+190,Police Station Dakshinkali,Dakshinkali,"Kathmandu, Nepal",,27.6,85.26,Kathmandu,Bagmati,100.0
+607,Police Station Dhumbarahi,Dhumbarahi,"Kathmandu, Nepal",,27.74,85.34,Kathmandu,Bagmati,100.0
+613,Police Station Dillibazar,Dillibazar,"Kathmandu, Nepal",,27.71,85.33,Kathmandu,Bagmati,100.0
+588,Police Station Durbar Marg,Durbar Marg,"Kathmandu, Nepal",,27.711,85.318,Kathmandu,Bagmati,100.0
+584,Police Station Gaushala,Gaushala,"Kathmandu, Nepal",,27.709,85.348,Kathmandu,Bagmati,100.0
+16,Police Station Gongabu,Kathmandu,"Gongabu, Kathmandu, Nepal",,27.735,85.314,Kathmandu,Bagmati,100.0
+605,Police Station Gongabu,Gongabu,"Kathmandu, Nepal",,27.735,85.314,Kathmandu,Bagmati,100.0
+615,Police Station Gyaneshwor,Gyaneshwor,"Kathmandu, Nepal",,27.71,85.335,Kathmandu,Bagmati,100.0
+856,Police Station Hanumandhoka,Hanumandhoka,"Kathmandu, Nepal",,27.704,85.306,Kathmandu,Bagmati,100.0
+621,Police Station Jadibuti,Jadibuti,"Kathmandu, Nepal",,27.68,85.37,Kathmandu,Bagmati,100.0
+1901,Police Station Jorpati,Jorpati,"Kathmandu, Nepal",,27.73,85.36,Kathmandu,Bagmati,100.0
+574,Police Station Kalanki,Kalanki,"Kathmandu, Nepal",,27.693,85.28,Kathmandu,Bagmati,100.0
+859,Police Station Kalimati,Kalimati,"Kathmandu, Nepal",,27.7,85.3,Kathmandu,Bagmati,100.0
+612,Police Station Kamaladi,Kamaladi,"Kathmandu, Nepal",,27.71,85.315,Kathmandu,Bagmati,100.0
+1001,Police Station Kapan,Kapan,"Kathmandu, Nepal",,27.755,85.36,Kathmandu,Bagmati,100.0
+1261,Police Station Kathmandu,Kathmandu,"Kathmandu, Nepal",,27.7172,85.324,Kathmandu,Bagmati,100.0
+1074,Police Station Kathmandu Metropolitan,Kathmandu,"Kathmandu, Nepal",,27.7172,85.324,Kathmandu,Bagmati,100.0
+20,Police Station Kirtipur,Kirtipur,"Kirtipur Municipality, Kathmandu, Nepal",,27.678,85.277,Kathmandu,Bagmati,100.0
+578,Police Station Kirtipur,Kirtipur,"Kathmandu, Nepal",,27.678,85.277,Kathmandu,Bagmati,100.0
+620,Police Station Koteshwor,Koteshwor,"Kathmandu, Nepal",,27.678,85.348,Kathmandu,Bagmati,100.0
+586,Police Station Lazimpat,Lazimpat,"Kathmandu, Nepal",,27.72,85.32,Kathmandu,Bagmati,100.0
+17,Police Station Maharajgunj,Kathmandu,"Maharajgunj, Kathmandu, Nepal",,27.736,85.337,Kathmandu,Bagmati,100.0
+585,Police Station Maharajgunj,Maharajgunj,"Kathmandu, Nepal",,27.736,85.337,Kathmandu,Bagmati,100.0
+614,Police Station Maitidevi,Maitidevi,"Kathmandu, Nepal",,27.7,85.33,Kathmandu,Bagmati,100.0
+188,Police Station Mulpani,Mulpani,"Kathmandu, Nepal",,27.73,85.39,Kathmandu,Bagmati,100.0
+575,Police Station Naikap,Naikap,"Kathmandu, Nepal",,27.69,85.26,Kathmandu,Bagmati,100.0
+610,Police Station Naxal,Naxal,"Kathmandu, Nepal",,27.715,85.33,Kathmandu,Bagmati,100.0
+1906,Police Station New Baneshwor,Baneshwor,"Kathmandu, Nepal",,27.69,85.342,Kathmandu,Bagmati,100.0
+594,Police Station New Road,New Road,"Kathmandu, Nepal",,27.704,85.31,Kathmandu,Bagmati,100.0
+1012,Police Station Pashupati,Pashupati,"Kathmandu, Nepal",,27.71,85.35,Kathmandu,Bagmati,100.0
+579,Police Station Pashupati Area,Pashupati,"Kathmandu, Nepal",,27.71,85.35,Kathmandu,Bagmati,100.0
+598,Police Station Pepsicola,Pepsicola,"Kathmandu, Nepal",,27.69,85.37,Kathmandu,Bagmati,100.0
+189,Police Station Pharping,Pharping,"Kathmandu, Nepal",,27.61,85.26,Kathmandu,Bagmati,100.0
+611,Police Station Putalisadak,Putalisadak,"Kathmandu, Nepal",,27.707,85.325,Kathmandu,Bagmati,100.0
+604,Police Station Samakhusi,Samakhusi,"Kathmandu, Nepal",,27.73,85.32,Kathmandu,Bagmati,100.0
+18,Police Station Sankhu,Kathmandu,"Sankhu, Kathmandu, Nepal",,27.735,85.45,Kathmandu,Bagmati,100.0
+600,Police Station Sankhu,Sankhu,"Kathmandu, Nepal",,27.735,85.45,Kathmandu,Bagmati,100.0
+596,Police Station Shantinagar,Shantinagar,"Kathmandu, Nepal",,27.69,85.34,Kathmandu,Bagmati,100.0
+580,Police Station Sinamangal,Sinamangal,"Kathmandu, Nepal",,27.7,85.35,Kathmandu,Bagmati,100.0
+617,Police Station Singha Durbar,Singha Durbar,"Kathmandu, Nepal",,27.695,85.32,Kathmandu,Bagmati,100.0
+1911,Police Station Sitapaila,Sitapaila,"Kathmandu, Nepal",,27.7,85.28,Kathmandu,Bagmati,100.0
+1020,Police Station Sundarijal,Sundarijal,"Kathmandu, Nepal",,27.79,85.41,Kathmandu,Bagmati,100.0
+593,Police Station Sundhara,Sundhara,"Kathmandu, Nepal",,27.703,85.312,Kathmandu,Bagmati,100.0
+1909,Police Station Swayambhu,Swayambhu,"Kathmandu, Nepal",,27.714,85.29,Kathmandu,Bagmati,100.0
+12,Police Station Teku,Kathmandu,"Teku, Kathmandu, Nepal",,27.695,85.306,Kathmandu,Bagmati,100.0
+591,Police Station Teku,Teku,"Kathmandu, Nepal",,27.695,85.306,Kathmandu,Bagmati,100.0
+587,Police Station Thamel,Thamel,"Kathmandu, Nepal",,27.715,85.312,Kathmandu,Bagmati,100.0
+19,Police Station Thankot,Kathmandu,"Thankot, Kathmandu, Nepal",,27.69,85.22,Kathmandu,Bagmati,100.0
+576,Police Station Thankot,Thankot,"Kathmandu, Nepal",,27.69,85.22,Kathmandu,Bagmati,100.0
+11,Police Station Thapathali,Kathmandu,"Thapathali, Kathmandu, Nepal",,27.6945,85.3205,Kathmandu,Bagmati,100.0
+597,Police Station Tinkune,Tinkune,"Kathmandu, Nepal",,27.685,85.35,Kathmandu,Bagmati,100.0
+187,Police Station Tokha,Tokha,"Kathmandu, Nepal",,27.76,85.33,Kathmandu,Bagmati,100.0
+592,Police Station Tripureshwor,Tripureshwor,"Kathmandu, Nepal",,27.7,85.31,Kathmandu,Bagmati,100.0
+569,Traffic Police Office Gongabu,Kathmandu,"Gongabu, Nepal",,27.735,85.314,Kathmandu,Bagmati,100.0
+568,Traffic Police Office Kalanki,Kathmandu,"Kalanki, Nepal",,27.693,85.28,Kathmandu,Bagmati,100.0
+567,Traffic Police Office Koteshwor,Kathmandu,"Koteshwor, Nepal",,27.678,85.348,Kathmandu,Bagmati,100.0
+570,Traffic Police Office Maharajgunj,Kathmandu,"Maharajgunj, Nepal",,27.736,85.337,Kathmandu,Bagmati,100.0
+566,Traffic Police Office Thapathali,Kathmandu,"Thapathali, Nepal",,27.6945,85.3205,Kathmandu,Bagmati,100.0
+443,District Police Office Kavre,Dhulikhel,"Kavre, Nepal",,27.62,85.54,Kavrepalanchok,Bagmati,100.0
+31,District Police Office Kavrepalanchok,Dhulikhel,"Dhulikhel, Kavre, Nepal",,27.622,85.542,Kavrepalanchok,Bagmati,100.0
+851,District Police Office Kavrepalanchok,Dhulikhel,"Kavre, Nepal",,27.62,85.54,Kavrepalanchok,Bagmati,100.0
+32,Police Station Banepa,Banepa,"Banepa Municipality, Kavre, Nepal",,27.63,85.521,Kavrepalanchok,Bagmati,100.0
+444,Police Station Banepa,Banepa,"Kavre, Nepal",,27.63,85.52,Kavrepalanchok,Bagmati,100.0
+1376,Police Station Banepa,Banepa,"Kavrepalanchok, Nepal",,27.63,85.52,Kavrepalanchok,Bagmati,100.0
+646,Police Station Dhulikhel,Dhulikhel,"Kavre, Nepal",,27.62,85.54,Kavrepalanchok,Bagmati,100.0
+1375,Police Station Dhulikhel,Dhulikhel,"Kavrepalanchok, Nepal",,27.62,85.54,Kavrepalanchok,Bagmati,100.0
+1264,Police Station Kavre,Dhulikhel,"Kavrepalanchok, Nepal",,27.62,85.54,Kavrepalanchok,Bagmati,100.0
+1040,Police Station Namobuddha,Namobuddha,"Kavre, Nepal",,27.56,85.6,Kavrepalanchok,Bagmati,100.0
+1924,Police Station Namobuddha,Namobuddha,"Kavrepalanchok, Nepal",,27.57,85.59,Kavrepalanchok,Bagmati,100.0
+33,Police Station Panauti,Panauti,"Panauti, Kavre, Nepal",,27.585,85.513,Kavrepalanchok,Bagmati,100.0
+445,Police Station Panauti,Panauti,"Kavre, Nepal",,27.58,85.51,Kavrepalanchok,Bagmati,100.0
+1377,Police Station Panauti,Panauti,"Kavrepalanchok, Nepal",,27.58,85.51,Kavrepalanchok,Bagmati,100.0
+446,Police Station Panchkhal,Panchkhal,"Kavre, Nepal",,27.65,85.62,Kavrepalanchok,Bagmati,100.0
+1378,Police Station Panchkhal,Panchkhal,"Kavrepalanchok, Nepal",,27.65,85.62,Kavrepalanchok,Bagmati,100.0
+21,District Police Office Lalitpur,Lalitpur,"Jawalakhel, Lalitpur, Nepal",+97715521207,27.673,85.315,Lalitpur,Bagmati,100.0
+447,District Police Office Lalitpur,Lalitpur,"Lalitpur, Nepal",,27.67,85.315,Lalitpur,Bagmati,100.0
+622,Police Station Balkumari,Balkumari,"Lalitpur, Nepal",,27.665,85.345,Lalitpur,Bagmati,100.0
+25,Police Station Bungamati,Lalitpur,"Bungamati, Lalitpur, Nepal",,27.628,85.294,Lalitpur,Bagmati,100.0
+1916,Police Station Bungamati,Bungamati,"Lalitpur, Nepal",,27.63,85.3,Lalitpur,Bagmati,100.0
+191,Police Station Chapagaun,Chapagaun,"Lalitpur, Nepal",,27.59,85.33,Lalitpur,Bagmati,100.0
+630,Police Station Ekantakuna,Ekantakuna,"Lalitpur, Nepal",,27.67,85.3,Lalitpur,Bagmati,100.0
+194,Police Station Godawari,Godawari,"Lalitpur, Nepal",,27.59,85.42,Lalitpur,Bagmati,100.0
+623,Police Station Gwarko,Gwarko,"Lalitpur, Nepal",,27.665,85.33,Lalitpur,Bagmati,100.0
+1030,Police Station Harisiddhi,Harisiddhi,"Lalitpur, Nepal",,27.65,85.33,Lalitpur,Bagmati,100.0
+192,Police Station Imadol,Imadol,"Lalitpur, Nepal",,27.65,85.37,Lalitpur,Bagmati,100.0
+22,Police Station Jawalakhel,Lalitpur,"Jawalakhel, Lalitpur, Nepal",,27.672,85.315,Lalitpur,Bagmati,100.0
+627,Police Station Jawalakhel,Jawalakhel,"Lalitpur, Nepal",,27.675,85.315,Lalitpur,Bagmati,100.0
+1917,Police Station Khokana,Khokana,"Lalitpur, Nepal",,27.63,85.29,Lalitpur,Bagmati,100.0
+629,Police Station Kupondole,Kupondole,"Lalitpur, Nepal",,27.69,85.315,Lalitpur,Bagmati,100.0
+23,Police Station Lagankhel,Lalitpur,"Lagankhel, Lalitpur, Nepal",,27.666,85.325,Lalitpur,Bagmati,100.0
+625,Police Station Lagankhel,Lagankhel,"Lalitpur, Nepal",,27.67,85.32,Lalitpur,Bagmati,100.0
+1085,Police Station Lalitpur,Lalitpur,"Lalitpur, Nepal",,27.67,85.315,Lalitpur,Bagmati,100.0
+866,Police Station Lalitpur Metropolitan,Lalitpur,"Lalitpur, Nepal",,27.67,85.315,Lalitpur,Bagmati,100.0
+193,Police Station Lubhu,Lubhu,"Lalitpur, Nepal",,27.62,85.39,Lalitpur,Bagmati,100.0
+626,Police Station Patan Durbar Square,Patan,"Lalitpur, Nepal",,27.673,85.325,Lalitpur,Bagmati,100.0
+628,Police Station Pulchowk,Pulchowk,"Lalitpur, Nepal",,27.68,85.315,Lalitpur,Bagmati,100.0
+24,Police Station Satdobato,Lalitpur,"Satdobato, Lalitpur, Nepal",,27.657,85.324,Lalitpur,Bagmati,100.0
+448,Police Station Satdobato,Satdobato,"Lalitpur, Nepal",,27.657,85.324,Lalitpur,Bagmati,100.0
+1029,Police Station Thecho,Thecho,"Lalitpur, Nepal",,27.62,85.33,Lalitpur,Bagmati,100.0
+195,Police Station Tikathali,Tikathali,"Lalitpur, Nepal",,27.65,85.39,Lalitpur,Bagmati,100.0
+572,Traffic Police Office Lalitpur,Lalitpur,"Lalitpur, Nepal",,27.67,85.315,Lalitpur,Bagmati,100.0
+41,District Police Office Makwanpur,Hetauda,"Hetauda, Makwanpur, Nepal",+97757520399,27.428,85.032,Makwanpur,Bagmati,100.0
+419,District Police Office Makwanpur,Hetauda,"Makwanpur, Nepal",,27.43,85.03,Makwanpur,Bagmati,100.0
+43,Police Station Bhimphedi,Bhimphedi,"Bhimphedi, Makwanpur, Nepal",,27.55,85.15,Makwanpur,Bagmati,100.0
+420,Police Station Bhimphedi,Bhimphedi,"Makwanpur, Nepal",,27.55,85.15,Makwanpur,Bagmati,100.0
+42,Police Station Hetauda,Hetauda,"Hetauda Sub-Metropolitan City, Nepal",,27.43,85.033,Makwanpur,Bagmati,100.0
+670,Police Station Hetauda,Hetauda,"Makwanpur, Nepal",,27.43,85.03,Makwanpur,Bagmati,100.0
+1248,Police Station Makwanpur,Hetauda,"Makwanpur, Nepal",,27.43,85.03,Makwanpur,Bagmati,100.0
+421,Police Station Manahari,Manahari,"Makwanpur, Nepal",,27.55,84.95,Makwanpur,Bagmati,100.0
+422,Police Station Palung,Palung,"Makwanpur, Nepal",,27.6,85.15,Makwanpur,Bagmati,100.0
+36,District Police Office Nuwakot,Bidur,"Bidur, Nuwakot, Nepal",,27.92,85.16,Nuwakot,Bagmati,100.0
+426,District Police Office Nuwakot,Bidur,"Nuwakot, Nepal",,27.92,85.16,Nuwakot,Bagmati,100.0
+837,Police Station Bidur,Bidur,"Nuwakot, Nepal",,27.92,85.16,Nuwakot,Bagmati,100.0
+428,Police Station Kakani,Kakani,"Nuwakot, Nepal",,27.8,85.2,Nuwakot,Bagmati,100.0
+1259,Police Station Nuwakot,Bidur,"Nuwakot, Nepal",,27.92,85.16,Nuwakot,Bagmati,100.0
+37,Police Station Trishuli,Trishuli,"Trishuli, Nuwakot, Nepal",,27.983,85.17,Nuwakot,Bagmati,100.0
+427,Police Station Trishuli,Trishuli,"Nuwakot, Nepal",,27.98,85.17,Nuwakot,Bagmati,100.0
+133,District Police Office Ramechhap,Manthali,"Manthali, Ramechhap, Nepal",,27.39,86.06,Ramechhap,Bagmati,100.0
+437,District Police Office Ramechhap,Manthali,"Ramechhap, Nepal",,27.39,86.06,Ramechhap,Bagmati,100.0
+664,Police Station Doramba,Doramba,"Ramechhap, Nepal",,27.4,86.25,Ramechhap,Bagmati,100.0
+848,Police Station Manthali,Manthali,"Ramechhap, Nepal",,27.39,86.06,Ramechhap,Bagmati,100.0
+439,Police Station Manthali Area,Manthali,"Ramechhap, Nepal",,27.39,86.06,Ramechhap,Bagmati,100.0
+134,Police Station Ramechhap,Ramechhap,"Ramechhap Bazaar, Nepal",,27.33,86.08,Ramechhap,Bagmati,100.0
+438,Police Station Ramechhap,Ramechhap,"Ramechhap, Nepal",,27.33,86.08,Ramechhap,Bagmati,100.0
+38,District Police Office Rasuwa,Dhunche,"Dhunche, Rasuwa, Nepal",,28.11,85.3,Rasuwa,Bagmati,100.0
+429,District Police Office Rasuwa,Dhunche,"Rasuwa, Nepal",,28.11,85.3,Rasuwa,Bagmati,100.0
+840,Police Station Dhunche,Dhunche,"Rasuwa, Nepal",,28.11,85.3,Rasuwa,Bagmati,100.0
+653,Police Station Kalikasthan,Kalikasthan,"Rasuwa, Nepal",,28.1,85.25,Rasuwa,Bagmati,100.0
+1258,Police Station Rasuwa,Dhunche,"Rasuwa, Nepal",,28.11,85.3,Rasuwa,Bagmati,100.0
+430,Police Station Syabrubesi,Syabrubesi,"Rasuwa, Nepal",,28.17,85.37,Rasuwa,Bagmati,100.0
+135,District Police Office Sindhuli,Sindhulimadhi,"Sindhulimadhi, Nepal",,27.25,85.97,Sindhuli,Bagmati,100.0
+440,District Police Office Sindhuli,Sindhulimadhi,"Sindhuli, Nepal",,27.25,85.97,Sindhuli,Bagmati,100.0
+136,Police Station Bardibas Highway Checkpoint,Sindhuli,"Bp Highway Area, Sindhuli, Nepal",,27.2,86.0,Sindhuli,Bagmati,100.0
+668,Police Station Dudhauli,Dudhauli,"Sindhuli, Nepal",,26.95,86.2,Sindhuli,Bagmati,100.0
+442,Police Station Kamalamai,Kamalamai,"Sindhuli, Nepal",,27.25,85.97,Sindhuli,Bagmati,100.0
+441,Police Station Khurkot,Khurkot,"Sindhuli, Nepal",,27.4,86.05,Sindhuli,Bagmati,100.0
+1251,Police Station Sindhuli,Sindhulimadhi,"Sindhuli, Nepal",,27.25,85.97,Sindhuli,Bagmati,100.0
+850,Police Station Sindhulimadhi,Sindhulimadhi,"Sindhuli, Nepal",,27.25,85.97,Sindhuli,Bagmati,100.0
+34,District Police Office Sindhupalchok,Chautara,"Chautara, Sindhupalchok, Nepal",,27.778,85.71,Sindhupalchok,Bagmati,100.0
+431,District Police Office Sindhupalchok,Chautara,"Sindhupalchok, Nepal",,27.78,85.71,Sindhupalchok,Bagmati,100.0
+656,Police Station Bahrabise,Bahrabise,"Sindhupalchok, Nepal",,27.79,85.89,Sindhupalchok,Bagmati,100.0
+1929,Police Station Barhabise,Barhabise,"Sindhupalchok, Nepal",,27.79,85.85,Sindhupalchok,Bagmati,100.0
+842,Police Station Chautara,Chautara,"Sindhupalchok, Nepal",,27.78,85.71,Sindhupalchok,Bagmati,100.0
+35,Police Station Melamchi,Melamchi,"Melamchi, Sindhupalchok, Nepal",,27.822,85.58,Sindhupalchok,Bagmati,100.0
+432,Police Station Melamchi,Melamchi,"Sindhupalchok, Nepal",,27.82,85.58,Sindhupalchok,Bagmati,100.0
+1256,Police Station Sindhupalchok,Chautara,"Sindhupalchok, Nepal",,27.78,85.71,Sindhupalchok,Bagmati,100.0
+433,Police Station Tatopani,Tatopani,"Sindhupalchok, Nepal",,27.98,85.95,Sindhupalchok,Bagmati,100.0
+66,District Police Office Baglung,Baglung,"Baglung Bazaar, Nepal",,28.27,83.59,Baglung,Gandaki,100.0
+478,District Police Office Baglung,Baglung,"Baglung, Nepal",,28.27,83.59,Baglung,Gandaki,100.0
+977,Police Station Baglung,Baglung,"Baglung, Nepal",,28.27,83.59,Baglung,Gandaki,100.0
+703,Police Station Baglung Bazaar,Baglung Bazaar,"Baglung, Nepal",,28.27,83.59,Baglung,Gandaki,100.0
+67,Police Station Burtibang,Burtibang,"Burtibang, Baglung, Nepal",,28.33,83.13,Baglung,Gandaki,100.0
+480,Police Station Burtibang,Burtibang,"Baglung, Nepal",,28.33,83.13,Baglung,Gandaki,100.0
+216,Police Station Burtibang Area,Burtibang,"Baglung, Nepal",,28.33,83.13,Baglung,Gandaki,100.0
+214,Police Station Dhorpatan,Dhorpatan,"Baglung, Nepal",,28.5,83.0,Baglung,Gandaki,100.0
+215,Police Station Galkot,Galkot,"Baglung, Nepal",,28.35,83.42,Baglung,Gandaki,100.0
+138,Police Station Jaimini,Jaimini,"Jaimini Municipality, Baglung, Nepal",,28.25,83.6,Baglung,Gandaki,100.0
+47,District Police Office Gorkha,Gorkha,"Gorkha Bazaar, Nepal",,28.0,84.633,Gorkha,Gandaki,100.0
+683,District Police Office Gorkha,Gorkha,"Gorkha, Nepal",,28.0,84.633,Gorkha,Gandaki,100.0
+686,Police Station Aarughat Rural,Aarughat,"Gorkha, Nepal",,28.05,84.8,Gorkha,Gandaki,100.0
+458,Police Station Arughat,Arughat,"Gorkha, Nepal",,28.04,84.81,Gorkha,Gandaki,100.0
+967,Police Station Gorkha,Gorkha,"Gorkha, Nepal",,28.0,84.633,Gorkha,Gandaki,100.0
+1105,Police Station Manakamana,Manakamana,"Gorkha, Nepal",,27.95,84.6,Gorkha,Gandaki,100.0
+48,Police Station Palungtar,Palungtar,"Palungtar, Gorkha, Nepal",,28.03,84.62,Gorkha,Gandaki,100.0
+457,Police Station Palungtar,Palungtar,"Gorkha, Nepal",,28.03,84.62,Gorkha,Gandaki,100.0
+54,District Police Office Kaski,Pokhara,"Pokhara, Kaski, Nepal",+97761538633,28.2257,83.9893,Kaski,Gandaki,100.0
+466,District Police Office Kaski,Pokhara,"Kaski, Nepal",,28.2257,83.9893,Kaski,Gandaki,100.0
+205,District Police Office Kaski Area Police Office Hemja,Hemja,"Hemja, Pokhara, Nepal",,28.26,83.91,Kaski,Gandaki,100.0
+557,District Police Office Kaski Traffic Office,Pokhara,"Kaski, Nepal",,28.2,83.97,Kaski,Gandaki,100.0
+55,Metropolitan Police Office Pokhara,Pokhara,"Pokhara Metropolitan City, Nepal",,28.2096,83.9856,Kaski,Gandaki,100.0
+562,Police Station Baglung Buspark,Pokhara,"Kaski, Nepal",,28.21,83.99,Kaski,Gandaki,100.0
+57,Police Station Baidam,Pokhara,"Baidam, Pokhara, Nepal",,28.215,83.956,Kaski,Gandaki,100.0
+468,Police Station Baidam,Baidam,"Pokhara, Nepal",,28.215,83.956,Kaski,Gandaki,100.0
+1117,Police Station Baidam,Baidam,"Kaski, Nepal",,28.215,83.956,Kaski,Gandaki,100.0
+559,Police Station Birauta,Pokhara,"Kaski, Nepal",,28.19,83.97,Kaski,Gandaki,100.0
+560,Police Station Chhorepatan,Pokhara,"Kaski, Nepal",,28.18,83.95,Kaski,Gandaki,100.0
+58,Police Station Hemja,Pokhara,"Hemja, Pokhara, Nepal",,28.26,83.91,Kaski,Gandaki,100.0
+469,Police Station Hemja,Hemja,"Pokhara, Nepal",,28.26,83.91,Kaski,Gandaki,100.0
+970,Police Station Hemja,Hemja,"Kaski, Nepal",,28.26,83.91,Kaski,Gandaki,100.0
+1547,Police Station Kaski,Pokhara,"Kaski, Nepal",,28.2257,83.9893,Kaski,Gandaki,100.0
+2046,Police Station Kaski,Prithvi Chowk,"Pokhara, Nepal",,28.21,83.99,Kaski,Gandaki,100.0
+56,Police Station Lakeside,Pokhara,"Lakeside, Pokhara, Nepal",+97761452761,28.21,83.96,Kaski,Gandaki,100.0
+467,Police Station Lakeside,Lakeside,"Pokhara, Nepal",,28.21,83.96,Kaski,Gandaki,100.0
+874,Police Station Lakeside,Lakeside,"Kaski, Nepal",,28.21,83.96,Kaski,Gandaki,100.0
+563,Police Station Lamachaur,Pokhara,"Kaski, Nepal",,28.26,83.97,Kaski,Gandaki,100.0
+59,Police Station Lekhnath,Lekhnath,"Lekhnath, Pokhara, Nepal",,28.17,84.055,Kaski,Gandaki,100.0
+470,Police Station Lekhnath,Lekhnath,"Pokhara, Nepal",,28.17,84.055,Kaski,Gandaki,100.0
+1119,Police Station Lekhnath,Lekhnath,"Kaski, Nepal",,28.17,84.055,Kaski,Gandaki,100.0
+561,Police Station Matepani,Pokhara,"Kaski, Nepal",,28.22,83.99,Kaski,Gandaki,100.0
+969,Police Station Pokhara,Pokhara,"Kaski, Nepal",,28.2257,83.9893,Kaski,Gandaki,100.0
+2592,Police Station Pokhara,Bindabasini,"Pokhara, Nepal",,28.23,83.98,Kaski,Gandaki,100.0
+873,Police Station Pokhara Metropolitan,Pokhara,"Kaski, Nepal",,28.2257,83.9893,Kaski,Gandaki,100.0
+60,Police Station Prithvi Chowk,Pokhara,"Prithvi Chowk, Pokhara, Nepal",,28.2,83.97,Kaski,Gandaki,100.0
+558,Police Station Prithvi Chowk,Pokhara,"Kaski, Nepal",,28.2,83.97,Kaski,Gandaki,100.0
+206,Police Station Sarangkot,Sarangkot,"Sarangkot, Pokhara, Nepal",,28.25,83.95,Kaski,Gandaki,100.0
+564,Police Station Sarangkot,Pokhara,"Kaski, Nepal",,28.25,83.95,Kaski,Gandaki,100.0
+49,District Police Office Lamjung,Besisahar,"Besisahar, Lamjung, Nepal",,28.23,84.01,Lamjung,Gandaki,100.0
+459,District Police Office Lamjung,Besisahar,"Lamjung, Nepal",,28.23,84.01,Lamjung,Gandaki,100.0
+688,Police Station Besisahar,Besisahar,"Lamjung, Nepal",,28.23,84.01,Lamjung,Gandaki,100.0
+461,Police Station Bhoteodar,Bhoteodar,"Lamjung, Nepal",,28.2,84.1,Lamjung,Gandaki,100.0
+1549,Police Station Lamjung,Besisahar,"Lamjung, Nepal",,28.23,84.01,Lamjung,Gandaki,100.0
+50,Police Station Sundarbazar,Sundarbazar,"Sundarbazar, Lamjung, Nepal",,28.125,84.02,Lamjung,Gandaki,100.0
+460,Police Station Sundarbazar,Sundarbazar,"Lamjung, Nepal",,28.125,84.02,Lamjung,Gandaki,100.0
+141,District Police Office Manang,Chame,"Chame, Manang, Nepal",,28.55,84.23,Manang,Gandaki,100.0
+487,District Police Office Manang,Chame,"Manang, Nepal",,28.55,84.23,Manang,Gandaki,100.0
+224,Police Station Chame,Chame,"Manang, Nepal",,28.55,84.23,Manang,Gandaki,100.0
+717,Police Station Manang,Manang,"Manang, Nepal",,28.67,84.02,Manang,Gandaki,100.0
+225,Police Station Manang Village,Manang,"Manang, Nepal",,28.67,84.02,Manang,Gandaki,100.0
+142,Police Station Pisang,Pisang,"Pisang, Manang, Nepal",,28.67,84.18,Manang,Gandaki,100.0
+488,Police Station Pisang,Pisang,"Manang, Nepal",,28.67,84.18,Manang,Gandaki,100.0
+226,Police Station Tal,Tal,"Manang, Nepal",,28.52,84.35,Manang,Gandaki,100.0
+139,District Police Office Mustang,Jomsom,"Jomsom, Mustang, Nepal",,28.78,83.72,Mustang,Gandaki,100.0
+484,District Police Office Mustang,Jomsom,"Mustang, Nepal",,28.78,83.72,Mustang,Gandaki,100.0
+711,Police Station Jomsom,Jomsom,"Mustang, Nepal",,28.78,83.72,Mustang,Gandaki,100.0
+220,Police Station Jomsom Area,Jomsom,"Mustang, Nepal",,28.78,83.72,Mustang,Gandaki,100.0
+221,Police Station Kagbeni,Kagbeni,"Mustang, Nepal",,28.84,83.78,Mustang,Gandaki,100.0
+223,Police Station Lo Manthang,Lo Manthang,"Mustang, Nepal",,29.18,83.96,Mustang,Gandaki,100.0
+222,Police Station Marpha,Marpha,"Mustang, Nepal",,28.75,83.68,Mustang,Gandaki,100.0
+140,Police Station Muktinath,Muktinath,"Muktinath Area, Mustang, Nepal",,28.82,83.87,Mustang,Gandaki,100.0
+714,Police Station Muktinath,Muktinath,"Mustang, Nepal",,28.82,83.87,Mustang,Gandaki,100.0
+1552,Police Station Mustang,Jomsom,"Mustang, Nepal",,28.78,83.72,Mustang,Gandaki,100.0
+68,District Police Office Myagdi,Beni,"Beni, Myagdi, Nepal",,28.35,83.57,Myagdi,Gandaki,100.0
+481,District Police Office Myagdi,Beni,"Myagdi, Nepal",,28.35,83.57,Myagdi,Gandaki,100.0
+707,Police Station Beni,Beni,"Myagdi, Nepal",,28.35,83.57,Myagdi,Gandaki,100.0
+218,Police Station Darbang,Darbang,"Myagdi, Nepal",,28.45,83.5,Myagdi,Gandaki,100.0
+1662,Police Station Galeshwor,Galeshwor,"Myagdi, Nepal",,28.42,83.6,Myagdi,Gandaki,100.0
+219,Police Station Ghodepani,Ghodepani,"Myagdi, Nepal",,28.4,83.69,Myagdi,Gandaki,100.0
+217,Police Station Malika,Malika,"Myagdi, Nepal",,28.42,83.55,Myagdi,Gandaki,100.0
+1553,Police Station Myagdi,Beni,"Myagdi, Nepal",,28.35,83.57,Myagdi,Gandaki,100.0
+69,Police Station Tatopani,Tatopani,"Tatopani, Myagdi, Nepal",,28.5,83.65,Myagdi,Gandaki,100.0
+483,Police Station Tatopani,Tatopani,"Myagdi, Nepal",,28.5,83.65,Myagdi,Gandaki,100.0
+201,District Police Office Nawalparasi East,Kawasoti,"Kawasoti, Nawalpur, Nepal",,27.65,84.13,Nawalpur,Gandaki,100.0
+70,District Police Office Nawalpur,Kawasoti,"Kawasoti, Nawalpur, Nepal",,27.65,84.13,Nawalpur,Gandaki,100.0
+719,District Police Office Nawalpur,Kawasoti,"Nawalpur, Nepal",,27.65,84.13,Nawalpur,Gandaki,100.0
+204,Police Station Arunkhola,Arunkhola,"Nawalpur, Nepal",,27.6,84.05,Nawalpur,Gandaki,100.0
+202,Police Station Devchuli,Devchuli,"Devchuli, Nawalpur, Nepal",,27.7,84.25,Nawalpur,Gandaki,100.0
+722,Police Station Devchuli,Devchuli,"Nawalpur, Nepal",,27.7,84.25,Nawalpur,Gandaki,100.0
+71,Police Station Gaindakot,Gaindakot,"Gaindakot, Nawalpur, Nepal",,27.7,84.39,Nawalpur,Gandaki,100.0
+721,Police Station Gaindakot,Gaindakot,"Nawalpur, Nepal",,27.7,84.42,Nawalpur,Gandaki,100.0
+720,Police Station Kawasoti,Kawasoti,"Nawalpur, Nepal",,27.65,84.13,Nawalpur,Gandaki,100.0
+203,Police Station Madhyabindu,Madhyabindu,"Nawalpur, Nepal",,27.58,84.08,Nawalpur,Gandaki,100.0
+1557,Police Station Nawalpur,Kawasoti,"Nawalpur, Nepal",,27.65,84.13,Nawalpur,Gandaki,100.0
+64,District Police Office Parbat,Kusma,"Kusma, Parbat, Nepal",,28.22,83.68,Parbat,Gandaki,100.0
+475,District Police Office Parbat,Kushma,"Parbat, Nepal",,28.22,83.68,Parbat,Gandaki,100.0
+213,Police Station Huwas,Huwas,"Parbat, Nepal",,28.1,83.7,Parbat,Gandaki,100.0
+212,Police Station Jaljala,Jaljala,"Parbat, Nepal",,28.26,83.67,Parbat,Gandaki,100.0
+476,Police Station Kushma,Kushma,"Parbat, Nepal",,28.22,83.68,Parbat,Gandaki,100.0
+65,Police Station Kusma,Kusma,"Kusma Municipality, Parbat, Nepal",,28.22,83.68,Parbat,Gandaki,100.0
+211,Police Station Modi,Kushma Area,"Parbat, Nepal",,28.25,83.7,Parbat,Gandaki,100.0
+1555,Police Station Parbat,Kushma,"Parbat, Nepal",,28.22,83.68,Parbat,Gandaki,100.0
+1666,Police Station Phalebas,Phalebas,"Parbat, Nepal",,28.17,83.67,Parbat,Gandaki,100.0
+61,District Police Office Syangja,Syangja,"Syangja Bazaar, Nepal",,28.09,83.87,Syangja,Gandaki,100.0
+471,District Police Office Syangja,Syangja,"Syangja, Nepal",,28.09,83.87,Syangja,Gandaki,100.0
+208,Police Station Arjunchaupari,Arjunchaupari,"Syangja, Nepal",,28.08,83.85,Syangja,Gandaki,100.0
+207,Police Station Chapakot,Chapakot,"Syangja, Nepal",,27.98,83.77,Syangja,Gandaki,100.0
+210,Police Station Galyang,Galyang,"Syangja, Nepal",,27.95,83.76,Syangja,Gandaki,100.0
+209,Police Station Kolma,Kolma,"Syangja, Nepal",,28.05,83.8,Syangja,Gandaki,100.0
+63,Police Station Putalibazar,Syangja,"Putalibazar, Syangja, Nepal",,28.1,83.87,Syangja,Gandaki,100.0
+474,Police Station Putalibazar,Putalibazar,"Syangja, Nepal",,28.1,83.87,Syangja,Gandaki,100.0
+1121,Police Station Syangja,Syangja,"Syangja, Nepal",,28.09,83.87,Syangja,Gandaki,100.0
+62,Police Station Waling,Waling,"Waling Municipality, Syangja, Nepal",,27.98,83.76,Syangja,Gandaki,100.0
+472,Police Station Waling,Waling,"Syangja, Nepal",,27.98,83.76,Syangja,Gandaki,100.0
+51,District Police Office Tanahun,Damauli,"Damauli, Tanahun, Nepal",,27.973,84.24,Tanahun,Gandaki,100.0
+462,District Police Office Tanahun,Damauli,"Tanahun, Nepal",,27.973,84.24,Tanahun,Gandaki,100.0
+1654,Police Station Bandipur,Bandipur,"Tanahun, Nepal",,27.94,84.41,Tanahun,Gandaki,100.0
+53,Police Station Bhimad,Bhimad,"Bhimad Municipality, Tanahun, Nepal",,27.95,84.05,Tanahun,Gandaki,100.0
+465,Police Station Bhimad,Bhimad,"Tanahun, Nepal",,27.95,84.05,Tanahun,Gandaki,100.0
+692,Police Station Damauli,Damauli,"Tanahun, Nepal",,27.973,84.24,Tanahun,Gandaki,100.0
+52,Police Station Dumre,Dumre,"Dumre, Tanahun, Nepal",,28.115,84.4,Tanahun,Gandaki,100.0
+463,Police Station Dumre,Dumre,"Tanahun, Nepal",,28.115,84.4,Tanahun,Gandaki,100.0
+464,Police Station Khairenitar,Khairenitar,"Tanahun, Nepal",,28.05,84.08,Tanahun,Gandaki,100.0
+1548,Police Station Tanahun,Damauli,"Tanahun, Nepal",,27.973,84.24,Tanahun,Gandaki,100.0
+154,District Police Office Dailekh,Dailekh,"Dailekh Bazaar, Nepal",,28.85,81.71,Dailekh,Karnali,100.0
+525,District Police Office Dailekh,Dailekh,"Dailekh, Nepal",,28.85,81.71,Dailekh,Karnali,100.0
+341,District Police Office Dailekh Area,Dailekh,"Dailekh, Nepal",,28.85,81.71,Dailekh,Karnali,100.0
+342,Police Station Bhairabi,Bhairabi,"Dailekh, Nepal",,28.9,81.6,Dailekh,Karnali,100.0
+1294,Police Station Dailekh,Dailekh,"Dailekh, Nepal",,28.85,81.71,Dailekh,Karnali,100.0
+1307,Police Station Dailekh Bazaar,Dailekh,"Dailekh, Nepal",,28.85,81.71,Dailekh,Karnali,100.0
+155,Police Station Dullu,Dullu,"Dullu, Dailekh, Nepal",,28.83,81.72,Dailekh,Karnali,100.0
+526,Police Station Dullu,Dullu,"Dailekh, Nepal",,28.83,81.72,Dailekh,Karnali,100.0
+263,Police Station Dullu Area,Dullu,"Dailekh, Nepal",,28.83,81.72,Dailekh,Karnali,100.0
+343,Police Station Mahabu,Mahabu,"Dailekh, Nepal",,28.95,81.5,Dailekh,Karnali,100.0
+262,Police Station Naumule,Naumule,"Dailekh, Nepal",,28.85,81.55,Dailekh,Karnali,100.0
+164,District Police Office Dolpa,Dunai,"Dunai, Dolpa, Nepal",,29.0,82.82,Dolpa,Karnali,100.0
+275,District Police Office Dolpa,Dunai,"Dolpa, Nepal",,29.0,82.82,Dolpa,Karnali,100.0
+1298,Police Station Dolpa,Dunai,"Dolpa, Nepal",,29.0,82.82,Dolpa,Karnali,100.0
+945,Police Station Dunai,Dunai,"Dolpa, Nepal",,29.0,82.82,Dolpa,Karnali,100.0
+165,Police Station Juphal,Juphal,"Juphal, Dolpa, Nepal",,29.28,82.82,Dolpa,Karnali,100.0
+536,Police Station Juphal,Juphal,"Dolpa, Nepal",,29.28,82.82,Dolpa,Karnali,100.0
+276,Police Station Tripurakot,Tripurakot,"Dolpa, Nepal",,29.1,82.7,Dolpa,Karnali,100.0
+156,District Police Office Jajarkot,Khalanga,"Jajarkot Khalanga, Nepal",,28.7,82.18,Jajarkot,Karnali,100.0
+264,District Police Office Jajarkot,Khalanga,"Jajarkot, Nepal",,28.7,82.18,Jajarkot,Karnali,100.0
+338,District Police Office Jajarkot Area,Khalanga,"Jajarkot, Nepal",,28.7,82.18,Jajarkot,Karnali,100.0
+266,Police Station Barekot,Barekot,"Jajarkot, Nepal",,28.8,82.1,Jajarkot,Karnali,100.0
+157,Police Station Chhedagad,Chhedagad,"Jajarkot, Nepal",,28.6,82.2,Jajarkot,Karnali,100.0
+955,Police Station Jajarkot,Khalanga,"Jajarkot, Nepal",,28.7,82.18,Jajarkot,Karnali,100.0
+340,Police Station Junichande,Junichande,"Jajarkot, Nepal",,28.85,82.1,Jajarkot,Karnali,100.0
+339,Police Station Kushe,Kushe,"Jajarkot, Nepal",,28.75,82.05,Jajarkot,Karnali,100.0
+265,Police Station Nalgad,Nalgad,"Jajarkot, Nepal",,28.65,82.2,Jajarkot,Karnali,100.0
+160,District Police Office Jumla,Chandannath,"Jumla Khalanga, Nepal",,29.27,82.18,Jumla,Karnali,100.0
+270,District Police Office Jumla,Chandannath,"Jumla, Nepal",,29.27,82.18,Jumla,Karnali,100.0
+347,District Police Office Jumla Area,Chandannath,"Jumla, Nepal",,29.27,82.18,Jumla,Karnali,100.0
+1500,Police Station Chandannath,Jumla,"Jumla, Nepal",,29.27,82.18,Jumla,Karnali,100.0
+271,Police Station Guthichaur,Guthichaur,"Jumla, Nepal",,29.35,82.15,Jumla,Karnali,100.0
+939,Police Station Jumla,Jumla,"Jumla, Nepal",,29.27,82.18,Jumla,Karnali,100.0
+348,Police Station Kanakasundari,Kanakasundari,"Jumla, Nepal",,29.3,82.05,Jumla,Karnali,100.0
+161,Police Station Sinja,Sinja,"Sinja Valley, Jumla, Nepal",,29.32,81.98,Jumla,Karnali,100.0
+532,Police Station Tatopani,Tatopani,"Jumla, Nepal",,29.25,82.25,Jumla,Karnali,100.0
+272,Police Station Tatopani Jumla,Tatopani,"Jumla, Nepal",,29.25,82.25,Jumla,Karnali,100.0
+158,District Police Office Kalikot,Manma,"Manma, Kalikot, Nepal",,29.15,81.62,Kalikot,Karnali,100.0
+267,District Police Office Kalikot,Manma,"Kalikot, Nepal",,29.15,81.62,Kalikot,Karnali,100.0
+1296,Police Station Kalikot,Manma,"Kalikot, Nepal",,29.15,81.62,Kalikot,Karnali,100.0
+941,Police Station Manma,Manma,"Kalikot, Nepal",,29.15,81.62,Kalikot,Karnali,100.0
+269,Police Station Pachaljharana,Pachaljharana,"Kalikot, Nepal",,29.2,81.7,Kalikot,Karnali,100.0
+159,Police Station Raskot,Raskot,"Kalikot, Nepal",,29.1,81.6,Kalikot,Karnali,100.0
+268,Police Station Tilagufa,Tilagufa,"Kalikot, Nepal",,29.1,81.6,Kalikot,Karnali,100.0
+162,District Police Office Mugu,Gamgadhi,"Gamgadhi, Mugu, Nepal",,29.53,82.09,Mugu,Karnali,100.0
+273,District Police Office Mugu,Gamgadhi,"Mugu, Nepal",,29.53,82.09,Mugu,Karnali,100.0
+349,District Police Office Mugu Area,Gamgadhi,"Mugu, Nepal",,29.53,82.09,Mugu,Karnali,100.0
+943,Police Station Gamgadhi,Gamgadhi,"Mugu, Nepal",,29.53,82.09,Mugu,Karnali,100.0
+350,Police Station Khatyad,Khatyad,"Mugu, Nepal",,29.6,81.9,Mugu,Karnali,100.0
+1297,Police Station Mugu,Gamgadhi,"Mugu, Nepal",,29.53,82.09,Mugu,Karnali,100.0
+163,Police Station Rara,Rara,"Rara Area, Mugu, Nepal",,29.52,82.08,Mugu,Karnali,100.0
+534,Police Station Rara,Rara,"Mugu, Nepal",,29.52,82.08,Mugu,Karnali,100.0
+274,Police Station Soru,Soru,"Mugu, Nepal",,29.45,82.05,Mugu,Karnali,100.0
+251,District Police Office Rukum West,Musikot,"Musikot, Rukum West, Nepal",,28.63,82.48,Rukum West,Karnali,100.0
+946,District Police Office Rukum West,Musikot,"Rukum West, Nepal",,28.63,82.48,Rukum West,Karnali,100.0
+335,District Police Office Rukum West Area,Musikot,"Rukum West, Nepal",,28.63,82.48,Rukum West,Karnali,100.0
+253,Police Station Aathbiskot,Aathbiskot,"Rukum West, Nepal",,28.75,82.35,Rukum West,Karnali,100.0
+336,Police Station Bafikot,Bafikot,"Rukum West, Nepal",,28.7,82.25,Rukum West,Karnali,100.0
+252,Police Station Chaurjahari,Chaurjahari,"Rukum West, Nepal",,28.6,82.3,Rukum West,Karnali,100.0
+947,Police Station Musikot,Musikot,"Rukum West, Nepal",,28.63,82.48,Rukum West,Karnali,100.0
+1571,Police Station Rukum West,Musikot,"Rukum West, Nepal",,28.63,82.48,Rukum West,Karnali,100.0
+337,Police Station Tribeni,Tribeni,"Rukum West, Nepal",,28.65,82.45,Rukum West,Karnali,100.0
+149,District Police Office Salyan,Salyan,"Salyan Khalanga, Nepal",,28.38,82.17,Salyan,Karnali,100.0
+254,District Police Office Salyan,Khalanga,"Salyan, Nepal",,28.38,82.17,Salyan,Karnali,100.0
+256,Police Station Kapurkot,Kapurkot,"Salyan, Nepal",,28.35,82.22,Salyan,Karnali,100.0
+1314,Police Station Khalanga,Salyan,"Salyan, Nepal",,28.38,82.17,Salyan,Karnali,100.0
+255,Police Station Khalanga Salyan,Khalanga,"Salyan Bazaar, Nepal",,28.38,82.17,Salyan,Karnali,100.0
+1302,Police Station Salyan,Khalanga,"Salyan, Nepal",,28.38,82.17,Salyan,Karnali,100.0
+953,Police Station Salyan Bazaar,Khalanga,"Salyan, Nepal",,28.38,82.17,Salyan,Karnali,100.0
+150,Police Station Shreenagar,Shreenagar,"Salyan, Nepal",,28.45,82.2,Salyan,Karnali,100.0
+151,District Police Office Surkhet,Birendranagar,"Birendranagar, Surkhet, Nepal",,28.6,81.63,Surkhet,Karnali,100.0
+257,District Police Office Surkhet,Birendranagar,"Surkhet, Nepal",,28.6,81.63,Surkhet,Karnali,100.0
+344,District Police Office Surkhet Area,Birendranagar,"Surkhet, Nepal",,28.6,81.63,Surkhet,Karnali,100.0
+153,Police Station Babiyachaur,Babiyachaur,"Surkhet, Nepal",,28.65,81.5,Surkhet,Karnali,100.0
+259,Police Station Babiyachaur Surkhet,Babiyachaur,"Surkhet, Nepal",,28.65,81.5,Surkhet,Karnali,100.0
+935,Police Station Birendranagar,Birendranagar,"Surkhet, Nepal",,28.6,81.63,Surkhet,Karnali,100.0
+152,Police Station Chhinchu,Chhinchu,"Chhinchu, Surkhet, Nepal",,28.45,81.75,Surkhet,Karnali,100.0
+1306,Police Station Chhinchu,Chhinchu,"Surkhet, Nepal",,28.52,81.57,Surkhet,Karnali,100.0
+346,Police Station Gurbhakot,Gurbhakot,"Surkhet, Nepal",,28.45,81.75,Surkhet,Karnali,100.0
+345,Police Station Lekbeshi,Lekbeshi,"Surkhet, Nepal",,28.6,81.8,Surkhet,Karnali,100.0
+258,Police Station Mehelkuna,Mehelkuna,"Surkhet, Nepal",,28.55,81.75,Surkhet,Karnali,100.0
+260,Police Station Ramghat,Ramghat,"Surkhet, Nepal",,28.56,81.6,Surkhet,Karnali,100.0
+1293,Police Station Surkhet,Birendranagar,"Surkhet, Nepal",,28.6,81.63,Surkhet,Karnali,100.0
+103,District Police Office Bhojpur,Bhojpur,"Bhojpur Bazaar, Nepal",,27.17,87.05,Bhojpur,Koshi,100.0
+380,District Police Office Bhojpur,Bhojpur,"Bhojpur, Nepal",,27.17,87.05,Bhojpur,Koshi,100.0
+783,Police Station Bhojpur,Bhojpur,"Bhojpur, Nepal",,27.17,87.05,Bhojpur,Koshi,100.0
+104,Police Station Dingla,Dingla,"Dingla, Bhojpur, Nepal",,27.2,87.1,Bhojpur,Koshi,100.0
+381,Police Station Dingla,Dingla,"Bhojpur, Nepal",,27.2,87.1,Bhojpur,Koshi,100.0
+1227,Police Station Shadananda,Shadananda,"Bhojpur, Nepal",,27.16,86.95,Bhojpur,Koshi,100.0
+105,District Police Office Dhankuta,Dhankuta,"Dhankuta Bazaar, Nepal",,26.98,87.34,Dhankuta,Koshi,100.0
+373,District Police Office Dhankuta,Dhankuta,"Dhankuta, Nepal",,26.98,87.34,Dhankuta,Koshi,100.0
+774,Police Station Dhankuta,Dhankuta,"Dhankuta, Nepal",,26.98,87.34,Dhankuta,Koshi,100.0
+106,Police Station Hile,Hile,"Hile, Dhankuta, Nepal",,27.01,87.3,Dhankuta,Koshi,100.0
+374,Police Station Hile,Hile,"Dhankuta, Nepal",,27.01,87.3,Dhankuta,Koshi,100.0
+375,Police Station Pakhribas,Pakhribas,"Dhankuta, Nepal",,27.05,87.3,Dhankuta,Koshi,100.0
+98,District Police Office Ilam,Ilam,"Ilam Bazaar, Nepal",,26.91,87.93,Ilam,Koshi,100.0
+366,District Police Office Ilam,Ilam,"Ilam, Nepal",,26.91,87.93,Ilam,Koshi,100.0
+367,Police Station Fikkal,Fikkal,"Ilam, Nepal",,26.89,88.08,Ilam,Koshi,100.0
+1191,Police Station Ilam,Ilam,"Ilam, Nepal",,26.91,87.93,Ilam,Koshi,100.0
+767,Police Station Ilam Bazaar,Ilam,"Ilam, Nepal",,26.91,87.93,Ilam,Koshi,100.0
+368,Police Station Mai,Mai,"Ilam, Nepal",,26.8,87.95,Ilam,Koshi,100.0
+1214,Police Station Maijogmai,Maijogmai,"Ilam, Nepal",,26.95,87.85,Ilam,Koshi,100.0
+362,Area Police Office Birtamode,Birtamode,"Jhapa, Nepal",,26.64,88.0,Jhapa,Koshi,100.0
+96,District Police Office Jhapa,Bhadrapur,"Bhadrapur, Jhapa, Nepal",,26.54,88.09,Jhapa,Koshi,100.0
+361,District Police Office Jhapa,Bhadrapur,"Jhapa, Nepal",,26.54,88.09,Jhapa,Koshi,100.0
+762,Police Station Bhadrapur,Bhadrapur,"Jhapa, Nepal",,26.54,88.09,Jhapa,Koshi,100.0
+97,Police Station Birtamode,Birtamode,"Birtamode, Jhapa, Nepal",,26.64,88.0,Jhapa,Koshi,100.0
+763,Police Station Birtamode,Birtamode,"Jhapa, Nepal",,26.64,88.0,Jhapa,Koshi,100.0
+363,Police Station Damak,Damak,"Jhapa, Nepal",,26.66,87.7,Jhapa,Koshi,100.0
+1215,Police Station Jhapa,Bhadrapur,"Jhapa, Nepal",,26.54,88.09,Jhapa,Koshi,100.0
+364,Police Station Kakarbhitta,Kakarbhitta,"Jhapa, Nepal",,26.64,88.15,Jhapa,Koshi,100.0
+365,Police Station Mechinagar,Mechinagar,"Jhapa, Nepal",,26.65,88.15,Jhapa,Koshi,100.0
+107,District Police Office Khotang,Diktel,"Diktel, Khotang, Nepal",,27.21,86.79,Khotang,Koshi,100.0
+382,District Police Office Khotang,Diktel,"Khotang, Nepal",,27.21,86.79,Khotang,Koshi,100.0
+786,Police Station Diktel,Diktel,"Khotang, Nepal",,27.21,86.79,Khotang,Koshi,100.0
+108,Police Station Halesi,Halesi,"Halesi, Khotang, Nepal",,27.05,86.73,Khotang,Koshi,100.0
+383,Police Station Halesi,Halesi,"Khotang, Nepal",,27.05,86.73,Khotang,Koshi,100.0
+1228,Police Station Khotang,Diktel,"Khotang, Nepal",,27.21,86.79,Khotang,Koshi,100.0
+352,Area Police Office Birat Chowk,Birat Chowk,"Morang, Nepal",,26.58,87.3,Morang,Koshi,100.0
+94,District Police Office Morang,Biratnagar,"Biratnagar, Morang, Nepal",+97721462158,26.45,87.27,Morang,Koshi,100.0
+351,District Police Office Morang,Biratnagar,"Morang, Nepal",,26.45,87.27,Morang,Koshi,100.0
+354,Police Station Belbari,Belbari,"Morang, Nepal",,26.68,87.43,Morang,Koshi,100.0
+1703,Police Station Biratchowk,Biratchowk,"Morang, Nepal",,26.7,87.42,Morang,Koshi,100.0
+752,Police Station Biratnagar,Biratnagar,"Morang, Nepal",,26.45,87.27,Morang,Koshi,100.0
+878,Police Station Biratnagar Metropolitan,Biratnagar,"Morang, Nepal",,26.45,87.27,Morang,Koshi,100.0
+1218,Police Station Letang,Letang,"Morang, Nepal",,26.65,87.55,Morang,Koshi,100.0
+1217,Police Station Morang,Biratnagar,"Morang, Nepal",,26.45,87.27,Morang,Koshi,100.0
+355,Police Station Pathari,Pathari,"Morang, Nepal",,26.65,87.62,Morang,Koshi,100.0
+95,Police Station Rangeli,Rangeli,"Rangeli, Morang, Nepal",,26.45,87.45,Morang,Koshi,100.0
+753,Police Station Rangeli,Rangeli,"Morang, Nepal",,26.45,87.3,Morang,Koshi,100.0
+353,Police Station Urlabari,Urlabari,"Morang, Nepal",,26.5,87.63,Morang,Koshi,100.0
+111,District Police Office Okhaldhunga,Okhaldhunga,"Okhaldhunga Bazaar, Nepal",,27.31,86.5,Okhaldhunga,Koshi,100.0
+387,District Police Office Okhaldhunga,Okhaldhunga,"Okhaldhunga, Nepal",,27.31,86.5,Okhaldhunga,Koshi,100.0
+112,Police Station Manebhanjyang,Manebhanjyang,"Okhaldhunga, Nepal",,27.28,86.55,Okhaldhunga,Koshi,100.0
+792,Police Station Okhaldhunga,Okhaldhunga,"Okhaldhunga, Nepal",,27.31,86.5,Okhaldhunga,Koshi,100.0
+1205,Police Station Rumjatar,Rumjatar,"Okhaldhunga, Nepal",,27.3,86.5,Okhaldhunga,Koshi,100.0
+369,District Police Office Panchthar,Phidim,"Panchthar, Nepal",,27.15,87.75,Panchthar,Koshi,100.0
+1211,Police Station Panchthar,Phidim,"Panchthar, Nepal",,27.15,87.75,Panchthar,Koshi,100.0
+99,Police Station Phidim,Phidim,"Phidim, Panchthar, Nepal",,27.15,87.75,Panchthar,Koshi,100.0
+770,Police Station Phidim,Phidim,"Panchthar, Nepal",,27.15,87.75,Panchthar,Koshi,100.0
+370,Police Station Yangwarak,Yangwarak,"Panchthar, Nepal",,27.2,87.75,Panchthar,Koshi,100.0
+101,District Police Office Sankhuwasabha,Khandbari,"Khandbari, Sankhuwasabha, Nepal",,27.38,87.2,Sankhuwasabha,Koshi,100.0
+378,District Police Office Sankhuwasabha,Khandbari,"Sankhuwasabha, Nepal",,27.38,87.2,Sankhuwasabha,Koshi,100.0
+102,Police Station Chainpur,Chainpur,"Chainpur, Sankhuwasabha, Nepal",,27.28,87.3,Sankhuwasabha,Koshi,100.0
+1225,Police Station Chainpur,Chainpur,"Sankhuwasabha, Nepal",,27.28,87.3,Sankhuwasabha,Koshi,100.0
+780,Police Station Khandbari,Khandbari,"Sankhuwasabha, Nepal",,27.38,87.2,Sankhuwasabha,Koshi,100.0
+1224,Police Station Sankhuwasabha,Khandbari,"Sankhuwasabha, Nepal",,27.38,87.2,Sankhuwasabha,Koshi,100.0
+379,Police Station Tumlingtar,Tumlingtar,"Sankhuwasabha, Nepal",,27.3,87.2,Sankhuwasabha,Koshi,100.0
+109,District Police Office Solukhumbu,Salleri,"Salleri, Solukhumbu, Nepal",,27.79,86.72,Solukhumbu,Koshi,100.0
+384,District Police Office Solukhumbu,Salleri,"Solukhumbu, Nepal",,27.79,86.72,Solukhumbu,Koshi,100.0
+110,Police Station Lukla,Lukla,"Lukla, Solukhumbu, Nepal",,27.69,86.73,Solukhumbu,Koshi,100.0
+386,Police Station Lukla,Lukla,"Solukhumbu, Nepal",,27.69,86.73,Solukhumbu,Koshi,100.0
+385,Police Station Namche,Namche,"Solukhumbu, Nepal",,27.81,86.71,Solukhumbu,Koshi,100.0
+1231,Police Station Namche Bazaar,Namche,"Solukhumbu, Nepal",,27.805,86.72,Solukhumbu,Koshi,100.0
+789,Police Station Salleri,Salleri,"Solukhumbu, Nepal",,27.79,86.72,Solukhumbu,Koshi,100.0
+1230,Police Station Solukhumbu,Salleri,"Solukhumbu, Nepal",,27.79,86.72,Solukhumbu,Koshi,100.0
+92,Area Police Office Dharan,Dharan,"Dharan, Sunsari, Nepal",,26.81,87.28,Sunsari,Koshi,100.0
+357,Area Police Office Dharan,Dharan,"Sunsari, Nepal",,26.81,87.28,Sunsari,Koshi,100.0
+91,District Police Office Sunsari,Inaruwa,"Inaruwa, Sunsari, Nepal",,26.61,87.14,Sunsari,Koshi,100.0
+356,District Police Office Sunsari,Inaruwa,"Sunsari, Nepal",,26.61,87.14,Sunsari,Koshi,100.0
+759,Police Station Dharan,Dharan,"Sunsari, Nepal",,26.81,87.28,Sunsari,Koshi,100.0
+359,Police Station Duhabi,Duhabi,"Sunsari, Nepal",,26.67,87.15,Sunsari,Koshi,100.0
+757,Police Station Inaruwa,Inaruwa,"Sunsari, Nepal",,26.61,87.14,Sunsari,Koshi,100.0
+93,Police Station Itahari,Itahari,"Itahari, Sunsari, Nepal",,26.66,87.27,Sunsari,Koshi,100.0
+358,Police Station Itahari,Itahari,"Sunsari, Nepal",,26.66,87.27,Sunsari,Koshi,100.0
+360,Police Station Ramdhuni,Ramdhuni,"Sunsari, Nepal",,26.69,87.17,Sunsari,Koshi,100.0
+1219,Police Station Sunsari,Inaruwa,"Sunsari, Nepal",,26.61,87.14,Sunsari,Koshi,100.0
+100,District Police Office Taplejung,Taplejung,"Taplejung Bazaar, Nepal",,27.35,87.67,Taplejung,Koshi,100.0
+371,District Police Office Taplejung,Taplejung,"Taplejung, Nepal",,27.35,87.67,Taplejung,Koshi,100.0
+372,Police Station Phungling,Phungling,"Taplejung, Nepal",,27.35,87.67,Taplejung,Koshi,100.0
+772,Police Station Taplejung,Taplejung,"Taplejung, Nepal",,27.35,87.67,Taplejung,Koshi,100.0
+376,District Police Office Terhathum,Myanglung,"Terhathum, Nepal",,27.13,87.55,Terhathum,Koshi,100.0
+377,Police Station Basantapur,Basantapur,"Terhathum, Nepal",,27.12,87.45,Terhathum,Koshi,100.0
+777,Police Station Myanglung,Myanglung,"Terhathum, Nepal",,27.13,87.55,Terhathum,Koshi,100.0
+1223,Police Station Terhathum,Myanglung,"Terhathum, Nepal",,27.13,87.55,Terhathum,Koshi,100.0
+113,District Police Office Udayapur,GaiघAt,"Gaighat, Udayapur, Nepal",,26.8,86.7,Udayapur,Koshi,100.0
+389,District Police Office Udayapur,Gaighat,"Udayapur, Nepal",,26.8,86.7,Udayapur,Koshi,100.0
+1203,Police Station Belaka,Belaka,"Udayapur, Nepal",,26.72,86.98,Udayapur,Koshi,100.0
+391,Police Station Beltar,Beltar,"Udayapur, Nepal",,26.9,86.8,Udayapur,Koshi,100.0
+794,Police Station Gaighat,Gaighat,"Udayapur, Nepal",,26.8,86.7,Udayapur,Koshi,100.0
+114,Police Station Katari,Katari,"Katari, Udayapur, Nepal",,26.03,86.17,Udayapur,Koshi,100.0
+390,Police Station Katari,Katari,"Udayapur, Nepal",,26.03,86.17,Udayapur,Koshi,100.0
+1233,Police Station Triyuga,Gaighat,"Udayapur, Nepal",,26.8,86.7,Udayapur,Koshi,100.0
+1232,Police Station Udayapur,Gaighat,"Udayapur, Nepal",,26.8,86.7,Udayapur,Koshi,100.0
+82,District Police Office Arghakhanchi,Sandhikharka,"Sandhikharka, Arghakhanchi, Nepal",,27.95,83.12,Arghakhanchi,Lumbini,100.0
+500,District Police Office Arghakhanchi,Sandhikharka,"Arghakhanchi, Nepal",,27.95,83.12,Arghakhanchi,Lumbini,100.0
+1563,Police Station Arghakhanchi,Sandhikharka,"Arghakhanchi, Nepal",,27.95,83.12,Arghakhanchi,Lumbini,100.0
+83,Police Station Chutrabesi,Sandhikharka,"Chutrabesi, Arghakhanchi, Nepal",,27.94,83.13,Arghakhanchi,Lumbini,100.0
+501,Police Station Chutrabesi,Chutrabesi,"Arghakhanchi, Nepal",,27.94,83.13,Arghakhanchi,Lumbini,100.0
+737,Police Station Sandhikharka,Sandhikharka,"Arghakhanchi, Nepal",,27.95,83.12,Arghakhanchi,Lumbini,100.0
+239,Police Station Sandhikharka Area,Sandhikharka,"Arghakhanchi, Nepal",,27.95,83.12,Arghakhanchi,Lumbini,100.0
+240,Police Station Sitapur,Sitapur,"Arghakhanchi, Nepal",,27.9,83.15,Arghakhanchi,Lumbini,100.0
+87,District Police Office Banke,Nepalgunj,"Nepalgunj, Banke, Nepal",,28.05,81.62,Banke,Lumbini,100.0
+506,District Police Office Banke,Nepalgunj,"Banke, Nepal",,28.05,81.62,Banke,Lumbini,100.0
+321,District Police Office Banke Area,Nepalgunj,"Banke, Nepal",,28.05,81.62,Banke,Lumbini,100.0
+1566,Police Station Banke,Nepalgunj,"Banke, Nepal",,28.05,81.62,Banke,Lumbini,100.0
+322,Police Station Duduwa,Duduwa,"Banke, Nepal",,28.0,81.6,Banke,Lumbini,100.0
+247,Police Station Khajura,Khajura,"Banke, Nepal",,28.1,81.6,Banke,Lumbini,100.0
+88,Police Station Kohalpur,Kohalpur,"Kohalpur, Banke, Nepal",,28.21,81.68,Banke,Lumbini,100.0
+507,Police Station Kohalpur,Kohalpur,"Banke, Nepal",,28.21,81.68,Banke,Lumbini,100.0
+246,Police Station Kohalpur Area,Kohalpur,"Banke, Nepal",,28.21,81.68,Banke,Lumbini,100.0
+324,Police Station Narainapur,Narainapur,"Banke, Nepal",,27.95,81.65,Banke,Lumbini,100.0
+742,Police Station Nepalgunj,Nepalgunj,"Banke, Nepal",,28.05,81.62,Banke,Lumbini,100.0
+245,Police Station Nepalgunj Area,Nepalgunj,"Banke, Nepal",,28.05,81.62,Banke,Lumbini,100.0
+323,Police Station Raptisonari,Raptisonari,"Banke, Nepal",,28.1,81.7,Banke,Lumbini,100.0
+89,District Police Office Bardiya,Gulariya,"Gulariya, Bardiya, Nepal",,28.23,81.34,Bardiya,Lumbini,100.0
+509,District Police Office Bardiya,Gulariya,"Bardiya, Nepal",,28.23,81.34,Bardiya,Lumbini,100.0
+316,District Police Office Bardiya Area,Gulariya,"Bardiya, Nepal",,28.23,81.34,Bardiya,Lumbini,100.0
+320,Police Station Badhaiyatal,Badhaiyatal,"Bardiya, Nepal",,28.25,81.25,Bardiya,Lumbini,100.0
+317,Police Station Bansgadhi,Bansgadhi,"Bardiya, Nepal",,28.15,81.6,Bardiya,Lumbini,100.0
+1567,Police Station Bardiya,Gulariya,"Bardiya, Nepal",,28.23,81.34,Bardiya,Lumbini,100.0
+745,Police Station Gulariya,Gulariya,"Bardiya, Nepal",,28.23,81.34,Bardiya,Lumbini,100.0
+248,Police Station Gulariya Area,Gulariya,"Bardiya, Nepal",,28.23,81.34,Bardiya,Lumbini,100.0
+249,Police Station Mainapokhar,Mainapokhar,"Bardiya, Nepal",,28.2,81.3,Bardiya,Lumbini,100.0
+318,Police Station Murgiya,Murgiya,"Bardiya, Nepal",,28.25,81.3,Bardiya,Lumbini,100.0
+90,Police Station Rajapur,Rajapur,"Rajapur, Bardiya, Nepal",,28.88,81.1,Bardiya,Lumbini,100.0
+510,Police Station Rajapur,Rajapur,"Bardiya, Nepal",,28.88,81.1,Bardiya,Lumbini,100.0
+319,Police Station Rajapur Area,Rajapur,"Bardiya, Nepal",,28.88,81.1,Bardiya,Lumbini,100.0
+250,Police Station Thakurdwara,Thakurdwara,"Bardiya, Nepal",,28.5,81.2,Bardiya,Lumbini,100.0
+84,District Police Office Dang,Ghorahi,"Ghorahi, Dang, Nepal",+97782560199,28.035,82.48,Dang,Lumbini,100.0
+502,District Police Office Dang,Ghorahi,"Dang, Nepal",,28.03,82.48,Dang,Lumbini,100.0
+325,District Police Office Dang Area,Ghorahi,"Dang, Nepal",,28.03,82.48,Dang,Lumbini,100.0
+326,Police Station Bhalubang,Bhalubang,"Dang, Nepal",,27.9,82.6,Dang,Lumbini,100.0
+1568,Police Station Dang,Ghorahi,"Dang, Nepal",,28.03,82.48,Dang,Lumbini,100.0
+243,Police Station Gadawa,Gadawa,"Dang, Nepal",,27.95,82.35,Dang,Lumbini,100.0
+327,Police Station Gadhawa,Gadhawa,"Dang, Nepal",,27.95,82.35,Dang,Lumbini,100.0
+739,Police Station Ghorahi,Ghorahi,"Dang, Nepal",,28.03,82.48,Dang,Lumbini,100.0
+241,Police Station Ghorahi Area,Ghorahi,"Dang, Nepal",,28.03,82.48,Dang,Lumbini,100.0
+244,Police Station Koilabas,Koilabas,"Dang Border Area, Nepal",,27.85,82.2,Dang,Lumbini,100.0
+86,Police Station Lamahi,Lamahi,"Lamahi, Dang, Nepal",,27.85,82.55,Dang,Lumbini,100.0
+504,Police Station Lamahi,Lamahi,"Dang, Nepal",,27.85,82.55,Dang,Lumbini,100.0
+242,Police Station Narayanpur,Narayanpur,"Dang, Nepal",,28.08,82.5,Dang,Lumbini,100.0
+328,Police Station Rapti,Rapti,"Dang, Nepal",,28.0,82.5,Dang,Lumbini,100.0
+85,Police Station Tulsipur,Tulsipur,"Tulsipur, Dang, Nepal",,28.13,82.3,Dang,Lumbini,100.0
+503,Police Station Tulsipur,Tulsipur,"Dang, Nepal",,28.13,82.3,Dang,Lumbini,100.0
+80,District Police Office Gulmi,Tamghas,"Tamghas, Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+498,District Police Office Gulmi,Tamghas,"Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+1562,Police Station Gulmi,Tamghas,"Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+238,Police Station Musikot Gulmi,Musikot,"Gulmi, Nepal",,28.06,83.15,Gulmi,Lumbini,100.0
+81,Police Station Resunga,Resunga,"Resunga, Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+499,Police Station Resunga,Resunga,"Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+1672,Police Station Ridi,Ridi,"Gulmi, Nepal",,27.95,83.3,Gulmi,Lumbini,100.0
+734,Police Station Tamghas,Tamghas,"Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+237,Police Station Tamghas Area,Tamghas,"Gulmi, Nepal",,28.08,83.25,Gulmi,Lumbini,100.0
+76,District Police Office Kapilvastu,Taulihawa,"Taulihawa, Kapilvastu, Nepal",,27.55,83.05,Kapilvastu,Lumbini,100.0
+494,District Police Office Kapilvastu,Taulihawa,"Kapilvastu, Nepal",,27.55,83.05,Kapilvastu,Lumbini,100.0
+232,Police Station Chandrauta,Chandrauta,"Kapilvastu, Nepal",,27.57,82.92,Kapilvastu,Lumbini,100.0
+233,Police Station Gorusinge,Gorusinge,"Kapilvastu, Nepal",,27.65,83.0,Kapilvastu,Lumbini,100.0
+1564,Police Station Kapilvastu,Taulihawa,"Kapilvastu, Nepal",,27.55,83.05,Kapilvastu,Lumbini,100.0
+77,Police Station Krishnanagar,Krishnanagar,"Krishnanagar, Kapilvastu, Nepal",,27.42,82.92,Kapilvastu,Lumbini,100.0
+495,Police Station Krishnanagar,Krishnanagar,"Kapilvastu, Nepal",,27.42,82.92,Kapilvastu,Lumbini,100.0
+728,Police Station Taulihawa,Taulihawa,"Kapilvastu, Nepal",,27.55,83.05,Kapilvastu,Lumbini,100.0
+231,Police Station Taulihawa Area,Taulihawa,"Kapilvastu, Nepal",,27.55,83.05,Kapilvastu,Lumbini,100.0
+1794,Police Station Parasi,Ramgram,"Nawalparasi West, Nepal",,27.53,83.67,Nawalparasi West,Lumbini,100.0
+78,District Police Office Palpa,Tansen,"Tansen, Palpa, Nepal",,27.87,83.55,Palpa,Lumbini,100.0
+496,District Police Office Palpa,Tansen,"Palpa, Nepal",,27.87,83.55,Palpa,Lumbini,100.0
+1561,Police Station Palpa,Tansen,"Palpa, Nepal",,27.87,83.55,Palpa,Lumbini,100.0
+79,Police Station Rampur,Rampur,"Rampur, Palpa, Nepal",,27.92,83.91,Palpa,Lumbini,100.0
+497,Police Station Rampur,Rampur,"Palpa, Nepal",,27.92,83.91,Palpa,Lumbini,100.0
+236,Police Station Rampur Area,Rampur,"Palpa, Nepal",,27.92,83.91,Palpa,Lumbini,100.0
+235,Police Station Ridi,Ridi,"Palpa, Nepal",,27.95,83.65,Palpa,Lumbini,100.0
+234,Police Station Tansen,Tansen,"Palpa, Nepal",,27.87,83.55,Palpa,Lumbini,100.0
+147,District Police Office Pyuthan,Pyuthan,"Pyuthan Khalanga, Nepal",,28.09,82.86,Pyuthan,Lumbini,100.0
+517,District Police Office Pyuthan,Khalanga,"Pyuthan, Nepal",,28.09,82.86,Pyuthan,Lumbini,100.0
+329,District Police Office Pyuthan Area,Khalanga,"Pyuthan, Nepal",,28.09,82.86,Pyuthan,Lumbini,100.0
+148,Police Station Bijuwar,Bijuwar,"Bijuwar, Pyuthan, Nepal",,28.1,82.85,Pyuthan,Lumbini,100.0
+518,Police Station Bijuwar,Bijuwar,"Pyuthan, Nepal",,28.1,82.85,Pyuthan,Lumbini,100.0
+330,Police Station Bijuwar Area,Bijuwar,"Pyuthan, Nepal",,28.1,82.85,Pyuthan,Lumbini,100.0
+951,Police Station Pyuthan,Khalanga,"Pyuthan, Nepal",,28.09,82.86,Pyuthan,Lumbini,100.0
+331,Police Station Swargadwari,Swargadwari,"Pyuthan, Nepal",,28.05,82.75,Pyuthan,Lumbini,100.0
+145,District Police Office Rolpa,Liwang,"Liwang, Rolpa, Nepal",,28.3,82.63,Rolpa,Lumbini,100.0
+514,District Police Office Rolpa,Liwang,"Rolpa, Nepal",,28.3,82.63,Rolpa,Lumbini,100.0
+332,District Police Office Rolpa Area,Liwang,"Rolpa, Nepal",,28.3,82.63,Rolpa,Lumbini,100.0
+333,Police Station Holeri,Holeri,"Rolpa, Nepal",,28.3,82.9,Rolpa,Lumbini,100.0
+949,Police Station Liwang,Liwang,"Rolpa, Nepal",,28.3,82.63,Rolpa,Lumbini,100.0
+1503,Police Station Rolpa,Liwang,"Rolpa, Nepal",,28.3,82.63,Rolpa,Lumbini,100.0
+146,Police Station Sulichaur,Sulichaur,"Sulichaur, Rolpa, Nepal",,28.42,82.7,Rolpa,Lumbini,100.0
+515,Police Station Sulichaur,Sulichaur,"Rolpa, Nepal",,28.42,82.7,Rolpa,Lumbini,100.0
+334,Police Station Thawang,Thawang,"Rolpa, Nepal",,28.55,82.6,Rolpa,Lumbini,100.0
+143,District Police Office Rukum East,Rukumkot,"Rukumkot, Rukum East, Nepal",,28.63,82.63,Rukum East,Lumbini,100.0
+512,District Police Office Rukum East,Rukumkot,"Rukum East, Nepal",,28.63,82.63,Rukum East,Lumbini,100.0
+513,Police Station Kol,Kolah,"Rukum East, Nepal",,28.65,82.6,Rukum East,Lumbini,100.0
+144,Police Station Musikot,Musikot,"Musikot, Rukum East, Nepal",,28.63,82.48,Rukum East,Lumbini,100.0
+1572,Police Station Rukum East,Rukumkot,"Rukum East, Nepal",,28.63,82.63,Rukum East,Lumbini,100.0
+957,Police Station Rukumkot,Rukumkot,"Rukum East, Nepal",,28.63,82.63,Rukum East,Lumbini,100.0
+73,Area Police Office Butwal,Butwal,"Butwal, Rupandehi, Nepal",,27.7,83.45,Rupandehi,Lumbini,100.0
+72,District Police Office Rupandehi,Bhairahawa,"Bhairahawa, Rupandehi, Nepal",,27.5,83.45,Rupandehi,Lumbini,100.0
+490,District Police Office Rupandehi,Bhairahawa,"Rupandehi, Nepal",,27.5,83.45,Rupandehi,Lumbini,100.0
+227,District Police Office Rupandehi Traffic Office,Butwal,"Butwal, Rupandehi, Nepal",,27.7,83.45,Rupandehi,Lumbini,100.0
+74,Police Station Belbas,Butwal,"Belbas, Butwal, Nepal",,27.68,83.42,Rupandehi,Lumbini,100.0
+876,Police Station Bhairahawa,Bhairahawa,"Rupandehi, Nepal",,27.5,83.45,Rupandehi,Lumbini,100.0
+491,Police Station Butwal,Butwal,"Rupandehi, Nepal",,27.7,83.45,Rupandehi,Lumbini,100.0
+229,Police Station Devdaha,Devdaha,"Rupandehi, Nepal",,27.6,83.55,Rupandehi,Lumbini,100.0
+230,Police Station Lumbini,Lumbini,"Lumbini, Nepal",,27.47,83.28,Rupandehi,Lumbini,100.0
+493,Police Station Lumbini,Lumbini,"Rupandehi, Nepal",,27.47,83.28,Rupandehi,Lumbini,100.0
+228,Police Station Manigram,Manigram,"Rupandehi, Nepal",,27.65,83.4,Rupandehi,Lumbini,100.0
+1565,Police Station Rupandehi,Butwal,"Rupandehi, Nepal",,27.7,83.45,Rupandehi,Lumbini,100.0
+726,Police Station Sainamaina,Sainamaina,"Rupandehi, Nepal",,27.7,83.33,Rupandehi,Lumbini,100.0
+724,Police Station Siddharthanagar,Siddharthanagar,"Rupandehi, Nepal",,27.5,83.45,Rupandehi,Lumbini,100.0
+75,Police Station Sidharthanagar,Siddharthanagar,"Siddharthanagar, Rupandehi, Nepal",,27.5,83.45,Rupandehi,Lumbini,100.0
+127,District Police Office Bara,Kalaiya,"Kalaiya, Bara, Nepal",,26.99,84.87,Bara,Madhesh,100.0
+409,District Police Office Bara,Kalaiya,"Bara, Nepal",,26.99,84.87,Bara,Madhesh,100.0
+1246,Police Station Bara,Kalaiya,"Bara, Nepal",,26.99,84.87,Bara,Madhesh,100.0
+818,Police Station Kalaiya,Kalaiya,"Bara, Nepal",,26.99,84.87,Bara,Madhesh,100.0
+411,Police Station Nijgadh,Nijgadh,"Bara, Nepal",,27.21,85.15,Bara,Madhesh,100.0
+128,Police Station Simara,Simara,"Simara, Bara, Nepal",,27.16,84.98,Bara,Madhesh,100.0
+410,Police Station Simara,Simara,"Bara, Nepal",,27.16,84.98,Bara,Madhesh,100.0
+119,District Police Office Dhanusha,Janakpur,"Janakpur, Dhanusha, Nepal",,26.73,85.92,Dhanusha,Madhesh,100.0
+397,District Police Office Dhanusha,Janakpur,"Dhanusha, Nepal",,26.73,85.92,Dhanusha,Madhesh,100.0
+398,Police Station Dhalkebar,Dhalkebar,"Dhanusha, Nepal",,26.9,85.95,Dhanusha,Madhesh,100.0
+1238,Police Station Dhanusha,Janakpur,"Dhanusha, Nepal",,26.73,85.92,Dhanusha,Madhesh,100.0
+120,Police Station Janakpur,Janakpur,"Janakpur Sub-Metropolitan City, Nepal",,26.73,85.92,Dhanusha,Madhesh,100.0
+802,Police Station Janakpur,Janakpur,"Dhanusha, Nepal",,26.73,85.92,Dhanusha,Madhesh,100.0
+1239,Police Station Mithila,Mithila,"Dhanusha, Nepal",,26.9,85.95,Dhanusha,Madhesh,100.0
+399,Police Station Sabaila,Sabaila,"Dhanusha, Nepal",,26.8,85.9,Dhanusha,Madhesh,100.0
+121,District Police Office Mahottari,Jaleshwar,"Jaleshwar, Mahottari, Nepal",,26.65,85.8,Mahottari,Madhesh,100.0
+400,District Police Office Mahottari,Jaleshwar,"Mahottari, Nepal",,26.65,85.8,Mahottari,Madhesh,100.0
+122,Police Station Bardibas,Bardibas,"Bardibas, Mahottari, Nepal",,26.99,85.9,Mahottari,Madhesh,100.0
+402,Police Station Bardibas,Bardibas,"Mahottari, Nepal",,26.99,85.9,Mahottari,Madhesh,100.0
+401,Police Station Gaushala,Mahottari,"Gaushala, Mahottari, Nepal",,26.98,85.85,Mahottari,Madhesh,100.0
+808,Police Station Gaushala,Gaushala,"Mahottari, Nepal",,26.98,85.85,Mahottari,Madhesh,100.0
+806,Police Station Jaleshwar,Jaleshwar,"Mahottari, Nepal",,26.65,85.8,Mahottari,Madhesh,100.0
+1240,Police Station Mahottari,Jaleshwar,"Mahottari, Nepal",,26.65,85.8,Mahottari,Madhesh,100.0
+129,District Police Office Parsa,Birgunj,"Birgunj, Parsa, Nepal",,27.01,84.88,Parsa,Madhesh,100.0
+412,District Police Office Parsa,Birgunj,"Parsa, Nepal",,27.01,84.88,Parsa,Madhesh,100.0
+130,Police Station Birgunj,Birgunj,"Birgunj Metropolitan City, Nepal",,27.01,84.88,Parsa,Madhesh,100.0
+822,Police Station Birgunj,Birgunj,"Parsa, Nepal",,27.01,84.88,Parsa,Madhesh,100.0
+1247,Police Station Parsa,Birgunj,"Parsa, Nepal",,27.01,84.88,Parsa,Madhesh,100.0
+414,Police Station Parwanipur,Parwanipur,"Parsa, Nepal",,27.03,84.9,Parsa,Madhesh,100.0
+413,Police Station Pokhariya,Pokhariya,"Parsa, Nepal",,27.07,84.67,Parsa,Madhesh,100.0
+125,District Police Office Rautahat,Gaur,"Gaur, Rautahat, Nepal",,26.77,85.27,Rautahat,Madhesh,100.0
+406,District Police Office Rautahat,Gaur,"Rautahat, Nepal",,26.77,85.27,Rautahat,Madhesh,100.0
+126,Police Station Chandrapur,Chandrapur,"Chandrapur, Rautahat, Nepal",,27.0,85.42,Rautahat,Madhesh,100.0
+407,Police Station Chandrapur,Chandrapur,"Rautahat, Nepal",,27.0,85.42,Rautahat,Madhesh,100.0
+408,Police Station Garuda,Garuda,"Rautahat, Nepal",,26.98,85.33,Rautahat,Madhesh,100.0
+814,Police Station Gaur,Gaur,"Rautahat, Nepal",,26.77,85.27,Rautahat,Madhesh,100.0
+1245,Police Station Rajpur,Rajpur,"Rautahat, Nepal",,26.8,85.25,Rautahat,Madhesh,100.0
+1244,Police Station Rautahat,Gaur,"Rautahat, Nepal",,26.77,85.27,Rautahat,Madhesh,100.0
+115,District Police Office Saptari,Rajbiraj,"Rajbiraj, Saptari, Nepal",,26.54,86.75,Saptari,Madhesh,100.0
+392,District Police Office Saptari,Rajbiraj,"Saptari, Nepal",,26.54,86.75,Saptari,Madhesh,100.0
+393,Police Station Hanumannagar,Hanumannagar,"Saptari, Nepal",,26.58,86.55,Saptari,Madhesh,100.0
+116,Police Station Kadarbona,Kadarbona,"Saptari, Nepal",,26.58,86.65,Saptari,Madhesh,100.0
+1730,Police Station Kanchanpur,Kanchanpur,"Saptari, Nepal",,26.6,86.8,Saptari,Madhesh,100.0
+1237,Police Station Kanchanrup,Kanchanrup,"Saptari, Nepal",,26.55,86.98,Saptari,Madhesh,100.0
+797,Police Station Rajbiraj,Rajbiraj,"Saptari, Nepal",,26.54,86.75,Saptari,Madhesh,100.0
+1236,Police Station Saptari,Rajbiraj,"Saptari, Nepal",,26.54,86.75,Saptari,Madhesh,100.0
+123,District Police Office Sarlahi,Malangwa,"Malangwa, Sarlahi, Nepal",,26.86,85.56,Sarlahi,Madhesh,100.0
+403,District Police Office Sarlahi,Malangwa,"Sarlahi, Nepal",,26.86,85.56,Sarlahi,Madhesh,100.0
+405,Police Station Haripur,Haripur,"Sarlahi, Nepal",,26.95,85.5,Sarlahi,Madhesh,100.0
+124,Police Station Lalbandi,Lalbandi,"Lalbandi, Sarlahi, Nepal",,27.03,85.55,Sarlahi,Madhesh,100.0
+404,Police Station Lalbandi,Lalbandi,"Sarlahi, Nepal",,27.03,85.55,Sarlahi,Madhesh,100.0
+810,Police Station Malangwa,Malangwa,"Sarlahi, Nepal",,26.86,85.56,Sarlahi,Madhesh,100.0
+1242,Police Station Sarlahi,Malangwa,"Sarlahi, Nepal",,26.86,85.56,Sarlahi,Madhesh,100.0
+117,District Police Office Siraha,Siraha,"Siraha Bazaar, Nepal",,26.65,86.2,Siraha,Madhesh,100.0
+394,District Police Office Siraha,Siraha,"Siraha, Nepal",,26.65,86.2,Siraha,Madhesh,100.0
+1235,Police Station Dhangadhimai,Dhangadhimai,"Siraha, Nepal",,26.7,86.3,Siraha,Madhesh,100.0
+118,Police Station Lahan,Lahan,"Lahan, Siraha, Nepal",,26.72,86.48,Siraha,Madhesh,100.0
+395,Police Station Lahan,Lahan,"Siraha, Nepal",,26.72,86.48,Siraha,Madhesh,100.0
+396,Police Station Mirchaiya,Mirchaiya,"Siraha, Nepal",,26.78,86.25,Siraha,Madhesh,100.0
+1175,Police Station Siraha,Siraha,"Siraha, Nepal",,26.65,86.2,Siraha,Madhesh,100.0
+294,District Police Office Achham,Mangalsen,"Achham, Nepal",,29.13,81.25,Achham,Sudurpashchim,100.0
+301,District Police Office Achham,Mangalsen,"Mangalsen, Achham, Nepal",,29.13,81.25,Achham,Sudurpashchim,100.0
+1292,Police Station Achham,Mangalsen,"Achham, Nepal",,29.13,81.25,Achham,Sudurpashchim,100.0
+304,Police Station Chaurpati,Chaurpati,"Achham, Nepal",,29.2,81.35,Achham,Sudurpashchim,100.0
+296,Police Station Kamalbazar,Kamalbazar,"Achham, Nepal",,29.05,81.35,Achham,Sudurpashchim,100.0
+303,Police Station Kamalbazar Area,Kamalbazar,"Achham, Nepal",,29.05,81.35,Achham,Sudurpashchim,100.0
+1698,Police Station Mangalsen,Mangalsen,"Achham, Nepal",,29.13,81.25,Achham,Sudurpashchim,100.0
+295,Police Station Sanfebagar,Sanfebagar,"Achham, Nepal",,29.23,81.22,Achham,Sudurpashchim,100.0
+302,Police Station Sanfebagar Area,Sanfebagar,"Achham, Nepal",,29.23,81.22,Achham,Sudurpashchim,100.0
+173,District Police Office Baitadi,Baitadi,"Dasharathchand, Baitadi, Nepal",,29.52,80.43,Baitadi,Sudurpashchim,100.0
+286,District Police Office Baitadi,Dasharathchand,"Baitadi, Nepal",,29.52,80.43,Baitadi,Sudurpashchim,100.0
+1288,Police Station Baitadi,Dasharathchand,"Baitadi, Nepal",,29.52,80.43,Baitadi,Sudurpashchim,100.0
+1319,Police Station Dasharathchand,Baitadi,"Baitadi, Nepal",,29.52,80.43,Baitadi,Sudurpashchim,100.0
+174,Police Station Patan,Patan,"Patan, Baitadi, Nepal",,29.5,80.6,Baitadi,Sudurpashchim,100.0
+546,Police Station Patan,Patan,"Baitadi, Nepal",,29.5,80.6,Baitadi,Sudurpashchim,100.0
+287,Police Station Patan Baitadi,Patan,"Baitadi, Nepal",,29.5,80.6,Baitadi,Sudurpashchim,100.0
+179,District Police Office Bajhang,Chainpur,"Chainpur, Bajhang, Nepal",,29.55,81.18,Bajhang,Sudurpashchim,100.0
+292,District Police Office Bajhang,Chainpur,"Bajhang, Nepal",,29.55,81.18,Bajhang,Sudurpashchim,100.0
+1290,Police Station Bajhang,Chainpur,"Bajhang, Nepal",,29.55,81.18,Bajhang,Sudurpashchim,100.0
+180,Police Station Bungal,Bungal,"Bajhang, Nepal",,29.65,81.25,Bajhang,Sudurpashchim,100.0
+929,Police Station Chainpur,Chainpur,"Bajhang, Nepal",,29.55,81.18,Bajhang,Sudurpashchim,100.0
+293,Police Station Talkot,Talkot,"Bajhang, Nepal",,29.65,81.2,Bajhang,Sudurpashchim,100.0
+177,District Police Office Bajura,Martadi,"Martadi, Bajura, Nepal",,29.42,81.42,Bajura,Sudurpashchim,100.0
+290,District Police Office Bajura,Martadi,"Bajura, Nepal",,29.42,81.42,Bajura,Sudurpashchim,100.0
+297,District Police Office Bajura Area Police Office,Martadi,"Bajura, Nepal",,29.42,81.42,Bajura,Sudurpashchim,100.0
+300,Police Station Badimalika,Badimalika,"Bajura, Nepal",,29.42,81.42,Bajura,Sudurpashchim,100.0
+1291,Police Station Bajura,Martadi,"Bajura, Nepal",,29.42,81.42,Bajura,Sudurpashchim,100.0
+299,Police Station Himali,Himali,"Bajura, Nepal",,29.7,81.3,Bajura,Sudurpashchim,100.0
+178,Police Station Kolti,Kolti,"Kolti, Bajura, Nepal",,29.45,81.6,Bajura,Sudurpashchim,100.0
+291,Police Station Kolti,Bajura,"Kolti, Nepal",,29.45,81.6,Bajura,Sudurpashchim,100.0
+550,Police Station Kolti,Kolti,"Bajura, Nepal",,29.45,81.6,Bajura,Sudurpashchim,100.0
+931,Police Station Martadi,Martadi,"Bajura, Nepal",,29.42,81.42,Bajura,Sudurpashchim,100.0
+298,Police Station Swamikartik,Swamikartik,"Bajura, Nepal",,29.6,81.45,Bajura,Sudurpashchim,100.0
+171,District Police Office Dadeldhura,Dadeldhura,"Dadeldhura Bazaar, Nepal",,29.3,80.58,Dadeldhura,Sudurpashchim,100.0
+284,District Police Office Dadeldhura,Dadeldhura,"Dadeldhura, Nepal",,29.3,80.58,Dadeldhura,Sudurpashchim,100.0
+305,District Police Office Dadeldhura Area,Amargadhi,"Dadeldhura, Nepal",,29.3,80.58,Dadeldhura,Sudurpashchim,100.0
+307,Police Station Aalital,Aalital,"Dadeldhura, Nepal",,29.45,80.65,Dadeldhura,Sudurpashchim,100.0
+285,Police Station Amargadhi,Amargadhi,"Dadeldhura, Nepal",,29.3,80.58,Dadeldhura,Sudurpashchim,100.0
+923,Police Station Dadeldhura,Dadeldhura,"Dadeldhura, Nepal",,29.3,80.58,Dadeldhura,Sudurpashchim,100.0
+306,Police Station Ganyapdhura,Ganyapdhura,"Dadeldhura, Nepal",,29.35,80.55,Dadeldhura,Sudurpashchim,100.0
+1322,Police Station Jogbuda,Jogbuda,"Dadeldhura, Nepal",,29.25,80.35,Dadeldhura,Sudurpashchim,100.0
+172,Police Station Jogbudha,Jogbudha,"Dadeldhura, Nepal",,29.2,80.45,Dadeldhura,Sudurpashchim,100.0
+175,District Police Office Darchula,Darchula,"Khalanga, Darchula, Nepal",,29.85,80.55,Darchula,Sudurpashchim,100.0
+288,District Police Office Darchula,Khalanga,"Darchula, Nepal",,29.85,80.55,Darchula,Sudurpashchim,100.0
+1289,Police Station Darchula,Khalanga,"Darchula, Nepal",,29.85,80.55,Darchula,Sudurpashchim,100.0
+176,Police Station Gokuleshwor,Gokuleshwor,"Darchula, Nepal",,29.7,80.65,Darchula,Sudurpashchim,100.0
+167,Area Police Office Attariya,Attariya,"Attariya, Kailali, Nepal",,28.97,80.6,Kailali,Sudurpashchim,100.0
+166,District Police Office Kailali,Dhangadhi,"Dhangadhi, Kailali, Nepal",,28.7,80.59,Kailali,Sudurpashchim,100.0
+277,District Police Office Kailali,Dhangadhi,"Kailali, Nepal",,28.7,80.59,Kailali,Sudurpashchim,100.0
+312,District Police Office Kailali Area,Dhangadhi,"Kailali, Nepal",,28.7,80.59,Kailali,Sudurpashchim,100.0
+1326,Police Station Attariya,Attariya,"Kailali, Nepal",,28.98,80.62,Kailali,Sudurpashchim,100.0
+314,Police Station Bhajani,Bhajani,"Kailali, Nepal",,28.55,81.05,Kailali,Sudurpashchim,100.0
+278,Police Station Dhangadhi,Dhangadhi,"Kailali, Nepal",,28.7,80.59,Kailali,Sudurpashchim,100.0
+313,Police Station Hasuliya,Hasuliya,"Kailali, Nepal",,28.65,80.8,Kailali,Sudurpashchim,100.0
+315,Police Station Joshipur,Joshipur,"Kailali, Nepal",,28.65,81.0,Kailali,Sudurpashchim,100.0
+1524,Police Station Kailali,Dhangadhi,"Kailali, Nepal",,28.7,80.59,Kailali,Sudurpashchim,100.0
+280,Police Station Lamki,Lamki,"Kailali, Nepal",,28.62,81.17,Kailali,Sudurpashchim,100.0
+168,Police Station Tikapur,Tikapur,"Tikapur, Kailali, Nepal",,28.52,81.12,Kailali,Sudurpashchim,100.0
+538,Police Station Tikapur,Tikapur,"Kailali, Nepal",,28.52,81.12,Kailali,Sudurpashchim,100.0
+279,Police Station Tikapur Area,Tikapur,"Kailali, Nepal",,28.52,81.12,Kailali,Sudurpashchim,100.0
+169,District Police Office Kanchanpur,Bhimdatta,"Mahendranagar, Kanchanpur, Nepal",,28.96,80.18,Kanchanpur,Sudurpashchim,100.0
+281,District Police Office Kanchanpur,Bhimdatta,"Kanchanpur, Nepal",,28.96,80.18,Kanchanpur,Sudurpashchim,100.0
+308,District Police Office Kanchanpur Area,Mahendranagar,"Kanchanpur, Nepal",,28.96,80.18,Kanchanpur,Sudurpashchim,100.0
+309,Police Station Belauri,Belauri,"Kanchanpur, Nepal",,28.8,80.6,Kanchanpur,Sudurpashchim,100.0
+1323,Police Station Bhimdatta,Mahendranagar,"Kanchanpur, Nepal",,28.96,80.18,Kanchanpur,Sudurpashchim,100.0
+310,Police Station Dodhara,Dodhara,"Kanchanpur, Nepal",,28.9,80.1,Kanchanpur,Sudurpashchim,100.0
+170,Police Station Gaddachauki,Gaddachauki,"Gaddachauki Border Area, Kanchanpur, Nepal",,28.95,80.08,Kanchanpur,Sudurpashchim,100.0
+541,Police Station Gaddachauki,Gaddachauki,"Kanchanpur, Nepal",,28.95,80.08,Kanchanpur,Sudurpashchim,100.0
+282,Police Station Jhalari,Jhalari,"Kanchanpur, Nepal",,28.92,80.35,Kanchanpur,Sudurpashchim,100.0
+1525,Police Station Kanchanpur,Bhimdatta,"Kanchanpur, Nepal",,28.96,80.18,Kanchanpur,Sudurpashchim,100.0
+311,Police Station Krishnapur,Krishnapur,"Kanchanpur, Nepal",,28.85,80.45,Kanchanpur,Sudurpashchim,100.0
+921,Police Station Mahendranagar,Mahendranagar,"Kanchanpur, Nepal",,28.96,80.18,Kanchanpur,Sudurpashchim,100.0
+283,Police Station Punarbas,Punarbas,"Kanchanpur, Nepal",,28.85,80.2,Kanchanpur,Sudurpashchim,100.0

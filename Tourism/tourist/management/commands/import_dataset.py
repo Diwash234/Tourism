@@ -1,73 +1,192 @@
-"""
-Imports a tourism dataset CSV into the Destination/Category tables so
-Django becomes the single source of truth (frontend reads from here, and
-the ML service can pull a fresh export from here too — see
-tourist/management/commands/export_dataset.py).
+import requests
+import time
 
-Expected CSV columns (rename/adjust to match your actual dataset):
-    name, category, description, latitude, longitude, city, country,
-    entry_fee, average_rating
+from django.core.management.base import BaseCommand
 
-Usage:
-    python manage.py import_dataset path/to/tourism_dataset.csv
-"""
-import csv
+from tourist.models import Destination
 
-from django.core.management.base import BaseCommand, CommandError
 
-from tourist.models import Category, Destination, User
+
+def get_city_from_coordinates(latitude, longitude):
+
+    if not latitude or not longitude:
+        return "", ""
+
+
+    url = "https://nominatim.openstreetmap.org/reverse"
+
+
+    params = {
+        "lat": latitude,
+        "lon": longitude,
+        "format": "json",
+        "zoom": 10,
+        "accept-language": "en"
+    }
+
+
+    headers = {
+        "User-Agent": "Tourism-Django-App"
+    }
+
+
+    try:
+
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=5
+        )
+
+
+        data = response.json()
+
+
+        address = data.get(
+            "address",
+            {}
+        )
+
+
+        city = (
+
+            address.get("city")
+            or address.get("town")
+            or address.get("municipality")
+            or address.get("village")
+            or address.get("county")
+            or ""
+
+        )
+
+
+        return city, city
+
+
+
+    except Exception as e:
+
+        print(
+            "Error:",
+            e
+        )
+
+        return "", ""
+
+
+
 
 
 class Command(BaseCommand):
-    help = "Imports a tourism dataset CSV into the Destination table."
 
-    def add_arguments(self, parser):
-        parser.add_argument("csv_path", type=str)
-        parser.add_argument(
-            "--owner-email",
-            type=str,
-            default=None,
-            help="Email of an existing admin user to set as created_by (optional).",
+    help = "Update destination city from latitude longitude"
+
+
+    def handle(self,*args,**options):
+
+
+        destinations = Destination.objects.filter(
+            city_english=""
         )
 
-    def handle(self, *args, **options):
-        csv_path = options["csv_path"]
-        owner = None
-        if options["owner_email"]:
-            try:
-                owner = User.objects.get(email=options["owner_email"])
-            except User.DoesNotExist:
-                raise CommandError(f"No user with email {options['owner_email']}")
 
-        created, skipped = 0, 0
-        try:
-            with open(csv_path, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    category, _ = Category.objects.get_or_create(name=row["category"].strip())
+        total = destinations.count()
 
-                    if Destination.objects.filter(name=row["name"].strip()).exists():
-                        skipped += 1
-                        continue
 
-                    Destination.objects.create(
-                        name=row["name"].strip(),
-                        category=category,
-                        description=row.get("description", "").strip(),
-                        latitude=row["latitude"],
-                        longitude=row["longitude"],
-                        city=row.get("city", "").strip(),
-                        country=row.get("country", "").strip(),
-                        entry_fee=row.get("entry_fee") or 0,
-                        average_rating=row.get("average_rating") or 0,
-                        created_by=owner,
-                        is_user_submitted=False,
-                        status=Destination.SubmissionStatus.APPROVED,
+        self.stdout.write(
+            f"Total remaining: {total}"
+        )
+
+
+        updated = 0
+
+
+
+        for index, destination in enumerate(
+            destinations,
+            start=1
+        ):
+
+
+            print(
+                f"{index}/{total}: {destination.latitude},{destination.longitude}"
+            )
+
+
+
+            city_nepali, city_english = get_city_from_coordinates(
+
+                destination.latitude,
+
+                destination.longitude
+
+            )
+
+
+
+            if city_english:
+
+
+                destination.city_nepali = city_nepali
+
+                destination.city_english = city_english
+
+
+                destination.save(
+                    update_fields=[
+                        "city_nepali",
+                        "city_english"
+                    ]
+                )
+
+
+                updated += 1
+
+
+                self.stdout.write(
+
+                    self.style.SUCCESS(
+
+                        f"Updated: {city_english}"
+
                     )
-                    created += 1
-        except FileNotFoundError:
-            raise CommandError(f"File not found: {csv_path}")
-        except KeyError as exc:
-            raise CommandError(f"Missing required column in CSV: {exc}")
 
-        self.stdout.write(self.style.SUCCESS(f"Imported {created} destinations, skipped {skipped} duplicates."))
+                )
+
+
+
+            else:
+
+                self.stdout.write(
+
+                    self.style.WARNING(
+
+                        "City not found"
+
+                    )
+
+                )
+
+
+
+            # Only small delay for Nominatim
+
+            time.sleep(0.2)
+
+
+
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                f"""
+Finished
+
+Updated: {updated}
+"""
+
+            )
+
+        )

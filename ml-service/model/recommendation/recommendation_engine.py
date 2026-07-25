@@ -1,27 +1,31 @@
-import pandas as pd
-import joblib
+import math
 import os
+
+import joblib
+import pandas as pd
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-
 # Load data
-
-df = pd.read_csv(
-    "processed_data/destinations_clean.csv"
-)
-
+df = pd.read_csv("processed_data/destinations_clean.csv")
+df = df.fillna({
+    "Name": "",
+    "Type": "",
+    "Tourism_Category": "",
+    "City": "",
+    "Latitude": 0.0,
+    "Longitude": 0.0,
+})
 
 # Create features
-
 df["features"] = (
-    df["Type"].fillna("")
+    df["Type"].astype(str).fillna("")
     + " "
-    + df["Tourism_Category"].fillna("")
+    + df["Tourism_Category"].astype(str).fillna("")
     + " "
-    + df["City"].fillna("")
+    + df["City"].astype(str).fillna("")
 )
 
 
@@ -64,9 +68,7 @@ df.to_csv(
 
 def recommend(user_input, top_n=5):
 
-    user_vector = vectorizer.transform(
-        [user_input]
-    )
+    user_vector = vectorizer.transform([str(user_input or "")])
 
     similarity = cosine_similarity(
         user_vector,
@@ -76,17 +78,20 @@ def recommend(user_input, top_n=5):
     indexes = similarity[0].argsort()[-top_n:][::-1]
 
     results = []
-
     for index in indexes:
+        score = float(similarity[0][index])
+        if not math.isfinite(score):
+            score = 0.0
 
+        row = destinations.iloc[index]
         results.append({
-            "name": destinations.iloc[index]["Name"],
-            "type": destinations.iloc[index]["Type"],
-            "category": destinations.iloc[index]["Tourism_Category"],
-            "city": destinations.iloc[index]["City"],
-            "latitude": destinations.iloc[index]["Latitude"],
-            "longitude": destinations.iloc[index]["Longitude"],
-            "score": float(similarity[0][index])
+            "name": str(row.get("Name", "")) or "Unknown destination",
+            "type": str(row.get("Type", "")),
+            "category": str(row.get("Tourism_Category", "")),
+            "city": str(row.get("City", "")),
+            "latitude": float(row.get("Latitude", 0.0) or 0.0),
+            "longitude": float(row.get("Longitude", 0.0) or 0.0),
+            "score": round(score, 4),
         })
 
     return results

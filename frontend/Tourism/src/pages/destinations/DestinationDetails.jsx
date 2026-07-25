@@ -6,7 +6,8 @@ import {
   FiHeart,
   FiGlobe,
   FiPhoneCall,
-  FiDollarSign
+  FiDollarSign,
+  FiRefreshCw
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
@@ -20,6 +21,7 @@ import useGeolocation from "../../hooks/useGeolocation"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 
+import { mlApi } from "../../services/api"
 import { RISK_LEVELS } from "../../utils/constants"
 import { formatCurrency } from "../../utils/helpers"
 
@@ -35,6 +37,8 @@ const DestinationDetails = () => {
   const [destination,setDestination] = useState(null)
   const [budget,setBudget] = useState(null)
   const [essentials,setEssentials] = useState(null)
+  const [translatedDescription,setTranslatedDescription] = useState("")
+  const [translateLoading,setTranslateLoading] = useState(false)
 
   const [risk,setRisk] = useState(null)
 
@@ -61,23 +65,29 @@ const DestinationDetails = () => {
       destinationApi.getById(slug, params),
       destinationApi.getEssentials(slug, params),
 
-      // Remove this if backend does not exist
-      // alertApi.getRiskStatus(slug),
-
-
       budgetApi.estimate({
         destinationId:slug,
         travelers:1,
-        days:3
+        days:3,
+        style:"standard"
       })
 
     ])
 
-    .then(([destRes,essentialsRes,budgetRes])=>{
+    .then(async ([destRes,essentialsRes,budgetRes])=>{
 
 
       if(destRes.status==="fulfilled"){
-        setDestination(destRes.value.data)
+        const destinationData = destRes.value.data
+        setDestination(destinationData)
+        setTranslatedDescription(destinationData.description || "")
+
+        try {
+          const riskRes = await mlApi.safety({ destination: destinationData.id })
+          setRisk(riskRes.data)
+        } catch {
+          setRisk(null)
+        }
       }
 
       if(essentialsRes?.status==="fulfilled"){
@@ -148,6 +158,23 @@ const DestinationDetails = () => {
 
   }
 
+  const handleTranslate = async () => {
+    if (!destination) return
+
+    setTranslateLoading(true)
+    try {
+      const { data } = await destinationApi.translate(slug, "ne")
+      if (data?.description) {
+        setTranslatedDescription(data.description)
+        showToast("Destination page translated successfully.", "success")
+      }
+    } catch {
+      showToast("Translation could not be completed right now.", "error")
+    } finally {
+      setTranslateLoading(false)
+    }
+  }
+
 
 
 
@@ -172,10 +199,13 @@ const DestinationDetails = () => {
 
 
 
+  const normalizedRiskLevel =
+    risk?.risk_level === "medium"
+      ? "MODERATE"
+      : risk?.risk_level?.toUpperCase()
+
   const level =
-    RISK_LEVELS[
-      risk?.level?.toUpperCase()
-    ]
+    RISK_LEVELS[normalizedRiskLevel]
     ||
     RISK_LEVELS.LOW
 
@@ -397,7 +427,7 @@ text-gray-600 text-sm
 ">
 
 {
-destination.description ||
+translatedDescription || destination.description ||
 "No description available"
 }
 
@@ -658,9 +688,11 @@ Police:100 · Ambulance:102 · Fire:101
 
 
 
-<button className="btn-outline w-full">
+<button className="btn-outline w-full flex items-center justify-center gap-2" onClick={handleTranslate} disabled={translateLoading}>
 
-Translate Page
+<FiRefreshCw className={translateLoading ? "animate-spin" : ""} />
+
+{translateLoading ? "Translating..." : "Translate Page"}
 
 </button>
 

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from django.db.models import F
-from django.shortcuts import get_object_or_404
+from django.db.models import F,Q
+from django.shortcuts import get_object_or_404,render
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, permissions, status, mixins, generics
 from rest_framework.decorators import action
@@ -99,6 +99,29 @@ class QueryParamAliasMixin:
             params["page_size"] = params["limit"]
         self.request._request.GET = params
         return super().filter_queryset(queryset)
+    
+def search_destination(request):
+
+    query = request.GET.get("q", "")
+
+    destinations = Destination.objects.filter(
+        Q(name__icontains=query)
+        |
+        Q(city_nepali__icontains=query)
+        |
+        Q(city_english__icontains=query)
+    )
+
+    context = {
+        "destinations": destinations,
+        "query": query,
+    }
+
+    return render(
+        request,
+        "search.html",
+        context
+    )
 
 
 class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewsets.ModelViewSet):
@@ -182,6 +205,7 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         if page is not None:
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
+   
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def translate(self, request, slug=None):

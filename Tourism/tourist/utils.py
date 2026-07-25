@@ -145,7 +145,7 @@ def _translate_via_ml_service(text, target_language, source_language):
     """Returns translated text from the ML service, or None if unreachable/not yet trained."""
     try:
         response = requests.post(
-            f"{settings.ML_SERVICE_URL}/translate-custom",
+            f"{settings.ML_SERVICE_URL}/translation/translate-custom",
             json={"text": text, "target_language": target_language, "source_language": source_language},
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -317,12 +317,9 @@ def get_ml_recommendations(user=None, latitude=None, longitude=None, top_n=5):
     """
     try:
         response = requests.post(
-            f"{settings.ML_SERVICE_URL}/recommend",
+            f"{settings.ML_SERVICE_URL}/recommendation",
             json={
-                "user_id": user.id if user and user.is_authenticated else None,
-                "latitude": float(latitude) if latitude is not None else None,
-                "longitude": float(longitude) if longitude is not None else None,
-                "top_n": top_n,
+                "interest": f"nearby destinations around latitude {latitude} longitude {longitude}",
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -365,7 +362,7 @@ def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
     """
     try:
         response = requests.post(
-            f"{settings.ML_SERVICE_URL}/predict-safety",
+            f"{settings.ML_SERVICE_URL}/risk/predict-safety",
             json={
                 "latitude": float(latitude), "longitude": float(longitude),
                 "city": city, "country": country,
@@ -386,7 +383,7 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
     """
     try:
         response = requests.post(
-            f"{settings.ML_SERVICE_URL}/predict-budget",
+            f"{settings.ML_SERVICE_URL}/budget/predict-budget",
             json={
                 "city": city, "country": country, "days": days,
                 "travelers": travelers, "budget_level": budget_level,
@@ -408,7 +405,7 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
     """
     try:
         response = requests.post(
-            f"{settings.ML_SERVICE_URL}/best-route",
+            f"{settings.ML_SERVICE_URL}/routes/best-route",
             json={
                 "start_latitude": float(start_latitude), "start_longitude": float(start_longitude),
                 "end_latitude": float(end_latitude), "end_longitude": float(end_longitude),

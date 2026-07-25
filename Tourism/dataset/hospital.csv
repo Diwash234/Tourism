@@ -1,0 +1,2072 @@
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,01-4512505,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Bir Hospital,Kanti Path Kathmandu,01-4221119,27.7050,85.3150,Kathmandu,Ratnapark,Bagmati
+Patan Hospital,Lagankhel Lalitpur,01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,01-4258554,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Om Hospital,Chabahil Kathmandu,01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Vayodha Hospitals,Balkhu Kathmandu,01-4286427,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+B&B Hospital,Gwarko Lalitpur,01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+KIST Medical College and Teaching Hospital,Imadol Lalitpur,01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Star Hospital,Sanepa Lalitpur,01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Medicare National Hospital,Chabahil Kathmandu,01-4471322,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Manmohan Memorial Medical College and Teaching Hospital,Swayambhu Kathmandu,01-4034015,27.7150,85.2800,Kathmandu,Swayambhu,Bagmati
+People's Dental College and Hospital,Nayabazar Kathmandu,01-4380838,27.7300,85.3050,Kathmandu,Nayabazar,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Kanti Children's Hospital,Maharajgunj Kathmandu,01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Paropakar Maternity and Women's Hospital,Thapathali Kathmandu,01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,01-4250691,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Teaching Hospital Emergency,Maharajgunj Kathmandu,01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Bhaktapur Hospital,Dudhpati Bhaktapur,01-6610798,27.6750,85.4300,Bhaktapur,Dudhpati,Bagmati
+Madhyapur Hospital,Thimi Bhaktapur,01-6631598,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Khwopa Hospital,Bhaktapur,01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Kavre District Hospital,Dhulikhel Kavre,011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Nuwakot District Hospital,Trishuli Nuwakot,010-560120,27.9000,85.1600,Nuwakot,Trishuli,Bagmati
+Hetauda Hospital,Hetauda Makwanpur,057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur Chitwan,056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Bharatpur Hospital,Bharatpur Chitwan,056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur Chitwan,056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Manipal Teaching Hospital,Phulbari Pokhara,061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara Kaski,061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara Kaski,061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara Kaski,061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara Kaski,061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha Bazaar,064-420123,28.0000,84.6300,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,065-560102,27.9700,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Beni Hospital,Myagdi,069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tansen Hospital,Palpa,075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Lumbini Provincial Hospital,Butwal Rupandehi,071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa Rupandehi,071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Bheri Hospital,Nepalgunj Banke,081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Rapti Academy of Health Sciences,Ghorahi Dang,082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Koshi Hospital,Biratnagar Morang,021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Janakpur Provincial Hospital,Janakpur Dhanusha,041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Narayan Subedi Memorial Hospital,Janakpur,041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Birgunj Health Care Hospital,Birgunj Parsa,051-522123,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Narayani Hospital,Birgunj Parsa,051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Bardiya District Hospital,Gulariya,084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Dadeldhura Hospital,Dadeldhura,096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Seti Provincial Hospital,Dhangadhi Kailali,091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Karnali Academy of Health Sciences,Jumla,087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Surkhet Provincial Hospital,Birendranagar,083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+National Trauma Center,Mahankal Kathmandu,01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Sukraraj Tropical and Infectious Disease Hospital,Teku Kathmandu,01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Mental Hospital,Lagankhel Lalitpur,01-5521612,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Koshi Zonal Hospital,Biratnagar Morang,021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,021-465736,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Dharan Sub-Metropolitan Hospital,Dharan Sunsari,025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Bijayapur Hospital,Dharan Sunsari,025-520456,26.8100,87.2800,Sunsari,Dharan,Koshi
+Lahan Hospital,Lahan Siraha,033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Siraha District Hospital,Siraha,033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Saptari District Hospital,Rajbiraj,031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Dhanusha Hospital,Janakpur,041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Malangwa Hospital,Sarlahi,046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Narayan Hospital,Birgunj Parsa,051-521500,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Patan Academy of Health Sciences,Lagankhel Lalitpur,01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+KIST Hospital,Imadol Lalitpur,01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Asian College for Advanced Studies Hospital,Gwarko Lalitpur,01-5201300,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Baidya and Research Hospital,Kathmandu,01-4440000,27.7200,85.3300,Kathmandu,Kathmandu,Bagmati
+Venus Hospital,Mid Baneshwor Kathmandu,01-4467788,27.6950,85.3400,Kathmandu,Baneshwor,Bagmati
+Kathmandu Model Hospital,Pradarshani Marg Kathmandu,01-4240800,27.7050,85.3150,Kathmandu,Pradarshani Marg,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Natural IVF Hospital,Nakhu Lalitpur,01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Apex Hospital,Jorpati Kathmandu,01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Om Samaj Dental Hospital,Chabahil Kathmandu,01-4482424,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Nepal Orthopedic Hospital,Jorpati Kathmandu,01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Kantipur Hospital,Subidhanagar Kathmandu,01-4469064,27.6900,85.3500,Kathmandu,Tinkune,Bagmati
+Aster Hospital,Sanepa Lalitpur,01-5522222,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Green City Hospital,Basundhara Kathmandu,01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kathmandu Cancer Center,Bhaktapur,01-6633444,27.6800,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Municipality Hospital,Madhyapur Thimi,01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Baktapur International Hospital,Bhaktapur,01-6617070,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Janamaitri Hospital,Balkhu Kathmandu,01-4288888,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Kathmandu Medical College Teaching Hospital,Sinamangal Kathmandu,01-4469064,27.6950,85.3500,Kathmandu,SInamangal,Bagmati
+Nepal International Clinic,Lazimpat Kathmandu,01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,01-4424111,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Grande City Hospital,Putalisadak Kathmandu,01-5970999,27.7050,85.3200,Kathmandu,Putalisadak,Bagmati
+People's Hospital,New Baneshwor Kathmandu,01-4780444,27.6900,85.3400,Kathmandu,Baneshwor,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Vishwa Hospital,Satdobato Lalitpur,01-5531234,27.6570,85.3240,Lalitpur,Satdobato,Bagmati
+Lumbini Provincial Hospital Emergency,Butwal Rupandehi,071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Devdaha Medical College,Devdaha Rupandehi,071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Crimson Hospital,Manigram Rupandehi,071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Universal College Hospital,Bhairahawa Rupandehi,071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Nepalgunj Medical College,Kohalpur Banke,081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Teaching Hospital Kohalpur,Banke,081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Provincial Hospital,Tulsipur Dang,082-520123,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Lamahi Hospital,Dang,082-560123,27.8500,82.5500,Dang,Lamahi,Lumbini
+Bheri Hospital Emergency,Nepalgunj Banke,081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Seti Zonal Hospital,Dhangadhi Kailali,091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar Kanchanpur,099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Achham District Hospital,Mangalsen,097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Darchula District Hospital,Khalanga,093-420123,29.8500,80.5500,Darchula,Khalanga,Sudurpashchim
+Bajura District Hospital,Martadi,097-660123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Bajhang District Hospital,Chainpur,092-620123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy Hospital,Jumla,087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Dailekh District Hospital,Dailekh,089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Jajarkot District Hospital,Khalanga,089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dolpa District Hospital,Dunai,087-550123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+National Trauma Center,Mahankal Kathmandu,01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Sukraraj Tropical and Infectious Disease Hospital,Teku Kathmandu,01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Mental Hospital,Lagankhel Lalitpur,01-5521612,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Koshi Zonal Hospital,Biratnagar Morang,021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,021-465736,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Dharan Sub-Metropolitan Hospital,Dharan Sunsari,025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Bijayapur Hospital,Dharan Sunsari,025-520456,26.8100,87.2800,Sunsari,Dharan,Koshi
+Lahan Hospital,Lahan Siraha,033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Siraha District Hospital,Siraha,033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Saptari District Hospital,Rajbiraj,031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Dhanusha Hospital,Janakpur,041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Malangwa Hospital,Sarlahi,046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Narayan Hospital,Birgunj Parsa,051-521500,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Patan Academy of Health Sciences,Lagankhel Lalitpur,01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+KIST Hospital,Imadol Lalitpur,01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Asian College for Advanced Studies Hospital,Gwarko Lalitpur,01-5201300,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Baidya and Research Hospital,Kathmandu,01-4440000,27.7200,85.3300,Kathmandu,Kathmandu,Bagmati
+Venus Hospital,Mid Baneshwor Kathmandu,01-4467788,27.6950,85.3400,Kathmandu,Baneshwor,Bagmati
+Kathmandu Model Hospital,Pradarshani Marg Kathmandu,01-4240800,27.7050,85.3150,Kathmandu,Pradarshani Marg,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Natural IVF Hospital,Nakhu Lalitpur,01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Apex Hospital,Jorpati Kathmandu,01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Om Samaj Dental Hospital,Chabahil Kathmandu,01-4482424,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Nepal Orthopedic Hospital,Jorpati Kathmandu,01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Kantipur Hospital,Subidhanagar Kathmandu,01-4469064,27.6900,85.3500,Kathmandu,Tinkune,Bagmati
+Aster Hospital,Sanepa Lalitpur,01-5522222,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Green City Hospital,Basundhara Kathmandu,01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kathmandu Cancer Center,Bhaktapur,01-6633444,27.6800,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Municipality Hospital,Madhyapur Thimi,01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Baktapur International Hospital,Bhaktapur,01-6617070,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Janamaitri Hospital,Balkhu Kathmandu,01-4288888,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Kathmandu Medical College Teaching Hospital,Sinamangal Kathmandu,01-4469064,27.6950,85.3500,Kathmandu,SInamangal,Bagmati
+Nepal International Clinic,Lazimpat Kathmandu,01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,01-4424111,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Grande City Hospital,Putalisadak Kathmandu,01-5970999,27.7050,85.3200,Kathmandu,Putalisadak,Bagmati
+People's Hospital,New Baneshwor Kathmandu,01-4780444,27.6900,85.3400,Kathmandu,Baneshwor,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Vishwa Hospital,Satdobato Lalitpur,01-5531234,27.6570,85.3240,Lalitpur,Satdobato,Bagmati
+Lumbini Provincial Hospital Emergency,Butwal Rupandehi,071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Devdaha Medical College,Devdaha Rupandehi,071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Crimson Hospital,Manigram Rupandehi,071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Universal College Hospital,Bhairahawa Rupandehi,071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Nepalgunj Medical College,Kohalpur Banke,081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Teaching Hospital Kohalpur,Banke,081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Provincial Hospital,Tulsipur Dang,082-520123,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Lamahi Hospital,Dang,082-560123,27.8500,82.5500,Dang,Lamahi,Lumbini
+Bheri Hospital Emergency,Nepalgunj Banke,081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Seti Zonal Hospital,Dhangadhi Kailali,091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar Kanchanpur,099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Achham District Hospital,Mangalsen,097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Darchula District Hospital,Khalanga,093-420123,29.8500,80.5500,Darchula,Khalanga,Sudurpashchim
+Bajura District Hospital,Martadi,097-660123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Bajhang District Hospital,Chainpur,092-620123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy Hospital,Jumla,087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Dailekh District Hospital,Dailekh,089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Jajarkot District Hospital,Khalanga,089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dolpa District Hospital,Dunai,087-550123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Pokhara Academy of Health Sciences,Ramghat Pokhara,061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Western Regional Hospital Emergency,Pokhara Kaski,061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gandaki Medical College Hospital,Lamachaur Pokhara,061-430822,28.2500,83.9900,Kaski,Lamachaur,Gandaki
+Manipal Teaching Hospital Emergency,Phulbari Pokhara,061-526416,28.2500,83.9900,Kaski,Phulbari,Gandaki
+Fishtail Hospital Emergency,Pokhara,061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara,061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha Bazaar,064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Bandipur Hospital,Bandipur Tanahun,,27.9300,84.4200,Tanahun,Bandipur,Gandaki
+Lamjung District Hospital,Besisahar,066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Beni Hospital,Myagdi,069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Mustang District Hospital,Jomsom,069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Manang District Hospital,Chame,066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Nawalpur District Hospital,Kawasoti,078-540123,27.6500,84.1300,Nawalpur,Kawasoti,Gandaki
+Tansen Mission Hospital,Palpa,075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Gulmi District Hospital,Tamghas,079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Kapilvastu District Hospital,Taulihawa,076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Bardiya District Hospital,Gulariya,084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Kohalpur Medical College Hospital,Kohalpur,081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Nepalgunj Medical College Teaching Hospital,Chisapani Banke,081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Dang District Hospital,Ghorahi,082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Academy Hospital,Ghorahi Dang,082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Butwal Hospital,Butwal Rupandehi,071-540123,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Crimson Hospital,Manigram Rupandehi,071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Bhairahawa Hospital,Bhairahawa,071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+B.P. Koirala Institute of Health Sciences,Dharan,025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Koshi Hospital,Biratnagar,021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Hospital,Biratnagar,021-465736,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Hospital,Biratnagar,021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar,021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Mechi Provincial Hospital,Bhadrapur,023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Damak Hospital,Damak Jhapa,,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Panchthar District Hospital,Phidim,024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Taplejung District Hospital,Phungling,024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Solukhumbu District Hospital,Salleri,038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Khotang District Hospital,Diktel,036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Udayapur District Hospital,Gaighat,035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Sunsari District Hospital,Inaruwa,025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Janakpur Provincial Hospital,Janakpur,041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Narayani Hospital,Birgunj,051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Malangwa Hospital,Sarlahi,046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Bharatpur Eye Hospital,Chitwan,056-520123,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Eye Hospital,Bharatpur,056-527000,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+National Eye Center,Tripureshwor Kathmandu,01-4250691,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Eye Centre,Gausala Kathmandu,01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Nepal Eye Hospital,Tripureshwor,01-4250691,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Bhaktapur Eye Hospital,Bhaktapur,,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Lumbini Eye Institute,Bhairahawa,,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Birat Eye Hospital,Biratnagar,,26.4500,87.2700,Morang,Biratnagar,Koshi
+Sagarmatha Hospital,Rajbiraj,,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Om Hospital and Research Centre,Chabahil Kathmandu,01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Norvic Hospital,Thapathali Kathmandu,01-4258554,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+B&B Hospital,Gwarko Lalitpur,01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,01-4286427,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kathmandu Model Hospital,Pradarshani Marg,01-4240800,27.7050,85.3150,Kathmandu,Pradarshani Marg,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Nepal APF Hospital,Balambu Kathmandu,01-4311550,27.6900,85.2500,Kathmandu,Balambu,Bagmati
+Armed Police Force Hospital Emergency,Balambu Kathmandu,01-4311550,27.6900,85.2500,Kathmandu,Balambu,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Shree Birendra Hospital,Chhauni Kathmandu,01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Kathmandu Hospital,Tripureshwor Kathmandu,01-4221119,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Kirtipur Eye Hospital,Kirtipur Kathmandu,,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Nepal Orthopaedic Hospital,Jorpati Kathmandu,01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Sushma Koirala Memorial Hospital,Sankhu Kathmandu,01-4450777,27.8000,85.4500,Kathmandu,Sankhu,Bagmati
+Sushil Koirala Memorial Cancer Hospital,Bharatpur Chitwan,,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+National Academy of Medical Sciences,Bir Hospital Kathmandu,01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Kanti Children’s Hospital,Maharajgunj Kathmandu,01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+National Kidney Center,Baneshwor Kathmandu,01-4780000,27.6900,85.3400,Kathmandu,Baneshwor,Bagmati
+Shahid Dharmabhakta National Transplant Center,Bhaktapur,01-6630765,27.6800,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Dental Hospital,Lazimpat Kathmandu,,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+KMC Hospital,SInamangal Kathmandu,01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Kathmandu Eye Center,Baneshwor Kathmandu,,27.6900,85.3400,Kathmandu,Baneshwor,Bagmati
+Buddha Hospital,Baneshwor Kathmandu,,27.6900,85.3400,Kathmandu,Baneshwor,Bagmati
+People’s Dental College,Nayabazar Kathmandu,01-4380838,27.7300,85.3050,Kathmandu,Nayabazar,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Sumeru Hospital,Dhume Barahi Kathmandu,,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Koshi Hospital Emergency,Biratnagar Morang,021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Birat Nursing Home,Biratnagar Morang,,26.4500,87.2700,Morang,Biratnagar,Koshi
+City Hospital,Biratnagar Morang,,26.4500,87.2700,Morang,Biratnagar,Koshi
+Life Guard Hospital,Biratnagar Morang,,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Hospital,Biratnagar Morang,,26.4500,87.2700,Morang,Biratnagar,Koshi
+Dharan Hospital,Dharan Sunsari,,26.8100,87.2800,Sunsari,Dharan,Koshi
+Dharan Model Hospital,Dharan Sunsari,,26.8100,87.2800,Sunsari,Dharan,Koshi
+Birat Eye Hospital,Biratnagar Morang,,26.4500,87.2700,Morang,Biratnagar,Koshi
+Ilam Community Hospital,Ilam,,26.9100,87.9300,Ilam,Ilam,Koshi
+Phidim Hospital,Panchthar,,27.1500,87.7500,Panchthar,Phidim,Koshi
+Taplejung Hospital,Phungling,,27.3500,87.6700,Taplejung,Phungling,Koshi
+Damak Hospital,Damak Jhapa,,26.6600,87.6900,Jhapa,Damak,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode Jhapa,,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Bhadrapur Hospital,Jhapa,,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Itahari Hospital,Sunsari,,26.6600,87.2700,Sunsari,Itahari,Koshi
+Dharan Eye Hospital,Dharan,,26.8100,87.2800,Sunsari,Dharan,Koshi
+Janakpur Eye Hospital,Janakpur,,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Mithila Hospital,Janakpur,,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Lifeline Hospital,Janakpur,,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Birgunj Eye Hospital,Birgunj,,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Advance Medicare Hospital,Birgunj,,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College,Birgunj,051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Central Hospital,Birgunj,,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Bharatpur Eye Hospital,Chitwan,,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Emergency,Bharatpur,056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Chitwan Hospital,Bharatpur,,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Hetauda Community Hospital,Hetauda,,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bhaktapur Human Organ Transplant Center,Bhaktapur,01-6610765,27.6800,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Kavre Hospital,Banepa,,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Sheer Memorial Hospital,Banepa,011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Dhulikhel Hospital Emergency,Dhulikhel,011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sindhuli Hospital,Sindhulimadhi,,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap Hospital,Manthali,,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha Hospital,Charikot,,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Jiri Hospital,Jiri,,27.6300,86.2300,Dolakha,Jiri,Bagmati
+Nuwakot Hospital,Bidur,,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Trishuli Hospital,Nuwakot,,27.9000,85.1600,Nuwakot,Trishuli,Bagmati
+Dhading Hospital,Dhadingbesi,,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Gajuri Hospital,Dhading,,27.7800,84.8700,Dhading,Gajuri,Bagmati
+Rasuwa Hospital,Dhunche,,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Mustang Hospital,Jomsom,,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Manang Hospital,Chame,,28.5500,84.2300,Manang,Chame,Gandaki
+Myagdi Hospital,Beni,,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung Hospital,Baglung,,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat Hospital,Kushma,,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja Hospital,Syangja,,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tanahun Hospital,Damauli,,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Gorkha Hospital,Gorkha,,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Kaski Provincial Hospital,Pokhara,,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Pokhara Eye Hospital,Pokhara,,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Bir Hospital,Kanti Path Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Venus Hospital,Devkota Sadak Kathmandu,+977-01-4475120,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Grande City Hospital,Kanti Path Kathmandu,+977-01-4163500,27.7050,85.3150,Kathmandu,Kanti Path,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Kathmandu Hospital,Tripureshwor Kathmandu,+977-01-4229656,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kathmandu Neuro & General Hospital,Baghdurbar Kathmandu,+977-01-5327735,27.7050,85.3150,Kathmandu,Baghdurbar,Bagmati
+Sukraraj Tropical and Infectious Disease Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Everest Hospital,Kathmandu,+977-01-4793024,27.6900,85.3400,Kathmandu,Kathmandu,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Paropakar Maternity and Women's Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Kantipur Hospital,Tripureshwor Kathmandu,+977-01-4111627,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Medicare National Hospital,Ring Road Kathmandu,+977-01-4467067,27.7200,85.3500,Kathmandu,Kathmandu,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavrepalanchok,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Bhaktapur Cancer Hospital,Dudhpati Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Madhyapur Thimi Hospital,Thimi Bhaktapur,+977-01-5093395,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bharatpur Hospital,Bharatpur Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur Chitwan,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Manipal Teaching Hospital,Phulbari Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Lumbini Provincial Hospital,Butwal Rupandehi,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa Rupandehi,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Bheri Hospital,Nepalgunj Banke,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Rapti Academy of Health Sciences,Ghorahi Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Janakpur Provincial Hospital,Janakpur Dhanusha,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Kathmandu Valley Hospital,Baghdurbar Kathmandu,+977-01-4255330,27.7050,85.3150,Kathmandu,Baghdurbar,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Venus Hospital,Devkota Sadak Kathmandu,+977-01-4475120,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Vayodha Hospitals,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Grande City Hospital,Kanti Path Kathmandu,+977-01-4163500,27.7050,85.3150,Kathmandu,Kanti Path,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Paropakar Maternity and Women's Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+ERA International Hospital,Kathmandu,+977-01-4352447,27.7200,85.3300,Kathmandu,Kathmandu,Bagmati
+Birendra Military Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Capital Hospital,Kathmandu,+977-01-4168222,27.7000,85.3300,Kathmandu,Kathmandu,Bagmati
+Medicare National Hospital,Ring Road Kathmandu,+977-01-4467067,27.7200,85.3500,Kathmandu,Kathmandu,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Kantipur Hospital,Tripureshwor Kathmandu,+977-01-4111627,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Kathmandu Medical College Teaching Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Patan Academy of Health Sciences,Lagankhel Lalitpur,+977-01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+KIST Medical College Teaching Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+National Trauma Center,Mahaboudha Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Madhyapur Hospital,Thimi Bhaktapur,+977-01-6631598,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur Chitwan,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur Chitwan,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Manipal Teaching Hospital,Phulbari Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Saptakoshi Hospital,Biratnagar Morang,+977-021-475295,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur Dhanusha,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Lumbini Provincial Hospital,Butwal Rupandehi,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa Rupandehi,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Bheri Hospital,Nepalgunj Banke,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Seti Provincial Hospital,Dhangadhi Kailali,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Dharan Sub-Metropolitan Hospital,Dharan Sunsari,+977-025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari Sunsari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa Hospital,Sunsari,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Taplejung District Hospital,Phungling,+977-024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Gajendra Narayan Singh Hospital,Rajbiraj Saptari,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan Siraha,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Birgunj Health Care Hospital,Birgunj,+977-051-522000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Eye Hospital,Janakpur,+977-041-520555,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Mithila Hospital,Janakpur,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Gorkha District Hospital,Gorkha Bazaar,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tansen Hospital,Palpa,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Crimson Hospital,Manigram Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha Rupandehi,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur Banke,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Academy of Health Sciences,Ghorahi Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur Dang,+977-082-560123,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Nepal Korea Friendship Municipality Hospital,Madhyapur Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Bhaktapur International Hospital,Bhaktapur,+977-01-6617070,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Kathmandu Cancer Center,Bhaktapur,+977-01-6633444,27.6800,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,+977-01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Janamaitri Hospital,Balkhu Kathmandu,+977-01-4288888,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Sumeru Hospital,Dhume Barahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Venus Hospital,Chabahil Kathmandu,+977-01-4475120,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Om Hospital Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Sumeru Hospital,Dhapa Khel Lalitpur,+977-01-5152515,27.6500,85.3000,Lalitpur,Dhapakhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+KIST Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Asian College for Advanced Studies Hospital,Gwarko Lalitpur,+977-01-5201300,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Nepal International Clinic,Lazimpat Kathmandu,+977-01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+CIWEC Hospital Travel Medicine Center,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+Shahid Dharmabhakta National Transplant Center,Bhaktapur,+977-01-6630765,27.6800,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Kanti Children Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Eye Center,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Bharatpur Eye Hospital,Bharatpur Chitwan,+977-056-520123,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Hospital,Bharatpur Chitwan,+977-056-532000,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur Chitwan,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Sanjivani Hospital,Bharatpur Chitwan,+977-056-595555,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+CMC Hospital Emergency,Bharatpur Chitwan,+977-056-493403,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur Chitwan,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Hetauda Community Eye Hospital,Hetauda Makwanpur,+977-057-524777,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Chure Hill Hospital,Hetauda,+977-057-520777,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Janasewa Hospital,Sindhuli,+977-047-520456,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Nuwakot Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Trishuli Hospital,Nuwakot,+977-010-560123,27.9000,85.1600,Nuwakot,Trishuli,Bagmati
+Dhading Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Gajuri Hospital,Dhading,+977-010-520456,27.7800,84.8700,Dhading,Gajuri,Bagmati
+Rasuwa Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Charikot Hospital,Dolakha,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Jiri Hospital,Dolakha,+977-049-430123,27.6300,86.2300,Dolakha,Jiri,Bagmati
+Manthali Hospital,Ramechhap,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Kavre District Hospital,Dhulikhel,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Gorkha Hospital,Gorkha Bazaar,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Mustang Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Manang Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Pokhara Eye Hospital,Pokhara,+977-061-462000,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Tansen Mission Hospital,Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Gulmi Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Kapilvastu Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Kohalpur Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Seti Provincial Hospital,Dhangadhi Kailali,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Tikapur Hospital,Tikapur Kailali,+977-091-560123,28.5200,81.1200,Kailali,Tikapur,Sudurpashchim
+Malakheti Hospital,Attariya Kailali,+977-091-550123,28.7700,80.6000,Kailali,Attariya,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar Kanchanpur,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi Hospital,Dasharathchand,+977-095-520123,29.5200,80.4300,Baitadi,Dasharathchand,Sudurpashchim
+Darchula Hospital,Khalanga Darchula,+977-093-520123,29.8500,80.5500,Darchula,Khalanga,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Ghorahi Hospital,Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Academy of Health Sciences,Ghorahi Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Tulsipur Hospital,Dang,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Lamahi Hospital,Dang,+977-082-560789,27.8500,82.5500,Dang,Lamahi,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur Banke,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bheri Hospital,Nepalgunj Banke,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Crimson Hospital,Manigram Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Nawalpur District Hospital,Kawasoti,+977-078-540123,27.6500,84.1300,Nawalpur,Kawasoti,Gandaki
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Kailali Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Nisarga Hospital,Dhangadhi Kailali,+977-091-523000,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Maya Metro Hospital,Dhangadhi Kailali,+977-091-590000,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Navjeevan Hospital,Dhangadhi,+977-091-520555,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Seti Zonal Eye Hospital,Dhangadhi,+977-091-520700,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dododhara Hospital,Kailali,+977-091-560000,28.5200,81.1200,Kailali,Tikapur,Sudurpashchim
+Dadeldhura Eye Hospital,Dadeldhura,+977-096-420555,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Dadeldhura Sub-Regional Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Bajhang,+977-092-420123,29.5500,81.1800,Bajhang,Bajhang,Sudurpashchim
+Bajura District Hospital,Bajura,+977-097-420123,29.4200,81.4200,Bajura,Bajura,Sudurpashchim
+Achham District Hospital,Achham,+977-097-620123,29.1300,81.2500,Achham,Achham,Sudurpashchim
+Surkhet Eye Hospital,Birendranagar,+977-083-520555,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Deuti Hospital,Surkhet,+977-083-521111,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Provincial Hospital,Surkhet,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Jumla Hospital,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Karnali Academy Teaching Hospital,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dolpa,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Mugu,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Kalikot,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Jajarkot,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Rolpa District Hospital,Liwang,+977-086-440123,28.3000,82.6400,Rolpa,Liwang,Lumbini
+Pyuthan District Hospital,Pyuthan,+977-086-460123,28.0900,82.8700,Pyuthan,Pyuthan,Lumbini
+Rukum East District Hospital,Rukumkot,+977-088-540123,28.6200,82.5000,Rukum East,Rukumkot,Lumbini
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Dang District Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Academy of Health Sciences,Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rाप्ती Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Tansen Mission Hospital,Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Gulmi District Hospital,Gulmi,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Arghakhanchi,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Kapilvastu District Hospital,Kapilvastu,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Nepalgunj Medical College Teaching Hospital,Chisapani Banke,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bheri Hospital Emergency,Nepalgunj Banke,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Kohalpur Teaching Hospital,Kohalpur Banke,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Life Care Hospital,Tulsipur Dang,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Lamahi Hospital,Lamahi Dang,+977-082-560789,27.8500,82.5500,Dang,Lamahi,Lumbini
+Rाप्ती Eye Hospital,Tulsipur Dang,+977-082-560555,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Pyuthan District Hospital,Pyuthan,+977-086-460123,28.0900,82.8700,Pyuthan,Pyuthan,Lumbini
+Rolpa District Hospital,Liwang,+977-086-440123,28.3000,82.6400,Rolpa,Liwang,Lumbini
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Rukum District Hospital,Rukum,+977-088-540123,28.6200,82.5000,Rukum,Rukum,Lumbini
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+B&C Medical College Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Damak Hospital,Damak,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Lifeline Hospital,Damak,+977-023-580555,26.6600,87.6900,Jhapa,Damak,Koshi
+Birat Nursing Home,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Dharan Hospital,Dharan,+977-025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa Hospital,Inaruwa,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Panchthar District Hospital,Panchthar,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Birgunj Health Care Hospital,Birgunj,+977-051-522000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Mithila Hospital,Janakpur,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+KIST Medical College Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Nepal Orthopaedic Hospital,Jorpati Kathmandu,+977-01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,+977-01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Dhulikhel Hospital,Kavrepalanchok,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Chitwan,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Manipal Teaching Hospital,Pokhara Kaski,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Gorkha District Hospital,Gorkha Bazaar,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tansen Mission Hospital,Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Lifeline Hospital,Damak Jhapa,+977-023-580555,26.6600,87.6900,Jhapa,Damak,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Itahari Hospital,Itahari Sunsari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Dharan Hospital,Dharan Sunsari,+977-025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Birgunj Health Care Hospital,Birgunj,+977-051-522000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Mithila Hospital,Janakpur,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Kathmandu Hospital,Tripureshwor Kathmandu,+977-01-4229656,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kantipur Hospital,Tripureshwor Kathmandu,+977-01-4111627,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Medicare National Hospital,Chabahil Kathmandu,+977-01-4467067,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Nepal International Clinic,Lazimpat Kathmandu,+977-01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Grande City Hospital,Kamaladi Kathmandu,+977-01-4163500,27.7050,85.3150,Kathmandu,Kamaladi,Bagmati
+Capital Hospital,Kathmandu,+977-01-4168222,27.7000,85.3300,Kathmandu,Kathmandu,Bagmati
+Janamaitri Hospital,Balkhu Kathmandu,+977-01-4288888,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Nepal Orthopaedic Hospital,Jorpati Kathmandu,+977-01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,+977-01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Sumeru Hospital,Dhumbarahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+KIST Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Patan Academy of Health Sciences,Lagankhel Lalitpur,+977-01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Birat Nursing Home,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Dharan Sub-Metropolitan Hospital,Dharan,+977-025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari Sunsari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa Hospital,Inaruwa Sunsari,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Lifeline Hospital,Damak Jhapa,+977-023-580555,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Taplejung District Hospital,Phungling,+977-024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj Parsa,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Birgunj Health Care Hospital,Birgunj Parsa,+977-051-522000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur Dhanusha,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Mithila Hospital,Janakpur,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj Saptari,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan Siraha,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Bharatpur Hospital,Bharatpur Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur Chitwan,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Sanjivani Hospital,Bharatpur,+977-056-595555,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Kavre District Hospital,Dhulikhel,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Gorkha District Hospital,Gorkha Bazaar,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Manipal Teaching Hospital,Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Metrocity Hospital,Pokhara Kaski,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Pokhara Eye Hospital,Pokhara,+977-061-462000,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Myagdi District Hospital,Beni,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tansen Mission Hospital,Tansen Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Lamahi Hospital,Lamahi,+977-082-560789,27.8500,82.5500,Dang,Lamahi,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Lumbini Eye Institute,Bhairahawa,+977-071-520855,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Rolpa District Hospital,Liwang,+977-086-440123,28.3000,82.6400,Rolpa,Liwang,Lumbini
+Pyuthan District Hospital,Pyuthan,+977-086-460123,28.0900,82.8700,Pyuthan,Pyuthan,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Seti Provincial Hospital,Dhangadhi Kailali,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Nisarga Hospital,Dhangadhi Kailali,+977-091-523000,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Maya Metro Hospital,Dhangadhi Kailali,+977-091-590000,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Tikapur Hospital,Tikapur Kailali,+977-091-560123,28.5200,81.1200,Kailali,Tikapur,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar Kanchanpur,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Karnali Provincial Hospital Emergency,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Tansen Mission Hospital,Tansen,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+KIST Medical College Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Pokhara Academy of Health Sciences,Pokhara Kaski,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Manipal Teaching Hospital,Pokhara Kaski,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tansen Mission Hospital,Tansen Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Lifeline Hospital,Damak Jhapa,+977-023-580555,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Birgunj Health Care Hospital,Birgunj,+977-051-522000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Mithila Hospital,Janakpur,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur Chitwan,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+KIST Medical College Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Grande City Hospital,Kamaladi Kathmandu,+977-01-4163500,27.7050,85.3150,Kathmandu,Kamaladi,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal International Clinic,Lazimpat Kathmandu,+977-01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+Kantipur Hospital,Tripureshwor Kathmandu,+977-01-4111627,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kathmandu Hospital,Tripureshwor Kathmandu,+977-01-4229656,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Sumeru Hospital,Dhumbarahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Lamahi Hospital,Lamahi,+977-082-560789,27.8500,82.5500,Dang,Lamahi,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Tansen,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Birat Medical College Teaching Hospital,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa Hospital,Inaruwa,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Lifeline Hospital,Damak,+977-023-580555,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Phungling,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Malangwa,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Gaur,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Kalaiya,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+KIST Medical College Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari Sunsari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj Parsa,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur Dhanusha,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj Saptari,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan Siraha,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Nepal International Clinic,Lazimpat Kathmandu,+977-01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Grande City Hospital,Kamaladi Kathmandu,+977-01-4163500,27.7050,85.3150,Kathmandu,Kamaladi,Bagmati
+Kathmandu Hospital,Tripureshwor Kathmandu,+977-01-4229656,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kantipur Hospital,Tripureshwor Kathmandu,+977-01-4111627,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Janamaitri Hospital,Balkhu Kathmandu,+977-01-4288888,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Nepal Orthopaedic Hospital,Jorpati Kathmandu,+977-01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,+977-01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Sumeru Hospital,Dhumbarahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Medicare National Hospital,Chabahil Kathmandu,+977-01-4467067,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+KIST Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Patan Academy of Health Sciences,Lagankhel Lalitpur,+977-01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+KIST Medical College Teaching Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Bharatpur Hospital,Bharatpur Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Manipal Teaching Hospital,Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Fishtail Hospital,Pokhara Kaski,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara Kaski,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara Kaski,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Myagdi District Hospital,Beni,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Tansen Mission Hospital,Tansen Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Bharatpur Hospital,Bharatpur,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Sanjivani Hospital,Bharatpur,+977-056-595555,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Hetauda Hospital,Hetauda,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Dhulikhel Hospital,Dhulikhel,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Civil Service Hospital,Minbhawan,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Nepal Police Hospital,Maharajgunj,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+KIST Medical College Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Patan Academy of Health Sciences,Lagankhel Lalitpur,+977-01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+KIST Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Medicare National Hospital,Chabahil Kathmandu,+977-01-4467067,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Helping Hands Community Hospital,Chabahil Kathmandu,+977-01-4480071,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Nepal Orthopaedic Hospital,Jorpati Kathmandu,+977-01-4911700,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Shankarapur Hospital,Jorpati Kathmandu,+977-01-4911000,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Sumeru Hospital,Dhumbarahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Grande City Hospital,Kamaladi Kathmandu,+977-01-4163500,27.7050,85.3150,Kathmandu,Kamaladi,Bagmati
+Kantipur Hospital,Tripureshwor Kathmandu,+977-01-4111627,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Kathmandu Hospital,Tripureshwor Kathmandu,+977-01-4229656,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Nepal International Clinic,Lazimpat Kathmandu,+977-01-4424642,27.7200,85.3300,Kathmandu,Lazimpat,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Janamaitri Hospital,Balkhu Kathmandu,+977-01-4288888,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Bheri Hospital,Nepalgunj Banke,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur Banke,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Rapti Academy of Health Sciences,Ghorahi Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur Dang,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Lamahi Hospital,Lamahi Dang,+977-082-560789,27.8500,82.5500,Dang,Lamahi,Lumbini
+Lumbini Provincial Hospital,Butwal Rupandehi,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences Teaching Hospital,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha Rupandehi,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Tansen Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Seti Provincial Hospital,Dhangadhi Kailali,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar Kanchanpur,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Surkhet Provincial Hospital,Birendranagar Surkhet,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences Teaching Hospital,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Rukum West District Hospital,Musikot,+977-088-560123,28.6300,82.4800,Rukum West,Musikot,Karnali
+Bheri Hospital,Nepalgunj Banke,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences Teaching Hospital,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Tansen Mission Hospital,Tansen,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Manipal Teaching Hospital,Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Metrocity Hospital,Pokhara Kaski,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Western Regional Hospital,Pokhara Kaski,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Myagdi District Hospital,Beni,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Nawalpur District Hospital,Kawasoti,+977-078-540123,27.6500,84.1000,Nawalpur,Kawasoti,Gandaki
+Lamjung Community Hospital,Besisahar,+977-066-520456,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Manipal Teaching Hospital,Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Kathmandu Model Hospital,Pradarshani Marg Kathmandu,+977-01-4240800,27.7050,85.3150,Kathmandu,Pradarshani Marg,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Sumeru Hospital,Dhumbarahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+KIST Medical College Teaching Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Patan Academy of Health Sciences,Lagankhel Lalitpur,+977-01-5522295,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+KIST Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar Morang,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar Morang,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari Sunsari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa Hospital,Inaruwa Sunsari,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Taplejung,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj Parsa,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur Dhanusha,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj Saptari,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan Siraha,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur Chitwan,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Myagdi District Hospital,Beni,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Manipal Teaching Hospital,Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Western Regional Hospital,Pokhara Kaski,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Myagdi District Hospital,Beni,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Nawalpur District Hospital,Kawasoti,+977-078-540123,27.6500,84.1000,Nawalpur,Kawasoti,Gandaki
+Beni Hospital,Myagdi,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung Community Hospital,Baglung,+977-068-520456,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat Community Hospital,Kushma,+977-067-420456,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja Community Hospital,Syangja,+977-063-420456,28.0000,83.8700,Syangja,Syangja,Gandaki
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Tansen,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Seti Provincial Hospital,Dhangadhi Kailali,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar Kanchanpur,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Rukum West District Hospital,Musikot,+977-088-560123,28.6300,82.4800,Rukum West,Musikot,Karnali
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Janaki Medical College Teaching Hospital,Ramdaiya Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Birat Medical College Teaching Hospital,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa Hospital,Inaruwa,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Taplejung,Koshi
+PanchHospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Okhaldhunga Community Hospital,Okhaldhunga,+977-037-520123,27.3200,86.5000,Okhaldhunga,Okhaldhunga,Koshi
+Sankhuwasabha District Hospital,Khandbari,+977-029-560123,27.3800,87.2000,Sankhuwasabha,Khandbari,Koshi
+Bhojpur District Hospital,Bhojpur,+977-029-420123,27.1700,87.0500,Bhojpur,Bhojpur,Koshi
+Dhankuta District Hospital,Dhankuta,+977-026-520123,26.9800,87.3400,Dhankuta,Dhankuta,Koshi
+Terhathum District Hospital,Myanglung,+977-026-460123,27.1300,87.5500,Terhathum,Myanglung,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Birat Medical College Teaching Hospital,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madheshthar 
+District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Okhaldhunga Community Hospital,Okhaldhunga,+977-037-520123,27.3200,86.5000,Okhaldhunga,Okhaldhunga,Koshi
+Sankhuwasabha District Hospital,Khandbari,+977-029-560123,27.3800,87.2000,Sankhuwasabha,Khandbari,Koshi
+Bhojpur District Hospital,Bhojpur,+977-029-420123,27.1700,87.0500,Bhojpur,Bhojpur,Koshi
+Dhankuta District Hospital,Dhankuta,+977-026-520123,26.9800,87.3400,Dhankuta,Dhankuta,Koshi
+Terhathum District Hospital,Myanglung,+977-026-460123,27.1300,87.5500,Terhathum,Myanglung,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Birat Medical College Teaching Hospital,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Kalaiya Hospital,Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Birgunj Health Care Hospital,Birgunj Parsa,+977-051-531111,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Vayodha Hospital,Birgunj Parsa,+977-051-590000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Terai Hospital,Birgunj Parsa,+977-051-590555,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur City Hospital,Janakpur Dhanusha,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Sarlahi District Hospital,Malangwa,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Rautahat District Hospital,Gaur,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Bara District Hospital,Kalaiya,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Morang District Hospital,Rangeli,+977-021-550123,26.4700,87.3000,Morang,Rangeli,Koshi
+Dharan Sub-Metropolitan Hospital,Dharan,+977-025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Damak General Hospital,Damak,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Dhankuta District Hospital,Dhankuta,+977-026-520123,26.9800,87.3400,Dhankuta,Dhankuta,Koshi
+Sankhuwasabha District Hospital,Khandbari,+977-029-560123,27.3800,87.2000,Sankhuwasabha,Khandbari,Koshi
+Bhojpur District Hospital,Bhojpur,+977-029-420123,27.1700,87.0500,Bhojpur,Bhojpur,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Taplejung,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Okhaldhunga District Hospital,Okhaldhunga,+977-037-520123,27.3200,86.5000,Okhaldhunga,Okhaldhunga,Koshi
+Biratnagar Eye Hospital,Biratnagar,+977-021-530000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Nobel Medical College Teaching Hospital,Biratnagar Morang,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar Morang,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar Morang,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan Sunsari,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari Sunsari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Inaruwa District Hospital,Inaruwa Sunsari,+977-025-560123,26.6100,87.1400,Sunsari,Inaruwa,Koshi
+Mechi Provincial Hospital,Bhadrapur Jhapa,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode Jhapa,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Mechi Eye Hospital,Birtamode Jhapa,+977-023-562111,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Damak Hospital,Damak Jhapa,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Taplejung,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Sankhuwasabha District Hospital,Khandbari,+977-029-560123,27.3800,87.2000,Sankhuwasabha,Khandbari,Koshi
+Bhojpur District Hospital,Bhojpur,+977-029-420123,27.1700,87.0500,Bhojpur,Bhojpur,Koshi
+Dhankuta District Hospital,Dhankuta,+977-026-520123,26.9800,87.3400,Dhankuta,Dhankuta,Koshi
+Terhathum District Hospital,Myanglung,+977-026-460123,27.1300,87.5500,Terhathum,Myanglung,Koshi
+Birgunj Health Care Hospital,Birgunj Parsa,+977-051-531111,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Narayani Hospital,Birgunj Parsa,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj Parsa,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Gajendra Narayan Singh Hospital,Rajbiraj Saptari,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan Siraha,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Malangwa Sarlahi,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Gaur Rautahat,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Kalaiya Bara,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Birgunj Health Care Hospital,Birgunj,+977-051-531111,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Vayodha Hospital,Birgunj,+977-051-590000,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Terai Hospital,Birgunj,+977-051-590555,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur City Hospital,Janakpur,+977-041-520456,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Biratnagar Eye Hospital,Biratnagar,+977-021-530000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Neuro Cardio Multispeciality Hospital,Biratnagar,+977-021-533333,26.4500,87.2700,Morang,Biratnagar,Koshi
+Golden Hospital,Biratnagar,+977-021-461234,26.4500,87.2700,Morang,Biratnagar,Koshi
+Morang District Hospital,Rangeli,+977-021-550123,26.4700,87.3000,Morang,Rangeli,Koshi
+Dharan Sub-Metropolitan Hospital,Dharan,+977-025-520123,26.8100,87.2800,Sunsari,Dharan,Koshi
+Damak General Hospital,Damak,+977-023-580123,26.6600,87.6900,Jhapa,Damak,Koshi
+Ilam District Hospital,Ilam,+977-027-520123,26.9100,87.9300,Ilam,Ilam,Koshi
+Dhankuta District Hospital,Dhankuta,+977-026-520123,26.9800,87.3400,Dhankuta,Dhankuta,Koshi
+Sankhuwasabha District Hospital,Khandbari,+977-029-560123,27.3800,87.2000,Sankhuwasabha,Khandbari,Koshi
+Bhojpur District Hospital,Bhojpur,+977-029-420123,27.1700,87.0500,Bhojpur,Bhojpur,Koshi
+Taplejung District Hospital,Taplejung,+977-024-460123,27.3500,87.6700,Taplejung,Taplejung,Koshi
+Panchthar District Hospital,Phidim,+977-024-520123,27.1500,87.7500,Panchthar,Phidim,Koshi
+Khotang District Hospital,Diktel,+977-036-420123,27.2100,86.7900,Khotang,Diktel,Koshi
+Solukhumbu District Hospital,Salleri,+977-038-520123,27.7900,86.7200,Solukhumbu,Salleri,Koshi
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Udayapur District Hospital,Gaighat,+977-035-420123,26.8000,86.7000,Udayapur,Gaighat,Koshi
+Okhaldhunga District Hospital,Okhaldhunga,+977-037-520123,27.3200,86.5000,Okhaldhunga,Okhaldhunga,Koshi
+Terhathum District Hospital,Myanglung,+977-026-460123,27.1300,87.5500,Terhathum,Myanglung,Koshi
+Mechi Provincial Hospital,Bhadrapur,+977-023-520123,26.5500,88.0900,Jhapa,Bhadrapur,Koshi
+B&C Medical College Teaching Hospital,Birtamode,+977-023-563333,26.6400,88.0000,Jhapa,Birtamode,Koshi
+Nobel Medical College Teaching Hospital,Biratnagar,+977-021-466735,26.4500,87.2800,Morang,Biratnagar,Koshi
+Birat Medical College Teaching Hospital,Biratnagar,+977-021-470000,26.4500,87.2700,Morang,Biratnagar,Koshi
+Koshi Hospital,Biratnagar,+977-021-530103,26.4500,87.2700,Morang,Biratnagar,Koshi
+B.P. Koirala Institute of Health Sciences,Dharan,+977-025-525555,26.8100,87.2800,Sunsari,Dharan,Koshi
+Itahari Hospital,Itahari,+977-025-582000,26.6600,87.2700,Sunsari,Itahari,Koshi
+Narayani Hospital,Birgunj,+977-051-521993,27.0100,84.8800,Parsa,Birgunj,Madhesh
+National Medical College Teaching Hospital,Birgunj,+977-051-532260,27.0100,84.8800,Parsa,Birgunj,Madhesh
+Janakpur Provincial Hospital,Janakpur,+977-041-520123,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Janaki Medical College Teaching Hospital,Janakpur,+977-041-560000,26.7300,85.9200,Dhanusha,Janakpur,Madhesh
+Gajendra Narayan Singh Hospital,Rajbiraj,+977-031-520123,26.5400,86.7500,Saptari,Rajbiraj,Madhesh
+Siraha District Hospital,Siraha,+977-033-520123,26.6600,86.2000,Siraha,Siraha,Madhesh
+Lahan Hospital,Lahan,+977-033-560123,26.7200,86.4800,Siraha,Lahan,Madhesh
+Malangwa Hospital,Malangwa,+977-046-520123,26.8600,85.5600,Sarlahi,Malangwa,Madhesh
+Gaur Hospital,Gaur,+977-055-520123,26.7700,85.2700,Rautahat,Gaur,Madhesh
+Kalaiya Hospital,Kalaiya,+977-053-520123,26.9900,84.8700,Bara,Kalaiya,Madhesh
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Rukum West District Hospital,Musikot,+977-088-560123,28.6300,82.4800,Rukum West,Musikot,Karnali
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Devdaha Medical College Hospital,Devdaha Rupandehi,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Tansen Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Bharatpur Hospital,Bharatpur Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Hetauda Hospital,Hetauda Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Bir Hospital,Kathmandu,+977-01-4221119,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+National Trauma Center,Kathmandu,+977-01-4230710,27.7050,85.3150,Kathmandu,Kathmandu,Bagmati
+Civil Service Hospital,Minbhawan Kathmandu,+977-01-4793000,27.6900,85.3400,Kathmandu,Minbhawan,Bagmati
+Tribhuvan University Teaching Hospital,Maharajgunj Kathmandu,+977-01-4412303,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Kanti Children's Hospital,Maharajgunj Kathmandu,+977-01-4411558,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Shahid Gangalal National Heart Centre,Bansbari Kathmandu,+977-01-4371322,27.7500,85.3400,Kathmandu,Bansbari,Bagmati
+Nepal Police Hospital,Maharajgunj Kathmandu,+977-01-4412430,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Nepal Army Hospital,Chhauni Kathmandu,+977-01-4271941,27.7000,85.2900,Kathmandu,Chhauni,Bagmati
+Grande International Hospital,Dhapasi Kathmandu,+977-01-5159266,27.7500,85.3300,Kathmandu,Dhapasi,Bagmati
+HAMS Hospital,Dhumbarahi Kathmandu,+977-01-4377404,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+Norvic International Hospital,Thapathali Kathmandu,+977-01-5970032,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Blue Cross Hospital,Tripureshwor Kathmandu,+977-01-4262027,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Vayodha Hospital,Balkhu Kathmandu,+977-01-4281666,27.6850,85.3000,Kathmandu,Balkhu,Bagmati
+Nepal Eye Hospital,Tripureshwor Kathmandu,+977-01-4260813,27.7000,85.3100,Kathmandu,Tripureshwor,Bagmati
+Tilganga Institute of Ophthalmology,Gausala Kathmandu,+977-01-4493684,27.7100,85.3500,Kathmandu,Gausala,Bagmati
+Paropakar Maternity Hospital,Thapathali Kathmandu,+977-01-4253276,27.6950,85.3150,Kathmandu,Thapathali,Bagmati
+Sukraraj Tropical Hospital,Teku Kathmandu,+977-01-4253396,27.6950,85.3050,Kathmandu,Teku,Bagmati
+Kathmandu Medical College Hospital,Sinamangal Kathmandu,+977-01-4469064,27.6950,85.3500,Kathmandu,Sinamangal,Bagmati
+Kirtipur Hospital,Kirtipur Kathmandu,+977-01-4339130,27.6700,85.2800,Kathmandu,Kirtipur,Bagmati
+Kathmandu Model Hospital,Pradarshani Marg Kathmandu,+977-01-4240800,27.7050,85.3150,Kathmandu,Pradarshani Marg,Bagmati
+Om Hospital and Research Center,Chabahil Kathmandu,+977-01-4476225,27.7200,85.3450,Kathmandu,Chabahil,Bagmati
+Chirayu National Hospital,Maharajgunj Kathmandu,+977-01-4520930,27.7350,85.3300,Kathmandu,Maharajgunj,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Apex Hospital,Jorpati Kathmandu,+977-01-4912500,27.7300,85.3700,Kathmandu,Jorpati,Bagmati
+Green City Hospital,Basundhara Kathmandu,+977-01-4387788,27.7350,85.3400,Kathmandu,Basundhara,Bagmati
+Sumeru Hospital,Dhumbarahi Kathmandu,+977-01-4377700,27.7350,85.3400,Kathmandu,Dhumbarahi,Bagmati
+CIWEC Hospital,Lainchaur Kathmandu,+977-01-4435232,27.7200,85.3200,Kathmandu,Lainchaur,Bagmati
+Annapurna Neurological Institute,Maitighar Kathmandu,+977-01-4256656,27.7000,85.3200,Kathmandu,Maitighar,Bagmati
+Patan Hospital,Lagankhel Lalitpur,+977-01-5522278,27.6700,85.3200,Lalitpur,Lagankhel,Bagmati
+B&B Hospital,Gwarko Lalitpur,+977-01-5533206,27.6650,85.3300,Lalitpur,Gwarko,Bagmati
+Alka Hospital,Jawalakhel Lalitpur,+977-01-5970999,27.6750,85.3150,Lalitpur,Jawalakhel,Bagmati
+Nepal Mediciti Hospital,Bhaisepati Lalitpur,+977-01-4217766,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+KIST Medical College Teaching Hospital,Imadol Lalitpur,+977-01-5201496,27.6500,85.3500,Lalitpur,Imadol,Bagmati
+Nepal Cancer Hospital,Harisiddhi Lalitpur,+977-01-5971532,27.6300,85.3500,Lalitpur,Harisiddhi,Bagmati
+Swacon International Hospital,Bhaisepati Lalitpur,+977-01-5591919,27.6500,85.3000,Lalitpur,Bhaisepati,Bagmati
+Vatsalya Hospital,Nakhu Lalitpur,+977-01-5599555,27.6650,85.3100,Lalitpur,Nakhu,Bagmati
+Nidan Hospital,Pulchowk Lalitpur,+977-01-5443200,27.6800,85.3150,Lalitpur,Pulchowk,Bagmati
+Star Hospital,Sanepa Lalitpur,+977-01-5420777,27.6850,85.3050,Lalitpur,Sanepa,Bagmati
+Dhulikhel Hospital,Dhulikhel Kavre,+977-011-490497,27.6200,85.5400,Kavrepalanchok,Dhulikhel,Bagmati
+Sheer Memorial Hospital,Banepa Kavre,+977-011-665015,27.6300,85.5200,Kavrepalanchok,Banepa,Bagmati
+Bhaktapur Cancer Hospital,Bhaktapur,+977-01-6611532,27.6700,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Khwopa Hospital,Bhaktapur,+977-01-6618998,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Siddhi Memorial Hospital,Bhaktapur,+977-01-6610798,27.6750,85.4300,Bhaktapur,Bhaktapur,Bagmati
+Nepal Korea Friendship Hospital,Thimi Bhaktapur,+977-01-6635111,27.6800,85.3900,Bhaktapur,Thimi,Bagmati
+Hetauda Hospital,Hetauda,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
+Nuwakot District Hospital,Bidur,+977-010-560123,27.9200,85.1600,Nuwakot,Bidur,Bagmati
+Dhading District Hospital,Dhadingbesi,+977-010-520123,27.8700,84.9200,Dhading,Dhadingbesi,Bagmati
+Rasuwa District Hospital,Dhunche,+977-010-540123,28.1100,85.3000,Rasuwa,Dhunche,Bagmati
+Bharatpur Hospital,Bharatpur,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Western Regional Hospital,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Gandaki Medical College Teaching Hospital,Pokhara,+977-061-430822,28.2100,84.0000,Kaski,Pokhara,Gandaki
+Manipal Teaching Hospital,Pokhara,+977-061-526416,28.2500,83.9900,Kaski,Pokhara,Gandaki
+Pokhara Academy of Health Sciences,Pokhara,+977-061-520067,28.2100,83.9800,Kaski,Pokhara,Gandaki
+Fishtail Hospital,Pokhara,+977-061-461816,28.2100,83.9700,Kaski,Pokhara,Gandaki
+Charak Memorial Hospital,Pokhara,+977-061-537055,28.2200,83.9800,Kaski,Pokhara,Gandaki
+Metrocity Hospital,Pokhara,+977-061-538595,28.2200,83.9900,Kaski,Pokhara,Gandaki
+Gorkha District Hospital,Gorkha,+977-064-420123,28.0000,84.6330,Gorkha,Gorkha,Gandaki
+Damauli Hospital,Tanahun,+977-065-560102,27.9730,84.2400,Tanahun,Damauli,Gandaki
+Lamjung District Hospital,Besisahar,+977-066-520123,28.2300,84.0100,Lamjung,Besisahar,Gandaki
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Manang District Hospital,Chame,+977-066-440123,28.5500,84.2300,Manang,Chame,Gandaki
+Mustang District Hospital,Jomsom,+977-069-440123,28.7800,83.7200,Mustang,Jomsom,Gandaki
+Myagdi District Hospital,Beni,+977-069-520102,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung District Hospital,Baglung,+977-068-520102,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat District Hospital,Kushma,+977-067-420102,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja District Hospital,Syangja,+977-063-420102,28.0000,83.8700,Syangja,Syangja,Gandaki
+Nawalpur District Hospital,Kawasoti,+977-078-540123,27.6500,84.1000,Nawalpur,Kawasoti,Gandaki
+Beni Community Hospital,Beni,+977-069-520456,28.3500,83.5700,Myagdi,Beni,Gandaki
+Baglung Community Hospital,Baglung,+977-068-520456,28.2700,83.5900,Baglung,Baglung,Gandaki
+Parbat Community Hospital,Kushma,+977-067-420456,28.2200,83.6800,Parbat,Kushma,Gandaki
+Syangja Community Hospital,Syangja,+977-063-420456,28.0000,83.8700,Syangja,Syangja,Gandaki
+Lumbini Provincial Hospital,Butwal,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Tansen,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Rapti Academy of Health Sciences,Ghorahi Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Rapti Provincial Hospital,Tulsipur Dang,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Jumla District Hospital,Jumla,+977-087-520456,29.2700,82.1800,Jumla,Jumla,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Rukum West District Hospital,Musikot,+977-088-560123,28.6300,82.4800,Rukum West,Musikot,Karnali
+Karnali Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Karnali,Karnali
+Dolpa Health Office Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Humla District Hospital,Simkot,+977-019-420123,29.9700,81.8200,Humla,Simkot,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Rukum West District Hospital,Musikot,+977-088-560123,28.6300,82.4800,Rukum West,Musikot,Karnali
+Surkhet Eye Hospital,Birendranagar,+977-083-520456,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Kailali District Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Tikapur Hospital,Tikapur,+977-091-560123,28.5200,81.1300,Kailali,Tikapur,Sudurpashchim
+Attariya Hospital,Godawari Kailali,+977-091-550123,28.9800,80.5800,Kailali,Attariya,Sudurpashchim
+Kanchanpur District Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Dadeldhura Sub-Regional Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Doti District Hospital,Dipayal,+977-094-420123,29.2700,80.9400,Doti,Dipayal,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Mahakali Provincial Hospital,Mahendranagar,+977-099-521123,28.9600,80.1800,Kanchanpur,Mahendranagar,Sudurpashchim
+Seti Provincial Hospital,Dhangadhi,+977-091-520123,28.7000,80.5900,Kailali,Dhangadhi,Sudurpashchim
+Doti District Hospital,Dipayal,+977-094-420123,29.2700,80.9400,Doti,Dipayal,Sudurpashchim
+Dadeldhura Hospital,Dadeldhura,+977-096-420123,29.3000,80.5800,Dadeldhura,Dadeldhura,Sudurpashchim
+Baitadi District Hospital,Baitadi,+977-095-520123,29.5200,80.4300,Baitadi,Baitadi,Sudurpashchim
+Darchula District Hospital,Darchula,+977-093-520123,29.8500,80.5500,Darchula,Darchula,Sudurpashchim
+Bajhang District Hospital,Chainpur,+977-092-420123,29.5500,81.1800,Bajhang,Chainpur,Sudurpashchim
+Bajura District Hospital,Martadi,+977-097-420123,29.4200,81.4200,Bajura,Martadi,Sudurpashchim
+Achham District Hospital,Mangalsen,+977-097-620123,29.1300,81.2500,Achham,Mangalsen,Sudurpashchim
+Surkhet Provincial Hospital,Birendranagar,+977-083-520123,28.6000,81.6300,Surkhet,Birendranagar,Karnali
+Karnali Academy of Health Sciences,Jumla,+977-087-520123,29.2700,82.1800,Jumla,Jumla,Karnali
+Humla District Hospital,Simkot,+977-019-420123,29.9700,81.8200,Humla,Simkot,Karnali
+Dolpa District Hospital,Dunai,+977-087-590123,29.0000,82.8200,Dolpa,Dunai,Karnali
+Mugu District Hospital,Gamgadhi,+977-087-690123,29.5300,82.0900,Mugu,Gamgadhi,Karnali
+Kalikot District Hospital,Manma,+977-087-440123,29.1500,81.6200,Kalikot,Manma,Karnali
+Jajarkot District Hospital,Khalanga,+977-089-430123,28.7000,82.1800,Jajarkot,Khalanga,Karnali
+Dailekh District Hospital,Dailekh,+977-089-420123,28.8500,81.7100,Dailekh,Dailekh,Karnali
+Salyan District Hospital,Salyan,+977-088-520123,28.3800,82.1700,Salyan,Salyan,Karnali
+Rukum West District Hospital,Musikot,+977-088-560123,28.6300,82.4800,Rukum West,Musikot,Karnali
+Bheri Hospital,Nepalgunj,+977-081-520123,28.0500,81.6200,Banke,Nepalgunj,Lumbini
+Nepalgunj Medical College Teaching Hospital,Kohalpur,+977-081-540000,28.2100,81.6800,Banke,Kohalpur,Lumbini
+Bardiya District Hospital,Gulariya,+977-084-420123,28.2300,81.3400,Bardiya,Gulariya,Lumbini
+Rapti Academy of Health Sciences,Ghorahi,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Hospital Name,Address,Phone,Latitude,Longitude,District,Destination,Province
+Rapti Provincial Hospital,Tulsipur Dang,+977-082-560456,28.1300,82.3000,Dang,Tulsipur,Lumbini
+Dang Valley Hospital,Ghorahi Dang,+977-082-560123,28.0300,82.4800,Dang,Ghorahi,Lumbini
+Lumbini Provincial Hospital,Butwal Rupandehi,+977-071-540200,27.7000,83.4500,Rupandehi,Butwal,Lumbini
+Universal College of Medical Sciences,Bhairahawa Rupandehi,+977-071-506016,27.5000,83.4500,Rupandehi,Bhairahawa,Lumbini
+Crimson Hospital,Manigram Rupandehi,+977-071-520111,27.6500,83.4700,Rupandehi,Manigram,Lumbini
+Devdaha Medical College Hospital,Devdaha Rupandehi,+977-071-577777,27.6500,83.5600,Rupandehi,Devdaha,Lumbini
+Tansen Mission Hospital,Tansen Palpa,+977-075-520123,27.8700,83.5500,Palpa,Tansen,Lumbini
+Palpa District Hospital,Tansen Palpa,+977-075-520102,27.8700,83.5500,Palpa,Tansen,Lumbini
+Kapilvastu District Hospital,Taulihawa,+977-076-560123,27.5500,83.0500,Kapilvastu,Taulihawa,Lumbini
+Gulmi District Hospital,Tamghas,+977-079-520123,28.0800,83.2500,Gulmi,Tamghas,Lumbini
+Arghakhanchi District Hospital,Sandhikharka,+977-077-420123,27.9500,83.1200,Arghakhanchi,Sandhikharka,Lumbini
+Bharatpur Hospital,Chitwan,+977-056-527959,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+B.P. Koirala Memorial Cancer Hospital,Bharatpur,+977-056-523911,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Chitwan Medical College Teaching Hospital,Bharatpur,+977-056-493403,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+College of Medical Sciences Teaching Hospital,Bharatpur,+977-056-534111,27.6700,84.4400,Chitwan,Bharatpur,Bagmati
+Narayani Community Hospital,Bharatpur,+977-056-533333,27.6800,84.4300,Chitwan,Bharatpur,Bagmati
+Hetauda Hospital,Makwanpur,+977-057-520155,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Makwanpur Cooperative Hospital,Hetauda,+977-057-520456,27.4300,85.0300,Makwanpur,Hetauda,Bagmati
+Sindhuli District Hospital,Sindhulimadhi,+977-047-520123,27.2500,85.9700,Sindhuli,Sindhulimadhi,Bagmati
+Ramechhap District Hospital,Manthali,+977-048-540123,27.3900,86.0600,Ramechhap,Manthali,Bagmati
+Dolakha District Hospital,Charikot,+977-049-420123,27.6700,86.0300,Dolakha,Charikot,Bagmati
