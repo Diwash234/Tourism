@@ -21,7 +21,7 @@ import useGeolocation from "../../hooks/useGeolocation"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 
-import { mlApi } from "../../services/api"
+import { mlService } from "../../services/api"
 import { RISK_LEVELS } from "../../utils/constants"
 import { formatCurrency } from "../../utils/helpers"
 
@@ -59,7 +59,7 @@ const DestinationDetails = () => {
       params.latitude = position.lat
       params.longitude = position.lng
     }
-
+    console.log("Route slug:", slug);
     Promise.allSettled([
 
       destinationApi.getById(slug, params),
@@ -83,7 +83,7 @@ const DestinationDetails = () => {
         setTranslatedDescription(destinationData.description || "")
 
         try {
-          const riskRes = await mlApi.safety({ destination: destinationData.id })
+          const riskRes = await mlService.safety({ destination: destinationData.id })
           setRisk(riskRes.data)
         } catch {
           setRisk(null)

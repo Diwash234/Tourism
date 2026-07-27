@@ -1,0 +1,31 @@
+cd C:\Users\ADMIN\Desktop\Chatbot\ml-service..
+\venv\Scripts\activate
+python training/clean_destinations.py
+python training/train_recommendation_model.py
+python test_recommendation.py
+python training/train_budget_model.py
+uvicorn app:app --reload --port 8001
+http://127.0.0.1:8001/docs
+cd C:\Users\ADMIN\Desktop\Chatbot\ml-service
+
+python run_all_training.py
+training/processed_data/destinations_clean.csv
+ml-service/run_all_training.py
+python training/train_risk_model.py
+model/risk/risk_model.joblib
+python test_risk.py
+uvicorn app:app --reload --port 8001
+cd C:\Users\ADMIN\Desktop\Chatbot\ml-service
+
+venv\Scripts\activate
+
+python training/train_recommendation_model.py
+
+python training/train_budget_model.py
+python training/clean_risk.py
+python training/train_risk.py
+
+uvicorn app:app --reload --port 8001
+
+
+python training/train_risk.py

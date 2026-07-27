@@ -1,57 +1,197 @@
 import { useEffect, useState } from "react"
-import recommendationApi from "../api/recommendationApi"
+
 import RecommendationCard from "../components/cards/RecommendationCard"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import Filter from "../components/common/Filter"
 
+import { getRecommendations } from "../services/mlService"
+
+
+
 const CATEGORY_OPTIONS = [
-  { label: "Adventure", value: "adventure" },
-  { label: "Cultural", value: "cultural" },
-  { label: "Nature", value: "nature" },
-  { label: "Relaxation", value: "relaxation" },
+  { label:"Adventure", value:"adventure" },
+  { label:"Cultural", value:"cultural" },
+  { label:"Nature", value:"nature" },
+  { label:"Relaxation", value:"relaxation" },
 ]
 
-const Recommendation = () => {
-  const [items, setItems] = useState([])
-  const [category, setCategory] = useState("")
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setLoading(true)
-    recommendationApi
-      .getRecommendations({ category })
-      // FIXED: was `data.items || data || []` — the backend returns
-      // `{ source, results: [...] }`, so `.items` is always undefined and
-      // this fell through to the whole response OBJECT (not an array),
-      // making `.length` undefined -> always showed the empty state even
-      // when recommendations came back fine.
-      .then(({ data }) => setItems(data.results || data.items || data || []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
-  }, [category])
+
+const Recommendation = () => {
+
+
+  const [items,setItems] = useState([])
+
+  const [category,setCategory] = useState("")
+
+  const [loading,setLoading] = useState(false)
+
+
+
+
+  async function loadRecommendations(){
+
+
+    try{
+
+
+      setLoading(true)
+
+
+      let interest =
+      category || "mountain trekking adventure"
+
+
+
+      const response =
+      await getRecommendations(
+        interest
+      )
+
+
+
+      setItems(
+        response.recommendations ||
+        response.results ||
+        []
+      )
+
+
+    }
+
+    catch(error){
+
+      console.log(
+        error
+      )
+
+      setItems([])
+
+    }
+
+    finally{
+
+      setLoading(false)
+
+    }
+
+
+  }
+
+
+
+
+
+  useEffect(()=>{
+
+
+    loadRecommendations()
+
+
+  },[category])
+
+
+
+
+
 
   return (
+
     <div className="container-app py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+
+
+      <div className="flex flex-col sm:flex-row justify-between mb-8">
+
+
         <div>
-          <h1 className="section-title mb-1">Recommended For You</h1>
-          <p className="text-gray-500 text-sm">Personalized picks based on your interests and travel history.</p>
+
+          <h1 className="section-title">
+            Recommended For You
+          </h1>
+
+
+          <p className="text-gray-500 text-sm">
+            AI based destination recommendations.
+          </p>
+
         </div>
-        <Filter label="Category" options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
+
+
+
+        <Filter
+
+          label="Category"
+
+          options={CATEGORY_OPTIONS}
+
+          value={category}
+
+          onChange={setCategory}
+
+        />
+
+
       </div>
 
-      {loading ? (
+
+
+
+
+      {
+        loading ?
+
         <Loader />
-      ) : items.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {items.map((item) => <RecommendationCard key={item.id} item={item} />)}
+
+
+        :
+
+        items.length ?
+
+
+        <div className="grid md:grid-cols-2 gap-6">
+
+
+        {
+          items.map(
+            (item,index)=>(
+
+              <RecommendationCard
+
+                key={index}
+
+                item={item}
+
+              />
+
+            )
+          )
+        }
+
+
         </div>
-      ) : (
-        <EmptyState title="No recommendations found" subtitle="Try a different category or explore all destinations." />
-      )}
+
+
+        :
+
+
+        <EmptyState
+
+          title="No recommendations found"
+
+          subtitle="Try another category."
+
+        />
+
+      }
+
+
+
     </div>
+
   )
+
 }
+
 
 export default Recommendation

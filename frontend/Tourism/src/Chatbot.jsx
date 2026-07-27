@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { FiMessageCircle, FiX, FiSend } from "react-icons/fi"
-import chatbotApi from "../api/chatbotApi"
+import chatbotApi from "./api/chatbotApi"
+import useGeolocation from "./hooks/useGeolocation"
 
 /**
  * Floating chat widget — drop <ChatBot /> once near the bottom of
@@ -13,6 +14,8 @@ const ChatBot = () => {
   ])
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
+  const { position } = useGeolocation()
+
   const [conversationId, setConversationId] = useState(null)
   const bottomRef = useRef(null)
 
@@ -30,7 +33,13 @@ const ChatBot = () => {
     setSending(true)
 
     try {
-      const { data } = await chatbotApi.sendMessage(text, conversationId)
+      const { data } = await chatbotApi.sendMessage(
+    text,
+    position?.lat,
+    position?.lng,
+    conversationId
+)
+
       setConversationId(data.conversation_id)
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }])
     } catch {

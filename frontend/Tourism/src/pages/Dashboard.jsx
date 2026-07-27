@@ -12,7 +12,7 @@ import {
 
 import useAuth from "../hooks/useAuth";
 import useGeolocation from "../hooks/useGeolocation";
-
+import {getRecommendations} from "../services/mlService";
 import weatherApi from "../api/weatherApi";
 import recommendationApi from "../api/recommendationApi";
 import alertApi from "../api/alertApi";

@@ -18,5 +18,20 @@ class ChatConversationSerializer(serializers.ModelSerializer):
 
 
 class ChatSendMessageSerializer(serializers.Serializer):
-    conversation_id = serializers.IntegerField(required=False)
+
     message = serializers.CharField()
+
+    conversation_id = serializers.IntegerField(
+        required=False,
+        allow_null=True
+    )
+
+    latitude = serializers.FloatField(
+        required=False,
+        allow_null=True
+    )
+
+    longitude = serializers.FloatField(
+        required=False,
+        allow_null=True
+    )

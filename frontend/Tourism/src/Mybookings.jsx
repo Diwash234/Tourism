@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
 import { FiCalendar, FiHome, FiStar } from "react-icons/fi"
-import bookingApi from "../api/bookingApi"
-import Loader from "../components/common/Loader"
-import EmptyState from "../components/common/EmptyState"
-import useToast from "../hooks/useToast"
+import bookingApi from "./api/bookingApi"
+import Loader from "./components/common/Loader"
+import EmptyState from "./components/common/EmptyState"
+import useToast from "./hooks/useToast"
 
 const STATUS_COLORS = {
   pending: "text-yellow-600",

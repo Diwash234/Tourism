@@ -1,10 +1,54 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import sys
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.path.append(os.path.dirname(BASE_DIR))
 
 from .models import ChatConversation, ChatMessage
 from .serializers import ChatConversationSerializer, ChatSendMessageSerializer
 from .services import get_chatbot_reply
+
+from rest_framework.permissions import AllowAny
+
+from ml_service.services.emergency_service import nearest_facilities
+
+
+class NearbyEmergencyView(APIView):
+
+    permission_classes = [AllowAny]
+
+
+    def get(self, request):
+
+        lat = float(request.GET.get("latitude"))
+        lon = float(request.GET.get("longitude"))
+
+        category = request.GET.get("category")
+
+        limit = int(
+            request.GET.get(
+                "limit",
+                5
+            )
+        )
+
+
+        results = nearest_facilities(
+            latitude=lat,
+            longitude=lon,
+            category=category,
+            limit=limit
+        )
+
+
+        return Response({
+            "facilities": results
+        })
+
 
 
 class ChatMessageView(APIView):
@@ -22,6 +66,9 @@ class ChatMessageView(APIView):
         serializer = ChatSendMessageSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+
 
         conversation = self._get_or_create_conversation(request, data.get("conversation_id"))
         ChatMessage.objects.create(conversation=conversation, role=ChatMessage.Role.USER, content=data["message"])
@@ -30,7 +77,12 @@ class ChatMessageView(APIView):
             {"role": m.role, "content": m.content}
             for m in conversation.messages.order_by("created_at")
         ]
-        reply_text = get_chatbot_reply(history)
+        reply_text = get_chatbot_reply(
+    history,
+    latitude=latitude,
+    longitude=longitude
+)
+
 
         reply = ChatMessage.objects.create(
             conversation=conversation, role=ChatMessage.Role.ASSISTANT, content=reply_text

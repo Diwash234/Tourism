@@ -219,7 +219,7 @@ export const translateApi = {
 // ML-powered recommendations, safety score, and budget estimate
 // (backend proxies each of these to the ML microservice)
 // ------------------------------------------------------------------
-export const mlApi = {
+export const mlService= {
   recommendations: (latitude, longitude, top_n = 5) =>
     api.post("/ml/recommendations/", { latitude, longitude, top_n }),
 
