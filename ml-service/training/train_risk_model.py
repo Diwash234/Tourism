@@ -19,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import joblib
 
-RAW_DESTINATIONS = "data/destinations/nepal_destinations_sample.csv"
+RAW_DESTINATIONS = "data/destinations/nepal_destination_sample.csv"
 PROCESSED_PATH = "processed_data/risk_features.csv"
 MODEL_OUT = "model/risk/risk_model.joblib"
 

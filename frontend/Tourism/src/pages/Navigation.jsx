@@ -1,8 +1,8 @@
 import { useState } from "react";
 import MapView from "../components/map/MapView";
 import useGeolocation from "../hooks/useGeolocation";
-import Loader from "../components/common/Loader";
 import { FiNavigation, FiMapPin } from "react-icons/fi";
+import navigationApi from "../api/navigationApi";
 
 import axios from "axios";
 
@@ -14,14 +14,14 @@ const Navigation = () => {
 
 
     const [destinationQuery, setDestinationQuery] = useState("");
-
     const [destination, setDestination] = useState(null);
-
     const [route, setRoute] = useState([]);
 
     const [distance, setDistance] = useState(null);
 
-    const [loading,setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const [error, setError] = useState("");
 
 
 
@@ -32,45 +32,45 @@ const Navigation = () => {
         lon1,
         lat2,
         lon2
-    )=>{
+    ) => {
 
         const R = 6371;
 
 
         const dLat =
-            (lat2-lat1) *
+            (lat2 - lat1) *
             Math.PI / 180;
 
 
         const dLon =
-            (lon2-lon1) *
+            (lon2 - lon1) *
             Math.PI / 180;
 
 
         const a =
-            Math.sin(dLat/2) *
-            Math.sin(dLat/2)
+            Math.sin(dLat / 2) *
+            Math.sin(dLat / 2)
 
             +
 
-            Math.cos(lat1*Math.PI/180)
+            Math.cos(lat1 * Math.PI / 180)
             *
-            Math.cos(lat2*Math.PI/180)
+            Math.cos(lat2 * Math.PI / 180)
             *
-            Math.sin(dLon/2)
+            Math.sin(dLon / 2)
             *
-            Math.sin(dLon/2);
+            Math.sin(dLon / 2);
 
 
         const c =
             2 *
             Math.atan2(
                 Math.sqrt(a),
-                Math.sqrt(1-a)
+                Math.sqrt(1 - a)
             );
 
 
-        return (R*c).toFixed(2);
+        return (R * c).toFixed(2);
 
     };
 
@@ -80,50 +80,50 @@ const Navigation = () => {
 
     // Get route from OSRM free routing API
 
-    const getRoadRoute = async(
+    const getRoadRoute = async (
         startLat,
         startLng,
         endLat,
         endLng
-    )=>{
+    ) => {
 
 
-        try{
+        try {
 
 
             const url =
-            `https://router.project-osrm.org/route/v1/driving/`+
-            `${startLng},${startLat};${endLng},${endLat}`+
-            `?overview=full&geometries=geojson`;
+                `https://router.project-osrm.org/route/v1/driving/` +
+                `${startLng},${startLat};${endLng},${endLat}` +
+                `?overview=full&geometries=geojson`;
 
 
 
             const response =
-            await axios.get(url);
+                await axios.get(url);
 
 
 
             const coordinates =
-            response.data.routes[0]
-            .geometry.coordinates;
+                response.data.routes[0]
+                    .geometry.coordinates;
 
 
 
             const formatted =
-            coordinates.map(point=>({
+                coordinates.map(point => ({
 
-                lat:point[1],
+                    lat: point[1],
 
-                lng:point[0]
+                    lng: point[0]
 
-            }));
+                }));
 
 
             return formatted;
 
 
 
-        }catch(error){
+        } catch (error) {
 
             console.log(
                 "Route error:",
@@ -142,14 +142,18 @@ const Navigation = () => {
 
 
 
-    const handleGetRoute = async(e)=>{
+
+    const handleGetRoute = async (e) => {
 
 
         e.preventDefault();
 
 
+        setError("");
 
-        if(!position){
+
+
+        if (!position) {
 
             alert(
                 "Waiting for GPS location"
@@ -161,7 +165,7 @@ const Navigation = () => {
 
 
 
-        if(!destinationQuery.trim()){
+        if (!destinationQuery.trim()) {
 
             return;
 
@@ -172,104 +176,70 @@ const Navigation = () => {
         setLoading(true);
 
 
-
-        try{
-
-
-            // Find destination from Django
-
-            const destinationResponse =
-            await axios.get(
-                "http://127.0.0.1:8000/api/destinations/",
-                {
-                    params:{
-                        search:destinationQuery
-                    }
-                }
-            );
+        try {
 
 
+            const payload = {
 
-            const dest =
-            destinationResponse.data.results
-            ?
-            destinationResponse.data.results[0]
-            :
-            destinationResponse.data[0];
+                start_latitude: position.lat,
 
+                start_longitude: position.lng,
 
+                destination_name: destinationQuery
 
-            if(!dest){
+            };
 
-                alert(
-                    "Destination not found"
-                );
-
-                return;
-
-            }
-
-
-
-
-            setDestination(dest);
-
-
-
-
-
-            // Calculate distance
-
-            const km =
-            calculateDistance(
-
-                position.lat,
-                position.lng,
-
-                Number(dest.latitude),
-                Number(dest.longitude)
-
-            );
-
-
-            setDistance(km);
-
-
-
-
-
-            // Get road route
-
-            const roadRoute =
-            await getRoadRoute(
-
-                position.lat,
-                position.lng,
-
-                Number(dest.latitude),
-                Number(dest.longitude)
-
-            );
-
-
-            setRoute(roadRoute);
-
-
-
-        }
-        catch(error){
 
             console.log(
-                error
+                "Sending navigation payload:",
+                payload
             );
 
-            alert(
-                "Navigation failed"
+
+
+            const response =
+                await navigationApi.getRoute(payload);
+
+
+
+            console.log(
+                "Navigation response:",
+                response.data
             );
 
+
+
+            setDestination(
+                response.data.destination || null
+            );
+
+
+            setRoute(
+                response.data.route || []
+            );
+
+
+
+        } catch (error) {
+
+
+            console.error(
+                "Navigation error:",
+                error.response?.data || error.message
+            );
+
+
+            setError(
+                error.response?.data?.message ||
+                error.message ||
+                "Something went wrong"
+            );
+
+
+            setRoute([]);
 
         }
-        finally{
+        finally {
 
             setLoading(false);
 
@@ -277,6 +247,7 @@ const Navigation = () => {
 
 
     };
+
 
 
 
@@ -299,9 +270,10 @@ const Navigation = () => {
 
 
 
+
             <form
-            onSubmit={handleGetRoute}
-            className="flex gap-3 mb-6"
+                onSubmit={handleGetRoute}
+                className="flex gap-3 mb-6"
             >
 
 
@@ -309,27 +281,27 @@ const Navigation = () => {
 
 
                     <FiMapPin
-                    className="
-                    absolute left-4 top-1/2
-                    -translate-y-1/2
-                    "
+                        className="
+                        absolute left-4 top-1/2
+                        -translate-y-1/2
+                        "
                     />
 
 
                     <input
 
-                    className="input-field pl-11"
+                        className="input-field pl-11"
 
-                    placeholder="Where are you going?"
+                        placeholder="Where are you going?"
 
-                    value={destinationQuery}
+                        value={destinationQuery}
 
-                    onChange={
-                        e=>
-                        setDestinationQuery(
-                            e.target.value
-                        )
-                    }
+                        onChange={
+                            e =>
+                            setDestinationQuery(
+                                e.target.value
+                            )
+                        }
 
                     />
 
@@ -339,17 +311,21 @@ const Navigation = () => {
 
 
 
+
                 <button
-                className="btn-primary"
-                disabled={loading}
+
+                    className="btn-primary"
+
+                    disabled={loading}
+
                 >
 
                     {
-                    loading
-                    ?
-                    "Finding..."
-                    :
-                    "Get Route"
+                        loading
+                        ?
+                        "Finding..."
+                        :
+                        "Get Route"
                     }
 
 
@@ -364,18 +340,20 @@ const Navigation = () => {
 
 
 
+
+
             {
-            distance &&
+                distance &&
 
-            <div className="mb-4">
+                <div className="mb-4">
 
-                Distance:
+                    Distance:
 
-                <b>
-                    {distance} KM
-                </b>
+                    <b>
+                        {distance} KM
+                    </b>
 
-            </div>
+                </div>
 
             }
 
@@ -383,21 +361,31 @@ const Navigation = () => {
 
 
 
+            {
+                error && (
+
+                    <p className="text-sm text-red-500 mb-4">
+                        {error}
+                    </p>
+
+                )
+            }
+
+
+
 
 
             <MapView
 
-            userLocation={position}
+                userLocation={position}
 
-            destination={destination}
+                destination={destination}
 
-            route={route}
+                route={route}
 
-            height="500px"
+                height="500px"
 
             />
-
-
 
 
         </div>

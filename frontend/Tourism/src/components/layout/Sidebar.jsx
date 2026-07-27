@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom"
 import {
   FiHome, FiUser, FiMapPin, FiHeart, FiClock, FiBell, FiSettings,
-  FiDollarSign, FiAlertTriangle, FiNavigation, FiGlobe,
+  FiDollarSign, FiAlertTriangle, FiNavigation, FiSearch, FiGlobe,
 } from "react-icons/fi"
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { to: "/budget-estimator", label: "Budget Estimator", icon: FiDollarSign },
   { to: "/risk-alerts", label: "Risk Alerts", icon: FiAlertTriangle },
   { to: "/navigation", label: "Navigation", icon: FiNavigation },
+  { to: "/language", label: "District Search", icon: FiSearch },
   { to: "/translation", label: "Translation", icon: FiGlobe },
   { to: "/favorites", label: "Favorites", icon: FiHeart },
   { to: "/history", label: "History", icon: FiClock },

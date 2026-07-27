@@ -9,6 +9,7 @@ Utility helpers used across the tourist app:
 import logging
 from math import radians, cos, sin, asin, sqrt
 
+
 import requests
 from django.conf import settings
 from django.core.mail import send_mail
