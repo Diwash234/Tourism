@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-himalayan-blue: #0B3D91;
+  --color-forest-green: #1B8A5A;
+  --color-golden-accent: #F59E0B;
+  --color-nepal-red: #DC143C;
+}
+
+body {
+  @apply bg-white text-gray-800;
+}
+
+/* Shared elevated-card style used across DestinationCard, WeatherCard,
+   BudgetCard, RiskCard, AIRecommendationCard, SafetyOverview, etc. */
+.card-base {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: 0.3s;
+}
+
+.card-base:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}

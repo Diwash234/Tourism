@@ -26,14 +26,18 @@ const normalizeLocation = (place) => {
   if (!place) return null
 
 
-  return {
-    lat:
-      Number(place.lat) ||
-      Number(place.latitude),
+  const lat = Number(place.lat) || Number(place.latitude)
+  const lng = Number(place.lng) || Number(place.longitude)
 
-    lng:
-      Number(place.lng) ||
-      Number(place.longitude),
+  // A destination with no coordinates saved comes back as null from the
+  // API; Number(null) is 0, not NaN, so this used to silently produce a
+  // "valid" center of [0, 0] (off the coast of West Africa) instead of
+  // falling back to Nepal. Treat missing/zero/NaN as "no location".
+  if (!lat || !lng || Number.isNaN(lat) || Number.isNaN(lng)) return null
+
+  return {
+    lat,
+    lng,
 
     name:
       place.name ||

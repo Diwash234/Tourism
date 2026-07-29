@@ -13,8 +13,17 @@ export const RISK_LEVELS = {
 }
 
 export const NAV_LINKS = [
-  { label: "Home", path: "/" },
   { label: "Destinations", path: "/destinations" },
-  { label: "About", path: "/about" },
-  { label: "Contact", path: "/contact" },
+  { label: "Budget Planner", path: "/budget-estimator" },
+  { label: "Risk Analysis", path: "/risk-alerts" },
+  { label: "Navigation", path: "/navigation" },
+  { label: "Emergency", path: "/emergency" },
+  { label: "Translation", path: "/translation" },
+]
+
+// Shown only to authenticated users, usually as icon links / a dropdown
+export const USER_NAV_LINKS = [
+  { label: "Favorites", path: "/favorites" },
+  { label: "Notifications", path: "/notifications" },
+  { label: "Settings", path: "/settings" },
 ]

@@ -5,6 +5,8 @@ import { FiMail, FiLock } from "react-icons/fi"
 import { motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import TourismLogo from "../../components/branding/TourismLogo"
+import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -17,9 +19,14 @@ const Login = () => {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      await login(data)
+      const userData = await login(data)
       showToast("Welcome back!", "success")
-      navigate(location.state?.from?.pathname || "/dashboard")
+      // NEW: previously this always navigated to /dashboard, even for
+      // admin accounts, and there was no "Admin Login" entry point
+      // anywhere. Rather than a second login form, one login now
+      // branches by role — matches how AdminRoute/isAdmin already work.
+      const fallback = userData?.role === "admin" ? "/admin" : "/dashboard"
+      navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
       showToast(err?.response?.data?.message || "Invalid credentials", "error")
     } finally {
@@ -28,11 +35,16 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+      <NepalSceneBackground />
+      <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl">
+        <TourismLogo size="sm" />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card-base w-full max-w-md p-8"
+        className="relative z-10 card-base w-full max-w-md p-8"
       >
         <h1 className="text-2xl font-bold text-center mb-1">Welcome Back</h1>
         <p className="text-sm text-gray-500 text-center mb-6">Login to continue exploring</p>

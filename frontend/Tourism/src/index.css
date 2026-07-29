@@ -5,21 +5,45 @@
 html, body, #root { height: 100%; }
 body { @apply bg-gray-50 text-dark font-sans; }
 
-.container-app { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+.container-app {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  animation: fade 0.5s ease both;
+}
 
 .btn-primary {
-  @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5;
+  background-image: linear-gradient(135deg, #0B3D91 0%, #1B8A5A 100%);
 }
 .btn-outline {
-  @apply border border-gray-300 hover:border-dark text-dark font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200;
+  @apply border border-gray-300 hover:border-himalaya-500 hover:text-himalaya-500 text-dark font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200;
 }
 .input-field {
-  @apply w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition;
+  @apply w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-himalaya-500 focus:border-transparent transition;
 }
 .card-base {
-  @apply bg-white rounded-xl2 shadow-card hover:shadow-hover transition-shadow duration-300;
+  @apply bg-white rounded-xl2 shadow-premium hover:shadow-premium-hover transition-all duration-300;
 }
-.section-title { @apply text-2xl md:text-3xl font-bold text-dark mb-6; }
+.card-base:hover {
+  transform: translateY(-6px);
+}
+
+.btn-gradient {
+  @apply text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5;
+  background-image: linear-gradient(135deg, #0B3D91 0%, #1B8A5A 100%);
+}
+
+.badge-risk-low { @apply bg-forest-50 text-forest-500 text-xs font-semibold px-2.5 py-1 rounded-full; }
+.badge-risk-moderate { @apply bg-saffron-50 text-saffron-600 text-xs font-semibold px-2.5 py-1 rounded-full; }
+.badge-risk-high { @apply bg-nepalred-50 text-nepalred-500 text-xs font-semibold px-2.5 py-1 rounded-full; }
+
+.section-title {
+  @apply text-2xl md:text-3xl font-bold text-dark mb-6 pl-3 relative;
+}
+.section-title::before {
+  content: "";
+  @apply absolute left-0 top-1 bottom-1 w-1 rounded-full;
+  background-image: linear-gradient(180deg, #0B3D91 0%, #1B8A5A 100%);
+}
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }

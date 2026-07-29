@@ -1,9 +1,7 @@
 """
-services/chatbot_service.py
-
-Intent router for tourism chatbot.
-Handles emergency, budget and recommendations.
+Tourism chatbot intent router
 """
+
 
 import re
 
@@ -13,40 +11,55 @@ from model.budget.budget_engine import estimate_budget
 
 
 
+
+
 INTENT_PATTERNS = {
 
+
     "emergency": re.compile(
-        r"\b(emergency|police|hospital|ambulance|help|danger|disaster|nearest|nearby)\b",
+        r"\b(emergency|police|hospital|ambulance|accident|danger|help)\b",
         re.I
     ),
+
 
     "budget": re.compile(
-        r"\b(budget|cost|price|how much|expens)\b",
+        r"\b(budget|cost|price|expense|how much)\b",
         re.I
     ),
+
 
     "recommend": re.compile(
-        r"\b(recommend|suggest|where should|places? to (go|visit))\b",
+        r"\b(recommend|suggest|places|visit|travel)\b",
         re.I
     ),
 
+
     "greeting": re.compile(
-        r"\b(hi|hello|namaste|hey)\b",
+        r"\b(hi|hello|hey|namaste)\b",
         re.I
     ),
+
 }
+
+
 
 
 
 def _detect_intent(message):
 
+
     for intent, pattern in INTENT_PATTERNS.items():
+
 
         if pattern.search(message):
 
             return intent
 
+
+
     return "unknown"
+
+
 
 
 
@@ -58,21 +71,24 @@ def handle_message(
     lon=None
 ):
 
-    intent = _detect_intent(message)
+
+    intent = _detect_intent(
+        message
+    )
 
 
 
     if intent == "greeting":
 
+
         return {
 
-            "intent": intent,
+            "intent": "greeting",
 
             "reply":
-            "Namaste! Ask me about emergency contacts, trip budgets, or destination recommendations."
+            "Namaste! I can help you with Nepal destinations, budgets, travel plans and safety."
 
         }
-
 
 
 
@@ -80,12 +96,12 @@ def handle_message(
     if intent == "emergency":
 
 
-        emergency_places = {}
+        places = {}
 
 
-        if lat is not None and lon is not None:
+        if lat and lon:
 
-            emergency_places = get_nearest_emergency_contacts(
+            places = get_nearest_emergency_contacts(
                 lat,
                 lon
             )
@@ -93,13 +109,11 @@ def handle_message(
 
         return {
 
-            "intent": intent,
-
-            "reply":
-            "Here are the nearest emergency facilities:",
+            "intent":
+            "emergency",
 
             "emergency_places":
-            emergency_places
+            places
 
         }
 
@@ -107,24 +121,29 @@ def handle_message(
 
 
 
-
-
     if intent == "budget":
 
+
         estimate = estimate_budget(
+
             num_destinations=3,
+
             num_days=7,
+
             avg_daily_cost_usd=30,
+
             travel_style="mid_range"
+
         )
 
 
         return {
 
-            "intent": intent,
+            "intent":
+            "budget",
 
             "reply":
-            "Here's a rough estimate for a typical 7-day, 3-stop trip:",
+            "Estimated budget for a 7 day Nepal trip:",
 
             "estimate":
             estimate
@@ -135,8 +154,8 @@ def handle_message(
 
 
 
-
     if intent == "recommend":
+
 
         places = recommend(
             limit=3
@@ -145,10 +164,11 @@ def handle_message(
 
         return {
 
-            "intent": intent,
+            "intent":
+            "recommend",
 
             "reply":
-            "A few places you might like:",
+            "Recommended places:",
 
             "recommendations":
             places
@@ -159,11 +179,13 @@ def handle_message(
 
 
 
+    # Important:
+    # Do NOT return reply here.
+    # This allows OpenAI to answer.
+
     return {
 
-        "intent": intent,
-
-        "reply":
-        "I can help with emergency contacts, budget estimates, or destination recommendations."
+        "intent":
+        "unknown"
 
     }

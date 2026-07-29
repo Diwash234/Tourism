@@ -6,6 +6,14 @@ const destinationApi = {
     axiosClient.get("/destinations/", { params }),
 
 
+  // NEW: needed to find the "Culture & Heritage" / "Local Experience"
+  // categories used by NepalExperienceSection — the CategoryViewSet was
+  // already registered on the backend (router.register("categories", ...)
+  // in tourist/urls.py), just never called from the frontend before.
+  getCategories: (params = {}) =>
+    axiosClient.get("/categories/", { params }),
+
+
   getById: (slug, params = {}) =>
     axiosClient.get(`/destinations/${slug}/`, { params }),
 

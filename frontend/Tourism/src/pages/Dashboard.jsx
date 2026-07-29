@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  FiSun,
-  FiCloud,
-  FiCloudRain,
   FiMapPin,
   FiHeart,
   FiUpload,
   FiSearch,
   FiImage,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 import useAuth from "../hooks/useAuth";
 import useGeolocation from "../hooks/useGeolocation";
-import {getRecommendations} from "../services/mlService";
 import weatherApi from "../api/weatherApi";
 import recommendationApi from "../api/recommendationApi";
 import alertApi from "../api/alertApi";
@@ -28,12 +26,12 @@ import BudgetCard from "../components/cards/BudgetCard";
 import AlertCard from "../components/cards/AlertCard";
 import RecommendationCard from "../components/cards/RecommendationCard";
 import DestinationCard from "../components/cards/DestinationCard";
-
-const weatherIcons = {
-  clear: FiSun,
-  clouds: FiCloud,
-  rain: FiCloudRain,
-};
+import WeatherCard from "../components/cards/WeatherCard";
+import SafetyOverview from "../components/cards/SafetyOverview";
+import HotelCard from "../components/cards/HotelCard";
+import NepalExperienceSection from "../components/dashboard/NepalExperienceSection";
+import NepalHighlights from "../components/dashboard/NepalHighlights";
+import hotelService from "../services/hotelService";
 
 // Small helper: every one of our paginated/ML endpoints returns
 // { results: [...] } (or, for ML recommendations, { source, results: [...] }).
@@ -42,9 +40,20 @@ function unwrapList(response) {
   return response?.data?.results || response?.data?.items || response?.data || [];
 }
 
+// Heuristic safety score from live alert count until a dedicated
+// /risk/overview endpoint exists — HIGH-severity alerts cost more.
+function scoreFromAlerts(alerts = []) {
+  const penalty = alerts.reduce((sum, a) => {
+    const level = (a.level || a.severity || "").toLowerCase();
+    return sum + (level === "high" ? 15 : level === "moderate" ? 8 : 4);
+  }, 0);
+  return Math.max(40, 100 - penalty);
+}
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { position } = useGeolocation();
+  const navigate = useNavigate();
 
   // Dashboard State
   const [weather, setWeather] = useState(null);
@@ -53,7 +62,11 @@ const Dashboard = () => {
   const [budget, setBudget] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [destinations, setDestinations] = useState([]);
+  const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Hero / AI Search state
+  const [heroQuery, setHeroQuery] = useState("");
 
   // Community Upload State
   const [query, setQuery] = useState("");
@@ -67,18 +80,20 @@ const Dashboard = () => {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const [recRes, alertRes, budgetRes, favRes, destRes] = await Promise.all([
+        const [recRes, alertRes, budgetRes, favRes, destRes, hotelRes] = await Promise.all([
           recommendationApi.getPersonalized(),
           alertApi.getAlerts({ limit: 4 }),
           budgetApi.getSummary(),
           userApi.getFavorites(),
           destinationApi.list({ limit: 6, featured: true }),
+          hotelService.recommended({ limit: 4 }),
         ]);
 
         setRecommendations(unwrapList(recRes));
         setAlerts(unwrapList(alertRes));
         setFavorites(unwrapList(favRes));
         setDestinations(unwrapList(destRes));
+        setHotels(unwrapList(hotelRes));
 
         // Budget summary is a single object, not a list — map the backend's
         // actual field names (total_amount/entry_count) to what the UI expects.
@@ -107,16 +122,33 @@ const Dashboard = () => {
       .catch((err) => console.log("Weather error:", err.message));
   }, [position]);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
+  // Shared search: the hero bar and the community-photo search both hit
+  // the same destinations endpoint, so one handler serves both inputs.
+  const runSearch = async (term) => {
+    if (!term.trim()) return;
     try {
-      const { data } = await destinationApi.search(query);
+      const { data } = await destinationApi.search(term);
       setResults(data.results || data || []);
     } catch (err) {
       console.log(err);
     }
+  };
+
+  const handleHeroSearch = (e) => {
+    e.preventDefault();
+    if (!heroQuery.trim()) return;
+    // FIXED: this used to fill the Community Photos section's picker
+    // (small cards, no "Explore Now", meant for choosing a place to
+    // upload a photo for) — not what someone typing a destination name
+    // into the hero search expects. Now it goes to the real destination
+    // search results, which have full DestinationCards with working
+    // Explore Now buttons.
+    navigate(`/destinations?q=${encodeURIComponent(heroQuery)}`);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    runSearch(query);
   };
 
   const selectDestination = async (place) => {
@@ -150,54 +182,77 @@ const Dashboard = () => {
     }
   };
 
-  const WeatherIcon = weatherIcons[weather?.condition?.toLowerCase()] || FiSun;
-
   if (loading) {
     return <Loader fullScreen={false} />;
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Welcome back, {user?.name || "Traveler"} 👋</h1>
-        <p className="text-gray-500 text-sm">Here's everything happening with your travel plans today.</p>
-      </div>
+    <div className="space-y-10 fade-in">
+      {/* ===========================
+          HERO SECTION
+      ============================ */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-himalaya-500 via-himalaya-600 to-forest-600 text-white p-8 md:p-12">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_35%)]" />
+        <div className="relative">
+          <h1 className="text-2xl md:text-3xl font-bold">
+            Namaste, {user?.name || "Traveler"} 👋
+          </h1>
+          <p className="text-white/80 mt-2 max-w-xl">
+            Here's what's happening with your Nepal trip today — weather, safety,
+            budget, and AI picks made just for you.
+          </p>
 
-      {/* Weather + Budget */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card-base p-5 flex justify-between items-center">
-          <div>
-            <p className="text-sm text-gray-500 flex items-center gap-2">
-              <FiMapPin />
-              {weather?.location || "Current Location"}
-            </p>
-            <p className="text-3xl font-bold">{weather?.temperature_c ?? weather?.temperature ?? "--"}°</p>
-            <p className="text-gray-400">{weather?.description || weather?.condition || "Loading..."}</p>
-          </div>
-          <WeatherIcon size={42} />
+          {/* AI SEARCH */}
+          <form onSubmit={handleHeroSearch} className="mt-6 flex flex-col sm:flex-row gap-3 max-w-2xl">
+            <input
+              className="flex-1 rounded-xl px-4 py-3 text-dark bg-white/95 focus:outline-none focus:ring-2 focus:ring-saffron-400"
+              placeholder="Search destinations, activities, or a city..."
+              value={heroQuery}
+              onChange={(e) => setHeroQuery(e.target.value)}
+            />
+            <button type="submit" className="btn-gradient flex items-center justify-center gap-2 whitespace-nowrap">
+              <FiSearch />
+              AI Search
+            </button>
+          </form>
         </div>
+      </section>
 
+      {/* ===========================
+          WEATHER + BUDGET SNAPSHOT
+      ============================ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <WeatherCard
+          location={weather?.location || "Current location"}
+          temp_c={weather?.temperature_c ?? weather?.temperature}
+          condition={weather?.description || weather?.condition || "clear"}
+          humidity={weather?.humidity}
+          wind_kmh={weather?.wind_kmh}
+          loading={!weather}
+        />
         <BudgetCard label="Total Budget" amount={budget?.total} />
-        <BudgetCard label="Spent" amount={budget?.spent} accent="secondary" />
+        <BudgetCard label="Spent" amount={budget?.spent} accent="forest" />
       </div>
 
-      {/* Latest Alerts */}
-      <section>
-        <h2 className="font-semibold text-lg mb-4">Latest Alerts</h2>
-        {alerts.length ? (
+      {/* Latest Alerts — kept next to the weather/budget snapshot since
+          they're all "right now" info at a glance */}
+      {alerts.length > 0 && (
+        <section>
+          <h2 className="font-semibold text-lg mb-4">Latest Alerts</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {alerts.map((alert) => (
               <AlertCard key={alert.id} alert={alert} />
             ))}
           </div>
-        ) : (
-          <EmptyState title="No alerts" subtitle="No safety alerts available right now." />
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* Recommendations */}
+      {/* ===========================
+          RECOMMENDED PLACES (AI)
+      ============================ */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <FiTrendingUp className="text-himalaya-500" />
           <h2 className="font-semibold text-lg">Recommended For You</h2>
         </div>
         {recommendations.length ? (
@@ -208,6 +263,22 @@ const Dashboard = () => {
           </div>
         ) : (
           <EmptyState title="No recommendations" subtitle="Explore destinations to receive personalized recommendations." />
+        )}
+      </section>
+
+      {/* ===========================
+          TRENDING NEPAL DESTINATIONS
+      ============================ */}
+      <section>
+        <h2 className="font-semibold text-lg mb-4">Trending Nepal Destinations</h2>
+        {destinations.length ? (
+          <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
+            {destinations.map((destination) => (
+              <DestinationCard key={destination.id} destination={destination} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No destinations yet" subtitle="Check back soon, or add some via the admin panel." />
         )}
       </section>
 
@@ -228,30 +299,79 @@ const Dashboard = () => {
         )}
       </section>
 
-      {/* Popular Destinations — now a SIBLING section, not nested inside
-          the favorites conditional, so it renders regardless of whether
-          the user has any favorites yet. */}
-      <section>
-        <h2 className="font-semibold text-lg mb-4">Popular Destinations</h2>
-        {destinations.length ? (
-          <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
-            {destinations.map((destination) => (
-              <DestinationCard key={destination.id} destination={destination} />
+      {/* ===========================
+          RECOMMENDED HOTELS (new)
+      ============================ */}
+      {hotels.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg">Recommended Hotels & Stays</h2>
+            <Link to="/hotels" className="text-sm text-himalaya-500 hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-5">
+            {hotels.map((hotel) => (
+              <HotelCard key={hotel.id} hotel={hotel} />
             ))}
           </div>
-        ) : (
-          <EmptyState title="No destinations yet" subtitle="Check back soon, or add some via the admin panel." />
-        )}
+        </section>
+      )}
+
+      {/* ===========================
+          NEPAL CULTURE & LOCAL EXPERIENCES (new)
+      ============================ */}
+      <NepalExperienceSection />
+
+      {/* NEW: same "Why Visit Nepal" content shown on the public Landing
+          page — included here too since a user who registered directly
+          (without visiting Landing first) would otherwise never see it. */}
+      <NepalHighlights bare />
+
+      {/* ===========================
+          SAFETY STATUS
+      ============================ */}
+      <section>
+        <h2 className="font-semibold text-lg mb-4">Safety Status</h2>
+        <SafetyOverview
+          score={scoreFromAlerts(alerts)}
+          weatherStatus={weather?.condition || "Good"}
+          earthquakeRisk={alerts.some((a) => /earthquake|seismic/i.test(a.title || a.type || "")) ? "Moderate" : "Low"}
+          hospitalsNearby={budget?.byCategory?.length ? "See Risk page" : "—"}
+          policeNearby="—"
+        />
+        <p className="text-xs text-gray-400 mt-2">
+          Full facility counts and live disaster data live on the Risk Analysis page.
+        </p>
+      </section>
+
+      {/* ===========================
+          BUDGET SUMMARY
+      ============================ */}
+      <section>
+        <h2 className="font-semibold text-lg mb-4">Budget Summary</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <BudgetCard label="Total Budget" amount={budget?.total} />
+          <BudgetCard label="Spent So Far" amount={budget?.spent} accent="forest" />
+          <div className="card-base p-5">
+            <p className="text-sm text-gray-500">Entries Logged</p>
+            <p className="text-xl font-bold text-dark mt-1">{budget?.entryCount ?? 0}</p>
+          </div>
+          <div className="card-base p-5">
+            <p className="text-sm text-gray-500">Categories</p>
+            <p className="text-xl font-bold text-dark mt-1">{budget?.byCategory?.length ?? 0}</p>
+          </div>
+        </div>
       </section>
 
       {/* ===========================
           COMMUNITY PHOTO CONTRIBUTION
       ============================ */}
-      <section className="space-y-6">
+      <section id="community-search" className="space-y-6">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <FiImage />
-            Community Contributions
+            Community Photos
           </h2>
           <p className="text-gray-500 mt-2">
             Help fellow travelers by uploading your own destination photos. Popular community photos are
@@ -262,15 +382,12 @@ const Dashboard = () => {
         {/* Search Destination */}
         <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-3">
           <input
-            className="border rounded-lg px-4 py-3 flex-1"
-            placeholder="Search a destination..."
+            className="input-field flex-1"
+            placeholder="Find a destination to upload a photo for..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white rounded-lg px-6 py-3 flex items-center justify-center gap-2 hover:bg-blue-700 transition"
-          >
+          <button type="submit" className="btn-gradient flex items-center justify-center gap-2">
             <FiSearch />
             Search
           </button>
@@ -282,10 +399,8 @@ const Dashboard = () => {
               <div
                 key={place.id}
                 onClick={() => selectDestination(place)}
-                className="card-base p-4 cursor-pointer hover:shadow-lg transition"
+                className="card-base p-4 cursor-pointer"
               >
-                {/* This <img> was missing entirely before — cover_image_url
-                    comes straight from the destination list serializer. */}
                 {place.cover_image_url && (
                   <img
                     src={place.cover_image_url}
@@ -294,7 +409,10 @@ const Dashboard = () => {
                   />
                 )}
                 <h3 className="font-semibold text-lg">{place.name}</h3>
-                <p className="text-gray-500">{place.city}</p>
+                <p className="text-gray-500 flex items-center gap-1">
+                  <FiMapPin size={14} />
+                  {place.city}
+                </p>
               </div>
             ))}
           </div>
@@ -328,24 +446,21 @@ const Dashboard = () => {
                 <input
                   type="text"
                   placeholder="Write a short caption..."
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="input-field"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                 />
               </div>
 
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-              >
+              <button type="submit" className="btn-gradient flex items-center gap-2">
                 <FiUpload />
                 Upload Photo
               </button>
             </form>
 
             {status && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-blue-700">{status}</p>
+              <div className="bg-himalaya-50 border border-himalaya-100 rounded-lg p-4">
+                <p className="text-himalaya-600">{status}</p>
               </div>
             )}
 
@@ -365,7 +480,7 @@ const Dashboard = () => {
                         {photo.caption && <p className="text-sm mb-2">{photo.caption}</p>}
                         <div className="flex justify-between items-center text-xs text-gray-500">
                           <span>👁 {photo.view_count} views</span>
-                          {photo.is_cover && <span className="font-semibold text-yellow-600">⭐ Cover</span>}
+                          {photo.is_cover && <span className="font-semibold text-saffron-600">⭐ Cover</span>}
                         </div>
                       </div>
                     </div>

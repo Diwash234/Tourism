@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
 import DestinationCard from "../../components/cards/DestinationCard"
@@ -23,12 +24,18 @@ const PAGE_SIZE = 9
 const Destinationlist = () => {
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
+  const [searchParams] = useSearchParams()
+  // NEW: without this, a link like /destinations?q=Pokhara (e.g. from the
+  // dashboard's hero "AI Search") landed on an unfiltered destination
+  // list — the search term was in the URL but nothing ever read it.
+  const initialQuery = searchParams.get("q") || ""
   const [destinations, setDestinations] = useState([])
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [category, setCategory] = useState("")
-  const [query, setQuery] = useState("")
-  const [favoriteIds, setFavoriteIds] = useState([])
+  const [query, setQuery] = useState(initialQuery)
+  const [favoriteMap, setFavoriteMap] = useState({}) // { [destinationId]: favoriteRecordId }
+  const favoriteIds = Object.keys(favoriteMap).map(Number)
   const [loading, setLoading] = useState(true)
   const { position } = useGeolocation()
 
@@ -54,18 +61,45 @@ const Destinationlist = () => {
       .finally(() => setLoading(false))
   }, [page, category, query, position])
 
+  // NEW: favoriteIds was declared but never populated — every card's
+  // heart icon always showed as "not favorited" regardless of actual
+  // saved state. Fetch once on mount (and again after login state
+  // changes) so it reflects reality.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setFavoriteMap({})
+      return
+    }
+    userApi
+      .getFavorites()
+      .then(({ data }) => {
+        const list = data.results || data || []
+        const map = {}
+        list.forEach((f) => { map[f.destination] = f.id })
+        setFavoriteMap(map)
+      })
+      .catch(() => setFavoriteMap({}))
+  }, [isAuthenticated])
+
   const handleToggleFavorite = async (id) => {
     if (!isAuthenticated) {
       showToast("Please login to save favorites", "info")
       return
     }
     try {
-      if (favoriteIds.includes(id)) {
-        await userApi.removeFavorite(id)
-        setFavoriteIds((prev) => prev.filter((f) => f !== id))
+      if (favoriteMap[id]) {
+        // FIXED: removeFavorite needs the favorite RECORD's id, not the
+        // destination's id — passing the destination id here 404'd
+        // silently against the real backend.
+        await userApi.removeFavorite(favoriteMap[id])
+        setFavoriteMap((prev) => {
+          const next = { ...prev }
+          delete next[id]
+          return next
+        })
       } else {
-        await userApi.addFavorite(id)
-        setFavoriteIds((prev) => [...prev, id])
+        const { data } = await userApi.addFavorite(id)
+        setFavoriteMap((prev) => ({ ...prev, [id]: data.id }))
       }
     } catch {
       showToast("Could not update favorites", "error")
@@ -73,11 +107,15 @@ const Destinationlist = () => {
   }
 
   return (
-    <div className="container-app py-10">
+    <div className="container-app py-10 fade-in">
       <h1 className="section-title">Explore Destinations</h1>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <SearchBar className="flex-1" onSearch={(q) => { setQuery(q); setPage(1) }} />
+        <SearchBar
+          className="flex-1"
+          defaultValue={initialQuery}
+          onSearch={(q) => { setQuery(q); setPage(1) }}
+        />
         <Filter
           label=""
           options={CATEGORY_OPTIONS}

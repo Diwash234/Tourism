@@ -1,29 +1,38 @@
-import axiosClient from "./axiosClient";
+import axiosClient from "./axiosClient"
+
 
 const chatbotApi = {
 
   sendMessage: (
     message,
-    latitude,
-    longitude,
+    latitude = null,
+    longitude = null,
     conversation_id = null
-  ) =>
-    axiosClient.post(
+  ) => {
+
+    return axiosClient.post(
       "/chatbot/message/",
       {
         message,
         latitude,
         longitude,
-        conversation_id
+        conversation_id,
       }
-    ),
+    )
+
+  },
 
 
-  history: () =>
-    axiosClient.get("/chatbot/history/"),
+  history: () => {
 
-};
+    return axiosClient.get(
+      "/chatbot/history/"
+    )
+
+  },
 
 
-export default chatbotApi;
+}
 
+
+export default chatbotApi

@@ -20,12 +20,13 @@ import Register from "./pages/auth/Register"
 import ForgotPassword from "./pages/auth/ForgotPassword"
 
 // Destination Pages
-import Destinationlist from "./pages/destinations/Destinationlist"
+import DestinationList from "./pages/destinations/DestinationList"
 import DestinationDetails from "./pages/destinations/DestinationDetails"
 
 // Features
 import Chatbot from "./Chatbot"
 import MyBooking from "./MyBookings"
+import BookHotel from "./Bookhotel"
 
 // User Dashboard Pages
 import Dashboard from "./pages/Dashboard"
@@ -33,6 +34,8 @@ import Profile from "./pages/Profile"
 import Recommendation from "./pages/Recommendation"
 import BudgetEstimator from "./pages/BudgetEstimator"
 import RiskAlertDashboard from "./pages/RiskAlertDashboard"
+import Hotels from "./pages/Hotels"
+import HotelSearch from "./pages/HotelSearch"
 import Navigation from "./pages/Navigation"
 import Language from "./pages/Language"
 import Emergency from "./pages/Emergency"
@@ -63,7 +66,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Destinations */}
-        <Route path="/destinations" element={<Destinationlist />} />
+        <Route path="/destinations" element={<DestinationList />} />
         <Route path="/destinations/:slug" element={<DestinationDetails />} />
 
         {/* Public Emergency */}
@@ -77,6 +80,9 @@ function App() {
 
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/hotels" element={<Hotels />} />
+          {/* Dedicated search endpoint (richer data: image_url, destination_name) */}
+          <Route path="/hotels/search" element={<HotelSearch />} />
 
           <Route 
             path="/recommendation" 
@@ -111,6 +117,11 @@ function App() {
           <Route path="/history" element={<History />} />
 
           <Route path="/chatbot" element={<Chatbot />} />
+
+          <Route
+            path="/hotels/:hotelId/book"
+            element={<BookHotel />}
+          />
 
           <Route 
             path="/my-bookings" 

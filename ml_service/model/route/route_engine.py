@@ -378,3 +378,59 @@ def nearby_destinations(
         key=lambda x:x["distance_km"]
 
     )
+def _nearest_node(g, latitude, longitude):
+    """Finds the graph node closest to a raw lat/lon coordinate."""
+    best_node, best_distance = None, float("inf")
+    for node, data in g.nodes(data=True):
+        try:
+            distance = haversine_km(latitude, longitude, float(data["lat"]), float(data["lon"]))
+        except (KeyError, ValueError, TypeError):
+            continue
+        if distance < best_distance:
+            best_node, best_distance = node, distance
+    return best_node, best_distance
+ 
+ 
+def best_route(start_latitude, start_longitude, end_latitude, end_longitude):
+    """
+    Route between two arbitrary coordinates (e.g. the user's live GPS
+    position and a destination's stored lat/lon) rather than exact graph
+    node names. Snaps each point to its nearest graph node, then runs the
+    same shortest_path search used by /shortest-path.
+    """
+    g = _load_graph()
+ 
+    start_node, start_snap_km = _nearest_node(g, start_latitude, start_longitude)
+    end_node, end_snap_km = _nearest_node(g, end_latitude, end_longitude)
+ 
+    if start_node is None or end_node is None:
+        return {"error": "No graph nodes with valid coordinates found."}
+ 
+    try:
+        path = nx.shortest_path(g, start_node, end_node, weight="weight")
+        distance_km = nx.shortest_path_length(g, start_node, end_node, weight="weight")
+    except nx.NetworkXNoPath:
+        return {"error": f"No path found between {start_node} and {end_node}."}
+ 
+    # MapView.jsx (frontend/Tourism/src/components/map/MapView.jsx) draws
+    # the route with Leaflet's <Polyline positions={...}> and expects each
+    # point as {lat, lng} (or [lat, lng]) -- NOT bare graph node IDs. `path`
+    # below is kept for debugging/other callers, but `route` is the field
+    # Django should actually forward to the frontend.
+    route_coords = []
+    for node in path:
+        node_data = g.nodes[node]
+        try:
+            route_coords.append({"lat": float(node_data["lat"]), "lng": float(node_data["lon"])})
+        except (KeyError, ValueError, TypeError):
+            continue
+ 
+    return {
+        "path": path,
+        "route": route_coords,
+        "distance_km": round(distance_km + start_snap_km + end_snap_km, 2),
+        "start_node": start_node,
+        "end_node": end_node,
+        "start_snap_km": round(start_snap_km, 2),
+        "end_snap_km": round(end_snap_km, 2),
+    }

@@ -2,8 +2,8 @@ import { useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { FiCalendar } from "react-icons/fi"
-import bookingApi from "../api/bookingApi"
-import useToast from "../hooks/useToast"
+import bookingApi from "./api/bookingApi"
+import useToast from "./hooks/useToast"
 
 /**
  * Route this at e.g. /hotels/:hotelId/book — pass hotelId from wherever

@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom"
 import { FiMenu, FiX, FiUser, FiBell, FiHeart } from "react-icons/fi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
-import { NAV_LINKS, APP_NAME } from "../../utils/constants"
+import { NAV_LINKS } from "../../utils/constants"
+import TourismLogo from "../branding/TourismLogo"
 
 const Navbar = () => {
   const [open, setOpen] = useState(false)
@@ -18,9 +19,7 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
       <nav className="container-app flex items-center justify-between h-16">
-        <Link to="/" className="text-2xl font-extrabold text-primary-500">
-          {APP_NAME}
-        </Link>
+        <TourismLogo size="md" />
 
         <div className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map((link) => (
@@ -29,7 +28,7 @@ const Navbar = () => {
               to={link.path}
               className={({ isActive }) =>
                 `text-sm font-medium transition-colors ${
-                  isActive ? "text-primary-500" : "text-gray-600 hover:text-dark"
+                  isActive ? "text-himalaya-500" : "text-gray-600 hover:text-dark"
                 }`
               }
             >

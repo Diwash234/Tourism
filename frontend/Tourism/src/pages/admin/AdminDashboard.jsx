@@ -5,9 +5,21 @@ import Loader from "../../components/common/Loader"
 import LineChartCard from "../../components/charts/LineChartCard"
 import BarChartCard from "../../components/charts/BarChartCard"
 
-const StatCard = ({ icon: Icon, label, value, accent }) => (
+// Same bug as BudgetCard: `bg-${accent}-50` is invisible to Tailwind's
+// JIT content scanner because it's built at runtime, so the color never
+// actually got generated into the CSS. Static map fixes it.
+const STAT_ACCENTS = {
+  primary: "bg-primary-50 text-primary-500",
+  secondary: "bg-secondary-500/10 text-secondary-600",
+  himalaya: "bg-himalaya-50 text-himalaya-500",
+  forest: "bg-forest-50 text-forest-500",
+  saffron: "bg-saffron-50 text-saffron-600",
+  nepalred: "bg-nepalred-50 text-nepalred-500",
+}
+
+const StatCard = ({ icon: Icon, label, value, accent = "primary" }) => (
   <div className="card-base p-5 flex items-center gap-4">
-    <div className={`p-3 rounded-xl bg-${accent}-50 text-${accent}-500`}>
+    <div className={`p-3 rounded-xl ${STAT_ACCENTS[accent] || STAT_ACCENTS.primary}`}>
       <Icon size={22} />
     </div>
     <div>

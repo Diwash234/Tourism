@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import userApi from "../api/userApi"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
-import { FiBell } from "react-icons/fi"
+import TravelTimeline from "../components/cards/TravelTimeline"
 import { formatDate } from "../utils/helpers"
 
 const Notifications = () => {
@@ -12,8 +12,8 @@ const Notifications = () => {
   useEffect(() => {
     userApi
       .getNotifications()
-      // FIXED: was `data.items || data || []` — backend returns
-      // `{ results: [...] }` (paginated); `.items` doesn't exist.
+      // FIXED (kept from before): backend returns `{ results: [...] }`
+      // (paginated); `.items` doesn't exist.
       .then(({ data }) => setNotifications(data.results || data.items || data || []))
       .catch(() => setNotifications([]))
       .finally(() => setLoading(false))
@@ -30,28 +30,28 @@ const Notifications = () => {
 
   if (loading) return <Loader />
 
+  // Map the real backend Notification model (title, message, is_read,
+  // created_at, related_alert) onto TravelTimeline's item shape. There's
+  // no explicit "type"/priority field on the backend, so the type is
+  // derived honestly from what data actually exists: notifications tied
+  // to a real Alert show as "alert" (red), everything else as
+  // "notification" (green), and read ones are dimmed rather than
+  // recolored, since "read" isn't a category, just a state.
+  const timelineItems = notifications.map((n) => ({
+    id: n.id,
+    type: n.related_alert ? "alert" : "notification",
+    title: n.title,
+    description: n.message,
+    time: formatDate(n.created_at),
+    dimmed: n.is_read,
+    _raw: n,
+  }))
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Notifications</h1>
+      <h1 className="section-title">Notifications</h1>
       {notifications.length ? (
-        <div className="space-y-3">
-          {notifications.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => markRead(n.id)}
-              // FIXED: backend field is `is_read`, not `read`.
-              className={`w-full text-left card-base p-4 flex items-start gap-3 ${n.is_read ? "opacity-60" : ""}`}
-            >
-              <FiBell className="text-primary-500 mt-1" />
-              <div>
-                <p className="font-medium text-sm">{n.title}</p>
-                <p className="text-sm text-gray-500">{n.message}</p>
-                {/* FIXED: backend field is `created_at`, not `createdAt`. */}
-                <p className="text-xs text-gray-400 mt-1">{formatDate(n.created_at)}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+        <TravelTimeline items={timelineItems} onItemClick={(item) => markRead(item.id)} />
       ) : (
         <EmptyState title="You are all caught up" subtitle="New notifications will appear here." />
       )}
