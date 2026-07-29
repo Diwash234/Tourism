@@ -46,7 +46,8 @@ auth_urlpatterns = [
         TokenVerifyView.as_view(),
         name="auth-token-verify"
     ),
-
+    path("hotels/search/", views.HotelSearchView.as_view(), name="hotel-search"),
+ 
     path("auth/logout/", views_auth.LogoutView.as_view(), name="auth-logout"),
 
     path(

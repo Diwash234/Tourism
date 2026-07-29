@@ -268,12 +268,36 @@ class DestinationListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
-        """Straight-line distance FROM the requesting user's location TO this place."""
+        """
+        Calculate distance from user location to destination.
+        Returns None if either location is missing.
+        """
+
         user_lat = self.context.get("user_lat")
         user_lon = self.context.get("user_lon")
-        if user_lat is not None and user_lon is not None:
-            return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
-        return None
+
+        if (
+            user_lat is None
+            or user_lon is None
+            or obj.latitude is None
+            or obj.longitude is None
+        ):
+            return None
+
+        try:
+            return round(
+                haversine_distance(
+                    user_lat,
+                    user_lon,
+                    obj.latitude,
+                    obj.longitude,
+                ),
+                2,
+            )
+
+        except (ValueError, TypeError):
+            return None
+
 
 
 class DestinationDetailSerializer(serializers.ModelSerializer):
@@ -316,11 +340,32 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
+
         user_lat = self.context.get("user_lat")
         user_lon = self.context.get("user_lon")
-        if user_lat is not None and user_lon is not None:
-            return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
-        return None
+
+        if (
+            user_lat is None
+            or user_lon is None
+            or obj.latitude is None
+            or obj.longitude is None
+        ):
+            return None
+
+        try:
+            return round(
+                haversine_distance(
+                    user_lat,
+                    user_lon,
+                    obj.latitude,
+                    obj.longitude,
+                ),
+                2,
+            )
+
+        except (ValueError, TypeError):
+            return None
+
 
 
 class DestinationWriteSerializer(serializers.ModelSerializer):
@@ -387,13 +432,47 @@ class BudgetSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_at"]
 
 
+
+
+
 class HotelSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    destination_name = serializers.CharField(
+        source="destination.name",
+        read_only=True,
+    )
+
     class Meta:
         model = Hotel
         fields = [
-            "id", "destination", "name", "price_per_night", "currency", "rating",
-            "booking_status", "booking_url", "address", "latitude", "longitude", "source",
+            "id",
+            "name",
+            "destination_name",
+            "address",
+            "latitude",
+            "longitude",
+            "price_per_night",
+            "currency",
+            "rating",
+            "booking_status",
+            "booking_url",
+            "image_url",
         ]
+
+    def get_image_url(self, obj):
+        """
+        Hotel has no image field of its own.
+        Reuse the destination's cover photo.
+        """
+        if obj.destination and obj.destination.cover_image:
+            return obj.destination.cover_image.url
+
+        if obj.destination:
+            photo = obj.destination.gallery.filter(is_cover=True).first()
+            if photo:
+                return photo.external_url
+
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -409,14 +488,35 @@ class AlertSerializer(serializers.ModelSerializer):
             "latitude", "longitude", "city", "country", "source",
             "is_active", "starts_at", "ends_at", "created_at", "distance_km",
         ]
+        @extend_schema_field(serializers.FloatField(allow_null=True))
+        def get_distance_km(self, obj):
 
-    @extend_schema_field(serializers.FloatField(allow_null=True))
-    def get_distance_km(self, obj):
-        user_lat = self.context.get("user_lat")
-        user_lon = self.context.get("user_lon")
-        if user_lat is not None and user_lon is not None and obj.latitude is not None:
-            return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
-        return None
+            user_lat = self.context.get("user_lat")
+            user_lon = self.context.get("user_lon")
+
+            if (
+                user_lat is None
+                or user_lon is None
+                or obj.latitude is None
+                or obj.longitude is None
+            ):
+                return None
+
+            try:
+                return round(
+                    haversine_distance(
+                        user_lat,
+                        user_lon,
+                        obj.latitude,
+                        obj.longitude,
+                    ),
+                    2,
+                )
+
+            except (ValueError, TypeError):
+                return None
+
+
 
 
 class EmergencyContactSerializer(serializers.ModelSerializer):
@@ -429,14 +529,34 @@ class EmergencyContactSerializer(serializers.ModelSerializer):
             "address", "city", "country", "latitude", "longitude",
             "is_24_hours", "ward_number", "designation", "distance_km",
         ]
+@extend_schema_field(serializers.FloatField(allow_null=True))
+def get_distance_km(self, obj):
 
-    @extend_schema_field(serializers.FloatField(allow_null=True))
-    def get_distance_km(self, obj):
-        user_lat = self.context.get("user_lat")
-        user_lon = self.context.get("user_lon")
-        if user_lat is not None and user_lon is not None:
-            return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
+    user_lat = self.context.get("user_lat")
+    user_lon = self.context.get("user_lon")
+
+    if (
+        user_lat is None
+        or user_lon is None
+        or obj.latitude is None
+        or obj.longitude is None
+    ):
         return None
+
+    try:
+        return round(
+            haversine_distance(
+                user_lat,
+                user_lon,
+                obj.latitude,
+                obj.longitude,
+            ),
+            2,
+        )
+
+    except (ValueError, TypeError):
+        return None
+
 
 
 # ---------------------------------------------------------------------------

@@ -78,8 +78,8 @@ class RecommendedDestinationsView(APIView):
 
         payload = {
             **data,
-            "latitude": latitude,
-            "longitude": longitude,
+            "latitude": float(latitude or 0),
+            "longitude": float(longitude or 0),
             "destinations": destinations,
         }
 

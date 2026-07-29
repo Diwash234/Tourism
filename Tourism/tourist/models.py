@@ -554,23 +554,7 @@ class Hospital(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     district = models.CharField(max_length=100)
-class Hospital(models.Model):
 
-    destination = models.ForeignKey(
-        Destination,
-        on_delete=models.CASCADE,
-        related_name="hospitals"
-    )
-
-    name = models.CharField(max_length=200)
-
-    address = models.CharField(max_length=300)
-
-    phone = models.CharField(max_length=50)
-
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     district = models.CharField(max_length=100)
 class PoliceStation(models.Model):

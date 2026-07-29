@@ -13,7 +13,9 @@ from .models import (
     Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
-    OSMEssentialService, OSMTourismPlace,
+    OSMEssentialService, OSMTourismPlace
+
+   # create if it doesn't exist yet, see below
 
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
@@ -598,3 +600,29 @@ class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     filterset_fields = ["category"]
     search_fields = ["name", "address"]
+class HotelSearchView(generics.ListAPIView):
+    """
+    GET /api/v1/hotels/search/?query=Pokhara
+    GET /api/v1/hotels/search/?query=Lakeside
+
+    Searches the real Hotel table (not the CSV) so results carry a
+    real Hotel.id that BookHotel.jsx can book against directly.
+    """
+    serializer_class = HotelSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        query = self.request.query_params.get("query", "").strip()
+
+        if not query:
+            return Hotel.objects.none()
+
+        return (
+            Hotel.objects.filter(
+                Q(name__icontains=query)
+                | Q(destination__name__icontains=query)
+                | Q(destination__city__icontains=query)
+                | Q(address__icontains=query)
+            )
+            .select_related("destination")[:20]
+        )

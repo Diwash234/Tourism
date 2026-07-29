@@ -8,27 +8,50 @@ Utility helpers used across the tourist app:
 """
 import logging
 from math import radians, cos, sin, asin, sqrt
-
+from django.db.models import Q
 
 import requests
 from django.conf import settings
 from django.core.mail import send_mail
+WIKIMEDIA_HEADERS = {
+    "User-Agent": "TourismApp/1.0 (diwashacharyapast456@gmail.com)"
+}
 
 logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
 # Distance
-# ---------------------------------------------------------------------------
 def haversine_distance(lat1, lon1, lat2, lon2):
-    """Great-circle distance between two points in kilometers."""
-    lat1, lon1, lat2, lon2 = map(lambda v: radians(float(v)), [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * asin(sqrt(a))
-    earth_radius_km = 6371
-    return earth_radius_km * c
+    """
+    Great-circle distance between two points in kilometers.
+    Returns None if any coordinate is missing.
+    """
+
+    if None in (lat1, lon1, lat2, lon2):
+        return None
+
+    try:
+        lat1, lon1, lat2, lon2 = map(
+            lambda v: radians(float(v)),
+            [lat1, lon1, lat2, lon2]
+        )
+
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+
+        a = (
+            sin(dlat / 2) ** 2
+            + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        )
+
+        c = 2 * asin(sqrt(a))
+
+        return 6371 * c
+
+    except (TypeError, ValueError):
+        return None
+
 
 
 def bounding_box(lat, lon, radius_km):
@@ -605,189 +628,447 @@ def fetch_unsplash_photo(query):
     except (requests.RequestException, KeyError, IndexError) as exc:
         logger.warning("Unsplash lookup failed: %s", exc)
         return None
-
-
-def fetch_wikimedia_photo(query):
-    """Wikimedia Commons — free, no key required. Returns a single best-match photo."""
-    try:
-        search_response = requests.get(
-            settings.WIKIMEDIA_API_URL,
-            params={
-                "action": "query", "list": "search", "srsearch": f"{query} filetype:bitmap",
-                "srnamespace": 6, "format": "json",
-            },
-            timeout=6,
-        )
-        search_response.raise_for_status()
-        hits = search_response.json().get("query", {}).get("search", [])
-        if not hits:
-            return None
-        title = hits[0]["title"]
-
-        info_response = requests.get(
-            settings.WIKIMEDIA_API_URL,
-            params={
-                "action": "query", "titles": title, "prop": "imageinfo",
-                "iiprop": "url|extmetadata", "format": "json",
-            },
-            timeout=6,
-        )
-        info_response.raise_for_status()
-        pages = info_response.json().get("query", {}).get("pages", {})
-        page = next(iter(pages.values()), {})
-        image_info = (page.get("imageinfo") or [{}])[0]
-        artist = image_info.get("extmetadata", {}).get("Artist", {}).get("value", "Wikimedia Commons contributor")
-        return {"url": image_info.get("url"), "attribution": f"Photo: {artist} (Wikimedia Commons)", "source_link": title}
-    except (requests.RequestException, KeyError, IndexError, StopIteration) as exc:
-        logger.warning("Wikimedia lookup failed: %s", exc)
-        return None
-
-
-def find_nearby_places(latitude, longitude, query, radius_m=2000):
+def fetch_wikimedia_photos(queries, limit=5):
     """
-    Combines Foursquare and Google Places (whichever have keys configured)
-    into one simple result list for "restaurants/shops/hotels near this
-    destination" style features. Returns [] if neither is configured —
-    callers should treat an empty list as "no external data available",
-    not an error.
+    Search Wikimedia Commons for multiple Nepal destination photos.
+    Returns multiple images so users can choose.
     """
-    results = []
-    for place in foursquare_search_nearby(latitude, longitude, radius_m, query=query):
-        results.append({
-            "name": place["name"], "address": place.get("address", ""),
-            "distance_m": place.get("distance_m"), "source": "foursquare",
-        })
-    if not results:  # only fall back to Google Places if Foursquare returned nothing (avoid duplicate/paid calls)
-        for place in google_places_search(f"{query} near {latitude},{longitude}", latitude, longitude):
-            results.append({
-                "name": place["name"], "address": place.get("address", ""),
-                "rating": place.get("rating"), "source": "google_places",
-            })
-    return results
 
+    photos = []
 
-def get_disaster_helplines(destination):
-    """
-    If there's an active weather/flood/landslide/earthquake alert covering
-    this destination's city, this surfaces the nearest ward office/ward
-    member and emergency contacts specifically — the "who do I actually
-    call right now" list — rather than making the frontend cross-reference
-    alerts and contacts itself.
-    """
-    from .models import Alert, EmergencyContact
-
-    disaster_types = [Alert.AlertType.FLOOD, Alert.AlertType.LANDSLIDE, Alert.AlertType.EARTHQUAKE, Alert.AlertType.WEATHER]
-    active_alert = (
-        Alert.objects.filter(is_active=True, alert_type__in=disaster_types, city__iexact=destination.city or "")
-        .order_by("-severity", "-created_at")
-        .first()
-    )
-    if not active_alert:
-        return {"active_alert": None, "helplines": []}
-
-    nearest_by_type = {}
-    priority_types = [
-        EmergencyContact.ContactType.POLICE, EmergencyContact.ContactType.HOSPITAL,
-        EmergencyContact.ContactType.WARD_OFFICE, EmergencyContact.ContactType.WARD_MEMBER,
+    bad_keywords = [
+        "map",
+        "maps",
+        "diagram",
+        "logo",
+        "flag",
+        "location",
+        "plan",
+        "route",
+        "svg",
+        "icon",
+        "coat of arms",
+        "emblem",
     ]
-    for contact in EmergencyContact.objects.filter(contact_type__in=priority_types):
-        distance = haversine_distance(destination.latitude, destination.longitude, contact.latitude, contact.longitude)
-        if distance > 50:  # 50km cap — don't surface a contact from a different region
-            continue
-        current = nearest_by_type.get(contact.contact_type)
-        if current is None or distance < current[0]:
-            nearest_by_type[contact.contact_type] = (distance, contact)
 
-    from .serializers import EmergencyContactSerializer
+    for query in queries:
 
-    contacts = [c for _, c in sorted(nearest_by_type.values(), key=lambda pair: pair[0])]
-    return {
-        "active_alert": {
-            "alert_type": active_alert.alert_type, "severity": active_alert.severity,
-            "title": active_alert.title, "description": active_alert.description,
-        },
-        "helplines": EmergencyContactSerializer(contacts, many=True).data,
-    }
+        try:
+            response = requests.get(
+                settings.WIKIMEDIA_API_URL,
+                params={
+                    "action": "query",
+                    "list": "search",
+                    "srsearch": f"{query} Nepal landscape photo",
+                    "srnamespace": 6,
+                    "srlimit": 5,
+                    "format": "json",
+                },
+                headers=WIKIMEDIA_HEADERS,
+                timeout=8,
+            )
+
+            response.raise_for_status()
+
+            hits = (
+                response.json()
+                .get("query", {})
+                .get("search", [])
+            )
+
+
+            for hit in hits:
+
+                title = hit["title"]
+
+                lower_title = title.lower()
+
+                if any(word in lower_title for word in bad_keywords):
+                    continue
+
+
+                info = requests.get(
+                    settings.WIKIMEDIA_API_URL,
+                    params={
+                        "action": "query",
+                        "titles": title,
+                        "prop": "imageinfo",
+                        "iiprop": "url|extmetadata",
+                        "format": "json",
+                    },
+                    headers=WIKIMEDIA_HEADERS,
+                    timeout=8,
+                )
+
+                info.raise_for_status()
+
+                pages = (
+                    info.json()
+                    .get("query", {})
+                    .get("pages", {})
+                )
+
+                page = next(iter(pages.values()), {})
+
+                image = (
+                    page.get("imageinfo") or [{}]
+                )[0]
+
+
+                url = image.get("url")
+
+                if not url:
+                    continue
+
+
+                artist = (
+                    image
+                    .get("extmetadata", {})
+                    .get("Artist", {})
+                    .get("value", "Wikimedia contributor")
+                )
+
+                page = next(iter(pages.values()), {})
+
+                image = (
+                    page.get("imageinfo") or [{}]
+                )[0]
+
+                url = image.get("url")
+
+                if not url:
+                    continue
+
+                # Skip SVG drawings and obvious non-photo files
+                url_lower = url.lower()
+
+                if url_lower.endswith(".svg"):
+                    continue
+
+                if any(keyword in url_lower for keyword in ("map", "flag", "logo", "icon")):
+                    continue
+
+                artist = (
+                    image
+                    .get("extmetadata", {})
+                    .get("Artist", {})
+                    .get("value", "Wikimedia contributor")
+                )
+
+                photos.append(
+                    {
+                        "url": url,
+                        "title": title,
+                        "attribution": (
+                            f"Photo: {artist} "
+                            "(Wikimedia Commons)"
+                        ),
+                    }
+                )
+
+
+                if len(photos) >= limit:
+                    return photos
+
+
+        except Exception as exc:
+            logger.warning(
+                "Wikimedia search failed for %s : %s",
+                query,
+                exc
+            )
+
+
+    return photos
+
+def _photo_search_queries(destination):
+    """
+    Build clean Wikimedia search queries without adding None values.
+    """
+
+    queries = []
+
+    parts = [destination.name]
+
+    if getattr(destination, "city", None):
+        parts.append(destination.city)
+
+    if getattr(destination, "district", None):
+        parts.append(destination.district)
+
+    if getattr(destination, "province", None):
+        parts.append(destination.province)
+
+    if getattr(destination, "country", None):
+        parts.append(destination.country)
+    else:
+        parts.append("Nepal")
+
+    queries.append(" ".join(parts))
+
+    if getattr(destination, "city", None):
+        queries.append(f"{destination.city} Nepal")
+
+    if getattr(destination, "district", None):
+        queries.append(f"{destination.district} Nepal")
+
+    if getattr(destination, "province", None):
+        queries.append(f"{destination.province} Nepal")
+
+    return list(dict.fromkeys(queries))
+
 
 
 def ensure_cover_photo(destination):
     """
-    Guarantees a destination has SOME cover image available before it's
-    ever serialized in a list/search/detail response. If it already has a
-    `cover_image` file or any gallery photo, this is a no-op. Otherwise it
-    fetches one external fallback image (Unsplash, then Wikimedia Commons)
-    and PERSISTS it as a real DestinationImage row (is_cover=True) — so the
-    external API is called at most ONCE per destination, ever, not on
-    every search result. This is what actually makes `cover_image_url`
-    show images for destinations that have no local photos yet.
+    Automatically finds multiple Wikimedia/Unsplash photos
+    for any Nepal destination.
     """
+
     from .models import DestinationImage
 
+
+    # already exists
     if destination.cover_image or destination.gallery.exists():
         return None
 
-    external = fetch_unsplash_photo(f"{destination.name} {destination.city}".strip()) or fetch_wikimedia_photo(
-        f"{destination.name} {destination.city}".strip()
+
+    existing = destination.gallery.filter(
+        is_cover=True
+    ).first()
+
+    if existing:
+        return existing
+
+
+
+    # Generate many search queries
+    queries = _photo_search_queries(destination)
+
+
+    logger.info(
+        "Searching Wikimedia images: %s",
+        queries
     )
-    if not external or not external.get("url"):
+
+
+    external_photos = []
+
+
+    # Try Unsplash first
+    if queries:
+        unsplash = fetch_unsplash_photo(
+            queries[0]
+        )
+
+        if unsplash:
+            external_photos.append(
+                unsplash
+            )
+
+
+    # Get multiple Wikimedia images
+    wikimedia = fetch_wikimedia_photos(
+        queries,
+        limit=5
+    )
+
+
+    if wikimedia:
+        external_photos.extend(
+            wikimedia
+        )
+
+
+    if not external_photos:
+        logger.warning(
+            "No photos found for %s",
+            destination.name
+        )
+
         return None
 
-    source = DestinationImage.Source.UNSPLASH if "Unsplash" in external["attribution"] else DestinationImage.Source.WIKIMEDIA
-    return DestinationImage.objects.create(
-        destination=destination,
-        external_url=external["url"],
-        attribution=external["attribution"],
-        source=source,
-        is_cover=True,
+
+
+    created_photo = None
+
+
+    # Save all images
+    for index, external in enumerate(external_photos):
+
+        if not external.get("url"):
+            continue
+
+
+        source = (
+            DestinationImage.Source.UNSPLASH
+            if "Unsplash" in external.get(
+                "attribution",
+                ""
+            )
+            else DestinationImage.Source.WIKIMEDIA
+        )
+
+
+        photo = DestinationImage.objects.create(
+            destination=destination,
+            external_url=external["url"],
+            attribution=external.get(
+                "attribution",
+                ""
+            ),
+            source=source,
+
+            # first image becomes cover
+            is_cover=(index == 0),
+        )
+
+
+        if index == 0:
+            created_photo = photo
+
+
+
+    logger.info(
+        "Created %s images for %s",
+        len(external_photos),
+        destination.name
     )
 
+
+    return created_photo
+
+from .models import DestinationImage
+
+from .models import Destination
+
+def find_nearby_places(latitude, longitude, place_type=None, radius_km=10):
+    
+
+    nearby = []
+
+    try:
+        radius_km = float(radius_km)
+    except (TypeError, ValueError):
+        radius_km = 10.0
+
+    queryset = Destination.objects.all()
+
+    # Optional category filtering
+    if place_type:
+        try:
+            queryset = queryset.filter(
+                category__name__iexact=place_type
+            )
+        except Exception:
+            # If category relation does not exist,
+            # continue without filtering
+            pass
+
+    for destination in queryset:
+
+        if destination.latitude is None or destination.longitude is None:
+            continue
+
+        distance = haversine_distance(
+            latitude,
+            longitude,
+            destination.latitude,
+            destination.longitude,
+        )
+
+        if distance is not None and distance <= radius_km:
+            destination.distance = round(distance, 2)
+            nearby.append(destination)
+
+    return sorted(
+        nearby,
+        key=lambda item: item.distance
+    )
 
 def get_destination_photos(destination):
     """
-    Returns the photo list the frontend should render for a destination:
-    local gallery first (community uploads + admin uploads, most-viewed/
-    promoted first per DestinationImage.Meta.ordering). Calls
-    ensure_cover_photo() first so a brand-new destination with zero photos
-    gets one cached external image instead of coming back empty.
+    Returns destination images.
+    Creates fallback image first if destination has no images.
     """
+
     ensure_cover_photo(destination)
+
     return list(destination.gallery.all())
 
 
 def register_photo_view(photo):
     """
-    Increments a photo's view_count and checks whether it should be
-    auto-promoted. Call this whenever a photo is actually served/displayed
-    to a user (e.g. shown in search results), not on every unrelated request.
+    Increase image view count and check promotion.
     """
+
     from django.db.models import F
     from .models import DestinationImage
 
-    DestinationImage.objects.filter(pk=photo.pk).update(view_count=F("view_count") + 1)
+    DestinationImage.objects.filter(
+        pk=photo.pk
+    ).update(
+        view_count=F("view_count") + 1
+    )
+
     photo.refresh_from_db(fields=["view_count"])
+
     maybe_promote_photo(photo)
 
 
 def maybe_promote_photo(photo):
     """
-    Auto-promotes a highly-viewed community upload to be the destination's
-    official cover photo, once it crosses PHOTO_PROMOTION_IMPRESSION_THRESHOLD
-    views and has more views than the current cover (if any). This is how
-    "if it's highly searched, add it to the sources/destination" is
-    implemented — no manual admin step required, though admins can still
-    override via Django admin.
+    Automatically promotes popular user images.
     """
+
     from .models import DestinationImage
 
-    if photo.source == DestinationImage.Source.ADMIN or photo.view_count < settings.PHOTO_PROMOTION_IMPRESSION_THRESHOLD:
+    if (
+        photo.source == DestinationImage.Source.ADMIN
+        or photo.view_count < settings.PHOTO_PROMOTION_IMPRESSION_THRESHOLD
+    ):
         return
 
-    current_cover = photo.destination.gallery.filter(is_cover=True).exclude(pk=photo.pk).first()
+    current_cover = (
+        photo.destination.gallery
+        .filter(is_cover=True)
+        .exclude(pk=photo.pk)
+        .first()
+    )
+
     if current_cover and current_cover.view_count >= photo.view_count:
         return
 
-    DestinationImage.objects.filter(destination=photo.destination).update(is_cover=False)
+    DestinationImage.objects.filter(
+        destination=photo.destination
+    ).update(
+        is_cover=False
+    )
+
     photo.is_cover = True
     photo.is_promoted = True
-    photo.save(update_fields=["is_cover", "is_promoted"])
-    logger.info("Promoted photo %s to cover for destination %s (%s views)", photo.pk, photo.destination.name, photo.view_count)
+
+    photo.save(
+        update_fields=[
+            "is_cover",
+            "is_promoted",
+        ]
+    )
+
+    logger.info(
+        "Promoted photo %s as cover image for %s",
+        photo.pk,
+        photo.destination.name,
+    )
+
+from .models import EmergencyContact
+
+def get_disaster_helplines(country=None):
+    qs = EmergencyContact.objects.all()
+
+    if country:
+        qs = qs.filter(
+            Q(country__iexact=country) | Q(country__isnull=True)
+        )
+
+    return qs
