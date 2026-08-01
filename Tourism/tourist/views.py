@@ -13,10 +13,7 @@ from .models import (
     Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
-    OSMEssentialService, OSMTourismPlace
-
-   # create if it doesn't exist yet, see below
-
+    OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -234,12 +231,20 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
     def approve(self, request, slug=None):
         """Admin-only: approve or reject a tourist-submitted place."""
         destination = self.get_object()
+        previous_status = destination.status
         serializer = DestinationApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         destination.status = serializer.validated_data["status"]
         destination.review_note = serializer.validated_data.get("review_note", "")
         destination.is_active = destination.status == Destination.SubmissionStatus.APPROVED
         destination.save(update_fields=["status", "review_note", "is_active"])
+
+        DestinationAuditLog.objects.create(
+            destination=destination,
+            action=DestinationAuditLog.Action.APPROVED if destination.status == Destination.SubmissionStatus.APPROVED else DestinationAuditLog.Action.REJECTED,
+            actor=request.user, note=destination.review_note,
+            previous_status=previous_status, new_status=destination.status,
+        )
 
         if destination.created_by:
             notify_user(
@@ -551,7 +556,7 @@ class TranslateTextView(APIView):
             serializer.validated_data["target_language"],
             serializer.validated_data.get("source_language", "auto"),
         )
-        return Response({"translated_text": translated})
+        return Response({"translated_text": translated, "translatedText": translated})
 
 
 class OSMNearbyPlacesView(APIView):
@@ -626,3 +631,26 @@ class HotelSearchView(generics.ListAPIView):
             )
             .select_related("destination")[:20]
         )
+
+
+class HotelSearchView(generics.ListAPIView):
+    """
+    GET /api/v1/hotels/search/?query=Pokhara
+    GET /api/v1/hotels/search/?query=Lakeside
+
+    Searches the real Hotel table (not the ml_service CSV) so results
+    carry a real Hotel.id that BookHotel.jsx can book against directly.
+    """
+    serializer_class = HotelSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        query = self.request.query_params.get("query", "").strip()
+        if not query:
+            return Hotel.objects.none()
+        return Hotel.objects.filter(
+            Q(name__icontains=query)
+            | Q(destination__name__icontains=query)
+            | Q(destination__city__icontains=query)
+            | Q(address__icontains=query)
+        ).select_related("destination")[:20]

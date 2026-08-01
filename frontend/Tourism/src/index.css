@@ -37,7 +37,7 @@ body { @apply bg-gray-50 text-dark font-sans; }
 .badge-risk-high { @apply bg-nepalred-50 text-nepalred-500 text-xs font-semibold px-2.5 py-1 rounded-full; }
 
 .section-title {
-  @apply text-2xl md:text-3xl font-bold text-dark mb-6 pl-3 relative;
+  @apply font-heading text-2xl md:text-3xl font-bold text-dark mb-6 pl-3 relative;
 }
 .section-title::before {
   content: "";

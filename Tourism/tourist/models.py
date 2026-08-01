@@ -38,15 +38,44 @@ class Language(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     class Role(models.TextChoices):
+        # Original 3 kept as-is (existing users/checks referencing these
+        # values keep working unchanged) -- 10 more added per the RBAC spec.
         TOURIST = "tourist", "Tourist"
         GUIDE = "guide", "Local Guide"
         ADMIN = "admin", "Admin"
+        SUPER_ADMIN = "super_admin", "Super Admin"
+        TOURISM_ADMIN = "tourism_admin", "Tourism Admin"
+        CONTENT_MODERATOR = "content_moderator", "Content Moderator"
+        DISTRICT_MANAGER = "district_manager", "District Manager"
+        HOTEL_MANAGER = "hotel_manager", "Hotel Manager"
+        STAFF = "staff", "Staff"
+        TOURIST_POLICE = "tourist_police", "Tourist Police"
+        POLICE = "police", "Police"
+        HOSPITAL_STAFF = "hospital_staff", "Hospital Staff"
+        RESCUE_TEAM = "rescue_team", "Rescue Team"
+        EMERGENCY_OPERATOR = "emergency_operator", "Emergency Operator"
 
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     phone_number = PhoneNumberField(blank=True, null=True)
+    phone_verified = models.BooleanField(default=False)
+
+    class AuthProvider(models.TextChoices):
+        EMAIL = "email", "Email/Password"
+        GOOGLE = "google", "Google"
+        GITHUB = "github", "GitHub"
+
+    auth_provider = models.CharField(max_length=20, choices=AuthProvider.choices, default=AuthProvider.EMAIL)
+    provider_uid = models.CharField(
+        max_length=255, blank=True,
+        help_text="The account ID from Google/GitHub, used to re-link on subsequent OAuth logins."
+    )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.TOURIST)
+    managed_district = models.CharField(
+        max_length=100, blank=True,
+        help_text="For District Manager role: which district this user can manage. Blank = no district restriction."
+    )
     profile_picture = models.ImageField(upload_to="profile_pictures/", blank=True, null=True)
     bio = models.TextField(blank=True)
 
@@ -97,6 +126,23 @@ class EmailVerificationToken(models.Model):
         return not self.is_used and timezone.now() < self.expires_at
 
 
+class SMSVerificationToken(models.Model):
+    """
+    6-digit OTP sent via Twilio to verify a phone number. Mirrors
+    EmailVerificationToken's shape/pattern but uses a short numeric code
+    (not a UUID) since it has to be readable and typeable from an SMS.
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sms_tokens")
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempt_count = models.PositiveSmallIntegerField(default=0)  # brute-force guard
+
+    def is_valid(self):
+        return not self.is_used and self.attempt_count < 5 and timezone.now() < self.expires_at
+
+
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reset_tokens")
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -136,6 +182,7 @@ class Destination(TimeStampedModel):
         PENDING = "pending", "Pending Review"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
+        ARCHIVED = "archived", "Archived"
 
 
     external_id = models.IntegerField(
@@ -524,6 +571,15 @@ class Hotel(TimeStampedModel):
     rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
     booking_status = models.CharField(max_length=20, choices=BookingStatus.choices, default=BookingStatus.UNKNOWN)
     booking_url = models.URLField(blank=True, help_text="Link to book externally (e.g. Booking.com, Google)")
+    cover_image = models.ImageField(upload_to="hotels/covers/", blank=True, null=True)
+    external_image_url = models.URLField(
+        blank=True,
+        help_text="Used instead of cover_image for externally-hosted photos (Unsplash/Wikimedia/etc.)."
+    )
+    facilities = models.JSONField(
+        default=list, blank=True,
+        help_text='e.g. ["wifi", "breakfast", "parking", "pool", "ac"]'
+    )
     address = models.CharField(max_length=255, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -856,3 +912,34 @@ class OSMTourismPlace(TimeStampedModel):
 
     def __str__(self):
         return f"{self.get_category_display()} - {self.name}"
+
+
+class DestinationAuditLog(TimeStampedModel):
+    """
+    One row per moderation action on a Destination -- submitted, approved,
+    rejected, archived, edited. Tracks who did what and when.
+    """
+    class Action(models.TextChoices):
+        SUBMITTED = "submitted", "Submitted"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        ARCHIVED = "archived", "Archived"
+        EDITED = "edited", "Edited"
+
+    destination = models.ForeignKey(
+        "Destination", on_delete=models.CASCADE, related_name="audit_log"
+    )
+    action = models.CharField(max_length=20, choices=Action.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        help_text="Who performed this action (null for system-generated entries)."
+    )
+    note = models.TextField(blank=True)
+    previous_status = models.CharField(max_length=20, blank=True)
+    new_status = models.CharField(max_length=20, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.destination.name}: {self.action} by {self.actor or 'system'}"

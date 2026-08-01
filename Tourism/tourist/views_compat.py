@@ -222,7 +222,8 @@ class NavigationRouteView(APIView):
             except ValueError as exc:
                 return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon)
+        route_type = request.data.get("route_type", "fastest")
+        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=route_type)
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},
@@ -230,7 +231,8 @@ class NavigationRouteView(APIView):
             )
 
         response_data = dict(result)
-        response_data["route"] = result.get("path", [])  # alias matching Navigation.jsx's expected field name
+        response_data["route"] = result.get("route", [])  # [{lat, lng}, ...] real coordinates, not graph node IDs
+        response_data["note"] = result.get("note")  # surfaces the "cheapest == fastest" caveat when present
         if destination_obj:
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data
         return Response(response_data)
@@ -307,4 +309,3 @@ class NearbyPlacesCompatView(APIView):
 
         combined = sorted(own_results + osm_results, key=lambda p: p["distance"])
         return Response(combined)
-

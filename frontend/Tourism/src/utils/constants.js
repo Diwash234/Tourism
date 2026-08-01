@@ -1,4 +1,4 @@
-export const APP_NAME = import.meta.env.VITE_APP_NAME || "Tourist"
+export const APP_NAME = import.meta.env.VITE_APP_NAME || "Digital Nepal"
 
 export const MAP_TILE_URL =
   import.meta.env.VITE_MAP_TILE_URL ||
@@ -6,10 +6,15 @@ export const MAP_TILE_URL =
 
 export const DEFAULT_MAP_CENTER = { lat: 28.2096, lng: 83.9856 } // Pokhara
 
+// FIXED: this used generic Tailwind green/yellow/red, completely
+// bypassing the Nepal color system — meaning AlertCard.jsx showed
+// generic colors for the exact same risk concept that RiskCard.jsx (a
+// separate badge-risk-* class system in index.css) already shows in
+// Nepal forest/saffron/nepalred. Aligned here so both paths match.
 export const RISK_LEVELS = {
-  LOW: { label: "Low", color: "bg-green-100 text-green-700" },
-  MODERATE: { label: "Moderate", color: "bg-yellow-100 text-yellow-700" },
-  HIGH: { label: "High", color: "bg-red-100 text-red-700" },
+  LOW: { label: "Low", color: "bg-forest-50 text-forest-600" },
+  MODERATE: { label: "Moderate", color: "bg-saffron-50 text-saffron-700" },
+  HIGH: { label: "High", color: "bg-nepalred-50 text-nepalred-600" },
 }
 
 export const NAV_LINKS = [

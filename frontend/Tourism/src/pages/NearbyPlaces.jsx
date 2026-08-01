@@ -3,6 +3,7 @@
 // points), returning a plain array with `name`/`distance`/`category`
 // fields matching exactly what this page reads.
 import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
 import useGeolocation from "../hooks/useGeolocation"
 import nearbyApi from "../api/nearbyApi"
 import MapView from "../components/map/MapView"
@@ -25,10 +26,10 @@ const NearbyPlaces = () => {
   }, [position])
 
   return (
-    <div className="container-app py-10">
-      <h1 className="section-title">Nearby Places</h1>
+    <div className="container-app py-10 fade-in">
+      <h1 className="section-title flex items-center gap-2"><FiMapPin className="text-himalaya-500" /> Nearby Places</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 rounded-xl2 overflow-hidden shadow-premium">
           <MapView userLocation={position} nearbyAttractions={places} height="450px" />
         </div>
         <div>
@@ -36,14 +37,20 @@ const NearbyPlaces = () => {
             <Loader />
           ) : places.length ? (
             <div className="space-y-3">
-              {places.map((p) => (
-                <div key={p.id} className="card-base p-4 flex items-center gap-3">
-                  <FiMapPin className="text-primary-500" />
+              {places.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(i * 0.04, 0.4) }}
+                  className="card-base p-4 flex items-center gap-3"
+                >
+                  <FiMapPin className="text-himalaya-500" />
                   <div>
                     <p className="font-medium text-sm">{p.name}</p>
                     <p className="text-xs text-gray-400">{p.distance ? `${p.distance} km away` : p.category}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (

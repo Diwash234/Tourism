@@ -24,8 +24,33 @@ from .models import (
     Hotel,
     OSMEssentialService,
     OSMTourismPlace,
+    DestinationAuditLog,
 )
-from .utils import haversine_distance, ensure_cover_photo
+from .utils import haversine_distance, ensure_cover_photo, bounding_box
+
+from decimal import Decimal, ROUND_HALF_UP
+
+
+class CoordinateField(serializers.DecimalField):
+    """
+    Drop-in replacement for serializers.DecimalField(max_digits=9,
+    decimal_places=6) used for every latitude/longitude field in this
+    file. Browser geolocation returns raw floats with 15-17 significant
+    digits (e.g. 27.717176801728174). DRF's DecimalField counts ALL of
+    those digits before rounding, rejecting them as "more than 9 digits
+    in total" even though the real coordinate is valid once rounded to 6
+    decimal places. This field rounds first, then validates.
+    """
+    def __init__(self, **kwargs):
+        kwargs.setdefault("max_digits", 9)
+        kwargs.setdefault("decimal_places", 6)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        if data is not None and data != "":
+            data = Decimal(str(data)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+        return super().to_internal_value(data)
+
 
 
 # ---------------------------------------------------------------------------
@@ -100,8 +125,8 @@ class VerifyEmailSerializer(serializers.Serializer):
 class UpdateLocationSerializer(serializers.Serializer):
     """Used by the browser-GPS endpoint; falls back to GeoIP server-side if omitted."""
 
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    latitude = CoordinateField(required=False, allow_null=True)
+    longitude = CoordinateField(required=False, allow_null=True)
 
 
 # ---------------------------------------------------------------------------
@@ -374,6 +399,8 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
     is accepted directly in the same multipart request (no separate gallery
     upload call needed for the main photo).
     """
+    latitude = CoordinateField(required=False, allow_null=True)
+    longitude = CoordinateField(required=False, allow_null=True)
 
     class Meta:
         model = Destination
@@ -382,6 +409,30 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
             "latitude", "longitude", "address", "city", "country", "opening_hours",
             "entry_fee", "contact_phone", "contact_email", "website", "is_active",
         ]
+
+    def validate(self, attrs):
+        # Duplicate detection: block an exact-name match within 300m of an
+        # existing (non-rejected) destination, rather than silently
+        # creating a second entry for the same place.
+        name = attrs.get("name", "")
+        latitude = attrs.get("latitude")
+        longitude = attrs.get("longitude")
+
+        if name and latitude is not None and longitude is not None:
+            min_lat, max_lat, min_lon, max_lon = bounding_box(float(latitude), float(longitude), radius_km=1)
+            nearby_candidates = Destination.objects.filter(
+                latitude__range=(min_lat, max_lat), longitude__range=(min_lon, max_lon),
+            ).exclude(status=Destination.SubmissionStatus.REJECTED)
+
+            for candidate in nearby_candidates:
+                distance = haversine_distance(float(latitude), float(longitude), float(candidate.latitude), float(candidate.longitude))
+                if distance < 0.3 and name.strip().lower() == candidate.name.strip().lower():
+                    raise serializers.ValidationError({
+                        "name": f'A place named "{candidate.name}" already exists within 300m of '
+                                f"these coordinates (status: {candidate.status}). If this is a "
+                                f"genuinely different place, please use a more specific name."
+                    })
+        return attrs
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -396,7 +447,13 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
             validated_data["is_user_submitted"] = True
             validated_data["status"] = Destination.SubmissionStatus.PENDING
             validated_data["is_active"] = False
-        return super().create(validated_data)
+        destination = super().create(validated_data)
+
+        DestinationAuditLog.objects.create(
+            destination=destination, action=DestinationAuditLog.Action.SUBMITTED,
+            actor=user, new_status=destination.status,
+        )
+        return destination
 
 
 class DestinationApprovalSerializer(serializers.Serializer):
@@ -407,8 +464,8 @@ class DestinationApprovalSerializer(serializers.Serializer):
 
 
 class NearbyDestinationQuerySerializer(serializers.Serializer):
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    latitude = CoordinateField()
+    longitude = CoordinateField()
     radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=500)
 
 
@@ -587,8 +644,8 @@ class MLInsightSerializer(serializers.ModelSerializer):
 
 
 class MLRecommendationRequestSerializer(serializers.Serializer):
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    latitude = CoordinateField(required=False, allow_null=True)
+    longitude = CoordinateField(required=False, allow_null=True)
     top_n = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)
 
 
@@ -609,8 +666,8 @@ class SafetyPredictionRequestSerializer(serializers.Serializer):
     """
 
     destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    latitude = CoordinateField(required=False)
+    longitude = CoordinateField(required=False)
 
     def validate(self, attrs):
         if "destination" not in attrs and ("latitude" not in attrs or "longitude" not in attrs):
@@ -625,6 +682,21 @@ class BudgetPredictionRequestSerializer(serializers.Serializer):
     days = serializers.IntegerField(default=3, min_value=1, max_value=90)
     travelers = serializers.IntegerField(default=1, min_value=1, max_value=20)
     budget_level = serializers.ChoiceField(choices=["budget", "mid", "luxury"], default="mid")
+    # Traveler's current GPS position -- optional, makes the estimate
+    # genuinely distance-aware instead of a flat per-city number.
+    user_latitude = serializers.FloatField(required=False, allow_null=True)
+    user_longitude = serializers.FloatField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        destination = attrs.get("destination")
+        city = (attrs.get("city") or "").strip()
+        if not destination and not city:
+            raise serializers.ValidationError({
+                "destination": "Please select a destination before estimating a budget. "
+                                "Budget estimates are place-specific and can't be generated "
+                                "from trip length or traveler count alone."
+            })
+        return attrs
 
 
 class BestRouteRequestSerializer(serializers.Serializer):
@@ -634,11 +706,11 @@ class BestRouteRequestSerializer(serializers.Serializer):
     point is always explicit — it's wherever the tourist currently is.
     """
 
-    start_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
-    start_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    start_latitude = CoordinateField()
+    start_longitude = CoordinateField()
     destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
-    end_latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
-    end_longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    end_latitude = CoordinateField(required=False)
+    end_longitude = CoordinateField(required=False)
 
     def validate(self, attrs):
         if "destination" not in attrs and ("end_latitude" not in attrs or "end_longitude" not in attrs):

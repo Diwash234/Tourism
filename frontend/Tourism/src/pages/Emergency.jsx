@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   FiPhoneCall, FiAlertOctagon, FiMapPin, FiNavigation,
   FiShield, FiPlusSquare, FiActivity, FiSun, FiHome, FiUsers,
+  FiWifiOff, FiHeart, FiX,
 } from "react-icons/fi"
 
 import useGeolocation from "../hooks/useGeolocation"
@@ -27,6 +28,7 @@ const HOTLINES = [
 
 const Emergency = () => {
   const { position } = useGeolocation()
+  const [sosOpen, setSosOpen] = useState(false)
 
   const [hospitals, setHospitals] = useState([])
   const [police, setPolice] = useState([])
@@ -70,10 +72,23 @@ const Emergency = () => {
 
   return (
     <div className="container-app py-10 fade-in">
-      <h1 className="section-title flex items-center gap-2 text-nepalred-500">
-        <FiAlertOctagon />
-        Emergency Assistance
-      </h1>
+      <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
+        <h1 className="section-title flex items-center gap-2 text-nepalred-500 mb-0">
+          <FiAlertOctagon />
+          Emergency Assistance
+        </h1>
+
+        {/* NEW: prominent SOS button per the brief. There is no single
+            "911-style" universal emergency number in Nepal, so tapping
+            this opens a quick-dial sheet with the 3 most critical
+            numbers rather than pretending one button dials everything. */}
+        <button
+          onClick={() => setSosOpen(true)}
+          className="pulse-soft flex items-center gap-2 bg-nepalred-500 hover:bg-nepalred-600 text-white font-bold px-6 py-3 rounded-full shadow-premium hover:shadow-premium-hover transition-all"
+        >
+          <FiAlertOctagon size={20} /> SOS — Get Help Now
+        </button>
+      </div>
 
       <p className="text-gray-500 text-sm mb-6">
         Find nearby hospitals, police stations and emergency services based on your current location.
@@ -219,6 +234,90 @@ const Emergency = () => {
           <p className="text-gray-500">No police stations found.</p>
         )}
       </div>
+
+      {/* NEW: Mountain & Helicopter Rescue. Deliberately NOT hardcoding
+          a specific rescue-company phone number here — I can't verify
+          one is currently correct, and giving wrong emergency contact
+          info would be actively dangerous. The real, safe procedure in
+          Nepal is described instead. */}
+      <div className="mt-10 card-base p-6 border border-saffron-100">
+        <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+          <FiNavigation className="text-saffron-600" /> Mountain & Helicopter Rescue
+        </h2>
+        <p className="text-sm text-gray-600 mb-2">
+          Helicopter evacuation in Nepal is coordinated through your <b>travel insurance provider's 24/7
+          emergency line</b> (confirm coverage for high-altitude rescue before trekking) or your <b>trekking
+          agency/guide</b>, who can arrange rescue directly with licensed operators.
+        </p>
+        <p className="text-sm text-gray-600">
+          If you have no signal, the Tourist Police (1144) or the nearest checkpoint/teahouse can relay a
+          rescue request — descending to a lower altitude is often the single most effective first step for
+          altitude sickness while help is arranged.
+        </p>
+      </div>
+
+      {/* NEW: Offline Emergency Guidance — general knowledge, no network
+          or backend dependency, so it's useful exactly when connectivity
+          is the problem. */}
+      <div className="mt-6 card-base p-6 border border-himalaya-100">
+        <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+          <FiWifiOff className="text-himalaya-500" /> Offline Emergency Guidance
+        </h2>
+        <ul className="text-sm text-gray-600 space-y-2 list-disc list-inside">
+          <li>Altitude sickness (headache, nausea, dizziness): stop ascending, descend if symptoms worsen, never push through severe symptoms.</li>
+          <li>Bleeding: apply firm, direct pressure with the cleanest cloth available; elevate the injury if possible.</li>
+          <li>Hypothermia: get out of wet clothing, insulate from the ground, share body heat, avoid alcohol.</li>
+          <li>Lost/no signal: stay where you are if possible, use a whistle or bright clothing to signal, retrace known trail markers rather than shortcutting.</li>
+          <li>Always tell someone your planned route and expected return time before setting out.</li>
+        </ul>
+        <p className="text-xs text-gray-400 mt-3">
+          General guidance only — not a substitute for professional medical care or a wilderness first aid course.
+        </p>
+      </div>
+
+      {/* SOS quick-dial modal */}
+      <AnimatePresence>
+        {sosOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setSosOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg text-nepalred-500">Who do you need?</h3>
+                <button onClick={() => setSosOpen(false)}><FiX /></button>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: "Police", phone: "100", icon: FiShield },
+                  { label: "Ambulance", phone: "102", icon: FiHeart },
+                  { label: "Tourist Police", phone: "1144", icon: FiSun },
+                ].map(({ label, phone, icon: Icon }) => (
+                  <a
+                    key={phone}
+                    href={`tel:${phone}`}
+                    className="flex items-center justify-between bg-gray-50 hover:bg-nepalred-50 rounded-xl px-4 py-3 transition-colors"
+                  >
+                    <span className="flex items-center gap-2 font-medium">
+                      <Icon className="text-nepalred-500" /> {label}
+                    </span>
+                    <span className="text-nepalred-600 font-bold">{phone}</span>
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

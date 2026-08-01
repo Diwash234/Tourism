@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import EmailVerificationToken, PasswordResetToken
+from .models import EmailVerificationToken, PasswordResetToken, SMSVerificationToken
 from .serializers import (
     RegisterSerializer,
     UserProfileSerializer,
@@ -18,7 +18,7 @@ from .serializers import (
     VerifyEmailSerializer,
     UpdateLocationSerializer,
 )
-from .utils import send_email_notification, resolve_location
+from .utils import send_email_notification, resolve_location, issue_phone_verification
 
 User = get_user_model()
 
@@ -54,6 +54,8 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         _issue_email_verification(user)
+        if user.phone_number:
+            issue_phone_verification(user)
         return Response(
             {
                 "message": "Registration successful. Please check your email to verify your account.",
@@ -87,6 +89,71 @@ class VerifyEmailView(APIView):
         user.is_verified = True
         user.save(update_fields=["is_verified"])
         return Response({"message": "Email verified successfully."})
+
+
+class VerifyPhoneView(APIView):
+    """
+    POST /auth/verify-phone/  {"code": "123456"}
+    Checks the submitted OTP against the current user's latest
+    SMSVerificationToken. Requires authentication (unlike email
+    verification, which uses a token in a link) since the OTP alone is
+    too short-lived/guessable to double as an auth credential on its own.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        code = str(request.data.get("code", "")).strip()
+        if not code:
+            return Response({"detail": "code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        token = (
+            SMSVerificationToken.objects.filter(user=request.user, is_used=False)
+            .order_by("-created_at")
+            .first()
+        )
+        if not token:
+            return Response({"detail": "No pending verification code. Request a new one."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not token.is_valid():
+            return Response({"detail": "Code expired or too many attempts. Request a new one."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if token.code != code:
+            token.attempt_count += 1
+            token.save(update_fields=["attempt_count"])
+            return Response({"detail": "Incorrect code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        token.is_used = True
+        token.save(update_fields=["is_used"])
+        request.user.phone_verified = True
+        request.user.save(update_fields=["phone_verified"])
+        return Response({"message": "Phone number verified successfully."})
+
+
+class ResendPhoneOTPView(APIView):
+    """
+    POST /auth/resend-phone-otp/
+    Rate limited to 1 send per 60 seconds per user -- Twilio charges per
+    SMS, so this is cost control as much as abuse prevention.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not request.user.phone_number:
+            return Response({"detail": "No phone number on file."}, status=status.HTTP_400_BAD_REQUEST)
+
+        recent = (
+            SMSVerificationToken.objects.filter(user=request.user)
+            .order_by("-created_at")
+            .first()
+        )
+        if recent and (timezone.now() - recent.created_at).total_seconds() < 60:
+            return Response(
+                {"detail": "Please wait a minute before requesting another code."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        issue_phone_verification(request.user)
+        return Response({"message": "Verification code sent."})
 
 
 class ResendVerificationEmailView(APIView):

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
@@ -53,9 +54,29 @@ class DestinationImageInline(admin.TabularInline):
 
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
-    list_display = ["name", "destination", "booking_status", "price_per_night", "currency", "rating", "source"]
+    list_display = ["name", "destination", "image_preview", "booking_status", "price_per_night", "currency", "rating", "source"]
     list_filter = ["booking_status", "source", "currency"]
     search_fields = ["name", "destination__name", "address"]
+    readonly_fields = ["image_preview_large"]
+    fields = [
+        "destination", "name", "image", "image_preview_large",
+        "price_per_night", "currency", "rating", "booking_status", "booking_url",
+        "address", "latitude", "longitude", "source", "phone",
+    ]
+
+    @admin.display(description="Image")
+    def image_preview(self, obj):
+        """Small thumbnail in the list view -- upload via the `image` field, this just renders it."""
+        if obj.image:
+            return format_html('<img src="{}" style="height:40px;border-radius:4px;" />', obj.image.url)
+        return "—"
+
+    @admin.display(description="Current image")
+    def image_preview_large(self, obj):
+        """Larger preview on the detail/edit page, right below the upload field."""
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', obj.image.url)
+        return "No image uploaded yet."
 
 
 class DestinationVideoInline(admin.TabularInline):
@@ -70,7 +91,20 @@ class DestinationAdmin(admin.ModelAdmin):
     search_fields = ["name", "city", "country", "description"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [DestinationImageInline, DestinationVideoInline]
-    readonly_fields = ["average_rating", "ratings_count", "views_count", "created_at", "updated_at"]
+    readonly_fields = ["average_rating", "ratings_count", "views_count", "created_at", "updated_at", "cover_image_preview"]
+
+    @admin.display(description="Cover image preview")
+    def cover_image_preview(self, obj):
+        """
+        Shows the current cover_image (uploaded here in admin, or already
+        auto-fetched via ensure_cover_photo) so you can see what's live
+        without leaving the admin page. Upload/replace it using the
+        existing `cover_image` field elsewhere on this form -- this is
+        read-only, just a preview.
+        """
+        if obj.cover_image:
+            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', obj.cover_image.url)
+        return "No cover image uploaded yet (may still show a fetched one from Unsplash/Wikimedia on the live site)."
     actions = ["approve_selected", "reject_selected"]
 
     @admin.action(description="Approve selected pending submissions")

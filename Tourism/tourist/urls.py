@@ -6,7 +6,8 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
-from . import views, views_auth, views_ml, views_compat, views_osm
+from . import views, views_auth, views_ml, views_compat, views_osm, views_oauth
+from . import views_images
 from .views import search_destination
 
 
@@ -60,6 +61,30 @@ auth_urlpatterns = [
         "auth/resend-verification/",
         views_auth.ResendVerificationEmailView.as_view(),
         name="auth-resend-verification"
+    ),
+
+    path(
+        "auth/verify-phone/",
+        views_auth.VerifyPhoneView.as_view(),
+        name="auth-verify-phone"
+    ),
+
+    path(
+        "auth/resend-phone-otp/",
+        views_auth.ResendPhoneOTPView.as_view(),
+        name="auth-resend-phone-otp"
+    ),
+
+    path(
+        "auth/google/callback/",
+        views_oauth.GoogleOAuthCallbackView.as_view(),
+        name="auth-google-callback"
+    ),
+
+    path(
+        "auth/github/callback/",
+        views_oauth.GithubOAuthCallbackView.as_view(),
+        name="auth-github-callback"
     ),
 
     path(
@@ -245,6 +270,12 @@ urlpatterns = [
         "weather/current/",
         views_compat.WeatherByCoordinatesView.as_view(),
         name="compat-weather-current"
+    ),
+
+    path(
+        "images/resolve/",
+        views_images.ImageResolveView.as_view(),
+        name="image-resolve"
     ),
 
 

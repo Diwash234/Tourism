@@ -3,13 +3,11 @@ import { FiPlus, FiCheckCircle } from "react-icons/fi"
 import adminPanelApi from "../../api/adminPanelApi"
 import Loader from "../../components/common/Loader"
 import EmptyState from "../../components/common/EmptyState"
-import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 
 const STATUS_OPTIONS = ["pending", "in_progress", "completed", "cancelled"]
 
 const Tasks = () => {
-  const { user } = useAuth()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -58,15 +56,16 @@ const Tasks = () => {
   }
 
   return (
-    <div className="container-app py-10">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container-app py-10 fade-in">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="section-title mb-0">Tasks</h1>
-        {user?.is_superuser && (
-          <button onClick={() => setShowForm((v) => !v)} className="btn-primary flex items-center gap-2">
-            <FiPlus /> New Task
-          </button>
-        )}
+        <button onClick={() => setShowForm((v) => !v)} className="btn-primary flex items-center gap-2">
+          <FiPlus /> New Task
+        </button>
       </div>
+      <p className="text-xs text-saffron-600 bg-saffron-50 inline-block px-3 py-1.5 rounded-full mb-6">
+        Assigning tasks to others requires super admin permissions, enforced by the backend.
+      </p>
 
       {showForm && (
         <form onSubmit={handleCreate} className="card-base p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">

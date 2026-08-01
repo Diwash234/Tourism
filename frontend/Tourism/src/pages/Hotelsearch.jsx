@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { FiSearch, FiStar } from "react-icons/fi";
 import hotelApi from "../api/hotelApi";
 import EmptyState from "../components/common/EmptyState";
+import PlaceholderImage from "../components/common/PlaceholderImage";
 
 const HotelSearch = () => {
   const [query, setQuery] = useState("");
@@ -58,11 +59,11 @@ const HotelSearch = () => {
               transition={{ delay: i * 0.03 }}
               className="card-base overflow-hidden"
             >
-              <img
-                src={hotel.image_url || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600"}
-                alt={hotel.name}
-                className="h-40 w-full object-cover"
-              />
+              {hotel.image_url ? (
+                <img src={hotel.image_url} alt={hotel.name} className="h-40 w-full object-cover" />
+              ) : (
+                <PlaceholderImage seed={hotel.id} className="h-40 w-full" />
+              )}
               <div className="p-4">
                 <h3 className="font-bold text-dark">{hotel.name}</h3>
                 <p className="text-sm text-gray-500">{hotel.destination_name}</p>

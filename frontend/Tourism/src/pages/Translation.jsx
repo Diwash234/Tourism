@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiRefreshCw, FiVolume2, FiMic, FiMicOff, FiWifiOff } from "react-icons/fi"
 
@@ -57,7 +58,14 @@ const COMMON_PHRASES = [
 ]
 
 const Translation = () => {
-  const [sourceText, setSourceText] = useState("")
+  const [searchParams] = useSearchParams()
+  // NEW: DestinationDetails.jsx's "Translate Page" button links here
+  // with ?place=<name> — without this, that link went to a blank form,
+  // which isn't meaningfully more useful than not having the button.
+  const [sourceText, setSourceText] = useState(() => {
+    const place = searchParams.get("place")
+    return place ? `I would like to visit ${place}` : ""
+  })
   const [targetLang, setTargetLang] = useState("ne")
   const [translatedText, setTranslatedText] = useState("")
   const [loading, setLoading] = useState(false)

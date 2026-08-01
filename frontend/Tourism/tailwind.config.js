@@ -58,6 +58,8 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        heading: ['"Playfair Display"', 'Georgia', 'serif'],
+        devanagari: ['"Noto Sans Devanagari"', 'Inter', 'sans-serif'],
       },
       boxShadow: {
         card: '0 6px 16px rgba(0,0,0,0.08)',

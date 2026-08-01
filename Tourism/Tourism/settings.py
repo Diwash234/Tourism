@@ -252,6 +252,18 @@ FOURSQUARE_API_KEY = config("FOURSQUARE_API_KEY", default="")
 # Unsplash API — free tier available, used as a fallback image source when
 # a destination has no user-submitted or gallery photos yet.
 UNSPLASH_ACCESS_KEY = config("UNSPLASH_ACCESS_KEY", default="")
+PEXELS_API_KEY = config("PEXELS_API_KEY", default="")
+PIXABAY_API_KEY = config("PIXABAY_API_KEY", default="")
+
+# Used by /images/resolve/ (views_images.py) to cache resolved image
+# results for 7 days so repeat searches don't re-hit external APIs.
+# LocMemCache needs no extra infrastructure (no Redis required) -- swap
+# to django-redis later if/when Redis is deployed for other reasons.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
 
 # Wikimedia Commons — free, no key required.
 WIKIMEDIA_API_URL = config("WIKIMEDIA_API_URL", default="https://commons.wikimedia.org/w/api.php")
@@ -261,6 +273,18 @@ WIKIMEDIA_API_URL = config("WIKIMEDIA_API_URL", default="https://commons.wikimed
 # ML teammate's local-language model, then the free deep-translator library.
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 OPENAI_MODEL = config("OPENAI_MODEL", default="gpt-4o-mini")
+
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
+GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-1.5-flash")
+
+GROQ_API_KEY = config("GROQ_API_KEY", default="")
+GROQ_MODEL = config("GROQ_MODEL", default="llama-3.1-8b-instant")
+
+# OAuth (Google / GitHub) -- read from .env, used by views_oauth.py
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
+GITHUB_CLIENT_ID = config("GITHUB_CLIENT_ID", default="")
+GITHUB_CLIENT_SECRET = config("GITHUB_CLIENT_SECRET", default="")
 
 # Community photo promotion: once a user-submitted photo's view count
 # crosses this threshold, it's automatically promoted to the destination's

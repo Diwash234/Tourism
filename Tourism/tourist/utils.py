@@ -7,8 +7,10 @@ Utility helpers used across the tourist app:
   - Email / SMS / Push notification senders
 """
 import logging
+from datetime import timedelta
 from math import radians, cos, sin, asin, sqrt
 from django.db.models import Q
+from django.utils import timezone
 
 import requests
 from django.conf import settings
@@ -184,27 +186,127 @@ def _translate_via_ml_service(text, target_language, source_language):
         return None
 
 
-def translate_text(text, target_language, source_language="auto"):
-    """
-    Translate `text` into `target_language`. Four tiers, tried in order:
 
-      1. OpenAI (if OPENAI_API_KEY is configured) — generally the highest
+def _translate_via_gemini(text, target_language, source_language):
+    """
+    Returns translated text via Google's Gemini API, or None if not
+    configured/unreachable. Same shape as _translate_via_openai --
+    slots into the same tiered chain.
+    """
+    if not settings.GEMINI_API_KEY:
+        return None
+    try:
+        source_note = "" if source_language == "auto" else f" (source language: {source_language})"
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent",
+            params={"key": settings.GEMINI_API_KEY},
+            json={
+                "contents": [{
+                    "parts": [{
+                        "text": (
+                            f"Translate the following text into the language with ISO code "
+                            f"'{target_language}'{source_note}. Reply with ONLY the translated "
+                            f"text, no explanations, no quotes.\n\n{text}"
+                        )
+                    }]
+                }],
+                "generationConfig": {"temperature": 0.2},
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (requests.RequestException, KeyError, IndexError) as exc:
+        logger.warning("Gemini translation failed, falling back: %s", exc)
+        return None
+
+
+def _translate_via_groq(text, target_language, source_language):
+    """
+    Returns translated text via Groq's chat completion API (OpenAI-compatible
+    format), or None if not configured/unreachable.
+    """
+    if not settings.GROQ_API_KEY:
+        return None
+    try:
+        source_note = "" if source_language == "auto" else f" (source language: {source_language})"
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+            json={
+                "model": settings.GROQ_MODEL,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            f"Translate the user's text into the language with ISO code "
+                            f"'{target_language}'{source_note}. Reply with ONLY the translated "
+                            f"text, no explanations, no quotes."
+                        ),
+                    },
+                    {"role": "user", "content": text},
+                ],
+                "temperature": 0.2,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"].strip()
+    except (requests.RequestException, KeyError, IndexError) as exc:
+        logger.warning("Groq translation failed, falling back: %s", exc)
+        return None
+
+
+def translate_text(text, target_language, source_language="auto", provider="auto"):
+    """
+    Translate `text` into `target_language`.
+
+    provider: "auto" (default -- tiered fallback below), or an explicit
+        choice: "gemini", "groq", "openai" (all three = "AI-enhanced
+        contextual translation" per the original spec), or "standard"
+        (skips straight to Google/deep-translator, no AI model involved).
+
+    Automatic tiers, tried in order when provider="auto":
+      1. Gemini (if GEMINI_API_KEY is configured)
+      2. Groq (if GROQ_API_KEY is configured)
+      3. OpenAI (if OPENAI_API_KEY is configured) — generally the highest
          quality for nuanced tourism copy (descriptions, alerts).
-      2. The ML teammate's local-language model (`{ML_SERVICE_URL}/translate-custom`),
+      4. The ML teammate's local-language model (`{ML_SERVICE_URL}/translate-custom`),
          for languages Google Translate handles poorly (e.g. underrepresented
          local languages) — see ml-service/model/translation_engine.py.
          Tried before Google/deep-translator for languages listed in
          LOCAL_TRANSLATION_LANGUAGE_CODES (set in settings).
-      3. Google Cloud Translation API, if GOOGLE_TRANSLATE_API_KEY is configured.
-      4. The free deep-translator (Google Translate) library — always available,
+      5. Google Cloud Translation API, if GOOGLE_TRANSLATE_API_KEY is configured.
+      6. The free deep-translator (Google Translate) library — always available,
          no credentials needed, so translation never fully breaks.
     """
     if not text:
         return text
 
-    openai_result = _translate_via_openai(text, target_language, source_language)
-    if openai_result is not None:
-        return openai_result
+    if provider == "standard":
+        pass  # skip straight past all AI tiers below
+    elif provider in ("gemini", "groq", "openai"):
+        result = {
+            "gemini": _translate_via_gemini,
+            "groq": _translate_via_groq,
+            "openai": _translate_via_openai,
+        }[provider](text, target_language, source_language)
+        if result is not None:
+            return result
+        # Explicit provider failed/unconfigured -- fall through to the
+        # rest of the chain rather than returning nothing.
+    else:
+        gemini_result = _translate_via_gemini(text, target_language, source_language)
+        if gemini_result is not None:
+            return gemini_result
+
+        groq_result = _translate_via_groq(text, target_language, source_language)
+        if groq_result is not None:
+            return groq_result
+
+        openai_result = _translate_via_openai(text, target_language, source_language)
+        if openai_result is not None:
+            return openai_result
 
     use_local_first = target_language in settings.LOCAL_TRANSLATION_LANGUAGE_CODES
     if use_local_first:
@@ -271,6 +373,26 @@ def send_sms_notification(to_number, message):
     except Exception as exc:  # noqa: BLE001
         logger.error("SMS send failed to %s: %s", to_number, exc)
         return False
+
+
+def issue_phone_verification(user):
+    """
+    Generates a 6-digit OTP, stores it as an SMSVerificationToken, and
+    sends it via send_sms_notification() above. Mirrors
+    _issue_email_verification()'s pattern in views_auth.py.
+    """
+    import random
+    from .models import SMSVerificationToken
+
+    code = f"{random.randint(0, 999999):06d}"
+    token = SMSVerificationToken.objects.create(
+        user=user, code=code, expires_at=timezone.now() + timedelta(minutes=10)
+    )
+    send_sms_notification(
+        user.phone_number,
+        f"Your Tourism Portal verification code is {code}. It expires in 10 minutes.",
+    )
+    return token
 
 
 def send_push_notification(device_tokens, title, message):
@@ -400,9 +522,16 @@ def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
         return None
 
 
-def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid"):
+def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid",
+                              latitude=None, longitude=None, user_latitude=None, user_longitude=None):
     """
     Calls {ML_SERVICE_URL}/predict-budget for an estimated trip cost.
+    latitude/longitude: the destination's real coordinates (from the
+        resolved Destination object, when available).
+    user_latitude/user_longitude: the traveler's current GPS position --
+        when both this and the destination coordinates are present,
+        ml_service computes a real distance-based transport cost instead
+        of a flat per-city baseline.
     Returns None if the ML service is unreachable.
     """
     try:
@@ -411,6 +540,8 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
             json={
                 "city": city, "country": country, "days": days,
                 "travelers": travelers, "budget_level": budget_level,
+                "latitude": latitude, "longitude": longitude,
+                "user_latitude": user_latitude, "user_longitude": user_longitude,
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -421,10 +552,10 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
         return None
 
 
-def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitude):
+def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitude, route_type="fastest"):
     """
-    Calls {ML_SERVICE_URL}/best-route for a routed path (OSM-based once the
-    ML teammate's road graph is loaded; straight-line fallback until then).
+    Calls {ML_SERVICE_URL}/routes/best-route for a routed path.
+    route_type: "fastest" | "safest" | "trekking" | "cheapest"
     Returns None if the ML service is unreachable.
     """
     try:
@@ -433,6 +564,7 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
             json={
                 "start_latitude": float(start_latitude), "start_longitude": float(start_longitude),
                 "end_latitude": float(end_latitude), "end_longitude": float(end_longitude),
+                "route_type": route_type,
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )

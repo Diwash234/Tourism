@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams, Link } from "react-router-dom"
 import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
 import DestinationCard from "../../components/cards/DestinationCard"
@@ -108,7 +108,12 @@ const Destinationlist = () => {
 
   return (
     <div className="container-app py-10 fade-in">
-      <h1 className="section-title">Explore Destinations</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="section-title">Explore Destinations</h1>
+        <Link to="/destinations/submit" className="btn-outline text-sm">
+          + Suggest a Place
+        </Link>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
         <SearchBar

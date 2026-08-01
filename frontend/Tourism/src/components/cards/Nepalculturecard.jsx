@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { FiMapPin } from "react-icons/fi"
+import PlaceholderImage from "../common/PlaceholderImage"
 
 /**
  * NepalCultureCard
@@ -15,11 +16,11 @@ const NepalCultureCard = ({ destination }) => {
   return (
     <div className="card-base overflow-hidden">
       <div className="h-44 overflow-hidden">
-        <img
-          src={cover_image_url || "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=600"}
-          alt={name}
-          className="w-full h-full object-cover"
-        />
+        {cover_image_url ? (
+          <img src={cover_image_url} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <PlaceholderImage seed={destination.id} className="w-full h-full" />
+        )}
       </div>
       <div className="p-4">
         <h3 className="font-bold text-dark">{name}</h3>

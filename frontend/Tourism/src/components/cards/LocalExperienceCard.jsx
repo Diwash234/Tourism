@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { FiUsers, FiMapPin } from "react-icons/fi"
+import PlaceholderImage from "../common/PlaceholderImage"
 
 /**
  * LocalExperienceCard
@@ -13,11 +14,15 @@ const LocalExperienceCard = ({ destination }) => {
   return (
     <div className="card-base overflow-hidden group">
       <div className="h-44 overflow-hidden relative">
-        <img
-          src={cover_image_url || "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=600"}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {cover_image_url ? (
+          <img
+            src={cover_image_url}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <PlaceholderImage seed={destination.id} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
+        )}
         <span className="absolute top-3 left-3 flex items-center gap-1 bg-forest-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
           <FiUsers size={12} /> Community-led
         </span>

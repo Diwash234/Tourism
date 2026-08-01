@@ -1,82 +1,106 @@
-/**
- * NepalSceneBackground
- * Original SVG artwork (no external photo) — layered Himalayan
- * silhouette, a string of prayer flags, and a corner Dhoka (traditional
- * Newari carved wooden window/door) motif. Used as a full-bleed
- * background behind the auth pages instead of a hotlinked stock photo.
- *
- * Swapping in real photography later: replace the whole component with
- * an <img>/background-image using your own licensed photo — everything
- * that renders on top of it (the logo, the auth card) doesn't need to
- * change, since this only fills the background layer.
- */
-const NepalSceneBackground = () => (
-  <svg
-    className="absolute inset-0 w-full h-full"
-    viewBox="0 0 1200 700"
-    preserveAspectRatio="xMidYMax slice"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#0B3D91" />
-        <stop offset="100%" stopColor="#1B8A5A" />
-      </linearGradient>
-    </defs>
+import { motion } from "framer-motion"
+import {
+  FiTriangle, FiCompass, FiHome, FiFeather,
+  FiWind, FiDroplet, FiMusic, FiCoffee,
+} from "react-icons/fi"
 
-    <rect width="1200" height="700" fill="url(#sky)" />
+// Content summarized in original wording from general, widely-known
+// facts about Nepal tourism (Everest/Himalayas, UNESCO heritage sites,
+// national parks, etc.) — not copied from any single source.
+const HIGHLIGHTS = [
+  {
+    icon: FiTriangle,
+    title: "The Himalayas",
+    gradient: "from-himalaya-500 to-himalaya-700",
+    desc: "Home to 8 of the world's 14 highest peaks, including Everest — the reason most travelers first think of Nepal.",
+    tags: ["Everest", "Annapurna", "Langtang"],
+  },
+  {
+    icon: FiCompass,
+    title: "Trekking Routes",
+    gradient: "from-forest-500 to-himalaya-600",
+    desc: "From multi-week classics to shorter teahouse treks, routes exist for every fitness level and season.",
+    tags: ["Everest Base Camp", "Annapurna Circuit", "Langtang Valley"],
+  },
+  {
+    icon: FiHome,
+    title: "Temples & Heritage",
+    gradient: "from-saffron-500 to-nepalred-500",
+    desc: "Kathmandu Valley alone holds seven UNESCO World Heritage Sites — living temples, not just ruins.",
+    tags: ["Pashupatinath", "Boudhanath", "Kathmandu Durbar Square"],
+  },
+  {
+    icon: FiFeather,
+    title: "Wildlife Safaris",
+    gradient: "from-forest-600 to-forest-400",
+    desc: "The southern lowlands hold rhinos, Bengal tigers, elephants, and hundreds of bird species.",
+    tags: ["Chitwan National Park", "Bardia National Park"],
+  },
+  {
+    icon: FiWind,
+    title: "Adventure Sports",
+    gradient: "from-himalaya-600 to-saffron-500",
+    desc: "Pokhara alone is one of the world's top spots for paragliding, alongside rafting, biking and more.",
+    tags: ["Paragliding", "White-water Rafting", "Bungee Jumping"],
+  },
+  {
+    icon: FiDroplet,
+    title: "Peaceful Lakes",
+    gradient: "from-himalaya-500 to-forest-500",
+    desc: "Phewa Lake in Pokhara mirrors the Annapurna range on a clear morning — a favorite for boating.",
+    tags: ["Phewa Lake", "Begnas Lake"],
+  },
+  {
+    icon: FiMusic,
+    title: "Culture & Festivals",
+    gradient: "from-nepalred-500 to-saffron-500",
+    desc: "Over 120 ethnic groups mean festivals happen almost year-round, each with its own traditions.",
+    tags: ["Dashain", "Tihar", "Holi"],
+  },
+  {
+    icon: FiCoffee,
+    title: "Local Food",
+    gradient: "from-saffron-600 to-forest-500",
+    desc: "From daily staples to Newari feast cuisine, Nepali food varies dramatically by region and altitude.",
+    tags: ["Dal Bhat", "Momo", "Sel Roti", "Thukpa"],
+  },
+]
 
-    {/* Distant mountain layer */}
-    <path
-      d="M0 420 L120 300 L220 380 L340 250 L460 360 L600 220 L760 370 L900 260 L1050 380 L1200 300 L1200 700 L0 700 Z"
-      fill="#ffffff"
-      opacity="0.08"
-    />
-    {/* Mid mountain layer with a snow-cap highlight */}
-    <path
-      d="M0 480 L150 340 L280 440 L420 300 L560 430 L720 320 L880 450 L1050 340 L1200 440 L1200 700 L0 700 Z"
-      fill="#ffffff"
-      opacity="0.14"
-    />
-    <path d="M420 300 L460 340 L400 340 Z" fill="#ffffff" opacity="0.35" />
-    <path d="M720 320 L760 360 L700 360 Z" fill="#ffffff" opacity="0.35" />
+const NepalHighlights = ({ bare = false }) => (
+  <section className={bare ? "" : "container-app py-16"}>
+    <h2 className="section-title text-center mx-auto w-fit">Why Visit Nepal</h2>
+    <p className="text-gray-500 text-center max-w-2xl mx-auto mb-10 -mt-2">
+      Beyond Everest — mountains, culture, wildlife, and hospitality that keep travelers coming back.
+    </p>
 
-    {/* Foreground mountain layer, darkest */}
-    <path
-      d="M0 560 L100 460 L230 540 L380 420 L520 550 L680 440 L840 560 L1000 460 L1200 540 L1200 700 L0 700 Z"
-      fill="#072454"
-      opacity="0.55"
-    />
-
-    {/* Prayer flag string across the top */}
-    <path d="M0 60 Q 600 130 1200 50" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="2" fill="none" />
-    {[80, 260, 440, 620, 800, 980, 1150].map((x, i) => {
-      const colors = ["#DC143C", "#F59E0B", "#FFFFFF", "#1B8A5A", "#0B3D91"]
-      const y = 60 + Math.sin(i) * 20 + (i % 2 === 0 ? 20 : 35)
-      return (
-        <path
-          key={x}
-          d={`M${x} ${y} L${x - 10} ${y + 16} L${x + 10} ${y + 16} Z`}
-          fill={colors[i % colors.length]}
-          opacity="0.55"
-        />
-      )
-    })}
-
-    {/* Corner Dhoka motif — simplified traditional Newari carved window
-        lattice, bottom-left corner, very low opacity so it reads as
-        texture rather than competing with the auth card */}
-    <g transform="translate(20, 520)" opacity="0.18" fill="none" stroke="#ffffff" strokeWidth="2">
-      <rect x="0" y="0" width="160" height="160" rx="4" />
-      <rect x="14" y="14" width="132" height="132" rx="3" />
-      {[0, 1, 2, 3].map((row) =>
-        [0, 1, 2, 3].map((col) => (
-          <rect key={`${row}-${col}`} x={22 + col * 30} y={22 + row * 30} width="22" height="22" />
-        ))
-      )}
-    </g>
-  </svg>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {HIGHLIGHTS.map(({ icon: Icon, title, desc, tags, gradient }, i) => (
+        <motion.div
+          key={title}
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ delay: i * 0.05 }}
+          className="card-base overflow-hidden"
+        >
+          <div className={`h-24 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+            <Icon size={32} className="text-white/90" />
+          </div>
+          <div className="p-4">
+            <h3 className="font-bold text-dark mb-1.5">{title}</h3>
+            <p className="text-sm text-gray-500 mb-3">{desc}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <span key={tag} className="text-[11px] font-medium bg-gray-50 text-gray-500 px-2 py-1 rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  </section>
 )
 
-export default NepalSceneBackground
+export default NepalHighlights

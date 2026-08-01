@@ -19,6 +19,48 @@ from math import radians, sin, cos, sqrt, atan2
 
 import networkx as nx
 
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+RISK_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "processed_data", "risk_features.csv")
+_risk_df = pd.read_csv(RISK_CSV_PATH) if (pd is not None and os.path.exists(RISK_CSV_PATH)) else None
+RISK_MULTIPLIER = {"LOW": 1.0, "MODERATE": 1.3, "MEDIUM": 1.3, "HIGH": 1.8}
+
+
+def _node_risk_multiplier(node_data):
+    """Nearest risk_features.csv row to this node's lat/lon -> a weight multiplier."""
+    if _risk_df is None or "lat" not in node_data or "lon" not in node_data:
+        return 1.0
+    df = _risk_df.copy()
+    df["_d"] = ((df["latitude"] - float(node_data["lat"])) ** 2 + (df["longitude"] - float(node_data["lon"])) ** 2)
+    nearest = df.loc[df["_d"].idxmin()]
+    return RISK_MULTIPLIER.get(str(nearest.get("risk_category", "LOW")).upper(), 1.0)
+
+
+def _weighted_graph_for_route_type(g, route_type):
+    """Returns a graph (possibly a filtered subgraph or re-weighted copy) plus an optional caveat note."""
+    if route_type == "trekking":
+        trekking_nodes = [
+            n for n, d in g.nodes(data=True)
+            if "trek" in str(d.get("category", "")).lower() or "trail" in str(d.get("category", "")).lower()
+        ]
+        return g.subgraph(trekking_nodes).copy(), None
+
+    if route_type == "safest":
+        g2 = g.copy()
+        for u, v, data in g2.edges(data=True):
+            risk_u = _node_risk_multiplier(g2.nodes[u])
+            risk_v = _node_risk_multiplier(g2.nodes[v])
+            data["weight"] = data.get("weight", 1) * ((risk_u + risk_v) / 2)
+        return g2, None
+
+    if route_type == "cheapest":
+        return g, "No per-route cost data exists yet -- returning the same result as 'fastest'."
+
+    return g, None  # "fastest" / default
+
 
 GRAPH_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -391,7 +433,7 @@ def _nearest_node(g, latitude, longitude):
     return best_node, best_distance
  
  
-def best_route(start_latitude, start_longitude, end_latitude, end_longitude):
+def best_route(start_latitude, start_longitude, end_latitude, end_longitude, route_type="fastest"):
     """
     Route between two arbitrary coordinates (e.g. the user's live GPS
     position and a destination's stored lat/lon) rather than exact graph
@@ -399,18 +441,25 @@ def best_route(start_latitude, start_longitude, end_latitude, end_longitude):
     same shortest_path search used by /shortest-path.
     """
     g = _load_graph()
- 
-    start_node, start_snap_km = _nearest_node(g, start_latitude, start_longitude)
-    end_node, end_snap_km = _nearest_node(g, end_latitude, end_longitude)
+
+    working_graph, note = _weighted_graph_for_route_type(g, route_type)
+    if working_graph.number_of_nodes() == 0:
+        return {"error": f"No graph nodes match route_type={route_type!r} (e.g. no nodes tagged as trekking)."}
+
+    start_node, start_snap_km = _nearest_node(working_graph, start_latitude, start_longitude)
+    end_node, end_snap_km = _nearest_node(working_graph, end_latitude, end_longitude)
  
     if start_node is None or end_node is None:
-        return {"error": "No graph nodes with valid coordinates found."}
+        return {"error": "No graph nodes with valid coordinates found for this route_type."}
  
     try:
-        path = nx.shortest_path(g, start_node, end_node, weight="weight")
+        path = nx.shortest_path(working_graph, start_node, end_node, weight="weight")
+        # Real km uses the ORIGINAL unweighted graph, not the risk-adjusted
+        # one -- "safest" should still report true distance, just chosen
+        # via a risk-weighted path.
         distance_km = nx.shortest_path_length(g, start_node, end_node, weight="weight")
     except nx.NetworkXNoPath:
-        return {"error": f"No path found between {start_node} and {end_node}."}
+        return {"error": f"No path found between {start_node} and {end_node} for route_type={route_type!r}."}
  
     # MapView.jsx (frontend/Tourism/src/components/map/MapView.jsx) draws
     # the route with Leaflet's <Polyline positions={...}> and expects each
@@ -425,12 +474,16 @@ def best_route(start_latitude, start_longitude, end_latitude, end_longitude):
         except (KeyError, ValueError, TypeError):
             continue
  
-    return {
+    result = {
         "path": path,
         "route": route_coords,
         "distance_km": round(distance_km + start_snap_km + end_snap_km, 2),
+        "route_type": route_type,
         "start_node": start_node,
         "end_node": end_node,
         "start_snap_km": round(start_snap_km, 2),
         "end_snap_km": round(end_snap_km, 2),
     }
+    if note:
+        result["note"] = note
+    return result

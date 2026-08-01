@@ -39,3 +39,56 @@
   0% { background-position: 100% 50%; }
   100% { background-position: 0 50%; }
 }
+
+/* Used by NationalSymbols.jsx — a continuous horizontal scroll of icon
+   chips. Track is duplicated in the JSX (two copies back to back) so the
+   -50% translate creates a seamless loop with no visible reset/jump. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Landing hero cinematic effects — all CSS-driven (no scroll listeners,
+   no JS animation loop) so they stay cheap performance-wise. */
+.hero-cloud {
+  animation: cloudDrift 40s ease-in-out infinite;
+}
+@keyframes cloudDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(30px); }
+}
+
+.hero-flag {
+  transform-origin: top center;
+  animation: flagWave 2.4s ease-in-out infinite;
+}
+@keyframes flagWave {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+.hero-mountain-layer {
+  animation: mountainDrift 60s ease-in-out infinite;
+}
+@keyframes mountainDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-16px); }
+}
+
+.hero-snowflake {
+  animation: snowFall linear infinite;
+}
+@keyframes snowFall {
+  0% { transform: translateY(-10%) translateX(0); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(110%) translateX(12px); opacity: 0; }
+}

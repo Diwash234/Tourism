@@ -351,6 +351,8 @@ class BudgetPredictionView(APIView):
             else data.get("country")
         )
 
+        latitude = float(destination.latitude) if destination and destination.latitude else None
+        longitude = float(destination.longitude) if destination and destination.longitude else None
 
         result = get_ml_budget_prediction(
             city=city,
@@ -358,6 +360,10 @@ class BudgetPredictionView(APIView):
             days=data["days"],
             travelers=data["travelers"],
             budget_level=data["budget_level"],
+            latitude=latitude,
+            longitude=longitude,
+            user_latitude=data.get("user_latitude"),
+            user_longitude=data.get("user_longitude"),
         )
 
 

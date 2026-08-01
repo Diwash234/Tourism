@@ -59,6 +59,10 @@ class BestRouteRequest(BaseModel):
     start_longitude: float
     end_latitude: float
     end_longitude: float
+    # "fastest" (default), "safest", "trekking", or "cheapest" -- see
+    # route_engine_route_types.py for what each actually does and the
+    # honest caveat on "cheapest" (no real per-route cost data exists yet).
+    route_type: str = "fastest"
 
 
 @router.post("/best-route")
@@ -68,4 +72,5 @@ def post_best_route(payload: BestRouteRequest):
         payload.start_longitude,
         payload.end_latitude,
         payload.end_longitude,
+        payload.route_type,
     )

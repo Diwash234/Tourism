@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { motion } from "framer-motion"
+import { FiMap } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
 import DestinationCard from "../components/cards/DestinationCard"
 import SearchBar from "../components/common/SearchBar"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
+import PlaceholderImage from "../components/common/PlaceholderImage"
 
 const Language = () => {
   const [query, setQuery] = useState("")
@@ -61,7 +64,7 @@ const Language = () => {
 
   return (
     <div className="container-app py-10">
-      <h1 className="section-title">District Search</h1>
+      <h1 className="section-title flex items-center gap-2"><FiMap className="text-himalaya-500" /> District Search</h1>
       <p className="text-gray-500 mb-6">
         Search for destinations by district, city, or name. Results show destination
         images, location details, and quick access to destination pages.
@@ -102,30 +105,40 @@ const Language = () => {
             <div className="text-sm text-gray-500">{districts.length} districts</div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {districts.map((district) => (
-              <Link
+            {districts.map((district, i) => (
+              <motion.div
                 key={district.name}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.03, 0.4) }}
+              >
+              <Link
                 to={`/destinations/${district.example_destination.slug}`}
                 className="card-base overflow-hidden group block"
               >
                 <div className="relative h-56 overflow-hidden">
-                  <img
-                    src={
-                      district.cover_image_url ||
-                      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900"
-                    }
-                    alt={district.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  {district.cover_image_url ? (
+                    <img
+                      src={district.cover_image_url}
+                      alt={district.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <PlaceholderImage
+                      seed={district.name.length}
+                      className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-lg mb-2">{district.name}</h3>
                   <p className="text-sm text-gray-500 mb-3">
                     {district.count} destination{district.count === 1 ? "" : "s"}
                   </p>
-                  <div className="text-primary-500 font-semibold">View highlights</div>
+                  <div className="text-himalaya-500 font-semibold">View highlights</div>
                 </div>
               </Link>
+              </motion.div>
             ))}
           </div>
         </div>

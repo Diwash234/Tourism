@@ -31,6 +31,7 @@ import SafetyOverview from "../components/cards/SafetyOverview";
 import HotelCard from "../components/cards/HotelCard";
 import NepalExperienceSection from "../components/dashboard/NepalExperienceSection";
 import NepalHighlights from "../components/dashboard/NepalHighlights";
+import NationalSymbols from "../components/dashboard/NationalSymbols";
 import hotelService from "../services/hotelService";
 
 // Small helper: every one of our paginated/ML endpoints returns
@@ -188,6 +189,11 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-10 fade-in">
+      {/* NEW: National Symbols — placed first per the brief, so the
+          dashboard "isn't empty" and leads with Nepal's identity before
+          anything else */}
+      <NationalSymbols />
+
       {/* ===========================
           HERO SECTION
       ============================ */}

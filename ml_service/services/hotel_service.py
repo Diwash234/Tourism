@@ -33,6 +33,7 @@ HOTEL_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nepal_hot
 
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY", "")
 PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1566073771259-6a8506099945"  # generic Nepal/mountain shot
+DJANGO_API_URL = os.environ.get("DJANGO_API_URL", "http://localhost:8000/api/v1")
 
 _hotels_df = None  # loaded lazily, cached in memory for the life of the process
 
@@ -55,50 +56,22 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 
 def _fetch_image_url(query):
-    """Best-effort image lookup. Never raises -- always returns a usable URL."""
-    if UNSPLASH_ACCESS_KEY:
-        try:
-            resp = requests.get(
-                "https://api.unsplash.com/search/photos",
-                params={"query": query, "per_page": 1},
-                headers={"Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"},
-                timeout=4,
-            )
-            resp.raise_for_status()
-            results = resp.json().get("results", [])
-            if results:
-                return results[0]["urls"]["regular"]
-        except requests.RequestException:
-            pass
-
+    """
+    Calls Django's /images/resolve/ proxy (see image_pipeline.py +
+    views_images.py, added to the Django side) instead of duplicating
+    Unsplash/Wikimedia fetch logic here a third time -- this was
+    previously its own separate copy of the same fetch code that also
+    exists in Django's utils.py. One resolver, one relevance check
+    (rejects portrait/selfie results, requires a real query-word match),
+    one place to improve it. Falls back to the generic placeholder only
+    if Django is unreachable or genuinely has no match, same as before.
+    """
     try:
-        resp = requests.get(
-            "https://commons.wikimedia.org/w/api.php",
-            params={
-                "action": "query", "list": "search",
-                "srsearch": f"{query} filetype:bitmap", "srnamespace": 6, "format": "json",
-            },
-            headers={"User-Agent": "TourismApp/1.0 (https://github.com/Diwash234/Tourism)"},
-            timeout=4,
-        )
-        resp.raise_for_status()
-        hits = resp.json().get("query", {}).get("search", [])
-        if hits:
-            title = hits[0]["title"]
-            info = requests.get(
-                "https://commons.wikimedia.org/w/api.php",
-                params={"action": "query", "titles": title, "prop": "imageinfo", "iiprop": "url", "format": "json"},
-                headers={"User-Agent": "TourismApp/1.0 (https://github.com/Diwash234/Tourism)"},
-                timeout=4,
-            ).json()
-            pages = info.get("query", {}).get("pages", {})
-            page = next(iter(pages.values()), {})
-            image_info = (page.get("imageinfo") or [{}])[0]
-            if image_info.get("url"):
-                return image_info["url"]
+        resp = requests.get(f"{DJANGO_API_URL}/images/resolve/", params={"query": query}, timeout=6)
+        if resp.status_code == 200:
+            return resp.json().get("url") or PLACEHOLDER_IMAGE
     except requests.RequestException:
         pass
-
     return PLACEHOLDER_IMAGE
 
 

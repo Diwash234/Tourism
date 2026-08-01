@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
+import HimalAI from "../../Chatbot"
 
 const DashboardLayout = () => (
   <div className="flex flex-col min-h-screen bg-gray-50">
@@ -11,6 +12,7 @@ const DashboardLayout = () => (
         <Outlet />
       </div>
     </div>
+    <HimalAI />
   </div>
 )
 

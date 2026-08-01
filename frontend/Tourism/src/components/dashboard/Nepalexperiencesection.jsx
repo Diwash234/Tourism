@@ -1,82 +1,111 @@
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import destinationApi from "../../api/destinationApi"
+import NepalCultureCard from "../cards/NepalCultureCard"
+import LocalExperienceCard from "../cards/LocalExperienceCard"
+
+const CULTURE_KEYWORDS = ["culture", "heritage", "tradition", "temple", "museum"]
+const EXPERIENCE_KEYWORDS = ["experience", "local", "community", "homestay", "village"]
+
+function findCategory(categories, keywords) {
+  return categories.find((c) =>
+    keywords.some((kw) => (c.name || "").toLowerCase().includes(kw))
+  )
+}
+
 /**
- * NepalSceneBackground
- * Original SVG artwork (no external photo) — layered Himalayan
- * silhouette, a string of prayer flags, and a corner Dhoka (traditional
- * Newari carved wooden window/door) motif. Used as a full-bleed
- * background behind the auth pages instead of a hotlinked stock photo.
- *
- * Swapping in real photography later: replace the whole component with
- * an <img>/background-image using your own licensed photo — everything
- * that renders on top of it (the logo, the auth card) doesn't need to
- * change, since this only fills the background layer.
+ * NepalExperienceSection
+ * Deliberately built on top of the existing Category + Destination models
+ * rather than a new backend model. If your Django admin doesn't have a
+ * "Culture & Heritage" or "Local Experience" category yet, this renders
+ * a setup hint instead of an empty/broken section — see the chat notes
+ * for the exact steps to add them.
  */
-const NepalSceneBackground = () => (
-  <svg
-    className="absolute inset-0 w-full h-full"
-    viewBox="0 0 1200 700"
-    preserveAspectRatio="xMidYMax slice"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#0B3D91" />
-        <stop offset="100%" stopColor="#1B8A5A" />
-      </linearGradient>
-    </defs>
+const NepalExperienceSection = () => {
+  const [cultureItems, setCultureItems] = useState([])
+  const [experienceItems, setExperienceItems] = useState([])
+  const [status, setStatus] = useState("loading") // loading | ready | no-categories
 
-    <rect width="1200" height="700" fill="url(#sky)" />
+  useEffect(() => {
+    destinationApi
+      .getCategories()
+      .then(async ({ data }) => {
+        const categories = data.results || data || []
+        const cultureCat = findCategory(categories, CULTURE_KEYWORDS)
+        const experienceCat = findCategory(categories, EXPERIENCE_KEYWORDS)
 
-    {/* Distant mountain layer */}
-    <path
-      d="M0 420 L120 300 L220 380 L340 250 L460 360 L600 220 L760 370 L900 260 L1050 380 L1200 300 L1200 700 L0 700 Z"
-      fill="#ffffff"
-      opacity="0.08"
-    />
-    {/* Mid mountain layer with a snow-cap highlight */}
-    <path
-      d="M0 480 L150 340 L280 440 L420 300 L560 430 L720 320 L880 450 L1050 340 L1200 440 L1200 700 L0 700 Z"
-      fill="#ffffff"
-      opacity="0.14"
-    />
-    <path d="M420 300 L460 340 L400 340 Z" fill="#ffffff" opacity="0.35" />
-    <path d="M720 320 L760 360 L700 360 Z" fill="#ffffff" opacity="0.35" />
+        if (!cultureCat && !experienceCat) {
+          setStatus("no-categories")
+          return
+        }
 
-    {/* Foreground mountain layer, darkest */}
-    <path
-      d="M0 560 L100 460 L230 540 L380 420 L520 550 L680 440 L840 560 L1000 460 L1200 540 L1200 700 L0 700 Z"
-      fill="#072454"
-      opacity="0.55"
-    />
+        const [cultureRes, experienceRes] = await Promise.all([
+          cultureCat
+            ? destinationApi.getAll({ category: cultureCat.id, limit: 4 })
+            : Promise.resolve({ data: { results: [] } }),
+          experienceCat
+            ? destinationApi.getAll({ category: experienceCat.id, limit: 4 })
+            : Promise.resolve({ data: { results: [] } }),
+        ])
 
-    {/* Prayer flag string across the top */}
-    <path d="M0 60 Q 600 130 1200 50" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="2" fill="none" />
-    {[80, 260, 440, 620, 800, 980, 1150].map((x, i) => {
-      const colors = ["#DC143C", "#F59E0B", "#FFFFFF", "#1B8A5A", "#0B3D91"]
-      const y = 60 + Math.sin(i) * 20 + (i % 2 === 0 ? 20 : 35)
-      return (
-        <path
-          key={x}
-          d={`M${x} ${y} L${x - 10} ${y + 16} L${x + 10} ${y + 16} Z`}
-          fill={colors[i % colors.length]}
-          opacity="0.55"
-        />
-      )
-    })}
+        setCultureItems(cultureRes.data.results || cultureRes.data || [])
+        setExperienceItems(experienceRes.data.results || experienceRes.data || [])
+        setStatus("ready")
+      })
+      .catch(() => setStatus("no-categories"))
+  }, [])
 
-    {/* Corner Dhoka motif — simplified traditional Newari carved window
-        lattice, bottom-left corner, very low opacity so it reads as
-        texture rather than competing with the auth card */}
-    <g transform="translate(20, 520)" opacity="0.18" fill="none" stroke="#ffffff" strokeWidth="2">
-      <rect x="0" y="0" width="160" height="160" rx="4" />
-      <rect x="14" y="14" width="132" height="132" rx="3" />
-      {[0, 1, 2, 3].map((row) =>
-        [0, 1, 2, 3].map((col) => (
-          <rect key={`${row}-${col}`} x={22 + col * 30} y={22 + row * 30} width="22" height="22" />
-        ))
+  if (status === "loading") return null
+
+  if (status === "no-categories") {
+    return (
+      <section className="card-base p-6 border border-dashed border-himalaya-200">
+        <h2 className="font-semibold text-lg mb-2">Nepal Culture & Local Experiences</h2>
+        <p className="text-sm text-gray-500">
+          No "Culture & Heritage" or "Local Experience" category exists yet. Add them in Django admin
+          under Categories, then tag a few destinations (Dhoka architecture spots, homestay villages,
+          festivals) with those categories — this section will populate automatically, no code changes
+          needed. See the backend notes in chat for the exact steps.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <div className="space-y-10">
+      {cultureItems.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg">Nepal Culture & Heritage</h2>
+            <Link to="/destinations" className="text-sm text-himalaya-500 hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-5">
+            {cultureItems.map((d) => (
+              <NepalCultureCard key={d.id} destination={d} />
+            ))}
+          </div>
+        </section>
       )}
-    </g>
-  </svg>
-)
 
-export default NepalSceneBackground
+      {experienceItems.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg">Local Experiences</h2>
+            <Link to="/destinations" className="text-sm text-forest-600 hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-5">
+            {experienceItems.map((d) => (
+              <LocalExperienceCard key={d.id} destination={d} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+export default NepalExperienceSection

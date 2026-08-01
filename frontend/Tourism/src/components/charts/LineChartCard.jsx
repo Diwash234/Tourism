@@ -8,8 +8,10 @@ const LineChartCard = ({ title, labels, data, label = "Value" }) => {
       {
         label,
         data,
-        borderColor: "#FF5A5F",
-        backgroundColor: "rgba(255,90,95,0.15)",
+        // FIXED: was #FF5A5F (old coral brand color), same raw-hex
+        // issue as BarChartCard.jsx.
+        borderColor: "#0B3D91",
+        backgroundColor: "rgba(11,61,145,0.15)",
         tension: 0.4,
         fill: true,
       },

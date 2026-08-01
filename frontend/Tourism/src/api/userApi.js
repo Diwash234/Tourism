@@ -8,6 +8,19 @@ const userApi = {
   updateProfile: (payload) =>
     axiosClient.put("/auth/profile/", payload),
 
+  // NEW: the profile picture field is `profile_picture` (ImageField),
+  // not `avatar` — Profile.jsx was reading a field that doesn't exist on
+  // the backend at all, so the uploaded photo (if any) never showed.
+  // Needs multipart, hence the separate method and header override
+  // rather than reusing updateProfile (which sends JSON).
+  uploadAvatar: (file) => {
+    const formData = new FormData()
+    formData.append("profile_picture", file)
+    return axiosClient.patch("/auth/profile/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  },
+
 
   // Password
   changePassword: (payload) =>
@@ -58,6 +71,13 @@ const userApi = {
   // succeed (200) because the profile serializer silently ignores unknown
   // fields, but nothing is actually persisted. See Settings.jsx comment
   // for details — this needs a real backend UserSettings model to work.
+  // NEW: needed for Settings.jsx's language dropdown — preferred_language
+  // on the backend is a ForeignKey to Language (expects the language's
+  // numeric id, not a code string like "en"), so the dropdown needs the
+  // real list of Language records to build valid options.
+  getLanguages: () =>
+    axiosClient.get("/languages/"),
+
   updateSettings: (payload) =>
     axiosClient.put("/auth/profile/", payload),
 }

@@ -59,8 +59,11 @@ const HotelAssignments = () => {
   }
 
   return (
-    <div className="container-app py-10">
-      <h1 className="section-title mb-6">Hotel Assignments</h1>
+    <div className="container-app py-10 fade-in">
+      <h1 className="section-title mb-2">Hotel Assignments</h1>
+      <p className="text-xs text-saffron-600 bg-saffron-50 inline-block px-3 py-1.5 rounded-full mb-6">
+        Assign/remove actions require super admin permissions — enforced by the backend even though this page doesn't hide the form from regular admins.
+      </p>
 
       <form onSubmit={handleAssign} className="card-base p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <div>
@@ -91,7 +94,7 @@ const HotelAssignments = () => {
                 <p className="text-sm text-gray-500">Managed by {a.admin_email}</p>
                 {a.notes && <p className="text-xs text-gray-400 mt-1">{a.notes}</p>}
               </div>
-              <button onClick={() => handleRemove(a.id)} className="text-red-500" aria-label="Remove assignment">
+              <button onClick={() => handleRemove(a.id)} className="text-nepalred-500" aria-label="Remove assignment">
                 <FiTrash2 />
               </button>
             </div>

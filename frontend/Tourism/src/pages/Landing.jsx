@@ -10,6 +10,7 @@ import DestinationCard from "../components/cards/DestinationCard"
 import Loader from "../components/common/Loader"
 import FAQAccordion from "../components/common/FAQAccordion"
 import NepalHighlights from "../components/dashboard/NepalHighlights"
+import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
 
 const features = [
@@ -114,6 +115,7 @@ const Landing = () => {
   return (
     <div>
       <section className="relative bg-gradient-to-br from-primary-500 to-secondary-500 text-white overflow-hidden">
+        <HeroEffects />
         <div className="container-app py-24 md:py-32 relative z-10">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}

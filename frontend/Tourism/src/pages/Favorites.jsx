@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { FiHeart } from "react-icons/fi";
 import { favoriteApi } from "../services/api.js";
 import Loader from "../components/common/Loader";
 import EmptyState from "../components/common/EmptyState";
@@ -45,8 +47,11 @@ const Favorites = () => {
   if (loading) return <Loader />;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">My Favourites</h1>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="fade-in">
+      <h1 className="section-title flex items-center gap-2">
+        <FiHeart className="text-nepalred-500" />
+        My Favourites
+      </h1>
 
       {favorites.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -65,7 +70,7 @@ const Favorites = () => {
           subtitle="Tap the heart on a destination to save it here."
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

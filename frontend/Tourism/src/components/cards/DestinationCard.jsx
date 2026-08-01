@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { FiMapPin, FiStar, FiHeart, FiThermometer, FiDollarSign } from "react-icons/fi"
 import { motion } from "framer-motion"
+import PlaceholderImage from "../common/PlaceholderImage"
 
 const RISK_STYLES = {
   low: { label: "Low Risk", dot: "bg-forest-500", className: "badge-risk-low" },
@@ -47,14 +48,15 @@ const DestinationCard = ({
       className="card-base overflow-hidden group"
     >
       <div className="relative h-48 overflow-hidden">
-        <img
-          src={
-            cover_image_url ||
-            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600"
-          }
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
+        {cover_image_url ? (
+          <img
+            src={cover_image_url}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        ) : (
+          <PlaceholderImage seed={id} className="w-full h-full group-hover:scale-110 transition-transform duration-500" />
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0" />
 
