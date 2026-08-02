@@ -7,6 +7,7 @@ import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
+import SocialLoginButtons from "./SocialLoginButtons"
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -79,6 +80,10 @@ const Login = () => {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        <div className="mt-6">
+          <SocialLoginButtons />
+        </div>
 
         <p className="text-sm text-center text-gray-500 mt-6">
           Don't have an account?{" "}

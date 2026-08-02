@@ -33,15 +33,23 @@ const History = () => {
   }))
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fade-in theme-brown"
+    >
       <h1 className="section-title flex items-center gap-2">
         <FiClock className="text-himalaya-500" />
         Visit History
       </h1>
+
       {history.length ? (
         <TravelTimeline items={timelineItems} />
       ) : (
-        <EmptyState title="No history yet" subtitle="Your visited destinations will show up here." />
+        <EmptyState
+          title="No history yet"
+          subtitle="Your visited destinations will show up here."
+        />
       )}
     </motion.div>
   )

@@ -254,6 +254,7 @@ FOURSQUARE_API_KEY = config("FOURSQUARE_API_KEY", default="")
 UNSPLASH_ACCESS_KEY = config("UNSPLASH_ACCESS_KEY", default="")
 PEXELS_API_KEY = config("PEXELS_API_KEY", default="")
 PIXABAY_API_KEY = config("PIXABAY_API_KEY", default="")
+MAPILLARY_ACCESS_TOKEN = config("MAPILLARY_ACCESS_TOKEN", default="")
 
 # Used by /images/resolve/ (views_images.py) to cache resolved image
 # results for 7 days so repeat searches don't re-hit external APIs.

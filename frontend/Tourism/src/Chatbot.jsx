@@ -8,7 +8,7 @@ const ChatBot = () => {
     {
       role: "assistant",
       content:
-        "👋 Welcome! I'm your AI Travel Assistant.\n\nAsk me anything about Nepal tourism, destinations, hotels, budgets, transportation, weather, emergency services, or travel safety.",
+        "Namaste 🙏 Welcome to Himal AI.\n\nI'm your AI Travel Assistant for Nepal. Ask me anything about destinations, hotels, budgets, transportation, weather, emergency services, or travel safety.",
     },
   ])
 
@@ -90,27 +90,29 @@ const ChatBot = () => {
   }
 
   return (
-    <div className="container-app py-10">
+    <div className="container-app py-10 theme-violet">
       <div className="max-w-5xl mx-auto">
 
         <h1 className="section-title text-center">
-          AI Travel Assistant
+          🏔 Himal AI
         </h1>
 
         <p className="text-center text-gray-500 mb-8">
-          Powered by OpenAI • Tourism • Budget Planner • Emergency Assistance
+          Your Nepalese travel guide • Destinations • Budget Planner • Emergency Assistance
         </p>
 
         <div className="card-base h-[650px] flex flex-col">
 
-          <div className="bg-primary-500 text-white px-6 py-4 rounded-t-xl">
+          <div className="bg-gradient-to-r from-violet-600 to-purple-700 text-white px-6 py-4 rounded-t-xl">
             <h2 className="font-semibold text-lg">
-              Nepal Tourism Assistant
+              Himal AI 🙏
             </h2>
+
             <p className="text-sm opacity-90">
-              Ask me anything about your trip.
+              Your AI companion for exploring Nepal.
             </p>
           </div>
+
 
           <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50">
 
@@ -135,28 +137,33 @@ const ChatBot = () => {
               </div>
             ))}
 
+
             {sending && (
               <div className="text-sm text-gray-400">
-                AI is typing...
+                Himal AI is typing...
               </div>
             )}
 
             <div ref={bottomRef} />
+
           </div>
+
 
           <form
             onSubmit={handleSend}
             className="border-t p-4 flex gap-3 bg-white"
           >
+
             <textarea
               rows={2}
               value={input}
               disabled={sending}
-              placeholder="Ask about Nepal..."
+              placeholder="Ask Himal AI about Nepal..."
               className="input-field flex-1 resize-none"
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
             />
+
 
             <button
               type="submit"
@@ -165,6 +172,7 @@ const ChatBot = () => {
             >
               <FiSend size={18} />
             </button>
+
           </form>
 
         </div>

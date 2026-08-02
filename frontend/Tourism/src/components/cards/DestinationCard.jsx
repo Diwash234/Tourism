@@ -1,27 +1,85 @@
 import { Link } from "react-router-dom"
-import { FiMapPin, FiStar, FiHeart, FiThermometer, FiDollarSign } from "react-icons/fi"
+import {
+  FiMapPin,
+  FiStar,
+  FiHeart,
+  FiThermometer,
+  FiDollarSign,
+} from "react-icons/fi"
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
 
 const RISK_STYLES = {
-  low: { label: "Low Risk", dot: "bg-forest-500", className: "badge-risk-low" },
-  moderate: { label: "Moderate Risk", dot: "bg-saffron-500", className: "badge-risk-moderate" },
-  high: { label: "High Risk", dot: "bg-nepalred-500", className: "badge-risk-high" },
+  low: {
+    label: "Low Risk",
+    dot: "bg-forest-500",
+    className: "text-green-600",
+  },
+  moderate: {
+    label: "Moderate Risk",
+    dot: "bg-saffron-500",
+    className: "text-yellow-600",
+  },
+  high: {
+    label: "High Risk",
+    dot: "bg-nepalred-500",
+    className: "text-red-600",
+  },
 }
 
-/**
- * DestinationCard
- * Backward compatible with the original API (id, name, slug, city, country,
- * cover_image_url, average_rating, entry_fee, distance_km) and additive:
- * pass `weather`, `budget_estimate`, `risk_level`, `recommended_season`,
- * and `category` when the API provides them; sensible fallbacks are shown
- * otherwise so this never breaks existing callers.
- */
+
+// Category based color themes
+const CATEGORY_THEMES = {
+  mountains: {
+    card: "bg-white border-gray-200",
+    badge: "bg-gray-100 text-gray-700",
+    icon: "text-gray-600",
+  },
+
+  lakes: {
+    card: "bg-blue-50 border-blue-200",
+    badge: "bg-blue-500 text-white",
+    icon: "text-blue-500",
+  },
+
+  forest: {
+    card: "bg-green-50 border-green-200",
+    badge: "bg-green-600 text-white",
+    icon: "text-green-600",
+  },
+
+  wildlife: {
+    card: "bg-green-50 border-green-200",
+    badge: "bg-green-600 text-white",
+    icon: "text-green-600",
+  },
+
+  hotels: {
+    card: "bg-yellow-50 border-yellow-200",
+    badge: "bg-yellow-500 text-white",
+    icon: "text-yellow-600",
+  },
+
+  heritage: {
+    card: "bg-orange-50 border-orange-200",
+    badge: "bg-orange-600 text-white",
+    icon: "text-orange-600",
+  },
+
+  adventure: {
+    card: "bg-orange-50 border-orange-300",
+    badge: "bg-orange-500 text-white",
+    icon: "text-orange-600",
+  },
+}
+
+
 const DestinationCard = ({
   destination,
   onToggleFavorite,
   isFavorite = false,
 }) => {
+
   const {
     id,
     name,
@@ -33,109 +91,416 @@ const DestinationCard = ({
     entry_fee,
     distance_km,
     category,
-    weather, // e.g. { temp_c: 22, condition: "Sunny" }
-    budget_estimate, // e.g. 300
-    risk_level, // "low" | "moderate" | "high"
-    recommended_season, // e.g. "March - May"
+    weather,
+    budget_estimate,
+    risk_level,
+    recommended_season,
   } = destination
 
-  const risk = RISK_STYLES[risk_level] || RISK_STYLES.low
+
+  const risk =
+    RISK_STYLES[risk_level] ||
+    RISK_STYLES.low
+
+
+  const categoryKey =
+    category?.toLowerCase() || "mountains"
+
+
+  const theme =
+    CATEGORY_THEMES[categoryKey] ||
+    CATEGORY_THEMES.mountains
+
+
 
   return (
+
     <motion.div
-      whileHover={{ y: -8 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="card-base overflow-hidden group"
+
+      whileHover={{
+        y:-8,
+        scale:1.02
+      }}
+
+      transition={{
+        duration:0.3
+      }}
+
+      className={`
+        overflow-hidden 
+        rounded-2xl
+        border
+        shadow-sm
+        hover:shadow-xl
+        transition-all
+        ${theme.card}
+      `}
+
     >
+
+
+      {/* IMAGE */}
+
       <div className="relative h-48 overflow-hidden">
-        {cover_image_url ? (
+
+        {
+          cover_image_url ?
+
+          (
+
           <img
             src={cover_image_url}
             alt={name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="
+            w-full
+            h-full
+            object-cover
+            group-hover:scale-110
+            transition-transform
+            duration-500
+            "
           />
-        ) : (
-          <PlaceholderImage seed={id} className="w-full h-full group-hover:scale-110 transition-transform duration-500" />
-        )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0" />
+          )
+
+          :
+
+          (
+
+          <PlaceholderImage
+            seed={id}
+            className="w-full h-full"
+          />
+
+          )
+
+        }
+
+
+
+        <div className="
+        absolute inset-0 
+        bg-gradient-to-t 
+        from-black/50 
+        to-transparent
+        "/>
+
+
+
+        {/* FAVORITE */}
 
         <button
-          onClick={() => onToggleFavorite?.(id)}
-          className="absolute top-3 right-3 bg-white/90 p-2 rounded-full hover:bg-white transition-colors"
+
+          onClick={() =>
+            onToggleFavorite?.(id)
+          }
+
+          className="
+          absolute
+          top-3
+          right-3
+          bg-white/90
+          p-2
+          rounded-full
+          hover:bg-white
+          "
+
         >
-          <FiHeart className={isFavorite ? "text-nepalred-500 fill-nepalred-500" : "text-gray-600"} />
+
+          <FiHeart
+
+            className={
+              isFavorite
+              ?
+              "text-red-500 fill-red-500"
+              :
+              "text-gray-600"
+            }
+
+          />
+
         </button>
 
-        <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/95 px-2.5 py-1 rounded-full text-sm font-semibold text-saffron-600">
-          <FiStar className="fill-saffron-500 text-saffron-500" size={14} />
+
+
+        {/* RATING */}
+
+        <div className="
+        absolute
+        top-3
+        left-3
+        flex
+        items-center
+        gap-1
+        bg-white/90
+        px-3
+        py-1
+        rounded-full
+        text-sm
+        font-semibold
+        ">
+
+          <FiStar
+            size={14}
+            className="
+            fill-yellow-500
+            text-yellow-500
+            "
+          />
+
           {average_rating || "0"}
+
         </div>
 
-        {category && (
-          <span className="absolute bottom-3 left-3 text-xs font-semibold text-white bg-himalaya-500/90 px-2.5 py-1 rounded-full capitalize">
-            {category}
+
+
+        {/* CATEGORY */}
+
+        {
+          category &&
+
+          <span
+
+          className={`
+          absolute
+          bottom-3
+          left-3
+          px-3
+          py-1
+          rounded-full
+          text-xs
+          font-semibold
+          capitalize
+          ${theme.badge}
+          `}
+
+          >
+
+          {category}
+
           </span>
-        )}
+
+        }
+
+
       </div>
+
+
+
+
+      {/* CONTENT */}
+
 
       <div className="p-4">
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <div className="min-w-0">
-            <h3 className="font-bold text-dark text-lg truncate">{name}</h3>
-            <p className="text-sm text-gray-500 flex items-center gap-1">
-              <FiMapPin size={14} />
-              {city}
-              {country ? `, ${country}` : ""}
-              {distance_km != null && (
-                <span className="text-gray-400">· {distance_km} km away</span>
-              )}
-            </p>
-          </div>
+
+
+        <h3 className="
+        font-bold
+        text-dark
+        text-lg
+        truncate
+        ">
+
+          {name}
+
+        </h3>
+
+
+
+        <p className="
+        text-sm
+        text-gray-500
+        flex
+        items-center
+        gap-1
+        mt-1
+        ">
+
+          <FiMapPin size={14}/>
+
+          {city}
+
+          {
+          country &&
+          `, ${country}`
+          }
+
+
+          {
+          distance_km != null &&
+          (
+          <span>
+          · {distance_km} km
+          </span>
+          )
+          }
+
+
+        </p>
+
+
+
+
+        <div className="
+        flex
+        flex-wrap
+        gap-4
+        my-4
+        text-sm
+        ">
+
+
+        {
+        weather &&
+
+        <span className="flex items-center gap-1">
+
+          <FiThermometer
+          className={theme.icon}
+          />
+
+          {weather.temp_c}°C
+
+        </span>
+
+        }
+
+
+
+        <span className="
+        flex
+        items-center
+        gap-1
+        font-semibold
+        text-green-700
+        ">
+
+          <FiDollarSign/>
+
+          {
+          budget_estimate
+          ?
+          `$${budget_estimate}`
+          :
+          `NPR ${entry_fee || 0}`
+          }
+
+
+        </span>
+
+
+
+
+        <span className={`
+        flex
+        items-center
+        gap-1
+        ${risk.className}
+        `}>
+
+          <span
+          className={`
+          w-2
+          h-2
+          rounded-full
+          ${risk.dot}
+          `}
+          />
+
+          {risk.label}
+
+        </span>
+
+
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 my-3 text-sm text-gray-600">
-          {weather && (
-            <span className="flex items-center gap-1">
-              <FiThermometer className="text-himalaya-500" size={14} />
-              {weather.temp_c}°C
-            </span>
-          )}
-          <span className="flex items-center gap-1 font-semibold text-forest-600">
-            <FiDollarSign size={14} />
-            {budget_estimate != null ? `$${budget_estimate} est.` : `NPR ${entry_fee || 0}`}
-          </span>
-          <span className={`flex items-center gap-1 ${risk.className}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${risk.dot}`} />
-            {risk.label}
-          </span>
-        </div>
 
-        {recommended_season && (
-          <p className="text-xs text-gray-400 mb-3">
-            Recommended: <span className="text-gray-600 font-medium">{recommended_season}</span>
-          </p>
-        )}
 
-        {slug ? (
-          <Link
-            to={`/destinations/${slug}`}
-            className="btn-gradient w-full flex items-center justify-center text-sm"
-          >
-            Explore Now
-          </Link>
-        ) : (
-          <button
-            disabled
-            title="This destination is missing a slug from the API — check the backend response"
-            className="w-full flex items-center justify-center text-sm font-semibold px-5 py-2.5 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed"
-          >
-            Details unavailable
-          </button>
-        )}
+        {
+        recommended_season &&
+
+        <p className="
+        text-xs
+        text-gray-500
+        mb-3
+        ">
+
+        Recommended:
+        <span className="font-semibold">
+        {" "}
+        {recommended_season}
+        </span>
+
+        </p>
+
+        }
+
+
+
+
+        {
+        slug ?
+
+        (
+
+        <Link
+
+        to={`/destinations/${slug}`}
+
+        className="
+        block
+        text-center
+        bg-himalaya-500
+        hover:bg-himalaya-600
+        text-white
+        py-2.5
+        rounded-xl
+        text-sm
+        font-semibold
+        "
+
+        >
+
+        Explore Now
+
+        </Link>
+
+        )
+
+        :
+
+        (
+
+        <button
+
+        disabled
+
+        className="
+        w-full
+        bg-gray-100
+        text-gray-400
+        py-2.5
+        rounded-xl
+        "
+
+        >
+
+        Details unavailable
+
+        </button>
+
+        )
+
+        }
+
+
       </div>
+
+
     </motion.div>
+
   )
 }
+
 
 export default DestinationCard

@@ -34,9 +34,17 @@ const Language = () => {
           setDistricts([])
         } else {
           const map = new Map()
+
           items.forEach((destination) => {
-            const city = (destination.city || destination.country || destination.name || "Unknown").trim()
+            const city = (
+              destination.city ||
+              destination.country ||
+              destination.name ||
+              "Unknown"
+            ).trim()
+
             const key = city.toLowerCase()
+
             if (!map.has(key)) {
               map.set(key, {
                 name: city,
@@ -50,7 +58,13 @@ const Language = () => {
               district.count += 1
             }
           })
-          setDistricts(Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name)))
+
+          setDistricts(
+            Array.from(map.values()).sort((a, b) =>
+              a.name.localeCompare(b.name)
+            )
+          )
+
           setDestinations([])
         }
       })
@@ -63,8 +77,12 @@ const Language = () => {
   }, [query])
 
   return (
-    <div className="container-app py-10">
-      <h1 className="section-title flex items-center gap-2"><FiMap className="text-himalaya-500" /> District Search</h1>
+    <div className="container-app py-10 theme-purple">
+      <h1 className="section-title flex items-center gap-2">
+        <FiMap className="text-himalaya-500" />
+        District Search
+      </h1>
+
       <p className="text-gray-500 mb-6">
         Search for destinations by district, city, or name. Results show destination
         images, location details, and quick access to destination pages.
@@ -84,7 +102,10 @@ const Language = () => {
         destinations.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {destinations.map((destination) => (
-              <DestinationCard key={destination.id} destination={destination} />
+              <DestinationCard
+                key={destination.id}
+                destination={destination}
+              />
             ))}
           </div>
         ) : (
@@ -102,8 +123,12 @@ const Language = () => {
                 Browse districts with destination images and details from every region.
               </p>
             </div>
-            <div className="text-sm text-gray-500">{districts.length} districts</div>
+
+            <div className="text-sm text-gray-500">
+              {districts.length} districts
+            </div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {districts.map((district, i) => (
               <motion.div
@@ -112,32 +137,40 @@ const Language = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.4) }}
               >
-              <Link
-                to={`/destinations/${district.example_destination.slug}`}
-                className="card-base overflow-hidden group block"
-              >
-                <div className="relative h-56 overflow-hidden">
-                  {district.cover_image_url ? (
-                    <img
-                      src={district.cover_image_url}
-                      alt={district.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <PlaceholderImage
-                      seed={district.name.length}
-                      className="w-full h-full group-hover:scale-105 transition-transform duration-500"
-                    />
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-lg mb-2">{district.name}</h3>
-                  <p className="text-sm text-gray-500 mb-3">
-                    {district.count} destination{district.count === 1 ? "" : "s"}
-                  </p>
-                  <div className="text-himalaya-500 font-semibold">View highlights</div>
-                </div>
-              </Link>
+                <Link
+                  to={`/destinations/${district.example_destination.slug}`}
+                  className="card-base overflow-hidden group block"
+                >
+                  <div className="relative h-56 overflow-hidden">
+                    {district.cover_image_url ? (
+                      <img
+                        src={district.cover_image_url}
+                        alt={district.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <PlaceholderImage
+                        seed={district.name.length}
+                        className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      />
+                    )}
+                  </div>
+
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg mb-2">
+                      {district.name}
+                    </h3>
+
+                    <p className="text-sm text-gray-500 mb-3">
+                      {district.count} destination
+                      {district.count === 1 ? "" : "s"}
+                    </p>
+
+                    <div className="text-himalaya-500 font-semibold">
+                      View highlights
+                    </div>
+                  </div>
+                </Link>
               </motion.div>
             ))}
           </div>

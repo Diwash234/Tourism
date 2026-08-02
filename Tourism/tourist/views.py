@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db.models import F,Q
 from django.shortcuts import get_object_or_404,render
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -99,6 +100,15 @@ class QueryParamAliasMixin:
         self.request._request.GET = params
         return super().filter_queryset(queryset)
     
+class PublicConfigView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({
+            "mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN,
+        })
+
+
 def search_destination(request):
 
     query = request.GET.get("q", "")

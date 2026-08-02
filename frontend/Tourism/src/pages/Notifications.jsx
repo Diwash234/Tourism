@@ -14,7 +14,9 @@ const Notifications = () => {
       .getNotifications()
       // FIXED (kept from before): backend returns `{ results: [...] }`
       // (paginated); `.items` doesn't exist.
-      .then(({ data }) => setNotifications(data.results || data.items || data || []))
+      .then(({ data }) =>
+        setNotifications(data.results || data.items || data || [])
+      )
       .catch(() => setNotifications([]))
       .finally(() => setLoading(false))
   }, [])
@@ -22,7 +24,12 @@ const Notifications = () => {
   const markRead = async (id) => {
     try {
       await userApi.markNotificationRead(id)
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)))
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === id ? { ...n, is_read: true } : n
+        )
+      )
     } catch {
       /* noop */
     }
@@ -30,13 +37,7 @@ const Notifications = () => {
 
   if (loading) return <Loader />
 
-  // Map the real backend Notification model (title, message, is_read,
-  // created_at, related_alert) onto TravelTimeline's item shape. There's
-  // no explicit "type"/priority field on the backend, so the type is
-  // derived honestly from what data actually exists: notifications tied
-  // to a real Alert show as "alert" (red), everything else as
-  // "notification" (green), and read ones are dimmed rather than
-  // recolored, since "read" isn't a category, just a state.
+  // Map backend Notification model into TravelTimeline format.
   const timelineItems = notifications.map((n) => ({
     id: n.id,
     type: n.related_alert ? "alert" : "notification",
@@ -48,12 +49,21 @@ const Notifications = () => {
   }))
 
   return (
-    <div>
-      <h1 className="section-title">Notifications</h1>
+    <div className="theme-amber-alt">
+      <h1 className="section-title">
+        Notifications
+      </h1>
+
       {notifications.length ? (
-        <TravelTimeline items={timelineItems} onItemClick={(item) => markRead(item.id)} />
+        <TravelTimeline
+          items={timelineItems}
+          onItemClick={(item) => markRead(item.id)}
+        />
       ) : (
-        <EmptyState title="You are all caught up" subtitle="New notifications will appear here." />
+        <EmptyState
+          title="You are all caught up"
+          subtitle="New notifications will appear here."
+        />
       )}
     </div>
   )

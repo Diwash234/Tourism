@@ -2,48 +2,402 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; }
-body { @apply bg-gray-50 text-dark font-sans; }
+/* ==========================================
+   Theme Variables (Original Design)
+   ========================================== */
+
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+
+  --social-bg: rgba(244, 243, 236, 0.5);
+
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px,
+    rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    font-size: 16px;
+  }
+}
+
+
+/* ==========================================
+   Dark Mode
+   ========================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+
+    --accent: #c084fc;
+    --accent-bg: rgba(192,132,252,0.15);
+    --accent-border: rgba(192,132,252,0.5);
+
+    --social-bg: rgba(47,48,58,0.5);
+
+    --shadow:
+      rgba(0,0,0,0.4) 0 10px 15px -3px,
+      rgba(0,0,0,0.25) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
+}
+
+
+/* ==========================================
+   Base
+   ========================================== */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+
+#root {
+  width:1126px;
+  max-width:100%;
+  margin:0 auto;
+
+  text-align:center;
+
+  border-inline:1px solid var(--border);
+
+  min-height:100svh;
+
+  display:flex;
+  flex-direction:column;
+
+  box-sizing:border-box;
+}
+
+
+/* ==========================================
+   Typography
+   ========================================== */
+
+h1,
+h2 {
+  font-family:var(--heading);
+  font-weight:500;
+  color:var(--text-h);
+}
+
+
+h1 {
+  font-size:56px;
+  letter-spacing:-1.68px;
+  margin:32px 0;
+}
+
+
+h2 {
+  font-size:24px;
+  line-height:118%;
+  letter-spacing:-0.24px;
+  margin:0 0 8px;
+}
+
+
+p {
+  margin:0;
+}
+
+
+code,
+.counter {
+  font-family:var(--mono);
+  display:inline-flex;
+  border-radius:4px;
+  color:var(--text-h);
+}
+
+
+code {
+  font-size:15px;
+  line-height:135%;
+  padding:4px 8px;
+  background:var(--code-bg);
+}
+
+
+/* ==========================================
+   Application Layout
+   ========================================== */
 
 .container-app {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-  animation: fade 0.5s ease both;
+
+  animation:fade .5s ease both;
+
+  background-image:
+  repeating-radial-gradient(
+    circle at 15% 20%,
+    color-mix(in srgb,var(--accent-solid,transparent) 5%,transparent) 0,
+    color-mix(in srgb,var(--accent-solid,transparent) 5%,transparent) 1px,
+    transparent 1px,
+    transparent 34px
+  );
+
+  background-attachment:fixed;
 }
 
-.btn-primary {
-  @apply text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5;
-  background-image: linear-gradient(135deg, #0B3D91 0%, #1B8A5A 100%);
-}
-.btn-outline {
-  @apply border border-gray-300 hover:border-himalaya-500 hover:text-himalaya-500 text-dark font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200;
-}
-.input-field {
-  @apply w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-himalaya-500 focus:border-transparent transition;
-}
-.card-base {
-  @apply bg-white rounded-xl2 shadow-premium hover:shadow-premium-hover transition-all duration-300;
-}
-.card-base:hover {
-  transform: translateY(-6px);
-}
 
+/* ==========================================
+   Components
+   ========================================== */
+
+.btn-primary,
 .btn-gradient {
-  @apply text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5;
-  background-image: linear-gradient(135deg, #0B3D91 0%, #1B8A5A 100%);
+
+  @apply text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5;
+
+  background:
+  linear-gradient(
+    135deg,
+    var(--accent),
+    #7c3aed
+  );
 }
 
-.badge-risk-low { @apply bg-forest-50 text-forest-500 text-xs font-semibold px-2.5 py-1 rounded-full; }
-.badge-risk-moderate { @apply bg-saffron-50 text-saffron-600 text-xs font-semibold px-2.5 py-1 rounded-full; }
-.badge-risk-high { @apply bg-nepalred-50 text-nepalred-500 text-xs font-semibold px-2.5 py-1 rounded-full; }
+
+.btn-outline {
+
+  @apply border border-gray-300 text-dark font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200;
+
+  border-color:var(--border);
+}
+
+
+.btn-outline:hover {
+
+  color:var(--accent);
+
+  border-color:var(--accent);
+}
+
+
+
+.input-field {
+
+  @apply w-full rounded-xl px-4 py-2.5 focus:outline-none transition;
+
+  background:var(--bg);
+
+  color:var(--text);
+
+  border:1px solid var(--border);
+
+}
+
+
+
+.input-field:focus {
+
+  border-color:var(--accent);
+
+  box-shadow:0 0 0 3px var(--accent-bg);
+
+}
+
+
+
+.card-base {
+
+  @apply rounded-xl2 transition-all duration-300;
+
+  background:var(--bg);
+
+  border:1px solid var(--border);
+
+  box-shadow:var(--shadow);
+
+}
+
+
+
+.card-base:hover {
+
+  transform:translateY(-6px);
+
+}
+
+
+
+/* ==========================================
+   Badges
+   ========================================== */
+
+.badge-risk-low {
+
+ @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+
+ background:#dcfce7;
+ color:#15803d;
+
+}
+
+
+.badge-risk-moderate {
+
+ @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+
+ background:#fef3c7;
+ color:#d97706;
+
+}
+
+
+.badge-risk-high {
+
+ @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+
+ background:#fee2e2;
+ color:#dc2626;
+
+}
+
+
+
+/* ==========================================
+   Section Title
+   ========================================== */
 
 .section-title {
-  @apply font-heading text-2xl md:text-3xl font-bold text-dark mb-6 pl-3 relative;
-}
-.section-title::before {
-  content: "";
-  @apply absolute left-0 top-1 bottom-1 w-1 rounded-full;
-  background-image: linear-gradient(180deg, #0B3D91 0%, #1B8A5A 100%);
+
+ @apply font-heading text-2xl md:text-3xl font-bold mb-6 pl-3 relative;
+
+ color:var(--text-h);
+
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+
+.section-title::before {
+
+ content:"";
+
+ @apply absolute left-0 top-1 bottom-1 w-1 rounded-full;
+
+ background:
+ linear-gradient(
+ 180deg,
+ var(--accent-from,var(--accent)),
+ var(--accent-to,#7c3aed)
+ );
+
+}
+
+
+
+/* ==========================================
+   Page Themes
+   ========================================== */
+
+.theme-crimson {
+ --accent-from:#DC143C;
+ --accent-to:#8f0f28;
+ --accent-solid:#DC143C;
+}
+
+.theme-himalaya {
+ --accent-from:#0B3D91;
+ --accent-to:#1B8A5A;
+ --accent-solid:#0B3D91;
+}
+
+.theme-forest {
+ --accent-from:#1B8A5A;
+ --accent-to:#0f5c3a;
+ --accent-solid:#1B8A5A;
+}
+
+.theme-gold {
+ --accent-from:#c97e08;
+ --accent-to:#8a5906;
+ --accent-solid:#c97e08;
+}
+
+.theme-orange {
+ --accent-from:#ea580c;
+ --accent-to:#9a3412;
+ --accent-solid:#ea580c;
+}
+
+.theme-purple {
+ --accent-from:#7e22ce;
+ --accent-to:#4c1d95;
+ --accent-solid:#7e22ce;
+}
+
+.theme-emerald {
+ --accent-from:#059669;
+ --accent-to:#065f46;
+ --accent-solid:#059669;
+}
+
+.theme-indigo {
+ --accent-from:#4f46e5;
+ --accent-to:#312e81;
+ --accent-solid:#4f46e5;
+}
+
+
+
+/* ==========================================
+   Scrollbar
+   ========================================== */
+
+::-webkit-scrollbar {
+
+ width:8px;
+ height:8px;
+
+}
+
+
+::-webkit-scrollbar-thumb {
+
+ @apply bg-gray-300 rounded-full;
+
+}

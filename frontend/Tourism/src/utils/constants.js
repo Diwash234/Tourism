@@ -4,6 +4,9 @@ export const MAP_TILE_URL =
   import.meta.env.VITE_MAP_TILE_URL ||
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
+export const MAPILLARY_ACCESS_TOKEN =
+  import.meta.env.VITE_MAPILLARY_ACCESS_TOKEN || ""
+
 export const DEFAULT_MAP_CENTER = { lat: 28.2096, lng: 83.9856 } // Pokhara
 
 // FIXED: this used generic Tailwind green/yellow/red, completely

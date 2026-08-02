@@ -1,113 +1,147 @@
-import {useEffect,useState} from "react"
+import { useEffect, useState } from "react"
 
-import {predictRisk} from "../services/mlService"
+import { predictRisk } from "../services/mlService"
 
 import Loader from "../components/common/Loader"
+import EmptyState from "../components/common/EmptyState"
 
 
+const Risk = () => {
 
-const Risk =()=>{
+  const [risk, setRisk] = useState(null)
+  const [loading, setLoading] = useState(true)
 
 
-const [risk,setRisk]=useState(null)
+  useEffect(() => {
 
-const [loading,setLoading]=useState(true)
+    if (!navigator.geolocation) {
+      setLoading(false)
+      return
+    }
 
 
+    navigator.geolocation.getCurrentPosition(
 
-useEffect(()=>{
+      async (position) => {
 
+        try {
 
-navigator.geolocation.getCurrentPosition(
+          const result = await predictRisk({
 
-async(position)=>{
+            latitude: position.coords.latitude,
 
+            longitude: position.coords.longitude
 
-const result =
-await predictRisk({
+          })
 
-latitude:
-position.coords.latitude,
 
-longitude:
-position.coords.longitude
+          setRisk(result)
 
-})
+        } catch (error) {
 
+          console.log("Risk prediction error:", error)
 
-setRisk(result)
+          setRisk(null)
 
-setLoading(false)
+        } finally {
 
+          setLoading(false)
 
-}
+        }
 
+      },
 
-)
 
+      (error) => {
 
+        console.log("Location error:", error)
 
-},[])
+        setLoading(false)
 
+      }
 
+    )
 
 
+  }, [])
 
-if(loading)
 
-return <Loader />
 
+  if (loading)
 
+    return <Loader />
 
 
-return (
 
-<div className="container-app py-10">
+  if (!risk)
 
+    return (
 
-<h1 className="section-title">
+      <div className="container-app py-10 theme-amber">
 
-Travel Safety Risk
+        <EmptyState
 
-</h1>
+          title="Risk data unavailable"
 
+          subtitle="Enable location access to check travel safety risk."
 
+        />
 
-<div className="card-base p-6 mt-5">
+      </div>
 
+    )
 
-<p>
 
-Risk Category:
 
-<strong>
+  return (
 
-{risk?.risk_category}
+    <div className="container-app py-10 theme-amber">
 
-</strong>
 
-</p>
+      <h1 className="section-title">
 
+        Travel Safety Risk
 
+      </h1>
 
-<p>
 
-Tourism Risk Index:
 
-{risk?.tourism_risk_index}
+      <div className="card-base p-6 mt-5">
 
-</p>
 
+        <p>
 
+          Risk Category:
 
-</div>
+          <strong className="ml-2">
 
+            {risk?.risk_category || "Unknown"}
 
-</div>
+          </strong>
 
+        </p>
 
-)
 
+
+        <p className="mt-3">
+
+          Tourism Risk Index:
+
+          <strong className="ml-2">
+
+            {risk?.tourism_risk_index ?? "N/A"}
+
+          </strong>
+
+        </p>
+
+
+      </div>
+
+
+    </div>
+
+  )
 
 }
 

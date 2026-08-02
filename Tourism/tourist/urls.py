@@ -162,6 +162,12 @@ ml_urlpatterns = [
 urlpatterns = [
 
     path(
+        "config/public/",
+        views.PublicConfigView.as_view(),
+        name="config-public"
+    ),
+
+    path(
         "translate/",
         views.TranslateTextView.as_view(),
         name="translate-text"

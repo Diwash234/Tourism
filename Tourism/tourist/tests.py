@@ -536,6 +536,14 @@ class CompatibilityRouteTests(APITestCase):
         self.assertEqual(response.data[0]["designation"], "Ward Member - Female")
 
 
+class PublicConfigTests(APITestCase):
+    def test_public_config_exposes_mapillary_token(self):
+        response = self.client.get("/api/v1/config/public/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("mapillary_access_token", response.data)
+        self.assertTrue(response.data["mapillary_access_token"])
+
+
 class DestinationEssentialsTests(APITestCase):
     def setUp(self):
         from .models import Category, Destination, Hotel

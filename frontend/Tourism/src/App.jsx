@@ -18,6 +18,8 @@ import NotFound from "./pages/NotFound"
 import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
 import ForgotPassword from "./pages/auth/ForgotPassword"
+import OAuthCallback from "./pages/auth/OAuthCallback"
+import VerifyPhone from "./pages/VerifyPhone"
 
 // Destination Pages
 import DestinationList from "./pages/destinations/DestinationList"
@@ -69,6 +71,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* Public — user isn't logged in yet during this step */}
+        <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
 
         {/* Destinations */}
         <Route path="/destinations" element={<DestinationList />} />
@@ -85,6 +89,7 @@ function App() {
 
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/verify-phone" element={<VerifyPhone />} />
           <Route path="/hotels" element={<Hotels />} />
           {/* Dedicated search endpoint (richer data: image_url, destination_name) */}
           <Route path="/hotels/search" element={<HotelSearch />} />

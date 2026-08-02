@@ -1,12 +1,13 @@
 import { useForm } from "react-hook-form"
 import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
-import { FiUser, FiMail, FiLock } from "react-icons/fi"
+import { FiUser, FiMail, FiLock, FiPhone } from "react-icons/fi"
 import { motion } from "framer-motion"
 import authApi from "../../api/authApi"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
+import SocialLoginButtons from "./SocialLoginButtons"
 
 const Register = () => {
   const { register, handleSubmit, watch, formState: { errors } } = useForm()
@@ -18,11 +19,35 @@ const Register = () => {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      await authApi.register(data)
-      showToast("Account created! Please login.", "success")
+      // FIXED: RegisterSerializer's real fields are first_name/last_name
+      // (checked tourist/serializers.py) — the form used to send a
+      // single `name` field, which isn't a field DRF recognizes at all,
+      // so it was silently dropped on every single registration. Every
+      // user created through this form has had first_name/last_name
+      // unset. Splitting the "Full Name" input here rather than adding
+      // two separate fields, to keep the form itself unchanged for
+      // existing users.
+      const [first_name, ...rest] = data.name.trim().split(" ")
+      const last_name = rest.join(" ")
+
+      await authApi.register({
+        first_name,
+        last_name,
+        email: data.email,
+        phone_number: data.phone_number || undefined,
+        password: data.password,
+        password_confirm: data.password_confirm,
+      })
+
+      showToast(
+        data.phone_number
+          ? "Account created! Check your email to verify, and check your phone for an SMS code."
+          : "Account created! Please check your email to verify your account.",
+        "success"
+      )
       navigate("/login")
     } catch (err) {
-      showToast(err?.response?.data?.message || "Registration failed", "error")
+      showToast(err?.response?.data?.message || err?.response?.data?.email?.[0] || "Registration failed", "error")
     } finally {
       setLoading(false)
     }
@@ -55,6 +80,18 @@ const Register = () => {
             {errors.email && <p className="text-xs text-red-500 mt-1">Email is required</p>}
           </div>
           <div className="relative">
+            <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="tel"
+              placeholder="Phone Number (optional — for SMS verification)"
+              className="input-field pl-11"
+              {...register("phone_number", {
+                pattern: { value: /^\+?[0-9\s-]{7,15}$/, message: "Enter a valid phone number" },
+              })}
+            />
+            {errors.phone_number && <p className="text-xs text-red-500 mt-1">{errors.phone_number.message}</p>}
+          </div>
+          <div className="relative">
             <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="password" placeholder="Password" className="input-field pl-11" {...register("password", { required: true, minLength: 6 })} />
             {errors.password && <p className="text-xs text-red-500 mt-1">Minimum 6 characters</p>}
@@ -78,6 +115,10 @@ const Register = () => {
             {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
+
+        <div className="mt-6">
+          <SocialLoginButtons />
+        </div>
 
         <p className="text-sm text-center text-gray-500 mt-6">
           Already have an account?{" "}

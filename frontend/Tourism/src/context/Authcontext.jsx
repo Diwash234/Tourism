@@ -106,6 +106,26 @@ export const AuthProvider = ({ children }) => {
   }
 
 
+  // NEW: Google/GitHub OAuth callbacks return {access, refresh, user}
+  // directly (see authApi.js/views_oauth.py) — same JWT pair shape as
+  // login(), just not obtained via the email/password endpoint. Reuses
+  // the exact same storage steps rather than duplicating them.
+  const loginWithTokens = async (data) => {
+    localStorage.setItem("access", data.access)
+    localStorage.setItem("refresh", data.refresh)
+
+    let userData = data.user
+    if (!userData) {
+      const response = await authApi.getCurrentUser()
+      userData = response.data
+    }
+
+    localStorage.setItem("user", JSON.stringify(userData))
+    setUser(userData)
+    return userData
+  }
+
+
 
   const register = async (payload) => {
 
@@ -154,6 +174,7 @@ export const AuthProvider = ({ children }) => {
         user,
         setUser,
         login,
+        loginWithTokens,
         register,
         logout,
         isAuthenticated,

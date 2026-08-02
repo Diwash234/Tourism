@@ -36,7 +36,9 @@ const Favorites = () => {
     try {
       await favoriteApi.remove(id);
 
-      setFavorites((prev) => prev.filter((fav) => fav.id !== id));
+      setFavorites((prev) =>
+        prev.filter((fav) => fav.id !== id)
+      );
 
       showToast("Removed from favourites", "info");
     } catch {
@@ -47,7 +49,11 @@ const Favorites = () => {
   if (loading) return <Loader />;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fade-in theme-pink"
+    >
       <h1 className="section-title flex items-center gap-2">
         <FiHeart className="text-nepalred-500" />
         My Favourites

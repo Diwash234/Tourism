@@ -1,12 +1,19 @@
 import axiosClient from "./axiosClient"
 
-// CONFIRMED WORKING as-is. Matches POST /api/v1/translate/, which now
-// tries OpenAI first (if OPENAI_API_KEY is set), then the ML teammate's
-// local-language model, then Google Translate, then a free fallback —
-// so this should already work as long as OpenAI's quota/billing is fine
-// (your earlier log showed a 429 rate-limit from OpenAI specifically,
-// which just means it fell through to the next tier, not that this file
-// is broken).
+// Matches POST /api/v1/translate/. NOTE: I checked the backend directly
+// (tourist/serializers.py TranslateRequestSerializer + views.py
+// TranslateTextView) — `provider` is sent below but is NOT currently a
+// field the serializer accepts, and the view doesn't pass one to
+// translate_text() either, even though translate_text() itself fully
+// supports provider="standard"/"gemini"/"groq"/"openai"/"auto" (see
+// tourist/utils.py). So today, `provider` is silently dropped and the
+// backend always uses its own "auto" tiered fallback regardless of what
+// the user picks in Settings. Sending it anyway so this becomes fully
+// functional the moment two small backend changes land:
+//   1. Add `provider = serializers.CharField(required=False, default="auto")`
+//      to TranslateRequestSerializer
+//   2. Pass `serializer.validated_data.get("provider", "auto")` as the
+//      4th arg to translate_text() in TranslateTextView.post()
 const translationApi = {
 
   translateText: (payload) => {

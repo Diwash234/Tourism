@@ -7,9 +7,10 @@ import {
   useMap,
 } from "react-leaflet"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
-import { MAP_TILE_URL, DEFAULT_MAP_CENTER } from "../../utils/constants"
+import configApi from "../../api/configApi"
+import { MAP_TILE_URL, MAPILLARY_ACCESS_TOKEN, DEFAULT_MAP_CENTER } from "../../utils/constants"
 
 import {
   userIcon,
@@ -90,6 +91,28 @@ const MapView = ({
 
 })=>{
 
+  const [mapillaryToken, setMapillaryToken] = useState(MAPILLARY_ACCESS_TOKEN || "")
+
+  useEffect(() => {
+    let ignore = false
+
+    configApi
+      .getPublicConfig()
+      .then(({ data }) => {
+        if (!ignore && data?.mapillary_access_token) {
+          setMapillaryToken(data.mapillary_access_token)
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setMapillaryToken(MAPILLARY_ACCESS_TOKEN || "")
+        }
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   const user =
     normalizeLocation(userLocation)
@@ -126,14 +149,19 @@ const MapView = ({
     })
 
 
-
-return (
+  return (
 
 <div
 style={{height}}
 className="rounded-xl overflow-hidden shadow-card"
 >
 
+
+{mapillaryToken && (
+  <div className="absolute right-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
+    Mapillary enabled
+  </div>
+)}
 
 <MapContainer
 

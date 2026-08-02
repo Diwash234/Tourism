@@ -7,6 +7,7 @@ import {
   FiSearch,
   FiImage,
   FiTrendingUp,
+  FiX,
 } from "react-icons/fi";
 
 import useAuth from "../hooks/useAuth";
@@ -53,6 +54,7 @@ function scoreFromAlerts(alerts = []) {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false);
   const { position } = useGeolocation();
   const navigate = useNavigate();
 
@@ -193,6 +195,23 @@ const Dashboard = () => {
           dashboard "isn't empty" and leads with Nepal's identity before
           anything else */}
       <NationalSymbols />
+
+      {/* NEW: phone verification prompt. Only shown if a phone number
+          exists and hasn't been verified THIS session — see
+          VerifyPhone.jsx for why sessionStorage is the best signal
+          available (UserProfileSerializer doesn't expose
+          phone_verified). Dismissible so it isn't naggy every visit. */}
+      {user?.phone_number && sessionStorage.getItem("phone_verified_this_session") !== "true" && !phoneBannerDismissed && (
+        <div className="flex items-center justify-between gap-4 bg-saffron-50 border border-saffron-100 rounded-xl px-4 py-3 text-sm">
+          <span className="text-saffron-700">Verify your phone number to enable SMS risk alerts.</span>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/verify-phone" className="font-semibold text-himalaya-600 hover:underline">Verify now</Link>
+            <button onClick={() => setPhoneBannerDismissed(true)} className="text-gray-400 hover:text-gray-600">
+              <FiX size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ===========================
           HERO SECTION

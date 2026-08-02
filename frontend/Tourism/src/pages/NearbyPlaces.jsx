@@ -2,6 +2,7 @@
 // exists on the backend (combines your Destination table + live OSM
 // points), returning a plain array with `name`/`distance`/`category`
 // fields matching exactly what this page reads.
+
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import useGeolocation from "../hooks/useGeolocation"
@@ -18,20 +19,34 @@ const NearbyPlaces = () => {
 
   useEffect(() => {
     if (!position) return
+
     nearbyApi
-      .getNearbyPlaces({ lat: position.lat, lng: position.lng, radius: 5000 })
+      .getNearbyPlaces({
+        lat: position.lat,
+        lng: position.lng,
+        radius: 5000,
+      })
       .then(({ data }) => setPlaces(data.items || data || []))
       .catch(() => setPlaces([]))
       .finally(() => setLoading(false))
   }, [position])
 
   return (
-    <div className="container-app py-10 fade-in">
-      <h1 className="section-title flex items-center gap-2"><FiMapPin className="text-himalaya-500" /> Nearby Places</h1>
+    <div className="container-app py-10 fade-in theme-forest">
+      <h1 className="section-title flex items-center gap-2">
+        <FiMapPin className="text-himalaya-500" />
+        Nearby Places
+      </h1>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-xl2 overflow-hidden shadow-premium">
-          <MapView userLocation={position} nearbyAttractions={places} height="450px" />
+          <MapView
+            userLocation={position}
+            nearbyAttractions={places}
+            height="450px"
+          />
         </div>
+
         <div>
           {loading ? (
             <Loader />
@@ -46,15 +61,26 @@ const NearbyPlaces = () => {
                   className="card-base p-4 flex items-center gap-3"
                 >
                   <FiMapPin className="text-himalaya-500" />
+
                   <div>
-                    <p className="font-medium text-sm">{p.name}</p>
-                    <p className="text-xs text-gray-400">{p.distance ? `${p.distance} km away` : p.category}</p>
+                    <p className="font-medium text-sm">
+                      {p.name}
+                    </p>
+
+                    <p className="text-xs text-gray-400">
+                      {p.distance
+                        ? `${p.distance} km away`
+                        : p.category}
+                    </p>
                   </div>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <EmptyState title="No nearby places found" subtitle="Enable location access to see attractions around you." />
+            <EmptyState
+              title="No nearby places found"
+              subtitle="Enable location access to see attractions around you."
+            />
           )}
         </div>
       </div>
