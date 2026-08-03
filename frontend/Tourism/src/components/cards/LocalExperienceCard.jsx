@@ -21,7 +21,7 @@ const LocalExperienceCard = ({ destination }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <PlaceholderImage seed={destination.id} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
+          <PlaceholderImage seed={destination.id} query={destination.name} className="w-full h-full group-hover:scale-105 transition-transform duration-500" />
         )}
         <span className="absolute top-3 left-3 flex items-center gap-1 bg-forest-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
           <FiUsers size={12} /> Community-led

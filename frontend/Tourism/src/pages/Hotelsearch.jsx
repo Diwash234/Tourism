@@ -60,7 +60,7 @@ const HotelSearch = () => {
               className="card-base overflow-hidden"
             >
               {hotel.image_url ? (
-                <img src={hotel.image_url} alt={hotel.name} className="h-40 w-full object-cover" />
+                <img src={hotel.image_url} alt={hotel.name}  query={`${hotel.name} hotel Nepal`} className="h-40 w-full object-cover" />
               ) : (
                 <PlaceholderImage seed={hotel.id} className="h-40 w-full" />
               )}

@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from . import views, views_auth, views_ml, views_compat, views_osm, views_oauth
+from . import views_family_safety
 from . import views_images
 from .views import search_destination
 
@@ -26,6 +27,9 @@ router.register("budgets", views.BudgetViewSet, basename="budget")
 router.register("alerts", views.AlertViewSet, basename="alert")
 router.register("emergency-contacts", views.EmergencyContactViewSet, basename="emergency-contact")
 router.register("notifications", views.NotificationViewSet, basename="notification")
+router.register("trusted-contacts", views_family_safety.TrustedContactViewSet, basename="trusted-contact")
+router.register("trips", views_family_safety.SharedTripViewSet, basename="shared-trip")
+router.register("sos", views_family_safety.SOSAlertViewSet, basename="sos-alert")
 router.register("device-tokens", views.DeviceTokenViewSet, basename="device-token")
 router.register("hotels", views.HotelViewSet, basename="hotel")
 
@@ -282,6 +286,12 @@ urlpatterns = [
         "images/resolve/",
         views_images.ImageResolveView.as_view(),
         name="image-resolve"
+    ),
+
+    path(
+        "trips/shared/<uuid:token>/",
+        views_family_safety.SharedTripPublicView.as_view(),
+        name="shared-trip-public"
     ),
 
 

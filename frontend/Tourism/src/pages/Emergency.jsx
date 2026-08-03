@@ -81,7 +81,7 @@ const Emergency = () => {
   const [nearbyByType, setNearbyByType] = useState({})
 
   const [loading, setLoading] = useState(true)
-
+  const [error, setError] = useState("")
 
 
   async function loadEmergencyFacilities() {
@@ -92,6 +92,7 @@ const Emergency = () => {
     try {
 
       setLoading(true)
+setError("")
 
 
       const [
@@ -122,15 +123,18 @@ const Emergency = () => {
 
 
 
-      setHospitals(
-        hospitalResponse.facilities || []
-      )
+      const hospitalList = (hospitalResponse.facilities || []).sort(
+  (a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity)
+)
+
+setHospitals(hospitalList)
 
 
-      setPolice(
-        policeResponse.facilities || []
-      )
+      const policeList = (policeResponse.facilities || []).sort(
+  (a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity)
+)
 
+setPolice(policeList)
 
 
       // supports:
@@ -153,20 +157,40 @@ const Emergency = () => {
         byType[contact.contact_type] = contact
 
       })
+            const nearestHospital = (hospitalResponse.facilities || [])[0]
+      const nearestPolice = (policeResponse.facilities || [])[0]
+
+      if (!byType.hospital && nearestHospital) {
+        byType.hospital = {
+          name: nearestHospital.name,
+          phone_number: nearestHospital.phone,
+          distance_km: nearestHospital.distance_km,
+          latitude: nearestHospital.latitude,
+          longitude: nearestHospital.longitude,
+          is_24_hours: null,
+        }
+      }
+
+            if (!byType.police && nearestPolice) {
+              byType.police = {
+                name: nearestPolice.name,
+                phone_number: nearestPolice.phone,
+                distance_km: nearestPolice.distance_km,
+                latitude: nearestPolice.latitude,
+                longitude: nearestPolice.longitude,
+                is_24_hours: null,
+        }
+      }
 
 
       setNearbyByType(byType)
 
 
 
-    } catch(error) {
-
-      console.log(
-        "Emergency error:",
-        error
-      )
-
-    } finally {
+    } catch (error) {
+  console.error(error)
+  setError("Unable to load nearby emergency services.")
+} finally {
 
       setLoading(false)
 
@@ -193,41 +217,51 @@ const Emergency = () => {
     `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
 
 
+if (!position && !loading) {
+  return (
+    <div className="container-app py-10">
+      <h2 className="text-xl font-semibold">
+        Location Required
+      </h2>
 
+      <p className="text-gray-500 mt-2">
+        Please allow location access to find nearby hospitals and emergency services.
+      </p>
+    </div>
+  )
+}
   return (
 
     <div className="container-app py-10 fade-in theme-brightred">
 
 
-      <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
+     <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
 
+  <h1 className="section-title flex items-center gap-2 text-nepalred-500 mb-0">
+    <FiAlertOctagon />
+    Emergency Assistance
+  </h1>
 
-        <h1 className="section-title flex items-center gap-2 text-nepalred-500 mb-0">
+  <div className="flex gap-3">
 
-          <FiAlertOctagon />
+    <button
+      onClick={loadEmergencyFacilities}
+      className="px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-100 font-medium"
+    >
+      Refresh
+    </button>
 
-          Emergency Assistance
+    <button
+      onClick={() => setSosOpen(true)}
+      className="pulse-soft flex items-center gap-2 bg-nepalred-500 hover:bg-nepalred-600 text-white font-bold px-6 py-3 rounded-full shadow-premium hover:shadow-premium-hover transition-all"
+    >
+      <FiAlertOctagon size={20} />
+      SOS — Get Help Now
+    </button>
 
-        </h1>
+  </div>
 
-
-
-        <button
-
-          onClick={() => setSosOpen(true)}
-
-          className="pulse-soft flex items-center gap-2 bg-nepalred-500 hover:bg-nepalred-600 text-white font-bold px-6 py-3 rounded-full shadow-premium hover:shadow-premium-hover transition-all"
-
-        >
-
-          <FiAlertOctagon size={20}/>
-
-          SOS — Get Help Now
-
-        </button>
-
-
-      </div>
+</div>
 
 
 
@@ -236,6 +270,11 @@ const Emergency = () => {
         Find nearby hospitals, police stations and emergency services based on your current location.
 
       </p>
+      {error && (
+  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+    {error}
+  </div>
+)}
 
 
 
@@ -404,13 +443,16 @@ const Emergency = () => {
         {/* MAP */}
         <div className="lg:col-span-2 rounded-xl2 overflow-hidden shadow-premium">
 
-          <MapView
-            userLocation={position}
-            hospitals={hospitals}
-            policeStations={police}
-            height="450px"
-          />
-
+          {loading ? (
+  <Loader />
+) : (
+  <MapView
+    userLocation={position}
+    hospitals={hospitals}
+    policeStations={police}
+    height="450px"
+  />
+)}
         </div>
 
 
@@ -502,15 +544,8 @@ const Emergency = () => {
 
 
                 <h3 className="font-bold text-lg">
-
-                  {
-                    hospital["Hospital Name"] ||
-                    hospital.Name ||
-                    hospital.name ||
-                    "Hospital"
-                  }
-
-                </h3>
+                    {hospital.name}
+                     </h3>
 
 
 
@@ -519,11 +554,10 @@ const Emergency = () => {
                   <FiMapPin/>
 
 
-                  {
-                    hospital.Address ||
-                    hospital.address ||
-                    "Address not available"
-                  }
+                  
+                    {hospital.address}
+                    
+                  
 
 
                 </p>
@@ -535,18 +569,7 @@ const Emergency = () => {
 
                   <FiPhoneCall className="text-himalaya-500"/>
 
-
-                  {
-
-                    hospital.Phone ||
-
-                    hospital.phone ||
-
-                    hospital.contact ||
-
-                    "Phone not available"
-
-                  }
+              {hospital.phone || "Phone not available"}
 
 
                 </p>
@@ -558,8 +581,7 @@ const Emergency = () => {
 
                     <p className="text-sm text-forest-600 mt-2">
 
-                      {hospital.distance_km} km away
-
+{hospital.distance_km.toFixed(1)} km away
                     </p>
 
                   )
@@ -667,16 +689,8 @@ const Emergency = () => {
 
                     <h3 className="font-bold">
 
-                      {
-                        station["Police Station"] ||
-
-                        station.Name ||
-
-                        station.name ||
-
-                        "Police Station"
-                      }
-
+                      
+                      {station.name}
 
                     </h3>
 
@@ -685,13 +699,7 @@ const Emergency = () => {
 
                     <p className="text-sm text-gray-500 mt-2">
 
-                      {
-                        station.Address ||
-
-                        station.address ||
-
-                        "Address not available"
-                      }
+              {station.address}
 
                     </p>
 
@@ -703,18 +711,8 @@ const Emergency = () => {
 
                       <FiPhoneCall className="text-himalaya-500"/>
 
-
-                      {
-
-                        station.Phone ||
-
-                        station.phone ||
-
-                        station.contact ||
-
-                        "Phone not available"
-
-                      }
+{station.phone || "Phone not available"}
+                      
 
 
                     </p>
@@ -723,11 +721,11 @@ const Emergency = () => {
 
 
                     {
-                      station.distance_km && (
+                      station.distance_km.toFixed(1)`km away` && (
 
                         <p className="text-sm text-forest-600">
 
-                          {station.distance_km} km away
+                          {station.distance_km.toFixed(1)} km away
 
                         </p>
 

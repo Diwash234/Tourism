@@ -19,7 +19,7 @@ const NepalCultureCard = ({ destination }) => {
         {cover_image_url ? (
           <img src={cover_image_url} alt={name} className="w-full h-full object-cover" />
         ) : (
-          <PlaceholderImage seed={destination.id} className="w-full h-full" />
+          <PlaceholderImage seed={destination.id} query={destination.name} className="w-full h-full" />
         )}
       </div>
       <div className="p-4">

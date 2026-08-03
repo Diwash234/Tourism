@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     "admin_panel",
     "booking",
     "chatbot",
+    "safety",
+    # "notifications",
+    # "media_app",
+    # "translations",
 ]
 
 MIDDLEWARE = [

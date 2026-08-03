@@ -552,23 +552,6 @@ class DeviceTokenViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-class TranslateTextView(APIView):
-    """Generic text translation endpoint (used for alerts/emergency info/UI strings)."""
-
-    permission_classes = [permissions.AllowAny]
-    serializer_class = TranslateRequestSerializer
-
-    def post(self, request):
-        serializer = TranslateRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        translated = translate_text(
-            serializer.validated_data["text"],
-            serializer.validated_data["target_language"],
-            serializer.validated_data.get("source_language", "auto"),
-        )
-        return Response({"translated_text": translated, "translatedText": translated})
-
-
 class OSMNearbyPlacesView(APIView):
     """
     GET /api/v1/places/osm-nearby/?latitude=&longitude=&radius_m=
