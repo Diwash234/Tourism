@@ -201,11 +201,10 @@ setPolice(policeList)
 
 
   useEffect(() => {
-
     if(position) {
-
       loadEmergencyFacilities()
-
+    } else {
+      setLoading(false)
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -447,6 +446,7 @@ if (!position && !loading) {
   <Loader />
 ) : (
   <MapView
+    center={position ? { lat: position.lat, lng: position.lng } : null}
     userLocation={position}
     hospitals={hospitals}
     policeStations={police}
@@ -721,7 +721,7 @@ if (!position && !loading) {
 
 
                     {
-                      station.distance_km.toFixed(1)`km away` && (
+                      station.distance_km != null && (
 
                         <p className="text-sm text-forest-600">
 

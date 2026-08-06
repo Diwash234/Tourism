@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiMapPin, FiShield, FiDollarSign, FiNavigation } from "react-icons/fi"
 
 import SearchBar from "../components/common/SearchBar"
 import DestinationCard from "../components/cards/DestinationCard"
+import DestinationCardSkeleton from "../components/cards/DestinationCardSkeleton"
 import Loader from "../components/common/Loader"
 import FAQAccordion from "../components/common/FAQAccordion"
 import NepalHighlights from "../components/dashboard/NepalHighlights"
@@ -12,10 +13,19 @@ import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
 
 
+const PROVINCES = [
+  { name: "Koshi", city: "Biratnagar" },
+  { name: "Madhesh", city: "Janakpur" },
+  { name: "Bagmati", city: "Kathmandu" },
+  { name: "Gandaki", city: "Pokhara" },
+  { name: "Lumbini", city: "Butwal" },
+  { name: "Karnali", city: "Surkhet" },
+  { name: "Sudurpashchim", city: "Dhangadhi" },
+]
+
 const features = [
   {
     icon: FiMapPin,
-    title: "Discover Destinations",
     desc: "Explore curated local tourist spots with photos, videos and reviews."
   },
   {
@@ -91,7 +101,7 @@ const FAQ_ITEMS = [
 
 
 const Landing = () => {
-
+  const navigate = useNavigate()
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -105,8 +115,6 @@ const Landing = () => {
       })
 
       .then(({ data }) => {
-
-        console.log("Destination API:", data)
 
         setDestinations(
           data.results || data || []
@@ -183,6 +191,7 @@ const Landing = () => {
             <SearchBar
               placeholder="Search destinations, cities, attractions..."
               className="w-full"
+              onSearch={(value) => navigate(`/destinations?q=${encodeURIComponent(value)}`)}
             />
 
           </div>
@@ -311,7 +320,13 @@ const Landing = () => {
 
         {loading ? (
 
-          <Loader />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {[...Array(6)].map((_, i) => (
+              <DestinationCardSkeleton key={i} />
+            ))}
+
+          </div>
 
         ) : destinations.length ? (
 
@@ -343,15 +358,43 @@ const Landing = () => {
         )}
 
 
-      </section>
+    </section>
 
 
 
 
-      <section className="container-app py-16">
+    <section className="container-app py-16">
+
+      <h2 className="section-title text-center mx-auto w-fit">
+        Explore by Province
+      </h2>
+
+      <p className="text-gray-500 text-center max-w-2xl mx-auto mb-10 -mt-2">
+        Browse destinations by Nepal's 7 provinces.
+      </p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 max-w-4xl mx-auto">
+        {PROVINCES.map((province) => (
+          <Link
+            key={province.name}
+            to={`/destinations?q=${encodeURIComponent(province.city)}`}
+            className="card-base p-4 text-center hover:shadow-premium transition-all flex flex-col items-center"
+          >
+            <span className="font-semibold text-sm text-dark">{province.name}</span>
+            <span className="text-xs text-gray-500 mt-1">{province.city}</span>
+          </Link>
+        ))}
+      </div>
+
+    </section>
 
 
-        <h2 className="section-title text-center mx-auto w-fit">
+
+
+    <section className="container-app py-16">
+
+
+      <h2 className="section-title text-center mx-auto w-fit">
 
           Frequently Asked Questions
 

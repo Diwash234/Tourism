@@ -86,10 +86,10 @@ class RecommendedDestinationsView(APIView):
 
         try:
             response = requests.post(
-                f"{settings.ML_SERVICE_URL}/recommendation",
+                f"{settings.ML_SERVICE_URL}/recommendation/",
                 json=payload,
                 headers={
-                    "X-API-Key": settings.ML_SERVICE_API_KEY,
+                    "X-API-Key": getattr(settings, "ML_SERVICE_API_KEY", ""),
                 },
                 timeout=10,
             )
@@ -97,10 +97,51 @@ class RecommendedDestinationsView(APIView):
 
             response.raise_for_status()
 
-            return Response(
-                response.json(),
-                status=response.status_code
-            )
+            ml_data = response.json()
+            ml_recs = ml_data.get("recommendations", [])
+
+            if ml_recs:
+                ordered_names = [r["name"] for r in ml_recs]
+                score_by_name = {
+                    r["name"]: r.get("similarity_score", r.get("score", 0))
+                    for r in ml_recs
+                }
+                rec_destinations = list(
+                    Destination.objects.filter(
+                        name__in=ordered_names,
+                        is_active=True,
+                        status=Destination.SubmissionStatus.APPROVED,
+                    )
+                )
+                name_to_dest = {d.name: d for d in rec_destinations}
+                rec_destinations = [name_to_dest[n] for n in ordered_names if n in name_to_dest]
+                score_by_id = {d.id: score_by_name.get(d.name, 0) for d in rec_destinations}
+            else:
+                rec_destinations = []
+                score_by_id = {}
+
+            if rec_destinations:
+                results = DestinationListSerializer(
+                    rec_destinations,
+                    many=True,
+                    context={"request": request, "user_lat": latitude, "user_lon": longitude},
+                ).data
+                for item in results:
+                    item["ml_score"] = score_by_id.get(item["id"])
+                source = "ml_service"
+            else:
+                fallback_destinations = Destination.objects.filter(
+                    is_active=True,
+                    status=Destination.SubmissionStatus.APPROVED,
+                ).order_by("-average_rating")[:data["top_n"]]
+                results = DestinationListSerializer(
+                    fallback_destinations,
+                    many=True,
+                    context={"request": request, "user_lat": latitude, "user_lon": longitude},
+                ).data
+                source = "fallback_top_rated"
+
+            return Response({"source": source, "results": results})
 
 
         except requests.RequestException:
@@ -112,7 +153,6 @@ class RecommendedDestinationsView(APIView):
                 "-average_rating"
             )[:data["top_n"]]
 
-
             results = DestinationListSerializer(
                 fallback_destinations,
                 many=True,
@@ -122,7 +162,6 @@ class RecommendedDestinationsView(APIView):
                     "user_lon": longitude,
                 },
             ).data
-
 
             return Response(
                 {
@@ -381,6 +420,10 @@ class BudgetPredictionView(APIView):
 
         flattened["total"] = result.get(
             "estimated_total"
+        )
+
+        flattened["daily_cost_usd"] = round(
+            result.get("estimated_total", 0) / max(1, data["days"]), 2
         )
 
         flattened.update(

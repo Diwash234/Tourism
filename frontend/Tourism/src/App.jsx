@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom"
 // Layouts
 import MainLayout from "./components/layout/MainLayout"
 import DashboardLayout from "./components/layout/DashboardLayout"
+import ScrollToTop from "./components/layout/ScrollToTop"
 
 // Route Guards
 import ProtectedRoute from "./routes/ProtectedRoute"
@@ -59,7 +60,9 @@ import AdminTasks from "./pages/admin/Tasks"
 
 function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
 
       {/* Public Routes */}
       <Route element={<MainLayout />}>
@@ -173,10 +176,13 @@ function App() {
       </Route>
 
 
-      {/* 404 Page */}
-      <Route path="*" element={<NotFound />} />
+      {/* 404 Page — wrapped in MainLayout for consistent Navbar + Footer */}
+      <Route element={<MainLayout />}>
+        <Route path="*" element={<NotFound />} />
+      </Route>
 
     </Routes>
+    </>
   )
 }
 

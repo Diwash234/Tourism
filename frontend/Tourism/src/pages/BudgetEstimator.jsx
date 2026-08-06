@@ -69,14 +69,10 @@ const BudgetEstimator = () => {
 
 
   const onSubmit = async (data) => {
-
     try {
-
       const { data: result } = await budgetApi.estimate(data)
 
-
       setEstimate({
-
         total:
           result.total_budget_usd ??
           result.total ??
@@ -84,7 +80,7 @@ const BudgetEstimator = () => {
 
         daily:
           result.daily_cost_usd ??
-          0,
+          (result.total_budget_usd ? Math.round(result.total_budget_usd / (data.days || 3)) : 0),
 
         accommodation:
           result.accommodation ??
@@ -101,19 +97,16 @@ const BudgetEstimator = () => {
         local_transport:
           result.local_transport ??
           0,
-
       })
 
-
-    } catch {
-
+    } catch (error) {
       showToast(
-        "Could not calculate estimate. Backend not connected.",
+        error.response?.data?.detail ||
+        error.response?.data?.error ||
+        "Could not calculate estimate. Please check your inputs and try again.",
         "error"
       )
-
     }
-
   }
 
 

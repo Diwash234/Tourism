@@ -1,5 +1,7 @@
 export const APP_NAME = import.meta.env.VITE_APP_NAME || "Digital Nepal"
 
+export const PAGE_SIZE = 9
+
 export const MAP_TILE_URL =
   import.meta.env.VITE_MAP_TILE_URL ||
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

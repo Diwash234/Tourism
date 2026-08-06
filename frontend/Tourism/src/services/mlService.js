@@ -1,4 +1,4 @@
-const ML_URL = "http://localhost:8001";
+const ML_URL = import.meta.env.VITE_ML_SERVICE_URL || "http://localhost:8001";
 
 
 // Recommendation

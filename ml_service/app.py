@@ -23,6 +23,11 @@ from api import risk, budget, routes, images, translation, recommendation, emerg
 
 load_dotenv()
 
+# FIX: the log file handler below needs the directory to exist; the old
+# code crashed with FileNotFoundError on a fresh clone (only the Docker
+# image created it via `RUN mkdir -p logs`).
+os.makedirs("logs", exist_ok=True)
+
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

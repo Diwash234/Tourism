@@ -158,7 +158,13 @@ const Navigation = () => {
       )}
 
       <div className="rounded-xl2 overflow-hidden shadow-premium">
-        <MapView userLocation={position} destination={destination} route={route} height="500px" />
+        <MapView
+          center={position ? { lat: position.lat, lng: position.lng } : null}
+          userLocation={position}
+          destination={destination}
+          route={route}
+          height="500px"
+        />
       </div>
     </div>
   );

@@ -42,23 +42,37 @@ class RecommendationsPersonalizedView(APIView):
         lat = request.query_params.get("latitude") or request.query_params.get("lat")
         lon = request.query_params.get("longitude") or request.query_params.get("lng")
         top_n = int(request.query_params.get("top_n", 5))
+        interest = request.query_params.get("interest", "")
 
-        if lat is None and request.user.is_authenticated:
-            lat, lon = request.user.latitude, request.user.longitude
+        lat_f = float(lat) if lat else None
+        lon_f = float(lon) if lon else None
+        if lat_f is None and lon_f is None and request.user.is_authenticated:
+            lat_f = getattr(request.user, "latitude", None)
+            lon_f = getattr(request.user, "longitude", None)
 
-        recommendations = get_ml_recommendations(user=request.user, latitude=lat, longitude=lon, top_n=top_n)
+        recommendations = get_ml_recommendations(
+            user=request.user, latitude=lat_f, longitude=lon_f,
+            top_n=top_n, interest=interest,
+        )
 
         from .models import Destination
 
         if recommendations:
-            ordered_ids = [r["destination_id"] for r in recommendations]
-            score_by_id = {r["destination_id"]: r.get("score") for r in recommendations}
+            ordered_names = [r["name"] for r in recommendations]
+            score_by_name = {
+                r["name"]: r.get("similarity_score", r.get("score", 0))
+                for r in recommendations
+            }
             destinations = list(
                 Destination.objects.filter(
-                    id__in=ordered_ids, is_active=True, status=Destination.SubmissionStatus.APPROVED
+                    name__in=ordered_names,
+                    is_active=True,
+                    status=Destination.SubmissionStatus.APPROVED,
                 )
             )
-            destinations.sort(key=lambda d: ordered_ids.index(d.id))
+            name_to_dest = {d.name: d for d in destinations}
+            destinations = [name_to_dest[n] for n in ordered_names if n in name_to_dest]
+            score_by_id = {d.id: score_by_name.get(d.name, 0) for d in destinations}
             source = "ml_service"
         else:
             destinations = list(
@@ -279,33 +293,97 @@ class NearbyPlacesCompatView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        try:
-            lat = _parse_float(request.query_params.get("lat") or request.query_params.get("latitude"), "lat")
-            lon = _parse_float(request.query_params.get("lng") or request.query_params.get("longitude"), "lng")
-        except (ValueError, TypeError):
-            return Response({"detail": "lat and lng query params are required."}, status=status.HTTP_400_BAD_REQUEST)
-        radius_m = int(request.query_params.get("radius", 5000))
+        lat = request.query_params.get("lat") or request.query_params.get("latitude")
+        lon = request.query_params.get("lng") or request.query_params.get("longitude")
 
-        from .models import Destination
+        if lat is not None or lon is not None:
+            try:
+                lat = _parse_float(lat, "lat")
+                lon = _parse_float(lon, "lng")
+            except (ValueError, TypeError):
+                return Response({"detail": "lat and lng must be numbers."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            geo = getattr(request, "geo_location", None)
+            if geo and geo.get("latitude") and geo.get("longitude"):
+                lat = float(geo["latitude"])
+                lon = float(geo["longitude"])
+            else:
+                return Response({"detail": "lat and lng query params are required (or allow location access).", "results": []}, status=status.HTTP_400_BAD_REQUEST)
+
+        radius_m = max(int(request.query_params.get("radius", 5000) or 5000), 1000)
+        radius_km = radius_m / 1000.0
+
+        from .models import Destination, EmergencyContact
         from .utils import overpass_search_nearby, bounding_box
 
-        box = bounding_box(lat, lon, radius_m / 1000)
+        box = bounding_box(lat, lon, radius_km)
         own_destinations = Destination.objects.filter(
-            is_active=True, status=Destination.SubmissionStatus.APPROVED,
-            latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
-            longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
+            is_active=True,
+            status=Destination.SubmissionStatus.APPROVED,
+            latitude__gte=box["min_lat"],
+            latitude__lte=box["max_lat"],
+            longitude__gte=box["min_lon"],
+            longitude__lte=box["max_lon"],
         )
-        own_results = [
-            {"id": f"dest-{d.id}", "name": d.name, "latitude": float(d.latitude), "longitude": float(d.longitude),
-             "distance": round(haversine_distance(lat, lon, d.latitude, d.longitude), 2), "category": d.category.name}
-            for d in own_destinations
-        ]
-        osm_results = [
-            {"id": f"osm-{p['osm_id']}", "name": p["name"], "latitude": p["latitude"], "longitude": p["longitude"],
-             "distance": round(haversine_distance(lat, lon, p["latitude"], p["longitude"]), 2), "category": p["type"]}
-            for p in overpass_search_nearby(lat, lon, radius_m)
-            if p.get("latitude") is not None
-        ]
 
-        combined = sorted(own_results + osm_results, key=lambda p: p["distance"])
+        own_results = []
+        for destination in own_destinations:
+            distance = haversine_distance(lat, lon, destination.latitude, destination.longitude)
+            if distance is None or distance > radius_km:
+                continue
+            own_results.append({
+                "id": f"dest-{destination.id}",
+                "name": destination.name,
+                "latitude": float(destination.latitude),
+                "longitude": float(destination.longitude),
+                "distance": round(distance, 2),
+                "category": getattr(destination.category, "name", "destination"),
+                "type": "destination",
+                "city": destination.city,
+                "district": destination.district,
+                "country": destination.country,
+            })
+
+        local_body_results = []
+        local_bodies = EmergencyContact.objects.filter(
+            contact_type__in=[EmergencyContact.ContactType.WARD_OFFICE, EmergencyContact.ContactType.WARD_MEMBER],
+            latitude__isnull=False,
+            longitude__isnull=False,
+        )
+        for body in local_bodies:
+            distance = haversine_distance(lat, lon, body.latitude, body.longitude)
+            if distance is None or distance > radius_km:
+                continue
+            local_body_results.append({
+                "id": f"local-{body.id}",
+                "name": body.name,
+                "latitude": float(body.latitude),
+                "longitude": float(body.longitude),
+                "distance": round(distance, 2),
+                "category": "local_body",
+                "type": "local_body",
+                "ward_number": body.ward_number,
+                "designation": body.designation,
+                "city": body.city,
+                "district": body.city,
+            })
+
+        osm_results = []
+        for place in (overpass_search_nearby(lat, lon, radius_m, tourism_only=False) or []):
+            if place.get("latitude") is None or place.get("longitude") is None:
+                continue
+            distance = haversine_distance(lat, lon, place["latitude"], place["longitude"])
+            if distance is None or distance > radius_km:
+                continue
+            osm_results.append({
+                "id": f"osm-{place['osm_id']}",
+                "name": place["name"],
+                "latitude": place["latitude"],
+                "longitude": place["longitude"],
+                "distance": round(distance, 2),
+                "category": place.get("type") or "place",
+                "type": "osm",
+            })
+
+        combined = sorted(own_results + local_body_results + osm_results, key=lambda p: p["distance"])
         return Response(combined)

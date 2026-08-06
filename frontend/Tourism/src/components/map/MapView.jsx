@@ -91,6 +91,7 @@ const MapView = ({
   const [mapillaryToken, setMapillaryToken] = useState(
     MAPILLARY_ACCESS_TOKEN || ""
   )
+  const [viewMode, setViewMode] = useState("map")
 
 
   useEffect(() => {
@@ -159,6 +160,24 @@ const MapView = ({
 
     })
 
+  const previewCenter = mapCenter || dest || user || DEFAULT_MAP_CENTER
+  const streetViewUrl = `https://www.mapillary.com/app/?lat=${previewCenter.lat}&lng=${previewCenter.lng}&z=17`
+  const directionsUrl = user && dest
+    ? `https://www.google.com/maps/dir/?api=1&origin=${user.lat},${user.lng}&destination=${dest.lat},${dest.lng}`
+    : null
+
+  const renderViewToggle = (id, label) => (
+    <button
+      key={id}
+      type="button"
+      onClick={() => setViewMode(id)}
+      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${viewMode === id
+        ? "bg-himalaya-600 text-white shadow-sm"
+        : "bg-white/90 text-gray-700 hover:bg-white"}`}
+    >
+      {label}
+    </button>
+  )
 
 
   return (
@@ -169,13 +188,54 @@ const MapView = ({
     >
 
 
-      {mapillaryToken && (
+      <div className="absolute left-3 top-3 z-[1000] flex flex-wrap gap-2">
+        {renderViewToggle("map", "Map")}
+        {renderViewToggle("satellite", "Satellite")}
+        {renderViewToggle("street", "Street view")}
+      </div>
+
+      {(mapillaryToken || viewMode === "street") && (
         <div className="absolute right-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
-          Mapillary enabled
+          {mapillaryToken ? "Mapillary enabled" : "Mapillary preview"}
         </div>
       )}
 
-
+      {viewMode === "street" ? (
+        <div className="flex h-full w-full flex-col bg-gray-50">
+          <div className="flex items-center justify-between border-b border-gray-200 bg-white/90 px-4 py-3 text-sm text-gray-700">
+            <div>
+              <p className="font-semibold">Street view preview</p>
+              <p className="text-xs text-gray-500">Mapillary imagery for {dest?.name || "this location"}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={streetViewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-himalaya-200 px-3 py-1.5 text-xs font-semibold text-himalaya-700 hover:bg-himalaya-50"
+              >
+                Open in Mapillary
+              </a>
+              {directionsUrl && (
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  Get directions
+                </a>
+              )}
+            </div>
+          </div>
+          <iframe
+            title="Mapillary street view"
+            src={streetViewUrl}
+            className="h-full w-full border-0"
+            loading="lazy"
+          />
+        </div>
+      ) : (
       <MapContainer
 
         center={[
@@ -197,9 +257,15 @@ const MapView = ({
 
         <TileLayer
 
-          attribution="&copy; OpenStreetMap contributors"
+          attribution={viewMode === "satellite"
+            ? "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics"
+            : "&copy; OpenStreetMap contributors"
+          }
 
-          url={MAP_TILE_URL}
+          url={viewMode === "satellite"
+            ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            : MAP_TILE_URL
+          }
 
         />
 
@@ -397,6 +463,7 @@ const MapView = ({
 
 
       </MapContainer>
+      )}
 
 
     </div>

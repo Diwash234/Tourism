@@ -5,6 +5,7 @@ import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
 
 import DestinationCard from "../../components/cards/DestinationCard"
+import DestinationCardSkeleton from "../../components/cards/DestinationCardSkeleton"
 import SearchBar from "../../components/common/SearchBar"
 import Filter from "../../components/common/Filter"
 import Pagination from "../../components/common/Pagination"
@@ -14,6 +15,7 @@ import EmptyState from "../../components/common/EmptyState"
 import useGeolocation from "../../hooks/useGeolocation"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import { PAGE_SIZE } from "../../utils/constants"
 
 
 /*
@@ -55,10 +57,6 @@ const CATEGORY_OPTIONS = [
 ]
 
 
-const PAGE_SIZE = 9
-
-
-
 const DestinationList = () => {
 
 
@@ -72,16 +70,13 @@ const DestinationList = () => {
   } = useToast()
 
 
-
   const [
     searchParams
   ] = useSearchParams()
 
 
-
   const initialQuery =
     searchParams.get("q") || ""
-
 
 
   const [
@@ -90,12 +85,10 @@ const DestinationList = () => {
   ] = useState([])
 
 
-
   const [
     totalPages,
     setTotalPages
   ] = useState(1)
-
 
 
   const [
@@ -104,12 +97,10 @@ const DestinationList = () => {
   ] = useState(1)
 
 
-
   const [
     category,
     setCategory
   ] = useState("")
-
 
 
   const [
@@ -118,12 +109,10 @@ const DestinationList = () => {
   ] = useState(initialQuery)
 
 
-
   const [
     favoriteMap,
     setFavoriteMap
   ] = useState({})
-
 
 
   const [
@@ -132,19 +121,14 @@ const DestinationList = () => {
   ] = useState(true)
 
 
-
   const {
     position
   } = useGeolocation()
 
 
-
   const favoriteIds =
     Object.keys(favoriteMap)
     .map(Number)
-
-
-
 
 
   /*
@@ -157,7 +141,6 @@ const DestinationList = () => {
     setLoading(true)
 
 
-
     const params = {
 
       page,
@@ -167,13 +150,11 @@ const DestinationList = () => {
     }
 
 
-
     if(category){
 
       params.category = category
 
     }
-
 
 
     if(query){
@@ -183,7 +164,6 @@ const DestinationList = () => {
       params.q = query
 
     }
-
 
 
     if(position){
@@ -198,9 +178,6 @@ const DestinationList = () => {
     }
 
 
-
-
-
     destinationApi
     .getAll(params)
 
@@ -211,15 +188,14 @@ const DestinationList = () => {
       data.results || data || []
 
 
-
       setDestinations(results)
-
 
 
       setTotalPages(
 
         data.total_pages ||
         data.totalPages ||
+        Math.ceil((data.count || results.length) / PAGE_SIZE) ||
         1
 
       )
@@ -232,6 +208,7 @@ const DestinationList = () => {
 
 
       setDestinations([])
+      setTotalPages(1)
 
 
     })
@@ -246,19 +223,12 @@ const DestinationList = () => {
     })
 
 
-
   },[
     page,
     category,
     query,
     position
   ])
-
-
-
-
-
-
 
 
   /*
@@ -278,7 +248,6 @@ const DestinationList = () => {
     }
 
 
-
     userApi
     .getFavorites()
 
@@ -292,9 +261,7 @@ const DestinationList = () => {
       []
 
 
-
       const map = {}
-
 
 
       list.forEach((favorite)=>{
@@ -307,9 +274,7 @@ const DestinationList = () => {
       })
 
 
-
       setFavoriteMap(map)
-
 
 
     })
@@ -324,16 +289,9 @@ const DestinationList = () => {
     })
 
 
-
   },[
     isAuthenticated
   ])
-
-
-
-
-
-
 
 
   /*
@@ -357,7 +315,6 @@ const DestinationList = () => {
     }
 
 
-
     try{
 
 
@@ -371,7 +328,6 @@ const DestinationList = () => {
         )
 
 
-
         setFavoriteMap(prev=>{
 
 
@@ -381,16 +337,13 @@ const DestinationList = () => {
           }
 
 
-
           delete updated[id]
-
 
 
           return updated
 
 
         })
-
 
 
       }
@@ -403,7 +356,6 @@ const DestinationList = () => {
           data
         } =
         await userApi.addFavorite(id)
-
 
 
         setFavoriteMap(prev=>({
@@ -434,14 +386,7 @@ const DestinationList = () => {
     }
 
 
-
   }
-
-
-
-
-
-
 
 
   return (
@@ -451,7 +396,6 @@ const DestinationList = () => {
     py-10
     fade-in
     ">
-
 
 
       <div className="
@@ -472,7 +416,6 @@ const DestinationList = () => {
         </h1>
 
 
-
         <Link
 
         to="/destinations/submit"
@@ -490,12 +433,7 @@ const DestinationList = () => {
         </Link>
 
 
-
       </div>
-
-
-
-
 
 
       <div className="
@@ -534,9 +472,6 @@ const DestinationList = () => {
         />
 
 
-
-
-
         <Filter
 
 
@@ -570,18 +505,15 @@ const DestinationList = () => {
       </div>
 
 
+      {loading ? (
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
+          {[...Array(PAGE_SIZE)].map((_, i) => (
+            <DestinationCardSkeleton key={i} />
+          ))}
 
-
-
-      {
-      loading ?
-
-
-      (
-
-        <Loader/>
+        </div>
 
       )
 
@@ -646,9 +578,6 @@ const DestinationList = () => {
         </div>
 
 
-
-
-
         <Pagination
 
 
@@ -668,7 +597,6 @@ const DestinationList = () => {
 
 
         />
-
 
 
         </>
@@ -701,7 +629,6 @@ const DestinationList = () => {
       )
 
       }
-
 
 
     </div>

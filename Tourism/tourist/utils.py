@@ -81,23 +81,41 @@ def geoip_lookup(ip_address):
     Resolve an IP address to country/city/lat/lon using a free GeoIP HTTP
     provider (default: ip-api.com). Returns None on failure so callers can
     gracefully degrade.
+
+    FIX: results are cached for 24h. The GeoIPMiddleware calls this for
+    EVERY /api/ request, so without a cache a page firing many parallel
+    requests triggered an external HTTP call each time (slow,
+    rate-limit-prone).
     """
     if not ip_address or ip_address in ("127.0.0.1", "localhost"):
         return None
+
+    from django.core.cache import cache
+
+    cache_key = f"geoip:{ip_address}"
+    sentinel = object()
+    cached = cache.get(cache_key, sentinel)
+    if cached is not sentinel:
+        return cached
+
     try:
         url = settings.GEOIP_PROVIDER_URL.format(ip=ip_address)
         response = requests.get(url, timeout=3)
         data = response.json()
         if data.get("status") == "fail":
+            cache.set(cache_key, None, 60 * 60 * 24)
             return None
-        return {
+        result = {
             "country": data.get("country", ""),
             "city": data.get("city", ""),
             "latitude": data.get("lat"),
             "longitude": data.get("lon"),
         }
+        cache.set(cache_key, result, 60 * 60 * 24)
+        return result
     except (requests.RequestException, ValueError) as exc:
         logger.warning("GeoIP lookup failed for %s: %s", ip_address, exc)
+        cache.set(cache_key, None, 60 * 60)
         return None
 
 
@@ -273,6 +291,37 @@ def send_sms_notification(to_number, message):
         return False
 
 
+def issue_phone_verification(user):
+    """
+    Generate a 6-digit OTP, persist it as an SMSVerificationToken and send
+    it via SMS (Twilio). The token is stored even when Twilio is not
+    configured so the flow can be exercised locally (the code is logged by
+    send_sms_notification in that case).
+
+    FIX: this function was imported by views_auth.py but was missing from
+    utils.py, which crashed the whole `tourist.urls` import chain
+    (ImportError: cannot import name 'issue_phone_verification').
+    """
+    import secrets
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from .models import SMSVerificationToken
+
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    SMSVerificationToken.objects.create(
+        user=user,
+        code=code,
+        expires_at=timezone.now() + timedelta(minutes=10),
+    )
+    send_sms_notification(
+        user.phone_number,
+        f"Your Tourism Portal verification code is {code}. It expires in 10 minutes.",
+    )
+    return code
+
+
 def send_push_notification(device_tokens, title, message):
     """Sends a push notification via Firebase Cloud Messaging if configured."""
     if not settings.FCM_SERVER_KEY or not device_tokens:
@@ -400,17 +449,24 @@ def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
         return None
 
 
-def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid"):
+def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid",
+                             latitude=None, longitude=None, user_latitude=None, user_longitude=None):
     """
-    Calls {ML_SERVICE_URL}/predict-budget for an estimated trip cost.
+    Calls {ML_SERVICE_URL}/budget/predict-budget for an estimated trip cost.
     Returns None if the ML service is unreachable.
+
+    FIX: signature extended to accept/forward destination coordinates and
+    the traveler's own coordinates — views_ml.py was passing them and the
+    ML service expects them (see ml_service/api/budget.py BudgetRequest).
     """
     try:
         response = requests.post(
             f"{settings.ML_SERVICE_URL}/budget/predict-budget",
             json={
-                "city": city, "country": country, "days": days,
-                "travelers": travelers, "budget_level": budget_level,
+                "city": city, "country": country,
+                "latitude": latitude, "longitude": longitude,
+                "user_latitude": user_latitude, "user_longitude": user_longitude,
+                "days": days, "travelers": travelers, "budget_level": budget_level,
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -421,11 +477,14 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
         return None
 
 
-def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitude):
+def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitude, route_type="fastest"):
     """
-    Calls {ML_SERVICE_URL}/best-route for a routed path (OSM-based once the
-    ML teammate's road graph is loaded; straight-line fallback until then).
-    Returns None if the ML service is unreachable.
+    Calls {ML_SERVICE_URL}/routes/best-route for a routed path (OSM-based
+    once the ML teammate's road graph is loaded; straight-line fallback
+    until then). Returns None if the ML service is unreachable.
+
+    FIX: added `route_type` — views_compat.py passes it and the ML service
+    (BestRouteRequest) accepts it.
     """
     try:
         response = requests.post(
@@ -433,6 +492,7 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
             json={
                 "start_latitude": float(start_latitude), "start_longitude": float(start_longitude),
                 "end_latitude": float(end_latitude), "end_longitude": float(end_longitude),
+                "route_type": route_type,
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -1061,14 +1121,53 @@ def maybe_promote_photo(photo):
         photo.destination.name,
     )
 
-from .models import EmergencyContact
+def get_disaster_helplines(destination=None, country=None):
+    """
+    Return {"active_alert": {...} or None, "helplines": [...]} for the given
+    destination (falls back to a bare country string). Used by the
+    destination "essentials" bundle to surface emergency numbers whenever a
+    disaster alert is active in the area.
 
-def get_disaster_helplines(country=None):
-    qs = EmergencyContact.objects.all()
+    FIX: this function previously returned a raw QuerySet while both
+    callers expect a dict — every request to
+    /destinations/{slug}/essentials/ crashed with
+    "TypeError: QuerySet indices must be integers or slices, not str".
+    """
+    from .models import Alert, EmergencyContact
+    from .serializers import EmergencyContactSerializer
 
-    if country:
-        qs = qs.filter(
-            Q(country__iexact=country) | Q(country__isnull=True)
-        )
+    city = getattr(destination, "city", None)
+    dest_country = getattr(destination, "country", None) or country
 
-    return qs
+    alert_filters = Q()
+    if city:
+        alert_filters = Q(city__iexact=city)
+    elif dest_country:
+        alert_filters = Q(country__iexact=dest_country)
+
+    active_alert = (
+        Alert.objects.filter(is_active=True)
+        .filter(alert_filters)
+        .order_by("-severity", "-created_at")
+        .first()
+    )
+
+    contact_qs = EmergencyContact.objects.all()
+    if city:
+        contact_qs = contact_qs.filter(Q(city__iexact=city) | Q(city=""))
+    elif dest_country:
+        contact_qs = contact_qs.filter(Q(country__iexact=dest_country) | Q(country=""))
+
+    return {
+        "active_alert": (
+            {
+                "alert_type": active_alert.alert_type,
+                "severity": active_alert.severity,
+                "title": active_alert.title,
+                "description": active_alert.description,
+            }
+            if active_alert
+            else None
+        ),
+        "helplines": EmergencyContactSerializer(contact_qs, many=True).data,
+    }

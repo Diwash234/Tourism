@@ -1,14 +1,16 @@
 import { useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
-import { FiMenu, FiX, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
+import { FiMenu, FiX, FiUser, FiBell, FiHeart, FiSearch, FiPanelLeft } from "react-icons/fi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
+import useSidebarState from "../../hooks/useSidebarState"
 import { NAV_LINKS } from "../../utils/constants"
 import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 
 const Navbar = () => {
   const [open, setOpen] = useState(false)
+  const [, , toggleSidebar] = useSidebarState()
   const [searchQuery, setSearchQuery] = useState("")
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -33,8 +35,21 @@ const Navbar = () => {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
-      <nav className="container-app flex items-center gap-4 h-16">
+    <header className="sticky top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-gray-100 w-full min-w-0">
+      <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="
+            p-2 rounded-lg text-gray-600 hover:text-himalaya-600 hover:bg-gray-100
+            transition-colors shrink-0
+            flex items-center justify-center
+          "
+          aria-label="Toggle sidebar menu"
+          title="Toggle sidebar menu"
+        >
+          <FiPanelLeft size={20} />
+        </button>
         <TourismLogo size="md" showTagline={false} />
 
         {/* Universal smart search — desktop */}

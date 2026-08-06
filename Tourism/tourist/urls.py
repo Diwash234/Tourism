@@ -10,6 +10,7 @@ from . import views, views_auth, views_ml, views_compat, views_osm, views_oauth
 from . import views_family_safety
 from . import views_images
 from .views import search_destination
+from .views_emergency import nearest_emergency
 
 
 router = DefaultRouter()
@@ -256,6 +257,12 @@ urlpatterns = [
         views_osm.OSMEssentialServiceSyncView.as_view(),
         name="osm-essential-sync"
     ),
+
+    path(
+        "emergency/nearest",
+        nearest_emergency
+    ),
+
 
     path(
         "osm/essential-services/nearby/",

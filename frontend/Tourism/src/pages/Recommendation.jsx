@@ -7,7 +7,7 @@ import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import Filter from "../components/common/Filter"
 
-import { getRecommendations } from "../services/mlService"
+import recommendationApi from "../api/recommendationApi"
 
 const CATEGORY_OPTIONS = [
   { label: "Adventure", value: "adventure" },
@@ -27,13 +27,23 @@ const Recommendation = () => {
 
       const interest = category || "mountain trekking adventure"
 
-      const response = await getRecommendations(interest)
+      const response = await recommendationApi.getRecommendations({ interest })
 
-      setItems(
-        response.recommendations ||
-        response.results ||
-        []
-      )
+      const data = response.data
+
+      const rawResults = data.results || data.recommendations || []
+
+      const mapped = rawResults.map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        category: item.category || item.category_name,
+        city: item.city,
+        cover_image_url: item.cover_image_url,
+        score: item.ml_score || item.score || item.similarity_score || 0,
+      }))
+
+      setItems(mapped)
 
     } catch (error) {
       console.log(error)

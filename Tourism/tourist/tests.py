@@ -1,3 +1,7 @@
+from unittest.mock import patch
+
+from django.test import override_settings
+import requests
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -247,7 +251,8 @@ class MLIntegrationTests(APITestCase):
         }, HTTP_X_ML_WEBHOOK_SECRET="wrong-secret")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_safety_prediction_returns_503_when_ml_service_down(self):
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_safety_prediction_returns_503_when_ml_service_down(self, _mock):
         response = self.client.post(reverse("ml-safety"), {"latitude": 28.21, "longitude": 83.96})
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -255,11 +260,13 @@ class MLIntegrationTests(APITestCase):
         response = self.client.post(reverse("ml-safety"), {})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_budget_prediction_returns_503_when_ml_service_down(self):
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_budget_prediction_returns_503_when_ml_service_down(self, _mock):
         response = self.client.post(reverse("ml-budget"), {"city": "Pokhara", "days": 3, "travelers": 2})
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    def test_best_route_returns_503_when_ml_service_down(self):
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_best_route_returns_503_when_ml_service_down(self, _mock):
         response = self.client.post(reverse("ml-best-route"), {
             "start_latitude": 28.21, "start_longitude": 83.96,
             "end_latitude": 28.23, "end_longitude": 83.99,
@@ -273,6 +280,8 @@ class MLIntegrationTests(APITestCase):
 
 class PhotoAndDataSourceTests(APITestCase):
     def setUp(self):
+        from unittest.mock import patch
+
         from .models import Category, Destination
 
         self.admin = User.objects.create_superuser(email="admin7@example.com", password="AdminPass123!")
@@ -283,6 +292,18 @@ class PhotoAndDataSourceTests(APITestCase):
             description="A dramatic waterfall.", latitude=28.1900, longitude=83.9500,
             created_by=self.admin,
         )
+        # Deterministic tests: stub every external image source so the
+        # "no external keys" scenario is actually simulated instead of
+        # depending on the live Wikimedia/Unsplash APIs (Wikimedia needs
+        # no key, so a real network would return real photos and break the
+        # empty-gallery expectation).
+        self.ext_patcher = patch.multiple(
+            "tourist.utils",
+            fetch_wikimedia_photos=lambda *a, **k: [],
+            fetch_unsplash_photo=lambda *a, **k: None,
+        )
+        self.ext_patcher.start()
+        self.addCleanup(self.ext_patcher.stop)
 
     def test_photos_endpoint_returns_empty_gallery_with_no_external_keys(self):
         response = self.client.get(reverse("destination-photos", kwargs={"slug": self.destination.slug}))
@@ -438,7 +459,8 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.get("/api/v1/nearby/hospitals", {"lat": 28.15, "lng": 84.05})
         self.assertEqual(len(response.data), 1)
 
-    def test_navigation_route_compat_accepts_camelcase_fields(self):
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_navigation_route_compat_accepts_camelcase_fields(self, _mock):
         response = self.client.post("/api/v1/navigation/route", {
             "startLat": 28.15, "startLng": 84.05, "endLat": 28.17, "endLng": 84.07,
         })
@@ -448,7 +470,8 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.post("/api/v1/navigation/route", {"startLat": 28.15})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_navigation_route_resolves_destination_name(self):
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_navigation_route_resolves_destination_name(self, _mock):
         response = self.client.post("/api/v1/navigation/route", {
             "start_latitude": 28.10, "start_longitude": 84.00, "destination_name": "Rupa",
         })
@@ -490,12 +513,13 @@ class CompatibilityRouteTests(APITestCase):
         notification.refresh_from_db()
         self.assertTrue(notification.is_read)
 
-    def test_ml_budget_accepts_free_text_destination_and_style_field(self):
+    @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
+    def test_ml_budget_accepts_free_text_destination_and_style_field(self, _mock):
         """Matches BudgetEstimator.jsx's exact payload: {destination: 'Rupa Lake', style: 'standard', ...}."""
         response = self.client.post(reverse("ml-budget"), {
             "destination": "Rupa Lake", "style": "standard", "days": 3, "travelers": 2,
         })
-        # ML service isn't running in tests, but the request itself must be
+        # ML service is simulated down, but the request itself must be
         # accepted (name resolved, style mapped) rather than 400ing on bad input.
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -537,6 +561,7 @@ class CompatibilityRouteTests(APITestCase):
 
 
 class PublicConfigTests(APITestCase):
+    @override_settings(MAPILLARY_ACCESS_TOKEN="test-mapillary-token")
     def test_public_config_exposes_mapillary_token(self):
         response = self.client.get("/api/v1/config/public/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)

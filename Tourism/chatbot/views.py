@@ -24,17 +24,26 @@ class NearbyEmergencyView(APIView):
 
     def get(self, request):
 
-        lat = float(request.GET.get("latitude"))
-        lon = float(request.GET.get("longitude"))
+        try:
+            lat = float(request.GET.get("latitude"))
+            lon = float(request.GET.get("longitude"))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "latitude and longitude query parameters are required and must be numbers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         category = request.GET.get("category")
 
-        limit = int(
-            request.GET.get(
-                "limit",
-                5
+        try:
+            limit = int(
+                request.GET.get(
+                    "limit",
+                    5
+                )
             )
-        )
+        except (TypeError, ValueError):
+            limit = 5
 
 
         results = nearest_facilities(

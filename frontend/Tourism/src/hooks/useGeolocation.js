@@ -14,7 +14,7 @@ const useGeolocation = () => {
         setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
       },
       (err) => setError(err.message),
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     )
   }, [])
 

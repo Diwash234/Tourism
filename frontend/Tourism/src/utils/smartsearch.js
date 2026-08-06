@@ -14,7 +14,7 @@ const INTENTS = [
   { keywords: ["risk", "safety", "alert", "danger", "warning"], path: () => "/risk-alerts" },
   { keywords: ["navigate", "navigation", "route", "direction", "map"], path: () => "/navigation" },
   { keywords: ["weather", "temperature", "forecast", "rain", "climate"], path: () => "/navigation" },
-  { keywords: ["district", "province", "region"], path: () => "/language" },
+  { keywords: ["district", "province", "region"], path: (q) => `/destinations?q=${encodeURIComponent(q)}` },
   { keywords: ["booking", "reservation", "my trip", "my booking"], path: () => "/my-bookings" },
   { keywords: ["translate", "translation", "language", "phrase"], path: (q) => `/translation?place=${encodeURIComponent(q)}` },
   { keywords: ["festival", "dashain", "tihar", "holi", "jatra", "losar", "teej", "culture", "history", "unesco", "wildlife"], path: () => "/discover-nepal" },

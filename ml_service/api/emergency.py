@@ -3,8 +3,11 @@ from fastapi import APIRouter, Query
 from services.emergency_service import nearest_facilities
 
 
+# FIX: the router no longer declares its own prefix. app.py mounts it with
+# prefix="/emergency", so the previous declaration doubled the path to
+# /emergency/emergency/... while the frontend (and Django chatbot) call
+# /emergency/... — every request 404'd.
 router = APIRouter(
-    prefix="/emergency",
     tags=["Emergency"]
 )
 
