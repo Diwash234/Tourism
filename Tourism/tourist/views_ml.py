@@ -10,10 +10,14 @@ INBOUND: ML service -> backend (webhook)
     MLResultWebhookView receives ML analysis results and stores them.
 """
 
+import logging
+
 import requests
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+
+logger = logging.getLogger(__name__)
 
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -28,6 +32,7 @@ from .serializers import (
     SafetyPredictionRequestSerializer,
     BudgetPredictionRequestSerializer,
     BestRouteRequestSerializer,
+    ItineraryRequestSerializer,
 )
 from .utils import (
     get_ml_safety_prediction,
@@ -86,10 +91,10 @@ class RecommendedDestinationsView(APIView):
 
         try:
             response = requests.post(
-                f"{settings.ML_SERVICE_URL}/recommendation/",
+                f"{settings.ML_SERVICE_URL}/recommendation",
                 json=payload,
                 headers={
-                    "X-API-Key": getattr(settings, "ML_SERVICE_API_KEY", ""),
+                    "X-API-Key": settings.ML_SERVICE_API_KEY,
                 },
                 timeout=10,
             )
@@ -97,51 +102,10 @@ class RecommendedDestinationsView(APIView):
 
             response.raise_for_status()
 
-            ml_data = response.json()
-            ml_recs = ml_data.get("recommendations", [])
-
-            if ml_recs:
-                ordered_names = [r["name"] for r in ml_recs]
-                score_by_name = {
-                    r["name"]: r.get("similarity_score", r.get("score", 0))
-                    for r in ml_recs
-                }
-                rec_destinations = list(
-                    Destination.objects.filter(
-                        name__in=ordered_names,
-                        is_active=True,
-                        status=Destination.SubmissionStatus.APPROVED,
-                    )
-                )
-                name_to_dest = {d.name: d for d in rec_destinations}
-                rec_destinations = [name_to_dest[n] for n in ordered_names if n in name_to_dest]
-                score_by_id = {d.id: score_by_name.get(d.name, 0) for d in rec_destinations}
-            else:
-                rec_destinations = []
-                score_by_id = {}
-
-            if rec_destinations:
-                results = DestinationListSerializer(
-                    rec_destinations,
-                    many=True,
-                    context={"request": request, "user_lat": latitude, "user_lon": longitude},
-                ).data
-                for item in results:
-                    item["ml_score"] = score_by_id.get(item["id"])
-                source = "ml_service"
-            else:
-                fallback_destinations = Destination.objects.filter(
-                    is_active=True,
-                    status=Destination.SubmissionStatus.APPROVED,
-                ).order_by("-average_rating")[:data["top_n"]]
-                results = DestinationListSerializer(
-                    fallback_destinations,
-                    many=True,
-                    context={"request": request, "user_lat": latitude, "user_lon": longitude},
-                ).data
-                source = "fallback_top_rated"
-
-            return Response({"source": source, "results": results})
+            return Response(
+                response.json(),
+                status=response.status_code
+            )
 
 
         except requests.RequestException:
@@ -153,6 +117,7 @@ class RecommendedDestinationsView(APIView):
                 "-average_rating"
             )[:data["top_n"]]
 
+
             results = DestinationListSerializer(
                 fallback_destinations,
                 many=True,
@@ -162,6 +127,7 @@ class RecommendedDestinationsView(APIView):
                     "user_lon": longitude,
                 },
             ).data
+
 
             return Response(
                 {
@@ -422,10 +388,6 @@ class BudgetPredictionView(APIView):
             "estimated_total"
         )
 
-        flattened["daily_cost_usd"] = round(
-            result.get("estimated_total", 0) / max(1, data["days"]), 2
-        )
-
         flattened.update(
             result.get(
                 "breakdown",
@@ -495,3 +457,47 @@ class BestRouteView(APIView):
 
 
         return Response(result)
+
+
+class ItineraryView(APIView):
+    """
+    POST /api/v1/ml/itinerary/
+    Rich, dataset-driven itinerary builder. Forwards the request to the ML
+    service's /itinerary/build endpoint, which plans day-by-day
+    destinations (from the OSM dataset), budgets in NPR (scaled by
+    travelers / travel type / style) and route legs from the graphml road
+    graph. Pure function of its inputs, so the frontend re-calls it on
+    every form change for continuous updates.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ItineraryRequestSerializer
+
+    def post(self, request):
+        serializer = ItineraryRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            response = requests.post(
+                f"{settings.ML_SERVICE_URL}/itinerary/build",
+                json={
+                    "days": data.get("days", 3),
+                    "travelers": data.get("travelers", 1),
+                    "budget_npr": data.get("budget_npr"),
+                    "budget_level": data.get("budget_level", "mid"),
+                    "travel_style": data.get("travel_style", "leisure"),
+                    "travel_type": data.get("travel_type", "solo"),
+                    "interests": data.get("interests", ["culture"]),
+                    "start_city": (data.get("start_city") or "").strip() or "Kathmandu",
+                },
+                timeout=settings.ML_SERVICE_TIMEOUT * 3,
+            )
+            response.raise_for_status()
+            return Response(response.json())
+        except requests.RequestException as exc:
+            logger.warning("ML itinerary service unreachable: %s", exc)
+            return Response(
+                {"detail": "Itinerary service is currently unavailable. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )

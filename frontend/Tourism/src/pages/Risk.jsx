@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-import { predictRisk } from "../services/mlService"
+import { getRisk as predictRisk } from "../services/mlService"
 
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
@@ -37,11 +37,16 @@ const Risk = () => {
 
           setRisk(result)
 
+
         } catch (error) {
 
-          console.log("Risk prediction error:", error)
+          console.log(
+            "Risk prediction error:",
+            error
+          )
 
           setRisk(null)
+
 
         } finally {
 
@@ -54,7 +59,10 @@ const Risk = () => {
 
       (error) => {
 
-        console.log("Location error:", error)
+        console.log(
+          "Location error:",
+          error
+        )
 
         setLoading(false)
 

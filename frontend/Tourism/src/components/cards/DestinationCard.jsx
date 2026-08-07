@@ -91,11 +91,12 @@ const DestinationCard = ({
     entry_fee,
     distance_km,
     category,
+    category_name,
     weather,
     budget_estimate,
     risk_level,
     recommended_season,
-  } = destination
+} = destination
 
 
   const risk =
@@ -104,7 +105,7 @@ const DestinationCard = ({
 
 
   const categoryKey =
-    category?.toLowerCase() || "mountains"
+    (category_name || "").toLowerCase() || "mountains"
 
 
   const theme =

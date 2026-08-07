@@ -163,7 +163,15 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!user
 
-  const isAdmin = user?.role === "admin"
+  // FIX: role check was `=== "admin"` only, which locked out super_admin
+  // and tourism_admin accounts (backend permission hierarchy in
+  // tourist/permissions.py treats all three as admin tiers). Also honor
+  // is_staff/is_superuser when the backend exposes them.
+  const ADMIN_ROLES = ["admin", "super_admin", "tourism_admin"]
+  const isAdmin =
+    (user && ADMIN_ROLES.includes(user.role)) ||
+    user?.is_staff === true ||
+    user?.is_superuser === true
 
 
 

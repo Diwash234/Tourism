@@ -1,5 +1,5 @@
-import { useForm } from "react-hook-form"
-import { useState } from "react"
+import { useForm, useWatch } from "react-hook-form"
+import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import {
   FiDollarSign,
@@ -8,6 +8,7 @@ import {
   FiTruck,
   FiShield,
   FiMap,
+  FiLoader,
 } from "react-icons/fi"
 
 import budgetApi from "../api/budgetApi"
@@ -15,16 +16,11 @@ import PieChartCard from "../components/charts/PieChartCard"
 import useToast from "../hooks/useToast"
 
 
-// Emergency reserve is a frontend suggestion only.
-// The ML model does not calculate this value.
 const EMERGENCY_RESERVE_RATE = 0.1
 
+const USD_TO_NPR = 133
 
-// Budget category colors
-// Hotel = Golden
-// Food = Orange
-// Transport = Blue
-// Local Transport = Green
+
 const CATEGORY_META = [
   {
     key: "accommodation",
@@ -53,517 +49,620 @@ const CATEGORY_META = [
 ]
 
 
+const npr = (usd) =>
+  `रू ${Math.round(
+    (Number(usd) || 0) * USD_TO_NPR
+  ).toLocaleString()}`
+
+
+
 const BudgetEstimator = () => {
+
 
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
-  } = useForm()
+    control,
+    formState:{isSubmitting},
+  } = useForm({
+
+    defaultValues:{
+      destination:"Pokhara",
+      travelers:1,
+      days:3,
+      style:"mid",
+    }
+
+  })
 
 
-  const [estimate, setEstimate] = useState(null)
 
-  const { showToast } = useToast()
+  const [estimate,setEstimate] = useState(null)
+
+  const [loading,setLoading] = useState(false)
+
+
+  const {showToast} = useToast()
 
 
 
-  const onSubmit = async (data) => {
-    try {
-      const { data: result } = await budgetApi.estimate(data)
+  const debounceRef = useRef(null)
+
+  const requestRef = useRef(0)
+
+
+
+  const watched = useWatch({
+    control
+  })
+
+
+
+  useEffect(()=>{
+
+    if(!watched?.destination)
+      return
+
+
+    if(debounceRef.current)
+      clearTimeout(debounceRef.current)
+
+
+
+    debounceRef.current=setTimeout(()=>{
+
+      calculate(watched)
+
+    },500)
+
+
+
+    return ()=>clearTimeout(debounceRef.current)
+
+
+  },[
+    watched?.destination,
+    watched?.travelers,
+    watched?.days,
+    watched?.style
+  ])
+
+
+
+
+
+  const calculate = async(data)=>{
+
+
+    const requestId=++requestRef.current
+
+
+    setLoading(true)
+
+
+    try{
+
+
+      const {data:result}=await budgetApi.estimate(data)
+
+
+
+      if(requestId!==requestRef.current)
+        return
+
+
+
+      const total =
+        result.total_budget_usd ??
+        result.total ??
+        0
+
+
+
+      const daily =
+        result.daily_cost_usd ??
+        (
+          total
+          ? Math.round(
+              total/(data.days || 3)
+            )
+          : 0
+        )
+
+
 
       setEstimate({
-        total:
-          result.total_budget_usd ??
-          result.total ??
-          0,
 
-        daily:
-          result.daily_cost_usd ??
-          (result.total_budget_usd ? Math.round(result.total_budget_usd / (data.days || 3)) : 0),
+        total,
+
+        daily,
+
 
         accommodation:
+          result.breakdown?.accommodation ??
           result.accommodation ??
           0,
 
+
         food:
+          result.breakdown?.food ??
           result.food ??
           0,
 
+
         transport:
+          result.breakdown?.transport ??
           result.transport ??
           0,
 
+
         local_transport:
+          result.breakdown?.local_transport ??
           result.local_transport ??
           0,
+
       })
 
-    } catch (error) {
+
+
+    }catch(error){
+
+
+      if(requestId!==requestRef.current)
+        return
+
+
+
       showToast(
+
         error.response?.data?.detail ||
         error.response?.data?.error ||
-        "Could not calculate estimate. Please check your inputs and try again.",
+        "Could not calculate estimate. Backend not connected.",
+
         "error"
+
       )
+
     }
+    finally{
+
+
+      if(requestId===requestRef.current)
+        setLoading(false)
+
+
+    }
+
+
   }
 
 
 
-  const emergencyReserve =
-    estimate
-      ? Math.round(
-          estimate.total * EMERGENCY_RESERVE_RATE
-        )
-      : 0
 
 
+  const onSubmit=(data)=>{
 
-  return (
+    calculate(data)
 
-    <div className="container-app py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in theme-orange">
+  }
 
 
-      {/* LEFT FORM */}
 
-      <div>
 
-        <h1 className="section-title flex items-center gap-2">
+  const emergencyReserve = estimate
+    ? Math.round(
+        estimate.total *
+        EMERGENCY_RESERVE_RATE
+      )
+    : 0
 
-          <FiDollarSign className="text-saffron-600" />
 
-          Budget Estimator
 
-        </h1>
 
 
+return (
 
-        <p className="text-gray-500 text-sm mb-6">
+<div className="container-app py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in theme-orange">
 
-          Plan your trip expenses across accommodation,
-          food, transport and activities.
 
-        </p>
+{/* FORM */}
 
+<div>
 
 
+<h1 className="section-title flex items-center gap-2">
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="card-base p-6 space-y-4"
-        >
+<FiDollarSign className="text-saffron-600"/>
 
+Budget Estimator
 
-          <div className="grid grid-cols-2 gap-4">
+</h1>
 
 
-            <div>
 
-              <label className="text-xs font-medium text-gray-500">
-                Destination
-              </label>
+<p className="text-gray-500 text-sm mb-6">
 
+Plan your Nepal trip expenses.
+The estimate updates automatically when
+you change your trip details.
 
-              <input
+</p>
 
-                className="input-field mt-1"
 
-                placeholder="e.g. Pokhara"
 
-                {...register(
-                  "destination",
-                  { required:true }
-                )}
 
-              />
+<form
+onSubmit={handleSubmit(onSubmit)}
+className="card-base p-6 space-y-4"
+>
 
-            </div>
 
 
+<div className="grid grid-cols-2 gap-4">
 
 
-            <div>
 
-              <label className="text-xs font-medium text-gray-500">
+<div>
 
-                Number of Travelers
+<label className="text-xs font-medium text-gray-500">
+Destination
+</label>
 
-              </label>
 
+<input
 
-              <input
+className="input-field mt-1"
 
-                type="number"
+placeholder="e.g. Pokhara"
 
-                min={1}
+{...register(
+"destination",
+{required:true}
+)}
 
-                defaultValue={1}
+/>
 
-                className="input-field mt-1"
+</div>
 
-                {...register(
-                  "travelers",
-                  { required:true }
-                )}
 
-              />
 
 
-            </div>
+<div>
 
+<label className="text-xs font-medium text-gray-500">
+Number of Travelers
+</label>
 
 
+<input
 
+type="number"
 
-            <div>
+min={1}
 
-              <label className="text-xs font-medium text-gray-500">
+className="input-field mt-1"
 
-                Duration (days)
+{...register(
+"travelers",
+{required:true}
+)}
 
-              </label>
+/>
 
+</div>
 
-              <input
 
-                type="number"
 
-                min={1}
 
-                defaultValue={3}
 
-                className="input-field mt-1"
+<div>
 
-                {...register(
-                  "days",
-                  { required:true }
-                )}
+<label className="text-xs font-medium text-gray-500">
+Duration (days)
+</label>
 
-              />
 
+<input
 
-            </div>
+type="number"
 
+min={1}
 
+className="input-field mt-1"
 
+{...register(
+"days",
+{required:true}
+)}
 
+/>
 
-            <div>
+</div>
 
-              <label className="text-xs font-medium text-gray-500">
 
-                Travel Style
 
-              </label>
 
 
-              <select
+<div>
 
-                className="input-field mt-1"
+<label className="text-xs font-medium text-gray-500">
+Travel Style
+</label>
 
-                {...register("style")}
 
-              >
+<select
+className="input-field mt-1"
+{...register("style")}
+>
 
-                <option value="budget">
-                  Budget
-                </option>
+<option value="budget">
+Budget
+</option>
 
-                <option value="standard">
-                  Standard
-                </option>
+<option value="mid">
+Mid-range
+</option>
 
-                <option value="luxury">
-                  Luxury
-                </option>
+<option value="standard">
+Standard
+</option>
 
-              </select>
+<option value="luxury">
+Luxury
+</option>
 
 
-            </div>
+</select>
 
 
-          </div>
+</div>
 
 
 
+</div>
 
-          <button
 
-            type="submit"
 
-            className="btn-primary w-full"
 
-            disabled={isSubmitting}
+<button
 
-          >
+type="submit"
 
-            {
-              isSubmitting
-                ? "Calculating..."
-                : "Estimate Budget"
-            }
+disabled={loading || isSubmitting}
 
+className="btn-primary w-full"
 
-          </button>
+>
 
+{
+loading || isSubmitting
+?
+"Calculating..."
+:
+"Estimate Budget"
+}
 
 
-        </form>
+</button>
 
 
-      </div>
 
+{
+loading && (
 
+<p className="flex items-center gap-2 text-xs text-saffron-600">
 
+<FiLoader className="animate-spin"/>
 
+Updating estimate...
 
+</p>
 
-      {/* RESULT AREA */}
+)
 
+}
 
-      <div>
 
 
-      {
+</form>
 
-        estimate ? (
 
-          <motion.div
+</div>
 
-            initial={{
-              opacity:0,
-              y:10
-            }}
 
-            animate={{
-              opacity:1,
-              y:0
-            }}
 
-            className="space-y-6"
 
-          >
 
+{/* RESULT */}
 
 
+<div>
 
-            <div className="card-base p-6 text-center">
 
+{
+estimate ?
 
-              <p className="text-sm text-gray-500">
+<motion.div
 
-                Estimated Total Cost
+initial={{opacity:0,y:10}}
 
-              </p>
+animate={{opacity:1,y:0}}
 
+className="space-y-6"
 
+>
 
-              <p className="text-4xl font-extrabold text-saffron-600 mt-1">
 
-                ${estimate.total}
 
-              </p>
+<div className="card-base p-6 text-center">
 
 
+<p className="text-sm text-gray-500">
 
-              {
-                estimate.daily > 0 && (
+Estimated Total Cost
 
-                  <p className="text-xs text-gray-400 mt-1">
+</p>
 
-                    ≈ ${estimate.daily}/day
 
-                  </p>
+<p className="text-4xl font-extrabold text-saffron-600">
 
-                )
-              }
+{npr(estimate.total)}
 
+</p>
 
-            </div>
 
+<p className="text-xs text-gray-400">
 
+≈ ${estimate.total} USD
 
+</p>
 
 
 
+</div>
 
-            <div className="grid grid-cols-2 gap-3">
 
 
-            {
 
-              CATEGORY_META.map(
-                ({
-                  key,
-                  label,
-                  icon:Icon,
-                  color
-                }) => (
 
-                <div
+<div className="grid grid-cols-2 gap-3">
 
-                  key={key}
 
-                  className="card-base p-4 flex items-center gap-3"
+{
+CATEGORY_META.map(
+({key,label,icon:Icon,color})=>(
 
-                >
 
-                  <div
-                    className={`p-2.5 rounded-xl ${color}`}
-                  >
+<div
+key={key}
+className="card-base p-4 flex items-center gap-3"
+>
 
-                    <Icon size={18}/>
 
-                  </div>
+<div className={`p-2.5 rounded-xl ${color}`}>
 
+<Icon size={18}/>
 
+</div>
 
-                  <div>
 
-                    <p className="text-xs text-gray-400">
 
-                      {label}
+<div>
 
-                    </p>
+<p className="text-xs text-gray-400">
 
+{label}
 
-                    <p className="font-bold text-dark">
+</p>
 
-                      ${estimate[key]}
 
-                    </p>
+<p className="font-bold text-dark">
 
+{npr(estimate[key])}
 
-                  </div>
+</p>
 
 
-                </div>
+</div>
 
 
-              ))
+</div>
 
-            }
 
+)
 
+)
 
+}
 
 
-            <div
 
-              className="card-base p-4 flex items-center gap-3 col-span-2 border border-dashed border-saffron-200"
 
-            >
 
+<div className="card-base p-4 flex items-center gap-3 col-span-2">
 
-              <div className="p-2.5 rounded-xl bg-saffron-50 text-saffron-600">
 
-                <FiShield size={18}/>
+<FiShield className="text-saffron-600"/>
 
-              </div>
 
+<div>
 
+<p className="text-xs text-gray-400">
 
-              <div>
+Emergency Reserve (10%)
 
+</p>
 
-                <p className="text-xs text-gray-400">
 
-                  Emergency Reserve
+<p className="font-bold">
 
-                  <span className="text-gray-300">
+{npr(emergencyReserve)}
 
-                    {" "}
-                    (suggested 10% buffer)
+</p>
 
-                  </span>
 
+</div>
 
-                </p>
 
+</div>
 
-                <p className="font-bold text-dark">
 
-                  ${emergencyReserve}
 
-                </p>
+</div>
 
 
-              </div>
 
 
-            </div>
 
+<PieChartCard
 
+title="Cost Breakdown"
 
-            </div>
+labels={[
+"Accommodation",
+"Food",
+"Transport",
+"Local Transport"
+]}
 
 
+data={[
+estimate.accommodation,
+estimate.food,
+estimate.transport,
+estimate.local_transport
+]}
 
 
+/>
 
 
+</motion.div>
 
-            <PieChartCard
 
-              title="Cost Breakdown"
 
-              labels={[
-                "Accommodation",
-                "Food",
-                "Transport",
-                "Local Transport"
-              ]}
+:
 
-              data={[
+<div className="card-base p-10 text-center text-gray-400 h-full flex items-center justify-center">
 
-                estimate.accommodation,
+Fill in the form to see your budget breakdown here.
 
-                estimate.food,
+</div>
 
-                estimate.transport,
 
-                estimate.local_transport,
+}
 
-              ]}
 
-            />
 
+</div>
 
 
-          </motion.div>
 
+</div>
 
 
-        ) : (
+)
 
-
-          <div
-
-            className="card-base p-10 text-center text-gray-400 h-full flex items-center justify-center"
-
-          >
-
-            Fill in the form to see your budget breakdown here.
-
-
-          </div>
-
-
-        )
-
-
-      }
-
-
-      </div>
-
-
-
-    </div>
-
-  )
 
 }
 

@@ -13,11 +13,36 @@ def get_chatbot_reply(
         return (
             "Hello! I am your Nepal Tourism Assistant. "
             "How can I help you?"
-        )
+        )   
 
 
     user_message = history[-1]["content"].lower()
 
+    # Try the configured AI provider (Groq/Gemini/OpenAI) first. If no
+    # provider or API key is configured this degrades gracefully to the
+    # rule-based answers below — never an error.
+    ai_unavailable = False
+    try:
+        ai_reply = ask_ai(history[-1]["content"], context="")
+        if ai_reply:
+            return ai_reply
+    except Exception:  # noqa: BLE001 - missing key/library => fall back to rules
+        ai_unavailable = True
+
+    # Weather/temperature questions have no canned answer in the rule set —
+    # route them straight to a graceful reply instead of a mismatched rule.
+    if any(word in user_message for word in ("weather", "temperature", "forecast", "rain")):
+        if ai_unavailable:
+            return (
+                "I can't check live weather for you right now — the AI assistant "
+                "isn't configured on this server. Try the weather widget on the "
+                "destination page instead."
+            )
+        return (
+            "I can't check live weather with the rule-based assistant. "
+            "Please ask a destination-specific question or use the "
+            "weather widget on a destination page."
+        )
 
 
     # -------------------------

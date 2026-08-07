@@ -109,6 +109,33 @@ class PublicConfigView(APIView):
         })
 
 
+class TranslateTextView(APIView):
+    """
+    POST /api/v1/translate/  {"text": "...", "target_language": "ne",
+                             "source_language": "auto" (optional)}
+
+    FIX: the URLconf referenced this view but it was never defined, which
+    crashed the whole `tourist.urls` import (AttributeError: module
+    'tourist.views' has no attribute 'TranslateTextView').
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = TranslateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        translated = translate_text(
+            data["text"],
+            data["target_language"],
+            data.get("source_language", "auto"),
+        )
+        return Response({
+            "text": data["text"],
+            "translated_text": translated,
+            "target_language": data["target_language"],
+        })
+
+
 def search_destination(request):
 
     query = request.GET.get("q", "")
@@ -132,26 +159,7 @@ def search_destination(request):
         context
     )
 
-class TranslateTextView(APIView):
-    """
-    POST /api/v1/translate/  {"text": "...", "target_language": "ne", "source_language": "auto" (optional)}
-    """
-    permission_classes = [permissions.AllowAny]
 
-    def post(self, request):
-        serializer = TranslateRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        translated = translate_text(
-            data["text"],
-            data["target_language"],
-            data.get("source_language", "auto"),
-        )
-        return Response({
-            "text": data["text"],
-            "translated_text": translated,
-            "target_language": data["target_language"],
-        })
 class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewsets.ModelViewSet):
     queryset = Destination.objects.select_related("category", "created_by")
     permission_classes = [CanSubmitPlace]
@@ -643,26 +651,3 @@ class HotelSearchView(generics.ListAPIView):
             )
             .select_related("destination")[:20]
         )
-
-
-class HotelSearchView(generics.ListAPIView):
-    """
-    GET /api/v1/hotels/search/?query=Pokhara
-    GET /api/v1/hotels/search/?query=Lakeside
-
-    Searches the real Hotel table (not the ml_service CSV) so results
-    carry a real Hotel.id that BookHotel.jsx can book against directly.
-    """
-    serializer_class = HotelSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        query = self.request.query_params.get("query", "").strip()
-        if not query:
-            return Hotel.objects.none()
-        return Hotel.objects.filter(
-            Q(name__icontains=query)
-            | Q(destination__name__icontains=query)
-            | Q(destination__city__icontains=query)
-            | Q(address__icontains=query)
-        ).select_related("destination")[:20]

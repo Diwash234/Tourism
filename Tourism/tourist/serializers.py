@@ -91,9 +91,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "id", "email", "first_name", "last_name", "full_name", "phone_number",
             "role", "profile_picture", "bio", "preferred_language",
             "latitude", "longitude", "country", "city", "location_source",
-            "is_verified", "date_joined",
+            "is_verified", "is_staff", "is_superuser", "date_joined",
         ]
-        read_only_fields = ["id", "email", "role", "is_verified", "date_joined", "location_source"]
+        read_only_fields = ["id", "email", "role", "is_verified", "is_staff", "is_superuser", "date_joined", "location_source"]
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -419,9 +419,10 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
         longitude = attrs.get("longitude")
 
         if name and latitude is not None and longitude is not None:
-            min_lat, max_lat, min_lon, max_lon = bounding_box(float(latitude), float(longitude), radius_km=1)
+            box = bounding_box(float(latitude), float(longitude), radius_km=1)
             nearby_candidates = Destination.objects.filter(
-                latitude__range=(min_lat, max_lat), longitude__range=(min_lon, max_lon),
+                latitude__range=(box["min_lat"], box["max_lat"]),
+                longitude__range=(box["min_lon"], box["max_lon"]),
             ).exclude(status=Destination.SubmissionStatus.REJECTED)
 
             for candidate in nearby_candidates:
@@ -586,33 +587,33 @@ class EmergencyContactSerializer(serializers.ModelSerializer):
             "address", "city", "country", "latitude", "longitude",
             "is_24_hours", "ward_number", "designation", "distance_km",
         ]
-@extend_schema_field(serializers.FloatField(allow_null=True))
-def get_distance_km(self, obj):
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_distance_km(self, obj):
 
-    user_lat = self.context.get("user_lat")
-    user_lon = self.context.get("user_lon")
+        user_lat = self.context.get("user_lat")
+        user_lon = self.context.get("user_lon")
 
-    if (
-        user_lat is None
-        or user_lon is None
-        or obj.latitude is None
-        or obj.longitude is None
-    ):
-        return None
+        if (
+            user_lat is None
+            or user_lon is None
+            or obj.latitude is None
+            or obj.longitude is None
+        ):
+            return None
 
-    try:
-        return round(
-            haversine_distance(
-                user_lat,
-                user_lon,
-                obj.latitude,
-                obj.longitude,
-            ),
-            2,
-        )
+        try:
+            return round(
+                haversine_distance(
+                    user_lat,
+                    user_lon,
+                    obj.latitude,
+                    obj.longitude,
+                ),
+                2,
+            )
 
-    except (ValueError, TypeError):
-        return None
+        except (ValueError, TypeError):
+            return None
 
 
 
@@ -716,6 +717,34 @@ class BestRouteRequestSerializer(serializers.Serializer):
         if "destination" not in attrs and ("end_latitude" not in attrs or "end_longitude" not in attrs):
             raise serializers.ValidationError("Provide either `destination` or both `end_latitude` and `end_longitude`.")
         return attrs
+
+
+class ItineraryRequestSerializer(serializers.Serializer):
+    """
+    Rich, dataset-driven itinerary builder request. Every field feeds the
+    ML service's /itinerary/build endpoint so the plan (destinations,
+    budget in NPR, route legs from the road graph) updates continuously as
+    the user changes any input.
+    """
+
+    days = serializers.IntegerField(default=3, min_value=1, max_value=30)
+    travelers = serializers.IntegerField(default=1, min_value=1, max_value=50)
+    budget_npr = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    budget_level = serializers.ChoiceField(
+        choices=["budget", "mid", "standard", "luxury"], default="mid"
+    )
+    travel_style = serializers.ChoiceField(
+        choices=["leisure", "adventure", "culture", "nature", "city"], default="leisure"
+    )
+    travel_type = serializers.ChoiceField(
+        choices=["solo", "couple", "family", "group"], default="solo"
+    )
+    interests = serializers.ListField(
+        child=serializers.CharField(max_length=40),
+        required=False,
+        default=["culture"],
+    )
+    start_city = serializers.CharField(required=False, allow_blank=True, default="Kathmandu")
 
 
 class OSMEssentialServiceSerializer(serializers.ModelSerializer):

@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
-import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
+import NepalsceneBackground from "../../components/branding/Nepalscenebackground"
 import SocialLoginButtons from "./SocialLoginButtons"
 
 const Login = () => {
@@ -26,7 +26,14 @@ const Login = () => {
       // admin accounts, and there was no "Admin Login" entry point
       // anywhere. Rather than a second login form, one login now
       // branches by role — matches how AdminRoute/isAdmin already work.
-      const fallback = userData?.role === "admin" ? "/admin" : "/dashboard"
+      // FIX: treat super_admin / tourism_admin like admin (matches the
+      // backend ROLE_SENIORITY hierarchy).
+      const adminRoles = ["admin", "super_admin", "tourism_admin"]
+      const isAdmin =
+        adminRoles.includes(userData?.role) ||
+        userData?.is_staff === true ||
+        userData?.is_superuser === true
+      const fallback = isAdmin ? "/admin" : "/dashboard"
       navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
       showToast(err?.response?.data?.message || "Invalid credentials", "error")
@@ -37,7 +44,7 @@ const Login = () => {
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
-      <NepalSceneBackground />
+      <NepalsceneBackground />
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl">
         <TourismLogo size="sm" />
       </div>

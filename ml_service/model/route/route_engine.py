@@ -15,7 +15,7 @@ see the docstring in training/build_route_graph.py for how to swap in
 real OSM-based routing later without changing these function signatures.
 """
 import os
-from math import radians, sin, cos, sqrt, atan2
+from math import radians, sin, cos, sqrt, atan2, degrees
 
 import networkx as nx
 
@@ -433,6 +433,129 @@ def _nearest_node(g, latitude, longitude):
     return best_node, best_distance
  
  
+def _bearing_deg(lat1, lon1, lat2, lon2):
+    """Initial bearing (0-360) from point 1 to point 2."""
+    try:
+        lat1, lon1, lat2, lon2 = map(radians, map(float, (lat1, lon1, lat2, lon2)))
+    except (TypeError, ValueError):
+        return None
+    dlon = lon2 - lon1
+    y = sin(dlon) * cos(lat2)
+    x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dlon)
+    return (degrees(atan2(y, x)) + 360) % 360
+
+
+def _compass_dir(bearing):
+    if bearing is None:
+        return ""
+    dirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]
+    idx = int((bearing + 22.5) // 45) % 8
+    return dirs[idx]
+
+
+def _turn_label(prev_bearing, next_bearing):
+    """Google-Maps-style turn label from consecutive bearings."""
+    if prev_bearing is None or next_bearing is None:
+        return "straight"
+    delta = (next_bearing - prev_bearing + 540) % 360 - 180  # -180..180
+    if abs(delta) < 20:
+        return "straight"
+    if abs(delta) > 160:
+        return "uturn"
+    if delta > 0:
+        return "right" if delta <= 100 else "sharp_right"
+    return "left" if delta >= -100 else "sharp_left"
+
+
+def build_steps(g, path):
+    """
+    Turn-by-turn steps for a graph path (Google-Maps style). Each step has
+    an instruction, turn direction, and per-leg distance in km and meters.
+    """
+    steps = []
+    if not path or len(path) < 2:
+        return steps
+
+    coords = []
+    for node in path:
+        d = g.nodes[node]
+        try:
+            coords.append((float(d["lat"]), float(d["lon"]), node))
+        except (KeyError, TypeError, ValueError):
+            coords.append((None, None, node))
+
+    # Precompute bearings between consecutive points
+    bearings = []
+    for i in range(len(coords) - 1):
+        lat1, lon1, _ = coords[i]
+        lat2, lon2, _ = coords[i + 1]
+        bearings.append(_bearing_deg(lat1, lon1, lat2, lon2))
+
+    # Merge consecutive edges that go the same general direction into one step
+    i = 0
+    while i < len(bearings):
+        start_idx = i
+        # first leg always starts a step
+        turn = "start"
+        # find the end of this "same direction" run
+        j = i
+        while j < len(bearings):
+            if j == i:
+                j += 1
+                continue
+            prev_b = bearings[j - 1]
+            next_b = bearings[j]
+            if prev_b is not None and next_b is not None and abs((next_b - prev_b + 540) % 360 - 180) >= 20:
+                break
+            j += 1
+        end_idx = j  # number of bearings consumed (last index inclusive = end_idx - 1)
+
+        # distance for this step = sum of edge weights between nodes start_idx..end_idx
+        dist_km = 0.0
+        for e in range(start_idx, min(end_idx, len(path) - 1)):
+            u, v = path[e], path[e + 1]
+            w = g.edges[u, v].get("weight")
+            if w is None:
+                lat1, lon1, _ = coords[e]
+                lat2, lon2, _ = coords[e + 1]
+                if lat1 is not None and lat2 is not None:
+                    w = haversine_km(lat1, lon1, lat2, lon2)
+            dist_km += float(w or 0)
+
+        # turn label for THIS step = turn at its START (i.e. between bearing i-1 and i)
+        if start_idx == 0:
+            turn = "start"
+            prev_b = None
+            next_b = bearings[0] if bearings else None
+        else:
+            prev_b = bearings[start_idx - 1]
+            next_b = bearings[start_idx] if start_idx < len(bearings) else None
+            turn = _turn_label(prev_b, next_b)
+
+        # instruction
+        if turn == "start":
+            instruction = f"Head {_compass_dir(next_b)} toward {coords[min(end_idx, len(coords)-1)][2]}"
+        elif turn == "straight":
+            instruction = f"Continue {_compass_dir(next_b)} toward {coords[min(end_idx, len(coords)-1)][2]}"
+        elif turn == "uturn":
+            instruction = "Make a U-turn"
+        else:
+            direction_word = {"left": "left", "right": "right", "sharp_left": "sharp left", "sharp_right": "sharp right"}[turn]
+            instruction = f"Turn {direction_word} toward {coords[min(end_idx, len(coords)-1)][2]}"
+
+        steps.append({
+            "instruction": instruction,
+            "turn": turn,
+            "distance_km": round(dist_km, 3),
+            "distance_m": int(round(dist_km * 1000)),
+            "from": {"lat": coords[start_idx][0], "lng": coords[start_idx][1]},
+            "to": {"lat": coords[min(end_idx, len(coords)-1)][0], "lng": coords[min(end_idx, len(coords)-1)][1]},
+        })
+        i = end_idx
+
+    return steps
+
+
 def best_route(start_latitude, start_longitude, end_latitude, end_longitude, route_type="fastest"):
     """
     Route between two arbitrary coordinates (e.g. the user's live GPS
@@ -484,6 +607,13 @@ def best_route(start_latitude, start_longitude, end_latitude, end_longitude, rou
         "start_snap_km": round(start_snap_km, 2),
         "end_snap_km": round(end_snap_km, 2),
     }
+    # NEW: Google-Maps-style turn-by-turn directions (left/right + km/m)
+    # computed from the graphml road graph.
+    steps = build_steps(g, path)
+    if steps:
+        result["steps"] = steps
+        # Rough Nepal driving/trekking average ~30 km/h.
+        result["duration_min"] = int(round((distance_km + start_snap_km + end_snap_km) / 30 * 60))
     if note:
         result["note"] = note
     return result
