@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom"
 // Layouts
 import MainLayout from "./components/layout/MainLayout"
 import DashboardLayout from "./components/layout/DashboardLayout"
+import ScrollToTop from "./components/layout/ScrollToTop"
 
 // Route Guards
 import ProtectedRoute from "./routes/ProtectedRoute"
@@ -27,11 +28,12 @@ import DestinationDetails from "./pages/destinations/DestinationDetails"
 import SubmitPlacePage from "./pages/SubmitPlacePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
 import ExploreNepalMap from "./pages/ExploreNepalMap"
+import ItineraryPlanner from "./pages/ItineraryPlanner"
 
 // Features
 import Chatbot from "./Chatbot"
 import MyBooking from "./MyBookings"
-import BookHotel from "./Bookhotel"
+import Bookhotel from "./Bookhotel"
 
 // User Dashboard Pages
 import Dashboard from "./pages/Dashboard"
@@ -50,135 +52,288 @@ import Settings from "./pages/Settings"
 import Favorites from "./pages/Favorites"
 import History from "./pages/History"
 import Notifications from "./pages/Notifications"
+import Expenditure from "./pages/Expenditure"
+import MySubmissions from "./pages/MySubmissions"
+import StaffDashboard from "./pages/StaffDashboard"
 
-// Admin
+// Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import HotelAssignments from "./pages/admin/HotelAssignments"
 import AdminTasks from "./pages/admin/Tasks"
+import PlaceApprovals from "./pages/admin/PlaceApprovals"
+import UserManagement from "./pages/admin/UserManagement"
 
 
 function App() {
   return (
-    <Routes>
+    <>
+      {/* Scroll to top whenever the route changes */}
+      <ScrollToTop />
 
-      {/* Public Routes */}
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Landing />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
+      <Routes>
 
-        {/* Auth */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        {/* Public — user isn't logged in yet during this step */}
-        <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
+        {/* =====================================================
+            PUBLIC ROUTES
+        ===================================================== */}
+        <Route element={<MainLayout />}>
 
-        {/* Destinations */}
-        <Route path="/destinations" element={<DestinationList />} />
-        <Route path="/destinations/:slug" element={<DestinationDetails />} />
+          {/* Home / General */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
 
-        {/* Public Emergency */}
-        <Route path="/emergency" element={<Emergency />} />
-      </Route>
+          {/* Authentication */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-
-      {/* Protected User Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/verify-phone" element={<VerifyPhone />} />
-          <Route path="/hotels" element={<Hotels />} />
-          {/* Dedicated search endpoint (richer data: image_url, destination_name) */}
-          <Route path="/hotels/search" element={<HotelSearch />} />
-          <Route path="/destinations/submit" element={<SubmitPlacePage />} />
-          <Route path="/discover-nepal" element={<DiscoverNepal />} />
-          <Route path="/explore-map" element={<ExploreNepalMap />} />
-
-          <Route 
-            path="/recommendation" 
-            element={<Recommendation />} 
+          {/* OAuth callback */}
+          <Route
+            path="/auth/callback/:provider"
+            element={<OAuthCallback />}
           />
 
-          <Route 
-            path="/budget-estimator" 
-            element={<BudgetEstimator />} 
+          {/* Destinations */}
+          <Route
+            path="/destinations"
+            element={<DestinationList />}
           />
-
-          <Route 
-            path="/risk-alerts" 
-            element={<RiskAlertDashboard />} 
-          />
-
-          <Route path="/navigation" element={<Navigation />} />
-          <Route path="/language" element={<Language />} />
-
-          <Route 
-            path="/nearby-places" 
-            element={<NearbyPlaces />} 
-          />
-
-          <Route 
-            path="/translation" 
-            element={<Translation />} 
-          />
-
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/history" element={<History />} />
-
-          <Route path="/chatbot" element={<Chatbot />} />
 
           <Route
-            path="/hotels/:hotelId/book"
-            element={<BookHotel />}
+            path="/destinations/:slug"
+            element={<DestinationDetails />}
           />
 
-          <Route 
-            path="/my-bookings" 
-            element={<MyBooking />} 
+          {/* Itinerary Planner */}
+          <Route
+            path="/itinerary"
+            element={<ItineraryPlanner />}
           />
 
-          <Route 
-            path="/notifications" 
-            element={<Notifications />} 
+          {/* Public Emergency */}
+          <Route
+            path="/emergency"
+            element={<Emergency />}
           />
 
         </Route>
-      </Route>
 
 
-      {/* Admin Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AdminRoute />}>
+        {/* =====================================================
+            PROTECTED USER ROUTES
+        ===================================================== */}
+        <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
-            <Route 
-              path="/admin" 
-              element={<AdminDashboard />} 
+
+            {/* Dashboard */}
+            <Route
+              path="/dashboard"
+              element={<Dashboard />}
             />
-            {/* FIXED: both fully built, both had zero routes anywhere —
-                same "built but never wired up" pattern as Bookhotel.jsx
-                earlier this session. Gated behind the same AdminRoute as
-                /admin since the backend has no way to expose a stricter
-                superadmin-only flag to the frontend yet (checked
-                UserProfileSerializer — is_superuser isn't a field on it
-                at all). The backend still enforces the real
-                superuser-only restriction on assign/delete actions. */}
-            <Route path="/admin/hotel-assignments" element={<HotelAssignments />} />
-            <Route path="/admin/tasks" element={<AdminTasks />} />
+
+            {/* Profile */}
+            <Route
+              path="/profile"
+              element={<Profile />}
+            />
+
+            {/* Phone Verification */}
+            <Route
+              path="/verify-phone"
+              element={<VerifyPhone />}
+            />
+
+            {/* Hotels */}
+            <Route
+              path="/hotels"
+              element={<Hotels />}
+            />
+
+            {/* Hotel Search */}
+            <Route
+              path="/hotels/search"
+              element={<HotelSearch />}
+            />
+
+            {/* Hotel Booking */}
+            <Route
+              path="/hotels/:hotelId/book"
+              element={<Bookhotel />}
+            />
+
+            {/* My Bookings */}
+            <Route
+              path="/my-bookings"
+              element={<MyBooking />}
+            />
+
+
+            {/* =================================================
+                DESTINATIONS / EXPLORATION
+            ================================================= */}
+
+            <Route
+              path="/destinations/submit"
+              element={<SubmitPlacePage />}
+            />
+
+            <Route
+              path="/discover-nepal"
+              element={<DiscoverNepal />}
+            />
+
+            <Route
+              path="/explore-map"
+              element={<ExploreNepalMap />}
+            />
+
+            <Route
+              path="/nearby-places"
+              element={<NearbyPlaces />}
+            />
+
+            <Route
+              path="/navigation"
+              element={<Navigation />}
+            />
+
+
+            {/* =================================================
+                TRAVEL FEATURES
+            ================================================= */}
+
+            <Route
+              path="/recommendation"
+              element={<Recommendation />}
+            />
+
+            <Route
+              path="/budget-estimator"
+              element={<BudgetEstimator />}
+            />
+
+            <Route
+              path="/risk-alerts"
+              element={<RiskAlertDashboard />}
+            />
+
+            <Route
+              path="/language"
+              element={<Language />}
+            />
+
+            <Route
+              path="/translation"
+              element={<Translation />}
+            />
+
+            <Route
+              path="/chatbot"
+              element={<Chatbot />}
+            />
+
+
+            {/* =================================================
+                USER ACCOUNT
+            ================================================= */}
+
+            <Route
+              path="/settings"
+              element={<Settings />}
+            />
+
+            <Route
+              path="/favorites"
+              element={<Favorites />}
+            />
+
+            <Route
+              path="/history"
+              element={<History />}
+            />
+
+            <Route
+              path="/notifications"
+              element={<Notifications />}
+            />
+
+            <Route
+              path="/expenditure"
+              element={<Expenditure />}
+            />
+
+            <Route
+              path="/my-submissions"
+              element={<MySubmissions />}
+            />
+
+            {/* Staff Dashboard */}
+            <Route
+              path="/staff"
+              element={<StaffDashboard />}
+            />
+
           </Route>
         </Route>
-      </Route>
 
 
-      {/* 404 Page */}
-      <Route path="*" element={<NotFound />} />
+        {/* =====================================================
+            ADMIN ROUTES
+        ===================================================== */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AdminRoute />}>
+            <Route element={<DashboardLayout />}>
 
-    </Routes>
+              {/* Main Admin Dashboard */}
+              <Route
+                path="/admin"
+                element={<AdminDashboard />}
+              />
+
+              {/* Hotel Assignments */}
+              <Route
+                path="/admin/hotel-assignments"
+                element={<HotelAssignments />}
+              />
+
+              {/* Admin Tasks */}
+              <Route
+                path="/admin/tasks"
+                element={<AdminTasks />}
+              />
+
+              {/* Place Approvals */}
+              <Route
+                path="/admin/place-approvals"
+                element={<PlaceApprovals />}
+              />
+
+              {/* User Management */}
+              <Route
+                path="/admin/users"
+                element={<UserManagement />}
+              />
+
+            </Route>
+          </Route>
+        </Route>
+
+
+        {/* =====================================================
+            404 NOT FOUND
+            Wrapped in MainLayout so Navbar, Sidebar, Footer
+            and FloatingChatbot remain available.
+        ===================================================== */}
+        <Route element={<MainLayout />}>
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+        </Route>
+
+      </Routes>
+    </>
   )
 }
-
 
 export default App

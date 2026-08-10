@@ -10,5 +10,7 @@ router.register("tasks", views.AdminTaskViewSet, basename="admin-task")
 urlpatterns = [
     path("my-hotels/", views.MyHotelsView.as_view(), name="admin-panel-my-hotels"),
     path("dashboard-summary/", views.AdminDashboardSummaryView.as_view(), name="admin-panel-dashboard-summary"),
+    path("analytics/",views.AdminAnalyticsView.as_view(), name="admin-panel-analytics",
+),
     path("", include(router.urls)),
 ]

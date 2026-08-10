@@ -11,6 +11,12 @@ const authApi = {
   resetPassword: (payload) =>
     axiosClient.post("/auth/reset-password/", payload),
 
+  // FIX: verifyEmail was only in the legacy services/api.js — the
+  // backend emails a /verify-email?token=... link, and without this
+  // method (and the page that uses it) newly registered users could
+  // never verify their email.
+  verifyEmail: (token) => axiosClient.post("/auth/verify-email/", { token }),
+
   refreshToken: (payload) =>
     axiosClient.post("/auth/token/refresh/", payload),
 

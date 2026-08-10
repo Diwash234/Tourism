@@ -104,7 +104,9 @@ const DestinationCard = ({
 
 
   const categoryKey =
-    category?.toLowerCase() || "mountains"
+  typeof category === "string"
+    ? category.toLowerCase()
+    : "mountains";
 
 
   const theme =
@@ -256,31 +258,27 @@ const DestinationCard = ({
 
         {/* CATEGORY */}
 
-        {
-          category &&
+        
+          {typeof category === "string" && (
+  <span
+    className={`
+      absolute
+      bottom-3
+      left-3
+      px-3
+      py-1
+      rounded-full
+      text-xs
+      font-semibold
+      capitalize
+      ${theme.badge}
+    `}
+  >
+    {category}
+  </span>
+)}
 
-          <span
-
-          className={`
-          absolute
-          bottom-3
-          left-3
-          px-3
-          py-1
-          rounded-full
-          text-xs
-          font-semibold
-          capitalize
-          ${theme.badge}
-          `}
-
-          >
-
-          {category}
-
-          </span>
-
-        }
+        
 
 
       </div>

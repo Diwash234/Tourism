@@ -38,9 +38,9 @@ INSTALLED_APPS = [
     "booking",
     "chatbot",
     "safety",
-    # "notifications",
-    # "media_app",
-    # "translations",
+    "notifications",
+    "media_app",
+    "translation",
 ]
 
 MIDDLEWARE = [
@@ -284,6 +284,9 @@ GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-1.5-flash")
 
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 GROQ_MODEL = config("GROQ_MODEL", default="llama-3.1-8b-instant")
+
+OPENROUTER_API_KEY = config("OPENROUTER_API_KEY", default="")
+OPENROUTER_MODEL = config("OPENROUTER_MODEL", default="meta-llama/llama-3.1-8b-instruct:free")
 
 # OAuth (Google / GitHub) -- read from .env, used by views_oauth.py
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")

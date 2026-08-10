@@ -1,0 +1,13 @@
+/* cards.css */
+.destination-card-premium {
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+.destination-card-premium:hover {
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}

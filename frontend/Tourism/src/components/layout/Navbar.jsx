@@ -3,12 +3,14 @@ import { Link, NavLink, useNavigate } from "react-router-dom"
 import { FiMenu, FiX, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
 import { motion, AnimatePresence } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
+import useSidebarState from "../../hooks/useSidebarState"
 import { NAV_LINKS } from "../../utils/constants"
 import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 
 const Navbar = () => {
   const [open, setOpen] = useState(false)
+  const [, , toggleSidebar] = useSidebarState()
   const [searchQuery, setSearchQuery] = useState("")
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
@@ -18,13 +20,10 @@ const Navbar = () => {
     navigate("/login")
   }
 
-  // NEW: universal search — see utils/smartSearch.js for the honest
-  // client-side keyword routing (no fake backend call). Works the same
-  // on every page since Navbar renders in both MainLayout and
-  // DashboardLayout.
   const handleSmartSearch = (e) => {
     e.preventDefault()
     const destination = resolveSmartSearch(searchQuery)
+
     if (destination) {
       navigate(destination)
       setSearchQuery("")
@@ -33,13 +32,32 @@ const Navbar = () => {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
-      <nav className="container-app flex items-center gap-4 h-16">
+    <header className="sticky top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-gray-100 w-full min-w-0">
+      <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16">
+
+        {/* Sidebar Toggle */}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="p-2 rounded-lg text-gray-600 hover:text-himalaya-600 hover:bg-gray-100 transition-colors shrink-0 flex items-center justify-center"
+          aria-label="Toggle sidebar menu"
+          title="Toggle sidebar menu"
+        >
+          <FiMenu size={20} />
+        </button>
+
         <TourismLogo size="md" showTagline={false} />
 
-        {/* Universal smart search — desktop */}
-        <form onSubmit={handleSmartSearch} className="hidden md:flex flex-1 max-w-md relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+        {/* Desktop Search */}
+        <form
+          onSubmit={handleSmartSearch}
+          className="hidden md:flex flex-1 max-w-md relative"
+        >
+          <FiSearch
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -48,6 +66,7 @@ const Navbar = () => {
           />
         </form>
 
+        {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-6 shrink-0">
           {NAV_LINKS.map((link) => (
             <NavLink
@@ -55,7 +74,9 @@ const Navbar = () => {
               to={link.path}
               className={({ isActive }) =>
                 `text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive ? "text-himalaya-500" : "text-gray-600 hover:text-dark"
+                  isActive
+                    ? "text-himalaya-500"
+                    : "text-gray-600 hover:text-dark"
                 }`
               }
             >
@@ -64,23 +85,38 @@ const Navbar = () => {
           ))}
         </div>
 
+        {/* Desktop User Actions */}
         <div className="hidden md:flex items-center gap-4 shrink-0">
           {isAuthenticated ? (
             <>
-              <Link to="/notifications" className="text-gray-600 hover:text-himalaya-500">
+              <Link
+                to="/notifications"
+                className="text-gray-600 hover:text-himalaya-500"
+              >
                 <FiBell size={20} />
               </Link>
-              <Link to="/favorites" className="text-gray-600 hover:text-himalaya-500">
+
+              <Link
+                to="/favorites"
+                className="text-gray-600 hover:text-himalaya-500"
+              >
                 <FiHeart size={20} />
               </Link>
+
               <Link
                 to="/profile"
                 className="flex items-center gap-2 border border-gray-200 rounded-full px-3 py-1.5 hover:shadow-card"
               >
                 <FiUser />
-                <span className="text-sm font-medium">{user?.name || "Profile"}</span>
+                <span className="text-sm font-medium">
+                  {user?.name || "Profile"}
+                </span>
               </Link>
-              <button onClick={handleLogout} className="btn-outline text-sm py-1.5">
+
+              <button
+                onClick={handleLogout}
+                className="btn-outline text-sm py-1.5"
+              >
                 Logout
               </button>
             </>
@@ -89,6 +125,7 @@ const Navbar = () => {
               <Link to="/login" className="btn-outline text-sm py-1.5">
                 Login
               </Link>
+
               <Link to="/register" className="btn-primary text-sm py-1.5">
                 Sign Up
               </Link>
@@ -96,7 +133,11 @@ const Navbar = () => {
           )}
         </div>
 
-        <button className="md:hidden text-2xl ml-auto" onClick={() => setOpen(!open)}>
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden text-2xl ml-auto"
+          onClick={() => setOpen(!open)}
+        >
           {open ? <FiX /> : <FiMenu />}
         </button>
       </nav>
@@ -110,9 +151,17 @@ const Navbar = () => {
             className="md:hidden border-t border-gray-100 overflow-hidden"
           >
             <div className="flex flex-col p-4 gap-3">
-              {/* Universal smart search — mobile */}
-              <form onSubmit={handleSmartSearch} className="relative">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+
+              {/* Mobile Search */}
+              <form
+                onSubmit={handleSmartSearch}
+                className="relative"
+              >
+                <FiSearch
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={16}
+                />
+
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -122,21 +171,53 @@ const Navbar = () => {
               </form>
 
               {NAV_LINKS.map((link) => (
-                <Link key={link.path} to={link.path} onClick={() => setOpen(false)}>
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setOpen(false)}
+                >
                   {link.label}
                 </Link>
               ))}
+
               {isAuthenticated ? (
                 <>
-                  <Link to="/dashboard" onClick={() => setOpen(false)}>Dashboard</Link>
-                  <Link to="/profile" onClick={() => setOpen(false)}>Profile</Link>
-                  <Link to="/notifications" onClick={() => setOpen(false)}>Notifications</Link>
-                  <button onClick={handleLogout} className="btn-outline">Logout</button>
+                  <Link to="/dashboard" onClick={() => setOpen(false)}>
+                    Dashboard
+                  </Link>
+
+                  <Link to="/profile" onClick={() => setOpen(false)}>
+                    Profile
+                  </Link>
+
+                  <Link to="/notifications" onClick={() => setOpen(false)}>
+                    Notifications
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    className="btn-outline"
+                  >
+                    Logout
+                  </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setOpen(false)} className="btn-outline text-center">Login</Link>
-                  <Link to="/register" onClick={() => setOpen(false)} className="btn-primary text-center">Sign Up</Link>
+                  <Link
+                    to="/login"
+                    onClick={() => setOpen(false)}
+                    className="btn-outline text-center"
+                  >
+                    Login
+                  </Link>
+
+                  <Link
+                    to="/register"
+                    onClick={() => setOpen(false)}
+                    className="btn-primary text-center"
+                  >
+                    Sign Up
+                  </Link>
                 </>
               )}
             </div>

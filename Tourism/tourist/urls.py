@@ -7,9 +7,12 @@ from rest_framework_simplejwt.views import (
 )
 
 from . import views, views_auth, views_ml, views_compat, views_osm, views_oauth
-from . import views_family_safety
-from . import views_images
 from .views import search_destination
+from translation.views_content import GenerateDestinationContentView
+from .views_itinerary import ItineraryViewSet, ItineraryStopVisitView
+from .restaurant import RestaurantViewSet, RestaurantSearchView
+from .field_verification import FieldVerificationTaskViewSet
+from .trip_feedback import TripFeedbackViewSet, TripFeedbackMediaViewSet
 
 
 router = DefaultRouter()
@@ -26,15 +29,35 @@ router.register("history", views.VisitHistoryViewSet, basename="history")
 router.register("budgets", views.BudgetViewSet, basename="budget")
 router.register("alerts", views.AlertViewSet, basename="alert")
 router.register("emergency-contacts", views.EmergencyContactViewSet, basename="emergency-contact")
-router.register("notifications", views.NotificationViewSet, basename="notification")
-router.register("trusted-contacts", views_family_safety.TrustedContactViewSet, basename="trusted-contact")
-router.register("trips", views_family_safety.SharedTripViewSet, basename="shared-trip")
-router.register("sos", views_family_safety.SOSAlertViewSet, basename="sos-alert")
-router.register("device-tokens", views.DeviceTokenViewSet, basename="device-token")
+# notifications, device-tokens moved to notifications.urls (mounted at api/v1/)
+# trusted-contacts, trips, sos moved to safety.urls (mounted at api/v1/safety/)
 router.register("hotels", views.HotelViewSet, basename="hotel")
+router.register("itineraries", ItineraryViewSet, basename="itinerary")
+router.register("restaurants", RestaurantViewSet, basename="restaurant")
+router.register("field-verification-tasks", FieldVerificationTaskViewSet, basename="field-verification-task")
+router.register("trip-feedback", TripFeedbackViewSet, basename="trip-feedback")
+router.register("trip-feedback-media", TripFeedbackMediaViewSet, basename="trip-feedback-media")
 
 
 auth_urlpatterns = [
+    path(
+        "restaurants/search/",
+        RestaurantSearchView.as_view(),
+        name="restaurant-search"
+    ),
+
+    path(
+        "itinerary-stops/<int:pk>/visit/",
+        ItineraryStopVisitView.as_view(),
+        name="itinerary-stop-visit"
+    ),
+
+    path(
+        "destinations/<slug:slug>/generate-content/",
+        GenerateDestinationContentView.as_view(),
+        name="destination-generate-content"
+    ),
+
 
     path("auth/register/", views_auth.RegisterView.as_view(), name="auth-register"),
 
@@ -171,11 +194,7 @@ urlpatterns = [
         name="config-public"
     ),
 
-    path(
-        "translate/",
-        views.TranslateTextView.as_view(),
-        name="translate-text"
-    ),
+    # translate/ moved to translation.urls (mounted at api/v1/)
 
     path(
         "places/osm-nearby/",
@@ -282,17 +301,7 @@ urlpatterns = [
         name="compat-weather-current"
     ),
 
-    path(
-        "images/resolve/",
-        views_images.ImageResolveView.as_view(),
-        name="image-resolve"
-    ),
-
-    path(
-        "trips/shared/<uuid:token>/",
-        views_family_safety.SharedTripPublicView.as_view(),
-        name="shared-trip-public"
-    ),
+    # images/resolve/ moved to media_app.urls; trips/shared/<token>/ moved to safety.urls
 
 
     path(

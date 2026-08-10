@@ -1,0 +1,48 @@
+/* admin.css */
+.admin-theme-purple-red {
+  background: linear-gradient(135deg, #180421 0%, #2d0836 50%, #480c35 100%);
+  color: #ffffff;
+}
+
+.admin-card-glass {
+  background: rgba(45, 8, 54, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 1.25rem;
+}
+
+.btn-admin-green {
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+.btn-admin-green:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-admin-red {
+  background: #e11d48;
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 4px 14px 0 rgba(225, 29, 72, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+.btn-admin-red:hover {
+  background: #be123c;
+  transform: translateY(-1px);
+}
+
+.btn-admin-gold {
+  background: #fbbf24;
+  color: #0f172a;
+  font-weight: 900;
+  box-shadow: 0 4px 14px 0 rgba(251, 191, 36, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+.btn-admin-gold:hover {
+  background: #f59e0b;
+  transform: translateY(-1px);
+}

@@ -10,20 +10,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .filters import DestinationFilter, AlertFilter, EmergencyContactFilter, BudgetFilter
+import difflib
+
 from .models import (
-    Language, Category, Destination, DestinationImage, DestinationVideo,
+    User, Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
-    Alert, EmergencyContact, Notification, DeviceToken, Hotel,
+    Alert, EmergencyContact, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
 )
-from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
+from .permissions import (
+    IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace,
+    IsRoleOrAbove, IsDistrictManagerForOwnDistrict,
+)
 from .serializers import (
     LanguageSerializer, CategorySerializer, DestinationListSerializer,
     DestinationDetailSerializer, DestinationWriteSerializer, DestinationApprovalSerializer,
     DestinationImageSerializer, DestinationVideoSerializer, DestinationTranslationSerializer,
     ReviewSerializer, RatingSerializer, FavoriteSerializer, VisitHistorySerializer, BudgetSerializer,
-    AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
-    NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
+    AlertSerializer, EmergencyContactSerializer,
+    NearbyDestinationQuerySerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer,
 )
 from .utils import (
@@ -150,6 +155,44 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
             return DestinationApprovalSerializer
         return DestinationDetailSerializer
 
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
+    def autocomplete(self, request):
+        """
+        GET /destinations/autocomplete/?q=pokara
+        Typo-tolerant search using stdlib difflib (not a Postgres-only
+        trigram extension -- this project supports both sqlite and
+        postgres via DB_ENGINE in .env).
+        """
+        query = request.query_params.get("q", "").strip()
+        if len(query) < 2:
+            return Response([])
+
+        base_qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED
+        ).only("id", "name", "slug", "city")
+
+        substring_matches = list(
+            base_qs.filter(Q(name__icontains=query) | Q(city__icontains=query))[:10]
+        )
+        matched_ids = {d.id for d in substring_matches}
+
+        remaining_slots = 10 - len(substring_matches)
+        fuzzy_matches = []
+        if remaining_slots > 0:
+            all_names = base_qs.exclude(id__in=matched_ids).values("id", "name", "slug", "city")
+            name_to_obj = {d["name"]: d for d in all_names}
+            close_names = difflib.get_close_matches(query, name_to_obj.keys(), n=remaining_slots, cutoff=0.6)
+            fuzzy_matches = [name_to_obj[n] for n in close_names]
+
+        results = [
+            {"id": d.id, "name": d.name, "slug": d.slug, "city": d.city, "match_type": "exact"}
+            for d in substring_matches
+        ] + [
+            {"id": d["id"], "name": d["name"], "slug": d["slug"], "city": d["city"], "match_type": "fuzzy"}
+            for d in fuzzy_matches
+        ]
+        return Response(results)
+
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
@@ -237,7 +280,10 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         translation.save()
         return Response(DestinationTranslationSerializer(translation).data)
 
-    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    @action(
+        detail=True, methods=["post"],
+        permission_classes=[IsRoleOrAbove(User.Role.CONTENT_MODERATOR), IsDistrictManagerForOwnDistrict],
+    )
     def approve(self, request, slug=None):
         """Admin-only: approve or reject a tourist-submitted place."""
         destination = self.get_object()
@@ -366,7 +412,7 @@ class HotelViewSet(viewsets.ModelViewSet):
 
     queryset = Hotel.objects.select_related("destination")
     serializer_class = HotelSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsRoleOrAbove(User.Role.HOTEL_MANAGER)]
     filterset_fields = ["destination", "booking_status", "source"]
     ordering_fields = ["price_per_night", "rating"]
     search_fields = ["name", "address"]
@@ -480,7 +526,7 @@ class AlertViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
 class EmergencyContactViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
     queryset = EmergencyContact.objects.all()
     serializer_class = EmergencyContactSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsRoleOrAbove(User.Role.EMERGENCY_OPERATOR)]
     filterset_class = EmergencyContactFilter
     search_fields = ["name", "city", "address"]
 
@@ -515,41 +561,7 @@ class EmergencyContactViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                           mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    serializer_class = NotificationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ["channel", "is_read"]
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Notification.objects.none()
-        return Notification.objects.filter(user=self.request.user)
-
-    @action(detail=True, methods=["post", "put"])
-    def mark_read(self, request, pk=None):
-        notification = self.get_object()
-        notification.is_read = True
-        notification.save(update_fields=["is_read"])
-        return Response(self.get_serializer(notification).data)
-
-    @action(detail=False, methods=["post"])
-    def mark_all_read(self, request):
-        self.get_queryset().update(is_read=True)
-        return Response({"message": "All notifications marked as read."})
-
-
-class DeviceTokenViewSet(viewsets.ModelViewSet):
-    serializer_class = DeviceTokenSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return DeviceToken.objects.none()
-        return DeviceToken.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+# NotificationViewSet, DeviceTokenViewSet moved to notifications/views.py
 
 
 class OSMNearbyPlacesView(APIView):
@@ -624,26 +636,3 @@ class HotelSearchView(generics.ListAPIView):
             )
             .select_related("destination")[:20]
         )
-
-
-class HotelSearchView(generics.ListAPIView):
-    """
-    GET /api/v1/hotels/search/?query=Pokhara
-    GET /api/v1/hotels/search/?query=Lakeside
-
-    Searches the real Hotel table (not the ml_service CSV) so results
-    carry a real Hotel.id that BookHotel.jsx can book against directly.
-    """
-    serializer_class = HotelSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        query = self.request.query_params.get("query", "").strip()
-        if not query:
-            return Hotel.objects.none()
-        return Hotel.objects.filter(
-            Q(name__icontains=query)
-            | Q(destination__name__icontains=query)
-            | Q(destination__city__icontains=query)
-            | Q(address__icontains=query)
-        ).select_related("destination")[:20]

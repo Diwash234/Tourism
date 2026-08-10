@@ -14,6 +14,7 @@ import MapView from "../../components/map/MapView"
 import WeatherCard from "../../components/cards/WeatherCard"
 import HotelCard from "../../components/cards/HotelCard"
 import PlaceholderImage from "../../components/common/PlaceholderImage"
+import DestinationGallery from "./DestinationGallery"
 import Loader from "../../components/common/Loader"
 import useGeolocation from "../../hooks/useGeolocation"
 
@@ -52,25 +53,29 @@ const DestinationDetails = () => {
     Promise.allSettled([
       destinationApi.getById(slug, params),
       destinationApi.getEssentials(slug, params),
-      // FIXED: was `budgetApi.estimate({ destinationId: slug, ... })` —
-      // `destinationId` isn't a field the backend's
-      // BudgetPredictionRequestSerializer recognizes at all (it's
-      // `destination`), so this always silently estimated for a generic
-      // trip instead of this specific place.
-      budgetApi.estimate({ destination: slug, travelers: 1, days: 3 }),
-    ]).then(([destRes, essentialsRes, budgetRes]) => {
+    ]).then(([destRes, essentialsRes]) => {
       if (destRes.status === "fulfilled") {
-        setDestination(destRes.value.data)
+        const dest = destRes.value.data
+        setDestination(dest)
+
+        // FIXED: this used to send `destination: slug` (e.g.
+        // "pokhara-lakeside") -- the backend's `destination` field is a
+        // PrimaryKeyRelatedField expecting a real numeric ID, not a
+        // slug string, so this could never resolve to the actual place.
+        // Fetched AFTER the destination loads specifically so the real
+        // `dest.id` is available -- can't be parallelized with the
+        // request above for that reason.
+        budgetApi
+          .estimate({ destination: dest.id, travelers: 1, days: 3 })
+          .then((budgetRes) => {
+            setBudget({
+              total: budgetRes.data.total_budget_usd ?? budgetRes.data.estimated_total ?? budgetRes.data.total ?? 0,
+            })
+          })
+          .catch(() => setBudget(null))
       }
       if (essentialsRes?.status === "fulfilled") {
         setEssentials(essentialsRes.value.data)
-      }
-      if (budgetRes.status === "fulfilled") {
-        // FIXED: the ML response field is `total_budget_usd`, not
-        // `total` — this always rendered "$0" before.
-        setBudget({
-          total: budgetRes.value.data.total_budget_usd ?? budgetRes.value.data.total ?? 0,
-        })
       }
     }).finally(() => setLoading(false))
   }, [slug, position])
@@ -141,38 +146,18 @@ const DestinationDetails = () => {
 
   return (
     <div className="container-app py-10 fade-in">
-      {/* Images */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-8 rounded-xl2 overflow-hidden">
-        {destination.cover_image_url ? (
-          <img
-            src={destination.cover_image_url}
-            alt={destination.name}
-            className="lg:col-span-2 h-80 w-full object-cover"
-          />
-        ) : (
-          <PlaceholderImage seed={destination.id} className="lg:col-span-2 h-80 w-full" iconSize={40} />
-        )}
-        <div className="grid grid-rows-2 gap-3">
-          {destination.gallery?.[0]?.image || destination.gallery?.[0]?.external_url ? (
-            <img
-              src={destination.gallery[0].image || destination.gallery[0].external_url}
-              alt="gallery"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <PlaceholderImage seed={destination.id + 1} className="h-full w-full" />
-          )}
-          {destination.gallery?.[1]?.image || destination.gallery?.[1]?.external_url ? (
-            <img
-              src={destination.gallery[1].image || destination.gallery[1].external_url}
-              alt="gallery"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <PlaceholderImage seed={destination.id + 2} className="h-full w-full" />
-          )}
-        </div>
-      </div>
+      {/* Images -- FIXED: this used to hardcode gallery[0] and gallery[1]
+          only, showing exactly 2 photos max no matter how many actually
+          existed in destination.gallery. Now renders every image that's
+          actually there (up to 6 in the grid, with a "+N more" tile and
+          a lightbox for the rest), so a destination with 5-10 real
+          uploaded/verified photos actually shows them. */}
+      <DestinationGallery
+        coverImageUrl={destination.cover_image_url}
+        gallery={destination.gallery || []}
+        destinationId={destination.id}
+        destinationName={destination.name}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
@@ -286,6 +271,28 @@ const DestinationDetails = () => {
             <p className="text-sm text-gray-500 mt-2">
               {activeAlert?.title || activeAlert?.description || "No active risk advisory"}
             </p>
+
+            {/* NEW: baseline place-level risk data from risk_features.csv
+                (landslide/avalanche/flood/earthquake counts) -- was
+                fetched by the backend but never surfaced here at all;
+                this is separate from the active-alert box above (that's
+                real-time, this is historical/statistical). */}
+            {destination.risk_summary && (
+              <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
+                {destination.risk_summary.landslide != null && (
+                  <span className="text-gray-500">⛰️ Landslide: <b>{destination.risk_summary.landslide}</b></span>
+                )}
+                {destination.risk_summary.avalanche != null && (
+                  <span className="text-gray-500">🌨️ Avalanche: <b>{destination.risk_summary.avalanche}</b></span>
+                )}
+                {destination.risk_summary.flood != null && (
+                  <span className="text-gray-500">🌊 Flood: <b>{destination.risk_summary.flood}</b></span>
+                )}
+                {destination.risk_summary.earthquake_damage != null && (
+                  <span className="text-gray-500">🏚️ Earthquake: <b>{destination.risk_summary.earthquake_damage}</b></span>
+                )}
+              </div>
+            )}
           </motion.div>
 
           <div className="card-base p-5">
@@ -322,6 +329,34 @@ const DestinationDetails = () => {
               <p className="text-sm text-gray-500">Police: 100 · Ambulance: 102 · Fire: 101</p>
             )}
           </div>
+
+          {/* NEW: nearest hospital/police/tourism office etc., ALWAYS
+              shown (not gated behind an active disaster alert like the
+              card above) -- this was the actual gap: "no hospital/
+              police shown" because the existing card only populates
+              during an active alert. */}
+          {destination.nearby_emergency_services?.length > 0 && (
+            <div className="card-base p-5">
+              <h3 className="font-semibold mb-3 flex gap-2 items-center">
+                <FiPhoneCall /> Nearby Emergency Services
+              </h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                {destination.nearby_emergency_services.map((s) => (
+                  <li key={`${s.contact_type}-${s.name}`} className="flex justify-between items-center">
+                    <div>
+                      <p className="capitalize">{s.name}</p>
+                      <p className="text-xs text-gray-400 capitalize">{s.contact_type.replace("_", " ")} · {s.distance_km} km</p>
+                    </div>
+                    {s.phone_number && (
+                      <a href={`tel:${s.phone_number}`} className="text-himalaya-500 font-medium shrink-0 ml-2">
+                        {s.phone_number}
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <button
             onClick={() => navigate(`/translation?place=${encodeURIComponent(destination.name)}`)}

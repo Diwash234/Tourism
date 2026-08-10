@@ -18,16 +18,26 @@ const NearbyPlaces = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!position) return
+    if (!position) {
+      setLoading(false)
+      return
+    }
 
+    setLoading(true)
     nearbyApi
       .getNearbyPlaces({
         lat: position.lat,
         lng: position.lng,
-        radius: 5000,
+        radius: 30000,
       })
-      .then(({ data }) => setPlaces(data.items || data || []))
-      .catch(() => setPlaces([]))
+      .then(({ data }) => {
+        const list = data.items || data.results || data || []
+        setPlaces(Array.isArray(list) ? list : [])
+      })
+      .catch((error) => {
+        console.log(error)
+        setPlaces([])
+      })
       .finally(() => setLoading(false))
   }, [position])
 

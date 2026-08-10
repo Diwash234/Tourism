@@ -5,8 +5,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, Language, Category, Destination, DestinationTranslation,
     DestinationImage, DestinationVideo, Review, Rating, Favorite,
-    VisitHistory, Budget, Alert, EmergencyContact, Notification,
-    DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
+    VisitHistory, Budget, Alert, EmergencyContact,
+    EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
     OSMEssentialService, OSMTourismPlace,
 )
 
@@ -165,13 +165,7 @@ class EmergencyContactAdmin(admin.ModelAdmin):
     search_fields = ["name", "city", "designation"]
 
 
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = ["user", "channel", "title", "is_read", "is_sent", "created_at"]
-    list_filter = ["channel", "is_read", "is_sent"]
-
-
-admin.site.register(DeviceToken)
+# Notification/DeviceToken admin now in notifications/admin.py
 admin.site.register(EmailVerificationToken)
 admin.site.register(PasswordResetToken)
 

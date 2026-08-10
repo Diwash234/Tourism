@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react"
 
 import configApi from "../../api/configApi"
+import MapillaryImages from "./MapillaryImages"
 import {
   MAP_TILE_URL,
   MAPILLARY_ACCESS_TOKEN,
@@ -249,7 +250,12 @@ const MapView = ({
             >
 
               <Popup>
-                {dest.name}
+                <div className="min-w-[160px]">
+                  <p className="font-semibold text-sm mb-2">{dest.name}</p>
+                  {/* Mapillary street imagery (uses VITE_MAPILLARY_ACCESS_TOKEN
+                      from env / backend public config) */}
+                  <MapillaryImages latitude={dest.lat} longitude={dest.lng} limit={3} />
+                </div>
               </Popup>
 
             </Marker>

@@ -7,6 +7,9 @@ from django.contrib.auth.base_user import BaseUserManager
 class DestinationFilter(df.FilterSet):
     category = df.CharFilter(field_name="category__slug", lookup_expr="iexact")
     city = df.CharFilter(field_name="city", lookup_expr="icontains")
+    city_english = df.CharFilter(field_name="city_english", lookup_expr="icontains")
+    district = df.CharFilter(field_name="district", lookup_expr="icontains")
+    province = df.CharFilter(field_name="province", lookup_expr="icontains")
     country = df.CharFilter(field_name="country", lookup_expr="icontains")
     min_rating = df.NumberFilter(field_name="average_rating", lookup_expr="gte")
     max_entry_fee = df.NumberFilter(field_name="entry_fee", lookup_expr="lte")
@@ -14,7 +17,7 @@ class DestinationFilter(df.FilterSet):
 
     class Meta:
         model = Destination
-        fields = ["category", "city", "country", "min_rating", "max_entry_fee", "is_active", "featured"]
+        fields = ["category", "city", "city_english", "district", "province", "country", "min_rating", "max_entry_fee", "is_active", "featured"]
 
     def filter_featured(self, queryset, name, value):
         """?featured=true -> highly-rated destinations, for homepage widgets."""

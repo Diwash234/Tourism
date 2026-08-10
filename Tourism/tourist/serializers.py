@@ -18,15 +18,16 @@ from .models import (
     Budget,
     Alert,
     EmergencyContact,
-    Notification,
-    DeviceToken,
     MLInsight,
     Hotel,
     OSMEssentialService,
     OSMTourismPlace,
     DestinationAuditLog,
 )
-from .utils import haversine_distance, ensure_cover_photo, bounding_box
+from .utils import (
+    haversine_distance, ensure_cover_photo, bounding_box, queue_cover_photo_fetch,
+    get_local_risk_summary, get_nearby_emergency_services,
+)
 
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -280,11 +281,13 @@ class DestinationListSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
         if not cover:
-            # No local photo yet — fetch + permanently cache one from
-            # Unsplash/Wikimedia (only happens once per destination; see
-            # utils.py::ensure_cover_photo). This is what makes images show
-            # up in search/list results, not just the dedicated /photos/ endpoint.
-            cover = ensure_cover_photo(obj)
+            # PERF FIX: this used to call ensure_cover_photo() directly,
+            # blocking the whole request on live Unsplash/Wikimedia calls
+            # -- across a list page, this caused multi-minute loads.
+            # queue_cover_photo_fetch() returns immediately; the photo
+            # appears on the next request once the background fetch
+            # completes.
+            queue_cover_photo_fetch(obj)
         if cover:
             if cover.image:
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
@@ -334,6 +337,8 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     translations = DestinationTranslationSerializer(many=True, read_only=True)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     distance_km = serializers.SerializerMethodField()
+    risk_summary = serializers.SerializerMethodField()
+    nearby_emergency_services = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
@@ -343,6 +348,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "entry_fee", "contact_phone", "contact_email", "website", "average_rating", "ratings_count",
             "views_count", "created_by", "created_by_name", "is_user_submitted", "status", "review_note",
             "is_active", "created_at", "updated_at", "gallery", "videos", "reviews", "translations", "distance_km",
+            "risk_summary", "nearby_emergency_services",
         ]
         read_only_fields = [
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
@@ -356,12 +362,20 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
         if not cover:
-            cover = ensure_cover_photo(obj)
+            queue_cover_photo_fetch(obj)
         if cover:
             if cover.image:
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
             return cover.external_url or None
         return None
+
+    def get_risk_summary(self, obj):
+        """Real landslide/avalanche/flood/earthquake data from risk_features.csv."""
+        return get_local_risk_summary(obj)
+
+    def get_nearby_emergency_services(self, obj):
+        """Nearest hospital/police/tourism office etc., always shown (not gated behind an active alert)."""
+        return get_nearby_emergency_services(obj)
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
@@ -469,10 +483,7 @@ class NearbyDestinationQuerySerializer(serializers.Serializer):
     radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=500)
 
 
-class TranslateRequestSerializer(serializers.Serializer):
-    text = serializers.CharField()
-    target_language = serializers.CharField(max_length=10)
-    source_language = serializers.CharField(max_length=10, required=False, default="auto")
+# TranslateRequestSerializer moved to translation/serializers.py
 
 
 
@@ -616,21 +627,7 @@ def get_distance_km(self, obj):
 
 
 
-# ---------------------------------------------------------------------------
-# Notifications
-# ---------------------------------------------------------------------------
-class NotificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Notification
-        fields = ["id", "channel", "title", "message", "is_read", "is_sent", "related_alert", "created_at"]
-        read_only_fields = ["channel", "title", "message", "is_sent", "related_alert", "created_at"]
-
-
-class DeviceTokenSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DeviceToken
-        fields = ["id", "token", "platform", "created_at"]
-        read_only_fields = ["created_at"]
+# NotificationSerializer, DeviceTokenSerializer moved to notifications/serializers.py
 
 
 # ---------------------------------------------------------------------------

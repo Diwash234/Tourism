@@ -19,9 +19,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api import hotel
-from api import risk, budget, routes, images, translation, recommendation, emergency
+from api import risk, budget, routes, images, translation, recommendation, emergency, itinerary
 
 load_dotenv()
+
+# FIX: the log file handler below needs the directory to exist; the old
+# code crashed with FileNotFoundError on a fresh clone (only the Docker
+# image created it via `RUN mkdir -p logs`).
+os.makedirs("logs", exist_ok=True)
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -78,6 +83,7 @@ app.include_router(images.router, prefix="/images", tags=["images"])
 app.include_router(translation.router, prefix="/translation", tags=["translation"])
 app.include_router(recommendation.router, prefix="/recommendation", tags=["recommendation"])
 app.include_router(emergency.router, prefix="/emergency", tags=["emergency"])
+app.include_router(itinerary.router, prefix="/itinerary", tags=["itinerary"])
 app.include_router(
     hotel.router,
     prefix="/hotel"
