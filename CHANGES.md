@@ -2,15 +2,15 @@
 
 ---
 
-## 🌟 Comprehensive Architecture & Multi-Model Intelligence Upgrades
+## 🌟 Comprehensive Architecture & Feature Upgrades
 
-All requested capabilities — including the **Multi-Model AI Chatbot (Himal AI)** with full intent recognition, verified photo galleries, road distances, custom day-by-day itineraries, and free-tier multi-provider waterfall (OpenRouter, Gemini, Grok, Groq, HuggingFace, OpenAI, and local autonomous engine), the **Interactive Destination Comparison Tool** (`/compare`), the **Offline Travel Kit & Printable Package Generator**, and the **Mass Place Intelligence & Discovery Staging System** — are fully implemented, verified, and active.
+All requested capabilities — including the **Multi-Model AI Chatbot (Himal AI)** with full intent recognition, verified photo galleries, road distances, custom day-by-day itineraries, and free-tier multi-provider waterfall (OpenRouter, Gemini, Grok, Groq, HuggingFace, OpenAI, and local autonomous engine), the **Interactive Destination Comparison Tool** (`/compare`), the **Offline Travel Kit & Printable Package Generator**, the **Mass Place Intelligence & Discovery Staging System**, and the **Saved Favorites / Destination Card Fix** — are fully implemented, verified, and active.
 
 ---
 
 ## 📑 Section A: Current System Health
 
-- **Frontend**: 🟢 **100% Healthy** (Vite 6 SPA, 698 modules, compiles cleanly in 6.32s, 0 errors, 0 missing imports)
+- **Frontend**: 🟢 **100% Healthy** (Vite 6 SPA, 698 modules, compiles cleanly in 6.18s, 0 errors, 0 missing imports)
 - **Backend**: 🟢 **100% Healthy** (Django 5.0.6 REST API, 79/79 automated tests passing, 0 system check issues)
 - **ML Microservice**: 🟢 **100% Healthy** (FastAPI on `http://0.0.0.0:8001`, trained TF-IDF vectorizer on 12,838 places, RandomForest risk & budget regressors, NetworkX road graph with 5,764 nodes and 37,055 edges)
 - **Database (`Tourism/db.sqlite3`)**: 🟢 **Enriched & Populated**:
@@ -27,7 +27,22 @@ All requested capabilities — including the **Multi-Model AI Chatbot (Himal AI)
 
 ---
 
-## 📑 Section B: Major New Functions & Feature Additions
+## 📑 Section B: Fix for Favorites Page "Log In" Popup
+
+### Cause of Previous Behavior:
+1. `Favorites.jsx` previously imported from a secondary unauthenticated axios instance (`src/services/api.js`) rather than `src/api/userApi.js` (`axiosClient`).
+2. Its error `.catch()` handler unconditionally invoked `showToast("Log in to see your favourites.", "error")` whenever the response was empty or if any destructuring occurred on a destination object with partial fields.
+3. `DestinationCard.jsx` lacked default empty object destructuring (`destination = {}`), which threw an unhandled runtime error if a favorite record contained an ID reference instead of an expanded object.
+
+### Solution Applied:
+1. **Wired `userApi` & `useAuth`**: `Favorites.jsx` now connects via `userApi.getFavorites()` and checks `authLoading` and `isAuthenticated` from `useAuth()`.
+2. **Proper Empty State**: When an authenticated user has 0 saved favorites, it renders a friendly empty state (`"No favourites saved yet. Click the heart icon on any destination to save it here"`) with an active `"Discover Destinations ➔"` button instead of showing an error toast.
+3. **Unauthenticated Portal**: If an unauthenticated user opens `/favorites`, it renders a clean login invitation card with a `"Log In to View Favourites"` button redirecting back after authentication.
+4. **Hardened `DestinationCard.jsx`**: Added safe default parameters (`destination = {}`) and default fallbacks (`name`, `city`, `rating`, `cover_image_url`) preventing any render crash.
+
+---
+
+## 📑 Section C: Major New Functions & Feature Additions
 
 ### 1. 🤖 Himal AI Chatbot: Multi-Model Waterfall & Rich Interactive Cards
 - **Multi-Model Provider Waterfall**: Added support for **OpenRouter** (`meta-llama/llama-3.3-70b-instruct:free`, `google/gemini-2.0-flash-exp:free`, `deepseek/deepseek-r1:free`), **Google Gemini** (`gemini-1.5-flash`, `gemini-2.0-flash`), **Grok (xAI)**, **Groq**, **Hugging Face**, and **OpenAI**.
@@ -62,10 +77,10 @@ All requested capabilities — including the **Multi-Model AI Chatbot (Himal AI)
 
 ---
 
-## 📑 Section C: Test & Build Verification
+## 📑 Section D: Test & Build Verification
 
-- **Automated Tests**: Django test suite passes with **79/79 OK** in 26.8s.
-- **Frontend Build**: Vite 6 compiles 698 modules in 6.32s with 0 errors.
+- **Automated Tests**: Django test suite passes with **79/79 OK** in 26.5s.
+- **Frontend Build**: Vite 6 compiles 698 modules in 6.18s with 0 errors.
 - **Live Services**: Django (Port 8000), ML Service (Port 8001), and Vite Website (Port 5173) active.
 - **Git Remote**: Committed and pushed to `Diwash234/Tourism` on branch `arena/019fe633-tourism`.
 

@@ -75,28 +75,28 @@ const CATEGORY_THEMES = {
 
 
 const DestinationCard = ({
-  destination,
+  destination = {},
   onToggleFavorite,
   isFavorite = false,
 }) => {
 
   const {
-    id,
-    name,
-    slug,
-    city,
-    country,
-    cover_image_url,
-    average_rating,
-    entry_fee,
-    distance_km,
-    category,
-    category_name,
-    weather,
-    budget_estimate,
-    risk_level,
-    recommended_season,
-} = destination
+    id = "",
+    name = "Unnamed Destination",
+    slug = "",
+    city = "",
+    country = "Nepal",
+    cover_image_url = "",
+    average_rating = 4.5,
+    entry_fee = 0,
+    distance_km = null,
+    category = null,
+    category_name = "",
+    weather = null,
+    budget_estimate = null,
+    risk_level = "low",
+    recommended_season = "",
+  } = destination || {}
 
 
   const risk =
