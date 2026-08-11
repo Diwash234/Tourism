@@ -34,6 +34,14 @@ const adminApi = {
 
   getAlerts: (params) => axiosClient.get("/alerts/", { params }),
   createAlert: (payload) => axiosClient.post("/alerts/", payload),
+
+  // Place Intelligence & Mass Discovery API
+  getDiscoveryHealthReport: () => axiosClient.get("/admin/discovery/health-report/"),
+  getDiscoveryStats: () => axiosClient.get("/admin/discovery/stats/"),
+  getCandidates: (params) => axiosClient.get("/admin/discovery/candidates/", { params }),
+  runDiscoveryBatch: (payload) => axiosClient.post("/admin/discovery/run-batch/", payload),
+  candidateAction: (id, payload) => axiosClient.post(`/admin/discovery/candidates/${id}/action/`, payload),
+  candidateBulkAction: (payload) => axiosClient.post("/admin/discovery/bulk-action/", payload),
 }
 
 export default adminApi

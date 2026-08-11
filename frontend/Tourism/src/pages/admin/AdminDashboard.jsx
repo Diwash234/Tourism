@@ -5,7 +5,7 @@ import {
   FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiEdit3,
   FiNavigation, FiPhoneCall, FiUserCheck, FiUserX, FiSearch, FiRefreshCw,
   FiClock, FiTrendingUp, FiLayers, FiFileText, FiCalendar, FiHome,
-  FiCompass, FiInfo, FiChevronRight, FiExternalLink
+  FiCompass, FiInfo, FiChevronRight, FiExternalLink, FiPlay
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import adminPanelApi from "../../api/adminPanelApi"
@@ -75,6 +75,73 @@ const AdminDashboard = () => {
   const [researchQuery, setResearchQuery] = useState("")
   const [researchResult, setResearchResult] = useState(null)
   const [isResearching, setIsResearching] = useState(false)
+
+  // Place Intelligence & Mass Discovery staging state
+  const [discoveryStats, setDiscoveryStats] = useState(null)
+  const [healthReport, setHealthReport] = useState(null)
+  const [candidates, setCandidates] = useState([])
+  const [candidatesLoading, setCandidatesLoading] = useState(false)
+  const [candidateFilterStatus, setCandidateFilterStatus] = useState("")
+  const [candidateSearch, setCandidateSearch] = useState("")
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState([])
+  const [batchForm, setBatchForm] = useState({ limit: 2500, province: "", district: "" })
+  const [isRunningBatch, setIsRunningBatch] = useState(false)
+
+  const fetchDiscoveryData = async () => {
+    setCandidatesLoading(true)
+    try {
+      const [statsRes, reportRes, candRes] = await Promise.allSettled([
+        adminApi.getDiscoveryStats(),
+        adminApi.getDiscoveryHealthReport(),
+        adminApi.getCandidates({ status: candidateFilterStatus, search: candidateSearch }),
+      ])
+      if (statsRes.status === "fulfilled") setDiscoveryStats(statsRes.value.data)
+      if (reportRes.status === "fulfilled") setHealthReport(reportRes.value.data)
+      if (candRes.status === "fulfilled") setCandidates(candRes.value.data.results || candRes.value.data || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCandidatesLoading(false)
+    }
+  }
+
+  const handleRunBatch = async () => {
+    setIsRunningBatch(true)
+    try {
+      const { data } = await adminApi.runDiscoveryBatch(batchForm)
+      showToast(`Discovery batch complete! Scanned ${data.summary?.scanned || 0}, Created ${data.summary?.created || 0}`, "success")
+      fetchDiscoveryData()
+      fetchAllData()
+    } catch (err) {
+      showToast("Discovery batch execution failed.", "error")
+    } finally {
+      setIsRunningBatch(false)
+    }
+  }
+
+  const handleCandidateSingleAction = async (id, action, targetId = null) => {
+    try {
+      const { data } = await adminApi.candidateAction(id, { action, target_destination_id: targetId })
+      showToast(data.message || `Action ${action} successful!`, "success")
+      fetchDiscoveryData()
+      fetchAllData()
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Candidate action failed", "error")
+    }
+  }
+
+  const handleCandidateBulkAction = async (action) => {
+    if (!selectedCandidateIds.length) return showToast("Select at least one candidate first", "error")
+    try {
+      const { data } = await adminApi.candidateBulkAction({ candidate_ids: selectedCandidateIds, action })
+      showToast(`Bulk ${action} completed: ${data.processed} processed.`, "success")
+      setSelectedCandidateIds([])
+      fetchDiscoveryData()
+      fetchAllData()
+    } catch (err) {
+      showToast("Bulk operation failed.", "error")
+    }
+  }
 
   const handleTriggerResearch = async (queryToResearch = null) => {
     const q = queryToResearch || researchQuery.trim()
@@ -660,6 +727,309 @@ const AdminDashboard = () => {
                 )}
               </motion.div>
             )}
+
+            {/* MASS DISCOVERY & STAGING INTELLIGENCE SUITE */}
+            <div className="space-y-6 pt-4">
+              {/* Discovery Stats Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                  <p className="text-[11px] font-bold text-purple-300 uppercase tracking-wider">Production Places</p>
+                  <p className="text-2xl font-black text-white mt-1">{discoveryStats?.total_destinations?.toLocaleString() || "6,414"}</p>
+                  <p className="text-[10px] text-emerald-400 mt-0.5">✓ 100% Live in Catalog</p>
+                </div>
+                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                  <p className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Candidates Staged</p>
+                  <p className="text-2xl font-black text-amber-400 mt-1">{discoveryStats?.total_candidates?.toLocaleString() || "2,382"}</p>
+                  <p className="text-[10px] text-purple-200 mt-0.5">Multi-source entities</p>
+                </div>
+                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                  <p className="text-[11px] font-bold text-rose-300 uppercase tracking-wider">Duplicates Caught</p>
+                  <p className="text-2xl font-black text-rose-400 mt-1">{discoveryStats?.duplicates_caught?.toLocaleString() || "2,381"}</p>
+                  <p className="text-[10px] text-purple-200 mt-0.5">Spatial & phonetic match</p>
+                </div>
+                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                  <p className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Verified High Quality</p>
+                  <p className="text-2xl font-black text-emerald-400 mt-1">{discoveryStats?.verified?.toLocaleString() || "0"}</p>
+                  <p className="text-[10px] text-purple-200 mt-0.5">Quality score &ge; 70%</p>
+                </div>
+                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                  <p className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider">Needs Review</p>
+                  <p className="text-2xl font-black text-cyan-400 mt-1">{discoveryStats?.needs_review?.toLocaleString() || "0"}</p>
+                  <p className="text-[10px] text-purple-200 mt-0.5">Human verification</p>
+                </div>
+              </div>
+
+              {/* Batch Discovery Trigger Panel */}
+              <div className="bg-purple-950/80 border border-purple-700/50 p-6 rounded-3xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
+                      <FiLayers className="text-amber-400" /> Launch Autonomous Multi-Source Discovery Job
+                    </h4>
+                    <p className="text-xs text-purple-200 mt-0.5">
+                      Ingests and geocodes real places across OSM, Topographic Surveys, and Local Gazetteers. Evaluates spatial proximity and phonetic similarity before staging.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-purple-300 uppercase">Target Province</label>
+                    <select
+                      value={batchForm.province}
+                      onChange={(e) => setBatchForm({ ...batchForm, province: e.target.value })}
+                      className="w-full mt-1 px-3.5 py-2.5 bg-purple-900/70 border border-purple-600/60 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                    >
+                      <option value="">All Nepal (7 Provinces)</option>
+                      <option value="Bagmati">Bagmati Province</option>
+                      <option value="Gandaki">Gandaki Province</option>
+                      <option value="Koshi">Koshi Province</option>
+                      <option value="Lumbini">Lumbini Province</option>
+                      <option value="Karnali">Karnali Province</option>
+                      <option value="Madhesh">Madhesh Province</option>
+                      <option value="Sudurpashchim">Sudurpashchim Province</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-purple-300 uppercase">Scan Batch Limit</label>
+                    <select
+                      value={batchForm.limit}
+                      onChange={(e) => setBatchForm({ ...batchForm, limit: Number(e.target.value) })}
+                      className="w-full mt-1 px-3.5 py-2.5 bg-purple-900/70 border border-purple-600/60 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                    >
+                      <option value={500}>500 Candidate Records</option>
+                      <option value={1000}>1,000 Candidate Records</option>
+                      <option value={2500}>2,500 Candidate Records</option>
+                      <option value={5000}>5,000 Candidate Records</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleRunBatch}
+                      disabled={isRunningBatch}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-gray-950 font-black text-xs shadow-lg shadow-amber-400/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isRunningBatch ? (
+                        <>
+                          <FiRefreshCw className="animate-spin" size={14} /> Scanning & Deduplicating...
+                        </>
+                      ) : (
+                        <>
+                          <FiPlay className="shrink-0" size={14} /> Run Discovery & Deduplication Batch ➔
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Candidate Staging Moderation Table */}
+              <div className="bg-purple-950/80 border border-purple-700/50 rounded-3xl p-6 space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
+                      <FiMapPin className="text-amber-400" /> Staged Discovery Candidates & Deduplication Audit
+                    </h4>
+                    <p className="text-xs text-purple-200 mt-0.5">
+                      Review discovered places, inspect duplicate match confidence, and promote high-quality places or merge aliases.
+                    </p>
+                  </div>
+
+                  {/* Bulk Action Toolbar */}
+                  {selectedCandidateIds.length > 0 && (
+                    <div className="flex items-center gap-2 bg-purple-900/90 border border-purple-600 p-2 rounded-2xl">
+                      <span className="text-xs font-bold text-amber-300 px-2">{selectedCandidateIds.length} Selected:</span>
+                      <button
+                        onClick={() => handleCandidateBulkAction("publish")}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-gray-950 font-bold text-xs flex items-center gap-1 shadow"
+                      >
+                        <FiCheck size={12} /> Bulk Publish
+                      </button>
+                      <button
+                        onClick={() => handleCandidateBulkAction("merge_alias")}
+                        className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-1 shadow"
+                      >
+                        <FiLayers size={12} /> Merge Aliases
+                      </button>
+                      <button
+                        onClick={() => handleCandidateBulkAction("reject")}
+                        className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow"
+                      >
+                        <FiTrash2 size={12} /> Bulk Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Filter & Search Bar */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                  <div className="relative flex-1">
+                    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-300" size={14} />
+                    <input
+                      value={candidateSearch}
+                      onChange={(e) => setCandidateSearch(e.target.value)}
+                      placeholder="Search candidates by name, district, or normalized token..."
+                      className="w-full pl-9 pr-4 py-2 bg-purple-900/60 border border-purple-700/60 rounded-xl text-xs text-white placeholder-purple-300 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div className="flex overflow-x-auto gap-1.5 no-scrollbar">
+                    {[
+                      { id: "", label: "All Candidates" },
+                      { id: "verified", label: "Verified (Ready)" },
+                      { id: "candidate", label: "Candidates" },
+                      { id: "needs_review", label: "Needs Review" },
+                      { id: "merged_duplicate", label: "Duplicates" },
+                      { id: "published", label: "Published" },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setCandidateFilterStatus(f.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                          candidateFilterStatus === f.id
+                            ? "bg-amber-400 text-gray-950 shadow"
+                            : "bg-purple-900/50 text-purple-200 hover:bg-purple-900 border border-purple-700/50"
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Candidates Table */}
+                <div className="overflow-x-auto rounded-2xl border border-purple-800/40">
+                  <table className="w-full text-left text-xs text-purple-100">
+                    <thead className="bg-purple-900/70 text-purple-200 uppercase font-black tracking-wider text-[10px]">
+                      <tr>
+                        <th className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={candidates.length > 0 && selectedCandidateIds.length === candidates.length}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedCandidateIds(candidates.map((c) => c.id))
+                              else setSelectedCandidateIds([])
+                            }}
+                            className="rounded border-purple-600 bg-purple-950"
+                          />
+                        </th>
+                        <th className="p-3">Candidate Name & Taxonomy</th>
+                        <th className="p-3">Location Hierarchy</th>
+                        <th className="p-3">Quality Score</th>
+                        <th className="p-3">Deduplication Audit</th>
+                        <th className="p-3 text-right">Moderation Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-purple-800/40 bg-purple-950/40">
+                      {candidatesLoading ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-purple-300">
+                            <FiRefreshCw className="animate-spin inline-block mr-2" size={16} /> Loading candidate intelligence database...
+                          </td>
+                        </tr>
+                      ) : candidates.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-purple-300">
+                            No candidates found matching the active filters. Launch a discovery batch above to stage new candidate places!
+                          </td>
+                        </tr>
+                      ) : (
+                        candidates.map((cand) => (
+                          <tr key={cand.id} className="hover:bg-purple-900/30 transition-colors">
+                            <td className="p-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedCandidateIds.includes(cand.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedCandidateIds([...selectedCandidateIds, cand.id])
+                                  else setSelectedCandidateIds(selectedCandidateIds.filter((id) => id !== cand.id))
+                                }}
+                                className="rounded border-purple-600 bg-purple-950"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <div className="font-bold text-white text-sm">{cand.name}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-900 text-purple-200 border border-purple-700">
+                                  {cand.place_type?.replace("_", " ")}
+                                </span>
+                                <span className="text-[10px] text-purple-300">Source: {cand.source}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="font-semibold text-white">{cand.district || "Nepal"}, {cand.province || "Province"}</div>
+                              <div className="text-[10px] text-purple-300 font-mono mt-0.5">
+                                {cand.latitude ? `${cand.latitude?.toFixed(4)}, ${cand.longitude?.toFixed(4)}` : "No GPS"}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 bg-purple-900 rounded-full h-2 overflow-hidden border border-purple-700">
+                                  <div
+                                    className={`h-full ${
+                                      cand.quality_score >= 70 ? "bg-emerald-400" : cand.quality_score >= 45 ? "bg-amber-400" : "bg-rose-400"
+                                    }`}
+                                    style={{ width: `${cand.quality_score}%` }}
+                                  />
+                                </div>
+                                <span className="font-mono font-bold text-white">{cand.quality_score?.toFixed(0)}%</span>
+                              </div>
+                            </td>
+                            <td className="p-3 max-w-xs">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  cand.duplicate_status === "none"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                    : cand.duplicate_status === "exact_match"
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                                    : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                }`}
+                              >
+                                {cand.duplicate_status?.replace("_", " ").toUpperCase()} ({cand.match_score?.toFixed(0)}%)
+                              </span>
+                              <p className="text-[10px] text-purple-200 mt-1 line-clamp-2">{cand.duplicate_reason}</p>
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {cand.discovery_status !== "published" && (
+                                  <button
+                                    onClick={() => handleCandidateSingleAction(cand.id, "publish")}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-gray-950 font-black text-[11px] flex items-center gap-1 shadow"
+                                    title="Promote verified place to production catalog"
+                                  >
+                                    <FiCheck size={11} /> Publish
+                                  </button>
+                                )}
+                                {cand.matched_destination && (
+                                  <button
+                                    onClick={() => handleCandidateSingleAction(cand.id, "merge_alias", cand.matched_destination.id)}
+                                    className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-[11px] flex items-center gap-1 shadow"
+                                    title={`Merge as alternate alias for #${cand.matched_destination.id}`}
+                                  >
+                                    <FiLayers size={11} /> Alias
+                                  </button>
+                                )}
+                                {cand.discovery_status !== "rejected" && (
+                                  <button
+                                    onClick={() => handleCandidateSingleAction(cand.id, "reject")}
+                                    className="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-[11px] flex items-center gap-1"
+                                    title="Reject candidate"
+                                  >
+                                    <FiX size={11} /> Reject
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
 

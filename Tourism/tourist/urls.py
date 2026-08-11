@@ -8,6 +8,7 @@ from . import views
 from . import views_auth
 from . import views_admin
 from . import views_compat
+from . import views_discovery
 from . import views_family_safety
 from . import views_images
 from . import views_ml
@@ -97,6 +98,12 @@ urlpatterns = [
     # Research & Discovery endpoints
     path("destinations/research/", views.DestinationResearchView.as_view(), name="destination-research"),
     path("destinations/search-discover/", views.DestinationSearchDiscoverView.as_view(), name="destination-search-discover"),
+    path("admin/discovery/health-report/", views_discovery.DiscoveryHealthReportView.as_view(), name="admin-discovery-health-report"),
+    path("admin/discovery/stats/", views_discovery.DiscoveryStatsView.as_view(), name="admin-discovery-stats"),
+    path("admin/discovery/candidates/", views_discovery.DestinationCandidateListView.as_view(), name="admin-discovery-candidates"),
+    path("admin/discovery/run-batch/", views_discovery.RunDiscoveryJobView.as_view(), name="admin-discovery-run-batch"),
+    path("admin/discovery/bulk-action/", views_discovery.DiscoveryBulkActionView.as_view(), name="admin-discovery-bulk-action"),
+    path("admin/discovery/candidates/<int:pk>/action/", views_discovery.CandidateActionView.as_view(), name="admin-discovery-candidate-action"),
 
     # Admin RBAC & Moderation endpoints
     path("admin/stats", views_admin.AdminStatsView.as_view(), name="admin-stats"),

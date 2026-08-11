@@ -1389,3 +1389,170 @@ class DestinationNearbyPlace(TimeStampedModel):
     def __str__(self):
         return f"{self.name} (~{self.distance_km} km from {self.destination.name})"
 
+
+# =============================================================================
+# MASS DISCOVERY & PLACE INTELLIGENCE PIPELINE MODELS
+# =============================================================================
+
+class DestinationCandidate(TimeStampedModel):
+    """
+    Intermediate staging repository for discovered places from multiple sources
+    (OSM, Wikidata, Official Gazetteers, Topographic Surveys) before promotion
+    to production Destination table.
+    """
+    class DiscoveryStatus(models.TextChoices):
+        DISCOVERED = "discovered", "Discovered"
+        CANDIDATE = "candidate", "Candidate"
+        VERIFIED = "verified", "Verified"
+        ENRICHED = "enriched", "Enriched"
+        NEEDS_REVIEW = "needs_review", "Needs Review"
+        PUBLISHED = "published", "Published to Destination"
+        REJECTED = "rejected", "Rejected"
+        MERGED_DUPLICATE = "merged_duplicate", "Merged Duplicate"
+
+    class DuplicateStatus(models.TextChoices):
+        NONE = "none", "No Duplicate Found"
+        EXACT_MATCH = "exact_match", "Exact Name Match"
+        HIGH_SIMILARITY = "high_similarity", "High Name & Location Similarity"
+        PROXIMITY_OVERLAP = "proximity_overlap", "Spatial Proximity Overlap (< 500m)"
+        ALIAS_OF = "alias_of", "Recognized Alias of Known Destination"
+
+    class PlaceType(models.TextChoices):
+        MOUNTAIN = "mountain", "Mountain Peak / Summit"
+        HILL = "hill", "Scenic Hill / Danda"
+        LAKE = "lake", "Lake / Kund / Tal"
+        RIVER = "river", "River / Stream / Rafting"
+        WATERFALL = "waterfall", "Waterfall / Chhango"
+        TEMPLE = "temple", "Temple / Mandir"
+        MONASTERY = "monastery", "Monastery / Gompa"
+        STUPA = "stupa", "Stupa / Chorten"
+        SHRINE = "shrine", "Sacred Shrine / Pilgrimage"
+        VIEWPOINT = "viewpoint", "Panoramic Viewpoint"
+        TREK_ROUTE = "trek_route", "Trek Route / Alpine Pass"
+        NATIONAL_PARK = "national_park", "National Park / Reserve"
+        CONSERVATION_AREA = "conservation_area", "Conservation Area"
+        CAVE = "cave", "Cave / Gupha"
+        PASS = "pass", "Mountain Pass / La"
+        HOT_SPRING = "hot_spring", "Natural Hot Spring / Tatopani"
+        HISTORIC_SITE = "historic_site", "Historic Fort / Durbar"
+        VILLAGE = "village", "Traditional Settlement / Homestay"
+        MUSEUM = "museum", "Museum / Cultural Centre"
+        ATTRACTION = "attraction", "Tourism Attraction"
+        OTHER = "other", "Other Geographic Feature"
+
+    name = models.CharField(max_length=200)
+    normalized_name = models.CharField(max_length=200, db_index=True)
+    alternate_names = models.JSONField(default=list, blank=True, help_text="List of aliases (Nepali, Devanagari, romanized)")
+    
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    altitude = models.CharField(max_length=50, blank=True, help_text="e.g. 2,175m / 7,135 ft")
+
+    province = models.CharField(max_length=100, blank=True, db_index=True)
+    district = models.CharField(max_length=100, blank=True, db_index=True)
+    municipality = models.CharField(max_length=150, blank=True, db_index=True)
+    ward_number = models.IntegerField(null=True, blank=True)
+
+    place_type = models.CharField(max_length=50, choices=PlaceType.choices, default=PlaceType.ATTRACTION, db_index=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="candidate_places")
+    suggested_category_name = models.CharField(max_length=100, blank=True)
+
+    description = models.TextField(blank=True)
+    short_description = models.CharField(max_length=300, blank=True)
+
+    source = models.CharField(max_length=100, db_index=True, help_text="e.g. OSM, Wikidata, Nepal_Govt_Gazetteer, Topo_Survey")
+    source_url = models.URLField(max_length=500, blank=True)
+    source_id = models.CharField(max_length=150, blank=True, db_index=True)
+    evidence_data = models.JSONField(default=dict, blank=True, help_text="Raw source metadata, OSM tags, Wikidata claims, geocode proof")
+
+    confidence_score = models.FloatField(default=0.0, help_text="0.0 to 100.0 confidence rating")
+    quality_score = models.FloatField(default=0.0, help_text="0.0 to 100.0 completeness/quality score")
+
+    discovery_status = models.CharField(
+        max_length=50, choices=DiscoveryStatus.choices, default=DiscoveryStatus.DISCOVERED, db_index=True
+    )
+    duplicate_status = models.CharField(
+        max_length=50, choices=DuplicateStatus.choices, default=DuplicateStatus.NONE, db_index=True
+    )
+    duplicate_reason = models.TextField(blank=True, help_text="Human-readable explanation of why this was or was not considered a duplicate")
+    match_score = models.FloatField(default=0.0, help_text="Similarity percentage against best matched destination (0-100%)")
+    matched_destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True, related_name="candidate_matches"
+    )
+
+    audit_trail = models.JSONField(default=list, blank=True, help_text="History of automated modifications, status changes, and promotions")
+
+    class Meta:
+        ordering = ["-quality_score", "-confidence_score", "name"]
+        indexes = [
+            models.Index(fields=["normalized_name", "district"]),
+            models.Index(fields=["discovery_status", "quality_score"]),
+            models.Index(fields=["source", "source_id"]),
+            models.Index(fields=["place_type", "province"]),
+        ]
+
+    def __str__(self):
+        return f"{self.name} [{self.place_type}] ({self.district}, {self.province}) — {self.discovery_status} ({self.quality_score:.0f}%)"
+
+
+class DiscoveryJob(TimeStampedModel):
+    """
+    Tracks multi-source discovery batch jobs (resumable, district-by-district / province-by-province).
+    """
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        RUNNING = "running", "Running"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+        PAUSED = "paused", "Paused"
+
+    job_id = models.CharField(max_length=100, unique=True, db_index=True)
+    source_name = models.CharField(max_length=100)
+    target_province = models.CharField(max_length=100, blank=True)
+    target_district = models.CharField(max_length=100, blank=True)
+    status = models.CharField(max_length=50, choices=Status.choices, default=Status.PENDING, db_index=True)
+
+    records_scanned = models.IntegerField(default=0)
+    candidates_created = models.IntegerField(default=0)
+    duplicates_found = models.IntegerField(default=0)
+    verified_count = models.IntegerField(default=0)
+    errors_count = models.IntegerField(default=0)
+
+    log_summary = models.JSONField(default=dict, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Job {self.job_id} ({self.source_name} - {self.target_district or self.target_province or 'All Nepal'}) [{self.status}]"
+
+
+class DestinationSourceField(TimeStampedModel):
+    """
+    Field-level provenance and verification tracking for all authoritative facts.
+    """
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="field_sources")
+    field_name = models.CharField(max_length=100, db_index=True, help_text="e.g. altitude, history, routes, permits")
+    field_value = models.TextField()
+    source_name = models.CharField(max_length=150)
+    source_url = models.URLField(max_length=500, blank=True)
+    source_id = models.CharField(max_length=150, blank=True)
+    confidence = models.CharField(
+        max_length=50, default="High",
+        choices=[("High", "High"), ("Medium", "Medium"), ("Estimated", "Estimated"), ("Needs Review", "Needs Review")]
+    )
+    verification_status = models.CharField(
+        max_length=50, default="Verified",
+        choices=[("Verified", "Verified"), ("Estimated", "Estimated"), ("Pending", "Pending")]
+    )
+    last_verified = models.DateField(auto_now=True)
+
+    class Meta:
+        ordering = ["field_name"]
+
+    def __str__(self):
+        return f"{self.destination.name}.{self.field_name} = {self.field_value[:30]} ({self.source_name})"
+
+
