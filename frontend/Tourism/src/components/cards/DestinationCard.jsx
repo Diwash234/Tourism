@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi"
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 const RISK_STYLES = {
   low: {
@@ -141,43 +142,16 @@ const DestinationCard = ({
 
 
       {/* IMAGE */}
-
-      <div className="relative h-48 overflow-hidden">
-
-        {
-          cover_image_url ?
-
-          (
-
-          <img
-            src={cover_image_url}
-            alt={name}
-            className="
-            w-full
-            h-full
-            object-cover
-            group-hover:scale-110
-            transition-transform
-            duration-500
-            "
-          />
-
-          )
-
-          :
-
-          (
-
-          <PlaceholderImage
-            seed={id}
-            className="w-full h-full"
-          />
-
-          )
-
-        }
-
-
+      <div className="relative h-48 overflow-hidden bg-slate-900">
+        <img
+          src={getDestinationImageUrl(destination)}
+          alt={name}
+          loading="lazy"
+          onError={(e) => {
+            e.target.src = "/images/destinations/pokhara/img1.jpg"
+          }}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+        />
 
         <div className="
         absolute inset-0 
