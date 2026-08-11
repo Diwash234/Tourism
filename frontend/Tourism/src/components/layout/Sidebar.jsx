@@ -1,1015 +1,136 @@
-import { useState, useEffect } from "react"
-import { Link, NavLink, useLocation } from "react-router-dom"
-
+import { useState } from "react"
+import { Link, NavLink } from "react-router-dom"
 import {
-  FiHome,
-  FiUser,
-  FiMapPin,
-  FiHeart,
-  FiClock,
-  FiBell,
-  FiSettings,
-  FiDollarSign,
-  FiCalendar,
-  FiAlertTriangle,
-  FiNavigation,
-  FiSearch,
-  FiGlobe,
-  FiMessageCircle,
-  FiBookOpen,
-  FiShield,
-  FiKey,
-  FiChevronDown,
-  FiCompass,
-  FiX,
-  FiLogIn,
-  FiUserPlus,
+  FiHome, FiUser, FiMapPin, FiHeart, FiClock, FiBell, FiSettings,
+  FiDollarSign, FiCalendar, FiAlertTriangle, FiNavigation, FiSearch,
+  FiGlobe, FiMessageCircle, FiBookOpen, FiShield, FiKey, FiBriefcase,
+  FiPlusCircle, FiCheckSquare, FiCompass, FiX, FiLogIn, FiUserPlus,
 } from "react-icons/fi"
-
 import { AnimatePresence, motion } from "framer-motion"
-
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
 
-
 const GROUPS = [
-
   {
-    label:"Main",
-
-    links:[
-
-      {
-        to:"/dashboard",
-        label:"Dashboard",
-        icon:FiHome,
-        color:"himalaya"
-      },
-
-      {
-        to:"/profile",
-        label:"Profile",
-        icon:FiUser,
-        color:"himalaya"
-      },
-
-      {
-        to:"/destinations",
-        label:"Destinations",
-        icon:FiMapPin,
-        color:"forest"
-      },
-
-      {
-        to:"/explore-map",
-        label:"Explore by Province",
-        icon:FiCompass,
-        color:"forest"
-      },
-
-      {
-        to:"/recommendation",
-        label:"Recommendations",
-        icon:FiHeart,
-        color:"violet"
-      },
-
-      {
-        to:"/nearby-places",
-        label:"Nearby Places",
-        icon:FiMapPin,
-        color:"forest"
-      },
-
-      {
-        to:"/hotels/search",
-        label:"Hotels",
-        icon:FiKey,
-        color:"saffron"
-      },
-
-      {
-        to:"/favorites",
-        label:"Favorites",
-        icon:FiHeart,
-        color:"pink"
-      },
-
-      {
-        to:"/my-bookings",
-        label:"My Bookings",
-        icon:FiBookOpen,
-        color:"emerald"
-      },
-
-      {
-        to:"/history",
-        label:"History",
-        icon:FiClock,
-        color:"stone"
-      },
-
-    ]
+    label: "Explore & Discover",
+    links: [
+      { to: "/destinations", label: "Destinations", icon: FiMapPin, color: "forest" },
+      { to: "/destinations/submit", label: "Submit Place", icon: FiPlusCircle, color: "himalaya" },
+      { to: "/explore-map", label: "Explore by Province", icon: FiCompass, color: "forest" },
+      { to: "/recommendation", label: "AI Recommendations", icon: FiHeart, color: "violet" },
+      { to: "/navigation", label: "GTA Navigation HUD", icon: FiNavigation, color: "sky" },
+      { to: "/hotels/search", label: "Hotels & Lodges", icon: FiKey, color: "saffron" },
+    ],
   },
-
-
   {
-    label:"Plan & Stay Safe",
-
-    links:[
-
-      {
-        to:"/budget-estimator",
-        label:"Budget Estimator",
-        icon:FiDollarSign,
-        color:"orange"
-      },
-
-
-      {
-        to:"/itinerary",
-        label:"Itinerary Planner",
-        icon:FiCalendar,
-        color:"himalaya"
-      },
-
-
-      {
-        to:"/risk-alerts",
-        label:"Risk Alerts",
-        icon:FiAlertTriangle,
-        color:"nepalred"
-      },
-
-
-      {
-        to:"/navigation",
-        label:"Navigation",
-        icon:FiNavigation,
-        color:"sky"
-      },
-
-
-      {
-        to:"/language",
-        label:"District Search",
-        icon:FiSearch,
-        color:"purple"
-      },
-
-
-      {
-        to:"/emergency",
-        label:"Emergency",
-        icon:FiAlertTriangle,
-        color:"red"
-      },
-
-
-      {
-        to:"/translation",
-        label:"Translation",
-        icon:FiGlobe,
-        color:"cyan"
-      },
-
-
-      {
-        to:"/chatbot",
-        label:"Himal AI",
-        icon:FiMessageCircle,
-        color:"violet"
-      }
-
-    ]
-
+    label: "Planning & Safety",
+    links: [
+      { to: "/budget-estimator", label: "Budget Estimator", icon: FiDollarSign, color: "orange" },
+      { to: "/expenditure", label: "Expenditure History", icon: FiDollarSign, color: "emerald" },
+      { to: "/itinerary", label: "Itinerary Planner", icon: FiCalendar, color: "himalaya" },
+      { to: "/risk-alerts", label: "Risk Sentinel", icon: FiAlertTriangle, color: "nepalred" },
+      { to: "/emergency", label: "Emergency Hub", icon: FiAlertTriangle, color: "red" },
+      { to: "/language", label: "Nepal Phrasebook", icon: FiGlobe, color: "purple" },
+      { to: "/translation", label: "Live Translation", icon: FiGlobe, color: "cyan" },
+      { to: "/chatbot", label: "Himal AI Assistant", icon: FiMessageCircle, color: "violet" },
+    ],
   },
-
-
   {
-    label:"Discover Nepal",
-
-    links:[
-
-      {
-        to:"/discover-nepal#history",
-        label:"History"
-      },
-
-      {
-        to:"/discover-nepal#culture",
-        label:"Culture"
-      },
-
-      {
-        to:"/discover-nepal#festivals",
-        label:"Festivals"
-      },
-
-      {
-        to:"/discover-nepal#wildlife",
-        label:"Wildlife"
-      },
-
-      {
-        to:"/dashboard#top",
-        label:"National Symbols"
-      },
-
-      {
-        to:"/discover-nepal#unesco",
-        label:"UNESCO Sites"
-      },
-
-      {
-        to:"/discover-nepal#national-parks",
-        label:"National Parks"
-      },
-
-      {
-        to:"/discover-nepal#dress-music-architecture",
-        label:"Traditional Dress"
-      },
-
-      {
-        to:"/discover-nepal#dress-music-architecture",
-        label:"Music & Dance"
-      },
-
-      {
-        to:"/discover-nepal#dress-music-architecture",
-        label:"Architecture"
-      },
-
-      {
-        to:"/discover-nepal#religion-languages",
-        label:"Religion & Languages"
-      },
-
-      {
-        to:"/discover-nepal#ethnic-groups",
-        label:"Ethnic Groups"
-      },
-
-      {
-        to:"/discover-nepal#local-food",
-        label:"Local Food"
-      },
-
-      {
-        to:"/discover-nepal#crafts",
-        label:"Traditional Crafts"
-      },
-
-      {
-        to:"/discover-nepal#mountains",
-        label:"Mountains"
-      },
-
-      {
-        to:"/discover-nepal#provinces",
-        label:"Province Information"
-      }
-
-    ]
-
+    label: "My Account",
+    links: [
+      { to: "/dashboard", label: "My Dashboard", icon: FiHome, color: "himalaya" },
+      { to: "/profile", label: "Profile", icon: FiUser, color: "himalaya" },
+      { to: "/favorites", label: "Saved Favorites", icon: FiHeart, color: "pink" },
+      { to: "/my-bookings", label: "My Bookings", icon: FiBookOpen, color: "emerald" },
+      { to: "/my-submissions", label: "My Submissions", icon: FiCheckSquare, color: "saffron" },
+      { to: "/history", label: "Visit History", icon: FiClock, color: "stone" },
+    ],
   },
-
-
   {
-    label:"Account",
-
-    links:[
-
-      {
-        to:"/notifications",
-        label:"Notifications",
-        icon:FiBell,
-        color:"amber"
-      },
-
-      {
-        to:"/settings",
-        label:"Settings",
-        icon:FiSettings,
-        color:"slate"
-      }
-
-    ]
-
-  }
-
+    label: "Portals & Control",
+    links: [
+      { to: "/admin", label: "Admin Central", icon: FiShield, color: "nepalred", roleCheck: "admin" },
+      { to: "/staff", label: "Staff Operations", icon: FiBriefcase, color: "saffron", roleCheck: "staff" },
+      { to: "/settings", label: "Settings", icon: FiSettings, color: "stone" },
+    ],
+  },
 ]
-const COLOR_CLASSES = {
 
-  himalaya:{
-    active:"bg-himalaya-50 text-himalaya-600",
-    icon:"text-himalaya-500"
-  },
-
-  forest:{
-    active:"bg-forest-50 text-forest-600",
-    icon:"text-forest-500"
-  },
-
-  saffron:{
-    active:"bg-saffron-50 text-saffron-600",
-    icon:"text-saffron-500"
-  },
-
-  nepalred:{
-    active:"bg-nepalred-50 text-nepalred-600",
-    icon:"text-nepalred-500"
-  },
-
-  violet:{
-    active:"bg-violet-50 text-violet-600",
-    icon:"text-violet-500"
-  },
-
-  pink:{
-    active:"bg-pink-50 text-pink-600",
-    icon:"text-pink-500"
-  },
-
-  emerald:{
-    active:"bg-emerald-50 text-emerald-600",
-    icon:"text-emerald-500"
-  },
-
-  stone:{
-    active:"bg-stone-100 text-stone-600",
-    icon:"text-stone-500"
-  },
-
-  orange:{
-    active:"bg-orange-50 text-orange-600",
-    icon:"text-orange-500"
-  },
-
-  sky:{
-    active:"bg-sky-50 text-sky-600",
-    icon:"text-sky-500"
-  },
-
-  purple:{
-    active:"bg-purple-50 text-purple-600",
-    icon:"text-purple-500"
-  },
-
-  red:{
-    active:"bg-red-50 text-red-600",
-    icon:"text-red-500"
-  },
-
-  cyan:{
-    active:"bg-cyan-50 text-cyan-600",
-    icon:"text-cyan-500"
-  },
-
-  amber:{
-    active:"bg-amber-50 text-amber-600",
-    icon:"text-amber-500"
-  },
-
-  slate:{
-    active:"bg-slate-100 text-slate-600",
-    icon:"text-slate-500"
-  }
-
+const COLOR_MAP = {
+  himalaya: "text-blue-600 bg-blue-50 group-hover:bg-blue-100",
+  forest: "text-emerald-600 bg-emerald-50 group-hover:bg-emerald-100",
+  saffron: "text-amber-600 bg-amber-50 group-hover:bg-amber-100",
+  nepalred: "text-rose-600 bg-rose-50 group-hover:bg-rose-100",
+  red: "text-red-600 bg-red-50 group-hover:bg-red-100",
+  orange: "text-orange-600 bg-orange-50 group-hover:bg-orange-100",
+  pink: "text-pink-600 bg-pink-50 group-hover:bg-pink-100",
+  emerald: "text-emerald-600 bg-emerald-50 group-hover:bg-emerald-100",
+  sky: "text-sky-600 bg-sky-50 group-hover:bg-sky-100",
+  violet: "text-purple-600 bg-purple-50 group-hover:bg-purple-100",
+  purple: "text-purple-600 bg-purple-50 group-hover:bg-purple-100",
+  cyan: "text-cyan-600 bg-cyan-50 group-hover:bg-cyan-100",
+  stone: "text-gray-600 bg-gray-50 group-hover:bg-gray-100",
 }
 
-
-
-const SidebarLink = ({
-  to,
-  label,
-  icon:Icon,
-  color="himalaya",
-  onClick
-})=>{
-
-  const classes =
-    COLOR_CLASSES[color] || COLOR_CLASSES.himalaya
-
+export default function Sidebar() {
+  const [collapsed, setCollapsed] = useSidebarState()
+  const { isAuthenticated, user, isAdmin } = useAuth()
 
   return (
-
-    <NavLink
-
-      to={to}
-
-      onClick={onClick}
-
-      className={({isActive})=>
-        `
-        flex items-center gap-3 px-3 py-2.5
-        rounded-lg text-sm font-medium
-        transition-colors
-        ${
-          isActive
-          ? classes.active
-          :"text-gray-600 hover:bg-gray-50"
-        }
-        `
-      }
-
+    <aside
+      className={`fixed top-16 bottom-0 left-0 z-40 bg-white border-r border-gray-100 transition-all duration-300 overflow-y-auto ${
+        collapsed ? "-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0" : "translate-x-0 w-64 shadow-xl lg:shadow-none"
+      }`}
     >
+      <div className="p-4 space-y-6">
+        {/* User Card */}
+        {isAuthenticated && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50 to-rose-50/40 border border-purple-100 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-700 text-white font-black flex items-center justify-center text-sm shadow">
+              {user?.first_name?.[0] || user?.email[0].toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-xs text-gray-900 truncate">{user?.full_name || user?.email}</p>
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-purple-200/60 text-purple-900">
+                {user?.role || "Tourist"}
+              </span>
+            </div>
+          </div>
+        )}
 
-      {({isActive})=>(
-
-        <>
-
-        {
-          Icon ?
-
-          <Icon
-            size={18}
-            className={
-              isActive
-              ? classes.active.split(" ")[1]
-              : classes.icon
-            }
-          />
-
-          :
-
-          <span className="w-[18px]" />
-
-        }
-
-
-        {label}
-
-
-        </>
-
-      )}
-
-
-    </NavLink>
-
+        {/* Link Groups */}
+        {GROUPS.map((grp, i) => (
+          <div key={i} className="space-y-1.5">
+            <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider px-3">
+              {grp.label}
+            </p>
+            <div className="space-y-0.5">
+              {grp.links.map((link, j) => {
+                const Icon = link.icon
+                const colorClass = COLOR_MAP[link.color] || COLOR_MAP.stone
+                return (
+                  <NavLink
+                    key={j}
+                    to={link.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                        isActive
+                          ? "bg-purple-700 text-white shadow-md shadow-purple-900/20"
+                          : "text-gray-700 hover:bg-purple-50 hover:text-purple-900"
+                      }`
+                    }
+                  >
+                    <div className={`p-1.5 rounded-lg ${colorClass} group-hover:scale-105 transition-transform`}>
+                      <Icon size={14} />
+                    </div>
+                    <span>{link.label}</span>
+                  </NavLink>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
   )
-
 }
-
-
-
-
-const SidebarGroup = ({
-  label,
-  links,
-  defaultOpen=true,
-  onLinkClick
-})=>{
-
-
-  const [open,setOpen]=useState(defaultOpen)
-
-
-  return (
-
-    <div className="mb-1">
-
-
-      <button
-
-        onClick={()=>setOpen(!open)}
-
-        className="
-        w-full flex items-center justify-between
-        px-3 py-2 text-xs font-semibold
-        text-gray-400 uppercase tracking-wide
-        hover:text-gray-600
-        "
-
-      >
-
-        {label}
-
-
-        <FiChevronDown
-
-          size={14}
-
-          className={`
-          transition-transform
-          ${open ? "rotate-180":""}
-          `}
-
-        />
-
-      </button>
-
-
-
-      {
-        open &&
-
-        <div className="flex flex-col gap-1">
-
-
-          {
-            links.map(link=>(
-
-              <SidebarLink
-
-                key={link.to+link.label}
-
-                {...link}
-
-                onClick={onLinkClick}
-
-              />
-
-            ))
-          }
-
-
-        </div>
-
-      }
-
-
-    </div>
-
-  )
-
-}
-
-
-
-
-const SidebarBody = ({
-  onLinkClick
-})=>{
-
-
- const {
-   isAdmin,
-   isAuthenticated
- } = useAuth()
-
-
-
- return (
-
-<div className="flex flex-col h-full">
-
-
-<div className="
-flex items-center gap-2
-px-3 py-2 mb-1
-text-himalaya-500
-">
-
-
-<FiCompass size={16}/>
-
-
-<span className="text-xs font-semibold">
-Explore Nepal
-</span>
-
-
-</div>
-
-
-
-
-<nav className="
-flex-1 overflow-y-auto
-pr-1 pb-3
-">
-
-
-{
-
-GROUPS.map(group=>(
-
-<SidebarGroup
-
-key={group.label}
-
-label={group.label}
-
-links={group.links}
-
-onLinkClick={onLinkClick}
-
-/>
-
-))
-
-}
-
-
-
-
-{
-isAdmin &&
-
-<div className="
-mt-3 border-t border-gray-100
-pt-4 space-y-1
-">
-
-
-<NavLink
-
-to="/admin"
-
-onClick={onLinkClick}
-
-className="
-flex items-center gap-3
-px-3 py-2.5 rounded-lg
-text-sm font-semibold
-text-nepalred-500
-hover:bg-nepalred-50
-"
-
->
-
-
-<FiShield size={18}/>
-
-Admin Dashboard
-
-
-</NavLink>
-
-
-
-
-<NavLink
-
-to="/admin/hotel-assignments"
-
-onClick={onLinkClick}
-
-className="
-flex items-center gap-3
-px-3 py-2.5 rounded-lg
-text-sm text-gray-500
-hover:bg-nepalred-50
-"
-
->
-
-<span className="w-[18px]" />
-
-Hotel Assignments
-
-
-</NavLink>
-
-
-
-
-<NavLink
-
-to="/admin/tasks"
-
-onClick={onLinkClick}
-
-className="
-flex items-center gap-3
-px-3 py-2.5 rounded-lg
-text-sm text-gray-500
-hover:bg-nepalred-50
-"
-
->
-
-<span className="w-[18px]" />
-
-Admin Tasks
-
-
-</NavLink>
-
-
-
-</div>
-
-}
-
-
-
-
-{
-!isAuthenticated &&
-
-
-<div className="
-mt-3 border-t border-gray-100
-pt-4 space-y-2
-">
-
-
-<p className="
-px-3 text-xs font-semibold
-uppercase tracking-wide
-text-gray-400
-">
-
-Guest
-
-</p>
-
-
-
-<Link
-
-to="/login"
-
-onClick={onLinkClick}
-
-className="
-flex items-center gap-3
-px-3 py-2.5 rounded-lg
-text-sm font-medium
-text-gray-700
-hover:bg-himalaya-50
-"
-
->
-
-
-<FiLogIn
-size={18}
-className="text-himalaya-500"
-/>
-
-
-Login
-
-
-</Link>
-
-
-
-
-<Link
-
-to="/register"
-
-onClick={onLinkClick}
-
-className="
-flex items-center gap-3
-px-3 py-2.5 rounded-lg
-text-sm font-medium
-text-gray-700
-hover:bg-forest-50
-"
-
->
-
-
-<FiUserPlus
-size={18}
-className="text-forest-500"
-/>
-
-
-Create Account
-
-
-</Link>
-
-
-
-</div>
-
-
-}
-
-
-
-</nav>
-
-
-
-</div>
-
-
- )
-
-}
-
-
-
-
-
-const Sidebar = ()=>{
-
-
-const location = useLocation()
-
-
-const [
- drawerOpen,
- setDrawerOpen
-] = useSidebarState()
-
-
-
-useEffect(()=>{
-
-if(drawerOpen){
-
-setDrawerOpen(false)
-
-}
-
-},[location.pathname])
-
-
-
-const closeDrawer=()=>setDrawerOpen(false)
-
-
-
-return (
-
-<>
-
-
-{/* Desktop */}
-
-<aside
-
-className="
-hidden lg:flex
-fixed left-0 top-16
-z-40
-
-w-60 xl:w-64
-
-h-[calc(100vh-4rem)]
-
-bg-white border-r
-border-gray-100
-
-shadow-sm
-
-p-3
-
-overflow-hidden
-"
-
->
-
-
-<SidebarBody/>
-
-
-</aside>
-
-
-
-
-
-{/* Mobile */}
-
-<AnimatePresence>
-
-
-{
-
-drawerOpen &&
-
-<>
-
-
-<motion.div
-
-initial={{opacity:0}}
-
-animate={{opacity:1}}
-
-exit={{opacity:0}}
-
-className="
-fixed inset-0
-bg-black/40
-z-40
-lg:hidden
-"
-
-onClick={closeDrawer}
-
-/>
-
-
-
-<motion.aside
-
-initial={{
-x:"-100%"
-}}
-
-animate={{
-x:0
-}}
-
-exit={{
-x:"-100%"
-}}
-
-transition={{
-duration:.25
-}}
-
-
-className="
-fixed left-0 top-16
-z-50
-
-w-72
-
-h-[calc(100vh-4rem)]
-
-bg-white
-
-shadow-xl
-
-p-3
-
-lg:hidden
-"
-
->
-
-
-<div className="
-flex justify-between mb-3
-">
-
-
-<span className="
-text-xs font-semibold
-text-gray-400
-uppercase
-">
-
-Menu
-
-</span>
-
-
-
-<button
-
-onClick={closeDrawer}
-
-className="
-p-1 rounded hover:bg-gray-100
-"
-
->
-
-
-<FiX size={18}/>
-
-
-</button>
-
-
-</div>
-
-
-
-
-<SidebarBody
-
-onLinkClick={closeDrawer}
-
-/>
-
-
-
-</motion.aside>
-
-
-
-</>
-
-}
-
-
-</AnimatePresence>
-
-
-
-</>
-
-
-)
-
-}
-
-
-export default Sidebar

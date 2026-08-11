@@ -2,28 +2,29 @@ import { Outlet, useLocation } from "react-router-dom"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
-import HimalAI from "../../Chatbot"
+import FloatingChatbot from "../common/FloatingChatbot"
+import useSidebarState from "../../hooks/useSidebarState"
 
 const MainLayout = () => {
   const location = useLocation()
+  const [collapsed] = useSidebarState()
+
   return (
-    <div className="flex flex-col min-h-screen w-full">
+    <div className="flex flex-col min-h-screen w-full bg-white overflow-x-hidden">
       <Navbar />
       <Sidebar />
       <main
         key={location.pathname}
-        className="
-          flex-1 w-full
-          ml-0 lg:ml-60 xl:ml-64
-          transition-[margin] duration-200
-        "
+        className={`flex-1 w-full transition-[margin] duration-300 ${
+          collapsed ? "ml-0" : "ml-0 lg:ml-64"
+        }`}
       >
         <Outlet />
       </main>
-      <div className="ml-0 lg:ml-60 xl:ml-64 transition-[margin] duration-200">
+      <div className={`transition-[margin] duration-300 ${collapsed ? "ml-0" : "ml-0 lg:ml-64"}`}>
         <Footer />
       </div>
-      <HimalAI />
+      <FloatingChatbot />
     </div>
   )
 }

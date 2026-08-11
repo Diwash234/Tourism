@@ -48,7 +48,15 @@ const destinationApi = {
       params: {
         search: query
       }
-    })
+    }),
+
+  searchDiscover: (query) =>
+    axiosClient.get("/destinations/search-discover/", {
+      params: { query }
+    }),
+
+  researchDestination: (query) =>
+    axiosClient.post("/destinations/research/", { query }),
 
 }
 

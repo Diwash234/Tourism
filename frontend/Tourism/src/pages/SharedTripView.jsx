@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { FiMapPin, FiClock } from "react-icons/fi"
-import safetyApi from "../../api/safetyApi"
+import safetyApi from "../api/safetyApi"
 import MapView from "../../components/map/MapView"
 import Loader from "../../components/common/Loader"
 

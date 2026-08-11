@@ -247,6 +247,18 @@ class Destination(TimeStampedModel):
         null=True
     )
 
+    municipality = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        help_text="Metropolitan, Sub-Metropolitan, Municipality, or Rural Municipality (Gaunpalika)"
+    )
+
+    ward_number = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        help_text="Local Ward Number (e.g. 1 to 35)"
+    )
 
     province = models.CharField(
         max_length=100,
@@ -312,6 +324,139 @@ class Destination(TimeStampedModel):
         null=True
     )
 
+    aliases = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Alternative names, local spellings, e.g. Waling / Walling / Waling Bazaar"
+    )
+
+    cultural_significance = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Cultural importance and local traditions"
+    )
+
+    religious_significance = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Religious history, temples, and sacred lore"
+    )
+
+    tourism_importance = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Why tourists visit this destination"
+    )
+
+    food_cuisine_info = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Local cuisine, delicacies, and food experiences"
+    )
+
+    travel_safety_tips = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Practical safety tips and local advice"
+    )
+
+    distance_from_kathmandu_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    distance_from_nearest_city_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    nearest_major_city = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    distance_from_nearest_airport_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    nearest_airport_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    approx_travel_time = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="e.g. 5h 30m by bus / 25m by flight"
+    )
+
+    recommended_days = models.PositiveSmallIntegerField(
+        default=2,
+        null=True,
+        blank=True
+    )
+
+    research_status = models.CharField(
+        max_length=30,
+        choices=[
+            ("draft", "Draft"),
+            ("researching", "Researching"),
+            ("review_required", "Review Required"),
+            ("approved", "Approved"),
+            ("published", "Published"),
+            ("rejected", "Rejected")
+        ],
+        default="published"
+    )
+
+    history = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Historical, religious, or cultural background"
+    )
+
+    best_time_to_visit = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="e.g. Sep-Nov (Autumn) & Mar-May (Spring)"
+    )
+
+    altitude = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Altitude in meters (e.g. 1,400m / 5,364m)"
+    )
+
+    nearest_hospital_info = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    nearest_hotel_info = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    nearest_police_info = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
 
     entry_fee = models.DecimalField(
         max_digits=8,
@@ -475,6 +620,18 @@ class DestinationImage(TimeStampedModel):
     is_cover = models.BooleanField(default=False)
 
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.ADMIN)
+    source_url = models.URLField(max_length=500, blank=True, null=True, help_text="Original source page URL")
+    source_platform = models.CharField(max_length=100, blank=True, default="Wikimedia Commons")
+    photographer = models.CharField(max_length=150, blank=True, null=True)
+    license_type = models.CharField(max_length=100, blank=True, default="Creative Commons CC BY-SA / Unsplash")
+    copyright_status = models.CharField(max_length=50, default="verified_reusable")
+    image_category = models.CharField(max_length=50, default="attraction")
+    verification_status = models.CharField(
+        max_length=20,
+        choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
+        default="approved"
+    )
+    is_verified = models.BooleanField(default=True)
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="uploaded_photos"
     )
@@ -1033,3 +1190,202 @@ class DestinationAuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"{self.destination.name}: {self.action} by {self.actor or 'system'}"
+
+
+# ---------------------------------------------------------------------------
+# ML-Connected Traveler & Field Staff Feedback (Expenses & Risk)
+# ---------------------------------------------------------------------------
+class TravelExpenseFeedback(TimeStampedModel):
+    """
+    Field / traveler real expenditure records. Connects directly to the
+    ML budget estimation engine so subsequent calculations learn from
+    actual ground spending.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="expense_submissions"
+    )
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="expense_feedbacks"
+    )
+    destination_name = models.CharField(max_length=200)
+    num_people = models.PositiveIntegerField(default=1)
+    num_days = models.PositiveIntegerField(default=1)
+    travel_mode = models.CharField(max_length=100, default="Tourist Bus")
+    accommodation_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    travel_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    entry_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    food_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    extra_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    route_details = models.TextField(blank=True, help_text="Practical route or transit details taken")
+    is_employee_verified = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.total_cost or self.total_cost == 0:
+            self.total_cost = (
+                (self.accommodation_cost or 0) +
+                (self.travel_cost or 0) +
+                (self.entry_cost or 0) +
+                (self.food_cost or 0) +
+                (self.extra_cost or 0)
+            )
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.destination_name} - {self.total_cost} NPR ({self.num_days} days, {self.num_people} ppl)"
+
+
+class TravelRiskFeedback(TimeStampedModel):
+    """
+    Detailed traveler risk & safety feedback: altitude sickness, hazards,
+    transport ease, helpfulness of locals, greeting/hospitality rating.
+    Connects to ML Risk scoring and real-time safety index calculations.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="risk_submissions"
+    )
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="risk_feedbacks"
+    )
+    destination_name = models.CharField(max_length=200)
+    became_sick = models.BooleanField(default=False)
+    sickness_type = models.CharField(
+        max_length=100, blank=True,
+        help_text="e.g. Altitude Sickness (AMS), Food Poisoning, Dehydration, Cold/Hypothermia"
+    )
+    misleading_activities = models.BooleanField(default=False)
+    misleading_details = models.TextField(blank=True)
+    accident_occurred = models.BooleanField(default=False)
+    accident_details = models.TextField(blank=True)
+    hazard_witnessed = models.CharField(
+        max_length=100, blank=True, default="None",
+        help_text="e.g. Landslide, Avalanche, Flood, Heavy Snow, Rockfall, None"
+    )
+    transport_accessibility_rating = models.PositiveSmallIntegerField(
+        default=4, help_text="1 (Hard to reach / 4WD only) to 5 (Direct highway / flight)"
+    )
+    people_helpfulness_rating = models.PositiveSmallIntegerField(
+        default=5, help_text="1 (Unhelpful) to 5 (Extremely friendly & helpful)"
+    )
+    greeting_behavior_rating = models.PositiveSmallIntegerField(
+        default=5, help_text="1 (Hostile) to 5 (Very warm & respectful)"
+    )
+    overall_safety_rating = models.FloatField(default=9.0, help_text="Safety score from 1.0 to 10.0")
+    comments = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.destination_name} safety report - {self.overall_safety_rating}/10"
+
+
+# ---------------------------------------------------------------------------
+# Destination Discovery & Research Entities (Sources, Activities, Routes)
+# ---------------------------------------------------------------------------
+class DestinationSource(TimeStampedModel):
+    """
+    Authoritative citations & references for researched destination facts.
+    """
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="sources")
+    title = models.CharField(max_length=200)
+    source_url = models.URLField(max_length=500)
+    source_type = models.CharField(
+        max_length=100, default="Official Government / Tourism Portal",
+        help_text="e.g. Nepal Tourism Board, Municipality Profile, Wikimedia Heritage Index, OpenStreetMap"
+    )
+    is_verified = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.source_type})"
+
+
+class DestinationActivity(TimeStampedModel):
+    """
+    Activities and experiences available at the destination.
+    """
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="activities")
+    name = models.CharField(max_length=150)
+    category = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    difficulty_level = models.CharField(
+        max_length=50, default="Easy",
+        choices=[("Easy", "Easy"), ("Moderate", "Moderate"), ("Challenging", "Challenging"), ("Strenuous", "Strenuous")]
+    )
+    estimated_duration = models.CharField(max_length=50, blank=True, help_text="e.g. 2-3 hours / Half Day")
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} at {self.destination.name}"
+
+
+class DestinationAttraction(TimeStampedModel):
+    """
+    Specific points of interest, shrines, viewpoints, or landmarks.
+    """
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="attractions")
+    name = models.CharField(max_length=150)
+    attraction_type = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    distance_from_center_km = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    image_url = models.URLField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.destination.name})"
+
+
+class DestinationTransitRoute(TimeStampedModel):
+    """
+    Available transportation options, routes, conditions, and fares.
+    """
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="transit_routes")
+    origin = models.CharField(max_length=150, help_text="e.g. Kathmandu (Kalanki) / Pokhara / Nearest Airport")
+    transport_mode = models.CharField(max_length=100, default="Public Deluxe Bus")
+    distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    approx_duration = models.CharField(max_length=100, help_text="e.g. 5 hours 30 mins")
+    road_condition = models.CharField(max_length=150, blank=True, default="Paved Highway")
+    key_stops = models.TextField(blank=True, help_text="Major transit waypoints along the route")
+    estimated_fare_npr = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    route_source = models.CharField(max_length=200, blank=True, default="Nepal Highway Authority & Local Transit")
+
+    class Meta:
+        ordering = ["distance_km"]
+
+    def __str__(self):
+        return f"{self.origin} ➔ {self.destination.name} via {self.transport_mode}"
+
+
+class DestinationNearbyPlace(TimeStampedModel):
+    """
+    Nearby attractions, monasteries, waterfalls, lakes, and viewpoints.
+    """
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="nearby_places")
+    name = models.CharField(max_length=150)
+    place_type = models.CharField(max_length=100, default="Viewpoint / Landmark")
+    distance_km = models.DecimalField(max_digits=6, decimal_places=2, default=5.0)
+    direction = models.CharField(max_length=50, blank=True, help_text="e.g. North-West / 15 mins hike")
+    short_info = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["distance_km"]
+
+    def __str__(self):
+        return f"{self.name} (~{self.distance_km} km from {self.destination.name})"
+

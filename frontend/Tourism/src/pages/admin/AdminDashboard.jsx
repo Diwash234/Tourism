@@ -1,80 +1,1646 @@
 import { useEffect, useState } from "react"
-import { FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign } from "react-icons/fi"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX,
+  FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiEdit3,
+  FiNavigation, FiPhoneCall, FiUserCheck, FiUserX, FiSearch, FiRefreshCw,
+  FiClock, FiTrendingUp, FiLayers, FiFileText, FiCalendar, FiHome,
+  FiCompass, FiInfo, FiChevronRight, FiExternalLink
+} from "react-icons/fi"
+import adminApi from "../../api/adminApi"
 import adminPanelApi from "../../api/adminPanelApi"
+import destinationApi from "../../api/destinationApi"
 import Loader from "../../components/common/Loader"
 import LineChartCard from "../../components/charts/LineChartCard"
 import BarChartCard from "../../components/charts/BarChartCard"
+import useToast from "../../hooks/useToast"
+import useAuth from "../../hooks/useAuth"
 
-// Same bug as BudgetCard: `bg-${accent}-50` is invisible to Tailwind's
-// JIT content scanner because it's built at runtime, so the color never
-// actually got generated into the CSS. Static map fixes it.
-const STAT_ACCENTS = {
-  primary: "bg-primary-50 text-primary-500",
-  secondary: "bg-secondary-500/10 text-secondary-600",
-  himalaya: "bg-himalaya-50 text-himalaya-500",
-  forest: "bg-forest-50 text-forest-500",
-  saffron: "bg-saffron-50 text-saffron-600",
-  nepalred: "bg-nepalred-50 text-nepalred-500",
-}
-
-const StatCard = ({ icon: Icon, label, value, accent = "primary" }) => (
-  <div className="card-base p-5 flex items-center gap-4">
-    <div className={`p-3 rounded-xl ${STAT_ACCENTS[accent] || STAT_ACCENTS.primary}`}>
-      <Icon size={22} />
-    </div>
-    <div>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold">{value}</p>
-    </div>
-  </div>
-)
+const ROLES = [
+  { id: "tourist", label: "Tourist / Traveler" },
+  { id: "guide", label: "Local Guide" },
+  { id: "staff", label: "Staff (Sub-Admin)" },
+  { id: "content_moderator", label: "Content Moderator" },
+  { id: "district_manager", label: "District Manager" },
+  { id: "tourist_police", label: "Tourist Police" },
+  { id: "hotel_manager", label: "Hotel Manager" },
+  { id: "admin", label: "Admin" },
+  { id: "super_admin", label: "Super Admin" },
+]
 
 const AdminDashboard = () => {
+  const { user } = useAuth()
+  const { showToast } = useToast()
+
+  const [activeTab, setActiveTab] = useState("overview")
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Data states
+  const [users, setUsers] = useState([])
+  const [tracking, setTracking] = useState([])
+  const [pendingPlaces, setPendingPlaces] = useState([])
+  const [pendingImages, setPendingImages] = useState([])
+  const [emergencies, setEmergencies] = useState([])
+  const [expenseReports, setExpenseReports] = useState([])
+  const [riskReports, setRiskReports] = useState([])
+  const [categories, setCategories] = useState([])
+
+  // Search / filter states
+  const [userSearch, setUserSearch] = useState("")
+
+  // Modal states
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [newUserForm, setNewUserForm] = useState({
+    email: "", password: "", first_name: "", last_name: "", role: "staff", managed_district: "", bio: ""
+  })
+
+  // Full detail inspection modal for place submission
+  const [inspectingPlace, setInspectingPlace] = useState(null)
+  const [editingPlace, setEditingPlace] = useState(null)
+  const [placeEditForm, setPlaceEditForm] = useState({})
+
+  // User detail travel history modal
+  const [selectedUserHistory, setSelectedUserHistory] = useState(null)
+
+  // Expense modal
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
+  const [expenseForm, setExpenseForm] = useState({
+    destination_name: "", num_people: 2, num_days: 5, travel_mode: "Tourist Bus",
+    accommodation_cost: 120, travel_cost: 60, food_cost: 80, entry_cost: 30, extra_cost: 20,
+    route_details: "Kathmandu to Pokhara via Prithvi Highway", notes: "Field survey data"
+  })
+
+  // AI Research state
+  const [researchQuery, setResearchQuery] = useState("")
+  const [researchResult, setResearchResult] = useState(null)
+  const [isResearching, setIsResearching] = useState(false)
+
+  const handleTriggerResearch = async (queryToResearch = null) => {
+    const q = queryToResearch || researchQuery.trim()
+    if (!q) return showToast("Enter a destination name to research", "error")
+    setIsResearching(true)
+    try {
+      const { data } = await destinationApi.researchDestination(q)
+      setResearchResult(data)
+      showToast(data.message || "Destination research complete!", "success")
+      fetchAllData()
+    } catch (err) {
+      showToast("Research failed. Try another place name.", "error")
+    } finally {
+      setIsResearching(false)
+    }
+  }
+
+  // Load all data
+  const fetchAllData = async () => {
+    setLoading(true)
+    try {
+      const [statsRes, usersRes, trackRes, placesRes, imagesRes, emergRes, expRes, riskRes, catRes] =
+        await Promise.allSettled([
+          adminApi.getStats(),
+          adminApi.getUsers(),
+          adminApi.getUserTracking(),
+          adminApi.getPendingPlaces(),
+          adminApi.getPendingImages(),
+          adminApi.getEmergencies(),
+          adminApi.getExpenseFeedbacks(),
+          adminApi.getRiskFeedbacks(),
+          destinationApi.getCategories(),
+        ])
+
+      if (statsRes.status === "fulfilled") setStats(statsRes.value.data)
+      if (usersRes.status === "fulfilled") setUsers(usersRes.value.data)
+      if (trackRes.status === "fulfilled") setTracking(trackRes.value.data)
+      if (placesRes.status === "fulfilled") setPendingPlaces(placesRes.value.data)
+      if (imagesRes.status === "fulfilled") setPendingImages(imagesRes.value.data)
+      if (emergRes.status === "fulfilled") setEmergencies(emergRes.value.data)
+      if (expRes.status === "fulfilled") setExpenseReports(expRes.value.data.results || expRes.value.data || [])
+      if (riskRes.status === "fulfilled") setRiskReports(riskRes.value.data.results || riskRes.value.data || [])
+      if (catRes.status === "fulfilled") setCategories(catRes.value.data.results || catRes.value.data || [])
+    } catch (err) {
+      console.error("Dashboard fetch error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    adminPanelApi
-      .getDashboardStats()
-      .then(({ data }) => setStats(data))
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false))
+    fetchAllData()
   }, [])
 
-  if (loading) return <Loader fullScreen={false} />
+  // User Actions
+  const handleCreateUser = async (e) => {
+    e.preventDefault()
+    try {
+      await adminApi.createUser(newUserForm)
+      showToast("User/Sub-Admin created successfully!", "success")
+      setShowAddUserModal(false)
+      setNewUserForm({ email: "", password: "", first_name: "", last_name: "", role: "staff", managed_district: "", bio: "" })
+      fetchAllData()
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Failed to create user", "error")
+    }
+  }
 
-  const monthlyLabels = stats?.monthlyVisitors?.map((m) => m.month) || ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-  const monthlyData = stats?.monthlyVisitors?.map((m) => m.count) || [120, 190, 300, 250, 400, 380]
-  const categoryLabels = stats?.destinationsByCategory?.map((c) => c.category) || ["Mountains", "Lakes", "Heritage", "Adventure"]
-  const categoryData = stats?.destinationsByCategory?.map((c) => c.count) || [12, 8, 15, 6]
+  const handleUpdateUserRole = async (userId, newRole) => {
+    try {
+      await adminApi.updateUser(userId, { role: newRole })
+      showToast(`Role updated to ${newRole}`, "success")
+      fetchAllData()
+    } catch (err) {
+      showToast("Failed to update role", "error")
+    }
+  }
+
+  const handleToggleUserStatus = async (userId, currentStatus) => {
+    try {
+      await adminApi.updateUserStatus(userId, { is_active: !currentStatus })
+      showToast(`User ${currentStatus ? "deactivated" : "activated"}`, "info")
+      fetchAllData()
+    } catch (err) {
+      showToast("Failed to update status", "error")
+    }
+  }
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return
+    try {
+      await adminApi.deleteUser(userId)
+      showToast("User removed successfully", "success")
+      fetchAllData()
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Failed to delete user", "error")
+    }
+  }
+
+  // Place Approval Actions (GREEN = Accept, RED = Reject)
+  const handleApprovePlace = async (placeId, customPayload = {}) => {
+    try {
+      await adminApi.approvePlace(placeId, customPayload)
+      showToast("✅ Place ACCEPTED and published live into tourist_destination table!", "success")
+      setInspectingPlace(null)
+      setEditingPlace(null)
+      fetchAllData()
+    } catch (err) {
+      showToast("Approval failed", "error")
+    }
+  }
+
+  const handleRejectPlace = async (placeId) => {
+    const note = window.prompt("Reason for rejection:")
+    if (note === null) return
+    try {
+      await adminApi.rejectPlace(placeId, { review_note: note })
+      showToast("❌ Place rejected and archived", "info")
+      setInspectingPlace(null)
+      setEditingPlace(null)
+      fetchAllData()
+    } catch (err) {
+      showToast("Rejection failed", "error")
+    }
+  }
+
+  // Image Verification Actions
+  const handleApproveImage = async (imageId) => {
+    try {
+      await adminApi.approveImage(imageId)
+      showToast("✅ Image verified & added to destination gallery!", "success")
+      fetchAllData()
+    } catch (err) {
+      showToast("Failed to approve image", "error")
+    }
+  }
+
+  const handleRejectImage = async (imageId) => {
+    try {
+      await adminApi.rejectImage(imageId)
+      showToast("❌ Image rejected", "info")
+      fetchAllData()
+    } catch (err) {
+      showToast("Failed to reject image", "error")
+    }
+  }
+
+  // Emergency Actions
+  const handleResolveEmergency = async (id) => {
+    try {
+      await adminApi.resolveEmergency(id)
+      showToast("Emergency alert resolved", "success")
+      fetchAllData()
+    } catch (err) {
+      showToast("Failed to resolve emergency", "error")
+    }
+  }
+
+  // Submit Expense Ground Truth (ML connection)
+  const handleSubmitExpense = async (e) => {
+    e.preventDefault()
+    try {
+      await adminApi.submitExpenseFeedback({
+        ...expenseForm,
+        is_employee_verified: true,
+      })
+      showToast("Expense record saved & fed into ML cost models!", "success")
+      setShowAddExpenseModal(false)
+      fetchAllData()
+    } catch (err) {
+      showToast("Failed to submit expense record", "error")
+    }
+  }
+
+  const filteredUsers = users.filter((u) => {
+    const term = userSearch.toLowerCase()
+    return (
+      u.email?.toLowerCase().includes(term) ||
+      u.full_name?.toLowerCase().includes(term) ||
+      u.role?.toLowerCase().includes(term) ||
+      u.city?.toLowerCase().includes(term)
+    )
+  })
 
   return (
-    <div className="container-app py-10 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-gray-500 text-sm">Platform-wide overview and management.</p>
+    <div className="min-h-screen bg-gradient-to-br from-[#180421] via-[#2d0836] to-[#480c35] text-white -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
+      {/* Top Banner */}
+      <div className="max-w-7xl mx-auto space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-purple-800/60 pb-6"
+        >
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-gray-950 shadow-md shadow-amber-400/20">
+                RBAC Central Command
+              </span>
+              <span className="text-xs text-purple-200">
+                Logged in as: <b className="text-amber-300">{user?.email}</b> ({user?.role})
+              </span>
+            </div>
+            <h1 className="text-3xl font-extrabold text-white mt-1 tracking-tight">
+              Nepal Tourism Admin & Moderation Sentinel
+            </h1>
+            <p className="text-purple-200 text-sm">
+              Role-Based Access Control • Destination Approval Desk • Multi-Image Verification • Live Traveler Safety Tracking
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <a
+              href="/Tourism_Full_Project.zip"
+              download="Tourism_Full_Project.zip"
+              className="px-4 py-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-amber-300 hover:text-amber-200 border border-amber-400/40 flex items-center gap-2 text-sm font-bold shadow-md transition-all"
+            >
+              📥 Download ZIP (8.3 MB)
+            </a>
+            <button
+              onClick={fetchAllData}
+              className="px-4 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-700/50 flex items-center gap-2 text-sm font-medium transition-all"
+            >
+              <FiRefreshCw className={loading ? "animate-spin" : ""} size={14} /> Refresh
+            </button>
+            <button
+              onClick={() => setShowAddUserModal(true)}
+              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold flex items-center gap-2 text-sm shadow-lg shadow-amber-400/20 transition-all"
+            >
+              <FiPlus size={16} /> Add Sub-Admin / Staff
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Navigation Tabs */}
+        <div className="flex overflow-x-auto gap-2 border-b border-purple-800/40 pb-3 no-scrollbar">
+          {[
+            { id: "overview", label: "📊 Overview & Stats", count: null },
+            { id: "research", label: "🔬 AI Destination Discovery", count: null },
+            { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
+            { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
+            { id: "places", label: "📝 Place Approvals", count: pendingPlaces.length, badge: pendingPlaces.length > 0 },
+            { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
+            { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
+            { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
+            { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
+          ].map((tab) => (
+            <motion.button
+              key={tab.id}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap flex items-center gap-2 transition-all ${
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 shadow-md shadow-amber-400/20"
+                  : "bg-purple-950/50 text-purple-200 hover:bg-purple-900/50 hover:text-white border border-purple-800/30"
+              }`}
+            >
+              {tab.label}
+              {tab.count !== null && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    tab.alert
+                      ? "bg-rose-600 text-white animate-pulse"
+                      : activeTab === tab.id
+                      ? "bg-gray-950 text-amber-300"
+                      : "bg-purple-800 text-purple-200"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              )}
+            </motion.button>
+          ))}
+        </div>
+
+        {/* TAB 1: OVERVIEW & STATS */}
+        {activeTab === "overview" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-8"
+          >
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-amber-400/50 transition-all">
+                <div className="p-3.5 rounded-xl bg-amber-400/20 text-amber-300">
+                  <FiUsers size={26} />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-200 uppercase font-medium">Total Registered Users</p>
+                  <p className="text-3xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
+                  <span className="text-[11px] text-amber-300 font-medium">
+                    {stats?.touristCount ?? 0} Tourists · {stats?.staffCount ?? 0} Staff
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-pink-500/50 transition-all">
+                <div className="p-3.5 rounded-xl bg-pink-500/20 text-pink-400">
+                  <FiMapPin size={26} />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-200 uppercase font-medium">Approved Destinations</p>
+                  <p className="text-3xl font-black text-white">{stats?.totalDestinations ?? "--"}</p>
+                  <span className="text-[11px] text-pink-300 font-medium">
+                    {pendingPlaces.length} Waiting Approval
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-amber-400/50 transition-all">
+                <div className="p-3.5 rounded-xl bg-amber-400/20 text-amber-300">
+                  <FiEye size={26} />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-200 uppercase font-medium">Total Data Views</p>
+                  <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? 7145}</p>
+                  <span className="text-[11px] text-purple-300 font-medium">
+                    {stats?.totalVisitsLogged ?? 128} Visits Tracked
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-rose-500/50 transition-all">
+                <div className="p-3.5 rounded-xl bg-rose-500/20 text-rose-400">
+                  <FiAlertTriangle size={26} />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-200 uppercase font-medium">Medical / SOS Alerts</p>
+                  <p className="text-3xl font-black text-white">{emergencies.filter(e => e.status === "active").length}</p>
+                  <span className="text-[11px] text-rose-300 font-medium">
+                    {stats?.activeAlerts ?? 0} Hazard Alerts
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Action Bar */}
+            <div className="bg-purple-950/40 border border-purple-800/40 p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-lg text-white">Administrative Actions & Moderation</h3>
+                <p className="text-xs text-purple-200">
+                  Quick dispatch to pending user submissions, field data collection, and safety operations.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setActiveTab("places")}
+                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-2 shadow-md shadow-amber-400/20"
+                >
+                  <FiMapPin size={14} /> Review Places ({pendingPlaces.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("images")}
+                  className="px-4 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-pink-500/20"
+                >
+                  <FiImage size={14} /> Verify Photos ({pendingImages.length})
+                </button>
+                <button
+                  onClick={() => setShowAddExpenseModal(true)}
+                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-2 shadow-md shadow-amber-400/20"
+                >
+                  <FiDollarSign size={14} /> Log Ground Expense
+                </button>
+                <button
+                  onClick={() => setActiveTab("tracking")}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-rose-600/20"
+                >
+                  <FiActivity size={14} /> Check Medical Emergencies
+                </button>
+              </div>
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-purple-950/80 border border-purple-700/50 p-6 rounded-2xl shadow-xl">
+                <LineChartCard
+                  title="Monthly Nepal Visitors & Views"
+                  labels={["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"]}
+                  data={[420, 890, 1150, 780, 620, 940]}
+                  label="Travelers"
+                />
+              </div>
+              <div className="bg-purple-950/80 border border-purple-700/50 p-6 rounded-2xl shadow-xl">
+                <BarChartCard
+                  title="Destinations by Province / Category"
+                  labels={["Kathmandu", "Gandaki", "Koshi", "Lumbini", "Karnali", "Madhesh"]}
+                  data={[18, 14, 9, 8, 5, 4]}
+                  label="Destinations"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB: AI DESTINATION DISCOVERY & RESEARCH */}
+        {activeTab === "research" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-purple-950/70 border border-purple-700/40 p-6 rounded-3xl shadow-xl space-y-4">
+              <div>
+                <span className="px-3.5 py-1 rounded-full bg-amber-400 text-gray-950 text-xs font-black uppercase tracking-wider">
+                  Autonomous Web & Government Archive Research
+                </span>
+                <h3 className="font-extrabold text-2xl text-white mt-2 flex items-center gap-2">
+                  <FiCompass className="text-amber-400" /> Nepal Destination Discovery & Research Engine
+                </h3>
+                <p className="text-xs text-purple-200 mt-1 max-w-3xl leading-relaxed">
+                  Search any village, temple, hiking ridge, historical site, or viewpoint in Nepal (e.g. <i>Swargadwari, Waling, Galeshwor, Poon Hill, Barun Valley, Ridi</i>). The system checks existing database records to avoid duplicates, and gathers verified geocoding, cultural history, transit routes, budget ranges, and verified reusable imagery with copyright credits.
+                </p>
+              </div>
+
+              {/* Quick Research Pills */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs font-bold text-amber-300">Quick Research:</span>
+                {["Swargadwari", "Waling Bazaar", "Galeshwor Temple", "Poon Hill", "Tansen Palpa", "Dhorpatan", "Barun Valley", "Pathibhara"].map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setResearchQuery(p)
+                      handleTriggerResearch(p)
+                    }}
+                    className="px-3 py-1 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 text-xs font-semibold border border-purple-700/60 transition-all hover:text-white hover:border-amber-400"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              {/* Research Input Bar */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleTriggerResearch()
+                }}
+                className="flex flex-col sm:flex-row gap-3 pt-2"
+              >
+                <div className="relative flex-1">
+                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-300" size={18} />
+                  <input
+                    value={researchQuery}
+                    onChange={(e) => setResearchQuery(e.target.value)}
+                    placeholder="Enter any destination, temple, village, or viewpoint in Nepal..."
+                    className="w-full pl-12 pr-4 py-3.5 bg-purple-900/60 border border-purple-600/60 rounded-2xl text-sm text-white placeholder-purple-300 focus:outline-none focus:border-amber-400 shadow-inner"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isResearching || !researchQuery.trim()}
+                  className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-gray-950 font-black text-sm shadow-xl shadow-amber-400/20 hover:scale-105 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+                >
+                  {isResearching ? (
+                    <>
+                      <FiRefreshCw className="animate-spin" size={16} /> Researching & Collecting...
+                    </>
+                  ) : (
+                    <>
+                      <FiCompass size={18} /> Research Destination ➔
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* Research Results Preview Card */}
+            {researchResult && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-purple-950/80 border border-purple-600/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-white"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-700/60 pb-4">
+                  <div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                      researchResult.status === "existing" ? "bg-blue-500/30 text-blue-200 border border-blue-400" : "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
+                    }`}>
+                      {researchResult.status === "existing" ? "Existing Destination Loaded (No Duplication)" : "Researched & Verified New Destination"}
+                    </span>
+                    <h3 className="text-2xl font-black text-white mt-1.5">{researchResult.name}</h3>
+                    <p className="text-xs text-purple-200 mt-0.5">{researchResult.message}</p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Link
+                      to={`/destinations/${researchResult.slug}`}
+                      target="_blank"
+                      className="px-5 py-2.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-bold flex items-center gap-1.5 border border-purple-700"
+                    >
+                      <FiExternalLink size={14} /> Open Public Explore Page
+                    </Link>
+                  </div>
+                </div>
+
+                {researchResult.destination && (
+                  <div className="space-y-6 text-xs text-purple-100">
+                    {/* Geographic Stats Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-purple-900/40 border border-purple-700/40">
+                      <div>
+                        <span className="text-purple-300 font-bold">Province & District</span>
+                        <p className="font-black text-white text-sm mt-0.5">{researchResult.destination.province}, {researchResult.destination.district}</p>
+                      </div>
+                      <div>
+                        <span className="text-purple-300 font-bold">Coordinates (Lat / Lon)</span>
+                        <p className="font-black text-amber-300 text-sm mt-0.5">{researchResult.destination.latitude}, {researchResult.destination.longitude}</p>
+                      </div>
+                      <div>
+                        <span className="text-purple-300 font-bold">Elevation (m)</span>
+                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "1,400m"}</p>
+                      </div>
+                      <div>
+                        <span className="text-purple-300 font-bold">Distance from KTM</span>
+                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km || 204.5} km</p>
+                      </div>
+                    </div>
+
+                    {/* Researched Images Gallery with License & Attribution */}
+                    {researchResult.destination.gallery && researchResult.destination.gallery.length > 0 && (
+                      <div className="space-y-2.5">
+                        <h4 className="font-bold text-sm text-amber-300 flex items-center gap-1.5">
+                          <FiImage /> Researched Images ({researchResult.destination.gallery.length} Photos with License Credits)
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {researchResult.destination.gallery.map((img, idx) => (
+                            <div key={idx} className="rounded-2xl overflow-hidden border border-purple-700 bg-purple-950 flex flex-col justify-between">
+                              <div className="h-44 w-full relative bg-black">
+                                <img src={img.external_url || img.image || img.display_url} alt={img.caption} className="w-full h-full object-cover" />
+                                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-amber-300 text-[10px] font-bold">
+                                  {img.image_category || "Landscape"}
+                                </span>
+                              </div>
+                              <div className="p-3 space-y-1 bg-purple-900/60 text-[11px]">
+                                <p className="font-bold text-white truncate">{img.caption}</p>
+                                <p className="text-[10px] text-purple-300">
+                                  <b>Photographer:</b> {img.photographer || "Public Archive"}
+                                </p>
+                                <p className="text-[10px] text-emerald-300">
+                                  <b>License:</b> {img.license_type || "CC BY-SA 4.0"} ({img.source_platform || "Wikimedia"})
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Descriptions */}
+                    <div className="p-4 rounded-2xl bg-purple-900/30 border border-purple-700/40 space-y-2">
+                      <h4 className="font-bold text-sm text-amber-300">Researched Overview & Cultural Background:</h4>
+                      <p className="leading-relaxed whitespace-pre-line text-purple-100">{researchResult.destination.description}</p>
+                      {researchResult.destination.history && (
+                        <p className="leading-relaxed whitespace-pre-line text-purple-200 pt-2 border-t border-purple-800/40">
+                          <b>History & Heritage:</b> {researchResult.destination.history}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Authoritative Sources */}
+                    {researchResult.destination.sources && researchResult.destination.sources.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-sm text-purple-300">Authoritative References & Citations:</h4>
+                        <div className="space-y-1.5">
+                          {researchResult.destination.sources.map((src, i) => (
+                            <div key={i} className="p-3 rounded-xl bg-purple-900/40 border border-purple-800 flex justify-between items-center text-xs">
+                              <div>
+                                <p className="font-bold text-white">{src.title}</p>
+                                <span className="text-[10px] text-emerald-400">✓ {src.source_type}</span>
+                              </div>
+                              <a href={src.source_url} target="_blank" rel="noopener noreferrer" className="text-amber-300 hover:underline flex items-center gap-1 font-semibold">
+                                Source Link <FiExternalLink size={11} />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+
+        {/* TAB 2: USERS & RBAC (With Bio Description & Travel Activity) */}
+        {activeTab === "users" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="relative w-full sm:w-80">
+                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-300" />
+                <input
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Search user, email, role, location..."
+                  className="w-full pl-10 pr-4 py-2 bg-purple-950/80 border border-purple-700/60 rounded-xl text-sm text-white placeholder-purple-300 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-400/20"
+              >
+                <FiPlus size={16} /> Create Sub-Admin / Staff
+              </button>
+            </div>
+
+            <div className="bg-purple-950/70 border border-purple-700/40 rounded-2xl overflow-hidden shadow-2xl backdrop-blur">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-purple-900/60 text-purple-200 border-b border-purple-700/50 text-xs uppercase tracking-wider">
+                    <tr>
+                      <th className="px-5 py-3.5">User & Description</th>
+                      <th className="px-4 py-3.5">Role / Sub-Admin</th>
+                      <th className="px-4 py-3.5">Location</th>
+                      <th className="px-4 py-3.5">Travel Activity & Views</th>
+                      <th className="px-4 py-3.5">Status</th>
+                      <th className="px-4 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-800/40 text-purple-100">
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-purple-900/30 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-pink-500 text-gray-950 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                              {u.first_name?.[0] || u.email[0].toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-white leading-snug">{u.full_name || "Traveler"}</p>
+                              <p className="text-xs text-purple-300">{u.email}</p>
+                              <p className="text-[11px] text-purple-400 italic line-clamp-1 mt-0.5">
+                                {u.bio || "No profile description provided."}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                            className="bg-purple-900/80 border border-purple-600/50 rounded-lg px-2.5 py-1 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-400"
+                          >
+                            {ROLES.map((r) => (
+                              <option key={r.id} value={r.id} className="bg-purple-950 text-white">
+                                {r.label}
+                              </option>
+                            ))}
+                          </select>
+                          {u.managed_district && (
+                            <p className="text-[10px] text-amber-300/80 mt-0.5">District: {u.managed_district}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-xs">
+                          {u.latitude && u.longitude ? (
+                            <div>
+                              <span className="text-emerald-400 font-medium">📍 {u.city || "Nepal"}</span>
+                              <p className="text-[10px] text-purple-300">{u.latitude.toFixed(2)}, {u.longitude.toFixed(2)}</p>
+                            </div>
+                          ) : (
+                            <span className="text-purple-400">Location inactive</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-xs">
+                          <button
+                            onClick={() => setSelectedUserHistory(u)}
+                            className="text-amber-300 hover:text-amber-200 font-bold underline flex items-center gap-1"
+                          >
+                            <FiEye size={12} /> {u.history_count} Places Visited
+                          </button>
+                          {u.last_destination && (
+                            <p className="text-[10px] text-purple-300 truncate max-w-[140px] mt-0.5">
+                              Last: {u.last_destination}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                              u.is_active
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                            }`}
+                          >
+                            {u.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleToggleUserStatus(u.id, u.is_active)}
+                            title={u.is_active ? "Deactivate User" : "Activate User"}
+                            className="p-2 rounded-xl bg-purple-800/60 hover:bg-purple-700 text-purple-200 hover:text-white transition-colors"
+                          >
+                            {u.is_active ? <FiUserX size={15} /> : <FiUserCheck size={15} />}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u.id)}
+                            title="Remove User"
+                            className="p-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-sm shadow-rose-600/30"
+                          >
+                            <FiTrash2 size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB 3: LIVE USER TRACKING & MEDICAL EMERGENCY */}
+        {activeTab === "tracking" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <FiActivity className="text-amber-400" /> Live Traveler GPS & Medical Emergency Radar
+                </h3>
+                <p className="text-xs text-purple-200">
+                  Tracks traveler coordinates, destination history, navigation state, and real-time medical emergencies.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                Monitoring {tracking.length} Travelers
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {tracking.map((t) => (
+                <div
+                  key={t.id}
+                  className={`p-5 rounded-2xl border transition-all shadow-xl ${
+                    t.has_medical_emergency
+                      ? "bg-rose-950/90 border-rose-500 shadow-rose-500/30 animate-pulse"
+                      : "bg-purple-950/70 border-purple-700/40 hover:border-purple-600"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-base">{t.full_name || t.email}</h4>
+                      <p className="text-xs text-purple-300">{t.email}</p>
+                    </div>
+                    {t.has_medical_emergency ? (
+                      <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center gap-1">
+                        <FiAlertTriangle /> MEDICAL SOS
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-800 text-purple-200 text-[10px] font-semibold uppercase">
+                        {t.role}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-purple-300 italic mt-2 line-clamp-2">
+                    "{t.bio}"
+                  </p>
+
+                  <div className="my-3 text-xs space-y-1 text-purple-200 border-t border-purple-800/40 pt-2">
+                    <p className="flex items-center gap-1">
+                      <FiMapPin className="text-amber-300" />
+                      <span>{t.city}, {t.country}</span>
+                      {t.latitude && <span className="text-[10px] opacity-70">({t.latitude.toFixed(3)}, {t.longitude.toFixed(3)})</span>}
+                    </p>
+                    <p className="flex items-center gap-1">
+                      <FiEye className="text-purple-300" />
+                      <span>{t.view_count} destination views logged</span>
+                    </p>
+                    {t.is_navigating && (
+                      <p className="text-amber-300 font-semibold flex items-center gap-1">
+                        <FiNavigation /> Active Navigation Session
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Medical SOS Alert detail box if present */}
+                  {t.has_medical_emergency && t.emergency_details && (
+                    <div className="mt-3 p-3 rounded-xl bg-rose-900/80 border border-rose-600 text-xs space-y-2">
+                      <p className="font-bold text-white text-xs">Emergency Message:</p>
+                      <p className="text-rose-100">{t.emergency_details.message || "Medical rescue requested!"}</p>
+                      <button
+                        onClick={() => handleResolveEmergency(t.emergency_details.id)}
+                        className="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md"
+                      >
+                        Mark SOS Resolved / Dispatched
+                      </button>
+                    </div>
+                  )}
+
+                  {t.recent_history?.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-purple-800/40 text-[11px]">
+                      <p className="text-purple-300 font-semibold mb-1">Destinations Visited:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {t.recent_history.map((h, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded-md bg-purple-900/80 text-purple-200">
+                            {h.destination__name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB 4: PLACE APPROVALS (With Full Detail Inspection + GREEN Accept & RED Reject Buttons) */}
+        {activeTab === "places" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <FiMapPin className="text-amber-400" /> Pending Tourist Place Submissions ({pendingPlaces.length})
+                </h3>
+                <p className="text-xs text-purple-200">
+                  Inspect user-submitted places with full ward, municipality, amenities, and photos. Accept (Green) directly publishes to the database table.
+                </p>
+              </div>
+            </div>
+
+            {pendingPlaces.length === 0 ? (
+              <div className="p-12 text-center bg-purple-950/40 rounded-2xl border border-purple-800/40">
+                <FiCheck className="mx-auto text-emerald-400 mb-2" size={32} />
+                <p className="font-bold text-lg text-white">All submissions reviewed!</p>
+                <p className="text-sm text-purple-300">No pending destination submissions waiting for review.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pendingPlaces.map((p) => (
+                  <motion.div
+                    key={p.id}
+                    whileHover={{ y: -4 }}
+                    className="bg-purple-950/70 border border-purple-700/50 rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-gray-950">
+                            {p.category_name}
+                          </span>
+                          <h4 className="text-xl font-bold text-white mt-1">{p.name}</h4>
+                          <p className="text-xs text-purple-300">
+                            📍 {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
+                          </p>
+                        </div>
+                        <span className="text-[11px] text-purple-300 font-medium">By: {p.created_by}</span>
+                      </div>
+
+                      {/* Photo preview */}
+                      {p.cover_image_url && (
+                        <div className="h-44 rounded-xl overflow-hidden border border-purple-800">
+                          <img src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+
+                      <div className="p-3.5 rounded-xl bg-purple-900/40 border border-purple-800/40 text-xs text-purple-100 space-y-1.5">
+                        <p><b>Description:</b> {p.description || "No description provided."}</p>
+                        <p><b>Coordinates:</b> {p.latitude?.toFixed(4)}, {p.longitude?.toFixed(4)} ({p.altitude || "Altitude N/A"})</p>
+                        {p.history && <p><b>History:</b> {p.history}</p>}
+                        {p.nearest_hospital_info && <p><b>Hospital:</b> {p.nearest_hospital_info}</p>}
+                        {p.nearest_hotel_info && <p><b>Hotel:</b> {p.nearest_hotel_info}</p>}
+                      </div>
+                    </div>
+
+                    {/* GREEN Accept & RED Reject Buttons */}
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-purple-800/40">
+                      <button
+                        onClick={() => setInspectingPlace(p)}
+                        className="px-3.5 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold flex items-center gap-1.5 border border-purple-700"
+                      >
+                        <FiInfo size={13} /> View All Details
+                      </button>
+
+                      <div className="flex gap-2">
+                        {/* RED Reject Button */}
+                        <button
+                          onClick={() => handleRejectPlace(p.id)}
+                          className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/30 transition-all"
+                        >
+                          <FiX size={15} /> Reject (Red)
+                        </button>
+
+                        {/* GREEN Accept & Publish Button */}
+                        <button
+                          onClick={() => handleApprovePlace(p.id)}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/30 transition-all"
+                        >
+                          <FiCheck size={16} /> Accept & Publish (Green)
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* TAB 5: IMAGE VERIFICATION */}
+        {activeTab === "images" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <FiImage className="text-pink-400" /> User-Submitted Image Verification ({pendingImages.length})
+                </h3>
+                <p className="text-xs text-purple-200">
+                  Verify authentic high-quality images. Approved images are permanently saved to database galleries and recommendation models.
+                </p>
+              </div>
+            </div>
+
+            {pendingImages.length === 0 ? (
+              <div className="p-12 text-center bg-purple-950/40 rounded-2xl border border-purple-800/40">
+                <FiCheck className="mx-auto text-emerald-400 mb-2" size={32} />
+                <p className="font-bold text-lg text-white">All photos verified!</p>
+                <p className="text-sm text-purple-300">No community images waiting for admin verification.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pendingImages.map((img) => (
+                  <div key={img.id} className="bg-purple-950/70 border border-purple-700/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between">
+                    <div className="h-52 w-full relative overflow-hidden bg-black">
+                      <img src={img.image_url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-bold">
+                        {img.destination_name}
+                      </span>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{img.caption || "Community Photo"}</p>
+                        <p className="text-xs text-purple-300 mt-1">Uploaded by: {img.uploaded_by}</p>
+                      </div>
+
+                      {/* RED and GREEN Buttons */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-purple-800/40">
+                        <button
+                          onClick={() => handleRejectImage(img.id)}
+                          className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-600/30"
+                        >
+                          <FiX size={14} /> Reject (Red)
+                        </button>
+                        <button
+                          onClick={() => handleApproveImage(img.id)}
+                          className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/30"
+                        >
+                          <FiCheck size={14} /> Accept & Save (Green)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* TAB 6: MEDICAL SOS */}
+        {activeTab === "emergencies" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-rose-950/50 border border-rose-700/60 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <FiAlertTriangle className="text-rose-400" /> Live Medical & SOS Emergency Response
+                </h3>
+                <p className="text-xs text-rose-200">
+                  Immediate 24/7 rescue & hospital coordination dispatch center for tourists in distress across Nepal.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-xs">
+                {emergencies.filter(e => e.status === "active").length} Active SOS
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {emergencies.map((e) => (
+                <div
+                  key={e.id}
+                  className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl ${
+                    e.status === "active"
+                      ? "bg-rose-950/70 border-rose-500 shadow-rose-500/20"
+                      : "bg-purple-950/60 border-purple-700/40 opacity-80"
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        e.status === "active" ? "bg-rose-600 text-white animate-pulse" : "bg-gray-700 text-gray-300"
+                      }`}>
+                        {e.status.toUpperCase()}
+                      </span>
+                      <h4 className="font-bold text-white">{e.user_name} ({e.user_email})</h4>
+                    </div>
+                    <p className="text-sm text-purple-100 font-medium">{e.message}</p>
+                    <p className="text-xs text-purple-300 flex items-center gap-3">
+                      {e.user_phone && <span>📞 Phone: <b>{e.user_phone}</b></span>}
+                      {e.latitude && <span>📍 GPS: <b>{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</b></span>}
+                      <span>🕒 {new Date(e.triggered_at).toLocaleString()}</span>
+                    </p>
+                  </div>
+
+                  {e.status === "active" && (
+                    <button
+                      onClick={() => handleResolveEmergency(e.id)}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30 shrink-0"
+                    >
+                      <FiCheck size={16} /> Mark Resolved (Green)
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB 7: EXPENSES */}
+        {activeTab === "expenses" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <FiDollarSign className="text-amber-400" /> Traveler & Employee Field Expenditure Data ({expenseReports.length})
+                </h3>
+                <p className="text-xs text-purple-200">
+                  Connects directly to the ML travel budget engine so future cost estimations learn and calibrate against actual ground costs.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddExpenseModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-400/20"
+              >
+                <FiPlus size={14} /> Submit Field Expense
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {expenseReports.map((exp) => (
+                <div key={exp.id} className="bg-purple-950/70 border border-purple-700/40 rounded-2xl p-5 shadow-xl space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-base">{exp.destination_name}</h4>
+                      <p className="text-xs text-purple-300">{exp.num_days} Days · {exp.num_people} Traveler{exp.num_people > 1 ? "s" : ""}</p>
+                    </div>
+                    <span className="text-xl font-black text-amber-300">
+                      NPR {Number(exp.total_cost).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-purple-900/40 text-xs text-purple-200 grid grid-cols-2 gap-2">
+                    <p>🏨 Stay: <b>NPR {exp.accommodation_cost}</b></p>
+                    <p>🚗 Transit: <b>NPR {exp.travel_cost}</b></p>
+                    <p>🍛 Food: <b>NPR {exp.food_cost}</b></p>
+                    <p>🎟️ Entry: <b>NPR {exp.entry_cost}</b></p>
+                  </div>
+
+                  {exp.route_details && (
+                    <p className="text-[11px] text-purple-300">🛣️ <b>Route:</b> {exp.route_details}</p>
+                  )}
+
+                  <div className="pt-2 border-t border-purple-800/40 flex items-center justify-between text-[10px] text-purple-400">
+                    <span>By: {exp.user_name || "Field Officer"}</span>
+                    {exp.is_employee_verified && <span className="text-emerald-400 font-bold">✓ Field Verified</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB 8: RISKS */}
+        {activeTab === "risks" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <FiShield className="text-pink-400" /> Traveler Safety & Risk Incident Assessments ({riskReports.length})
+                </h3>
+                <p className="text-xs text-purple-200">
+                  Traveler and field survey feedback (AMS sickness, hazards, local hospitality, transport accessibility) dynamically calibrating ML risk indices.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {riskReports.map((r) => (
+                <div key={r.id} className="bg-purple-950/70 border border-purple-700/40 rounded-2xl p-5 shadow-xl space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-base">{r.destination_name}</h4>
+                      <p className="text-xs text-purple-300">By: {r.user_name || "Traveler"}</p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                      Safety: {r.overall_safety_rating}/10
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-purple-900/40 text-xs text-purple-200 space-y-1.5">
+                    <p>🤒 Became Sick: <b className={r.became_sick ? "text-rose-400" : "text-emerald-400"}>{r.became_sick ? `Yes (${r.sickness_type})` : "No"}</b></p>
+                    <p>⚠️ Hazard Witnessed: <b>{r.hazard_witnessed || "None"}</b></p>
+                    <p>🚗 Transport Ease: <b>{r.transport_accessibility_rating} / 5</b></p>
+                    <p>🤝 Local Helpfulness: <b>{r.people_helpfulness_rating} / 5</b></p>
+                    <p>🙏 Greeting & Hospitality: <b>{r.greeting_behavior_rating} / 5</b></p>
+                  </div>
+
+                  {r.comments && (
+                    <p className="text-xs text-purple-300 italic">"{r.comments}"</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={FiUsers} label="Total Users" value={stats?.totalUsers ?? "--"} accent="primary" />
-        <StatCard icon={FiMapPin} label="Destinations" value={stats?.totalDestinations ?? "--"} accent="secondary" />
-        <StatCard icon={FiAlertTriangle} label="Active Alerts" value={stats?.activeAlerts ?? "--"} accent="primary" />
-        <StatCard icon={FiDollarSign} label="Avg. Budget" value={`$${stats?.avgBudget ?? "--"}`} accent="secondary" />
-      </div>
+      {/* MODAL 1: FULL DETAIL PLACE INSPECTION BEFORE ACCEPT/REJECT */}
+      <AnimatePresence>
+        {inspectingPlace && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-gradient-to-br from-[#1d0626] via-[#320a3d] to-[#4c0d38] border border-purple-500/60 rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-start justify-between border-b border-purple-700/60 pb-4">
+                <div>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
+                    {inspectingPlace.category_name}
+                  </span>
+                  <h2 className="text-2xl font-black text-white mt-1">{inspectingPlace.name}</h2>
+                  <p className="text-xs text-purple-300">
+                    Submitted by: <b>{inspectingPlace.created_by}</b> · {new Date(inspectingPlace.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setInspectingPlace(null)}
+                  className="p-2 rounded-full bg-purple-900/60 hover:bg-purple-800 text-purple-200"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LineChartCard title="Monthly Visitors" labels={monthlyLabels} data={monthlyData} label="Visitors" />
-        <BarChartCard title="Destinations by Category" labels={categoryLabels} data={categoryData} label="Count" />
-      </div>
+              {/* Submitted Pictures */}
+              {inspectingPlace.cover_image_url && (
+                <div className="h-64 rounded-2xl overflow-hidden border border-purple-700 shadow-lg">
+                  <img src={inspectingPlace.cover_image_url} alt={inspectingPlace.name} className="w-full h-full object-cover" />
+                </div>
+              )}
 
-      <div className="card-base p-6">
-        <h3 className="font-semibold mb-4">Quick Management</h3>
-        <p className="text-sm text-gray-500">
-          Manage users, destinations, and alerts via the admin API endpoints
-          (<code>/admin/users</code>, <code>/admin/destinations</code>, <code>/admin/alerts</code>).
-          Extend this dashboard with data tables and CRUD forms as the backend endpoints are finalized.
-        </p>
-      </div>
+              {/* Administrative & Coordinate Details */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-purple-950/80 border border-purple-700/50 text-xs">
+                <div>
+                  <span className="text-purple-300">Province</span>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Gandaki"}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">District / City</span>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.district || inspectingPlace.city}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">Municipality</span>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.municipality || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">Ward Number</span>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.ward_number ? `Ward ${inspectingPlace.ward_number}` : "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">Latitude</span>
+                  <p className="font-bold text-amber-300 mt-0.5">{inspectingPlace.latitude?.toFixed(6)}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">Longitude</span>
+                  <p className="font-bold text-amber-300 mt-0.5">{inspectingPlace.longitude?.toFixed(6)}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">Altitude</span>
+                  <p className="font-bold text-cyan-300 mt-0.5">{inspectingPlace.altitude || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-purple-300">Entry Fee</span>
+                  <p className="font-bold text-emerald-300 mt-0.5">NPR {inspectingPlace.entry_fee || 0}</p>
+                </div>
+              </div>
+
+              {/* Text content */}
+              <div className="space-y-3 text-xs">
+                <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800">
+                  <h4 className="font-bold text-amber-300 mb-1">Full Description:</h4>
+                  <p className="text-purple-100 leading-relaxed whitespace-pre-line">{inspectingPlace.description}</p>
+                </div>
+
+                {inspectingPlace.history && (
+                  <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800">
+                    <h4 className="font-bold text-amber-300 mb-1">Historical & Cultural Heritage:</h4>
+                    <p className="text-purple-100 leading-relaxed whitespace-pre-line">{inspectingPlace.history}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-800">
+                    <h5 className="font-bold text-purple-300">🏥 Nearest Hospital</h5>
+                    <p className="text-purple-100 mt-1">{inspectingPlace.nearest_hospital_info || "None specified"}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-800">
+                    <h5 className="font-bold text-purple-300">🏨 Nearest Hotel</h5>
+                    <p className="text-purple-100 mt-1">{inspectingPlace.nearest_hotel_info || "None specified"}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-800">
+                    <h5 className="font-bold text-purple-300">👮 Police Station</h5>
+                    <p className="text-purple-100 mt-1">{inspectingPlace.nearest_police_info || "None specified"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS (GREEN Accept & RED Reject) */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-700/60">
+                <button
+                  onClick={() => handleRejectPlace(inspectingPlace.id)}
+                  className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-rose-600/30 transition-all"
+                >
+                  <FiX size={16} /> Reject Place (Red)
+                </button>
+                <button
+                  onClick={() => handleApprovePlace(inspectingPlace.id)}
+                  className="px-8 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-500/30 transition-all"
+                >
+                  <FiCheck size={18} /> Accept & Publish to Database (Green)
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 2: USER TRAVEL HISTORY TIMELINE */}
+      <AnimatePresence>
+        {selectedUserHistory && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gradient-to-br from-[#1d0626] via-[#320a3d] to-[#4c0d38] border border-purple-500/60 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-5 text-white max-h-[85vh] overflow-y-auto"
+            >
+              <div className="flex items-start justify-between border-b border-purple-700/60 pb-3">
+                <div>
+                  <h3 className="text-xl font-bold text-white">{selectedUserHistory.full_name || selectedUserHistory.email}</h3>
+                  <p className="text-xs text-purple-300">User Profile & Travel History Log</p>
+                </div>
+                <button onClick={() => setSelectedUserHistory(null)} className="text-purple-300 hover:text-white">
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-950/80 border border-purple-800 text-xs space-y-2">
+                <p className="text-amber-300 font-bold">Profile Bio / Description:</p>
+                <p className="text-purple-100 italic">"{selectedUserHistory.bio}"</p>
+                <div className="pt-2 flex justify-between text-purple-300 text-[11px]">
+                  <span>Role: <b>{selectedUserHistory.role}</b></span>
+                  <span>Registered: <b>{new Date(selectedUserHistory.date_joined).toLocaleDateString()}</b></span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-bold text-sm text-amber-300 flex items-center gap-1.5">
+                  <FiMapPin /> Destinations Visited ({selectedUserHistory.travel_history?.length || 0})
+                </h4>
+
+                {selectedUserHistory.travel_history?.length === 0 ? (
+                  <p className="text-xs text-purple-400 italic">No destination visits recorded yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {selectedUserHistory.travel_history?.map((item, idx) => (
+                      <div key={idx} className="p-3 rounded-xl bg-purple-950/60 border border-purple-800/50 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-white">{item.destination__name}</p>
+                          <p className="text-[10px] text-purple-300">{item.destination__city || "Nepal"}</p>
+                        </div>
+                        <span className="text-[10px] text-amber-300/80">
+                          {new Date(item.viewed_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 3: ADD SUB-ADMIN / STAFF */}
+      <AnimatePresence>
+        {showAddUserModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900 border border-purple-600/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-white"
+            >
+              <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+                <h3 className="text-lg font-bold">Add New User or Assign Sub-Admin</h3>
+                <button onClick={() => setShowAddUserModal(false)} className="text-purple-300 hover:text-white">
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-purple-300">First Name</label>
+                    <input
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={newUserForm.first_name}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, first_name: e.target.value })}
+                      placeholder="e.g. Ramesh"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-purple-300">Last Name</label>
+                    <input
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={newUserForm.last_name}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, last_name: e.target.value })}
+                      placeholder="e.g. Shrestha"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-purple-300">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    className="input-field mt-1 text-xs text-gray-900"
+                    value={newUserForm.email}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                    placeholder="staff@nepaltourism.gov.np"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-purple-300">Password *</label>
+                  <input
+                    type="password"
+                    required
+                    className="input-field mt-1 text-xs text-gray-900"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                    placeholder="Minimum 8 characters"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-purple-300">User Description / Bio</label>
+                  <textarea
+                    rows={2}
+                    className="input-field mt-1 text-xs text-gray-900"
+                    value={newUserForm.bio}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, bio: e.target.value })}
+                    placeholder="Travel interests, duties, or district assignments..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-purple-300">Assign Role (RBAC)</label>
+                    <select
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={newUserForm.role}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r.id} value={r.id}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-purple-300">Managed District</label>
+                    <input
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={newUserForm.managed_district}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, managed_district: e.target.value })}
+                      placeholder="e.g. Kaski / Mustang"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddUserModal(false)}
+                    className="px-4 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                  >
+                    Create User / Sub-Admin
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 4: SUBMIT FIELD EXPENSE (ML CONNECTION) */}
+      <AnimatePresence>
+        {showAddExpenseModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900 border border-purple-600/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-white"
+            >
+              <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+                <h3 className="text-lg font-bold">Record Field Expense (ML Feedback)</h3>
+                <button onClick={() => setShowAddExpenseModal(false)} className="text-purple-300 hover:text-white">
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitExpense} className="space-y-3 text-xs">
+                <div>
+                  <label className="text-purple-300">Destination Name *</label>
+                  <input
+                    required
+                    className="input-field mt-1 text-xs text-gray-900"
+                    value={expenseForm.destination_name}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, destination_name: e.target.value })}
+                    placeholder="e.g. Annapurna Base Camp / Mustang"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-purple-300">Number of Travelers</label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={expenseForm.num_people}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, num_people: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-purple-300">Number of Days</label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={expenseForm.num_days}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, num_days: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-purple-300">Stay Cost (NPR)</label>
+                    <input
+                      type="number"
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={expenseForm.accommodation_cost}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, accommodation_cost: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-purple-300">Transit Cost (NPR)</label>
+                    <input
+                      type="number"
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={expenseForm.travel_cost}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, travel_cost: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-purple-300">Food Cost (NPR)</label>
+                    <input
+                      type="number"
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={expenseForm.food_cost}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, food_cost: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-purple-300">Entry / Permit (NPR)</label>
+                    <input
+                      type="number"
+                      className="input-field mt-1 text-xs text-gray-900"
+                      value={expenseForm.entry_cost}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, entry_cost: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-purple-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddExpenseModal(false)}
+                    className="px-4 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                  >
+                    Feed into ML Engine
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

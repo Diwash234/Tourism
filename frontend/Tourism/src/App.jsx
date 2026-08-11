@@ -13,6 +13,7 @@ import AdminRoute from "./routes/AdminRoute"
 import Landing from "./pages/Landing"
 import About from "./pages/About"
 import Contact from "./pages/Contact"
+import ThankYou from "./pages/ThankYou"
 import NotFound from "./pages/NotFound"
 
 // Authentication
@@ -32,7 +33,7 @@ import ExploreNepalMap from "./pages/ExploreNepalMap"
 // Features
 import Chatbot from "./Chatbot"
 import MyBooking from "./MyBookings"
-import BookHotel from "./Bookhotel"
+import BookHotel from "./BookHotel"
 
 // User Dashboard Pages
 import Dashboard from "./pages/Dashboard"
@@ -51,6 +52,10 @@ import Settings from "./pages/Settings"
 import Favorites from "./pages/Favorites"
 import History from "./pages/History"
 import Notifications from "./pages/Notifications"
+import Expenditure from "./pages/Expenditure"
+import MySubmissions from "./pages/MySubmissions"
+import StaffDashboard from "./pages/StaffDashboard"
+import Itinerary from "./pages/Itinerary"
 
 // Admin
 import AdminDashboard from "./pages/admin/AdminDashboard"
@@ -69,6 +74,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/thank-you" element={<ThankYou />} />
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
@@ -80,6 +86,7 @@ function App() {
         {/* Destinations */}
         <Route path="/destinations" element={<DestinationList />} />
         <Route path="/destinations/:slug" element={<DestinationDetails />} />
+        <Route path="/itinerary" element={<Itinerary />} />
 
         {/* Public Emergency */}
         <Route path="/emergency" element={<Emergency />} />
@@ -131,6 +138,9 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/history" element={<History />} />
+          <Route path="/expenditure" element={<Expenditure />} />
+          <Route path="/my-submissions" element={<MySubmissions />} />
+          <Route path="/staff" element={<StaffDashboard />} />
 
           <Route path="/chatbot" element={<Chatbot />} />
 

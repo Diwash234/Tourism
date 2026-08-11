@@ -36,7 +36,9 @@ const userApi = {
   // and DELETEd `/favorites/${destinationId}/` (treating the destination's
   // id as if it were the favorite row's own id, which is usually wrong).
   getFavorites: () =>
-    axiosClient.get("/favorites/"),
+    localStorage.getItem("access")
+      ? axiosClient.get("/favorites/").catch(() => ({ data: [] }))
+      : Promise.resolve({ data: [] }),
 
   addFavorite: (destinationId) =>
     axiosClient.post("/favorites/", { destination: destinationId }),

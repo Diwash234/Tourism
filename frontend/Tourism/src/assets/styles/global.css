@@ -1,0 +1,27 @@
+/* forms.css */
+.form-input-smooth {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.form-input-smooth:focus {
+  border-color: #9333ea;
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
+}
+
+/* map.css */
+.tactical-hud-radar {
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(15, 23, 42, 0.95) 75%);
+  border: 2px solid rgba(234, 179, 8, 0.6);
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.35);
+}
+
+/* global.css */
+body {
+  font-family: inherit;
+  scroll-behavior: smooth;
+}

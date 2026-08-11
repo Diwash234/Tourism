@@ -2,13 +2,82 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Primary Meta Tags -->
+    <title>Nepal Tourism Portal | Explore Himalayas, Smart Budgets & Live Safety Sentinel</title>
+    <meta name="title" content="Nepal Tourism Portal | Explore Himalayas, Smart Budgets & Live Safety Sentinel" />
+    <meta name="description" content="Official Nepal Tourism Companion. Explore 5,800+ verified destinations, turn-by-turn GTA game HUD navigation, ML travel budget estimations, and 24/7 tourist emergency sentinel." />
+    <meta name="keywords" content="Nepal tourism, Everest Base Camp, Annapurna Circuit, Pokhara, Kathmandu heritage, Nepal travel budget, Himalayan trekking, Tourist police 1144" />
+    <meta name="author" content="Nepal Tourism Portal & Ministry of Tourism" />
+    <meta name="theme-color" content="#4a0e4e" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://nepaltourism.gov.np/" />
+
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nepaltourism.gov.np/" />
+    <meta property="og:title" content="Nepal Tourism Portal | Explore Himalayas, Smart Budgets & Live Safety" />
+    <meta property="og:description" content="Explore 5,800+ verified Nepal destinations, tactical turn-by-turn road navigation, ML budget predictor, and 24/7 emergency sentinel." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80" />
+    <meta property="og:site_name" content="Nepal Tourism Information Portal" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://nepaltourism.gov.np/" />
+    <meta name="twitter:title" content="Nepal Tourism Portal | Explore Himalayas, Smart Budgets & Live Safety" />
+    <meta name="twitter:description" content="Explore 5,800+ verified Nepal destinations, tactical turn-by-turn road navigation, ML budget predictor, and 24/7 emergency sentinel." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80" />
+
+    <!-- Leaflet & Fonts -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <title>Digital Nepal | Explore the Heart of the Himalayas</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- JSON-LD Structured Data Schema -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://nepaltourism.gov.np/#organization",
+            "name": "Nepal Tourism Information Portal",
+            "url": "https://nepaltourism.gov.np/",
+            "logo": "https://nepaltourism.gov.np/favicon.svg",
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": "+977-1-4247041",
+              "contactType": "emergency",
+              "areaServed": "NP",
+              "availableLanguage": ["English", "Nepali"]
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://nepaltourism.gov.np/#website",
+            "url": "https://nepaltourism.gov.np/",
+            "name": "Nepal Tourism Information Portal",
+            "publisher": {
+              "@id": "https://nepaltourism.gov.np/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://nepaltourism.gov.np/destinations?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
-  <body>
+  <body class="bg-white text-gray-900 antialiased selection:bg-purple-600 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

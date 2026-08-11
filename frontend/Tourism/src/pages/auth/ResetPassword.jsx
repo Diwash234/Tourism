@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import authApi from "../../api/authApi"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
-import NepalSceneBackground from "../../components/branding/Nepalscenebackground"
+import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 
 /**
  * ResetPassword — reached from the email link the backend sends via

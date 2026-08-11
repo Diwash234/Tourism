@@ -1,431 +1,339 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { FiMapPin, FiShield, FiDollarSign, FiNavigation } from "react-icons/fi"
+import {
+  FiMapPin, FiShield, FiDollarSign, FiNavigation, FiStar,
+  FiCompass, FiArrowRight, FiCheckCircle, FiPhoneCall, FiSun
+} from "react-icons/fi"
 
 import SearchBar from "../components/common/SearchBar"
 import DestinationCard from "../components/cards/DestinationCard"
 import DestinationCardSkeleton from "../components/cards/DestinationCardSkeleton"
-import Loader from "../components/common/Loader"
 import FAQAccordion from "../components/common/FAQAccordion"
 import NepalHighlights from "../components/dashboard/NepalHighlights"
+import NepalExperienceSection from "../components/dashboard/NepalExperienceSection"
+import NationalSymbols from "../components/dashboard/NationalSymbols"
 import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
-
+import {
+  FadeIn, SlideUp, Stagger, StaggerItem, HoverCard,
+  BurnGlowBadge, InteractiveHeroCanvas
+} from "../components/common/MotionSystem"
+import CaseStudiesSection from "../components/landing/CaseStudiesSection"
+import TestimonialsSection from "../components/landing/TestimonialsSection"
+import StickyCTA from "../components/common/StickyCTA"
 
 const PROVINCES = [
-  { name: "Koshi", city: "Biratnagar" },
-  { name: "Madhesh", city: "Janakpur" },
-  { name: "Bagmati", city: "Kathmandu" },
-  { name: "Gandaki", city: "Pokhara" },
-  { name: "Lumbini", city: "Butwal" },
-  { name: "Karnali", city: "Surkhet" },
-  { name: "Sudurpashchim", city: "Dhangadhi" },
+  { name: "Koshi Province", city: "Biratnagar / Ilam", code: "koshi" },
+  { name: "Madhesh Province", city: "Janakpurdham", code: "madhesh" },
+  { name: "Bagmati Province", city: "Kathmandu Valley", code: "bagmati" },
+  { name: "Gandaki Province", city: "Pokhara / Annapurna", code: "gandaki" },
+  { name: "Lumbini Province", city: "Lumbini / Butwal", code: "lumbini" },
+  { name: "Karnali Province", city: "Rara / Surkhet", code: "karnali" },
+  { name: "Sudurpashchim", city: "Dhangadhi / Khaptad", code: "sudurpashchim" },
 ]
 
-const features = [
+const QUICK_SEARCH_PILLS = [
+  "Pokhara", "Everest Base Camp", "Annapurna Sanctuary", "Chitwan Safari", "Lumbini", "Mustang", "Rara Lake", "Nagarkot"
+]
+
+const FEATURES = [
   {
     icon: FiMapPin,
-    desc: "Explore curated local tourist spots with photos, videos and reviews."
+    title: "5,800+ Verified Destinations",
+    desc: "Curated cultural landmarks, hidden waterfalls, alpine passes, and local homestays across all 7 provinces.",
   },
   {
     icon: FiDollarSign,
-    title: "Smart Budget Estimator",
-    desc: "Plan your trip costs accurately before you travel."
+    title: "ML Travel Cost Estimator",
+    desc: "Predict accommodation, food, transit, and entry fees calibrated by actual traveler expenditure records.",
   },
   {
     icon: FiShield,
-    title: "Real-time Risk Alerts",
-    desc: "Stay informed with safety alerts for every destination."
+    title: "24/7 Mountain Risk Sentinel",
+    desc: "Live altitude sickness advisories, weather warnings, and direct emergency police/hospital connectivity.",
   },
   {
     icon: FiNavigation,
-    title: "Live Navigation",
-    desc: "Get routes, nearby hospitals, police stations and attractions."
+    title: "GTA Tactical Navigation HUD",
+    desc: "Turn-by-turn road and trail navigation with speedometer, compass bearing, and nearby checkpoints.",
   },
 ]
-
 
 const FAQ_ITEMS = [
   {
-    question: "Why should you use our tourism recommendation system instead of searching manually?",
-    answer:
-      "Manual searching means checking many different websites. Our system combines destination data, ratings, weather, safety information and budget estimates in one place so travelers can make decisions faster."
+    question: "Why use this Nepal Tourism portal over generic search engines?",
+    answer: "Generic searches give fragmented data. This platform integrates verified municipal geocoding, ML budget estimation, live natural hazard alerts, 1,000+ emergency hospitals/police stations, and turn-by-turn navigation in a single portal."
   },
   {
-    question: "How does our website help you discover Nepal destinations?",
-    answer:
-      "Destinations can be explored by category, season, budget and interests. Each place provides useful information for better travel planning."
+    question: "How accurate are the travel budget estimates?",
+    answer: "The ML budget engine is calibrated using real traveler feedback and field officer survey data, breaking costs into accommodation, transit, meals, and national park permits."
   },
   {
-    question: "What personalized recommendations can our system provide?",
-    answer:
-      "The recommendation engine learns from viewed, searched and favorited destinations to suggest places matching traveler interests."
+    question: "What should I do during high-altitude or medical emergencies?",
+    answer: "Tap the 24/7 red Emergency button to view nearest hospitals and police stations on the live GPS map, or dial Tourist Police Nepal directly at 1144."
   },
   {
-    question: "How does our website save travel planning time?",
-    answer:
-      "Budget planning, hotels, safety alerts, navigation and destination information are available together instead of using multiple applications."
+    question: "Can community travelers submit new hidden gems?",
+    answer: "Yes! Travelers can submit new spots with photos, municipality, and ward details. All submissions pass through the Admin Verification Sentinel before publishing live."
   },
   {
-    question: "How does the recommendation system match destinations?",
-    answer:
-      "It compares categories, locations, budgets and user activity to provide more relevant destination suggestions."
-  },
-  {
-    question: "Why is this useful for first-time Nepal visitors?",
-    answer:
-      "The system helps travelers understand safety, costs, weather and attractions before arriving."
-  },
-  {
-    question: "How does the budget system help travelers?",
-    answer:
-      "It estimates expenses based on travel duration, travelers count and travel style."
-  },
-  {
-    question: "How does it help create itineraries?",
-    answer:
-      "The system combines distance, season and safety information to help organize better trips."
-  },
-  {
-    question: "Why is it better than random online searches?",
-    answer:
-      "The platform uses structured destination records instead of depending only on random search results."
-  },
-  {
-    question: "How does it improve travel experience?",
-    answer:
-      "It reduces uncertainty by providing information about expenses, destinations, safety and recommendations."
-  },
+    question: "Does the navigation work for remote Himalayan trekking routes?",
+    answer: "Yes! The system integrates topological road graph routes and trekking trail corridors with altitude tracking and maneuver guidance."
+  }
 ]
 
-
-const Landing = () => {
+export default function Landing() {
   const navigate = useNavigate()
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
 
-
   useEffect(() => {
-
     destinationApi
-      .getAll({
-        limit: 6,
-        featured: true,
-      })
-
+      .getAll({ limit: 6, featured: true })
       .then(({ data }) => {
-
-        setDestinations(
-          data.results || data || []
-        )
-
+        setDestinations(data.results || data || [])
       })
-
-      .catch((error) => {
-
-        console.log(
-          "Destination error:",
-          error
-        )
-
-        setDestinations([])
-
-      })
-
-      .finally(() => {
-
-        setLoading(false)
-
-      })
-
+      .catch(() => setDestinations([]))
+      .finally(() => setLoading(false))
   }, [])
 
-
-
   return (
-
-    <div className="theme-crimson">
-
-
-      <section className="relative bg-gradient-to-br from-nepalred-600 via-nepalred-500 to-himalaya-800 text-white overflow-hidden">
-
+    <div className="relative overflow-x-hidden bg-white text-gray-900">
+      {/* 1. HERO SECTION (Above the fold conversion engine) */}
+      <section className="relative bg-gradient-to-br from-[#1c042e] via-[#35093e] to-[#540d3a] text-white overflow-hidden py-24 sm:py-32">
         <HeroEffects />
+        <InteractiveHeroCanvas />
 
+        {/* Ambient glow blobs */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="container-app py-24 md:py-32 relative z-10">
-
-
-          <motion.h1
-
-            initial={{
-              opacity:0,
-              y:20
-            }}
-
-            animate={{
-              opacity:1,
-              y:0
-            }}
-
-            className="text-4xl md:text-6xl font-extrabold max-w-2xl leading-tight"
-
-          >
-
-            Explore Local Wonders, Travel Smart & Safe
-
-          </motion.h1>
-
-
-
-          <p className="mt-4 text-lg text-white/90 max-w-xl">
-
-            Your all-in-one tourism companion — destinations, budgets, safety alerts, and navigation in one place.
-
-          </p>
-
-
-
-          <div className="mt-8 bg-white rounded-xl2 p-2 max-w-xl shadow-hover">
-
-            <SearchBar
-              placeholder="Search destinations, cities, attractions..."
-              className="w-full"
-              onSearch={(value) => navigate(`/destinations?q=${encodeURIComponent(value)}`)}
+        <div className="container-app relative z-10 max-w-5xl mx-auto text-center space-y-7">
+          <FadeIn delay={0.1}>
+            <BurnGlowBadge
+              icon={FiSun}
+              text="Explore Nepal's 7 Provinces · Live 2026 Himalayan Sentinel"
             />
+          </FadeIn>
 
-          </div>
+          <FadeIn delay={0.2}>
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] max-w-4xl mx-auto">
+              Explore Local Wonders,{" "}
+              <span className="bg-gradient-to-r from-amber-300 via-rose-300 to-amber-200 bg-clip-text text-transparent">
+                Travel Smart & Safe
+              </span>
+            </h1>
+          </FadeIn>
 
+          <FadeIn delay={0.3}>
+            <p className="text-base sm:text-xl text-purple-100/90 max-w-2xl mx-auto font-normal leading-relaxed">
+              Your official Himalayan travel companion — AI-curated destinations, real-time ML budgets, turn-by-turn road navigation, and 24/7 emergency rescue.
+            </p>
+          </FadeIn>
 
+          {/* Above-the-fold Search Input with Quick Pills */}
+          <FadeIn delay={0.4} className="max-w-2xl mx-auto space-y-3">
+            <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white/20">
+              <SearchBar
+                placeholder="Search places, temples, treks, cities (e.g. Pokhara, Everest, Chitwan)..."
+                className="w-full text-gray-900"
+                onSearch={(val) => navigate(`/destinations?q=${encodeURIComponent(val)}`)}
+              />
+            </div>
 
-          <div className="mt-6 flex gap-3">
+            {/* Quick search pills */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+              <span className="text-[11px] font-bold text-purple-200">Popular:</span>
+              {QUICK_SEARCH_PILLS.map((pill, i) => (
+                <button
+                  key={i}
+                  onClick={() => navigate(`/destinations?q=${encodeURIComponent(pill)}`)}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur transition-all border border-white/10"
+                >
+                  {pill}
+                </button>
+              ))}
+            </div>
+          </FadeIn>
 
-
+          {/* Primary & Secondary Above-The-Fold CTAs */}
+          <FadeIn delay={0.5} className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Link
               to="/destinations"
-              className="bg-white text-primary-600 font-semibold px-6 py-3 rounded-xl hover:bg-gray-100"
+              className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-gray-950 font-black text-sm hover:scale-105 shadow-xl shadow-amber-400/25 transition-all flex items-center gap-2"
             >
-
-              Browse Destinations
-
+              <FiCompass size={18} /> Explore 5,800+ Destinations <FiArrowRight size={16} />
             </Link>
-
-
 
             <Link
-              to="/register"
-              className="border border-white/70 font-semibold px-6 py-3 rounded-xl hover:bg-white/10"
+              to="/budget-estimator"
+              className="px-7 py-3.5 rounded-2xl bg-purple-900/80 hover:bg-purple-800 text-white font-bold text-sm border border-purple-500/50 backdrop-blur shadow-lg transition-all"
             >
-
-              Get Started
-
+              Calculate Trip Budget (ML)
             </Link>
+          </FadeIn>
 
-
-          </div>
-
-
+          {/* Trust & Proof Indicators */}
+          <FadeIn delay={0.6} className="pt-8 border-t border-purple-800/40 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
+                ✓
+              </div>
+              <span className="text-xs text-purple-200 font-medium">5,800+ Verified Places</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
+                ★
+              </div>
+              <span className="text-xs text-purple-200 font-medium">10,000+ Real Hikers</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
+                🚨
+              </div>
+              <span className="text-xs text-purple-200 font-medium">24/7 Helpline (1144)</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold text-xs shrink-0">
+                🏔️
+              </div>
+              <span className="text-xs text-purple-200 font-medium">All 7 Provinces</span>
+            </div>
+          </FadeIn>
         </div>
-
-
       </section>
 
-
-
-      <NepalHighlights />
-
-
-
-      <section className="container-app py-16">
-
-        <h2 className="section-title text-center">
-
-          Why Travel With Us
-
-        </h2>
-
+      {/* 2. CORE FEATURES (REFERO & STITCH GRADE POLISH) */}
+      <section className="container-app py-20 relative z-10">
+        <SlideUp>
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+              Engineered for Himalayan Explorers
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
+              Why Travel with Nepal Portal
+            </h2>
+            <p className="text-gray-500 text-sm mt-2">
+              Everything you need for an unforgettable, safe, and cost-effective expedition.
+            </p>
+          </div>
+        </SlideUp>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
-
-          {features.map(({icon:Icon,title,desc}) => (
-
-            <motion.div
-
+          {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
+            <HoverCard
               key={title}
-
-              whileHover={{
-                y:-4
-              }}
-
-              className="card-base p-6 text-center"
-
+              className="card-base p-7 rounded-3xl border border-purple-100/80 shadow-xl bg-gradient-to-br from-white to-purple-50/30 flex flex-col justify-between space-y-4"
             >
-
-              <div className="inline-flex p-3 rounded-full bg-primary-50 text-primary-500 mb-4">
-
-                <Icon size={24}/>
-
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shadow-sm">
+                  <Icon size={24} />
+                </div>
+                <h3 className="font-bold text-base text-gray-900 leading-snug">{title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
               </div>
-
-
-              <h3 className="font-semibold mb-2">
-                {title}
-              </h3>
-
-
-              <p className="text-sm text-gray-500">
-                {desc}
-              </p>
-
-
-            </motion.div>
-
+              <div className="pt-2 border-t border-gray-100">
+                <span className="text-[11px] font-bold text-purple-700 flex items-center gap-1">
+                  Learn more <FiArrowRight size={12} />
+                </span>
+              </div>
+            </HoverCard>
           ))}
-
-
         </div>
-
-
       </section>
 
-
-
-
+      {/* 3. FEATURED TOP DESTINATIONS */}
       <section className="container-app py-16">
-
-
-        <div className="flex items-center justify-between mb-6">
-
-
-          <h2 className="section-title mb-0">
-            Popular Destinations
-          </h2>
-
-
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+          <div>
+            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
+              Handpicked Wonders
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
+              Featured Nepal Destinations
+            </h2>
+          </div>
           <Link
             to="/destinations"
-            className="text-primary-500 font-semibold text-sm hover:underline"
+            className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 shrink-0"
           >
-
-            View all
-
+            View All 5,800+ Destinations <FiArrowRight size={14} />
           </Link>
-
-
         </div>
 
-
-
-
         {loading ? (
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
             {[...Array(6)].map((_, i) => (
               <DestinationCardSkeleton key={i} />
             ))}
-
           </div>
-
-        ) : destinations.length ? (
-
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-
-            {destinations.map((d)=>(
-
-              <DestinationCard
-                key={d.id}
-                destination={d}
-              />
-
-            ))}
-
-
-          </div>
-
-
         ) : (
-
-          <p className="text-gray-400 text-center py-10">
-
-            Destinations will appear here once the backend is connected.
-
-          </p>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {destinations.map((d) => (
+              <DestinationCard key={d.id} destination={d} />
+            ))}
+          </div>
         )}
-
-
-    </section>
-
-
-
-
-    <section className="container-app py-16">
-
-      <h2 className="section-title text-center mx-auto w-fit">
-        Explore by Province
-      </h2>
-
-      <p className="text-gray-500 text-center max-w-2xl mx-auto mb-10 -mt-2">
-        Browse destinations by Nepal's 7 provinces.
-      </p>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 max-w-4xl mx-auto">
-        {PROVINCES.map((province) => (
-          <Link
-            key={province.name}
-            to={`/destinations?q=${encodeURIComponent(province.city)}`}
-            className="card-base p-4 text-center hover:shadow-premium transition-all flex flex-col items-center"
-          >
-            <span className="font-semibold text-sm text-dark">{province.name}</span>
-            <span className="text-xs text-gray-500 mt-1">{province.city}</span>
-          </Link>
-        ))}
-      </div>
-
-    </section>
-
-
-
-
-    <section className="container-app py-16">
-
-
-      <h2 className="section-title text-center mx-auto w-fit">
-
-          Frequently Asked Questions
-
-        </h2>
-
-
-
-        <p className="text-gray-500 text-center max-w-2xl mx-auto mb-10 -mt-2">
-
-          Everything travelers usually ask before trusting a recommendation engine over their own search.
-
-        </p>
-
-
-
-        <div className="max-w-3xl mx-auto">
-
-          <FAQAccordion items={FAQ_ITEMS}/>
-
-        </div>
-
-
       </section>
 
+      {/* 4. EXPEDITION BLUEPRINTS & CASE STUDIES */}
+      <CaseStudiesSection />
 
+      {/* 5. NEPAL HIGHLIGHTS & CULTURAL EXPERIENCES */}
+      <NepalHighlights />
 
+      <section className="container-app py-10">
+        <NationalSymbols />
+        <NepalExperienceSection />
+      </section>
+
+      {/* 6. PROVINCES DIRECTORY */}
+      <section className="container-app py-16">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            Explore Destinations by Province
+          </h2>
+          <p className="text-gray-500 text-sm mt-1">
+            Discover regional attractions from the eastern tea hills to the western wilderness.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {PROVINCES.map((prov) => (
+            <Link
+              key={prov.name}
+              to={`/destinations?q=${encodeURIComponent(prov.city)}`}
+              className="card-base p-4 text-center rounded-2xl border border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
+            >
+              <span className="font-bold text-xs text-gray-900">{prov.name}</span>
+              <span className="text-[10px] text-purple-700 mt-1 font-semibold">{prov.city}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* 7. REAL TESTIMONIALS */}
+      <TestimonialsSection />
+
+      {/* 8. FAQ SECTION */}
+      <section className="container-app py-16">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-gray-500 text-sm mt-1">
+            Everything travelers ask before embarking on their journey in Nepal.
+          </p>
+        </div>
+
+        <div className="max-w-3xl mx-auto">
+          <FAQAccordion items={FAQ_ITEMS} />
+        </div>
+      </section>
+
+      {/* 9. STICKY CONVERSION CTA */}
+      <StickyCTA />
     </div>
-
   )
-
 }
-
-
-export default Landing

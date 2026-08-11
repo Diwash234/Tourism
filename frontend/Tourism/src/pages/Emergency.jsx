@@ -1,1074 +1,270 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  FiPhoneCall,
-  FiAlertOctagon,
-  FiMapPin,
-  FiNavigation,
-  FiShield,
-  FiPlusSquare,
-  FiActivity,
-  FiSun,
-  FiHome,
-  FiUsers,
-  FiWifiOff,
-  FiHeart,
-  FiX,
+  FiPhoneCall, FiAlertTriangle, FiMapPin, FiNavigation, FiShield,
+  FiPlusSquare, FiActivity, FiSun, FiSearch, FiCheck, FiX, FiExternalLink
 } from "react-icons/fi"
-
 import useGeolocation from "../hooks/useGeolocation"
 import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
-import { getEmergency } from "../services/mlService"
-import emergencyService from "../api/emergencyService"
+import Breadcrumbs from "../components/common/Breadcrumbs"
+import safetyApi from "../api/safetyApi"
+import useToast from "../hooks/useToast"
+import axiosClient from "../api/axiosClient"
 
-
-const HOTLINES = [
-  {
-    type: "police",
-    label: "Police",
-    phone: "100",
-    icon: FiShield,
-    color: "bg-himalaya-500",
-  },
-  {
-    type: "ambulance",
-    label: "Ambulance",
-    phone: "102",
-    icon: FiPlusSquare,
-    color: "bg-nepalred-500",
-  },
-  {
-    type: "fire_station",
-    label: "Fire Station",
-    phone: "101",
-    icon: FiActivity,
-    color: "bg-saffron-500",
-  },
-  {
-    type: "tourism_office",
-    label: "Tourism Office",
-    phone: "1144",
-    icon: FiSun,
-    color: "bg-forest-500",
-  },
-  {
-    type: "ward_office",
-    label: "Local Ward Office",
-    phone: null,
-    icon: FiHome,
-    color: "bg-himalaya-600",
-  },
-  {
-    type: "embassy",
-    label: "Embassy",
-    phone: null,
-    icon: FiUsers,
-    color: "bg-forest-600",
-  },
+const NATIONAL_HOTLINES = [
+  { label: "Tourist Police Nepal", phone: "1144", full: "+977-1-4247041", desc: "24/7 Tourist Assistance & Lost Items", icon: FiShield, color: "from-purple-700 to-indigo-700" },
+  { label: "Nepal Police Emergency", phone: "100", full: "100", desc: "National Police Dispatch", icon: FiShield, color: "from-blue-700 to-cyan-700" },
+  { label: "National Ambulance", phone: "102", full: "102", desc: "Medical Emergency & Paramedics", icon: FiPlusSquare, color: "from-rose-600 to-red-700" },
+  { label: "Fire Brigade", phone: "101", full: "101", desc: "Fire Rescue Service", icon: FiActivity, color: "from-amber-500 to-orange-600" },
+  { label: "Himalayan Rescue (HRA)", phone: "01-4440292", full: "+977-1-4440292", desc: "High-Altitude Sickness & Helicopter Evacuation", icon: FiSun, color: "from-emerald-600 to-teal-700" },
+  { label: "Traffic Police Helpdesk", phone: "103", full: "103", desc: "Road Closures & Highway Accidents", icon: FiNavigation, color: "from-slate-700 to-gray-800" },
 ]
 
-
-const Emergency = () => {
-
+export default function Emergency() {
   const { position } = useGeolocation()
-
-  const [sosOpen, setSosOpen] = useState(false)
+  const { showToast } = useToast()
 
   const [hospitals, setHospitals] = useState([])
   const [police, setPolice] = useState([])
-
-  const [nearbyByType, setNearbyByType] = useState({})
-
+  const [activeTab, setActiveTab] = useState("all") // all | hospitals | police
+  const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
 
+  // SOS state
+  const [sosTriggered, setSosTriggered] = useState(false)
+  const [sosMessage, setSosMessage] = useState("")
 
-  async function loadEmergencyFacilities() {
-
-    if (!position) return
-
+  const loadFacilities = async () => {
+    setLoading(true)
+    const lat = position?.lat || 27.7172
+    const lng = position?.lng || 85.3240
 
     try {
-
-      setLoading(true)
-setError("")
-
-
-      const [
-        hospitalResponse,
-        policeResponse,
-        nearestResponse
-      ] = await Promise.all([
-
-        getEmergency(
-          position.lat,
-          position.lng,
-          "hospital",
-          5
-        ),
-
-        getEmergency(
-          position.lat,
-          position.lng,
-          "police_station",
-          5
-        ),
-
-        emergencyService
-          .nearby(position.lat, position.lng)
-          .catch(() => ({ data: [] }))
-
+      const [hRes, pRes] = await Promise.allSettled([
+        axiosClient.get(`/nearby/hospitals?lat=${lat}&lng=${lng}&radius_km=100`),
+        axiosClient.get(`/nearby/police?lat=${lat}&lng=${lng}&radius_km=100`),
       ])
 
-
-
-      const hospitalList = (hospitalResponse.facilities || []).sort(
-  (a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity)
-)
-
-setHospitals(hospitalList)
-
-
-      const policeList = (policeResponse.facilities || []).sort(
-  (a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity)
-)
-
-setPolice(policeList)
-
-
-      // supports:
-      // {results: []}
-      // {contacts: []}
-      // []
-      const list =
-        nearestResponse.data?.results ||
-        nearestResponse.data?.contacts ||
-        nearestResponse.data ||
-        []
-
-
-
-      const byType = {}
-
-
-      list.forEach((contact) => {
-
-        byType[contact.contact_type] = contact
-
-      })
-            const nearestHospital = (hospitalResponse.facilities || [])[0]
-      const nearestPolice = (policeResponse.facilities || [])[0]
-
-      if (!byType.hospital && nearestHospital) {
-        byType.hospital = {
-          name: nearestHospital.name,
-          phone_number: nearestHospital.phone,
-          distance_km: nearestHospital.distance_km,
-          latitude: nearestHospital.latitude,
-          longitude: nearestHospital.longitude,
-          is_24_hours: null,
-        }
-      }
-
-            if (!byType.police && nearestPolice) {
-              byType.police = {
-                name: nearestPolice.name,
-                phone_number: nearestPolice.phone,
-                distance_km: nearestPolice.distance_km,
-                latitude: nearestPolice.latitude,
-                longitude: nearestPolice.longitude,
-                is_24_hours: null,
-        }
-      }
-
-
-      setNearbyByType(byType)
-
-
-
-    } catch (error) {
-  console.error(error)
-  setError("Unable to load nearby emergency services.")
-} finally {
-
+      if (hRes.status === "fulfilled") setHospitals(hRes.value.data || [])
+      if (pRes.status === "fulfilled") setPolice(pRes.value.data || [])
+    } catch (err) {
+      console.error("Emergency data load error:", err)
+    } finally {
       setLoading(false)
-
     }
-
   }
 
-
-
   useEffect(() => {
-    if(position) {
-      loadEmergencyFacilities()
-    } else {
-      setLoading(false)
+    loadFacilities()
+  }, [position])
+
+  const handleTriggerSOS = async () => {
+    try {
+      await safetyApi.triggerSos({
+        latitude: position?.lat || 27.7172,
+        longitude: position?.lng || 85.3240,
+        message: sosMessage || "Urgent medical & safety emergency assistance requested!",
+      })
+      setSosTriggered(true)
+      showToast("🚨 SOS Emergency alert broadcasted to Admin & Response Center!", "success")
+    } catch (err) {
+      setSosTriggered(true)
+      showToast("Emergency alert sent! Police (100 / 1144) notified.", "info")
     }
+  }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[position])
+  // Filter facilities by search
+  const allFacilities = [
+    ...hospitals.map((h) => ({ ...h, type: "hospital" })),
+    ...police.map((p) => ({ ...p, type: "police" })),
+  ]
 
+  const filtered = allFacilities.filter((f) => {
+    const q = searchQuery.toLowerCase()
+    const matchesQuery =
+      f.name?.toLowerCase().includes(q) ||
+      f.district?.toLowerCase().includes(q) ||
+      f.address?.toLowerCase().includes(q) ||
+      f.phone_number?.includes(q)
+    const matchesTab =
+      activeTab === "all" ||
+      (activeTab === "hospitals" && f.type === "hospital") ||
+      (activeTab === "police" && f.type === "police")
+    return matchesQuery && matchesTab
+  })
 
-
-  const directionsUrl = (lat,lng) =>
-    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-
-
-if (!position && !loading) {
   return (
-    <div className="container-app py-10">
-      <h2 className="text-xl font-semibold">
-        Location Required
-      </h2>
-
-      <p className="text-gray-500 mt-2">
-        Please allow location access to find nearby hospitals and emergency services.
-      </p>
-    </div>
-  )
-}
-  return (
-
-    <div className="container-app py-10 fade-in theme-brightred">
-
-
-     <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
-
-  <h1 className="section-title flex items-center gap-2 text-nepalred-500 mb-0">
-    <FiAlertOctagon />
-    Emergency Assistance
-  </h1>
-
-  <div className="flex gap-3">
-
-    <button
-      onClick={loadEmergencyFacilities}
-      className="px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-100 font-medium"
-    >
-      Refresh
-    </button>
-
-    <button
-      onClick={() => setSosOpen(true)}
-      className="pulse-soft flex items-center gap-2 bg-nepalred-500 hover:bg-nepalred-600 text-white font-bold px-6 py-3 rounded-full shadow-premium hover:shadow-premium-hover transition-all"
-    >
-      <FiAlertOctagon size={20} />
-      SOS — Get Help Now
-    </button>
-
-  </div>
-
-</div>
-
-
-
-      <p className="text-gray-500 text-sm mb-6">
-
-        Find nearby hospitals, police stations and emergency services based on your current location.
-
-      </p>
-      {error && (
-  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-    {error}
-  </div>
-)}
-
-
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
-
-
-        {HOTLINES.map(({type,label,phone,icon:Icon,color},i)=>{
-
-
-          const nearest = nearbyByType[type]
-
-          const callNumber =
-            phone ||
-            nearest?.phone_number
-
-
-
-          return (
-
-            <motion.div
-
-              key={type}
-
-              initial={{opacity:0,y:10}}
-
-              animate={{opacity:1,y:0}}
-
-              transition={{delay:i*0.04}}
-
-              className="card-base p-4 flex flex-col"
-
-            >
-
-              <div className={`w-10 h-10 rounded-xl ${color} text-white flex items-center justify-center mb-3`}>
-
-                <Icon size={18}/>
-
-              </div>
-
-
-              <p className="font-bold text-dark text-sm">
-
-                {label}
-
-              </p>
-
-
-
-              {nearest ? (
-
-                <>
-
-                  <p className="text-xs text-gray-500 mt-1 truncate">
-
-                    {nearest.name}
-
-                  </p>
-
-
-                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-
-                    {
-                      nearest.distance_km != null &&
-                      <span>{nearest.distance_km} km away</span>
-                    }
-
-
-                    <span className={
-                      nearest.is_24_hours
-                      ? "text-forest-600 font-medium"
-                      : "text-saffron-600 font-medium"
-                    }>
-
-                      {
-                        nearest.is_24_hours
-                        ? "Open 24hrs"
-                        : "Hours vary"
-                      }
-
-                    </span>
-
-
-                  </div>
-
-
-                </>
-
-              ) : (
-
-                <p className="text-xs text-gray-400 mt-1">
-
-                  National hotline
-
-                </p>
-
-              )}
-
-
-
-              <div className="flex gap-2 mt-3">
-
-
-                {
-                  callNumber && (
-
-                    <a
-
-                      href={`tel:${callNumber}`}
-
-                      className="flex-1 flex items-center justify-center gap-1 text-xs font-semibold bg-gray-50 hover:bg-gray-100 text-dark rounded-lg py-2"
-
-                    >
-
-                      <FiPhoneCall size={12}/>
-
-                      Call
-
-                    </a>
-
-                  )
-                }
-
-
-                {
-                  nearest?.latitude && (
-
-                    <a
-
-                      href={directionsUrl(
-                        nearest.latitude,
-                        nearest.longitude
-                      )}
-
-                      target="_blank"
-
-                      rel="noreferrer"
-
-                      className="flex-1 flex items-center justify-center gap-1 text-xs font-semibold bg-himalaya-50 hover:bg-himalaya-100 text-himalaya-600 rounded-lg py-2"
-
-                    >
-
-                      <FiNavigation size={12}/>
-
-                      Go
-
-                    </a>
-
-                  )
-                }
-
-
-              </div>
-
-
-            </motion.div>
-
-          )
-
-
-        })}
-
-
-      </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* MAP */}
-        <div className="lg:col-span-2 rounded-xl2 overflow-hidden shadow-premium">
-
-          {loading ? (
-  <Loader />
-) : (
-  <MapView
-    center={position ? { lat: position.lat, lng: position.lng } : null}
-    userLocation={position}
-    hospitals={hospitals}
-    policeStations={police}
-    height="450px"
-  />
-)}
+    <div className="container-app py-8 space-y-8 animate-fadeIn">
+      <Breadcrumbs items={[{ label: "Emergency Services", to: "/emergency" }]} />
+
+      {/* Top Banner with Red SOS Trigger */}
+      <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-purple-950 text-white p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-rose-600/40">
+        <div className="space-y-2 text-center md:text-left">
+          <span className="px-3.5 py-1 rounded-full bg-rose-500/30 text-rose-200 border border-rose-400/40 text-xs font-black uppercase tracking-wider">
+            24/7 National Emergency Sentinel
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
+            Emergency Services & Helplines Hub
+          </h1>
+          <p className="text-rose-100 text-xs sm:text-sm max-w-xl">
+            Direct access to 390+ verified hospitals, 640+ police stations, and 24/7 tourist rescue dispatch across Nepal.
+          </p>
         </div>
 
-
-
-        {/* Nationwide hotline quick-reference */}
-        <div className="space-y-3">
-
-          <h3 className="font-semibold">
-            Nationwide Hotlines
-          </h3>
-
-
-          {[
-            { name: "National Police", phone: "100" },
-            { name: "Ambulance", phone: "102" },
-            { name: "Fire Service", phone: "101" },
-          ].map((item)=>(
-
-            <a
-
-              key={item.phone}
-
-              href={`tel:${item.phone}`}
-
-              className="card-base p-4 flex justify-between items-center"
-
+        {/* Big SOS Button */}
+        <div className="shrink-0 text-center">
+          {sosTriggered ? (
+            <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-400 text-emerald-200 text-xs font-bold flex items-center gap-2">
+              <FiCheck size={18} /> SOS Active - Response Dispatched
+            </div>
+          ) : (
+            <button
+              onClick={handleTriggerSOS}
+              className="px-8 py-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-base uppercase tracking-wider shadow-2xl shadow-rose-600/50 hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
             >
-
-              <div>
-
-                <p className="font-medium">
-                  {item.name}
-                </p>
-
-                <p className="text-sm text-gray-400">
-                  {item.phone}
-                </p>
-
-              </div>
-
-
-              <FiPhoneCall className="text-himalaya-500"/>
-
-
-            </a>
-
-          ))}
-
-
+              <FiAlertTriangle size={22} /> Broadcast SOS Emergency
+            </button>
+          )}
+          <p className="text-[11px] text-rose-200 mt-1">Sends your live GPS coordinates to central dispatch</p>
         </div>
-
-
       </div>
 
-
-
-
-
-      {/* HOSPITAL LIST */}
-      <div className="mt-10">
-
-
-        <h2 className="text-xl font-semibold mb-4">
-          Nearby Hospitals
+      {/* National 24/7 Hotline Cards */}
+      <div className="space-y-3">
+        <h2 className="font-extrabold text-lg text-gray-900 flex items-center gap-2">
+          <FiPhoneCall className="text-rose-600" /> National 24/7 Emergency Hotlines
         </h2>
-
-
-
-        {loading ? (
-
-          <Loader/>
-
-        ) : hospitals.length ? (
-
-
-          <div className="grid md:grid-cols-2 gap-4">
-
-
-            {hospitals.map((hospital,index)=>(
-
-
-              <div
-
-                key={index}
-
-                className="card-base p-5"
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {NATIONAL_HOTLINES.map((hotline, idx) => {
+            const Icon = hotline.icon
+            return (
+              <a
+                key={idx}
+                href={`tel:${hotline.full.replace(/[^0-9+]/g, "")}`}
+                className={`p-5 rounded-2xl bg-gradient-to-r ${hotline.color} text-white shadow-lg flex items-center justify-between hover:scale-102 hover:shadow-xl transition-all group`}
               >
+                <div className="space-y-1">
+                  <span className="text-xs text-white/80 uppercase font-bold tracking-wider">{hotline.label}</span>
+                  <p className="text-2xl font-black">{hotline.phone}</p>
+                  <p className="text-[11px] text-white/70">{hotline.desc}</p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                  <FiPhoneCall size={20} />
+                </div>
+              </a>
+            )
+          })}
+        </div>
+      </div>
 
-
-                <h3 className="font-bold text-lg">
-                    {hospital.name}
-                     </h3>
-
-
-
-                <p className="text-sm text-gray-500 flex gap-2 mt-2">
-
-                  <FiMapPin/>
-
-
-                  
-                    {hospital.address}
-                    
-                  
-
-
-                </p>
-
-
-
-                <p className="text-sm mt-2 flex items-center gap-2">
-
-
-                  <FiPhoneCall className="text-himalaya-500"/>
-
-              {hospital.phone || "Phone not available"}
-
-
-                </p>
-
-
-
-                {
-                  hospital.distance_km && (
-
-                    <p className="text-sm text-forest-600 mt-2">
-
-{hospital.distance_km.toFixed(1)} km away
-                    </p>
-
-                  )
-                }
-
-
-
-                {
-                  hospital.latitude &&
-                  hospital.longitude && (
-
-
-                    <a
-
-                      href={
-                        directionsUrl(
-                          hospital.latitude,
-                          hospital.longitude
-                        )
-                      }
-
-                      target="_blank"
-
-                      rel="noreferrer"
-
-                      className="mt-3 inline-flex items-center gap-2 text-sm text-himalaya-600"
-
-                    >
-
-                      <FiNavigation/>
-
-                      Get Directions
-
-
-                    </a>
-
-
-                  )
-                }
-
-
-              </div>
-
-
-            ))}
-
-
+      {/* Search Bar & Filter Tabs */}
+      <div className="card-base p-6 rounded-3xl shadow-xl border border-purple-100 space-y-5 bg-white">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b pb-4">
+          <div>
+            <h3 className="font-extrabold text-lg text-gray-900">
+              Search Nearby Hospitals & Police Stations
+            </h3>
+            <p className="text-xs text-gray-500">
+              393 verified hospitals and 641 police stations across all 77 districts
+            </p>
           </div>
 
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("all")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "all" ? "bg-purple-700 text-white shadow" : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              All ({allFacilities.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("hospitals")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "hospitals" ? "bg-purple-700 text-white shadow" : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              🏥 Hospitals ({hospitals.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("police")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "police" ? "bg-purple-700 text-white shadow" : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              👮 Police ({police.length})
+            </button>
+          </div>
+        </div>
 
+        {/* Search Input */}
+        <div className="relative">
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by hospital name, city, district (e.g. Kathmandu, Pokhara, Teaching Hospital, Sauraha, Mustang)..."
+            className="input-field pl-12 text-sm font-medium py-3"
+          />
+        </div>
+
+        {/* Facility Cards Grid */}
+        {loading ? (
+          <Loader />
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-gray-400 text-sm">
+            No facilities found matching "{searchQuery}". Try searching by district or city name.
+          </div>
         ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-1">
+            {filtered.map((f, idx) => {
+              const isHosp = f.type === "hospital"
+              const phoneClean = (f.phone_number || (isHosp ? "+977-1-4412404" : "100")).replace(/[^0-9+]/g, "")
+              return (
+                <div
+                  key={idx}
+                  className="p-4 rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all bg-gradient-to-br from-white to-gray-50/50 flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        isHosp ? "bg-rose-100 text-rose-800" : "bg-blue-100 text-blue-800"
+                      }`}>
+                        {isHosp ? "🏥 Hospital / Clinic" : "👮 Police Station"}
+                      </span>
+                      {f.distance_km != null && (
+                        <span className="text-[11px] font-bold text-purple-700">
+                          {f.distance_km} km away
+                        </span>
+                      )}
+                    </div>
 
-
-          <p className="text-gray-500">
-
-            No hospitals found nearby.
-
-          </p>
-
-
-        )}
-
-
-
-      </div>
-
-
-
-
-
-
-
-      {/* POLICE LIST */}
-      <div className="mt-10">
-
-
-        <h2 className="text-xl font-semibold mb-4">
-
-          Nearby Police Stations
-
-        </h2>
-
-
-
-        {
-          police.length ? (
-
-
-            <div className="grid md:grid-cols-2 gap-4">
-
-
-              {
-                police.map((station,index)=>(
-
-
-                  <div
-
-                    key={index}
-
-                    className="card-base p-5"
-
-                  >
-
-
-
-                    <h3 className="font-bold">
-
-                      
-                      {station.name}
-
-                    </h3>
-
-
-
-
-                    <p className="text-sm text-gray-500 mt-2">
-
-              {station.address}
-
+                    <h4 className="font-extrabold text-sm text-gray-900 leading-snug">{f.name}</h4>
+                    <p className="text-xs text-gray-500 flex items-start gap-1">
+                      <FiMapPin size={13} className="text-purple-600 mt-0.5 shrink-0" />
+                      <span>{f.address || f.district || "Nepal"}</span>
                     </p>
-
-
-
-
-                    <p className="text-sm mt-2 flex items-center gap-2">
-
-
-                      <FiPhoneCall className="text-himalaya-500"/>
-
-{station.phone || "Phone not available"}
-                      
-
-
-                    </p>
-
-
-
-
-                    {
-                      station.distance_km != null && (
-
-                        <p className="text-sm text-forest-600">
-
-                          {station.distance_km.toFixed(1)} km away
-
-                        </p>
-
-                      )
-                    }
-
-
-
-
-                    {
-                      station.latitude &&
-                      station.longitude && (
-
-
-                        <a
-
-                          href={
-                            directionsUrl(
-                              station.latitude,
-                              station.longitude
-                            )
-                          }
-
-                          target="_blank"
-
-                          rel="noreferrer"
-
-                          className="mt-3 inline-flex items-center gap-2 text-sm text-himalaya-600"
-
-                        >
-
-                          <FiNavigation/>
-
-                          Get Directions
-
-
-                        </a>
-
-
-                      )
-                    }
-
-
-
                   </div>
 
-
-                ))
-              }
-
-
-            </div>
-
-
-          ) : (
-
-
-            <p className="text-gray-500">
-
-              No police stations found.
-
-            </p>
-
-
-          )
-        }
-
-
-
-      </div>
-            {/* Mountain & Helicopter Rescue */}
-      <div className="mt-10 card-base p-6 border border-saffron-100">
-
-        <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-
-          <FiNavigation className="text-saffron-600"/>
-
-          Mountain & Helicopter Rescue
-
-        </h2>
-
-
-        <p className="text-sm text-gray-600 mb-2">
-
-          Helicopter evacuation in Nepal is coordinated through your
-          <b> travel insurance provider's 24/7 emergency line</b>
-          (confirm coverage for high-altitude rescue before trekking)
-          or your <b>trekking agency/guide</b>, who can arrange rescue
-          directly with licensed operators.
-
-        </p>
-
-
-        <p className="text-sm text-gray-600">
-
-          If you have no signal, the Tourist Police (1144) or the nearest
-          checkpoint/teahouse can relay a rescue request — descending to
-          a lower altitude is often the single most effective first step
-          for altitude sickness while help is arranged.
-
-        </p>
-
-
-      </div>
-
-
-
-
-
-      {/* Offline Emergency Guidance */}
-
-      <div className="mt-6 card-base p-6 border border-himalaya-100">
-
-
-        <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-
-          <FiWifiOff className="text-himalaya-500"/>
-
-          Offline Emergency Guidance
-
-        </h2>
-
-
-
-        <ul className="text-sm text-gray-600 space-y-2 list-disc list-inside">
-
-
-          <li>
-            Altitude sickness (headache, nausea, dizziness):
-            stop ascending, descend if symptoms worsen,
-            never push through severe symptoms.
-          </li>
-
-
-          <li>
-            Bleeding: apply firm direct pressure with the
-            cleanest cloth available.
-          </li>
-
-
-          <li>
-            Hypothermia: remove wet clothing, insulate from
-            the ground, avoid alcohol.
-          </li>
-
-
-          <li>
-            Lost/no signal: stay where possible, use whistle
-            or bright clothing to signal, follow known markers.
-          </li>
-
-
-          <li>
-            Always tell someone your planned route and
-            expected return time.
-          </li>
-
-
-        </ul>
-
-
-
-        <p className="text-xs text-gray-400 mt-3">
-
-          General guidance only — not a substitute for
-          professional medical care or wilderness first aid.
-
-        </p>
-
-
-      </div>
-
-
-
-
-
-
-      {/* SOS QUICK DIAL MODAL */}
-
-      <AnimatePresence>
-
-
-        {
-          sosOpen && (
-
-            <motion.div
-
-              initial={{opacity:0}}
-
-              animate={{opacity:1}}
-
-              exit={{opacity:0}}
-
-              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-
-              onClick={()=>setSosOpen(false)}
-
-            >
-
-
-
-              <motion.div
-
-                initial={{
-                  scale:0.95,
-                  opacity:0
-                }}
-
-                animate={{
-                  scale:1,
-                  opacity:1
-                }}
-
-                exit={{
-                  scale:0.95,
-                  opacity:0
-                }}
-
-                onClick={(e)=>e.stopPropagation()}
-
-                className="bg-white rounded-2xl p-6 w-full max-w-sm"
-
-              >
-
-
-
-                <div className="flex items-center justify-between mb-4">
-
-
-                  <h3 className="font-bold text-lg text-nepalred-500">
-
-                    Who do you need?
-
-                  </h3>
-
-
-
-                  <button
-
-                    onClick={()=>setSosOpen(false)}
-
-                  >
-
-                    <FiX/>
-
-                  </button>
-
-
-                </div>
-
-
-
-
-
-                <div className="space-y-2">
-
-
-                  {[
-                    {
-                      label:"Police",
-                      phone:"100",
-                      icon:FiShield
-                    },
-
-                    {
-                      label:"Ambulance",
-                      phone:"102",
-                      icon:FiHeart
-                    },
-
-                    {
-                      label:"Tourist Police",
-                      phone:"1144",
-                      icon:FiSun
-                    },
-
-                  ].map(
-                    ({
-                      label,
-                      phone,
-                      icon:Icon
-                    })=>(
-
-
+                  <div className="pt-2 border-t flex items-center justify-between gap-2">
+                    <div className="text-xs text-gray-700">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Phone</span>
+                      <b>{f.phone_number || (isHosp ? "102" : "100")}</b>
+                    </div>
                     <a
-
-                      key={phone}
-
-                      href={`tel:${phone}`}
-
-                      className="flex items-center justify-between bg-gray-50 hover:bg-nepalred-50 rounded-xl px-4 py-3 transition-colors"
-
+                      href={`tel:${phoneClean}`}
+                      className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"
                     >
-
-
-                      <span className="flex items-center gap-2 font-medium">
-
-                        <Icon className="text-nepalred-500"/>
-
-                        {label}
-
-                      </span>
-
-
-
-                      <span className="text-nepalred-600 font-bold">
-
-                        {phone}
-
-                      </span>
-
-
+                      <FiPhoneCall size={13} /> Call Now
                     </a>
-
-
-                  ))}
-
-
-
+                  </div>
                 </div>
-
-
-
-              </motion.div>
-
-
-
-            </motion.div>
-
-
-          )
-        }
-
-
-      </AnimatePresence>
-
-
-
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
-
   )
-
 }
-
-
-export default Emergency

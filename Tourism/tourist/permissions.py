@@ -125,6 +125,23 @@ class IsDistrictManagerForOwnDistrict(BasePermission):
 # LEGACY PERMISSIONS
 # ---------------------------------------------------------------------
 
+class IsAdminOrStaff(BasePermission):
+    """Allows Super Admins, Admins, Tourism Admins, and Staff/Sub-admins."""
+    ALLOWED_ROLES = {
+        "admin", "super_admin", "tourism_admin", "staff",
+        "content_moderator", "district_manager", "guide",
+    }
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return (
+            request.user.is_staff
+            or request.user.is_superuser
+            or request.user.role in self.ALLOWED_ROLES
+        )
+
+
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
     Anyone can read.

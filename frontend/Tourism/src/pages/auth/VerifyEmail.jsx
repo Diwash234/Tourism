@@ -4,7 +4,7 @@ import { FiCheckCircle, FiXCircle, FiLoader } from "react-icons/fi"
 import { motion } from "framer-motion"
 import authApi from "../../api/authApi"
 import TourismLogo from "../../components/branding/TourismLogo"
-import NepalSceneBackground from "../../components/branding/Nepalscenebackground"
+import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 
 /**
  * VerifyEmail — reached from the email link the backend sends after

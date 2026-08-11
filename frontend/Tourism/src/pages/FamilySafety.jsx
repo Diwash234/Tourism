@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { FiShare2, FiAlertTriangle, FiCopy, FiStopCircle } from "react-icons/fi"
-import safetyApi from "../../api/safetyApi"
+import safetyApi from "../api/safetyApi"
 import useGeolocation from "../../hooks/useGeolocation"
 import useToast from "../../hooks/useToast"
 

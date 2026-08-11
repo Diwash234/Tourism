@@ -22,6 +22,17 @@ from .models import (
     DeviceToken,
     MLInsight,
     Hotel,
+    Hospital,
+    PoliceStation,
+    BudgetEstimation,
+    RiskAnalysis,
+    TravelExpenseFeedback,
+    TravelRiskFeedback,
+    DestinationSource,
+    DestinationActivity,
+    DestinationAttraction,
+    DestinationTransitRoute,
+    DestinationNearbyPlace,
     OSMEssentialService,
     OSMTourismPlace,
     DestinationAuditLog,
@@ -33,13 +44,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 class CoordinateField(serializers.DecimalField):
     """
-    Drop-in replacement for serializers.DecimalField(max_digits=9,
-    decimal_places=6) used for every latitude/longitude field in this
-    file. Browser geolocation returns raw floats with 15-17 significant
-    digits (e.g. 27.717176801728174). DRF's DecimalField counts ALL of
-    those digits before rounding, rejecting them as "more than 9 digits
-    in total" even though the real coordinate is valid once rounded to 6
-    decimal places. This field rounds first, then validates.
+    Safe coordinate parser and validator. Handles raw floats, strings,
+    NaNs, nulls, and quantizes to 6 decimal places safely.
     """
     def __init__(self, **kwargs):
         kwargs.setdefault("max_digits", 9)
@@ -47,9 +53,23 @@ class CoordinateField(serializers.DecimalField):
         super().__init__(**kwargs)
 
     def to_internal_value(self, data):
-        if data is not None and data != "":
-            data = Decimal(str(data)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
-        return super().to_internal_value(data)
+        if data in (None, "", "null", "undefined", "NaN", "nan"):
+            if not self.required or self.allow_null:
+                return None
+            raise serializers.ValidationError("A valid numeric coordinate is required.")
+        try:
+            val = float(str(data).strip())
+            import math
+            if math.isnan(val) or math.isinf(val):
+                if not self.required or self.allow_null:
+                    return None
+                raise serializers.ValidationError("A valid numeric coordinate is required.")
+            data = Decimal(str(round(val, 6))).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+            return super().to_internal_value(data)
+        except Exception:
+            if not self.required or self.allow_null:
+                return None
+            raise serializers.ValidationError("Invalid coordinate value.")
 
 
 
@@ -149,7 +169,9 @@ class DestinationImageSerializer(serializers.ModelSerializer):
         model = DestinationImage
         fields = [
             "id", "destination", "image", "external_url", "display_url", "caption", "is_cover",
-            "source", "uploaded_by", "uploaded_by_name", "attribution", "is_promoted", "view_count", "created_at",
+            "source", "source_url", "source_platform", "photographer", "license_type",
+            "copyright_status", "image_category", "uploaded_by", "uploaded_by_name",
+            "attribution", "is_promoted", "view_count", "created_at",
         ]
         read_only_fields = ["source", "uploaded_by", "is_promoted", "view_count", "created_at"]
 
@@ -160,6 +182,39 @@ class DestinationImageSerializer(serializers.ModelSerializer):
             request = self.context.get("request")
             return request.build_absolute_uri(obj.image.url) if request else obj.image.url
         return obj.external_url or None
+
+
+class DestinationSourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DestinationSource
+        fields = ["id", "title", "source_url", "source_type", "is_verified", "notes", "created_at"]
+
+
+class DestinationActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DestinationActivity
+        fields = ["id", "name", "category", "description", "difficulty_level", "estimated_duration"]
+
+
+class DestinationAttractionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DestinationAttraction
+        fields = ["id", "name", "attraction_type", "description", "distance_from_center_km", "image_url"]
+
+
+class DestinationTransitRouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DestinationTransitRoute
+        fields = [
+            "id", "origin", "transport_mode", "distance_km", "approx_duration",
+            "road_condition", "key_stops", "estimated_fare_npr", "route_source"
+        ]
+
+
+class DestinationNearbyPlaceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DestinationNearbyPlace
+        fields = ["id", "name", "place_type", "distance_km", "direction", "short_info"]
 
 
 class PhotoUploadSerializer(serializers.ModelSerializer):
@@ -259,19 +314,164 @@ class VisitHistorySerializer(serializers.ModelSerializer):
         return DestinationListSerializer(obj.destination, context=self.context).data
 
 
+class HospitalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hospital
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "district"]
+
+
+class PoliceStationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PoliceStation
+        fields = ["id", "name", "address", "phone", "latitude", "longitude"]
+
+
+class BudgetEstimationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BudgetEstimation
+        fields = [
+            "id", "district", "province", "transport_cost", "food_cost_per_day",
+            "accommodation_per_night", "local_transport", "entry_fee",
+            "estimated_daily_budget", "estimated_trip_budget"
+        ]
+
+
+class RiskAnalysisSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RiskAnalysis
+        fields = [
+            "id", "accidents", "landslide", "avalanche", "flood", "earthquake_damage",
+            "hospital_count", "police_count", "fire_station_count", "emergency_risk",
+            "natural_disaster_risk", "tourism_risk_index", "risk_category"
+        ]
+
+
+class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+
+    class Meta:
+        model = TravelExpenseFeedback
+        fields = [
+            "id", "user", "user_name", "destination", "destination_name",
+            "num_people", "num_days", "travel_mode", "accommodation_cost",
+            "travel_cost", "entry_cost", "food_cost", "extra_cost",
+            "total_cost", "route_details", "is_employee_verified", "notes", "created_at"
+        ]
+        read_only_fields = ["user", "created_at"]
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["user"] = request.user
+        return super().create(validated_data)
+
+
+class TravelRiskFeedbackSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+
+    class Meta:
+        model = TravelRiskFeedback
+        fields = [
+            "id", "user", "user_name", "destination", "destination_name",
+            "became_sick", "sickness_type", "misleading_activities",
+            "misleading_details", "accident_occurred", "accident_details",
+            "hazard_witnessed", "transport_accessibility_rating",
+            "people_helpfulness_rating", "greeting_behavior_rating",
+            "overall_safety_rating", "comments", "created_at"
+        ]
+        read_only_fields = ["user", "created_at"]
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["user"] = request.user
+        return super().create(validated_data)
+
+
+class HotelSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    destination_name = serializers.CharField(
+        source="destination.name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Hotel
+        fields = [
+            "id",
+            "name",
+            "destination_name",
+            "address",
+            "latitude",
+            "longitude",
+            "price_per_night",
+            "currency",
+            "rating",
+            "booking_status",
+            "booking_url",
+            "image_url",
+        ]
+
+    def get_image_url(self, obj):
+        if obj.cover_image:
+            return obj.cover_image.url
+        if obj.external_image_url:
+            return obj.external_image_url
+        if obj.destination and obj.destination.cover_image:
+            return obj.destination.cover_image.url
+        if obj.destination:
+            photo = obj.destination.gallery.filter(is_cover=True).first()
+            if photo:
+                return photo.external_url or (photo.image.url if photo.image else None)
+        return None
+
+
+NEPAL_CURATED_PHOTOS = [
+    "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=800&auto=format&fit=crop&q=80",
+]
+
+
 class DestinationListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     cover_image_url = serializers.SerializerMethodField()
     distance_km = serializers.SerializerMethodField()
+    budget_estimate = serializers.SerializerMethodField()
+    risk_level = serializers.SerializerMethodField()
+    recommended_season = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
         fields = [
             "id", "name", "slug", "category", "category_name", "short_description",
-            "latitude", "longitude", "city", "country", "average_rating", "ratings_count",
-            "views_count", "entry_fee", "cover_image_url", "distance_km",
-            "status", "is_user_submitted", "is_active",
+            "latitude", "longitude", "city", "country", "district", "province",
+            "average_rating", "ratings_count", "views_count", "entry_fee",
+            "cover_image_url", "distance_km", "status", "is_user_submitted", "is_active",
+            "budget_estimate", "risk_level", "recommended_season",
         ]
+
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_budget_estimate(self, obj):
+        if hasattr(obj, "budget_estimation") and obj.budget_estimation:
+            return float(obj.budget_estimation.estimated_daily_budget or obj.budget_estimation.estimated_trip_budget or 45)
+        if obj.entry_fee:
+            return float(obj.entry_fee)
+        return 35.0
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_risk_level(self, obj):
+        if hasattr(obj, "risk_analysis") and obj.risk_analysis:
+            return (obj.risk_analysis.risk_category or "low").lower()
+        return "low"
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_recommended_season(self, obj):
+        return obj.best_time_to_visit or "Sep - Nov / Mar - May"
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_image_url(self, obj):
@@ -279,25 +479,15 @@ class DestinationListSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
-        if not cover:
-            # No local photo yet — fetch + permanently cache one from
-            # Unsplash/Wikimedia (only happens once per destination; see
-            # utils.py::ensure_cover_photo). This is what makes images show
-            # up in search/list results, not just the dedicated /photos/ endpoint.
-            cover = ensure_cover_photo(obj)
         if cover:
             if cover.image:
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
-            return cover.external_url or None
-        return None
+            if cover.external_url:
+                return cover.external_url
+        return NEPAL_CURATED_PHOTOS[(obj.id or 0) % len(NEPAL_CURATED_PHOTOS)]
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
-        """
-        Calculate distance from user location to destination.
-        Returns None if either location is missing.
-        """
-
         user_lat = self.context.get("user_lat")
         user_lon = self.context.get("user_lon")
 
@@ -312,17 +502,15 @@ class DestinationListSerializer(serializers.ModelSerializer):
         try:
             return round(
                 haversine_distance(
-                    user_lat,
-                    user_lon,
-                    obj.latitude,
-                    obj.longitude,
+                    float(user_lat),
+                    float(user_lon),
+                    float(obj.latitude),
+                    float(obj.longitude),
                 ),
                 2,
             )
-
         except (ValueError, TypeError):
             return None
-
 
 
 class DestinationDetailSerializer(serializers.ModelSerializer):
@@ -333,16 +521,35 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     reviews = ReviewSerializer(many=True, read_only=True)
     translations = DestinationTranslationSerializer(many=True, read_only=True)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+    created_by_email = serializers.CharField(source="created_by.email", read_only=True)
     distance_km = serializers.SerializerMethodField()
+    budget_estimation = BudgetEstimationSerializer(read_only=True)
+    risk_analysis = RiskAnalysisSerializer(read_only=True)
+    hospitals = HospitalSerializer(many=True, read_only=True)
+    police_stations = PoliceStationSerializer(many=True, read_only=True)
+    hotels = HotelSerializer(many=True, read_only=True)
+    sources = DestinationSourceSerializer(many=True, read_only=True)
+    activities = DestinationActivitySerializer(many=True, read_only=True)
+    attractions = DestinationAttractionSerializer(many=True, read_only=True)
+    transit_routes = DestinationTransitRouteSerializer(many=True, read_only=True)
+    nearby_places = DestinationNearbyPlaceSerializer(many=True, read_only=True)
 
     class Meta:
         model = Destination
         fields = [
-            "id", "name", "slug", "category", "category_name", "description", "short_description",
-            "cover_image_url", "latitude", "longitude", "address", "city", "country", "opening_hours",
-            "entry_fee", "contact_phone", "contact_email", "website", "average_rating", "ratings_count",
-            "views_count", "created_by", "created_by_name", "is_user_submitted", "status", "review_note",
-            "is_active", "created_at", "updated_at", "gallery", "videos", "reviews", "translations", "distance_km",
+            "id", "name", "slug", "aliases", "category", "category_name", "description", "short_description",
+            "history", "cultural_significance", "religious_significance", "tourism_importance",
+            "food_cuisine_info", "travel_safety_tips", "best_time_to_visit", "altitude",
+            "distance_from_kathmandu_km", "distance_from_nearest_city_km", "nearest_major_city",
+            "distance_from_nearest_airport_km", "nearest_airport_name", "approx_travel_time", "recommended_days",
+            "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info", "district", "municipality",
+            "ward_number", "province", "cover_image_url", "latitude", "longitude", "address", "city",
+            "country", "opening_hours", "entry_fee", "contact_phone", "contact_email", "website",
+            "average_rating", "ratings_count", "views_count", "created_by", "created_by_name",
+            "created_by_email", "is_user_submitted", "status", "research_status", "review_note",
+            "is_active", "created_at", "updated_at", "gallery", "videos", "reviews", "translations",
+            "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels",
+            "sources", "activities", "attractions", "transit_routes", "nearby_places",
         ]
         read_only_fields = [
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
@@ -355,8 +562,6 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
-        if not cover:
-            cover = ensure_cover_photo(obj)
         if cover:
             if cover.image:
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
@@ -365,7 +570,6 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
-
         user_lat = self.context.get("user_lat")
         user_lon = self.context.get("user_lon")
 
@@ -380,14 +584,13 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         try:
             return round(
                 haversine_distance(
-                    user_lat,
-                    user_lon,
-                    obj.latitude,
-                    obj.longitude,
+                    float(user_lat),
+                    float(user_lon),
+                    float(obj.latitude),
+                    float(obj.longitude),
                 ),
                 2,
             )
-
         except (ValueError, TypeError):
             return None
 
@@ -406,7 +609,9 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
         model = Destination
         fields = [
             "id", "name", "category", "description", "short_description", "cover_image",
-            "latitude", "longitude", "address", "city", "country", "opening_hours",
+            "latitude", "longitude", "address", "city", "district", "municipality", "ward_number",
+            "province", "country", "altitude", "opening_hours", "best_time_to_visit", "history",
+            "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info",
             "entry_fee", "contact_phone", "contact_email", "website", "is_active",
         ]
 
@@ -488,49 +693,6 @@ class BudgetSerializer(serializers.ModelSerializer):
             "currency", "date", "notes", "created_at",
         ]
         read_only_fields = ["user", "created_at"]
-
-
-
-
-
-class HotelSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    destination_name = serializers.CharField(
-        source="destination.name",
-        read_only=True,
-    )
-
-    class Meta:
-        model = Hotel
-        fields = [
-            "id",
-            "name",
-            "destination_name",
-            "address",
-            "latitude",
-            "longitude",
-            "price_per_night",
-            "currency",
-            "rating",
-            "booking_status",
-            "booking_url",
-            "image_url",
-        ]
-
-    def get_image_url(self, obj):
-        """
-        Hotel has no image field of its own.
-        Reuse the destination's cover photo.
-        """
-        if obj.destination and obj.destination.cover_image:
-            return obj.destination.cover_image.url
-
-        if obj.destination:
-            photo = obj.destination.gallery.filter(is_cover=True).first()
-            if photo:
-                return photo.external_url
-
-        return None
 
 
 # ---------------------------------------------------------------------------

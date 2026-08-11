@@ -15,6 +15,7 @@ from .models import (
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
+    TravelExpenseFeedback, TravelRiskFeedback,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -24,7 +25,7 @@ from .serializers import (
     ReviewSerializer, RatingSerializer, FavoriteSerializer, VisitHistorySerializer, BudgetSerializer,
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
-    OSMTourismPlaceSerializer,
+    OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -377,6 +378,72 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         })
 
 
+class DestinationResearchView(APIView):
+    """
+    POST /api/v1/destinations/research/ {"query": "Swargadwari"}
+    Researches any destination in Nepal, checks existing records to avoid duplication,
+    collects verified geocoding, descriptions, distances, transit routes,
+    budgets, and verified reusable imagery with full licenses.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        query = request.data.get("query", "").strip()
+        if not query:
+            return Response({"detail": "Query destination name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .research_engine import research_and_build_destination
+        auto_publish = request.user.is_authenticated and (request.user.is_staff or request.user.role in ["admin", "super_admin"])
+        result = research_and_build_destination(query, auto_publish=auto_publish, actor=request.user if request.user.is_authenticated else None)
+
+        dest_id = result.get("destination_id")
+        if dest_id:
+            dest = Destination.objects.get(id=dest_id)
+            serialized = DestinationDetailSerializer(dest, context={"request": request}).data
+            result["destination"] = serialized
+
+        return Response(result)
+
+
+class DestinationSearchDiscoverView(APIView):
+    """
+    GET /api/v1/destinations/search-discover/?query=Swargadwari
+    Searches existing destinations by name, slug, aliases.
+    If no matches are found, returns can_research=True.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        query = request.query_params.get("query", "").strip()
+        if not query:
+            return Response({"results": [], "can_research": False})
+
+        matches = Destination.objects.filter(
+            Q(name__icontains=query)
+            | Q(slug__icontains=query)
+            | Q(aliases__icontains=query)
+            | Q(city__icontains=query)
+            | Q(district__icontains=query)
+        ).filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)[:10]
+
+        if matches.exists():
+            serialized = DestinationListSerializer(matches, many=True, context={"request": request}).data
+            return Response({
+                "results": serialized,
+                "count": len(serialized),
+                "can_research": False,
+                "message": f"Found {len(serialized)} matching destinations.",
+            })
+
+        return Response({
+            "results": [],
+            "count": 0,
+            "can_research": True,
+            "query": query,
+            "message": f"No existing records found for '{query}'. Click 'Research & Discover with AI' to collect full verified records.",
+        })
+
+
 class DestinationImageViewSet(viewsets.ModelViewSet):
     queryset = DestinationImage.objects.all()
     serializer_class = DestinationImageSerializer
@@ -625,6 +692,33 @@ class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     filterset_fields = ["category"]
     search_fields = ["name", "address"]
+
+
+class TravelExpenseFeedbackViewSet(viewsets.ModelViewSet):
+    """
+    Allows travelers and field employees to log real ground expenses
+    which feed into ML budget models.
+    """
+    queryset = TravelExpenseFeedback.objects.select_related("user", "destination").all()
+    serializer_class = TravelExpenseFeedbackSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filterset_fields = ["destination", "travel_mode", "is_employee_verified"]
+    search_fields = ["destination_name", "notes", "route_details"]
+
+
+class TravelRiskFeedbackViewSet(viewsets.ModelViewSet):
+    """
+    Allows travelers and field employees to submit safety and risk feedback
+    (altitude sickness, hazards, local greeting/behavior, transportation)
+    to calculate real-time ML risk indices.
+    """
+    queryset = TravelRiskFeedback.objects.select_related("user", "destination").all()
+    serializer_class = TravelRiskFeedbackSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filterset_fields = ["destination", "became_sick", "hazard_witnessed"]
+    search_fields = ["destination_name", "comments", "sickness_type"]
+
+
 class HotelSearchView(generics.ListAPIView):
     """
     GET /api/v1/hotels/search/?query=Pokhara
