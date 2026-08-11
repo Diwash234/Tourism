@@ -30,6 +30,7 @@ import SubmitPlacePage from "./pages/SubmitPlacePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
 import ExploreNepalMap from "./pages/ExploreNepalMap"
 import CompareDestinations from "./pages/CompareDestinations"
+import Gallery from "./pages/Gallery"
 
 // Features
 import Chatbot from "./Chatbot"
@@ -91,6 +92,7 @@ function App() {
         <Route path="/destinations/:slug" element={<DestinationDetails />} />
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
+        <Route path="/gallery" element={<Gallery />} />
         <Route path="/itinerary" element={<Itinerary />} />
 
         {/* Public Emergency */}

@@ -4,7 +4,7 @@ import {
   FiHome, FiUser, FiMapPin, FiHeart, FiClock, FiBell, FiSettings,
   FiDollarSign, FiCalendar, FiAlertTriangle, FiNavigation, FiSearch,
   FiGlobe, FiMessageCircle, FiBookOpen, FiShield, FiKey, FiBriefcase,
-  FiPlusCircle, FiCheckSquare, FiCompass, FiX, FiLogIn, FiUserPlus, FiTrendingUp,
+  FiPlusCircle, FiCheckSquare, FiCompass, FiX, FiLogIn, FiUserPlus, FiTrendingUp, FiImage,
 } from "react-icons/fi"
 import { AnimatePresence, motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
@@ -15,6 +15,7 @@ const GROUPS = [
     label: "Explore & Discover",
     links: [
       { to: "/destinations", label: "Destinations", icon: FiMapPin, color: "forest" },
+      { to: "/gallery", label: "Visual Photo Gallery", icon: FiImage, color: "pink" },
       { to: "/compare", label: "Compare Places", icon: FiTrendingUp, color: "orange" },
       { to: "/discover-nepal", label: "Discover Nepal", icon: FiBookOpen, color: "himalaya" },
       { to: "/destinations/submit", label: "Submit Place", icon: FiPlusCircle, color: "saffron" },
