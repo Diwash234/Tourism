@@ -15,7 +15,8 @@ const GROUPS = [
     label: "Explore & Discover",
     links: [
       { to: "/destinations", label: "Destinations", icon: FiMapPin, color: "forest" },
-      { to: "/destinations/submit", label: "Submit Place", icon: FiPlusCircle, color: "himalaya" },
+      { to: "/discover-nepal", label: "Discover Nepal", icon: FiBookOpen, color: "himalaya" },
+      { to: "/destinations/submit", label: "Submit Place", icon: FiPlusCircle, color: "saffron" },
       { to: "/explore-map", label: "Explore by Province", icon: FiCompass, color: "forest" },
       { to: "/recommendation", label: "AI Recommendations", icon: FiHeart, color: "violet" },
       { to: "/navigation", label: "GTA Navigation HUD", icon: FiNavigation, color: "sky" },
@@ -29,6 +30,7 @@ const GROUPS = [
       { to: "/expenditure", label: "Expenditure History", icon: FiDollarSign, color: "emerald" },
       { to: "/itinerary", label: "Itinerary Planner", icon: FiCalendar, color: "himalaya" },
       { to: "/risk-alerts", label: "Risk Sentinel", icon: FiAlertTriangle, color: "nepalred" },
+      { to: "/family-safety", label: "Family Live Safety", icon: FiShield, color: "emerald" },
       { to: "/emergency", label: "Emergency Hub", icon: FiAlertTriangle, color: "red" },
       { to: "/language", label: "Nepal Phrasebook", icon: FiGlobe, color: "purple" },
       { to: "/translation", label: "Live Translation", icon: FiGlobe, color: "cyan" },

@@ -268,7 +268,7 @@ class NearbyPoliceView(APIView):
 
 def _nearest_contacts_response(request, contact_type):
     lat_val = request.query_params.get("lat") or request.query_params.get("latitude")
-    lon_val = request.query_params.get("lng") or request.query_params.get("longitude")
+    lon_val = request.query_params.get("lng") or request.query_params.get("lon") or request.query_params.get("longitude")
     if not lat_val or not lon_val:
         return Response({"detail": "lat and lng query params are required."}, status=status.HTTP_400_BAD_REQUEST)
     try:

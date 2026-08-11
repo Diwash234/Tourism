@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { FiShare2, FiAlertTriangle, FiCopy, FiStopCircle } from "react-icons/fi"
 import safetyApi from "../api/safetyApi"
-import useGeolocation from "../../hooks/useGeolocation"
-import useToast from "../../hooks/useToast"
+import useGeolocation from "../hooks/useGeolocation"
+import useToast from "../hooks/useToast"
 
 // How often to send a live position update while a trip is being shared.
 // Polling, not push -- matches the backend's polling-based design (see

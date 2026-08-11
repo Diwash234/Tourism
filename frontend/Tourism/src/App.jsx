@@ -56,6 +56,8 @@ import Expenditure from "./pages/Expenditure"
 import MySubmissions from "./pages/MySubmissions"
 import StaffDashboard from "./pages/StaffDashboard"
 import Itinerary from "./pages/Itinerary"
+import FamilySafety from "./pages/FamilySafety"
+import SharedTripView from "./pages/SharedTripView"
 
 // Admin
 import AdminDashboard from "./pages/admin/AdminDashboard"
@@ -90,6 +92,7 @@ function App() {
 
         {/* Public Emergency */}
         <Route path="/emergency" element={<Emergency />} />
+        <Route path="/safety/shared/:token" element={<SharedTripView />} />
       </Route>
 
 
@@ -121,6 +124,9 @@ function App() {
             path="/risk-alerts" 
             element={<RiskAlertDashboard />} 
           />
+
+          <Route path="/family-safety" element={<FamilySafety />} />
+          <Route path="/safety" element={<FamilySafety />} />
 
           <Route path="/navigation" element={<Navigation />} />
           <Route path="/language" element={<Language />} />
