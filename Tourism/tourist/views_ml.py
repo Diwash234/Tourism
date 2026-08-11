@@ -246,19 +246,10 @@ class SafetyPredictionView(APIView):
 
 
         if result is None:
-            risk_index = 18.0
-            risk_cat = "low"
-            if destination and hasattr(destination, "risk_analysis") and destination.risk_analysis:
-                risk_index = float(destination.risk_analysis.tourism_risk_index or 18.0)
-                risk_cat = (destination.risk_analysis.risk_category or "low").lower()
-            return Response({
-                "safety_score": round(10.0 - (risk_index / 10.0), 1),
-                "risk_level": risk_cat,
-                "tourism_risk_index": risk_index,
-                "natural_disaster_risk": "low",
-                "emergency_readiness": "verified",
-                "source": "internal_ml_engine"
-            })
+            return Response(
+                {"detail": "Safety prediction service unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
 
@@ -379,30 +370,10 @@ class BudgetPredictionView(APIView):
 
 
         if result is None:
-            days = data.get("days", 3)
-            travelers = data.get("travelers", 1)
-            level = data.get("budget_level", "mid")
-            daily_rates = {"budget": 28.0, "mid": 65.0, "luxury": 140.0}
-            rate = daily_rates.get(level, 65.0)
-            if destination and hasattr(destination, "budget_estimation") and destination.budget_estimation:
-                rate = float(destination.budget_estimation.estimated_daily_budget or rate)
-
-            total_usd = round(rate * days * travelers, 2)
-            total_npr = round(total_usd * 134.0, 2)
-            return Response({
-                "total": total_usd,
-                "total_budget_usd": total_usd,
-                "total_budget_npr": total_npr,
-                "estimated_total": total_usd,
-                "days": days,
-                "travelers": travelers,
-                "daily_rate": rate,
-                "accommodation": round(total_usd * 0.40, 2),
-                "food": round(total_usd * 0.30, 2),
-                "transport": round(total_usd * 0.20, 2),
-                "activities_and_permits": round(total_usd * 0.10, 2),
-                "source": "internal_ml_engine"
-            })
+            return Response(
+                {"detail": "Budget prediction service unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
         flattened = dict(result)

@@ -313,6 +313,7 @@ PHOTO_PROMOTION_IMPRESSION_THRESHOLD = config("PHOTO_PROMOTION_IMPRESSION_THRESH
 # and the ML service calls back IN (webhook) to push results.
 # ------------------------------------------------------------------
 ML_SERVICE_URL = config("ML_SERVICE_URL", default="http://localhost:8001")
+ML_SERVICE_API_KEY = config("ML_SERVICE_API_KEY", default="change-this-ml-api-key")
 ML_SERVICE_TIMEOUT = config("ML_SERVICE_TIMEOUT", default=5, cast=int)
 ML_WEBHOOK_SECRET = config("ML_WEBHOOK_SECRET", default="change-this-shared-secret")
 BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")

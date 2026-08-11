@@ -479,8 +479,8 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
 
 def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitude, route_type="fastest"):
     """
-    Computes best route using road graph or topological distance with
-    intermediate waypoint coordinates. Never returns None.
+    Calls {ML_SERVICE_URL}/routes/best-route for a routed path.
+    Returns None if the ML service is unreachable.
     """
     try:
         response = requests.post(
@@ -490,34 +490,13 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
                 "end_latitude": float(end_latitude), "end_longitude": float(end_longitude),
                 "route_type": route_type,
             },
-            timeout=1,
+            timeout=settings.ML_SERVICE_TIMEOUT,
         )
-        if response.status_code == 200:
-            return response.json()
-    except Exception:
-        pass
-
-    lat1, lon1 = float(start_latitude), float(start_longitude)
-    lat2, lon2 = float(end_latitude), float(end_longitude)
-    dist = haversine_distance(lat1, lon1, lat2, lon2)
-    duration_min = max(15, round((dist / 42.0) * 60))
-
-    num_pts = max(4, min(10, int(dist / 15)))
-    route_pts = []
-    for i in range(num_pts + 1):
-        frac = i / float(num_pts)
-        route_pts.append({
-            "lat": round(lat1 + (lat2 - lat1) * frac, 6),
-            "lng": round(lon1 + (lon2 - lon1) * frac, 6)
-        })
-
-    return {
-        "route": route_pts,
-        "distance_km": round(dist, 2),
-        "duration_min": duration_min,
-        "note": "Route calculated via Nepal road corridor network.",
-        "route_type": route_type,
-    }
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as exc:
+        logger.warning("ML routing service unreachable: %s", exc)
+        return None
 
 
 def get_ml_supported_languages():

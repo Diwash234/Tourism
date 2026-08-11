@@ -112,6 +112,8 @@ class Migration(migrations.Migration):
                 ('external_id', models.IntegerField(blank=True, null=True, unique=True)),
                 ('name', models.CharField(max_length=200)),
                 ('slug', models.SlugField(blank=True, max_length=220, unique=True)),
+                ('city_nepali', models.CharField(blank=True, max_length=200, null=True)),
+                ('city_english', models.CharField(blank=True, max_length=200, null=True)),
                 ('type', models.CharField(blank=True, max_length=100, null=True)),
                 ('description', models.TextField(blank=True, null=True)),
                 ('short_description', models.CharField(blank=True, max_length=300, null=True)),

@@ -35,6 +35,14 @@ def get_chatbot_reply(
 
     # 2. Intelligent Smart Rule / Knowledge Engine fallback
 
+    # Weather / forecast check
+    if any(w in user_message_lower for w in ["weather", "temperature", "forecast"]):
+        return (
+            "I can't check live weather for you right now — the AI assistant "
+            "isn't configured on this server. Try the weather widget on the "
+            "destination page instead."
+        )
+
     # Greetings
     if any(w in user_message_lower for w in ["hi", "hello", "hey", "namaste", "namaskar", "tashi delek", "salam"]):
         return (
@@ -123,14 +131,12 @@ def get_chatbot_reply(
             "• **Peace Flame:** Eternal peace flame burning continuously since 1986."
         )
 
-    # Weather / Season
-    if any(w in user_message_lower for w in ["weather", "season", "temperature", "rain", "when to visit", "best time"]):
+    # Weather / live forecast query check when AI provider is not configured
+    if any(w in user_message_lower for w in ["weather", "temperature", "forecast"]) and not ask_ai(last_user_msg):
         return (
-            "🌤️ **Best Times to Visit Nepal**:\n\n"
-            "• **Autumn (Sep - Nov) ⭐ [BEST]:** Post-monsoon, crystal clear skies, crisp mountain vistas, ideal for all high treks (Everest, Annapurna, Manaslu).\n"
-            "• **Spring (Mar - May) ⭐ [EXCELLENT]:** Wild rhododendron blooms across hillsides, warm sunny days, mild nights.\n"
-            "• **Winter (Dec - Feb):** Cold in high altitude, but great for Kathmandu, Pokhara, Chitwan, Bandipur, and lowland sightseeing.\n"
-            "• **Monsoon (Jun - Aug):** Lush greenery, fewer tourists. Best for rain-shadow regions like Upper Mustang, Dolpo, and Manang."
+            "I can't check live weather for you right now — the AI assistant "
+            "isn't configured on this server. Try the weather widget on the "
+            "destination page instead."
         )
 
     # Navigation / Routes / Transport

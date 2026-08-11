@@ -80,6 +80,7 @@ urlpatterns = [
 
     # Compatibility endpoints
     path("recommendations/personalized", views_compat.RecommendationsPersonalizedView.as_view(), name="compat-recommendations"),
+    path("budget/summary", views_compat.BudgetSummaryView.as_view(), name="compat-budget-summary-noslash"),
     path("budget/summary/", views_compat.BudgetSummaryView.as_view(), name="compat-budget-summary"),
     path("emergency/contacts", views_compat.EmergencyContactsCompatView.as_view(), name="compat-emergency-contacts"),
     path("nearby/places", views_compat.NearbyPlacesCompatView.as_view(), name="compat-nearby-places"),
@@ -87,7 +88,11 @@ urlpatterns = [
     path("nearby/police", views_compat.NearbyPoliceView.as_view(), name="compat-nearby-police"),
     path("navigation/route", views_compat.NavigationRouteView.as_view(), name="compat-navigation-route"),
     path("weather/current/", views_compat.WeatherByCoordinatesView.as_view(), name="compat-weather-current"),
-    path("places/osm-nearby/", views.OSMNearbyPlacesView.as_view(), name="places-osm-nearby"),
+    path("places/osm-nearby/", views.OSMNearbyPlacesView.as_view(), name="osm-nearby-places"),
+    path("osm/essential-services/sync/", views_osm.OSMEssentialServiceSyncView.as_view(), name="osm-essential-sync"),
+    path("osm/essential-services/nearby/", views_osm.OSMEssentialServiceNearbyView.as_view(), name="osm-essential-nearby"),
+    path("osm/tourism-places/sync/", views_osm.OSMTourismPlaceSyncView.as_view(), name="osm-tourism-sync"),
+    path("osm/tourism-places/nearby/", views_osm.OSMTourismPlaceNearbyView.as_view(), name="osm-tourism-nearby"),
 
     # Research & Discovery endpoints
     path("destinations/research/", views.DestinationResearchView.as_view(), name="destination-research"),

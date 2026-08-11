@@ -484,7 +484,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
             if cover.external_url:
                 return cover.external_url
-        return NEPAL_CURATED_PHOTOS[(obj.id or 0) % len(NEPAL_CURATED_PHOTOS)]
+        return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
