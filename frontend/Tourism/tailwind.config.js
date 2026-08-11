@@ -57,15 +57,36 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        heading: ['"Playfair Display"', 'Georgia', 'serif'],
-        devanagari: ['"Noto Sans Devanagari"', 'Inter', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        heading: ['Outfit', '"Playfair Display"', 'system-ui', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Cinzel', 'Georgia', 'serif'],
+        royal: ['Cinzel', '"Playfair Display"', 'serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        devanagari: ['"Noto Sans Devanagari"', 'sans-serif'],
       },
       boxShadow: {
         card: '0 6px 16px rgba(0,0,0,0.08)',
         hover: '0 10px 28px rgba(0,0,0,0.14)',
         premium: '0 10px 25px rgba(11,61,145,0.10)',
         'premium-hover': '0 20px 40px rgba(11,61,145,0.16)',
+        refero: '0 20px 40px -15px rgba(0, 0, 0, 0.07), 0 0 1px 1px rgba(0, 0, 0, 0.05)',
+        'refero-dark': '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(255, 255, 255, 0.08)',
+        'glow-amber': '0 0 30px -5px rgba(245, 158, 11, 0.3)',
+        'glow-purple': '0 0 35px -5px rgba(168, 85, 247, 0.3)',
+        'glow-emerald': '0 0 30px -5px rgba(16, 185, 129, 0.3)',
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 2.5s infinite',
+        float: 'float 4s ease-in-out infinite',
       },
       borderRadius: {
         xl2: '1.25rem',
