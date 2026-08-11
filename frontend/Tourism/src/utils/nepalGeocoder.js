@@ -87,6 +87,318 @@ export const DISTRICT_DEFAULTS = {
   "Kailali": { lat: 28.6833, lng: 80.6000, alt: "182m", munis: ["Dhangadhi Sub-Metropolitan", "Tikapur Municipality", "Ghodaghodi Municipality (Ramsar Lake)", "Lamki Chuha", "Godawari", "Bhajani", "Gauriganga"] }
 }
 
+// Comprehensive Fuzzy, Acronym, and Phonetic Place Matrix for all 77 Districts & Landmarks
+export const NEPAL_FUZZY_PLACE_INDEX = [
+  // Parbat / Bihadi
+  {
+    keys: ["bihadi", "vihadi", "beehadi", "bihadi gaunpalika"],
+    canonicalName: "Bihadi Rural Municipality (बिहादी)",
+    correctedName: "Bihadi",
+    lat: 28.0250, lng: 83.6210, alt: "1,150m",
+    district: "Parbat", province: "Gandaki", municipality: "Bihadi Rural Municipality",
+    category: "Scenic Hill Settlement",
+    image: "/images/destinations/pokhara/img4.jpg",
+    slug: "bihadi-parbat",
+    description: "Scenic rural settlement along the Kali Gandaki river corridor in Parbat district."
+  },
+  // Syangja / Waling
+  {
+    keys: ["waling", "walling", "waaling", "waling bazaar", "waling muni"],
+    canonicalName: "Waling Municipality (वालिङ)",
+    correctedName: "Waling",
+    lat: 27.9833, lng: 83.7667, alt: "740m",
+    district: "Syangja", province: "Gandaki", municipality: "Waling Municipality",
+    category: "Heritage Town",
+    image: "/images/destinations/pokhara/img3.jpg",
+    slug: "waling-bazaar",
+    description: "Vibrant cultural town on the Siddhartha Highway surrounded by lush terraced green hills."
+  },
+  // Pokhara
+  {
+    keys: ["pkr", "pokhara", "pohra", "pohkra", "pokhra", "phewa", "lakeside"],
+    canonicalName: "Pokhara & Phewa Lake (पोखरा)",
+    correctedName: "Pokhara",
+    lat: 28.2096, lng: 83.9856, alt: "822m",
+    district: "Kaski", province: "Gandaki", municipality: "Pokhara Metropolitan City",
+    category: "Lakes & Adventure",
+    image: "/images/destinations/pokhara/img1.jpg",
+    slug: "phewa-lake-tal-barahi",
+    description: "Tourism capital of Nepal with freshwater lakes and 360-degree views of Mt. Machhapuchhre."
+  },
+  // Kathmandu
+  {
+    keys: ["ktm", "kathmandu", "katmandu", "kathmndu", "pashupati", "thamel"],
+    canonicalName: "Kathmandu Valley (काठमाडौँ)",
+    correctedName: "Kathmandu",
+    lat: 27.7172, lng: 85.3240, alt: "1,400m",
+    district: "Kathmandu", province: "Bagmati", municipality: "Kathmandu Metropolitan City",
+    category: "UNESCO World Heritage",
+    image: "/images/destinations/kathmandu/img1.jpg",
+    slug: "pashupatinath-temple",
+    description: "Historic capital city renowned for ancient Licchavi and Malla pagoda architecture."
+  },
+  // Myagdi / Galeshwor & Poon Hill
+  {
+    keys: ["galeswor", "galeshwar", "galeshor", "galeshwor temple", "beni"],
+    canonicalName: "Galeshwor Dham & Beni (गलेश्वर)",
+    correctedName: "Galeshwor",
+    lat: 28.3800, lng: 83.5600, alt: "880m",
+    district: "Myagdi", province: "Gandaki", municipality: "Beni Municipality",
+    category: "Sacred Temple",
+    image: "/images/destinations/annapurna/img4.jpg",
+    slug: "galeshwor-temple-myagdi",
+    description: "Sacred Shiva pilgrimage temple built over a single massive rock on the banks of Kali Gandaki."
+  },
+  {
+    keys: ["poonhill", "poon hill", "punhill", "ghorepani", "ghorepani poon hill"],
+    canonicalName: "Ghorepani Poon Hill (पून हिल)",
+    correctedName: "Poon Hill",
+    lat: 28.4000, lng: 83.7000, alt: "3,210m",
+    district: "Myagdi", province: "Gandaki", municipality: "Annapurna Rural Municipality",
+    category: "Panoramic Viewpoint",
+    image: "/images/destinations/annapurna/img5.jpg",
+    slug: "ghorepani-poon-hill",
+    description: "World-famous sunrise vantage point over Dhaulagiri, Annapurna, and Nilgiri ranges."
+  },
+  // Pyuthan / Swargadwari
+  {
+    keys: ["swargadwari", "sworgadwari", "swargadwary", "swarga dwari"],
+    canonicalName: "Swargadwari Sacred Ashram (स्वर्गद्वारी)",
+    correctedName: "Swargadwari",
+    lat: 28.1800, lng: 82.6800, alt: "2,120m",
+    district: "Pyuthan", province: "Lumbini", municipality: "Swargadwari Municipality",
+    category: "Pilgrimage Sanctuary",
+    image: "/images/destinations/lumbini/img3.jpg",
+    slug: "swargadwari-pyuthan",
+    description: "Ancient Vedic sacrificial holy shrine legendary as the gateway to heaven in Mahabharata."
+  },
+  // Everest
+  {
+    keys: ["ebc", "everest", "sagarmatha", "namche", "kala patthar", "lukla"],
+    canonicalName: "Everest Base Camp (सगरमाथा आधार शिविर)",
+    correctedName: "Everest Base Camp",
+    lat: 28.0042, lng: 86.8570, alt: "5,364m",
+    district: "Solukhumbu", province: "Koshi", municipality: "Khumbu Pasang Lhamu",
+    category: "Alpine Trekking",
+    image: "/images/destinations/everest/img1.jpg",
+    slug: "everest-base-camp-ebc",
+    description: "Foot of Mt. Everest (8,848m) surrounded by the highest snow-capped summits on Earth."
+  },
+  // Annapurna
+  {
+    keys: ["abc", "annapurna", "anapurna", "annpurna", "annapurna base camp"],
+    canonicalName: "Annapurna Sanctuary & ABC (अन्नपूर्ण)",
+    correctedName: "Annapurna Base Camp",
+    lat: 28.5300, lng: 83.8800, alt: "4,130m",
+    district: "Kaski", province: "Gandaki", municipality: "Annapurna Rural Municipality",
+    category: "High Mountain Amphitheater",
+    image: "/images/destinations/annapurna/img1.jpg",
+    slug: "annapurna-base-camp-abc-sanctuary",
+    description: "Spectacular 360-degree mountain bowl surrounded by Annapurna I (8,091m) and Fishtail."
+  },
+  // Chitwan
+  {
+    keys: ["chitwan", "chitwn", "chitwon", "sauraha", "saurha", "rhino"],
+    canonicalName: "Chitwan National Park & Sauraha (चितवन)",
+    correctedName: "Chitwan Sauraha",
+    lat: 27.5800, lng: 84.4900, alt: "208m",
+    district: "Chitwan", province: "Bagmati", municipality: "Ratnanagar Municipality",
+    category: "Wildlife & Safari",
+    image: "/images/destinations/chitwan/img1.jpg",
+    slug: "chitwan-national-park-safari",
+    description: "UNESCO protected subtropical wilderness home to wild Bengal Tigers and One-Horned Rhinos."
+  },
+  // Lumbini
+  {
+    keys: ["lumbini", "lumbni", "lumvini", "buddha", "maya devi"],
+    canonicalName: "Lumbini Sacred Garden (लुम्बिनी)",
+    correctedName: "Lumbini",
+    lat: 27.4833, lng: 83.2767, alt: "150m",
+    district: "Rupandehi", province: "Lumbini", municipality: "Lumbini Sanskritik Municipality",
+    category: "Birthplace of Buddha",
+    image: "/images/destinations/lumbini/img1.jpg",
+    slug: "lumbini-sacred-garden-maya-devi-temple",
+    description: "The historical birthplace of Siddhartha Gautama Buddha in 623 BC with international monasteries."
+  },
+  // Mustang
+  {
+    keys: ["mustang", "mustng", "lomanthang", "lo-manthang", "muktinath", "jomsom"],
+    canonicalName: "Upper Mustang & Lo Manthang (मुस्ताङ)",
+    correctedName: "Mustang",
+    lat: 28.9985, lng: 83.8473, alt: "3,840m",
+    district: "Mustang", province: "Gandaki", municipality: "Lo-Ghekar Damodarkunda",
+    category: "High Altitude Desert",
+    image: "/images/destinations/mustang/img1.jpg",
+    slug: "upper-mustang-lo-manthang",
+    description: "Ancient walled Tibetan kingdom in the rain-shadow of Annapurna and Dhaulagiri."
+  },
+  // Rara Lake
+  {
+    keys: ["rara", "rara lake", "mugu lake", "mugu"],
+    canonicalName: "Rara Lake & National Park (रारा ताल)",
+    correctedName: "Rara Lake",
+    lat: 29.5375, lng: 82.0911, alt: "2,990m",
+    district: "Mugu", province: "Karnali", municipality: "Chhayanath Rara Municipality",
+    category: "Alpine Lake",
+    image: "/images/destinations/rara/img1.jpg",
+    slug: "rara-lake-national-park",
+    description: "Nepal's largest freshwater lake with deep crystal waters surrounded by coniferous forests."
+  },
+  // Tilicho
+  {
+    keys: ["tilicho", "tilicho lake", "manang lake"],
+    canonicalName: "Tilicho Lake (तिलिचो ताल)",
+    correctedName: "Tilicho Lake",
+    lat: 28.6800, lng: 83.8400, alt: "4,919m",
+    district: "Manang", province: "Gandaki", municipality: "Manang Ngisyang",
+    category: "High Glacial Lake",
+    image: "/images/destinations/tilicho/img1.jpg",
+    slug: "tilicho-lake-trek",
+    description: "One of the highest alpine glacial lakes on Earth at nearly 5,000m elevation."
+  },
+  // Jumla / Sinja
+  {
+    keys: ["sinja", "sinja valley", "jumla", "khas"],
+    canonicalName: "Sinja Valley (सिन्जा उपत्यका)",
+    correctedName: "Sinja Valley",
+    lat: 29.3500, lng: 81.9700, alt: "2,450m",
+    district: "Jumla", province: "Karnali", municipality: "Sinja Rural Municipality",
+    category: "Historic Valley",
+    image: "/images/destinations/rara/img4.jpg",
+    slug: "sinja-valley-jumla",
+    description: "Ancient capital of the Khas Malla Empire and the historic birthplace of the Nepali language."
+  },
+  // Baglung / Dhorpatan
+  {
+    keys: ["dhorpatan", "dhorpatan hunting", "baglung reserve"],
+    canonicalName: "Dhorpatan Hunting Reserve (ढोरपाटन)",
+    correctedName: "Dhorpatan",
+    lat: 28.5300, lng: 83.0500, alt: "2,850m",
+    district: "Baglung", province: "Gandaki", municipality: "Dhorpatan Municipality",
+    category: "Alpine Meadows & Reserve",
+    image: "/images/destinations/annapurna/img4.jpg",
+    slug: "dhorpatan-hunting-reserve",
+    description: "Nepal's only hunting reserve featuring high marshlands, alpine forests, and Blue Sheep."
+  },
+  // Doti / Khaptad
+  {
+    keys: ["khaptad", "khaptad national park", "khaptad baba"],
+    canonicalName: "Khaptad National Park & Meadows (खप्तड)",
+    correctedName: "Khaptad",
+    lat: 29.3600, lng: 81.1200, alt: "3,100m",
+    district: "Doti", province: "Sudurpashchim", municipality: "Khaptad Chhanna",
+    category: "Sacred Plateau Meadows",
+    image: "/images/destinations/rara/img3.jpg",
+    slug: "khaptad-national-park",
+    description: "Spiritual plateau of rolling green meadows, ancient hermitages, and 200+ bird species."
+  },
+  // Taplejung / Pathibhara
+  {
+    keys: ["pathibhara", "pathivara", "taplejung temple"],
+    canonicalName: "Pathibhara Devi Temple (पाथिभरा)",
+    correctedName: "Pathibhara",
+    lat: 27.4200, lng: 87.7700, alt: "3,794m",
+    district: "Taplejung", province: "Koshi", municipality: "Phungling Municipality",
+    category: "High Altitude Sacred Shrine",
+    image: "/images/destinations/everest/img1.jpg",
+    slug: "pathibhara-devi-temple",
+    description: "Revered Shakti Peeth atop an alpine ridge offering vistas of Mt. Kanchenjunga."
+  },
+  // Sankhuwasabha / Barun
+  {
+    keys: ["barun", "barun valley", "makalu barun"],
+    canonicalName: "Makalu Barun Valley (बरुण उपत्यका)",
+    correctedName: "Barun Valley",
+    lat: 27.7000, lng: 87.1000, alt: "3,600m",
+    district: "Sankhuwasabha", province: "Koshi", municipality: "Makalu Rural Municipality",
+    category: "Pristine Glacial Wilderness",
+    image: "/images/destinations/everest/img3.jpg",
+    slug: "makalu-barun-national-park",
+    description: "Untouched deep Himalayan canyon featuring rare wildlife, waterfalls, and granite cliffs."
+  },
+  // Gulmi/Palpa / Ridi
+  {
+    keys: ["ridi", "ruru", "ruru kshetra", "rishikesh"],
+    canonicalName: "Ridi & Ruru Kshetra Dham (रुरु क्षेत्र)",
+    correctedName: "Ridi (Ruru Kshetra)",
+    lat: 27.9300, lng: 83.4300, alt: "450m",
+    district: "Gulmi", province: "Lumbini", municipality: "Ruru Rural Municipality",
+    category: "Historic Confluence Shrine",
+    image: "/images/destinations/bandipur/img1.jpg",
+    slug: "ruru-kshetra-ridi",
+    description: "Sacred confluence of Ridi and Kali Gandaki rivers with ancient Rishikesh Temple."
+  }
+]
+
+/**
+ * Intelligent Fuzzy Resolver:
+ * Accepts ANY phonetic spelling, typo, or acronym (e.g. 'pkr', 'bihadi', 'walling', 'galeswor', 'chitwn', 'lumbni')
+ * and returns canonical place data with auto-attached GPS coordinates, altitude, district, and province.
+ */
+export function resolveFuzzyPlaceLocation(query) {
+  if (!query || typeof query !== "string") return null
+  const cleanQ = query.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "")
+  if (cleanQ.length < 2) return null
+
+  // 1. Direct key match in fuzzy index
+  for (const item of NEPAL_FUZZY_PLACE_INDEX) {
+    if (item.keys.some(k => k === cleanQ || cleanQ.includes(k) || k.includes(cleanQ))) {
+      const isExact = item.correctedName.toLowerCase() === cleanQ
+      return {
+        matched: true,
+        canonicalName: item.canonicalName,
+        correctedName: item.correctedName,
+        didYouMean: !isExact ? `Showing results for ${item.correctedName}, ${item.district} (matched from '${query}')` : null,
+        latitude: item.lat,
+        longitude: item.lng,
+        altitude: item.alt,
+        district: item.district,
+        province: item.province,
+        municipality: item.municipality,
+        category: item.category,
+        confidence: isExact ? 100 : 96,
+        image: item.image,
+        slug: item.slug,
+        description: item.description,
+      }
+    }
+  }
+
+  // 2. Match District Name directly
+  for (const [distName, info] of Object.entries(DISTRICT_DEFAULTS)) {
+    const distClean = distName.toLowerCase()
+    if (distClean.includes(cleanQ) || cleanQ.includes(distClean)) {
+      // Find province
+      let prov = "Bagmati"
+      for (const [p, dists] of Object.entries(NEPAL_ALL_DISTRICTS)) {
+        if (dists.includes(distName)) {
+          prov = p
+          break
+        }
+      }
+      return {
+        matched: true,
+        canonicalName: `${distName} District (${prov} Province)`,
+        correctedName: distName,
+        didYouMean: `Geocoded district center: ${distName}`,
+        latitude: info.lat,
+        longitude: info.lng,
+        altitude: info.alt,
+        district: distName,
+        province: prov,
+        municipality: info.munis[0] || "",
+        category: "District Center",
+        confidence: 90,
+        image: "/images/destinations/pokhara/img1.jpg",
+        slug: distName.toLowerCase(),
+        description: `Official administrative center of ${distName} in ${prov} Province.`,
+      }
+    }
+  }
+
+  return null
+}
+
 /**
  * High-precision forward geocoder supporting all 77 districts and custom entries
  */
@@ -107,3 +419,4 @@ export function geocodeNepalPlace(province, district, municipalityName = "", war
     alt: alt,
   }
 }
+

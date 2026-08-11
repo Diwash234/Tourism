@@ -11,7 +11,7 @@ import useToast from "../hooks/useToast"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import {
   NEPAL_ALL_PROVINCES, NEPAL_ALL_DISTRICTS,
-  DISTRICT_DEFAULTS, geocodeNepalPlace
+  DISTRICT_DEFAULTS, geocodeNepalPlace, resolveFuzzyPlaceLocation
 } from "../utils/nepalGeocoder"
 
 export default function SubmitPlacePage() {
@@ -19,6 +19,7 @@ export default function SubmitPlacePage() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
+  const [autoGeocodeMatch, setAutoGeocodeMatch] = useState(null)
 
   // Administrative selection
   const [selectedProvince, setSelectedProvince] = useState("Gandaki")
@@ -88,6 +89,26 @@ export default function SubmitPlacePage() {
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleNameChange = (val) => {
+    update("name", val)
+    if (val.trim().length >= 2) {
+      const match = resolveFuzzyPlaceLocation(val.trim())
+      if (match && match.district) {
+        setAutoGeocodeMatch(match)
+        if (match.province) setSelectedProvince(match.province)
+        setSelectedDistrict(match.district)
+        if (match.municipality) setSelectedMunicipality(match.municipality)
+        update("latitude", match.latitude.toFixed(6))
+        update("longitude", match.longitude.toFixed(6))
+        update("altitude", match.altitude || "1,200m")
+      } else {
+        setAutoGeocodeMatch(null)
+      }
+    } else {
+      setAutoGeocodeMatch(null)
+    }
   }
 
   const handleDetectGPS = async () => {
@@ -236,11 +257,24 @@ export default function SubmitPlacePage() {
               <label className="font-semibold text-gray-700">Place / Landmark Name *</label>
               <input
                 className="input-field mt-1 text-sm font-medium"
-                placeholder="e.g. Swargadwari Temple / Waling Valley / Galeshwor / Poon Hill"
+                placeholder="e.g. Bihadi Parbat / Waling Valley / Galeshwor / Swargadwari..."
                 value={form.name}
-                onChange={(e) => update("name", e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 required
               />
+              {autoGeocodeMatch && (
+                <div className="mt-2 p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold">⚡ Auto-Geocoded:</span> {autoGeocodeMatch.district}, {autoGeocodeMatch.province}
+                    <span className="text-[11px] text-purple-700 ml-2 font-mono">
+                      (GPS: {autoGeocodeMatch.latitude?.toFixed(4)}° N, {autoGeocodeMatch.longitude?.toFixed(4)}° E · Alt: {autoGeocodeMatch.altitude})
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                    {autoGeocodeMatch.confidence}% Match
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>

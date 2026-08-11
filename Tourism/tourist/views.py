@@ -405,10 +405,25 @@ class DestinationResearchView(APIView):
         return Response(result)
 
 
+SEARCH_FUZZY_ALIASES = {
+    "pkr": "Pokhara", "pokhra": "Pokhara", "pohra": "Pokhara", "pohkra": "Pokhara",
+    "ktm": "Kathmandu", "katmandu": "Kathmandu", "kathmndu": "Kathmandu",
+    "ebc": "Everest Base Camp", "abc": "Annapurna Base Camp",
+    "walling": "Waling", "waaling": "Waling", "waling": "Waling",
+    "bihadi": "Bihadi", "vihadi": "Bihadi", "parbat": "Parbat",
+    "galeswor": "Galeshwor", "galeshwar": "Galeshwor",
+    "sworgadwari": "Swargadwari", "swargadwary": "Swargadwari",
+    "poonhill": "Poon Hill", "punhill": "Poon Hill",
+    "chitwn": "Chitwan", "saurha": "Sauraha",
+    "lumbni": "Lumbini", "mustng": "Mustang",
+    "tilicho": "Tilicho", "sinja": "Sinja", "khaptad": "Khaptad",
+    "dhorpatan": "Dhorpatan", "pathibhara": "Pathibhara", "rara": "Rara",
+}
+
 class DestinationSearchDiscoverView(APIView):
     """
     GET /api/v1/destinations/search-discover/?query=Swargadwari
-    Searches existing destinations by name, slug, aliases.
+    Searches existing destinations by name, slug, aliases with fuzzy auto-correction.
     If no matches are found, returns can_research=True.
     """
     permission_classes = [permissions.AllowAny]
@@ -418,12 +433,19 @@ class DestinationSearchDiscoverView(APIView):
         if not query:
             return Response({"results": [], "can_research": False})
 
+        clean_q = query.lower().replace(" ", "").replace("-", "")
+        expanded_query = SEARCH_FUZZY_ALIASES.get(clean_q, query)
+
         matches = Destination.objects.filter(
             Q(name__icontains=query)
+            | Q(name__icontains=expanded_query)
             | Q(slug__icontains=query)
+            | Q(slug__icontains=expanded_query)
             | Q(aliases__icontains=query)
+            | Q(aliases__icontains=expanded_query)
             | Q(city__icontains=query)
             | Q(district__icontains=query)
+            | Q(district__icontains=expanded_query)
         ).filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)[:10]
 
         if matches.exists():
@@ -432,6 +454,7 @@ class DestinationSearchDiscoverView(APIView):
                 "results": serialized,
                 "count": len(serialized),
                 "can_research": False,
+                "corrected_query": expanded_query if expanded_query != query else None,
                 "message": f"Found {len(serialized)} matching destinations.",
             })
 
