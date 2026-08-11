@@ -3,6 +3,7 @@ import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
 import FloatingChatbot from "../common/FloatingChatbot"
+import { ElevationScrollProgress } from "../common/MotionSystem"
 import useSidebarState from "../../hooks/useSidebarState"
 
 const MainLayout = () => {
@@ -11,6 +12,7 @@ const MainLayout = () => {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-white overflow-x-hidden">
+      <ElevationScrollProgress />
       <Navbar />
       <Sidebar />
       <main

@@ -491,7 +491,68 @@ class ItineraryView(APIView):
             return Response(response.json())
         except requests.RequestException as exc:
             logger.warning("ML itinerary service unreachable: %s", exc)
-            return Response(
-                {"detail": "Itinerary service is currently unavailable. Please try again later."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            # Internal database fallback itinerary builder
+            days = max(1, data.get("days", 3))
+            travelers = max(1, data.get("travelers", 1))
+            interests = data.get("interests", ["culture"])
+            start_city = (data.get("start_city") or "Kathmandu").strip()
+
+            qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+            city_qs = qs.filter(city__icontains=start_city)
+            if not city_qs.exists():
+                city_qs = qs
+
+            dest_list = list(city_qs[: days * 3])
+            if not dest_list:
+                dest_list = list(qs[: days * 3])
+
+            itinerary_days = []
+            USD_TO_NPR = 133.0
+            daily_npr = round(35.0 * USD_TO_NPR * travelers)
+
+            for day_idx in range(1, days + 1):
+                day_destinations = []
+                start_i = (day_idx - 1) * 2
+                for dest in dest_list[start_i : start_i + 2]:
+                    day_destinations.append({
+                        "name": dest.name,
+                        "city": dest.city or start_city,
+                        "latitude": float(dest.latitude) if dest.latitude else None,
+                        "longitude": float(dest.longitude) if dest.longitude else None,
+                        "category": dest.category.name if dest.category else "Attraction",
+                    })
+                if not day_destinations and dest_list:
+                    d = dest_list[day_idx % len(dest_list)]
+                    day_destinations.append({
+                        "name": d.name,
+                        "city": d.city or start_city,
+                        "latitude": float(d.latitude) if d.latitude else None,
+                        "longitude": float(d.longitude) if d.longitude else None,
+                        "category": d.category.name if d.category else "Attraction",
+                    })
+
+                itinerary_days.append({
+                    "day": day_idx,
+                    "city": start_city,
+                    "theme": "Cultural & Scenic Exploration",
+                    "destinations": day_destinations,
+                    "daily_budget_npr": daily_npr,
+                })
+
+            total_npr = daily_npr * days
+            return Response({
+                "source": "internal_db_engine",
+                "days": days,
+                "travelers": travelers,
+                "budget_level": data.get("budget_level", "mid"),
+                "travel_style": data.get("travel_style", "leisure"),
+                "travel_type": data.get("travel_type", "solo"),
+                "interests": interests,
+                "start_city": start_city,
+                "total_estimated_npr": total_npr,
+                "total_estimated_usd": round(total_npr / USD_TO_NPR, 2),
+                "per_person_npr": round(total_npr / travelers),
+                "budget_npr": data.get("budget_npr"),
+                "fits_budget": (total_npr <= float(data.get("budget_npr"))) if data.get("budget_npr") else None,
+                "itinerary": itinerary_days,
+            }, status=status.HTTP_200_OK)

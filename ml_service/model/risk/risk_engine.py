@@ -36,7 +36,12 @@ FEATURE_COLUMNS = [
     "natural_disaster_risk", "tourism_risk_index",
 ]
 
-model = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else None
+_loaded = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else None
+if isinstance(_loaded, dict):
+    model = _loaded.get("model")
+    FEATURE_COLUMNS = _loaded.get("features", FEATURE_COLUMNS)
+else:
+    model = _loaded
 _features_df = pd.read_csv(FEATURES_CSV_PATH) if os.path.exists(FEATURES_CSV_PATH) else None
 
 

@@ -55767,10 +55767,10 @@
     <edge source="Hotel Om Rai" target="Hotel PhawaKhola and Lodge">
       <data key="d4">0.29</data>
     </edge>
-    <edge source="Hotel Om Rai" target="Tiwari Hotel and Lodge">
+    <edge source="Hotel Om Rai" target="Munal Hoteland Lodge">
       <data key="d4">0.31</data>
     </edge>
-    <edge source="Hotel Om Rai" target="Munal Hoteland Lodge">
+    <edge source="Hotel Om Rai" target="Tiwari Hotel and Lodge">
       <data key="d4">0.31</data>
     </edge>
     <edge source="Hotel Om Rai" target="Resort Om Rai (Kastiri Niwas)">
@@ -55863,10 +55863,10 @@
     <edge source="Hotel Suketar and lodge" target="Hotel oktang and Lodge">
       <data key="d4">0.12</data>
     </edge>
-    <edge source="Hotel Suketar and lodge" target="Munal Hoteland Lodge">
+    <edge source="Hotel Suketar and lodge" target="Tiwari Hotel and Lodge">
       <data key="d4">0.23</data>
     </edge>
-    <edge source="Hotel Suketar and lodge" target="Tiwari Hotel and Lodge">
+    <edge source="Hotel Suketar and lodge" target="Munal Hoteland Lodge">
       <data key="d4">0.23</data>
     </edge>
     <edge source="Hotel Suketar and lodge" target="Resort Om Rai (Kastiri Niwas)">

@@ -244,3 +244,105 @@ export const InteractiveHeroCanvas = () => {
 
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-60" />
 }
+
+/**
+ * ElevationScrollProgress — Ambient Himalayan altitude tracker on scroll
+ */
+export const ElevationScrollProgress = () => {
+  const [scrollPercent, setScrollPercent] = useState(0)
+  const shouldReduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight
+      if (totalHeight > 0) {
+        const current = (window.scrollY / totalHeight) * 100
+        setScrollPercent(Math.min(100, Math.max(0, current)))
+      }
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Approximate Nepal elevation curve from 70m (Jhapa) to 8,848m (Sagarmatha)
+  const currentAlt = Math.round(70 + (scrollPercent / 100) * (8848 - 70))
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none h-1 bg-black/10 backdrop-blur-sm">
+      <motion.div
+        className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-600 shadow-sm"
+        style={{ width: `${scrollPercent}%` }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.1 }}
+      />
+      {scrollPercent > 3 && (
+        <div
+          className="absolute top-2 right-4 bg-slate-900/85 border border-white/15 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-amber-300 backdrop-blur shadow-md flex items-center gap-1.5 transition-all"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Elevation: {currentAlt.toLocaleString()}m</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * PrayerFlagsBanner — Subtle 5-color prayer flags (Wind, Space, Fire, Water, Earth)
+ */
+export const PrayerFlagsBanner = ({ className = "" }) => {
+  const flags = [
+    { color: "bg-blue-600/70", label: "Sky / Space" },
+    { color: "bg-white/80", label: "Air / Wind" },
+    { color: "bg-red-600/70", label: "Fire" },
+    { color: "bg-green-600/70", label: "Water" },
+    { color: "bg-yellow-500/80", label: "Earth" },
+    { color: "bg-blue-600/70", label: "Sky" },
+    { color: "bg-white/80", label: "Wind" },
+    { color: "bg-red-600/70", label: "Fire" },
+    { color: "bg-green-600/70", label: "Water" },
+    { color: "bg-yellow-500/80", label: "Earth" },
+  ]
+
+  return (
+    <div className={`relative overflow-hidden py-1 opacity-75 hover:opacity-100 transition-opacity ${className}`}>
+      <div className="absolute inset-x-0 top-1/2 h-[1px] bg-amber-800/30" />
+      <div className="flex items-start justify-around relative z-10 px-2">
+        {flags.map((f, i) => (
+          <motion.div
+            key={i}
+            className={`w-3.5 h-4.5 sm:w-5 sm:h-6 ${f.color} rounded-b-[2px] shadow-sm transform origin-top`}
+            animate={{
+              rotate: [0, 4, -3, 2, 0],
+              skewX: [0, 2, -2, 0],
+            }}
+            transition={{
+              duration: 3.5 + (i % 3) * 0.8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.2,
+            }}
+            title={f.label}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * DokoMotifBadge — Subtle Nepalese Doko wicker travel emblem
+ */
+export const DokoMotifBadge = ({ label = "My Doko", count = null, className = "" }) => {
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/40 border border-amber-500/30 text-amber-300 backdrop-blur shadow-sm ${className}`}>
+      <span className="text-sm">🧺</span>
+      <span>{label}</span>
+      {count !== null && (
+        <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-200 text-[10px]">
+          {count}
+        </span>
+      )}
+    </span>
+  )
+}
+

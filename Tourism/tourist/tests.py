@@ -232,7 +232,8 @@ class ViewCountTests(APITestCase):
 
 
 class MLIntegrationTests(APITestCase):
-    def test_recommendations_falls_back_when_ml_service_unreachable(self):
+    @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
+    def test_recommendations_falls_back_when_ml_service_unreachable(self, _mock):
         admin = User.objects.create_superuser(email="admin6@example.com", password="AdminPass123!")
         category = Category.objects.create(name="Trekking")
         Destination.objects.create(
