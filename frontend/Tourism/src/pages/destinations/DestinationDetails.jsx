@@ -44,6 +44,7 @@ export default function DestinationDetails() {
   const [activeImageIdx, setActiveImageIdx] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [selectedImgCategory, setSelectedImgCategory] = useState("all")
+  const [showOfflineKit, setShowOfflineKit] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const { position } = useGeolocation()
@@ -207,12 +208,24 @@ export default function DestinationDetails() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Link
+            to={`/compare?dest=${encodeURIComponent(destination.slug)}`}
+            className="px-4 py-3 rounded-2xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            ⚖️ Compare
+          </Link>
+          <button
+            onClick={() => setShowOfflineKit(true)}
+            className="px-4 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            📦 Offline Kit
+          </button>
           <button
             onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
-            className="px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-sm flex items-center gap-2 shadow-xl shadow-amber-400/25 transition-all hover:scale-105"
+            className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-amber-400/25 transition-all hover:scale-105"
           >
-            <FiNavigation size={18} /> GTA Game-HUD Route
+            <FiNavigation size={16} /> GTA Route
           </button>
           <button
             onClick={toggleFavorite}
@@ -222,7 +235,7 @@ export default function DestinationDetails() {
                 : "bg-white border-gray-200 text-gray-500 hover:border-rose-300"
             }`}
           >
-            <FiHeart size={20} className={isFavorite ? "fill-rose-500 text-rose-500" : ""} />
+            <FiHeart size={18} className={isFavorite ? "fill-rose-500 text-rose-500" : ""} />
           </button>
         </div>
       </div>
@@ -656,6 +669,119 @@ export default function DestinationDetails() {
           </button>
         </div>
       </div>
+
+      {/* OFFLINE TRAVEL KIT MODAL */}
+      <AnimatePresence>
+        {showOfflineKit && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-purple-100 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-start border-b pb-4">
+                <div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold uppercase">
+                    🎒 Offline Travel Kit & Safety Package
+                  </span>
+                  <h3 className="text-2xl font-black text-gray-900 mt-2">{destination.name}</h3>
+                  <p className="text-xs text-gray-500">{destination.district}, {destination.province} Province · Elevation: {destination.altitude || "1,400m"}</p>
+                </div>
+                <button
+                  onClick={() => setShowOfflineKit(false)}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              {/* Package Content */}
+              <div className="space-y-4 text-xs text-gray-700">
+                {/* 1. Essential Coordinates & Weather */}
+                <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 space-y-2">
+                  <h4 className="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+                    <FiMapPin /> GPS Location & Visiting Season
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div><b>GPS:</b> {destination.latitude}, {destination.longitude}</div>
+                    <div><b>Altitude:</b> {destination.altitude || "1,400m"}</div>
+                    <div><b>Best Months:</b> {destination.best_time_to_visit || "October to April"}</div>
+                  </div>
+                </div>
+
+                {/* 2. 24/7 Emergency Helplines */}
+                <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-2">
+                  <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
+                    <FiShield /> 24/7 Emergency Numbers (Works without Internet)
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Tourist Police</span>
+                      <b className="text-rose-700 text-sm">1144</b>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Nepal Police</span>
+                      <b className="text-rose-700 text-sm">100</b>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Ambulance</span>
+                      <b className="text-rose-700 text-sm">102</b>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Mountain Rescue</span>
+                      <b className="text-rose-700 text-sm">+977-1-4440292</b>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Road Route & Transit Fares */}
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 space-y-2">
+                  <h4 className="font-bold text-sm text-amber-900 flex items-center gap-1.5">
+                    <FiTruck /> Road Transit & Approximate Fares
+                  </h4>
+                  <p><b>Distance from Kathmandu:</b> ~{destination.distance_from_kathmandu_km || 200} km</p>
+                  <p><b>Estimated Deluxe Bus Fare:</b> NPR 1,200 – 1,800 · <b>Private Jeep Fare:</b> NPR 12,000 – 18,000</p>
+                </div>
+
+                {/* 4. Useful Local Phrases */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                  <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
+                    🗣️ Essential Nepali Phrases
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>• <b>Namaste:</b> Hello / Greetings</div>
+                    <div>• <b>Dhanyabad:</b> Thank you</div>
+                    <div>• <b>Kati ho?:</b> How much is this?</div>
+                    <div>• <b>Sahayog garnuhos:</b> Please help me</div>
+                    <div>• <b>Bato kata ho?:</b> Which way is the route?</div>
+                    <div>• <b>Mitho chha:</b> It is delicious!</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-between items-center border-t pt-4">
+                <p className="text-[11px] text-gray-500 italic">Save or print this kit before leaving for remote areas with low cellular coverage.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => window.print()}
+                    className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"
+                  >
+                    🖨️ Print / Save as PDF
+                  </button>
+                  <button
+                    onClick={() => setShowOfflineKit(false)}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* FULLSCREEN LIGHTBOX MODAL */}
       <AnimatePresence>

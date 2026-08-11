@@ -86,12 +86,27 @@ class ChatMessageView(APIView):
             {"role": m.role, "content": m.content}
             for m in conversation.messages.order_by("created_at")
         ]
-        reply_text = get_chatbot_reply(
-    history,
-    latitude=latitude,
-    longitude=longitude
-)
+        
+        reply_result = get_chatbot_reply(
+            history,
+            latitude=latitude,
+            longitude=longitude
+        )
 
+        if isinstance(reply_result, dict):
+            reply_text = reply_result.get("reply", "")
+            destination_cards = reply_result.get("destination_cards", [])
+            image_cards = reply_result.get("image_cards", [])
+            itinerary_cards = reply_result.get("itinerary_cards")
+            distance_cards = reply_result.get("distance_cards")
+            emergency_cards = reply_result.get("emergency_cards", [])
+        else:
+            reply_text = str(reply_result)
+            destination_cards = []
+            image_cards = []
+            itinerary_cards = None
+            distance_cards = None
+            emergency_cards = []
 
         reply = ChatMessage.objects.create(
             conversation=conversation, role=ChatMessage.Role.ASSISTANT, content=reply_text
@@ -102,6 +117,11 @@ class ChatMessageView(APIView):
             "conversation_id": conversation.id,
             "reply": reply_text,
             "message_id": reply.id,
+            "destination_cards": destination_cards,
+            "image_cards": image_cards,
+            "itinerary_cards": itinerary_cards,
+            "distance_cards": distance_cards,
+            "emergency_cards": emergency_cards,
         })
 
     def _get_or_create_conversation(self, request, conversation_id):

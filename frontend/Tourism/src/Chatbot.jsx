@@ -2,94 +2,55 @@ import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiSend, FiCompass, FiShield, FiDollarSign, FiPhoneCall, FiSun,
-  FiMapPin, FiImage, FiNavigation, FiArrowRight, FiGlobe, FiKey
+  FiMapPin, FiImage, FiNavigation, FiArrowRight, FiGlobe, FiKey,
+  FiCalendar, FiClock, FiCheck, FiTruck, FiExternalLink, FiMaximize2
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
 import useGeolocation from "./hooks/useGeolocation"
 
 const QUICK_COMMANDS = [
-  { label: "🏔️ Top Places", prompt: "Show top places to visit in Nepal with pictures" },
-  { label: "💰 7-Day Budget", prompt: "Estimate budget for 7 days in Pokhara and Kathmandu" },
-  { label: "🖼️ View Photos", prompt: "Show me beautiful pictures of Everest and Annapurna" },
-  { label: "🚗 Route Guide", prompt: "How do I travel from Kathmandu to Pokhara?" },
-  { label: "🚨 Emergency Hub", prompt: "What are the 24/7 tourist police and hospital numbers?" },
-  { label: "🌤️ Best Season", prompt: "When is the best time of year to visit Nepal?" },
+  { label: "🏔️ Top Places & Photos", prompt: "Show top places to visit in Nepal with pictures" },
+  { label: "📏 KTM to Pokhara Distance", prompt: "How far is Pokhara from Kathmandu and what are the bus and drive times?" },
+  { label: "🗓️ 7-Day Mustang Trip", prompt: "Plan an 7-day itinerary for Mustang with budget NPR 60,000" },
+  { label: "💰 5-Day Annapurna Cost", prompt: "Estimate budget for 5 days in Annapurna and Pokhara" },
+  { label: "🖼️ View Everest Photos", prompt: "Show me beautiful photos of Everest Base Camp" },
+  { label: "🚨 24/7 Emergency Helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
 ]
-
-const PLACE_CARD_DB = {
-  "pokhara": {
-    name: "Pokhara & Phewa Lake",
-    city: "Pokhara, Gandaki",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
-    slug: "phewa-lake-tal-barahi",
-    rating: "4.9",
-    budget: "$40/day",
-    tag: "Lakes & Adventure"
-  },
-  "everest": {
-    name: "Everest Base Camp (5,364m)",
-    city: "Solukhumbu, Koshi",
-    image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
-    slug: "everest-base-camp-ebc",
-    rating: "5.0",
-    budget: "$55/day",
-    tag: "High Mountain Trek"
-  },
-  "annapurna": {
-    name: "Annapurna Sanctuary (ABC)",
-    city: "Kaski, Gandaki",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
-    slug: "annapurna-base-camp-abc-sanctuary",
-    rating: "4.9",
-    budget: "$45/day",
-    tag: "Mountain Amphitheater"
-  },
-  "kathmandu": {
-    name: "Pashupatinath & Boudhanath",
-    city: "Kathmandu Valley",
-    image: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=800&auto=format&fit=crop&q=80",
-    slug: "pashupatinath-temple",
-    rating: "4.8",
-    budget: "$35/day",
-    tag: "UNESCO World Heritage"
-  },
-  "chitwan": {
-    name: "Chitwan Jungle Safari",
-    city: "Sauraha, Chitwan",
-    image: "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=800&auto=format&fit=crop&q=80",
-    slug: "chitwan-national-park-safari",
-    rating: "4.8",
-    budget: "$50/day",
-    tag: "Rhinos & Wildlife"
-  },
-  "lumbini": {
-    name: "Lumbini Sacred Garden",
-    city: "Rupandehi, Lumbini",
-    image: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=800&auto=format&fit=crop&q=80",
-    slug: "lumbini-sacred-garden-maya-devi-temple",
-    rating: "4.9",
-    budget: "$30/day",
-    tag: "Birthplace of Buddha"
-  },
-  "mustang": {
-    name: "Upper Mustang & Lo Manthang",
-    city: "Mustang, Gandaki",
-    image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
-    slug: "upper-mustang-lo-manthang",
-    rating: "4.9",
-    budget: "$90/day",
-    tag: "Walled Kingdom"
-  }
-}
 
 export default function ChatBot() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
       content:
-        "Namaste! 🙏 Welcome to Himal AI.\n\nI'm your intelligent Nepal Travel Companion with live image search and itinerary generation. Ask me about destinations, budgets, routes, permits, weather, or emergency helplines.",
-      cards: [PLACE_CARD_DB.pokhara, PLACE_CARD_DB.everest]
+        "Namaste! 🙏 I am **Himal AI**, your personal Nepal Travel Companion & Intelligent Visual Guide.\n\n" +
+        "I can calculate real highway distances, design day-by-day itineraries, estimate travel costs in NPR/USD, and show verified photos from all 77 districts.",
+      destination_cards: [
+        {
+          name: "Pokhara & Phewa Lake",
+          city: "Kaski, Gandaki",
+          image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
+          slug: "phewa-lake-tal-barahi",
+          rating: "4.9",
+          budget: "NPR 4,500/day",
+          altitude: "822m",
+          category: "Lakes & Adventure",
+        },
+        {
+          name: "Everest Base Camp (5,364m)",
+          city: "Solukhumbu, Koshi",
+          image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
+          slug: "everest-base-camp-ebc",
+          rating: "5.0",
+          budget: "NPR 7,000/day",
+          altitude: "5,364m",
+          category: "High Mountain Trek",
+        }
+      ],
+      image_cards: [],
+      itinerary_cards: null,
+      distance_cards: null,
+      emergency_cards: [],
     },
   ])
 
@@ -104,27 +65,11 @@ export default function ChatBot() {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight
     }
-  }, [messages])
-
-  const detectRelevantCards = (text) => {
-    const q = text.toLowerCase()
-    const found = []
-    Object.keys(PLACE_CARD_DB).forEach((key) => {
-      if (q.includes(key)) {
-        found.push(PLACE_CARD_DB[key])
-      }
-    })
-    if (found.length === 0 && (q.includes("place") || q.includes("photo") || q.includes("destination") || q.includes("visit") || q.includes("top"))) {
-      return [PLACE_CARD_DB.pokhara, PLACE_CARD_DB.everest, PLACE_CARD_DB.chitwan]
-    }
-    return found
-  }
+  }, [messages, sending])
 
   const handleSend = async (textToSend = null) => {
     const query = typeof textToSend === "string" ? textToSend : input.trim()
     if (!query || sending) return
-
-    const matchedCards = detectRelevantCards(query)
 
     const userMessage = {
       role: "user",
@@ -151,10 +96,12 @@ export default function ChatBot() {
         ...prev,
         {
           role: "assistant",
-          content:
-            data.reply ||
-            "I'm here to assist with Nepal travel destinations, itineraries, and emergency support!",
-          cards: matchedCards,
+          content: data.reply || "I'm here to assist with Nepal travel destinations, itineraries, and emergency support!",
+          destination_cards: data.destination_cards || [],
+          image_cards: data.image_cards || [],
+          itinerary_cards: data.itinerary_cards || null,
+          distance_cards: data.distance_cards || null,
+          emergency_cards: data.emergency_cards || [],
         },
       ])
     } catch (error) {
@@ -165,7 +112,11 @@ export default function ChatBot() {
           role: "assistant",
           content:
             "I can help you plan your journey across Nepal, find hotels, calculate budgets, and navigate mountain routes. Ask me anything!",
-          cards: matchedCards,
+          destination_cards: [],
+          image_cards: [],
+          itinerary_cards: null,
+          distance_cards: null,
+          emergency_cards: [],
         },
       ])
     } finally {
@@ -191,7 +142,7 @@ export default function ChatBot() {
             🏔️ Himal AI Assistant & Visual Guide
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Grok & Gemini Intelligence • 77 Districts • Photo Galleries • Budget & Road Navigation
+            Grok & Gemini Intelligence • 77 Districts • Photo Galleries • Highway Distances & Itineraries
           </p>
         </div>
 
@@ -209,14 +160,14 @@ export default function ChatBot() {
           ))}
         </div>
 
-        <div className="card-base h-[640px] flex flex-col overflow-hidden border border-purple-100 shadow-2xl rounded-3xl bg-white">
+        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-purple-100 shadow-2xl rounded-3xl bg-white">
           <div className="bg-gradient-to-r from-purple-900 via-purple-800 to-rose-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
                 Himal AI Travel Sentinel 🙏
               </h2>
               <p className="text-xs text-purple-200">
-                Connected to Knowledge Engine & Visual Destination Database
+                Connected to Knowledge Engine, Road Corridors & Visual Media Database
               </p>
             </div>
             {position && (
@@ -247,10 +198,112 @@ export default function ChatBot() {
                   {message.content}
                 </div>
 
-                {/* Inline Image & Destination Cards generated in Chat */}
-                {message.cards && message.cards.length > 0 && (
+                {/* 1. Distance & Transit Route Card */}
+                {message.distance_cards && (
+                  <div className="max-w-[85%] mt-3 w-full bg-gradient-to-br from-purple-900 via-purple-950 to-slate-900 text-white p-4 rounded-2xl border border-purple-700 shadow-lg space-y-3">
+                    <div className="flex justify-between items-center border-b border-purple-700/60 pb-2">
+                      <h4 className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
+                        <FiTruck /> {message.distance_cards.origin} ➔ {message.distance_cards.destination}
+                      </h4>
+                      <span className="px-2 py-0.5 rounded bg-amber-400 text-gray-950 text-[10px] font-black">
+                        Road Transit Route
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
+                        <span className="text-purple-300">Road Distance:</span>
+                        <p className="font-black text-white text-xs mt-0.5">{message.distance_cards.road_distance_km} km</p>
+                      </div>
+                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
+                        <span className="text-purple-300">Driving Time:</span>
+                        <p className="font-black text-amber-300 text-xs mt-0.5">{message.distance_cards.estimated_drive_time}</p>
+                      </div>
+                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
+                        <span className="text-purple-300">Public Bus:</span>
+                        <p className="font-black text-emerald-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_bus_npr?.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
+                        <span className="text-purple-300">Private Jeep:</span>
+                        <p className="font-black text-cyan-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_jeep_npr?.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 text-[10px] text-purple-200">
+                      <span>Corridor: <b>{message.distance_cards.highway_corridor}</b></span>
+                      <Link
+                        to={`/navigation?origin=${encodeURIComponent(message.distance_cards.origin)}&dest=${encodeURIComponent(message.distance_cards.destination)}`}
+                        className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 font-black flex items-center gap-1 shadow"
+                      >
+                        Open Navigation HUD ➔
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Structured Itinerary Card */}
+                {message.itinerary_cards && message.itinerary_cards.schedule && (
+                  <div className="max-w-[85%] mt-3 w-full bg-white p-4 rounded-2xl border border-purple-100 shadow-lg space-y-3">
+                    <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                      <div>
+                        <h4 className="font-bold text-xs text-purple-900 flex items-center gap-1.5">
+                          <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
+                        </h4>
+                        <p className="text-[10px] text-gray-500">
+                          Total Budget: <b>NPR {message.itinerary_cards.total_estimated_npr?.toLocaleString()}</b> (~${message.itinerary_cards.total_estimated_usd} USD)
+                        </p>
+                      </div>
+                      <Link
+                        to="/itinerary"
+                        className="px-3 py-1 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-[10px] font-bold"
+                      >
+                        Customize Itinerary ➔
+                      </Link>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {message.itinerary_cards.schedule.map((item, idx) => (
+                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
+                          <div className="flex justify-between font-bold text-gray-900">
+                            <span>{item.title}</span>
+                            <span className="text-purple-700 font-mono">NPR {item.daily_budget_npr?.toLocaleString()}</span>
+                          </div>
+                          <p className="text-[10px] text-gray-600 mt-0.5">{item.highlights}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Verified Photo Gallery Cards */}
+                {message.image_cards && message.image_cards.length > 0 && (
+                  <div className="max-w-[85%] mt-3 w-full space-y-1.5">
+                    <p className="text-[11px] font-bold text-purple-900 flex items-center gap-1">
+                      <FiImage /> Verified Photos & Attribution Credits:
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {message.image_cards.map((img, i) => (
+                        <div key={i} className="rounded-xl overflow-hidden border border-purple-100 bg-white shadow-sm flex flex-col justify-between">
+                          <div className="h-24 w-full relative bg-slate-900 overflow-hidden">
+                            <img src={img.url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[9px] font-bold">
+                              {img.category}
+                            </span>
+                          </div>
+                          <div className="p-1.5 text-[9px] text-gray-500">
+                            <p className="font-bold text-gray-800 truncate">{img.caption}</p>
+                            <p className="text-[8px] text-emerald-600 truncate">✓ {img.license} ({img.photographer})</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Destination Cards */}
+                {message.destination_cards && message.destination_cards.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-[85%] mt-3">
-                    {message.cards.map((card, i) => (
+                    {message.destination_cards.map((card, i) => (
                       <div
                         key={i}
                         className="bg-white rounded-2xl overflow-hidden border border-purple-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow"
@@ -258,7 +311,7 @@ export default function ChatBot() {
                         <div className="h-32 w-full relative overflow-hidden bg-black">
                           <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
                           <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur text-amber-300 text-[10px] font-bold">
-                            {card.tag}
+                            {card.category}
                           </span>
                         </div>
                         <div className="p-3 space-y-1.5">
@@ -286,13 +339,38 @@ export default function ChatBot() {
                     ))}
                   </div>
                 )}
+
+                {/* 5. Emergency Helplines Cards */}
+                {message.emergency_cards && message.emergency_cards.length > 0 && (
+                  <div className="max-w-[85%] mt-3 w-full bg-rose-50 border border-rose-200 p-3.5 rounded-2xl space-y-2">
+                    <p className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                      <FiShield /> 24/7 Verified Emergency Contacts (1-Click Call):
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {message.emergency_cards.map((em, i) => (
+                        <div key={i} className="p-2 bg-white rounded-xl border border-rose-100 flex justify-between items-center text-xs">
+                          <div>
+                            <p className="font-bold text-gray-900 truncate">{em.name}</p>
+                            <span className="text-[10px] text-gray-500">{em.type} ({em.district})</span>
+                          </div>
+                          <a
+                            href={`tel:${em.phone}`}
+                            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1 shadow"
+                          >
+                            <FiPhoneCall size={10} /> Call {em.phone}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
             {sending && (
               <div className="flex items-center gap-2 text-xs text-purple-700 font-bold italic">
                 <span className="w-2 h-2 rounded-full bg-purple-600 animate-bounce"></span>
-                Himal AI is researching and fetching images...
+                Himal AI is researching knowledge engine, routes, and verified images...
               </div>
             )}
           </div>
@@ -308,7 +386,7 @@ export default function ChatBot() {
               rows={2}
               value={input}
               disabled={sending}
-              placeholder="Ask about Nepal destinations, budgets, trekking routes or say 'show pictures'..."
+              placeholder="Ask about Nepal destinations, distance between cities, 5-day itineraries, or say 'show photos'..."
               className="input-field flex-1 resize-none text-sm"
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
