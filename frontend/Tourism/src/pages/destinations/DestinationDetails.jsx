@@ -12,6 +12,7 @@ import {
 import destinationApi from "../../api/destinationApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
 import WeatherCard from "../../components/cards/WeatherCard"

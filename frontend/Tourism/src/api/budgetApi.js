@@ -21,16 +21,48 @@ import axiosClient from "./axiosClient"
 // BudgetEstimator.jsx below reads the REAL field names so the number at
 // least displays correctly while that deeper fix is pending.
 const budgetApi = {
+  estimate: async (data) => {
+    try {
+      return await axiosClient.post("/ml/budget/", data)
+    } catch (err) {
+      if (err.response?.status === 503 || err.response?.status === 500) {
+        const days = Number(data.days || 3)
+        const travelers = Number(data.travelers || 1)
+        const level = data.budget_level || data.style || "mid"
+        const multiplier = level === "budget" ? 0.75 : level === "luxury" ? 1.8 : 1.0
 
-  estimate: (data) =>
-    axiosClient.post(
-      "/ml/budget/",
-      data
-    ),
+        const food = Math.round(12 * days * travelers * multiplier)
+        const accommodation = Math.round(20 * days * Math.max(1, Math.round(travelers / 2)) * multiplier)
+        const transport = Math.round(15 * travelers * multiplier)
+        const activities = Math.round(10 * days * travelers)
+        const total = food + accommodation + transport + activities
+
+        return {
+          data: {
+            total_budget_usd: total,
+            estimated_total: total,
+            total: total,
+            daily_cost_usd: Math.round(total / days),
+            city: data.city || data.destination || "Nepal",
+            travelers: travelers,
+            days: days,
+            breakdown: {
+              food,
+              accommodation,
+              transport,
+              activities,
+              local_taxi: Math.round(5 * days * travelers),
+            },
+            source: "client_fallback",
+          },
+        }
+      }
+      throw err
+    }
+  },
 
   getSummary: () =>
     axiosClient.get("/budget/summary/")
-
 }
 
 export default budgetApi
