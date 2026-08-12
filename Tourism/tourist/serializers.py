@@ -484,6 +484,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
             if cover.external_url:
                 return cover.external_url
+
         return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -565,7 +566,9 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         if cover:
             if cover.image:
                 return request.build_absolute_uri(cover.image.url) if request else cover.image.url
-            return cover.external_url or None
+            if cover.external_url:
+                return cover.external_url
+
         return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
