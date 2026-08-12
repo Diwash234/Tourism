@@ -6,6 +6,7 @@ import {
   LineElement,
   BarElement,
   ArcElement,
+  Filler,
   Title,
   Tooltip,
   Legend,
@@ -18,6 +19,7 @@ ChartJS.register(
   LineElement,
   BarElement,
   ArcElement,
+  Filler,
   Title,
   Tooltip,
   Legend
