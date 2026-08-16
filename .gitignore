@@ -149,4 +149,10 @@ venv/
 frontend/Tourism/dist/
 Tourism/staticfiles/
 
+# Note: Tourism/db.sqlite3 IS tracked (seeding snapshot with ~6.4k destinations
+# and ~31k image rows) so a fresh clone has data to browse. It is ~21MB (well
+# under GitHub's 100MB limit). If you grow it substantially (e.g. by running
+# download_ai_images and saving local files), add it back to .gitignore to
+# avoid pushing huge DBs.
+# Tourism/db.sqlite3  (intentionally NOT ignored)
 Tourism/db.sqlite3.gz
