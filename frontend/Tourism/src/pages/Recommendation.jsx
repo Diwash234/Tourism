@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { FiCpu, FiCompass, FiStar, FiMapPin, FiArrowRight, FiHeart, FiTrendingUp } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import recommendationApi from "../api/recommendationApi"
+import { getDestinationImageUrl } from "../utils/imageUtils"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import Breadcrumbs from "../components/common/Breadcrumbs"
@@ -28,14 +29,15 @@ export default function Recommendation() {
       const response = await recommendationApi.getRecommendations({ interest, top_n: 12 })
       const data = response.data
       const rawResults = data.results || data.recommendations || []
+      const shuffled = [...rawResults].sort(() => Math.random() - 0.5)
 
-      const mapped = rawResults.map((item, idx) => ({
+      const mapped = shuffled.map((item, idx) => ({
         id: item.id,
         name: item.name,
         slug: item.slug,
         category: item.category_name || item.category || "Himalayan Destination",
         city: item.city || item.district || "Nepal",
-        cover_image_url: item.cover_image_url || "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
+        cover_image_url: getDestinationImageUrl(item),
         score: Math.round((item.ml_score || item.score || (0.98 - idx * 0.02)) * 100),
         rating: item.average_rating || "4.9",
         budget: item.budget_estimate ? `$${item.budget_estimate}/day` : "$45/day",
@@ -56,7 +58,7 @@ export default function Recommendation() {
   }, [category])
 
   return (
-    <div className="container-app py-8 space-y-6 animate-fadeIn">
+    <div className="container-app theme-forest py-8 space-y-6 animate-fadeIn">
       <Breadcrumbs items={[{ label: "AI Recommendations", to: "/recommendation" }]} />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">

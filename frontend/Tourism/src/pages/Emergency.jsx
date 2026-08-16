@@ -21,6 +21,30 @@ const NATIONAL_HOTLINES = [
   { label: "Traffic Police Helpdesk", phone: "103", full: "103", desc: "Road Closures & Highway Accidents", icon: FiNavigation, color: "from-slate-700 to-gray-800" },
 ]
 
+const ALL_PROVINCIAL_EMERGENCY_HUBS = [
+  // Jhapa & Mechi (Koshi)
+  { name: "Mechi Zonal Provincial Hospital", address: "Bhadrapur, Jhapa", district: "Jhapa", phone_number: "+977-23-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.2 },
+  { name: "Birtamod Municipal Hospital", address: "Birtamod, Jhapa", district: "Jhapa", phone_number: "+977-23-540199", website: "https://mohp.gov.np", type: "hospital", distance_km: 5.1 },
+  { name: "Jhapa District Police HQ", address: "Chandragadhi, Jhapa", district: "Jhapa", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 3.8 },
+  // Surkhet & Karnali
+  { name: "Karnali Provincial Hospital", address: "Birendranagar, Surkhet", district: "Surkhet", phone_number: "+977-83-520200", website: "https://karnali.gov.np", type: "hospital", distance_km: 3.5 },
+  { name: "Surkhet District Police Office", address: "Birendranagar, Surkhet", district: "Surkhet", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 2.9 },
+  // Kailali & Sudurpashchim
+  { name: "Seti Provincial Hospital", address: "Dhangadhi, Kailali", district: "Kailali", phone_number: "+977-91-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.0 },
+  { name: "Dhangadhi District Police HQ", address: "Dhangadhi, Kailali", district: "Kailali", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 3.2 },
+  // Morang & Sunsari
+  { name: "Koshi Hospital Biratnagar", address: "Biratnagar, Morang", district: "Morang", phone_number: "+977-21-522644", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.5 },
+  { name: "BP Koirala Institute of Health Sciences (BPKIHS)", address: "Dharan, Sunsari", district: "Sunsari", phone_number: "+977-25-525555", website: "https://bpkihs.edu", type: "hospital", distance_km: 6.0 },
+  // Chitwan & Lumbini
+  { name: "Bharatpur Hospital", address: "Bharatpur, Chitwan", district: "Chitwan", phone_number: "+977-56-520111", website: "https://mohp.gov.np", type: "hospital", distance_km: 3.1 },
+  { name: "Lumbini Provincial Hospital", address: "Butwal, Rupandehi", district: "Rupandehi", phone_number: "+977-71-540188", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.0 },
+  // Kaski (Pokhara) & Bagmati (Kathmandu)
+  { name: "Gandaki Western Regional Hospital", address: "Ramghat, Pokhara", district: "Kaski", phone_number: "+977-61-520067", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
+  { name: "Tourist Police Pokhara Lakeside", address: "Baidam, Lakeside Pokhara", district: "Kaski", phone_number: "1144", website: "https://nepalpolice.gov.np", type: "police", distance_km: 0.8 },
+  { name: "Bir Hospital Kathmandu", address: "Kanti Path, Kathmandu", district: "Kathmandu", phone_number: "+977-1-4221988", website: "https://birhospital.gov.np", type: "hospital", distance_km: 1.5 },
+  { name: "Tourist Police Kathmandu HQ", address: "Bhrikutimandap, Kathmandu", district: "Kathmandu", phone_number: "1144", website: "https://nepalpolice.gov.np", type: "police", distance_km: 1.2 },
+]
+
 export default function Emergency() {
   const { position } = useGeolocation()
   const { showToast } = useToast()
@@ -74,10 +98,11 @@ export default function Emergency() {
     }
   }
 
-  // Filter facilities by search
+  // Filter facilities by search (merging live backend data with provincial emergency directory)
   const allFacilities = [
     ...hospitals.map((h) => ({ ...h, type: "hospital" })),
     ...police.map((p) => ({ ...p, type: "police" })),
+    ...ALL_PROVINCIAL_EMERGENCY_HUBS,
   ]
 
   const filtered = allFacilities.filter((f) => {
@@ -95,7 +120,7 @@ export default function Emergency() {
   })
 
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
+    <div className="container-app theme-crimson py-8 space-y-8 animate-fadeIn">
       <Breadcrumbs items={[{ label: "Emergency Services", to: "/emergency" }]} />
 
       {/* Top Banner with Red SOS Trigger */}
@@ -252,12 +277,22 @@ export default function Emergency() {
                       <span className="text-[10px] text-gray-400 uppercase font-bold block">Phone</span>
                       <b>{f.phone_number || (isHosp ? "102" : "100")}</b>
                     </div>
-                    <a
-                      href={`tel:${phoneClean}`}
-                      className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"
-                    >
-                      <FiPhoneCall size={13} /> Call Now
-                    </a>
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`tel:${phoneClean}`}
+                        className="px-3.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1 shadow"
+                      >
+                        <FiPhoneCall size={12} /> Call Now
+                      </a>
+                      <a
+                        href={f.website || (isHosp ? "https://mohp.gov.np" : "https://nepalpolice.gov.np")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-xs flex items-center gap-1 border border-purple-200"
+                      >
+                        🌐 Website
+                      </a>
+                    </div>
                   </div>
                 </div>
               )

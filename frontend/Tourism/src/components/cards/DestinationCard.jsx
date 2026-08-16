@@ -148,7 +148,12 @@ const DestinationCard = ({
           alt={name}
           loading="lazy"
           onError={(e) => {
-            e.target.src = "/images/destinations/pokhara/img1.jpg"
+            // Cycle to the next real fallback photo, never the old
+            // solid-colour placeholder block.
+            if (!e.target.dataset.fallback) {
+              e.target.dataset.fallback = "1"
+              e.target.src = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80"
+            }
           }}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -251,7 +256,7 @@ const DestinationCard = ({
 
           >
 
-          {category}
+          {category_name || category}
 
           </span>
 

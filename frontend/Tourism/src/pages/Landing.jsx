@@ -22,6 +22,7 @@ import {
 import CaseStudiesSection from "../components/landing/CaseStudiesSection"
 import TestimonialsSection from "../components/landing/TestimonialsSection"
 import StickyCTA from "../components/common/StickyCTA"
+import ProvinceMarquee from "../components/landing/ProvinceMarquee"
 
 const PROVINCES = [
   { name: "Koshi Province", city: "Biratnagar / Ilam", code: "koshi" },
@@ -101,13 +102,13 @@ export default function Landing() {
   return (
     <div className="relative overflow-x-hidden bg-white text-gray-900">
       {/* 1. HERO SECTION (Above the fold conversion engine) */}
-      <section className="relative bg-gradient-to-br from-[#1c042e] via-[#35093e] to-[#540d3a] text-white overflow-hidden py-24 sm:py-32">
+      <section className="relative bg-gradient-to-br from-[#0f1f1a] via-[#163026] to-[#1f4a38] text-white overflow-hidden py-24 sm:py-32">
         <HeroEffects />
         <InteractiveHeroCanvas />
 
         {/* Ambient glow blobs */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="container-app relative z-10 max-w-5xl mx-auto text-center space-y-7">
           <FadeIn delay={0.1}>
@@ -127,7 +128,7 @@ export default function Landing() {
           </FadeIn>
 
           <FadeIn delay={0.3}>
-            <p className="text-base sm:text-xl text-purple-100/90 max-w-2xl mx-auto font-normal leading-relaxed">
+            <p className="text-base sm:text-xl text-stone-100/90 max-w-2xl mx-auto font-normal leading-relaxed">
               Your official Himalayan travel companion — AI-curated destinations, real-time ML budgets, turn-by-turn road navigation, and 24/7 emergency rescue.
             </p>
           </FadeIn>
@@ -144,7 +145,7 @@ export default function Landing() {
 
             {/* Quick search pills */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-              <span className="text-[11px] font-bold text-purple-200">Popular:</span>
+              <span className="text-[11px] font-bold text-amber-200">Popular:</span>
               {QUICK_SEARCH_PILLS.map((pill, i) => (
                 <button
                   key={i}
@@ -168,37 +169,37 @@ export default function Landing() {
 
             <Link
               to="/budget-estimator"
-              className="px-7 py-3.5 rounded-2xl bg-purple-900/80 hover:bg-purple-800 text-white font-bold text-sm border border-purple-500/50 backdrop-blur shadow-lg transition-all"
+              className="px-7 py-3.5 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm border border-amber-400/40 backdrop-blur shadow-lg transition-all"
             >
               Calculate Trip Budget (ML)
             </Link>
           </FadeIn>
 
           {/* Trust & Proof Indicators */}
-          <FadeIn delay={0.6} className="pt-8 border-t border-purple-800/40 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+          <FadeIn delay={0.6} className="pt-8 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
                 ✓
               </div>
-              <span className="text-xs text-purple-200 font-medium">5,800+ Verified Places</span>
+              <span className="text-xs text-amber-200 font-medium">5,800+ Verified Places</span>
             </div>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
                 ★
               </div>
-              <span className="text-xs text-purple-200 font-medium">10,000+ Real Hikers</span>
+              <span className="text-xs text-amber-200 font-medium">10,000+ Real Hikers</span>
             </div>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
                 🚨
               </div>
-              <span className="text-xs text-purple-200 font-medium">24/7 Helpline (1144)</span>
+              <span className="text-xs text-amber-200 font-medium">24/7 Helpline (1144)</span>
             </div>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold text-xs shrink-0">
                 🏔️
               </div>
-              <span className="text-xs text-purple-200 font-medium">All 7 Provinces</span>
+              <span className="text-xs text-amber-200 font-medium">All 7 Provinces</span>
             </div>
           </FadeIn>
         </div>
@@ -208,7 +209,7 @@ export default function Landing() {
       <section className="container-app py-20 relative z-10">
         <SlideUp>
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
               Engineered for Himalayan Explorers
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
@@ -224,17 +225,17 @@ export default function Landing() {
           {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
             <HoverCard
               key={title}
-              className="card-base p-7 rounded-3xl border border-purple-100/80 shadow-xl bg-gradient-to-br from-white to-purple-50/30 flex flex-col justify-between space-y-4"
+              className="card-base p-7 rounded-3xl border border-emerald-100/80 shadow-xl bg-gradient-to-br from-white to-emerald-50/20 flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shadow-sm">
                   <Icon size={24} />
                 </div>
                 <h3 className="font-bold text-base text-gray-900 leading-snug">{title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
               </div>
               <div className="pt-2 border-t border-gray-100">
-                <span className="text-[11px] font-bold text-purple-700 flex items-center gap-1">
+                <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
                   Learn more <FiArrowRight size={12} />
                 </span>
               </div>
@@ -256,7 +257,7 @@ export default function Landing() {
           </div>
           <Link
             to="/destinations"
-            className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 shrink-0"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 shrink-0"
           >
             View All 5,800+ Destinations <FiArrowRight size={14} />
           </Link>
@@ -304,14 +305,17 @@ export default function Landing() {
             <Link
               key={prov.name}
               to={`/destinations?q=${encodeURIComponent(prov.city)}`}
-              className="card-base p-4 text-center rounded-2xl border border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
+              className="card-base p-4 text-center rounded-2xl border border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
             >
               <span className="font-bold text-xs text-gray-900">{prov.name}</span>
-              <span className="text-[10px] text-purple-700 mt-1 font-semibold">{prov.city}</span>
+              <span className="text-[10px] text-emerald-700 mt-1 font-semibold">{prov.city}</span>
             </Link>
           ))}
         </div>
       </section>
+
+      {/* 6b. PROVINCE MARQUEE */}
+        <ProvinceMarquee />
 
       {/* 7. REAL TESTIMONIALS */}
       <TestimonialsSection />

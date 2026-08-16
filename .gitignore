@@ -6,7 +6,6 @@
 .env.*
 !.env.example
 
-
 #################################
 # PYTHON
 #################################
@@ -31,7 +30,6 @@ dist/
 .coverage
 htmlcov/
 
-
 #################################
 # DJANGO BACKEND
 #################################
@@ -46,7 +44,6 @@ media/
 
 # Logs
 *.log
-
 
 #################################
 # REACT FRONTEND
@@ -69,7 +66,6 @@ frontend/**/.env.*
 # Keep example env
 frontend/**/.env.example
 
-
 #################################
 # IDE FILES
 #################################
@@ -80,7 +76,6 @@ frontend/**/.env.example
 # OS files
 .DS_Store
 Thumbs.db
-
 
 #################################
 # ML SERVICE
@@ -93,7 +88,6 @@ ml-service/**/__pycache__/
 ml-service/venv/
 ml-service/.venv/
 
-
 #################################
 # ML DATASETS
 #################################
@@ -104,7 +98,6 @@ ml-service/data/routes/*.osm.pbf
 
 # Generated datasets
 ml-service/processed_data/
-
 
 #################################
 # MACHINE LEARNING MODELS
@@ -121,7 +114,6 @@ ml-service/model/**/model/
 ml-service/model/**/*.joblib
 ml-service/model/**/*.pt
 
-
 #################################
 # LOGS
 #################################
@@ -129,13 +121,11 @@ ml-service/model/**/*.pt
 logs/
 ml-service/logs/*
 
-
 #################################
 # JUPYTER
 #################################
 
 .ipynb_checkpoints/
-
 
 #################################
 # TEMP FILES
@@ -148,3 +138,15 @@ ml-service/logs/*
 
 # Firebase service account (secret)
 firebase/serviceAccountKey.json
+downloads/
+Tourism/db.sqlite3
+
+# Local virtual environments
+.venv/
+venv/
+
+# Build outputs
+frontend/Tourism/dist/
+Tourism/staticfiles/
+
+Tourism/db.sqlite3.gz

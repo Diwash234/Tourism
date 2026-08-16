@@ -15,11 +15,11 @@ const DESTINATIONS_MEDIA = [
     category: "mountain",
     tag: "🏔️ Mountains & Alpine",
     images: [
-      { url: "/images/destinations/annapurna/img1.jpg", caption: "Annapurna Base Camp Amphitheater", category: "mountain" },
-      { url: "/images/destinations/annapurna/img2.jpg", caption: "Machhapuchhre (Fishtail) Sunrise", category: "mountain" },
-      { url: "/images/destinations/annapurna/img3.jpg", caption: "Alpine Valley Hiking Trail", category: "mountain" },
-      { url: "/images/destinations/annapurna/img4.jpg", caption: "Glacial Stream & Suspension Bridge", category: "nature" },
-      { url: "/images/destinations/annapurna/img5.jpg", caption: "Snow-Capped Annapurna South Peak", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80", caption: "Annapurna Base Camp Amphitheater", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80", caption: "Machhapuchhre (Fishtail) Sunrise", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", caption: "Alpine Valley Hiking Trail", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80", caption: "Glacial Stream & Suspension Bridge", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80", caption: "Snow-Capped Annapurna South Peak", category: "mountain" },
     ]
   },
   {
@@ -30,11 +30,11 @@ const DESTINATIONS_MEDIA = [
     category: "mountain",
     tag: "🏔️ Mountains & Alpine",
     images: [
-      { url: "/images/destinations/everest/img1.jpg", caption: "Mt. Everest (8,848m) High Summit", category: "mountain" },
-      { url: "/images/destinations/everest/img2.jpg", caption: "Namche Bazaar Sherpa Capital", category: "village" },
-      { url: "/images/destinations/everest/img3.jpg", caption: "Tengboche Monastery with Everest Backdrop", category: "temple" },
-      { url: "/images/destinations/everest/img4.jpg", caption: "Khumbu Glacier & Icefall", category: "nature" },
-      { url: "/images/destinations/everest/img5.jpg", caption: "Prayer Flags at Kala Patthar (5,545m)", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80", caption: "Mt. Everest (8,848m) High Summit", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80", caption: "Namche Bazaar Sherpa Capital", category: "village" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "Tengboche Monastery with Everest Backdrop", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80", caption: "Khumbu Glacier & Icefall", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80", caption: "Prayer Flags at Kala Patthar (5,545m)", category: "mountain" },
     ]
   },
   {
@@ -45,11 +45,11 @@ const DESTINATIONS_MEDIA = [
     category: "lake",
     tag: "🌊 Lakes & Waters",
     images: [
-      { url: "/images/destinations/pokhara/img1.jpg", caption: "Phewa Lake with Colorful Wooden Boats", category: "lake" },
-      { url: "/images/destinations/pokhara/img2.jpg", caption: "Tal Barahi Island Temple at Sunset", category: "temple" },
-      { url: "/images/destinations/pokhara/img3.jpg", caption: "Sarangkot Sunrise Mountain View", category: "viewpoint" },
-      { url: "/images/destinations/pokhara/img4.jpg", caption: "Paragliding over Lakeside Pokhara", category: "adventure" },
-      { url: "/images/destinations/pokhara/img5.jpg", caption: "World Peace Pagoda Overlook", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Phewa Lake with Colorful Wooden Boats", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Tal Barahi Island Temple at Sunset", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Sarangkot Sunrise Mountain View", category: "viewpoint" },
+      { url: "https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=1200&q=80", caption: "Paragliding over Lakeside Pokhara", category: "adventure" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "World Peace Pagoda Overlook", category: "temple" },
     ]
   },
   {
@@ -60,11 +60,11 @@ const DESTINATIONS_MEDIA = [
     category: "landscape",
     tag: "🏜️ High Altitude Deserts",
     images: [
-      { url: "/images/destinations/mustang/img1.jpg", caption: "Walled Kingdom of Lo Manthang", category: "heritage" },
-      { url: "/images/destinations/mustang/img2.jpg", caption: "Red Clay Canyon Cliffs & Caves", category: "landscape" },
-      { url: "/images/destinations/mustang/img3.jpg", caption: "Ancient Tibetan Chortens", category: "temple" },
-      { url: "/images/destinations/mustang/img4.jpg", caption: "Kali Gandaki River Valley", category: "landscape" },
-      { url: "/images/destinations/mustang/img5.jpg", caption: "Horse Caravans along Tibetan Border", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&q=80", caption: "Walled Kingdom of Lo Manthang", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80", caption: "Red Clay Canyon Cliffs & Caves", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Ancient Tibetan Chortens", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", caption: "Kali Gandaki River Valley", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Horse Caravans along Tibetan Border", category: "culture" },
     ]
   },
   {
@@ -75,11 +75,11 @@ const DESTINATIONS_MEDIA = [
     category: "lake",
     tag: "🌊 Lakes & Waters",
     images: [
-      { url: "/images/destinations/rara/img1.jpg", caption: "Crystal Turquoise Waters of Rara Lake", category: "lake" },
-      { url: "/images/destinations/rara/img2.jpg", caption: "Pine Forests Surrounding the Lake", category: "nature" },
-      { url: "/images/destinations/rara/img3.jpg", caption: "Murma Top Viewpoint Panorama", category: "viewpoint" },
-      { url: "/images/destinations/rara/img4.jpg", caption: "Wildflowers & Meadow Horse Riding", category: "landscape" },
-      { url: "/images/destinations/rara/img5.jpg", caption: "Morning Mist over Rara Mirror Lake", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80", caption: "Crystal Turquoise Waters of Rara Lake", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1200&q=80", caption: "Pine Forests Surrounding the Lake", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80", caption: "Murma Top Viewpoint Panorama", category: "viewpoint" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Wildflowers & Meadow Horse Riding", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Morning Mist over Rara Mirror Lake", category: "lake" },
     ]
   },
   {
@@ -90,11 +90,11 @@ const DESTINATIONS_MEDIA = [
     category: "wildlife",
     tag: "🐅 Wildlife & Safaris",
     images: [
-      { url: "/images/destinations/chitwan/img1.jpg", caption: "One-Horned Rhinoceros in Grasslands", category: "wildlife" },
-      { url: "/images/destinations/chitwan/img2.jpg", caption: "Rapti River Sunset Canoe Ride", category: "lake" },
-      { url: "/images/destinations/chitwan/img3.jpg", caption: "Bengal Tiger Track Safari", category: "wildlife" },
-      { url: "/images/destinations/chitwan/img4.jpg", caption: "Tharu Cultural Stick Dance Performance", category: "culture" },
-      { url: "/images/destinations/chitwan/img5.jpg", caption: "Gharial Crocodile Sanctuary", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=1200&q=80", caption: "One-Horned Rhinoceros in Grasslands", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Rapti River Sunset Canoe Ride", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=1200&q=80", caption: "Bengal Tiger Track Safari", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Tharu Cultural Stick Dance Performance", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=1200&q=80", caption: "Gharial Crocodile Sanctuary", category: "wildlife" },
     ]
   },
   {
@@ -105,11 +105,11 @@ const DESTINATIONS_MEDIA = [
     category: "temple",
     tag: "🏛️ Spiritual & UNESCO Heritage",
     images: [
-      { url: "/images/destinations/lumbini/img1.jpg", caption: "Maya Devi Temple & Sacred Pond", category: "temple" },
-      { url: "/images/destinations/lumbini/img2.jpg", caption: "Emperor Ashoka Pillar Inscription", category: "heritage" },
-      { url: "/images/destinations/lumbini/img3.jpg", caption: "World Peace Pagoda Lumbini", category: "temple" },
-      { url: "/images/destinations/lumbini/img4.jpg", caption: "Eternal Peace Flame", category: "culture" },
-      { url: "/images/destinations/lumbini/img5.jpg", caption: "Monastic Zone Architecture", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "Maya Devi Temple & Sacred Pond", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80", caption: "Emperor Ashoka Pillar Inscription", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1589308078058-c6dba4792c60?w=1200&q=80", caption: "World Peace Pagoda Lumbini", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Eternal Peace Flame", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Monastic Zone Architecture", category: "temple" },
     ]
   },
   {
@@ -120,11 +120,11 @@ const DESTINATIONS_MEDIA = [
     category: "heritage",
     tag: "🏛️ Spiritual & UNESCO Heritage",
     images: [
-      { url: "/images/destinations/bhaktapur/img1.jpg", caption: "55-Window Palace & Golden Gate", category: "heritage" },
-      { url: "/images/destinations/bhaktapur/img2.jpg", caption: "Nyatapola 5-Story Pagoda Temple", category: "temple" },
-      { url: "/images/destinations/bhaktapur/img3.jpg", caption: "Pottery Square Clay Artisans", category: "culture" },
-      { url: "/images/destinations/bhaktapur/img4.jpg", caption: "Dattatreya Square Ancient Wood Carvings", category: "heritage" },
-      { url: "/images/destinations/bhaktapur/img5.jpg", caption: "Traditional Newari Brick Courtyards", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80", caption: "55-Window Palace & Golden Gate", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Nyatapola 5-Story Pagoda Temple", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Pottery Square Clay Artisans", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "Dattatreya Square Ancient Wood Carvings", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1200&q=80", caption: "Traditional Newari Brick Courtyards", category: "culture" },
     ]
   },
   {
@@ -135,11 +135,11 @@ const DESTINATIONS_MEDIA = [
     category: "heritage",
     tag: "🏛️ Spiritual & UNESCO Heritage",
     images: [
-      { url: "/images/destinations/patan/img1.jpg", caption: "Krishna Mandir Stone Pagoda Architecture", category: "temple" },
-      { url: "/images/destinations/patan/img2.jpg", caption: "Golden Temple (Hiranya Varna Mahavihar)", category: "temple" },
-      { url: "/images/destinations/patan/img3.jpg", caption: "Patan Museum Courtyard & Bronzes", category: "heritage" },
-      { url: "/images/destinations/patan/img4.jpg", caption: "Mul Chowk Royal Bath Tusha Hiti", category: "heritage" },
-      { url: "/images/destinations/patan/img5.jpg", caption: "Evening Oil Lamps at Durbar Square", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Krishna Mandir Stone Pagoda Architecture", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "Golden Temple (Hiranya Varna Mahavihar)", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80", caption: "Patan Museum Courtyard & Bronzes", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Mul Chowk Royal Bath Tusha Hiti", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1200&q=80", caption: "Evening Oil Lamps at Durbar Square", category: "culture" },
     ]
   },
   {
@@ -150,11 +150,11 @@ const DESTINATIONS_MEDIA = [
     category: "temple",
     tag: "🏛️ Spiritual & UNESCO Heritage",
     images: [
-      { url: "/images/destinations/janakpur/img1.jpg", caption: "Grand Janaki Temple (Naulakha Mandir)", category: "temple" },
-      { url: "/images/destinations/janakpur/img2.jpg", caption: "Mithila Folk Painting Murals", category: "culture" },
-      { url: "/images/destinations/janakpur/img3.jpg", caption: "Ganga Sagar Holy Bathing Ghat", category: "lake" },
-      { url: "/images/destinations/janakpur/img4.jpg", caption: "Dhanush Sagar Temple Reflection", category: "temple" },
-      { url: "/images/destinations/janakpur/img5.jpg", caption: "Vivah Mandap Monument", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1570192977-f48187449e48?w=1200&q=80", caption: "Grand Janaki Temple (Naulakha Mandir)", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Mithila Folk Painting Murals", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Ganga Sagar Holy Bathing Ghat", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Dhanush Sagar Temple Reflection", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1200&q=80", caption: "Vivah Mandap Monument", category: "culture" },
     ]
   },
   {
@@ -165,11 +165,11 @@ const DESTINATIONS_MEDIA = [
     category: "landscape",
     tag: "🌿 Tea Gardens & Landscapes",
     images: [
-      { url: "/images/destinations/ilam/img1.jpg", caption: "Rolling Green Slopes of Kanyam Tea Estate", category: "landscape" },
-      { url: "/images/destinations/ilam/img2.jpg", caption: "Horse Riding across Tea Plantations", category: "adventure" },
-      { url: "/images/destinations/ilam/img3.jpg", caption: "Antu Danda Sunrise & Mt. Kanchenjunga", category: "viewpoint" },
-      { url: "/images/destinations/ilam/img4.jpg", caption: "Mai Pokhari Sacred Ramsar Wetland", category: "lake" },
-      { url: "/images/destinations/ilam/img5.jpg", caption: "Fresh Orthodox Tea Plucking Experience", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Rolling Green Slopes of Kanyam Tea Estate", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80", caption: "Horse Riding across Tea Plantations", category: "adventure" },
+      { url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", caption: "Antu Danda Sunrise & Mt. Kanchenjunga", category: "viewpoint" },
+      { url: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1200&q=80", caption: "Mai Pokhari Sacred Ramsar Wetland", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Fresh Orthodox Tea Plucking Experience", category: "culture" },
     ]
   },
   {
@@ -180,11 +180,11 @@ const DESTINATIONS_MEDIA = [
     category: "viewpoint",
     tag: "🏔️ Mountains & Alpine",
     images: [
-      { url: "/images/destinations/nagarkot/img1.jpg", caption: "Nagarkot Sunrise over the Himalayan Range", category: "viewpoint" },
-      { url: "/images/destinations/nagarkot/img2.jpg", caption: "View of 8 Himalayan Ranges from Tower", category: "mountain" },
-      { url: "/images/destinations/nagarkot/img3.jpg", caption: "Pine Forest Nature Walking Trails", category: "nature" },
-      { url: "/images/destinations/nagarkot/img4.jpg", caption: "Terraced Farmlands & Valley Clouds", category: "landscape" },
-      { url: "/images/destinations/nagarkot/img5.jpg", caption: "Evening Golden Hour over Langtang", category: "viewpoint" },
+      { url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", caption: "Nagarkot Sunrise over the Himalayan Range", category: "viewpoint" },
+      { url: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80", caption: "View of 8 Himalayan Ranges from Tower", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80", caption: "Pine Forest Nature Walking Trails", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80", caption: "Terraced Farmlands & Valley Clouds", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80", caption: "Evening Golden Hour over Langtang", category: "viewpoint" },
     ]
   },
   {
@@ -195,11 +195,11 @@ const DESTINATIONS_MEDIA = [
     category: "lake",
     tag: "🌊 Lakes & Waters",
     images: [
-      { url: "/images/destinations/tilicho/img1.jpg", caption: "One of the Highest Lakes in the World", category: "lake" },
-      { url: "/images/destinations/tilicho/img2.jpg", caption: "Tilicho Peak (7,134m) Glacial Backdrop", category: "mountain" },
-      { url: "/images/destinations/tilicho/img3.jpg", caption: "High Landslide Scree Slope Trail", category: "adventure" },
-      { url: "/images/destinations/tilicho/img4.jpg", caption: "Deep Indigo Blue Alpine Water", category: "lake" },
-      { url: "/images/destinations/tilicho/img5.jpg", caption: "Tilicho Base Camp Teahouses", category: "village" },
+      { url: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1200&q=80", caption: "One of the Highest Lakes in the World", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80", caption: "Tilicho Peak (7,134m) Glacial Backdrop", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80", caption: "High Landslide Scree Slope Trail", category: "adventure" },
+      { url: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80", caption: "Deep Indigo Blue Alpine Water", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80", caption: "Tilicho Base Camp Teahouses", category: "village" },
     ]
   },
   {
@@ -210,11 +210,11 @@ const DESTINATIONS_MEDIA = [
     category: "heritage",
     tag: "🏡 Heritage Hill Stations",
     images: [
-      { url: "/images/destinations/bandipur/img1.jpg", caption: "Preserved 18th-Century Newari Main Street", category: "heritage" },
-      { url: "/images/destinations/bandipur/img2.jpg", caption: "Thani Mai Temple Sunrise Ridge", category: "viewpoint" },
-      { url: "/images/destinations/bandipur/img3.jpg", caption: "Siddha Cave (Largest Cave in Nepal)", category: "nature" },
-      { url: "/images/destinations/bandipur/img4.jpg", caption: "Traditional Carved Wooden Balconies", category: "culture" },
-      { url: "/images/destinations/bandipur/img5.jpg", caption: "Silkworm Farm & Mountain Overlook", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80", caption: "Preserved 18th-Century Newari Main Street", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80", caption: "Thani Mai Temple Sunrise Ridge", category: "viewpoint" },
+      { url: "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=1200&q=80", caption: "Siddha Cave (Largest Cave in Nepal)", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Traditional Carved Wooden Balconies", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Silkworm Farm & Mountain Overlook", category: "landscape" },
     ]
   },
   {
@@ -225,11 +225,11 @@ const DESTINATIONS_MEDIA = [
     category: "wildlife",
     tag: "🐅 Wildlife & Safaris",
     images: [
-      { url: "/images/destinations/bardiya/img1.jpg", caption: "Wild Royal Bengal Tiger in Riverbank", category: "wildlife" },
-      { url: "/images/destinations/bardiya/img2.jpg", caption: "Karnali River Rafting & Gangetic Dolphins", category: "lake" },
-      { url: "/images/destinations/bardiya/img3.jpg", caption: "Wild Asian Elephant Herd", category: "wildlife" },
-      { url: "/images/destinations/bardiya/img4.jpg", caption: "Untamed Sal Hardwood Forests", category: "nature" },
-      { url: "/images/destinations/bardiya/img5.jpg", caption: "Tharu Indigenous Community Homestay", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=1200&q=80", caption: "Wild Royal Bengal Tiger in Riverbank", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Karnali River Rafting & Gangetic Dolphins", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=1200&q=80", caption: "Wild Asian Elephant Herd", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=1200&q=80", caption: "Untamed Sal Hardwood Forests", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Tharu Indigenous Community Homestay", category: "culture" },
     ]
   },
   {
@@ -240,11 +240,11 @@ const DESTINATIONS_MEDIA = [
     category: "lake",
     tag: "🌊 Lakes & Waters",
     images: [
-      { url: "/images/destinations/gosaikunda/img1.jpg", caption: "Sacred Lake Dedicated to Lord Shiva", category: "lake" },
-      { url: "/images/destinations/gosaikunda/img2.jpg", caption: "Laurebina Pass (4,610m) View of Langtang", category: "mountain" },
-      { url: "/images/destinations/gosaikunda/img3.jpg", caption: "Surrounding Bhairav Kunda & Saraswati Kunda", category: "lake" },
-      { url: "/images/destinations/gosaikunda/img4.jpg", caption: "Janai Purnima Pilgrim Festival Gathering", category: "culture" },
-      { url: "/images/destinations/gosaikunda/img5.jpg", caption: "Snow-Dusted Glacial Basin", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80", caption: "Sacred Lake Dedicated to Lord Shiva", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80", caption: "Laurebina Pass (4,610m) View of Langtang", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Surrounding Bhairav Kunda & Saraswati Kunda", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Janai Purnima Pilgrim Festival Gathering", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80", caption: "Snow-Dusted Glacial Basin", category: "landscape" },
     ]
   },
   {
@@ -255,11 +255,11 @@ const DESTINATIONS_MEDIA = [
     category: "mountain",
     tag: "🏔️ Mountains & Alpine",
     images: [
-      { url: "/images/destinations/manaslu/img1.jpg", caption: "Mt. Manaslu 'Mountain of the Spirit'", category: "mountain" },
-      { url: "/images/destinations/manaslu/img2.jpg", caption: "Larkya La Pass (5,106m) Summit Crossing", category: "mountain" },
-      { url: "/images/destinations/manaslu/img3.jpg", caption: "Samagaun Tibetan Buddhist Village", category: "village" },
-      { url: "/images/destinations/manaslu/img4.jpg", caption: "Birendra Glacial Lake & Ice Falls", category: "lake" },
-      { url: "/images/destinations/manaslu/img5.jpg", caption: "Historic Mani Stone Walls & Chortens", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80", caption: "Mt. Manaslu 'Mountain of the Spirit'", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80", caption: "Larkya La Pass (5,106m) Summit Crossing", category: "mountain" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "Samagaun Tibetan Buddhist Village", category: "village" },
+      { url: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80", caption: "Birendra Glacial Lake & Ice Falls", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Historic Mani Stone Walls & Chortens", category: "temple" },
     ]
   },
   {
@@ -270,11 +270,11 @@ const DESTINATIONS_MEDIA = [
     category: "lake",
     tag: "🌊 Lakes & Waters",
     images: [
-      { url: "/images/destinations/dolpo/img1.jpg", caption: "Deep Turquoise Water of Shey Phoksundo", category: "lake" },
-      { url: "/images/destinations/dolpo/img2.jpg", caption: "Ringmo Bon Monastic Village", category: "culture" },
-      { url: "/images/destinations/dolpo/img3.jpg", caption: "Suligad 167m High Waterfall", category: "nature" },
-      { url: "/images/destinations/dolpo/img4.jpg", caption: "Yak Caravans across Trans-Himalayan Pass", category: "landscape" },
-      { url: "/images/destinations/dolpo/img5.jpg", caption: "Shey Gompa Crystal Mountain Sanctuary", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80", caption: "Deep Turquoise Water of Shey Phoksundo", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80", caption: "Ringmo Bon Monastic Village", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=1200&q=80", caption: "Suligad 167m High Waterfall", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80", caption: "Yak Caravans across Trans-Himalayan Pass", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80", caption: "Shey Gompa Crystal Mountain Sanctuary", category: "temple" },
     ]
   },
   {
@@ -285,11 +285,11 @@ const DESTINATIONS_MEDIA = [
     category: "wildlife",
     tag: "🐅 Wildlife & Safaris",
     images: [
-      { url: "/images/destinations/koshi-tappu/img1.jpg", caption: "Last Surviving Wild Water Buffaloes (Arna)", category: "wildlife" },
-      { url: "/images/destinations/koshi-tappu/img2.jpg", caption: "Wetland Birdwatching Paradise (500+ Species)", category: "wildlife" },
-      { url: "/images/destinations/koshi-tappu/img3.jpg", caption: "Saptakoshi River Floodplain Sunset", category: "lake" },
-      { url: "/images/destinations/koshi-tappu/img4.jpg", caption: "Gangetic River Dolphin Observation", category: "nature" },
-      { url: "/images/destinations/koshi-tappu/img5.jpg", caption: "Koshi Barrage & Migratory Flocks", category: "landscape" },
+      { url: "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=1200&q=80", caption: "Last Surviving Wild Water Buffaloes (Arna)", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1549366021-9f761d450615?w=1200&q=80", caption: "Wetland Birdwatching Paradise (500+ Species)", category: "wildlife" },
+      { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Saptakoshi River Floodplain Sunset", category: "lake" },
+      { url: "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=1200&q=80", caption: "Gangetic River Dolphin Observation", category: "nature" },
+      { url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80", caption: "Koshi Barrage & Migratory Flocks", category: "landscape" },
     ]
   },
   {
@@ -300,11 +300,11 @@ const DESTINATIONS_MEDIA = [
     category: "temple",
     tag: "🏛️ Spiritual & UNESCO Heritage",
     images: [
-      { url: "/images/destinations/kathmandu/img1.jpg", caption: "Pashupatinath Temple on the Holy Bagmati River", category: "temple" },
-      { url: "/images/destinations/kathmandu/img2.jpg", caption: "Boudhanath Stupa Prayer Wheels & Kora", category: "temple" },
-      { url: "/images/destinations/kathmandu/img3.jpg", caption: "Swayambhunath Monkey Temple Hilltop", category: "temple" },
-      { url: "/images/destinations/kathmandu/img4.jpg", caption: "Kathmandu Durbar Square Taleju Temple", category: "heritage" },
-      { url: "/images/destinations/kathmandu/img5.jpg", caption: "Evening Bagmati Ganga Aarti Ritual", category: "culture" },
+      { url: "https://images.unsplash.com/photo-1570192977-f48187449e48?w=1200&q=80", caption: "Pashupatinath Temple on the Holy Bagmati River", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80", caption: "Boudhanath Stupa Prayer Wheels & Kora", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1589308078058-c6dba4792c60?w=1200&q=80", caption: "Swayambhunath Monkey Temple Hilltop", category: "temple" },
+      { url: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80", caption: "Kathmandu Durbar Square Taleju Temple", category: "heritage" },
+      { url: "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1200&q=80", caption: "Evening Bagmati Ganga Aarti Ritual", category: "culture" },
     ]
   }
 ]
@@ -319,19 +319,56 @@ const CATEGORY_FILTERS = [
   { id: "landscape", label: "🌿 Landscapes & Hills" },
 ]
 
+import destinationApi from "../api/destinationApi"
+import { getDestinationImageUrl } from "../utils/imageUtils"
+
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [destinationsMedia, setDestinationsMedia] = useState(DESTINATIONS_MEDIA)
 
   // Lightbox state
   const [activePhoto, setActivePhoto] = useState(null)
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
   const [flatPhotoList, setFlatPhotoList] = useState([])
 
+  // Load real backend destinations into gallery
+  useEffect(() => {
+    destinationApi.getDestinations({ page_size: 100 })
+      .then(({ data }) => {
+        const list = data.results || data.items || data || []
+        if (Array.isArray(list) && list.length > 0) {
+          const existingNames = new Set(DESTINATIONS_MEDIA.map((d) => d.name.toLowerCase()))
+          const dynamicEntries = []
+          list.forEach((dest) => {
+            if (!dest.name || existingNames.has(dest.name.toLowerCase())) return
+            existingNames.add(dest.name.toLowerCase())
+            dynamicEntries.push({
+              key: dest.slug || dest.id,
+              name: dest.name,
+              slug: dest.slug,
+              location: `${dest.district || dest.city || "Nepal"}, ${dest.province || ""}`.replace(/, $/, ""),
+              category: dest.category_name?.toLowerCase() || "landscape",
+              tag: "🌿 Verified Nepal Destination",
+              images: [
+                {
+                  url: getDestinationImageUrl(dest),
+                  caption: dest.name,
+                  category: dest.category_name?.toLowerCase() || "landscape",
+                },
+              ],
+            })
+          })
+          setDestinationsMedia([...DESTINATIONS_MEDIA, ...dynamicEntries])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Flatten all photos for lightbox navigation
   useEffect(() => {
     const all = []
-    DESTINATIONS_MEDIA.forEach((d) => {
+    destinationsMedia.forEach((d) => {
       d.images.forEach((img) => {
         all.push({
           ...img,
@@ -344,9 +381,9 @@ export default function Gallery() {
       })
     })
     setFlatPhotoList(all)
-  }, [])
+  }, [destinationsMedia])
 
-  const filteredDestinations = DESTINATIONS_MEDIA.filter((dest) => {
+  const filteredDestinations = destinationsMedia.filter((dest) => {
     const matchesCat = selectedCategory === "all" || dest.category === selectedCategory || dest.images.some(i => i.category === selectedCategory)
     const matchesSearch = !searchQuery.trim() || dest.name.toLowerCase().includes(searchQuery.toLowerCase()) || dest.location.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesCat && matchesSearch
@@ -382,7 +419,7 @@ export default function Gallery() {
   }, [activePhoto, activePhotoIndex, flatPhotoList])
 
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
+    <div className="container-app theme-indigo py-8 space-y-8 animate-fadeIn">
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-2">
         <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
@@ -473,6 +510,10 @@ export default function Gallery() {
                         src={img.url}
                         alt={img.caption}
                         loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80";
+                        }}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
@@ -527,6 +568,10 @@ export default function Gallery() {
               <img
                 src={activePhoto.url}
                 alt={activePhoto.caption}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80";
+                }}
                 className="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl"
               />
               <button
@@ -556,7 +601,15 @@ export default function Gallery() {
                     activePhotoIndex === i ? "border-amber-400 scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-80"
                   }`}
                 >
-                  <img src={p.url} alt={`Thumb ${i}`} className="w-full h-full object-cover" />
+                  <img
+                    src={p.url}
+                    alt={`Thumb ${i}`}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80";
+                    }}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>

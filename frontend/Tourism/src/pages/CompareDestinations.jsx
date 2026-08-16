@@ -8,11 +8,27 @@ import {
 } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
 import Loader from "../components/common/Loader"
+import useGeolocation from "../hooks/useGeolocation"
+
+const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return Math.round(R * c)
+}
 
 const PRESETS = [
   {
     name: "🏔️ Alpine Trekking Giants",
-    ids: ["everest-base-camp-ebc", "annapurna-base-camp-abc-sanctuary", "langtang-valley-kyanjin-gompa"],
+    ids: ["everest-base-camp", "annapurna-base-camp", "langtang-valley-kyanjin-gompa"],
   },
   {
     name: "🌊 Serene Lakes & Views",
@@ -24,7 +40,7 @@ const PRESETS = [
   },
   {
     name: "🐅 Wildlife & Safaris",
-    ids: ["chitwan-national-park-safari", "bandipur-heritage-hill-station", "ilam-tea-gardens-kanyam"],
+    ids: ["chitwan-national-park-info-office", "bandipur-heritage-hill-station", "ilam-tea-gardens-kanyam"],
   },
 ]
 
@@ -92,6 +108,7 @@ const DEFAULT_DESTINATIONS = [
 ]
 
 export default function CompareDestinations() {
+  const { position } = useGeolocation()
   const [selectedDestinations, setSelectedDestinations] = useState(DEFAULT_DESTINATIONS)
   const [availablePlaces, setAvailablePlaces] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -128,6 +145,8 @@ export default function CompareDestinations() {
       trip_budget_npr: `NPR ${round((dest.trip_budget_usd || 120) * 133).toLocaleString()} ($${dest.trip_budget_usd || 120})`,
       best_season: dest.best_time_to_visit || "October to April",
       distance_ktm: `${dest.distance_from_kathmandu_km || 180} km from Kathmandu`,
+      lat: Number(dest.latitude || 27.7172),
+      lng: Number(dest.longitude || 85.3240),
       permits: "TIMS / Local Entry where applicable",
       activities: ["Scenic Exploration", "Photography", "Cultural Immersion"],
       hospital: dest.nearest_hospital?.name || "District Hospital",
@@ -150,7 +169,7 @@ export default function CompareDestinations() {
   }
 
   return (
-    <div className="container-app py-8 space-y-6 animate-fadeIn">
+    <div className="container-app theme-gold py-8 space-y-6 animate-fadeIn">
       {/* Header Banner */}
       <div className="text-center max-w-3xl mx-auto space-y-2">
         <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
@@ -308,6 +327,20 @@ export default function CompareDestinations() {
                     <FiTruck className="text-purple-600" /> Road & Transit Distance:
                   </span>
                   <p className="text-[11px] text-gray-700">{dest.distance_ktm}</p>
+                </div>
+
+                {/* Distance From Current GPS Location */}
+                <div className="py-1.5 border-b border-gray-100 space-y-1">
+                  <span className="font-bold text-gray-500 flex items-center gap-1.5">
+                    <FiNavigation className="text-emerald-600" /> From Your GPS Location:
+                  </span>
+                  <p className="text-[11px] font-bold text-emerald-800">
+                    {dest.lat && dest.lng && position?.lat && position?.lng ? (
+                      `${calculateDistanceKm(position.lat, position.lng, dest.lat, dest.lng)} km away from you`
+                    ) : (
+                      "📍 Using Pokhara GPS baseline: " + (calculateDistanceKm(28.2096, 83.9856, dest.lat || 27.7172, dest.lng || 85.3240) || "120") + " km away"
+                    )}
+                  </p>
                 </div>
 
                 {/* Permits */}

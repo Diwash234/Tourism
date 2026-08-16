@@ -5,6 +5,9 @@ const destinationApi = {
   getAll: (params = {}) =>
     axiosClient.get("/destinations/", { params }),
 
+  getDestinations: (params = {}) =>
+    axiosClient.get("/destinations/", { params }),
+
 
   // NEW: needed to find the "Culture & Heritage" / "Local Experience"
   // categories used by NepalExperienceSection — the CategoryViewSet was
@@ -57,6 +60,15 @@ const destinationApi = {
 
   researchDestination: (query) =>
     axiosClient.post("/destinations/research/", { query }),
+
+  getImages: (slugOrId) =>
+    axiosClient.get(`/destinations/${slugOrId}/images/`),
+
+  discoverImages: (slugOrId) =>
+    axiosClient.post(`/destinations/${slugOrId}/images/discover/`),
+
+  refreshImages: (slugOrId) =>
+    axiosClient.post(`/destinations/${slugOrId}/images/refresh/`),
 
 }
 

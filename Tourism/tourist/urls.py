@@ -11,6 +11,7 @@ from . import views_compat
 from . import views_discovery
 from . import views_family_safety
 from . import views_images
+from .services.ai_images import api as ai_images_api
 from . import views_ml
 from . import views_oauth
 from . import views_osm
@@ -108,8 +109,16 @@ urlpatterns = [
     # Admin RBAC & Moderation endpoints
     path("admin/stats", views_admin.AdminStatsView.as_view(), name="admin-stats"),
     path("admin/users", views_admin.AdminUsersView.as_view(), name="admin-users"),
-    path("admin/users/<int:id>/", views_admin.UpdateUserStatusView.as_view(), name="admin-user-detail"),
+    path("admin/users/<int:id>/", views_admin.AdminUsersDetailView.as_view(), name="admin-user-detail-full"),
     path("admin/users/<int:id>/status", views_admin.UpdateUserStatusView.as_view(), name="admin-update-user-status"),
+    path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
+    path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
+    path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),
+    path("feedback", views_admin.PublicFeedbackCreateView.as_view(), name="public-feedback"),
+    path("admin/fetch-images/", views_admin.FetchWebImagesView.as_view(), name="admin-fetch-images"),
+    path("admin/generate-ai-images/", views_admin.GenerateAIImagesView.as_view(), name="admin-generate-ai-images"),
+    path("admin/download-ai-images/", views_admin.DownloadAIImagesView.as_view(), name="admin-download-ai-images"),
+    path("admin/images/<int:id>", views_admin.DeleteImageView.as_view(), name="admin-delete-image"),
     path("admin/user-tracking/", views_admin.AdminUserTrackingView.as_view(), name="admin-user-tracking"),
     path("admin/pending-places/", views_admin.AdminPendingPlacesView.as_view(), name="admin-pending-places"),
     path("admin/pending-places/<int:id>/", views_admin.AdminPendingPlacesView.as_view(), name="admin-pending-places-action"),
@@ -119,12 +128,33 @@ urlpatterns = [
     path("admin/emergencies/<int:id>/resolve/", views_admin.AdminEmergenciesView.as_view(), name="admin-emergencies-resolve"),
     path("admin/destinations", views_admin.AdminDestinationsView.as_view(), name="admin-destinations"),
     path("admin/destinations/<int:id>", views_admin.AdminDestinationDetailView.as_view(), name="admin-destination-detail"),
+    path("admin/destinations/<int:id>/images", views_admin.AdminDestinationImageView.as_view(), name="admin-destination-images"),
     path("admin/alerts", views_admin.AdminAlertsView.as_view(), name="admin-alerts"),
 
     # Additional endpoints
     path("config/public/", views.PublicConfigView.as_view(), name="public-config"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
+    # Multi-source Image Acquisition & Provenance Pipeline API
+    path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),
+    path("destinations/<str:slug>/images/", views_images.DestinationImagesListView.as_view(), name="destination-images-list"),
+    path("destinations/<str:slug>/images/discover", views_images.DestinationImagesDiscoverView.as_view(), name="destination-images-discover-no-slash"),
+    path("destinations/<str:slug>/images/discover/", views_images.DestinationImagesDiscoverView.as_view(), name="destination-images-discover"),
+    path("destinations/<str:slug>/images/refresh", views_images.DestinationImagesRefreshView.as_view(), name="destination-images-refresh-no-slash"),
+    path("destinations/<str:slug>/images/refresh/", views_images.DestinationImagesRefreshView.as_view(), name="destination-images-refresh"),
+    path("destinations/<str:slug>/images/<int:image_id>/set-cover", views_images.DestinationImageSetCoverView.as_view(), name="destination-images-set-cover-no-slash"),
+    path("destinations/<str:slug>/images/<int:image_id>/set-cover/", views_images.DestinationImageSetCoverView.as_view(), name="destination-images-set-cover"),
+
+    # AI Nepal image dataset platform
+    path("ai-images/destinations", ai_images_api.DestinationListView.as_view(), name="ai-image-destinations"),
+    path("ai-images/destinations/<int:pk>", ai_images_api.DestinationDetailView.as_view(), name="ai-image-destination-detail"),
+    path("ai-images/destinations/<int:pk>/images", ai_images_api.DestinationImagesView.as_view(), name="ai-image-destination-images"),
+    path("ai-images/generate", ai_images_api.GenerateImagesView.as_view(), name="ai-image-generate"),
+    path("ai-images/search", ai_images_api.SemanticSearchView.as_view(), name="ai-image-search"),
+    path("ai-images/jobs", ai_images_api.JobsListView.as_view(), name="ai-image-jobs"),
+    path("ai-images/images/<int:pk>/validate", ai_images_api.ImageValidateView.as_view(), name="ai-image-validate"),
+    path("ai-images/images/<int:pk>/match", ai_images_api.ImageMatchView.as_view(), name="ai-image-match"),
+    path("ai-images/images/<int:pk>/moderate", ai_images_api.ImageModerateView.as_view(), name="ai-image-moderate"),
     path("hotels/search/", views.HotelSearchView.as_view(), name="hotel-search"),
     path("safety/trip-share/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public"),
 
