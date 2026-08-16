@@ -1,0 +1,9 @@
+name: connectivity-test
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: python3 -c "import urllib.request,json; d=json.load(urllib.request.urlopen('https://query.wikidata.org/sparql?query=SELECT%20%3Fx%20WHERE%20%7B%20BIND(1%20AS%20%3Fx)%20%7D&format=json',timeout=30)); print('SPARQL-OK', d)"
+      - run: curl -s -o /dev/null -w "commons:%{http_code}\n" "https://commons.wikimedia.org/w/api.php?action=query&format=json"
+      - run: curl -s -o /dev/null -w "wikidata-api:%{http_code}\n" "https://www.wikidata.org/w/api.php?action=query&format=json"
