@@ -138,7 +138,6 @@ ml-service/logs/*
 
 # Firebase service account (secret)
 firebase/serviceAccountKey.json
-downloads/
 Tourism/db.sqlite3
 
 # Local virtual environments
