@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, F, Q
 from django.utils import timezone
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -9,7 +10,7 @@ from .models import (
     Destination, Alert, DestinationImage, VisitHistory,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
-    DestinationAuditLog
+    DestinationAuditLog, UserFeedback
 )
 from .permissions import IsAdminOrStaff
 
@@ -484,21 +485,203 @@ class AdminDestinationsView(APIView):
 class AdminDestinationDetailView(APIView):
     permission_classes = [IsAdminOrStaff]
 
+    def get(self, request, id):
+        """Return full destination data, images, and edit history for admin."""
+        try:
+            destination = Destination.objects.get(id=id)
+        except Destination.DoesNotExist:
+            return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "id": destination.id,
+            "name": destination.name,
+            "slug": destination.slug,
+            "description": destination.description,
+            "short_description": destination.short_description,
+            "category": getattr(destination.category, "name", None),
+            "city": destination.city,
+            "district": destination.district,
+            "province": destination.province,
+            "latitude": float(destination.latitude) if destination.latitude else None,
+            "longitude": float(destination.longitude) if destination.longitude else None,
+            "cover_image": _cover_of(destination),
+            "gallery": [
+                {
+                    "id": g.id,
+                    "url": g.external_url or (g.image.url if g.image else ""),
+                    "caption": g.caption,
+                    "is_cover": g.is_cover,
+                    "source": g.source_platform or g.source,
+                    "photographer": g.photographer,
+                    "license": g.license_type,
+                    "source_url": g.source_url,
+                    "created_at": g.created_at,
+                }
+                for g in destination.gallery.all()[:50]
+            ],
+            "history": [
+                {
+                    "id": h.id,
+                    "action": h.action,
+                    "note": h.note,
+                    "actor": str(h.actor) if h.actor else "system",
+                    "previous_status": h.previous_status,
+                    "new_status": h.new_status,
+                    "created_at": h.created_at,
+                }
+                for h in destination.audit_log.all()[:50]
+            ],
+            "bookings_count": getattr(destination, "bookings", None).__class__ and destination.bookings.count() if hasattr(destination, "bookings") else 0,
+            "reviews_count": destination.reviews.count() if hasattr(destination, "reviews") else 0,
+            "views_count": destination.views_count,
+            "created_at": destination.created_at,
+            "updated_at": destination.updated_at,
+        })
+
     def put(self, request, id):
         try:
             destination = Destination.objects.get(id=id)
         except Destination.DoesNotExist:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        editable = {
+            "name", "description", "short_description", "city", "district",
+            "province", "latitude", "longitude", "entry_fee", "opening_hours",
+            "best_time_to_visit", "history", "cultural_significance", "website",
+        }
+        changed = []
         for key, value in request.data.items():
-            if hasattr(destination, key):
+            if key in editable and hasattr(destination, key):
+                if getattr(destination, key) != value:
+                    changed.append(key)
                 setattr(destination, key, value)
         destination.save()
-        return Response({"message": "Destination updated successfully"})
+        if changed:
+            DestinationAuditLog.objects.create(
+                destination=destination, actor=request.user if request.user.is_authenticated else None,
+                action=DestinationAuditLog.Action.EDITED,
+                note=f"Admin updated fields: {', '.join(changed)}",
+            )
+        return Response({"message": "Destination updated successfully", "changed": changed})
 
     def delete(self, request, id):
         Destination.objects.filter(id=id).delete()
         return Response({"message": "Destination deleted successfully"})
+
+
+class AdminDestinationImageView(APIView):
+    """
+    Admin image management for a destination:
+      POST   {image_url, caption, source, photographer, license, source_url}
+             -> add a new image (optionally set as cover)
+      PATCH  {image_id, is_cover: true}  -> set primary image / rollback
+      PATCH  {image_url}                  -> change cover image directly
+      DELETE {image_id}                   -> remove an image
+    Changes are written straight to the database and reflected immediately.
+    """
+    permission_classes = [IsAdminOrStaff]
+
+    def _dest(self, id):
+        return Destination.objects.filter(id=id).first()
+
+    def post(self, request, id):
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        image_url = (request.data.get("image_url") or request.data.get("url") or "").strip()
+        if not image_url:
+            return Response({"detail": "image_url is required."}, status=400)
+
+        is_cover = bool(request.data.get("is_cover"))
+        if is_cover:
+            destination.gallery.filter(is_cover=True).update(is_cover=False)
+
+        img = DestinationImage.objects.create(
+            destination=destination,
+            external_url=image_url if image_url.startswith("http") else "",
+            image=image_url if not image_url.startswith("http") else None,
+            caption=(request.data.get("caption") or destination.name)[:200],
+            is_cover=is_cover,
+            source=DestinationImage.Source.ADMIN,
+            source_url=request.data.get("source_url", "")[:500],
+            source_platform=request.data.get("source", "admin")[:100],
+            photographer=request.data.get("photographer", "")[:150],
+            license_type=request.data.get("license", "Admin-provided")[:100],
+            uploaded_by=request.user if request.user.is_authenticated else None,
+            copyright_status="verified_reusable" if request.data.get("reusable") else "admin_uploaded",
+            verification_status="approved",
+            is_verified=True,
+        )
+        if is_cover or not destination.cover_image:
+            Destination.objects.filter(pk=destination.pk).update(cover_image=image_url)
+
+        DestinationAuditLog.objects.create(
+            destination=destination, actor=request.user if request.user.is_authenticated else None,
+            action=DestinationAuditLog.Action.EDITED, note=f"Admin added image {image_url[:80]}",
+        )
+        return Response({"message": "Image added", "image_id": img.id, "cover_url": image_url}, status=201)
+
+    def patch(self, request, id):
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+
+        # Set an existing gallery image as cover (rollback / primary select)
+        image_id = request.data.get("image_id")
+        if image_id:
+            img = destination.gallery.filter(id=image_id).first()
+            if not img:
+                return Response({"detail": "Image not found."}, status=404)
+            destination.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
+            img.is_cover = True
+            img.save(update_fields=["is_cover"])
+            cover = img.external_url or (img.image.url if img.image else "")
+            Destination.objects.filter(pk=destination.pk).update(cover_image=cover)
+            DestinationAuditLog.objects.create(
+                destination=destination, actor=request.user if request.user.is_authenticated else None,
+                action=DestinationAuditLog.Action.EDITED, note=f"Admin set cover image #{img.id}",
+            )
+            return Response({"message": "Cover updated", "cover_url": cover})
+
+        # Directly change the cover URL
+        image_url = (request.data.get("image_url") or "").strip()
+        if image_url:
+            Destination.objects.filter(pk=destination.pk).update(cover_image=image_url)
+            return Response({"message": "Cover URL updated", "cover_url": image_url})
+
+        return Response({"detail": "Provide image_id or image_url."}, status=400)
+
+    def delete(self, request, id):
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        image_id = request.data.get("image_id") or request.query_params.get("image_id")
+        if not image_id:
+            return Response({"detail": "image_id is required."}, status=400)
+        img = destination.gallery.filter(id=image_id).first()
+        if not img:
+            return Response({"detail": "Image not found."}, status=404)
+        was_cover = img.is_cover
+        img.delete()
+        if was_cover:
+            next_img = destination.gallery.first()
+            new_cover = next_img.external_url if next_img and next_img.external_url else ""
+            if next_img:
+                next_img.is_cover = True
+                next_img.save(update_fields=["is_cover"])
+            Destination.objects.filter(pk=destination.pk).update(cover_image=new_cover)
+        return Response({"message": "Image removed"})
+
+
+def _cover_of(destination):
+    raw = str(destination.cover_image or "").strip()
+    if raw.startswith("http"):
+        return raw
+    cover = destination.gallery.filter(is_cover=True).first()
+    if cover and cover.external_url:
+        return cover.external_url
+    from . import photo_catalog
+    return photo_catalog.resolve_cover_photo(destination)["url"]
 
 
 class AdminAlertsView(APIView):
@@ -523,3 +706,330 @@ class AdminAlertsView(APIView):
     def post(self, request):
         alert = Alert.objects.create(**request.data)
         return Response({"id": alert.id, "message": "Alert created successfully"}, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------------
+# User details + verification / feedback
+# ---------------------------------------------------------------------------
+class AdminUsersDetailView(APIView):
+    """Full user details incl. verification, activity and feedback for admin."""
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request, id):
+        User = get_user_model()
+        u = User.objects.filter(pk=id).first()
+        if not u:
+            return Response({"detail": "not found"}, status=404)
+        return Response({
+            "id": u.id,
+            "email": u.email,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "phone_number": u.phone_number,
+            "role": u.role,
+            "is_verified": u.is_verified,
+            "phone_verified": getattr(u, "phone_verified", False),
+            "is_active": u.is_active,
+            "is_staff": u.is_staff,
+            "is_superuser": u.is_superuser,
+            "date_joined": u.date_joined,
+            "last_login": u.last_login,
+            "city": u.city,
+            "country": u.country,
+            "managed_district": u.managed_district,
+            "feedback_count": u.feedbacks.count(),
+            "feedbacks": [
+                {"id": f.id, "subject": f.subject, "status": f.status,
+                 "created_at": f.created_at}
+                for f in u.feedbacks.all()[:10]
+            ],
+        })
+
+    def patch(self, request, id):
+        User = get_user_model()
+        u = User.objects.filter(pk=id).first()
+        if not u:
+            return Response({"detail": "not found"}, status=404)
+        for field in ("is_verified", "is_active", "is_staff", "role",
+                      "managed_district", "first_name", "last_name"):
+            if field in request.data:
+                setattr(u, field, request.data[field])
+        u.save()
+        return Response({"message": "user updated", "id": u.id})
+
+
+class AdminSendVerificationView(APIView):
+    """
+    Send a verification reminder / feedback email to a user. Uses the
+    configured email backend (console by default in dev). Twilio SMS is used
+    when TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN are set and a phone exists.
+    """
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request, id):
+        from django.core.mail import send_mail
+        from django.conf import settings as djsettings
+        User = get_user_model()
+        u = User.objects.filter(pk=id).first()
+        if not u:
+            return Response({"detail": "not found"}, status=404)
+
+        message = request.data.get(
+            "message",
+            f"Hello {u.first_name or u.email}, please verify your email "
+            f"to access all features of Nepal Tourism Platform."
+        )
+        subject = request.data.get("subject", "Please verify your account")
+        channel = request.data.get("channel", "email")  # email | sms
+
+        sent = []
+        if channel in ("email", "both") and u.email:
+            try:
+                send_mail(subject, message, djsettings.DEFAULT_FROM_EMAIL, [u.email],
+                          fail_silently=False)
+                u.is_verified = True  # mark verified once a verification message is dispatched
+                u.save(update_fields=["is_verified"])
+                sent.append("email")
+            except Exception as exc:  # noqa: BLE001
+                return Response({"detail": f"email failed: {exc}"}, status=502)
+
+        if channel in ("sms", "both") and u.phone_number:
+            try:
+                from twilio.rest import Client  # type: ignore
+                sid = getattr(djsettings, "TWILIO_ACCOUNT_SID", "")
+                token = getattr(djsettings, "TWILIO_AUTH_TOKEN", "")
+                from_ = getattr(djsettings, "TWILIO_PHONE_NUMBER", "")
+                if sid and token:
+                    Client(sid, token).messages.create(
+                        to=u.phone_number, from_=from_, body=message[:1600])
+                    sent.append("sms")
+            except Exception as exc:  # noqa: BLE001
+                return Response({"detail": f"sms failed: {exc}"}, status=502)
+
+        return Response({"message": f"sent via {', '.join(sent) or 'none'}",
+                         "channels": sent, "is_verified": u.is_verified})
+
+
+class FeedbackListView(APIView):
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        qs = UserFeedback.objects.all().select_related("user")
+        status = request.query_params.get("status")
+        if status:
+            qs = qs.filter(status=status)
+        return Response([{
+            "id": f.id,
+            "user_id": f.user_id,
+            "name": f.name or (f.user.get_full_name() if f.user else ""),
+            "email": f.email or (f.user.email if f.user else ""),
+            "subject": f.subject,
+            "message": f.message,
+            "category": f.category,
+            "status": f.status,
+            "admin_reply": f.admin_reply,
+            "created_at": f.created_at,
+        } for f in qs[:200]])
+
+
+class FeedbackReplyView(APIView):
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request, id):
+        from django.utils import timezone
+        f = UserFeedback.objects.filter(pk=id).first()
+        if not f:
+            return Response({"detail": "not found"}, status=404)
+        f.admin_reply = request.data.get("reply", "")
+        f.status = UserFeedback.Status.REPLIED
+        f.replied_by = request.user if request.user.is_authenticated else None
+        f.replied_at = timezone.now()
+        f.save()
+        return Response({"message": "reply saved", "id": f.id})
+
+
+class PublicFeedbackCreateView(APIView):
+    """Public 'Contact / communicate with admin' endpoint (login optional)."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        if not data.get("subject") or not data.get("message"):
+            return Response({"detail": "subject and message are required"}, status=400)
+        fb = UserFeedback.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            name=data.get("name", ""),
+            email=data.get("email", ""),
+            subject=data["subject"][:200],
+            message=data["message"],
+            category=data.get("category", "general"),
+        )
+        return Response({"id": fb.id, "message": "feedback received"}, status=201)
+
+
+class FetchWebImagesView(APIView):
+    """Admin: search free sources (Wikimedia/DDG/Openverse) for real photos
+    of a destination and save them directly into the gallery/cover."""
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        from tourist.services.image_search.search import search_destination_images
+        target = request.data.get("destination")
+        num = int(request.data.get("num", 12))
+        if not target:
+            return Response({"detail": "destination (id, slug or name) required"}, status=400)
+
+        dest = (Destination.objects.filter(pk=target).first() if str(target).isdigit() else None) \
+            or Destination.objects.filter(slug=target).first() \
+            or Destination.objects.filter(name__icontains=target).first()
+        if not dest:
+            return Response({"detail": "destination not found"}, status=404)
+
+        hits = search_destination_images(dest, per_source=max(10, num), min_score=0.30)
+        saved = 0
+        existing = set(dest.gallery.exclude(external_url="").values_list("external_url", flat=True))
+        first = True
+        for hit in hits[:num]:
+            if hit.url in existing:
+                continue
+            is_cover = first and not dest.cover_image
+            img = DestinationImage.objects.create(
+                destination=dest,
+                external_url=hit.url,
+                thumbnail_url=hit.thumbnail,
+                caption=f"{dest.name} — {hit.title or hit.source}",
+                source=DestinationImage.Source.WIKIMEDIA if hit.source == "wikimedia" else DestinationImage.Source.ADMIN,
+                source_url=hit.source_page or "",
+                source_platform=hit.source,
+                photographer=hit.author[:150],
+                license_type=hit.license[:100],
+                copyright_status="web_search",
+                is_cover=is_cover,
+                destination_match_score=round(hit.match_score, 3),
+                authenticity_score=0.9 if hit.source == "wikimedia" else 0.75,
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+            )
+            if is_cover:
+                dest.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
+                Destination.objects.filter(pk=dest.pk).update(cover_image=hit.url)
+            existing.add(hit.url)
+            saved += 1
+            first = False
+        return Response({"destination": dest.name, "found": len(hits), "saved": saved})
+
+
+class DeleteImageView(APIView):
+    permission_classes = [IsAdminOrStaff]
+
+    def delete(self, request, id):
+        img = DestinationImage.objects.filter(pk=id).first()
+        if not img:
+            return Response({"detail": "not found"}, status=404)
+        was_cover = img.is_cover
+        dest = img.destination
+        img.delete()
+        if was_cover:
+            nxt = dest.gallery.first()
+            if nxt:
+                nxt.is_cover = True
+                nxt.save(update_fields=["is_cover"])
+                Destination.objects.filter(pk=dest.pk).update(cover_image=nxt.external_url or "")
+        return Response({"message": "deleted", "destination": dest.name})
+
+
+class GenerateAIImagesView(APIView):
+    """Admin: generate AI (Flux) images for a destination in real time."""
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        from tourist.services.image_generation.collector import collect_for_destination
+        target = request.data.get("destination")
+        num = int(request.data.get("num", 12))
+        if not target:
+            return Response({"detail": "destination (id/slug/name) required"}, status=400)
+        dest = (Destination.objects.filter(pk=target).first() if str(target).isdigit() else None) \
+            or Destination.objects.filter(slug=target).first() \
+            or Destination.objects.filter(name__icontains=target).first()
+        if not dest:
+            return Response({"detail": "destination not found"}, status=404)
+
+        images = collect_for_destination(dest, num=num, use_ai=True, use_search=True)
+        existing = set(dest.gallery.exclude(external_url="").values_list("external_url", flat=True))
+        saved = 0
+        for img in images:
+            if img["url"] in existing:
+                continue
+            di = DestinationImage.objects.create(
+                destination=dest,
+                external_url=img["url"],
+                thumbnail_url=img.get("thumbnail", img["url"]),
+                caption=img.get("caption", "")[:200],
+                source=DestinationImage.Source.AI_GENERATED if img["source"] == "ai_generated" else DestinationImage.Source.ADMIN,
+                source_platform=img.get("source_platform", ""),
+                photographer=img.get("photographer", ""),
+                license_type=img.get("license", ""),
+                generation_prompt=img.get("prompt", ""),
+                generation_seed=img.get("seed"),
+                generation_provider="flux-pollinations" if img["source"] == "ai_generated" else "",
+                destination_match_score=img.get("match_score"),
+                copyright_status="ai_generated" if img["source"] == "ai_generated" else "web_search",
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+            )
+            existing.add(img["url"])
+            saved += 1
+        # set newest AI image as cover if requested
+        if request.data.get("set_cover", True):
+            cover = dest.gallery.filter(source=DestinationImage.Source.AI_GENERATED).order_by("-created_at").first()
+            if cover:
+                dest.gallery.filter(is_cover=True).exclude(id=cover.id).update(is_cover=False)
+                cover.is_cover = True
+                cover.save(update_fields=["is_cover"])
+                Destination.objects.filter(pk=dest.pk).update(cover_image=cover.external_url)
+        return Response({"destination": dest.name, "saved": saved,
+                         "cover": str(dest.cover_image)[:80],
+                         "total_gallery": dest.gallery.count()})
+
+
+class DownloadAIImagesView(APIView):
+    """Admin: download real AI images (actual files) for a destination."""
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        from tourist.services.image_generation.downloader import fetch_images
+        target = request.data.get("destination")
+        num = int(request.data.get("num", 10))
+        if not target:
+            return Response({"detail": "destination required"}, status=400)
+        dest = (Destination.objects.filter(pk=target).first() if str(target).isdigit() else None) \
+            or Destination.objects.filter(slug=target).first() \
+            or Destination.objects.filter(name__icontains=target).first()
+        if not dest:
+            return Response({"detail": "destination not found"}, status=404)
+        images = fetch_images(dest, num=num)
+        saved = 0
+        for img in images:
+            if dest.gallery.filter(image=img["file_path"]).exists():
+                continue
+            di = DestinationImage.objects.create(
+                destination=dest,
+                image=img["file_path"],
+                caption=f"{dest.name} — {img['style']}",
+                source=DestinationImage.Source.AI_GENERATED,
+                source_platform=f"ai:{img['provider']}:{img['style']}",
+                photographer="AI generated",
+                license_type="AI generated image",
+                copyright_status="ai_generated",
+                generation_prompt=img["prompt"],
+                generation_seed=img["seed"],
+                generation_provider=img["provider"],
+                thumbnail_url=str(request.build_absolute_uri(settings.MEDIA_URL + img["file_path"])),
+                authenticity_score=0.9,
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+            )
+            if saved == 0 and not dest.cover_image:
+                dest.gallery.filter(is_cover=True).exclude(id=di.id).update(is_cover=False)
+                di.is_cover = True
+                di.save(update_fields=["is_cover"])
+                Destination.objects.filter(pk=dest.pk).update(cover_image=img["file_path"])
+            saved += 1
+        return Response({"destination": dest.name, "downloaded": len(images), "saved": saved})

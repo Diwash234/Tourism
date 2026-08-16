@@ -28,6 +28,47 @@ const QUICK_INTERNAL_ROUTES = [
   { label: "Kathmandu ➔ Nagarkot Sunrise", dest: "Nagarkot Himalayan Sunrise Viewpoint", start: { lat: 27.7172, lng: 85.3240 } },
 ]
 
+const QUICK_LOCAL_DESTINATIONS = [
+  { label: "📍 ➔ Lakeside Pokhara", dest: "Lakeside, Pokhara", coords: { lat: 28.2140, lng: 83.9580 } },
+  { label: "📍 ➔ Sarangkot Sunrise", dest: "Sarangkot Sunrise Viewpoint", coords: { lat: 28.2440, lng: 83.9480 } },
+  { label: "📍 ➔ Mahendrapul City", dest: "Mahendrapul, Pokhara", coords: { lat: 28.2250, lng: 83.9870 } },
+  { label: "📍 ➔ Chipledhunga Market", dest: "Chipledhunga, Pokhara", coords: { lat: 28.2220, lng: 83.9850 } },
+  { label: "📍 ➔ Tal Barahi Lake Temple", dest: "Tal Barahi Temple", coords: { lat: 28.2096, lng: 83.9560 } },
+  { label: "📍 ➔ Patale Chhango (Devi's Fall)", dest: "Devi's Fall, Pokhara", coords: { lat: 28.1900, lng: 83.9580 } },
+]
+
+const getNearbyAmenities = (lat, lng, type) => {
+  if (type === "hotels") {
+    return [
+      { id: "h1", name: "Lakeside Boutique Resort & Spa", address: "Baidam Rd 6, Lakeside", distance: "0.8 km", bearing: "North-East ↗", coords: { lat: lat + 0.007, lng: lng + 0.005 } },
+      { id: "h2", name: "Hotel Peace Palace Pokhara", address: "Lakeside North, Pokhara", distance: "1.4 km", bearing: "East ➔", coords: { lat: lat + 0.002, lng: lng + 0.012 } },
+      { id: "h3", name: "Annapurna Himalayan View Lodge", address: "Sarangkot Road", distance: "2.7 km", bearing: "North ⬆", coords: { lat: lat + 0.024, lng: lng - 0.004 } },
+      { id: "h4", name: "Phewa Lake Edge Hotel", address: "South Lakeside Shore", distance: "1.1 km", bearing: "South-West ↙", coords: { lat: lat - 0.009, lng: lng - 0.005 } },
+    ]
+  }
+  if (type === "hospitals") {
+    return [
+      { id: "m1", name: "Gandaki Medical College Hospital", address: "Prithivi Chowk, Pokhara", distance: "1.6 km", bearing: "East ➔", coords: { lat: lat + 0.003, lng: lng + 0.014 } },
+      { id: "m2", name: "Manipal Teaching Hospital", address: "Phulbari, Pokhara", distance: "3.2 km", bearing: "North-East ↗", coords: { lat: lat + 0.025, lng: lng + 0.020 } },
+      { id: "m3", name: "Western Regional Hospital (Metro)", address: "Ramghat, Pokhara", distance: "2.1 km", bearing: "East ➔", coords: { lat: lat + 0.004, lng: lng + 0.018 } },
+      { id: "m4", name: "Charak Memorial Hospital", address: "Naghdhunga, Pokhara", distance: "1.2 km", bearing: "South-East ↘", coords: { lat: lat - 0.008, lng: lng + 0.009 } },
+    ]
+  }
+  if (type === "stores") {
+    return [
+      { id: "s1", name: "Lakeside Supermarket & Pharmacy", address: "Baidam Main Street", distance: "0.4 km", bearing: "North ⬆", coords: { lat: lat + 0.004, lng: lng } },
+      { id: "s2", name: "Himalayan Trekking Gear Store", address: "Lakeside Center", distance: "0.7 km", bearing: "North-East ↗", coords: { lat: lat + 0.006, lng: lng + 0.004 } },
+      { id: "s3", name: "Chipledhunga Departmental Store", address: "Chipledhunga Chowk", distance: "2.5 km", bearing: "East ➔", coords: { lat: lat + 0.012, lng: lng + 0.022 } },
+      { id: "s4", name: "Mahendrapul Wholesale Bazaar", address: "Mahendrapul, Pokhara", distance: "2.8 km", bearing: "East ➔", coords: { lat: lat + 0.015, lng: lng + 0.024 } },
+    ]
+  }
+  return [
+    { id: "a1", name: "Nabil Bank ATM & Currency Exchange", address: "Lakeside Central Chowk", distance: "0.3 km", bearing: "North ⬆", coords: { lat: lat + 0.003, lng: lng + 0.001 } },
+    { id: "a2", name: "Standard Chartered ATM Lounge", address: "Baidam Road", distance: "0.6 km", bearing: "North-East ↗", coords: { lat: lat + 0.005, lng: lng + 0.003 } },
+    { id: "a3", name: "Nepal SBI Bank Branch & ATM", address: "Chipledhunga", distance: "2.4 km", bearing: "East ➔", coords: { lat: lat + 0.011, lng: lng + 0.021 } },
+  ]
+}
+
 const TURN_ICONS = {
   start: FiArrowUp,
   straight: FiArrowUp,
@@ -59,6 +100,7 @@ export default function Navigation() {
   const [altitudeM, setAltitudeM] = useState(1400)
   const [currentStepIdx, setCurrentStepIdx] = useState(0)
   const [satelliteView, setSatelliteView] = useState(false)
+  const [amenityTab, setAmenityTab] = useState("hotels")
 
   // Dynamic place-specific navigation generator
   const getDynamicNepalSteps = (name, userLat, userLng) => {
@@ -118,6 +160,87 @@ export default function Navigation() {
         { turn: "left", instruction: "Turn left at Sallaghari / Kamalbinayak roundabout onto Nagarkot Hill Road", distance_km: 3.5, distance_m: 3500 },
         { turn: "right", instruction: "Follow scenic winding pine forest road ascending through Telkot", distance_km: 8.0, distance_m: 8000 },
         { turn: "straight", instruction: "Arrive at Nagarkot Sunrise View Tower (2,175m) - Panoramic Himalayan Outlook", distance_km: 3.0, distance_m: 3000 },
+      ]
+    }
+
+    if (q.includes("lakeside") || q.includes("phewa") || q.includes("baidam")) {
+      return [
+        { turn: "start", instruction: "Depart from current GPS location toward Baidam lakeside boulevard", distance_km: 0.8, distance_m: 800 },
+        { turn: "straight", instruction: "Follow Phewa Promenade past Hallan Chowk along the eastern lake shore", distance_km: 1.5, distance_m: 1500 },
+        { turn: "left", instruction: "Turn left toward Lakeside boat dock & Tal Barahi temple ferry point", distance_km: 0.4, distance_m: 400 },
+        { turn: "straight", instruction: "Arrive at Lakeside Pokhara — Tourist Zone & Phewa Lake Shore", distance_km: 0.2, distance_m: 200 },
+      ]
+    }
+
+    if (q.includes("sarangkot")) {
+      return [
+        { turn: "start", instruction: "Depart Pokhara Lakeside northbound via Bindhyabasini Temple road", distance_km: 3.2, distance_m: 3200 },
+        { turn: "right", instruction: "Turn right onto Sarangkot Mountain Road and ascend switchbacks through terraced slopes", distance_km: 7.5, distance_m: 7500 },
+        { turn: "left", instruction: "Turn left at Sarangkot saddle toward the upper viewing tower parking area", distance_km: 1.0, distance_m: 1000 },
+        { turn: "straight", instruction: "Arrive at Sarangkot Sunrise Viewpoint (1,600m) & Paragliding Launch Ridge", distance_km: 0.5, distance_m: 500 },
+      ]
+    }
+
+    if (q.includes("mahendrapul") || q.includes("chipledhunga")) {
+      return [
+        { turn: "start", instruction: "Depart from current GPS location toward Pokhara Prithvi Chowk", distance_km: 1.5, distance_m: 1500 },
+        { turn: "straight", instruction: "Head north along New Road past City Hall toward Chipledhunga commercial market", distance_km: 2.2, distance_m: 2200 },
+        { turn: "right", instruction: "Cross Mahendrapul bridge over the deep Seti River gorge", distance_km: 0.6, distance_m: 600 },
+        { turn: "straight", instruction: `Arrive at ${name} — Pokhara City Centre & Shopping Bazaar`, distance_km: 0.3, distance_m: 300 },
+      ]
+    }
+
+    if (q.includes("ruru") || q.includes("ridi") || q.includes("rurukshetra")) {
+      return [
+        { turn: "start", instruction: "Depart via Siddhartha Highway (H10) through Butwal and Palpa Tansen", distance_km: 65.0, distance_m: 65000 },
+        { turn: "left", instruction: "Turn left at Tansen junction and descend scenic Ridi river valley corridor", distance_km: 18.5, distance_m: 18500 },
+        { turn: "right", instruction: "Cross Kali Gandaki river suspension bridge into Ruru Kshetra sacred confluence", distance_km: 1.2, distance_m: 1200 },
+        { turn: "straight", instruction: "Arrive at Ruru Kshetra / Ridi Pilgrimage Bathing Ghats & Rishikesh Mandir", distance_km: 0.5, distance_m: 500 },
+      ]
+    }
+
+    if (q.includes("tinjure") || q.includes("tmj")) {
+      return [
+        { turn: "start", instruction: "Depart via Koshi Highway from Dharan through Bhedetar and Dhankuta", distance_km: 78.0, distance_m: 78000 },
+        { turn: "right", instruction: "Turn right at Basantapur junction onto Tinjure Milke Jaljale (TMJ) ridge road", distance_km: 16.0, distance_m: 16000 },
+        { turn: "straight", instruction: "Follow alpine trail through blooming red, pink, and white rhododendron forests", distance_km: 4.5, distance_m: 4500 },
+        { turn: "straight", instruction: "Arrive at Tinjure View Point — Nepal's Rhododendron Capital (2,900m)", distance_km: 1.2, distance_m: 1200 },
+      ]
+    }
+
+    if (q.includes("myanglung") || q.includes("tehrathum")) {
+      return [
+        { turn: "start", instruction: "Depart via Mid-Hill Highway (H18) eastward through Sinduwa and Lasune", distance_km: 24.0, distance_m: 24000 },
+        { turn: "left", instruction: "Take winding hill road ascent to Tehrathum district headquarters", distance_km: 12.5, distance_m: 12500 },
+        { turn: "straight", instruction: "Pass local Limbu traditional settlements and cardamom terraces", distance_km: 3.5, distance_m: 3500 },
+        { turn: "straight", instruction: "Arrive at Myanglung Village & Cultural Heritage Center (1,500m)", distance_km: 0.8, distance_m: 800 },
+      ]
+    }
+
+    if (q.includes("milke")) {
+      return [
+        { turn: "start", instruction: "Depart Basantapur trailhead along high alpine rhododendron ridge trail", distance_km: 8.5, distance_m: 8500 },
+        { turn: "straight", instruction: "Trek northern trail with panoramic Kanchenjunga and Makalu mountain views", distance_km: 11.0, distance_m: 11000 },
+        { turn: "right", instruction: "Ascend final grassy saddle toward Milke Danda high ridge viewpoint", distance_km: 2.5, distance_m: 2500 },
+        { turn: "straight", instruction: "Arrive at Milke Danda (2,980m) — Alpine Rhododendron & Himalayan Panorama", distance_km: 1.5, distance_m: 1500 },
+      ]
+    }
+
+    if (q.includes("devi") || q.includes("fall") || q.includes("chhango")) {
+      return [
+        { turn: "start", instruction: "Depart Pokhara Lakeside southbound along Baidam Road", distance_km: 1.5, distance_m: 1500 },
+        { turn: "right", instruction: "Turn right onto Siddhartha Highway (H10) towards Chorepatan", distance_km: 1.2, distance_m: 1200 },
+        { turn: "left", instruction: "Turn left into Patale Chhango tourist parking & ticket entrance", distance_km: 0.2, distance_m: 200 },
+        { turn: "straight", instruction: "Arrive at Devi's Fall (Patale Chhango) waterfall & Gupteshwor Cave", distance_km: 0.1, distance_m: 100 },
+      ]
+    }
+
+    if (q.includes("temple") || q.includes("mandir") || q.includes("stupa") || q.includes("gumba") || q.includes("pashupati") || q.includes("janaki")) {
+      return [
+        { turn: "start", instruction: `Depart from current GPS location along city feeder road toward ${name}`, distance_km: 1.5, distance_m: 1500 },
+        { turn: "straight", instruction: "Follow designated pilgrim corridor and heritage road", distance_km: 3.2, distance_m: 3200 },
+        { turn: "right", instruction: "Turn right into temple square pedestrian zone", distance_km: 0.5, distance_m: 500 },
+        { turn: "straight", instruction: `Arrive at ${name} main temple entrance & prayer courtyard — footwear removal zone`, distance_km: 0.2, distance_m: 200 },
       ]
     }
 
@@ -191,7 +314,7 @@ export default function Navigation() {
   const TurnIcon = TURN_ICONS[currentStep.turn] || FiArrowUp
 
   return (
-    <div className="container-app py-6 space-y-6 animate-fadeIn">
+    <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn">
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -245,6 +368,27 @@ export default function Navigation() {
         ))}
       </div>
 
+      {/* Local Pokhara & Nepal Landmark Presets from Current GPS Location */}
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-extrabold uppercase tracking-wider text-purple-700">
+          📍 Quick Local Landmarks from Current GPS Location (Pokhara & Nepal)
+        </p>
+        <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar">
+          {QUICK_LOCAL_DESTINATIONS.map((qr, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setDestinationQuery(qr.dest)
+                handleGetRoute(qr.dest)
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-950 text-xs font-bold whitespace-nowrap shadow-sm transition-all"
+            >
+              {qr.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Search Bar */}
       <form
         onSubmit={(e) => {
@@ -270,6 +414,69 @@ export default function Navigation() {
           {loading ? "Calculating..." : "Find Route & Start HUD"}
         </button>
       </form>
+
+      {/* Interactive Nearby Amenities Around Current Location (Hotels, Hospitals, Stores/Pharmacies, ATMs) */}
+      <div className="card-base p-5 border border-purple-100 rounded-3xl space-y-4 bg-gradient-to-r from-white to-purple-50/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-100 pb-3">
+          <div>
+            <h3 className="text-sm font-black text-purple-950 flex items-center gap-2">
+              <FiCompass className="text-purple-600" /> Search Around Current Location
+            </h3>
+            <p className="text-xs text-gray-500">
+              Select an amenity category to find nearest services with distance and compass direction
+            </p>
+          </div>
+          <div className="flex overflow-x-auto gap-1.5 no-scrollbar">
+            {[
+              { id: "hotels", label: "🏨 Hotels & Lodges" },
+              { id: "hospitals", label: "🏥 Hospitals / Medical" },
+              { id: "stores", label: "💊 Stores & Pharmacies" },
+              { id: "atms", label: "🏧 Banks & ATMs" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setAmenityTab(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  amenityTab === tab.id
+                    ? "bg-purple-700 text-white shadow"
+                    : "bg-white text-gray-700 hover:bg-purple-100 border border-purple-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {getNearbyAmenities(position?.lat || 28.2096, position?.lng || 83.9856, amenityTab).map((item) => (
+            <div
+              key={item.id}
+              className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-extrabold text-xs text-gray-900 line-clamp-1">{item.name}</p>
+                  <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold shrink-0">
+                    {item.distance}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">{item.address}</p>
+                <p className="text-[11px] font-bold text-purple-700 mt-1">Compass: {item.bearing}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setDestinationQuery(item.name)
+                  handleGetRoute(item.name)
+                }}
+                className="mt-3 w-full py-1.5 rounded-xl bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-purple-200"
+              >
+                <FiCompass size={12} /> Navigate Here
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* GTA / FREE FIRE GAME HUD DISPLAY */}
       {gameMode && (

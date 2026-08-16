@@ -54,6 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         HOSPITAL_STAFF = "hospital_staff", "Hospital Staff"
         RESCUE_TEAM = "rescue_team", "Rescue Team"
         EMERGENCY_OPERATOR = "emergency_operator", "Emergency Operator"
+        QA_TESTER = "qa_tester", "QA Tester"
 
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=100, blank=True)
@@ -610,12 +611,20 @@ class DestinationImage(TimeStampedModel):
         WIKIMEDIA = "wikimedia", "Wikimedia Commons"
         GOOGLE_PLACES = "google_places", "Google Places"
         FOURSQUARE = "foursquare", "Foursquare"
+        AI_GENERATED = "ai_generated", "AI Generated"
+        REFERENCE = "reference", "Reference Image"
+
+    class ImageStatus(models.TextChoices):
+        PENDING = "pending", "Needs Review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
 
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery")
     image = models.ImageField(upload_to="destinations/gallery/", blank=True, null=True)
     external_url = models.URLField(
         blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
     )
+    thumbnail_url = models.URLField(blank=True, help_text="Optimized thumbnail for fast web delivery")
     caption = models.CharField(max_length=200, blank=True)
     is_cover = models.BooleanField(default=False)
 
@@ -626,10 +635,30 @@ class DestinationImage(TimeStampedModel):
     license_type = models.CharField(max_length=100, blank=True, default="Creative Commons CC BY-SA / Unsplash")
     copyright_status = models.CharField(max_length=50, default="verified_reusable")
     image_category = models.CharField(max_length=50, default="attraction")
+
+    # --- AI generation provenance ---
+    generation_provider = models.CharField(max_length=50, blank=True, help_text="openai / stability / google / flux")
+    generation_model = models.CharField(max_length=100, blank=True)
+    generation_prompt = models.TextField(blank=True)
+    negative_prompt = models.TextField(blank=True)
+    generation_seed = models.BigIntegerField(null=True, blank=True)
+    generation_job = models.ForeignKey(
+        "ImageGenerationJob", on_delete=models.SET_NULL, null=True, blank=True, related_name="outputs"
+    )
+
+    # --- Automated quality / authenticity scores (0..1) ---
+    quality_score = models.FloatField(null=True, blank=True)
+    realism_score = models.FloatField(null=True, blank=True)
+    authenticity_score = models.FloatField(null=True, blank=True, help_text="Nepal authenticity")
+    destination_match_score = models.FloatField(null=True, blank=True)
+    duplicate_score = models.FloatField(null=True, blank=True)
+    overall_score = models.FloatField(null=True, blank=True)
+
+    # pHash / dHash for duplicate detection
+    phash = models.CharField(max_length=32, blank=True, db_index=True)
+
     verification_status = models.CharField(
-        max_length=20,
-        choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
-        default="approved"
+        max_length=20, choices=ImageStatus.choices, default=ImageStatus.APPROVED
     )
     is_verified = models.BooleanField(default=True)
     uploaded_by = models.ForeignKey(
@@ -1556,3 +1585,145 @@ class DestinationSourceField(TimeStampedModel):
         return f"{self.destination.name}.{self.field_name} = {self.field_value[:30]} ({self.source_name})"
 
 
+
+
+# ===========================================================================
+# AI Nepal Tourist Image Dataset Platform
+# ===========================================================================
+
+class ImageGenerationJob(TimeStampedModel):
+    """One generation request for a destination (can produce many images)."""
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    class Season(models.TextChoices):
+        SPRING = "spring", "Spring"
+        SUMMER = "summer", "Summer"
+        AUTUMN = "autumn", "Autumn"
+        WINTER = "winter", "Winter"
+
+    class TimeOfDay(models.TextChoices):
+        SUNRISE = "sunrise", "Sunrise"
+        DAY = "day", "Daytime"
+        SUNSET = "sunset", "Sunset"
+        NIGHT = "night", "Night"
+
+    class CameraStyle(models.TextChoices):
+        LANDSCAPE = "landscape", "Landscape"
+        AERIAL = "aerial", "Aerial / Drone"
+        STREET = "street", "Street-level"
+        ARCHITECTURAL = "architectural", "Architectural"
+        CULTURAL = "cultural", "Cultural"
+        TREKKING = "trekking", "Trekking"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="generation_jobs")
+    provider = models.CharField(max_length=50, default="openai")
+    model = models.CharField(max_length=100, blank=True)
+    prompt = models.TextField()
+    negative_prompt = models.TextField(blank=True)
+    season = models.CharField(max_length=10, choices=Season.choices, default=Season.AUTUMN)
+    time_of_day = models.CharField(max_length=10, choices=TimeOfDay.choices, default=TimeOfDay.DAY)
+    camera_style = models.CharField(max_length=20, choices=CameraStyle.choices, default=CameraStyle.LANDSCAPE)
+    num_images = models.PositiveSmallIntegerField(default=4)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.QUEUED)
+    error_message = models.TextField(blank=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status"]), models.Index(fields=["destination", "status"])]
+
+    def __str__(self):
+        return f"Job {self.id} for {self.destination_id} ({self.status})"
+
+
+class ImageTag(TimeStampedModel):
+    image = models.ForeignKey(DestinationImage, on_delete=models.CASCADE, related_name="tags")
+    tag = models.CharField(max_length=60, db_index=True)
+    confidence = models.FloatField(default=1.0)
+
+    class Meta:
+        unique_together = ("image", "tag")
+        indexes = [models.Index(fields=["tag"])]
+
+    def __str__(self):
+        return f"{self.tag} ({self.confidence:.2f})"
+
+
+class ImageEmbedding(TimeStampedModel):
+    """Vector embedding of an image / destination for semantic search."""
+    class ContentType(models.TextChoices):
+        IMAGE = "image", "Image"
+        DESTINATION = "destination", "Destination text"
+
+    image = models.OneToOneField(
+        DestinationImage, on_delete=models.CASCADE, null=True, blank=True, related_name="embedding"
+    )
+    destination = models.ForeignKey(
+        Destination, on_delete=models.CASCADE, null=True, blank=True, related_name="embeddings"
+    )
+    content_type = models.CharField(max_length=12, choices=ContentType.choices)
+    embedding_model = models.CharField(max_length=60, default="clip-ViT-B-32")
+    # Stored as JSON in SQLite (no pgvector dependency); adapter can swap to
+    # pgvector on Postgres without touching calling code.
+    vector = models.JSONField(default=list)
+    dimensions = models.PositiveIntegerField(default=512)
+
+    class Meta:
+        indexes = [models.Index(fields=["content_type", "embedding_model"])]
+
+    def __str__(self):
+        return f"{self.content_type} embedding ({self.embedding_model})"
+
+
+class DestinationReferenceImage(TimeStampedModel):
+    """Authoritative reference photo used to validate generated output."""
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="reference_images")
+    image_url = models.URLField(max_length=500)
+    source = models.CharField(max_length=80, blank=True)
+    license = models.CharField(max_length=120, blank=True)
+    description = models.CharField(max_length=300, blank=True)
+    is_primary = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-is_primary", "-created_at"]
+
+    def __str__(self):
+        return f"ref for {self.destination_id}: {self.image_url[:60]}"
+
+
+class UserFeedback(TimeStampedModel):
+    """Direct messages / feedback from a user to the admin team."""
+    class Status(models.TextChoices):
+        NEW = "new", "New"
+        READ = "read", "Read"
+        REPLIED = "replied", "Replied"
+        ARCHIVED = "archived", "Archived"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feedbacks",
+        null=True, blank=True,
+    )
+    name = models.CharField(max_length=120, blank=True)
+    email = models.EmailField(blank=True)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    category = models.CharField(max_length=50, default="general")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW)
+    admin_reply = models.TextField(blank=True)
+    replied_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="feedback_replies",
+    )
+    replied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status"]), models.Index(fields=["category"])]
+
+    def __str__(self):
+        return f"{self.subject} ({self.status})"

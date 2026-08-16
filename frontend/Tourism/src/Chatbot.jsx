@@ -135,7 +135,7 @@ export default function ChatBot() {
     <div className="container-app py-8 animate-fadeIn">
       <div className="max-w-4xl mx-auto space-y-5">
         <div className="text-center">
-          <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+          <span className="px-3.5 py-1 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase tracking-wider">
             AI Travel Companion
           </span>
           <h1 className="text-3xl font-extrabold text-gray-900 mt-2 flex items-center justify-center gap-2">
@@ -153,20 +153,20 @@ export default function ChatBot() {
               key={idx}
               onClick={() => handleSend(qp.prompt)}
               disabled={sending}
-              className="text-xs font-bold bg-white text-purple-900 hover:bg-purple-50 border border-purple-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 transition-all shadow-sm hover:border-purple-400"
+              className="text-xs font-bold bg-white text-primary-900 hover:bg-primary-50 border border-primary-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 transition-all shadow-sm hover:border-primary-400"
             >
               {qp.label}
             </button>
           ))}
         </div>
 
-        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-purple-100 shadow-2xl rounded-3xl bg-white">
-          <div className="bg-gradient-to-r from-purple-900 via-purple-800 to-rose-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
+        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-primary-100 shadow-2xl rounded-3xl bg-white">
+          <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
                 Himal AI Travel Sentinel 🙏
               </h2>
-              <p className="text-xs text-purple-200">
+              <p className="text-xs text-primary-100">
                 Connected to Knowledge Engine, Road Corridors & Visual Media Database
               </p>
             </div>
@@ -191,7 +191,7 @@ export default function ChatBot() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-5 py-3.5 whitespace-pre-wrap text-sm leading-relaxed shadow-sm ${
                     message.role === "user"
-                      ? "bg-purple-700 text-white rounded-br-none"
+                      ? "bg-primary-600 text-white rounded-br-none"
                       : "bg-white text-gray-800 border border-gray-100 rounded-bl-none shadow"
                   }`}
                 >
@@ -200,8 +200,8 @@ export default function ChatBot() {
 
                 {/* 1. Distance & Transit Route Card */}
                 {message.distance_cards && (
-                  <div className="max-w-[85%] mt-3 w-full bg-gradient-to-br from-purple-900 via-purple-950 to-slate-900 text-white p-4 rounded-2xl border border-purple-700 shadow-lg space-y-3">
-                    <div className="flex justify-between items-center border-b border-purple-700/60 pb-2">
+                  <div className="max-w-[85%] mt-3 w-full bg-gradient-to-br from-primary-900 via-stone-900 to-stone-950 text-white p-4 rounded-2xl border border-primary-700 shadow-lg space-y-3">
+                    <div className="flex justify-between items-center border-b border-primary-700/60 pb-2">
                       <h4 className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
                         <FiTruck /> {message.distance_cards.origin} ➔ {message.distance_cards.destination}
                       </h4>
@@ -211,25 +211,25 @@ export default function ChatBot() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Road Distance:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Road Distance:</span>
                         <p className="font-black text-white text-xs mt-0.5">{message.distance_cards.road_distance_km} km</p>
                       </div>
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Driving Time:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Driving Time:</span>
                         <p className="font-black text-amber-300 text-xs mt-0.5">{message.distance_cards.estimated_drive_time}</p>
                       </div>
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Public Bus:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Public Bus:</span>
                         <p className="font-black text-emerald-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_bus_npr?.toLocaleString()}</p>
                       </div>
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Private Jeep:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Private Jeep:</span>
                         <p className="font-black text-cyan-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_jeep_npr?.toLocaleString()}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 text-[10px] text-purple-200">
+                    <div className="flex items-center justify-between pt-1 text-[10px] text-primary-100">
                       <span>Corridor: <b>{message.distance_cards.highway_corridor}</b></span>
                       <Link
                         to={`/navigation?origin=${encodeURIComponent(message.distance_cards.origin)}&dest=${encodeURIComponent(message.distance_cards.destination)}`}
@@ -243,10 +243,10 @@ export default function ChatBot() {
 
                 {/* 2. Structured Itinerary Card */}
                 {message.itinerary_cards && message.itinerary_cards.schedule && (
-                  <div className="max-w-[85%] mt-3 w-full bg-white p-4 rounded-2xl border border-purple-100 shadow-lg space-y-3">
+                  <div className="max-w-[85%] mt-3 w-full bg-white p-4 rounded-2xl border border-primary-100 shadow-lg space-y-3">
                     <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                       <div>
-                        <h4 className="font-bold text-xs text-purple-900 flex items-center gap-1.5">
+                        <h4 className="font-bold text-xs text-primary-900 flex items-center gap-1.5">
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
                         <p className="text-[10px] text-gray-500">
@@ -255,7 +255,7 @@ export default function ChatBot() {
                       </div>
                       <Link
                         to="/itinerary"
-                        className="px-3 py-1 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-[10px] font-bold"
+                        className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-bold"
                       >
                         Customize Itinerary ➔
                       </Link>
@@ -266,7 +266,7 @@ export default function ChatBot() {
                         <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
                           <div className="flex justify-between font-bold text-gray-900">
                             <span>{item.title}</span>
-                            <span className="text-purple-700 font-mono">NPR {item.daily_budget_npr?.toLocaleString()}</span>
+                            <span className="text-primary-700 font-mono">NPR {item.daily_budget_npr?.toLocaleString()}</span>
                           </div>
                           <p className="text-[10px] text-gray-600 mt-0.5">{item.highlights}</p>
                         </div>
@@ -278,12 +278,12 @@ export default function ChatBot() {
                 {/* 3. Verified Photo Gallery Cards */}
                 {message.image_cards && message.image_cards.length > 0 && (
                   <div className="max-w-[85%] mt-3 w-full space-y-1.5">
-                    <p className="text-[11px] font-bold text-purple-900 flex items-center gap-1">
+                    <p className="text-[11px] font-bold text-primary-900 flex items-center gap-1">
                       <FiImage /> Verified Photos & Attribution Credits:
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {message.image_cards.map((img, i) => (
-                        <div key={i} className="rounded-xl overflow-hidden border border-purple-100 bg-white shadow-sm flex flex-col justify-between">
+                        <div key={i} className="rounded-xl overflow-hidden border border-primary-100 bg-white shadow-sm flex flex-col justify-between">
                           <div className="h-24 w-full relative bg-slate-900 overflow-hidden">
                             <img src={img.url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                             <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[9px] font-bold">
@@ -306,7 +306,7 @@ export default function ChatBot() {
                     {message.destination_cards.map((card, i) => (
                       <div
                         key={i}
-                        className="bg-white rounded-2xl overflow-hidden border border-purple-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow"
+                        className="bg-white rounded-2xl overflow-hidden border border-primary-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow"
                       >
                         <div className="h-32 w-full relative overflow-hidden bg-black">
                           <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
@@ -323,7 +323,7 @@ export default function ChatBot() {
                           <div className="flex gap-1.5 pt-1">
                             <Link
                               to={`/destinations/${card.slug}`}
-                              className="flex-1 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-center text-[10px] font-bold transition-colors"
+                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-[10px] font-bold transition-colors"
                             >
                               View Details
                             </Link>
@@ -368,8 +368,8 @@ export default function ChatBot() {
             ))}
 
             {sending && (
-              <div className="flex items-center gap-2 text-xs text-purple-700 font-bold italic">
-                <span className="w-2 h-2 rounded-full bg-purple-600 animate-bounce"></span>
+              <div className="flex items-center gap-2 text-xs text-primary-700 font-bold italic">
+                <span className="w-2 h-2 rounded-full bg-primary-600 animate-bounce"></span>
                 Himal AI is researching knowledge engine, routes, and verified images...
               </div>
             )}
@@ -395,7 +395,7 @@ export default function ChatBot() {
             <button
               type="submit"
               disabled={sending || !input.trim()}
-              className="btn-primary px-6 flex items-center justify-center bg-purple-700 hover:bg-purple-800 transition-colors disabled:opacity-50"
+              className="btn-primary px-6 flex items-center justify-center bg-primary-600 hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               <FiSend size={18} />
             </button>

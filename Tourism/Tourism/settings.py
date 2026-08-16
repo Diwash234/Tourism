@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "booking",
     "chatbot",
     "safety",
+    "audit",            # Audit logs + error tracking (finds mistakes)
+    "system_health",    # Live diagnostics & health snapshots
     # "notifications",
     # "media_app",
     # "translations",
@@ -53,6 +55,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "audit.middleware.AuditMiddleware",   # logs every request + error to AuditLog/ErrorEvent
     "tourist.middleware.GeoIPMiddleware",
 ]
 
@@ -327,6 +330,27 @@ LOCAL_TRANSLATION_LANGUAGE_CODES = config(
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": "INFO"},
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "audit_db": {
+            "class": "audit.logging_services.AuditDBHandler",
+            "level": "WARNING",
+        },
+    },
+    "root": {"handlers": ["console", "audit_db"], "level": "INFO"},
+    "loggers": {
+        "django.request": {"handlers": ["console", "audit_db"], "level": "ERROR", "propagate": False},
+        "django.security": {"handlers": ["console", "audit_db"], "level": "WARNING", "propagate": False},
+        "tourist": {"handlers": ["console", "audit_db"], "level": "INFO", "propagate": False},
+        "audit": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
 }

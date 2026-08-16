@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { FiMapPin, FiCompass, FiPlus, FiCpu, FiArrowRight, FiSearch } from "react-icons/fi"
+import { FiMapPin, FiPlus, FiSearch } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
@@ -9,58 +9,143 @@ import userApi from "../../api/userApi"
 import DestinationCard from "../../components/cards/DestinationCard"
 import DestinationCardSkeleton from "../../components/cards/DestinationCardSkeleton"
 import SearchBar from "../../components/common/SearchBar"
-import Filter from "../../components/common/Filter"
 import Pagination from "../../components/common/Pagination"
-import Loader from "../../components/common/Loader"
-import EmptyState from "../../components/common/EmptyState"
 import Breadcrumbs from "../../components/common/Breadcrumbs"
 
 import useGeolocation from "../../hooks/useGeolocation"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
-import { PAGE_SIZE } from "../../utils/constants"
 
-const CATEGORY_OPTIONS = [
-  { label: "All Categories", value: "" },
-  { label: "🏔️ Mountains & Trekking", value: "mountains" },
-  { label: "🌊 Lakes & Water", value: "lakes" },
-  { label: "🐅 Forest & Wildlife", value: "wildlife" },
-  { label: "🏛️ Heritage & Temples", value: "heritage" },
-  { label: "🪂 Adventure Sports", value: "adventure" },
-  { label: "📸 Photography Spots", value: "photography" },
+// Nepal palette
+const GREEN = "#1f6b4d"
+const GREEN_DARK = "#174f38"
+const TERRACOTTA = "#c2603a"
+const GOLD = "#b8862f"
+const WARM_BG = "#faf8f4"
+const INK = "#1f3329"
+
+const PAGE_SIZE = 12
+
+// Top-level type chips
+const TYPE_OPTIONS = [
+  { label: "🏔️ Attractions", value: "attraction" },
+  { label: "🏨 Hotels & Stays", value: "hotel" },
+  { label: "🌐 All Places", value: "all" },
 ]
+
+// Fine-grained category chips (work on top of type=attraction)
+// Values map directly to the 36-category backend taxonomy slugs
+const CATEGORY_CHIPS = [
+  { label: "All", value: "", icon: "✨" },
+  { label: "Mountains", value: "mountains", icon: "🏔️" },
+  { label: "Hills", value: "hills", icon: "⛰️" },
+  { label: "Trekking", value: "trekking", icon: "🥾" },
+  { label: "Lakes", value: "lakes", icon: "🌊" },
+  { label: "Rivers", value: "rivers", icon: "🏞️" },
+  { label: "Waterfalls", value: "waterfalls", icon: "💧" },
+  { label: "Caves", value: "caves", icon: "🕳️" },
+  { label: "Viewpoints", value: "viewpoints", icon: "🔭" },
+  { label: "Valleys", value: "valleys", icon: "🌄" },
+  { label: "Temples", value: "temples", icon: "🛕" },
+  { label: "Buddhist Sites", value: "buddhist-sites", icon: "☸️" },
+  { label: "Pilgrimage", value: "pilgrimage", icon: "🙏" },
+  { label: "Heritage", value: "heritage", icon: "🏛️" },
+  { label: "Museums", value: "museums", icon: "🖼️" },
+  { label: "Wildlife", value: "wildlife", icon: "🐅" },
+  { label: "Bird Watching", value: "bird-watching", icon: "🦜" },
+  { label: "Forests", value: "forests", icon: "🌳" },
+  { label: "National Parks", value: "eco-tourism", icon: "🌿" },
+  { label: "Villages", value: "villages", icon: "🏡" },
+  { label: "Cities", value: "cities", icon: "🏙️" },
+  { label: "Tea & Coffee", value: "tea-coffee", icon: "🍃" },
+  { label: "Adventure", value: "adventure", icon: "🧗" },
+  { label: "Air Sports", value: "air-sports", icon: "🪂" },
+  { label: "Water Sports", value: "water-sports", icon: "🚣" },
+  { label: "Camping", value: "camping", icon: "⛺" },
+  { label: "Cycling", value: "cycling", icon: "🚴" },
+  { label: "Hot Springs", value: "hot-springs", icon: "♨️" },
+  { label: "Winter/Snow", value: "winter", icon: "❄️" },
+  { label: "Festivals", value: "festivals", icon: "🎉" },
+  { label: "Culture", value: "culture", icon: "🎭" },
+  { label: "Food", value: "food-culinary", icon: "🍛" },
+  { label: "Shopping", value: "shopping", icon: "🛍️" },
+  { label: "Scenic Routes", value: "scenic-routes", icon: "🛣️" },
+  { label: "Natural Wonders", value: "natural-wonders", icon: "🌟" },
+]
+
+// Map chip -> backend category slug (matches new 36-taxonomy slugs directly)
+const CHIP_TO_PARAMS = {}
+CATEGORY_CHIPS.forEach((c) => {
+  if (c.value) CHIP_TO_PARAMS[c.value] = { category: c.value }
+})
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
+
+function chipToQuery(chip) {
+  return CHIP_TO_PARAMS[chip] || {}
+}
 
 export default function DestinationList() {
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const initialQuery = searchParams.get("q") || ""
+  const initialLetter = searchParams.get("letter") || ""
+  const initialChip = searchParams.get("cat") || ""
+  const initialType = searchParams.get("type") || "attraction"
 
   const [destinations, setDestinations] = useState([])
   const [totalPages, setTotalPages] = useState(1)
-  const [page, setPage] = useState(1)
-  const [category, setCategory] = useState("")
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(parseInt(searchParams.get("page") || "1", 10))
+  const [categoryChip, setCategoryChip] = useState(initialChip)
+  const [type, setType] = useState(initialType)
   const [query, setQuery] = useState(initialQuery)
+  const [letter, setLetter] = useState(initialLetter)
   const [favoriteMap, setFavoriteMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [researching, setResearching] = useState(false)
 
   const { position } = useGeolocation()
 
+  // Sync URL with filter state
+  useEffect(() => {
+    const sp = new URLSearchParams()
+    if (query) sp.set("q", query)
+    if (letter) sp.set("letter", letter)
+    if (categoryChip) sp.set("cat", categoryChip)
+    if (type && type !== "attraction") sp.set("type", type)
+    if (page > 1) sp.set("page", String(page))
+    setSearchParams(sp, { replace: true })
+  }, [query, letter, categoryChip, type, page, setSearchParams])
+
+  // Fetch destinations
   useEffect(() => {
     setLoading(true)
 
+    const chipParams = chipToQuery(categoryChip)
+
     const params = {
       page,
-      limit: 12,
+      limit: PAGE_SIZE,
+      type,
+      ordering: "name",
     }
 
-    if (category) params.category = category
+    if (chipParams.category) params.category = chipParams.category
     if (query) {
       params.search = query
       params.q = query
+    }
+    // Keyword search from chip
+    if (chipParams.search && !query) {
+      params.search = chipParams.search
+    }
+    if (letter) {
+      // ?search is combined with name istartswith filter — use starts-with via search
+      params.search = params.search ? `${params.search} ${letter}` : letter
     }
     if (position) {
       params.latitude = position.lat
@@ -71,22 +156,31 @@ export default function DestinationList() {
       .getAll(params)
       .then(({ data }) => {
         const results = data.results || data || []
-        setDestinations(results)
+        // Client-side letter filter (backend search is contains-only; we need istartswith)
+        let filtered = results
+        if (letter) {
+          filtered = results.filter((d) =>
+            (d.name || "").toUpperCase().startsWith(letter.toUpperCase())
+          )
+        }
+        setDestinations(filtered)
         setTotalPages(
           data.total_pages ||
           data.totalPages ||
-          Math.ceil((data.count || results.length) / 12) ||
+          Math.ceil((data.count || results.length) / PAGE_SIZE) ||
           1
         )
+        setTotalCount(data.count || results.length)
       })
       .catch(() => {
         setDestinations([])
         setTotalPages(1)
+        setTotalCount(0)
       })
       .finally(() => {
         setLoading(false)
       })
-  }, [page, category, query, position])
+  }, [page, categoryChip, type, query, letter, position])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -110,9 +204,7 @@ export default function DestinationList() {
     if (!isAuthenticated) {
       return showToast("Please login to save favorites", "info")
     }
-
     const recordId = favoriteMap[destId]
-
     try {
       if (recordId) {
         await userApi.removeFavorite(recordId)
@@ -132,7 +224,6 @@ export default function DestinationList() {
     }
   }
 
-  // Trigger Research when searching uncataloged place
   const handleResearchQuery = async () => {
     if (!query) return
     setResearching(true)
@@ -144,71 +235,156 @@ export default function DestinationList() {
       } else {
         showToast(data.message || "Destination researched!", "info")
       }
-    } catch (err) {
+    } catch {
       showToast("Research service error. Try another place name.", "error")
     } finally {
       setResearching(false)
     }
   }
 
+  const fetchSuggestions = useCallback(async (q, signal) => {
+    try {
+      const res = await destinationApi.autocomplete(q, { type: type === "hotel" ? "hotel" : "attraction" })
+      if (signal?.aborted) return []
+      return res.data?.results || res.data || []
+    } catch {
+      return []
+    }
+  }, [type])
+
+  const chipActive = "text-white shadow-md"
+  const chipIdle = "bg-white text-[#1f6b4d] border border-[#1f6b4d]/30 hover:bg-[#1f6b4d]/5"
+  const catActive = "bg-[#c2603a] text-white border border-[#c2603a] shadow"
+  const catIdle = "bg-white text-[#1f3329] border border-[#1f6b4d]/20 hover:border-[#1f6b4d]/60"
+
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
+    <div className="container-app py-6 sm:py-8 space-y-6 animate-fadeIn">
       <Breadcrumbs items={[{ label: "Destinations Explorer", to: "/destinations" }]} />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+      {/* Hero header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1f6b4d]/20 pb-4">
         <div>
-          <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+          <span className="px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider"
+                style={{ background: `${TERRACOTTA}15`, color: TERRACOTTA }}>
             Himalayan Atlas
           </span>
-          <h1 className="text-3xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
-            <FiMapPin className="text-purple-700" /> Explore Nepal Destinations
+          <h1 className="text-3xl md:text-4xl font-extrabold mt-1 flex items-center gap-2"
+              style={{ color: INK, fontFamily: 'ui-serif, Georgia, "Noto Serif Devanagari", serif' }}>
+            <FiMapPin style={{ color: TERRACOTTA }} /> Explore Nepal
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Over 5,800+ verified mountain passes, cultural heritage temples, serene lakes, and hidden valleys.
+          <p className="text-gray-600 text-sm mt-1 max-w-xl">
+            Discover real temples, stupas, caves, lakes, Himalayan viewpoints, national parks and
+            heritage sites across Nepal's 7 provinces.
           </p>
         </div>
 
         <Link
           to="/destinations/submit"
-          className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all shrink-0"
+          className="px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all hover:scale-[1.02] shrink-0"
+          style={{ background: GREEN, boxShadow: `0 10px 24px -10px ${GREEN}` }}
         >
           <FiPlus size={16} /> Submit a Place
         </Link>
       </div>
 
-      {/* Search & Category Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <SearchBar
-          className="flex-1"
-          defaultValue={initialQuery}
-          placeholder="Search by name, city, temple, trek (e.g. Swargadwari, Waling, Pokhara, Everest)..."
-          onSearch={(val) => {
-            setQuery(val)
-            setPage(1)
-          }}
-        />
-
-        <Filter
-          options={CATEGORY_OPTIONS}
-          value={category}
-          onChange={(val) => {
-            setCategory(val)
-            setPage(1)
-          }}
-          placeholder="All Categories"
-        />
+      {/* Type chips */}
+      <div className="flex flex-wrap gap-2">
+        {TYPE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => { setType(opt.value); setPage(1); setCategoryChip("") }}
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${type === opt.value ? chipActive : chipIdle}`}
+            style={type === opt.value ? { background: GREEN } : {}}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
-      {/* Grid or Skeleton or Research Prompt */}
+      {/* Search bar with autocomplete */}
+      <SearchBar
+        className="flex-1"
+        defaultValue={initialQuery}
+        placeholder="Search by name, district (e.g. Mahendra Cave, Phewa, Rara, Pathibhara)…"
+        fetchSuggestions={fetchSuggestions}
+        onSearch={(val) => {
+          setQuery(val)
+          setPage(1)
+          setLetter("")
+        }}
+      />
+
+      {/* Category chips */}
+      {type !== "hotel" && (
+        <div className="flex flex-wrap gap-2">
+          {CATEGORY_CHIPS.map((c) => (
+            <button
+              key={c.value}
+              onClick={() => { setCategoryChip(c.value); setPage(1); setLetter("") }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border ${categoryChip === c.value ? catActive : catIdle}`}
+            >
+              <span className="mr-1">{c.icon}</span>{c.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* A-Z alphabet bar for quick browsing */}
+      {type === "attraction" && !query && (
+        <div className="flex flex-wrap items-center gap-1.5 px-1">
+          <span className="text-[10px] font-black uppercase tracking-wider mr-1" style={{ color: GOLD }}>
+            A–Z:
+          </span>
+          <button
+            onClick={() => { setLetter(""); setPage(1) }}
+            className={`w-7 h-7 rounded-md text-[11px] font-black transition ${letter === "" ? "text-white" : "text-[#1f6b4d] hover:bg-[#1f6b4d]/10"}`}
+            style={letter === "" ? { background: GREEN } : {}}
+          >
+            All
+          </button>
+          {ALPHABET.map((L) => (
+            <button
+              key={L}
+              onClick={() => { setLetter(L); setPage(1) }}
+              className={`w-6 h-7 rounded-md text-[11px] font-bold transition ${letter === L ? "text-white" : "text-[#1f6b4d] hover:bg-[#1f6b4d]/10"}`}
+              style={letter === L ? { background: TERRACOTTA } : {}}
+            >
+              {L}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Results meta */}
+      {!loading && (
+        <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+          <span>
+            Showing <b style={{ color: INK }}>{totalCount.toLocaleString()}</b> places
+            {query && <> for "<b style={{ color: TERRACOTTA }}>{query}</b>"</>}
+            {letter && <> starting with <b style={{ color: TERRACOTTA }}>{letter}</b></>}
+          </span>
+          {(query || letter || categoryChip) && (
+            <button
+              onClick={() => { setQuery(""); setLetter(""); setCategoryChip(""); setPage(1) }}
+              className="text-[#c2603a] font-bold hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <DestinationCardSkeleton key={i} />
-          ))}
+          {[...Array(6)].map((_, i) => <DestinationCardSkeleton key={i} />)}
         </div>
       ) : destinations.length > 0 ? (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
             {destinations.map((d) => (
               <DestinationCard
                 key={d.id}
@@ -217,40 +393,46 @@ export default function DestinationList() {
                 onToggleFavorite={() => handleToggleFavorite(d.id)}
               />
             ))}
-          </div>
+          </motion.div>
 
           {totalPages > 1 && (
             <div className="flex justify-center pt-4">
               <Pagination
                 currentPage={page}
-                totalPages={totalPages}
-                onPageChange={(p) => setPage(p)}
+                totalPages={Math.min(totalPages, 100)}
+                onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
               />
             </div>
           )}
         </div>
       ) : (
-        /* Research & Discovery Card when no local match exists */
-        <div className="card-base p-8 sm:p-12 text-center max-w-xl mx-auto space-y-5 border border-purple-200 bg-gradient-to-br from-white to-purple-50/70 rounded-3xl shadow-2xl">
-          <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-700 mx-auto flex items-center justify-center font-black text-2xl shadow-sm">
+        <div className="p-8 sm:p-12 text-center max-w-xl mx-auto space-y-5 border rounded-3xl shadow-2xl"
+             style={{
+               borderColor: "rgba(31,107,77,0.3)",
+               background: `linear-gradient(135deg, #ffffff, ${WARM_BG})`,
+             }}>
+          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center font-black text-2xl shadow-sm"
+               style={{ background: `${TERRACOTTA}15`, color: TERRACOTTA }}>
             ✨
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-extrabold text-2xl text-gray-900">
-              Destination Not Found in Local Index
+            <h3 className="font-extrabold text-2xl" style={{ color: INK }}>
+              Destination Not Found
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-              Would you like the <b>AI Destination Discovery Sentinel</b> to research and assemble a verified record for <b>"{query || "this destination"}"</b> from Nepal Tourism Board, municipal archives, and Wikimedia?
+            <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+              No matching attractions yet. Try the AI Discovery to research and verify{` `}
+              <b style={{ color: TERRACOTTA }}>"{query || letter || "this destination"}"</b>?
             </p>
           </div>
 
           <button
             onClick={handleResearchQuery}
             disabled={researching || !query}
-            className="btn-primary px-8 py-3.5 bg-gradient-to-r from-purple-700 to-rose-600 hover:from-purple-800 hover:to-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+            className="px-8 py-3.5 text-white font-black text-sm rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+            style={{ background: GREEN }}
           >
-            {researching ? "Researching & Collecting Verified Data..." : `Research & Discover "${query || "Place"}" with AI ➔`}
+            {researching ? "Researching..." : `Research "${query || "Place"}" ➔`}
           </button>
         </div>
       )}

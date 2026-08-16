@@ -40,43 +40,47 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug"]
+    list_display = ["name", "slug", "destination_count"]
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ["name"]
 
+    def destination_count(self, obj):
+        return obj.destinations.count()
+    destination_count.short_description = "Destinations"
 
+
+# ---------------------------------------------------------------------------
+# Destination image moderation inline
+# ---------------------------------------------------------------------------
 class DestinationImageInline(admin.TabularInline):
     model = DestinationImage
-    extra = 1
-    fields = ["image", "external_url", "caption", "is_cover", "source", "uploaded_by", "is_promoted", "view_count"]
-    readonly_fields = ["view_count"]
-
-
-@admin.register(Hotel)
-class HotelAdmin(admin.ModelAdmin):
-    list_display = ["name", "destination", "image_preview", "booking_status", "price_per_night", "currency", "rating", "source"]
-    list_filter = ["booking_status", "source", "currency"]
-    search_fields = ["name", "destination__name", "address"]
-    readonly_fields = ["image_preview_large"]
+    extra = 0
     fields = [
-        "destination", "name", "image", "image_preview_large",
-        "price_per_night", "currency", "rating", "booking_status", "booking_url",
-        "address", "latitude", "longitude", "source", "phone",
+        "thumbnail", "image", "external_url", "caption",
+        "is_cover", "source", "verification_status",
+        "is_verified", "authenticity_score",
+        "uploaded_by", "view_count",
     ]
+    readonly_fields = ["thumbnail", "view_count"]
+    ordering = ["-is_cover", "-created_at"]
+    max_num = 20
 
-    @admin.display(description="Image")
-    def image_preview(self, obj):
-        """Small thumbnail in the list view -- upload via the `image` field, this just renders it."""
-        if obj.image:
-            return format_html('<img src="{}" style="height:40px;border-radius:4px;" />', obj.image.url)
+    def thumbnail(self, obj):
+        url = None
+        if obj.external_url:
+            url = obj.external_url
+        elif obj.image:
+            try:
+                url = obj.image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="height:60px;width:60px;object-fit:cover;border-radius:6px;" />',
+                url,
+            )
         return "—"
-
-    @admin.display(description="Current image")
-    def image_preview_large(self, obj):
-        """Larger preview on the detail/edit page, right below the upload field."""
-        if obj.image:
-            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', obj.image.url)
-        return "No image uploaded yet."
+    thumbnail.short_description = "Preview"
 
 
 class DestinationVideoInline(admin.TabularInline):
@@ -86,26 +90,84 @@ class DestinationVideoInline(admin.TabularInline):
 
 @admin.register(Destination)
 class DestinationAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "city", "status", "is_user_submitted", "average_rating", "views_count", "is_active", "created_at"]
-    list_filter = ["category", "country", "status", "is_user_submitted", "is_active"]
-    search_fields = ["name", "city", "country", "description"]
+    list_display = [
+        "name", "cover_thumb", "category", "city", "district",
+        "status", "image_count", "average_rating", "views_count", "is_active",
+    ]
+    list_filter = ["category", "country", "province", "district", "status", "is_active"]
+    search_fields = ["name", "slug", "city", "district", "province", "description"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [DestinationImageInline, DestinationVideoInline]
-    readonly_fields = ["average_rating", "ratings_count", "views_count", "created_at", "updated_at", "cover_image_preview"]
+    readonly_fields = [
+        "average_rating", "ratings_count", "views_count",
+        "created_at", "updated_at", "cover_image_preview", "cover_image_url_preview",
+    ]
+    list_per_page = 50
+    actions = [
+        "approve_selected",
+        "reject_selected",
+        "reassign_covers_action",
+    ]
 
-    @admin.display(description="Cover image preview")
+    def cover_thumb(self, obj):
+        """Tiny cover preview in the list view so admins can spot wrong-category images at a glance."""
+        url = None
+        cover = obj.gallery.filter(is_cover=True).first()
+        if cover and cover.external_url:
+            url = cover.external_url
+        elif cover and cover.image:
+            try:
+                url = cover.image.url
+            except Exception:
+                url = None
+        elif obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="height:44px;width:64px;object-fit:cover;border-radius:4px;" />',
+                url,
+            )
+        return "—"
+    cover_thumb.short_description = "Cover"
+
+    def image_count(self, obj):
+        return obj.gallery.count()
+    image_count.short_description = "#Images"
+
     def cover_image_preview(self, obj):
-        """
-        Shows the current cover_image (uploaded here in admin, or already
-        auto-fetched via ensure_cover_photo) so you can see what's live
-        without leaving the admin page. Upload/replace it using the
-        existing `cover_image` field elsewhere on this form -- this is
-        read-only, just a preview.
-        """
-        if obj.cover_image:
-            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', obj.cover_image.url)
-        return "No cover image uploaded yet (may still show a fetched one from Unsplash/Wikimedia on the live site)."
-    actions = ["approve_selected", "reject_selected"]
+        """Big cover preview on the edit page."""
+        url = None
+        cover = obj.gallery.filter(is_cover=True).first()
+        if cover and cover.external_url:
+            url = cover.external_url
+        elif cover and cover.image:
+            try:
+                url = cover.image.url
+            except Exception:
+                url = None
+        elif obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="max-height:220px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);" />'
+                '<p style="color:#666;font-size:12px;">Current cover (upload replacement in inline below).</p>',
+                url,
+            )
+        return "No cover image yet."
+    cover_image_preview.short_description = "Current cover image"
+
+    def cover_image_url_preview(self, obj):
+        cover = obj.gallery.filter(is_cover=True).first()
+        if cover and cover.external_url:
+            return cover.external_url
+        return ""
+    cover_image_url_preview.short_description = "Cover URL"
 
     @admin.action(description="Approve selected pending submissions")
     def approve_selected(self, request, queryset):
@@ -116,6 +178,184 @@ class DestinationAdmin(admin.ModelAdmin):
     def reject_selected(self, request, queryset):
         updated = queryset.update(status=Destination.SubmissionStatus.REJECTED, is_active=False)
         self.message_user(request, f"{updated} destination(s) rejected.")
+
+    @admin.action(description="Reassign deterministic cover + 6 gallery photos (from catalog)")
+    def reassign_covers_action(self, request, queryset):
+        """Run the photo_catalog resolver on just the selected destinations."""
+        from . import photo_catalog
+        processed = 0
+        for dest in queryset:
+            # Clear any existing auto-assigned covers first
+            dest.gallery.filter(
+                source__in=[
+                    DestinationImage.Source.UNSPLASH,
+                    DestinationImage.Source.REFERENCE,
+                ],
+                is_cover=True,
+            ).update(is_cover=False)
+
+            try:
+                cover = photo_catalog.resolve_cover_photo(dest)
+            except Exception as exc:  # noqa: BLE001
+                self.message_user(
+                    request, f"Cover resolution failed for {dest.name}: {exc}",
+                    level="error",
+                )
+                continue
+            gallery = photo_catalog.resolve_gallery_photos(dest, target=6)
+
+            seen_urls = set(
+                dest.gallery.values_list("external_url", flat=True),
+            )
+            # Add cover
+            if cover.get("url") and cover["url"] not in seen_urls:
+                _make_image(dest, cover, is_cover=True)
+            elif cover.get("url"):
+                dest.gallery.filter(external_url=cover["url"]).update(is_cover=True)
+            seen_urls.add(cover.get("url"))
+
+            for photo in gallery:
+                u = photo.get("url")
+                if u and u not in seen_urls:
+                    _make_image(dest, photo, is_cover=False)
+                    seen_urls.add(u)
+            processed += 1
+        self.message_user(
+            request,
+            f"Re-assigned photos for {processed} destination(s) using curated catalog.",
+        )
+
+
+def _make_image(dest, photo, *, is_cover):
+    """Helper that creates a DestinationImage row from a photo_catalog dict."""
+    url = photo.get("url", "")
+    if not url:
+        return
+    if url.startswith("/images/"):
+        source = DestinationImage.Source.REFERENCE
+        authenticity = 0.95
+    elif "images.unsplash.com" in url:
+        source = DestinationImage.Source.UNSPLASH
+        authenticity = 0.65
+    else:
+        source = DestinationImage.Source.UNSPLASH
+        authenticity = 0.5
+    DestinationImage.objects.get_or_create(
+        destination=dest,
+        external_url=url,
+        defaults=dict(
+            thumbnail_url=photo.get("thumb", url),
+            caption=(photo.get("caption", "") or "")[:200],
+            is_cover=is_cover,
+            source=source,
+            source_url=photo.get("source_url", "")[:500],
+            photographer=(photo.get("author", "") or "")[:150],
+            license_type=(photo.get("license", "") or "")[:100],
+            copyright_status="verified_reusable",
+            image_category="cover" if is_cover else "gallery",
+            verification_status=DestinationImage.ImageStatus.APPROVED,
+            is_verified=True,
+            authenticity_score=authenticity,
+            quality_score=0.8,
+            attribution=(photo.get("author", "") or "")[:120],
+        ),
+    )
+
+
+@admin.register(DestinationImage)
+class DestinationImageAdmin(admin.ModelAdmin):
+    list_display = ["thumbnail", "destination", "is_cover", "source", "verification_status", "is_verified", "view_count", "created_at"]
+    list_filter = ["is_cover", "source", "verification_status", "is_verified"]
+    search_fields = ["destination__name", "caption", "external_url"]
+    list_per_page = 100
+    actions = ["approve_selected_images", "reject_selected_images", "mark_verified"]
+    readonly_fields = ["thumbnail_large", "view_count", "phash", "quality_score", "authenticity_score", "overall_score"]
+
+    def thumbnail(self, obj):
+        url = None
+        if obj.external_url:
+            url = obj.external_url
+        elif obj.image:
+            try:
+                url = obj.image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html(
+                '<img src="{}" style="height:44px;width:64px;object-fit:cover;border-radius:4px;" />', url,
+            )
+        return "—"
+    thumbnail.short_description = "Thumb"
+
+    def thumbnail_large(self, obj):
+        url = None
+        if obj.external_url:
+            url = obj.external_url
+        elif obj.image:
+            try:
+                url = obj.image.url
+            except Exception:
+                url = None
+        if url:
+            return format_html('<img src="{}" style="max-height:300px;border-radius:8px;" />', url)
+        return "—"
+    thumbnail_large.short_description = "Full preview"
+
+    @admin.action(description="Approve selected images")
+    def approve_selected_images(self, request, qs):
+        n = qs.update(verification_status=DestinationImage.ImageStatus.APPROVED, is_verified=True)
+        self.message_user(request, f"{n} images approved.")
+
+    @admin.action(description="Reject selected images")
+    def reject_selected_images(self, request, qs):
+        n = qs.update(verification_status=DestinationImage.ImageStatus.REJECTED, is_verified=False)
+        self.message_user(request, f"{n} images rejected.")
+
+    @admin.action(description="Mark as verified")
+    def mark_verified(self, request, qs):
+        n = qs.update(is_verified=True, verification_status=DestinationImage.ImageStatus.APPROVED)
+        self.message_user(request, f"{n} images marked verified.")
+
+
+@admin.register(Hotel)
+class HotelAdmin(admin.ModelAdmin):
+    list_display = ["name", "destination", "image_preview", "booking_status", "price_per_night", "currency", "rating", "source"]
+    list_filter = ["booking_status", "source", "currency"]
+    search_fields = ["name", "destination__name", "address"]
+    readonly_fields = ["image_preview_large"]
+    fields = [
+        "destination", "name", "image", "external_image_url", "image_preview_large",
+        "price_per_night", "currency", "rating", "booking_status", "booking_url",
+        "facilities", "address", "latitude", "longitude", "source", "phone",
+    ]
+
+    @admin.display(description="Image")
+    def image_preview(self, obj):
+        url = None
+        if obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if not url and obj.external_image_url:
+            url = obj.external_image_url
+        if url:
+            return format_html('<img src="{}" style="height:40px;border-radius:4px;" />', url)
+        return "—"
+
+    @admin.display(description="Current image")
+    def image_preview_large(self, obj):
+        url = None
+        if obj.cover_image:
+            try:
+                url = obj.cover_image.url
+            except Exception:
+                url = None
+        if not url and obj.external_image_url:
+            url = obj.external_image_url
+        if url:
+            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', url)
+        return "No image yet."
 
 
 @admin.register(DestinationTranslation)
@@ -181,9 +421,10 @@ class MLInsightAdmin(admin.ModelAdmin):
     list_display = ["destination", "insight_type", "label", "score", "created_at"]
     list_filter = ["insight_type"]
 
-admin.site.site_header = "Local Tourism Information Portal Administration"
-admin.site.site_title = "Tourism Portal Admin"
-admin.site.index_title = "Manage Destinations, Alerts & Users"
+
+admin.site.site_header = "Nepal Tourism Platform — Administration"
+admin.site.site_title = "Nepal Tourism Admin"
+admin.site.index_title = "Manage Destinations, Images, Alerts & Users"
 
 
 @admin.register(OSMEssentialService)

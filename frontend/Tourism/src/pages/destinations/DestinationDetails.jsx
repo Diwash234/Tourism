@@ -26,6 +26,7 @@ import useToast from "../../hooks/useToast"
 import { RISK_LEVELS } from "../../utils/constants"
 import { formatCurrencyUSD, formatCurrencyNPR } from "../../utils/formatters"
 import { FadeIn, HoverCard } from "../../components/common/MotionSystem"
+import CircularGallery from "../../components/ui/CircularGallery"
 
 export default function DestinationDetails() {
   const { slug } = useParams()
@@ -122,7 +123,7 @@ export default function DestinationDetails() {
       <div className="container-app py-16 text-center text-gray-400 space-y-4">
         <h2 className="text-2xl font-bold text-gray-800">Destination Record Not Found</h2>
         <p className="text-sm text-gray-500">Search for this destination or use the AI Discovery tool to research and add it.</p>
-        <Link to="/destinations" className="btn-primary px-6 py-2.5 bg-purple-700 text-white rounded-xl font-bold">
+        <Link to="/destinations" className="btn-primary px-6 py-2.5 bg-primary-700 text-white rounded-xl font-bold">
           Explore All Destinations
         </Link>
       </div>
@@ -162,10 +163,10 @@ export default function DestinationDetails() {
   const authenticRegionalUrl = getDestinationImageUrl(destination)
   const defaultFallbacks = [
     { url: authenticRegionalUrl, caption: `${destination.name} - Scenic View`, category: "landscape", photographer: "Nepal Tourism Verified Media Archive", platform: "Official Tourism Database", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/annapurna/img1.jpg", caption: "Himalayan Alpine Trail", category: "mountain", photographer: "Alpine Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/pokhara/img1.jpg", caption: "Lakeside Mountain Panorama", category: "lake", photographer: "Pokhara Tourism Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/kathmandu/img1.jpg", caption: "Historic Pagoda Temple", category: "temple", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/mustang/img1.jpg", caption: "High Altitude Landscape", category: "landscape", photographer: "Trans-Himalayan Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80", caption: "Himalayan Alpine Trail", category: "mountain", photographer: "Alpine Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Lakeside Mountain Panorama", category: "lake", photographer: "Pokhara Tourism Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "https://images.unsplash.com/photo-1570192977-f48187449e48?w=1200&q=80", caption: "Historic Pagoda Temple", category: "temple", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&q=80", caption: "High Altitude Landscape", category: "landscape", photographer: "Trans-Himalayan Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
   ]
   while (allImages.length < 5) {
     allImages.push(defaultFallbacks[allImages.length % defaultFallbacks.length])
@@ -188,8 +189,8 @@ export default function DestinationDetails() {
       {/* Top Header & Destination Identification */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-purple-800">
-            <span className="bg-purple-100 px-3 py-1 rounded-full">{destination.category_name || "Destination"}</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-primary-800">
+            <span className="bg-primary-50 px-3 py-1 rounded-full">{destination.category_name || "Destination"}</span>
             <span>•</span>
             <span className="text-gray-600">{destination.municipality || destination.district}, {destination.province}</span>
             {destination.altitude && <span>• 🏔️ {destination.altitude}</span>}
@@ -200,13 +201,13 @@ export default function DestinationDetails() {
           </h1>
 
           {destination.aliases && (
-            <p className="text-xs text-purple-700 font-semibold mt-1">
+            <p className="text-xs text-primary-700 font-semibold mt-1">
               Also known as: <span className="text-gray-700 italic">{destination.aliases}</span>
             </p>
           )}
 
           <p className="text-gray-500 text-sm flex items-center gap-1.5 mt-1">
-            <FiMapPin className="text-purple-600" />
+            <FiMapPin className="text-primary-600" />
             {destination.address || destination.city}, {destination.district}, {destination.province || "Nepal"}
           </p>
         </div>
@@ -214,7 +215,7 @@ export default function DestinationDetails() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Link
             to={`/compare?dest=${encodeURIComponent(destination.slug)}`}
-            className="px-4 py-3 rounded-2xl bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-sm transition-all"
+            className="px-4 py-3 rounded-2xl bg-white hover:bg-primary-50 text-primary-900 border border-primary-200 font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-sm transition-all"
           >
             ⚖️ Compare
           </Link>
@@ -243,100 +244,54 @@ export default function DestinationDetails() {
         </div>
       </div>
 
-      {/* MULTI-IMAGE GALLERY (Interactive Slider + Copyright & License Attribution Pill) */}
-      <div className="space-y-3">
-        <div className="relative h-[400px] sm:h-[500px] rounded-3xl overflow-hidden shadow-2xl bg-black group">
-          <img
-            src={activeImage.url}
-            alt={activeImage.caption || destination.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 cursor-pointer"
-            onClick={() => setLightboxOpen(true)}
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
-
-          {/* Copyright & License Attribution Pill */}
-          <div className="absolute top-4 left-4 max-w-md bg-black/70 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white text-[11px] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="truncate">
-              <b>Photo:</b> {activeImage.photographer} · <b>Source:</b> {activeImage.platform} ({activeImage.license})
+      {/* CIRCULAR 3D PHOTO GALLERY + copyright pill */}
+      <div className="space-y-4">
+        <CircularGallery
+          title={destination.name}
+          images={allImages.map((img) => ({ url: img.url, alt: img.caption, caption: img.caption }))}
+          autoRotate
+          className="h-[460px] sm:h-[540px]"
+        />
+        <div className="flex items-center justify-between text-[11px] text-stone-500 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Lead photo: <b>{activeImage.photographer}</b>
             </span>
+            <span className="text-stone-300">·</span>
+            <span>{activeImage.platform}</span>
+            <span className="text-stone-300">·</span>
+            <span>{activeImage.license}</span>
           </div>
-
-          <div className="absolute top-4 right-4">
-            <button
-              onClick={() => setLightboxOpen(true)}
-              className="p-2.5 rounded-2xl bg-black/60 hover:bg-black/80 text-white backdrop-blur flex items-center gap-1.5 text-xs font-bold"
-            >
-              <FiMaximize2 size={14} /> Fullscreen Lightbox ({allImages.length} Photos)
-            </button>
-          </div>
-
-          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
-            <div>
-              <span className="px-3 py-1 rounded-full bg-amber-400 text-gray-950 font-black text-xs uppercase">
-                {activeImage.category}
-              </span>
-              <h3 className="font-extrabold text-base sm:text-lg text-white mt-1">{activeImage.caption}</h3>
-              <p className="text-xs text-white/80">Photo {activeImageIdx + 1} of {allImages.length}</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveImageIdx((p) => (p === 0 ? allImages.length - 1 : p - 1))}
-                className="p-3.5 rounded-full bg-white/30 hover:bg-white text-gray-900 backdrop-blur transition-all"
-              >
-                <FiChevronLeft size={18} />
-              </button>
-              <button
-                onClick={() => setActiveImageIdx((p) => (p === allImages.length - 1 ? 0 : p + 1))}
-                className="p-3.5 rounded-full bg-white/30 hover:bg-white text-gray-900 backdrop-blur transition-all"
-              >
-                <FiChevronRight size={18} />
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => setLightboxOpen(true)}
+            className="px-3 py-1 rounded-full border border-stone-200 hover:bg-stone-50 inline-flex items-center gap-1 text-xs"
+          >
+            Fullscreen lightbox ({allImages.length} photos)
+          </button>
         </div>
 
-        {/* Thumbnail Selector Strip with Category Labels */}
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-          {allImages.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveImageIdx(idx)}
-              className={`relative w-24 sm:w-28 h-16 sm:h-20 rounded-2xl overflow-hidden shrink-0 border-2 transition-all ${
-                activeImageIdx === idx
-                  ? "border-amber-400 ring-2 ring-amber-400 scale-105 shadow-md"
-                  : "border-transparent opacity-60 hover:opacity-100"
-              }`}
-            >
-              <img src={img.url} alt={img.caption} className="w-full h-full object-cover" />
-              <span className="absolute bottom-1 left-1 right-1 bg-black/70 text-[9px] text-white font-semibold truncate px-1 rounded text-center">
-                {img.category}
-              </span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Quick Geographic Distances & Transit Metrics Box */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-3xl bg-gradient-to-r from-purple-900 via-purple-800 to-rose-900 text-white shadow-xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-3xl bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white shadow-xl">
         <div>
-          <span className="text-[10px] uppercase font-bold text-purple-200">From Kathmandu</span>
+          <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
           <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km || 204.5} km</p>
           <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || "4-6 hrs by highway"}</span>
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-purple-200">Nearest Major City</span>
+          <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Major City</span>
           <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || destination.district}</p>
-          <span className="text-[11px] text-purple-200 font-medium">{destination.distance_from_nearest_city_km || 35} km away</span>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km || 35} km away</span>
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-purple-200">Nearest Airport</span>
+          <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Airport</span>
           <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || "Regional Airport"}</p>
-          <span className="text-[11px] text-purple-200 font-medium">{destination.distance_from_nearest_airport_km || 40} km</span>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km || 40} km</span>
         </div>
         <div>
-          <span className="text-[10px] uppercase font-bold text-purple-200">Recommended Stay</span>
+          <span className="text-[10px] uppercase font-bold text-primary-100">Recommended Stay</span>
           <p className="text-xl font-black mt-0.5">{destination.recommended_days || 2} Days</p>
           <span className="text-[11px] text-emerald-300 font-bold">Ideal Duration</span>
         </div>
@@ -347,16 +302,16 @@ export default function DestinationDetails() {
         {/* Left 2 Columns */}
         <div className="lg:col-span-2 space-y-8">
           {/* Section 1: About & Introduction */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-purple-100 rounded-3xl bg-white">
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <FiCompass className="text-purple-700" /> About {destination.name}
+              <FiCompass className="text-primary-700" /> About {destination.name}
             </h2>
             <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
               {destination.description || "Comprehensive destination profile available."}
             </p>
 
             {destination.tourism_importance && (
-              <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-100 text-xs text-purple-950 font-medium leading-relaxed">
+              <div className="p-4 rounded-2xl bg-primary-50/80 border border-primary-100 text-xs text-stone-900 font-medium leading-relaxed">
                 🌟 <b>Tourism Importance:</b> {destination.tourism_importance}
               </div>
             )}
@@ -364,14 +319,14 @@ export default function DestinationDetails() {
 
           {/* Section 2: Historical, Cultural & Religious Background */}
           {(destination.history || destination.cultural_significance || destination.religious_significance) && (
-            <div className="card-base p-6 sm:p-8 space-y-5 shadow-xl border border-purple-100 rounded-3xl bg-white">
+            <div className="card-base p-6 sm:p-8 space-y-5 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                 🏛️ Cultural, Religious & Historical Heritage
               </h2>
 
               {destination.history && (
                 <div className="space-y-1.5">
-                  <h4 className="font-bold text-sm text-purple-900">Historical Origins & Heritage:</h4>
+                  <h4 className="font-bold text-sm text-primary-900">Historical Origins & Heritage:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
                     {destination.history}
                   </p>
@@ -380,7 +335,7 @@ export default function DestinationDetails() {
 
               {destination.cultural_significance && (
                 <div className="space-y-1.5 pt-2 border-t">
-                  <h4 className="font-bold text-sm text-purple-900">Cultural Customs & Traditions:</h4>
+                  <h4 className="font-bold text-sm text-primary-900">Cultural Customs & Traditions:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
                     {destination.cultural_significance}
                   </p>
@@ -389,7 +344,7 @@ export default function DestinationDetails() {
 
               {destination.religious_significance && (
                 <div className="space-y-1.5 pt-2 border-t">
-                  <h4 className="font-bold text-sm text-purple-900">Religious Significance & Sacred Lore:</h4>
+                  <h4 className="font-bold text-sm text-primary-900">Religious Significance & Sacred Lore:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
                     {destination.religious_significance}
                   </p>
@@ -399,9 +354,9 @@ export default function DestinationDetails() {
           )}
 
           {/* Section 3: Things To Do & Recommended Activities */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-purple-100 rounded-3xl bg-white">
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <FiActivity className="text-purple-700" /> Things To Do & Experiences
+              <FiActivity className="text-primary-700" /> Things To Do & Experiences
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -411,24 +366,24 @@ export default function DestinationDetails() {
                 { name: "Local Photography & Golden Hour", description: "Capture breathtaking sunrise and sunset illumination over snow peaks.", estimated_duration: "1 hour", difficulty_level: "Easy" },
                 { name: "Village Homestay & Organic Food", description: "Taste fresh local produce, organic tea, and experience mountain hospitality.", estimated_duration: "Overnight", difficulty_level: "Easy" },
               ]).map((act, i) => (
-                <div key={i} className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1.5 shadow-sm">
+                <div key={i} className="p-4 rounded-2xl bg-primary-50/60 border border-primary-100 space-y-1.5 shadow-sm">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs sm:text-sm text-gray-900">{act.name}</h4>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-200 text-purple-900">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-secondary-200 text-primary-900">
                       {act.difficulty_level || "Easy"}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{act.description}</p>
-                  <p className="text-[11px] text-purple-700 font-bold">⏱️ Duration: {act.estimated_duration || "2 hours"}</p>
+                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || "2 hours"}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Section 4: Available Routes & Transportation Options */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-purple-100 rounded-3xl bg-white">
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <FiTruck className="text-purple-700" /> Available Routes & Transportation
+              <FiTruck className="text-primary-700" /> Available Routes & Transportation
             </h2>
 
             <div className="space-y-3">
@@ -439,7 +394,7 @@ export default function DestinationDetails() {
                 <div key={i} className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
-                      <FiNavigation className="text-purple-600" /> {rt.origin} ➔ {destination.name}
+                      <FiNavigation className="text-primary-600" /> {rt.origin} ➔ {destination.name}
                     </h4>
                     <span className="text-emerald-700 font-black">
                       Est. Fare: NPR {rt.estimated_fare_npr || 800}
@@ -462,7 +417,7 @@ export default function DestinationDetails() {
           {(destination.food_cuisine_info || destination.travel_safety_tips) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {destination.food_cuisine_info && (
-                <div className="card-base p-6 rounded-3xl border border-purple-100 shadow-lg bg-gradient-to-br from-white to-amber-50/30 space-y-2">
+                <div className="card-base p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-amber-50/30 space-y-2">
                   <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                     <FiCoffee className="text-amber-600" /> Food & Local Cuisine
                   </h3>
@@ -473,7 +428,7 @@ export default function DestinationDetails() {
               )}
 
               {destination.travel_safety_tips && (
-                <div className="card-base p-6 rounded-3xl border border-purple-100 shadow-lg bg-gradient-to-br from-white to-rose-50/30 space-y-2">
+                <div className="card-base p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-rose-50/30 space-y-2">
                   <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                     <FiShield className="text-rose-600" /> Practical Travel & Safety Tips
                   </h3>
@@ -486,14 +441,14 @@ export default function DestinationDetails() {
           )}
 
           {/* Section 6: Interactive Map & Street-Level Imagery */}
-          <div className="card-base p-6 shadow-xl border border-purple-100 rounded-3xl space-y-4 bg-white">
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4 bg-white">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <FiMapPin className="text-purple-600" /> Interactive Location & Satellite Map
+                <FiMapPin className="text-primary-600" /> Interactive Location & Satellite Map
               </h3>
               <button
                 onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
-                className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1"
+                className="text-xs font-bold text-primary-700 hover:text-primary-900 flex items-center gap-1"
               >
                 <FiNavigation /> Open Tactical GTA Navigation ➔
               </button>
@@ -508,12 +463,12 @@ export default function DestinationDetails() {
           </div>
 
           {/* Section 7: Verified Source Citations & References */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-purple-100 rounded-3xl bg-slate-50">
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-stone-50">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <FiBookOpen className="text-purple-700" /> Researched Source References & Citations
+                <FiBookOpen className="text-primary-700" /> Researched Source References & Citations
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-800 text-[10px] font-black uppercase">
                 Verified Sources
               </span>
             </div>
@@ -530,7 +485,7 @@ export default function DestinationDetails() {
                       <span className="font-bold text-gray-900">{src.title}</span>
                       {src.is_verified && <span className="text-emerald-600 font-bold text-[10px]">✓ Verified Source</span>}
                     </div>
-                    <span className="text-[11px] text-purple-700 font-medium">{src.source_type}</span>
+                    <span className="text-[11px] text-primary-700 font-medium">{src.source_type}</span>
                     {src.notes && <p className="text-[10px] text-gray-500 mt-0.5">{src.notes}</p>}
                   </div>
                   {src.source_url && (
@@ -538,7 +493,7 @@ export default function DestinationDetails() {
                       href={src.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-purple-50 text-purple-700 text-[11px] font-bold flex items-center gap-1 shrink-0"
+                      className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-primary-50 text-primary-700 text-[11px] font-bold flex items-center gap-1 shrink-0"
                     >
                       Visit Source <FiExternalLink size={11} />
                     </a>
@@ -552,7 +507,7 @@ export default function DestinationDetails() {
         {/* Right 1 Column: Strategic Sidebar */}
         <div className="space-y-6">
           {/* Multi-Tier Budget Breakdown (Low, Mid, Comfortable) */}
-          <div className="card-base p-6 shadow-xl border border-purple-100 rounded-3xl bg-gradient-to-br from-white to-purple-50/50 space-y-4">
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiDollarSign className="text-emerald-600" /> Estimated Budget Ranges
@@ -563,26 +518,26 @@ export default function DestinationDetails() {
             </div>
 
             <div className="space-y-3">
-              <div className="p-3 rounded-2xl bg-white border border-purple-100">
+              <div className="p-3 rounded-2xl bg-white border border-primary-100">
                 <span className="text-[10px] text-gray-400 uppercase font-bold">🎒 Low Budget (Backpacker)</span>
-                <p className="text-lg font-black text-purple-950">${Math.round((budgetEst?.estimated_daily_budget || 45) * 0.65)} <span className="text-xs font-semibold text-gray-500">USD/day</span></p>
-                <p className="text-[10px] text-purple-700 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 0.65 * 134).toLocaleString()}</p>
+                <p className="text-lg font-black text-stone-900">${Math.round((budgetEst?.estimated_daily_budget || 45) * 0.65)} <span className="text-xs font-semibold text-gray-500">USD/day</span></p>
+                <p className="text-[10px] text-primary-700 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 0.65 * 134).toLocaleString()}</p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-purple-100/70 border border-purple-300">
-                <span className="text-[10px] text-purple-900 uppercase font-bold">🏨 Medium Budget (Comfort)</span>
-                <p className="text-xl font-black text-purple-950">${budgetEst?.estimated_daily_budget || 45} <span className="text-xs font-semibold text-gray-600">USD/day</span></p>
-                <p className="text-[10px] text-purple-800 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 134).toLocaleString()}</p>
+              <div className="p-3 rounded-2xl bg-primary-50/70 border border-primary-300">
+                <span className="text-[10px] text-primary-900 uppercase font-bold">🏨 Medium Budget (Comfort)</span>
+                <p className="text-xl font-black text-stone-900">${budgetEst?.estimated_daily_budget || 45} <span className="text-xs font-semibold text-gray-600">USD/day</span></p>
+                <p className="text-[10px] text-primary-800 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 134).toLocaleString()}</p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-white border border-purple-100">
+              <div className="p-3 rounded-2xl bg-white border border-primary-100">
                 <span className="text-[10px] text-gray-400 uppercase font-bold">👑 Comfortable / Deluxe</span>
-                <p className="text-lg font-black text-purple-950">${Math.round((budgetEst?.estimated_daily_budget || 45) * 2.2)} <span className="text-xs font-semibold text-gray-500">USD/day</span></p>
-                <p className="text-[10px] text-purple-700 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 2.2 * 134).toLocaleString()}</p>
+                <p className="text-lg font-black text-stone-900">${Math.round((budgetEst?.estimated_daily_budget || 45) * 2.2)} <span className="text-xs font-semibold text-gray-500">USD/day</span></p>
+                <p className="text-[10px] text-primary-700 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 2.2 * 134).toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-white border border-purple-100 text-xs space-y-1.5 text-gray-700">
+            <div className="p-3 rounded-2xl bg-white border border-primary-100 text-xs space-y-1.5 text-gray-700">
               <div className="flex justify-between">
                 <span>🏨 Stay / Night:</span>
                 <b>${budgetEst?.accommodation_per_night || 20}</b>
@@ -603,10 +558,10 @@ export default function DestinationDetails() {
           </div>
 
           {/* Safety & Risk Status */}
-          <div className="card-base p-6 shadow-xl border border-purple-100 rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <FiShield className="text-purple-600" /> Safety & Risk Index
+                <FiShield className="text-primary-600" /> Safety & Risk Index
               </h3>
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${level.color}`}>
                 {level.label} Risk
@@ -616,7 +571,7 @@ export default function DestinationDetails() {
             <div className="space-y-2 text-xs text-gray-700">
               <div className="flex justify-between">
                 <span>Tourism Risk Index:</span>
-                <b className="text-purple-900">{riskAnalysis?.tourism_risk_index || 18} / 100</b>
+                <b className="text-primary-900">{riskAnalysis?.tourism_risk_index || 18} / 100</b>
               </div>
               <div className="flex justify-between">
                 <span>Natural Hazard Level:</span>
@@ -630,7 +585,7 @@ export default function DestinationDetails() {
           </div>
 
           {/* Emergency Helplines */}
-          <div className="card-base p-6 shadow-xl border border-purple-100 rounded-3xl space-y-4">
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4">
             <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
               <FiPhoneCall className="text-rose-600" /> Emergency & Medical Contacts
             </h3>
@@ -638,14 +593,14 @@ export default function DestinationDetails() {
             <div className="space-y-2 text-xs">
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
                 <p className="font-bold text-gray-800">Nearest Hospital</p>
-                <p className="text-purple-700 font-semibold mt-0.5">
+                <p className="text-primary-700 font-semibold mt-0.5">
                   {destination.nearest_hospital_info || "District Zonal Hospital"}
                 </p>
               </div>
 
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
                 <p className="font-bold text-gray-800">Tourist Police Helpdesk</p>
-                <p className="text-purple-700 font-semibold mt-0.5">
+                <p className="text-primary-700 font-semibold mt-0.5">
                   {destination.nearest_police_info || "Tourist Police 1144"}
                 </p>
               </div>
@@ -666,7 +621,7 @@ export default function DestinationDetails() {
           {/* Translation Button */}
           <button
             onClick={() => navigate(`/translation?place=${encodeURIComponent(destination.name)}`)}
-            className="btn-outline w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-semibold text-xs text-purple-800 border-purple-200 hover:bg-purple-50"
+            className="btn-outline w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-semibold text-xs text-primary-800 border-primary-200 hover:bg-primary-50"
           >
             <FiGlobe size={15} /> Translate Destination Details
           </button>
@@ -681,7 +636,7 @@ export default function DestinationDetails() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-purple-100 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-primary-100 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex justify-between items-start border-b pb-4">
                 <div>
@@ -702,8 +657,8 @@ export default function DestinationDetails() {
               {/* Package Content */}
               <div className="space-y-4 text-xs text-gray-700">
                 {/* 1. Essential Coordinates & Weather */}
-                <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 space-y-2">
-                  <h4 className="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+                <div className="p-4 rounded-2xl bg-primary-50/70 border border-primary-100 space-y-2">
+                  <h4 className="font-bold text-sm text-primary-900 flex items-center gap-1.5">
                     <FiMapPin /> GPS Location & Visiting Season
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -748,7 +703,7 @@ export default function DestinationDetails() {
                 </div>
 
                 {/* 4. Useful Local Phrases */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                <div className="p-4 rounded-2xl bg-stone-50 border border-slate-100 space-y-2">
                   <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
                     🗣️ Essential Nepali Phrases
                   </h4>
@@ -769,7 +724,7 @@ export default function DestinationDetails() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => window.print()}
-                    className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"
+                    className="px-5 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"
                   >
                     🖨️ Print / Save as PDF
                   </button>

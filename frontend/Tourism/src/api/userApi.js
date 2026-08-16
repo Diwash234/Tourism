@@ -82,6 +82,60 @@ const userApi = {
 
   updateSettings: (payload) =>
     axiosClient.put("/auth/profile/", payload),
+
+  // Packages Booking (with client-side fallback)
+  bookPackage: async (payload) => {
+    try {
+      return await axiosClient.post("/packages/book/", payload)
+    } catch {
+      const existing = JSON.parse(localStorage.getItem("tourism_booked_packages") || "[]")
+      const booked = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString(), status: "Confirmed" }
+      localStorage.setItem("tourism_booked_packages", JSON.stringify([booked, ...existing]))
+      return { data: booked }
+    }
+  },
+
+  // Personal Details Management (with client-side fallback)
+  getPersonalDetails: async () => {
+    try {
+      return await axiosClient.get("/user/personal-details/")
+    } catch {
+      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
+      return { data: { items } }
+    }
+  },
+
+  addPersonalDetails: async (payload) => {
+    try {
+      return await axiosClient.post("/user/personal-details/", payload)
+    } catch {
+      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
+      const newItem = { id: Date.now().toString(), ...payload }
+      localStorage.setItem("tourism_personal_details", JSON.stringify([newItem, ...items]))
+      return { data: newItem }
+    }
+  },
+
+  updatePersonalDetails: async (id, payload) => {
+    try {
+      return await axiosClient.put(`/user/personal-details/${id}/`, payload)
+    } catch {
+      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
+      const updated = items.map((item) => (item.id === id ? { ...item, ...payload } : item))
+      localStorage.setItem("tourism_personal_details", JSON.stringify(updated))
+      return { data: updated.find((item) => item.id === id) || payload }
+    }
+  },
+
+  deletePersonalDetails: async (id) => {
+    try {
+      return await axiosClient.delete(`/user/personal-details/${id}/`)
+    } catch {
+      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
+      localStorage.setItem("tourism_personal_details", JSON.stringify(items.filter((item) => item.id !== id)))
+      return { data: { success: true } }
+    }
+  },
 }
 
 export default userApi

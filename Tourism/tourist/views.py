@@ -188,8 +188,27 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         if user.is_authenticated:
             # Public approved places + this user's own submissions (any status)
             from django.db.models import Q
-            return qs.filter(Q(is_active=True, status=Destination.SubmissionStatus.APPROVED) | Q(created_by=user))
-        return qs.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+            qs = qs.filter(Q(is_active=True, status=Destination.SubmissionStatus.APPROVED) | Q(created_by=user))
+        else:
+            qs = qs.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+
+        # Default destination listing: show real attractions, not hotels/info/noise.
+        # Pass ?type=all or ?type=hotel to override (see DestinationFilter).
+        if self.action == "list":
+            requested_type = (self.request.query_params.get("type") or "").lower()
+            if requested_type not in ("all", "hotel", "hotels", "lodging", "accommodation", "stay",
+                                      "attraction", "attractions", "destination", "destinations"):
+                from .filters import (
+                    ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+                    NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
+                )
+                exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
+                qs = qs.exclude(category__slug__in=exclude_slugs)
+                for hint in ACCOMMODATION_NAME_HINTS:
+                    qs = qs.exclude(name__icontains=hint)
+                for hint in NON_ATTRACTION_NAME_HINTS:
+                    qs = qs.exclude(name__icontains=hint)
+        return qs
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -742,6 +761,54 @@ class TravelRiskFeedbackViewSet(viewsets.ModelViewSet):
     search_fields = ["destination_name", "comments", "sickness_type"]
 
 
+class DestinationAutocompleteView(generics.ListAPIView):
+    """
+    GET /api/v1/destinations/autocomplete/?q=ann&type=attraction&limit=10
+    Lightweight name/id/cover suggestions for search-as-you-type dropdowns.
+    Returns at most `limit` alphabetically-sorted matches, excluding
+    accommodation by default (pass type=hotel or type=all to override).
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DestinationListSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        from .filters import (
+            ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+            NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
+        )
+        q = (self.request.query_params.get("q") or "").strip()
+        type_v = (self.request.query_params.get("type") or "attraction").lower().strip()
+        limit = int(self.request.query_params.get("limit") or 10)
+        limit = max(1, min(limit, 50))
+
+        qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        ).select_related("category")
+
+        if type_v in ("attraction", "attractions", "destination", "destinations", ""):
+            exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
+            qs = qs.exclude(category__slug__in=exclude_slugs)
+            for hint in ACCOMMODATION_NAME_HINTS:
+                qs = qs.exclude(name__icontains=hint)
+            for hint in NON_ATTRACTION_NAME_HINTS:
+                qs = qs.exclude(name__icontains=hint)
+        elif type_v in ("hotel", "hotels", "lodging", "accommodation"):
+            qs = qs.filter(Q(category__slug__in=ACCOMMODATION_SLUGS)
+                           | Q(name__icontains="hotel") | Q(name__icontains="resort")
+                           | Q(name__icontains="lodge") | Q(name__icontains="guest house"))
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(slug__icontains=q)
+                | Q(aliases__icontains=q)
+                | Q(city__icontains=q)
+                | Q(district__icontains=q)
+            )
+        return qs.order_by("name")[:limit]
+
+
 class HotelSearchView(generics.ListAPIView):
     """
     GET /api/v1/hotels/search/?query=Pokhara
@@ -768,3 +835,114 @@ class HotelSearchView(generics.ListAPIView):
             )
             .select_related("destination")[:20]
         )
+
+
+class MoodRecommendationsView(generics.ListAPIView):
+    """
+    GET /api/v1/destinations/mood-recommendations/?mood=relaxed&days=5
+
+    Simple keyword/phrase-based recommendation engine.
+    Moods: relaxed, adventurous, romantic, family, spiritual, cultural,
+           wildlife, scenic, peaceful, energetic, happy, sad/solitude,
+           romantic/getaway, pilgrimage, winter, lakeside, hiking.
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DestinationListSerializer
+    pagination_class = None
+
+    # Mood -> list of category slugs or keywords to look up
+    MOOD_PROFILES = {
+        "relaxed":   {"cats": ["lakes", "hot-springs", "spiritual-wellness", "hill stations"], "kw": ["lake", "peace", "garden", "spa", "beach", "phewa", "begnas"]},
+        "relax":     {"cats": ["lakes", "hot-springs", "spiritual-wellness"], "kw": ["lake", "peace", "garden"]},
+        "chill":     {"cats": ["lakes", "cities", "hill stations"], "kw": ["lakeside", "pokhara", "café", "thamel", "phewa"]},
+        "adventure": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "rafting", "bungee", "paragliding", "peak", "base camp", "bungee"]},
+        "adventurous": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "climb", "peak", "expedition"]},
+        "romantic":  {"cats": ["lakes", "viewpoints", "hills", "villages"], "kw": ["sunrise", "lake", "hill", "pagoda", "phewa", "sarankot", "nagarkot"]},
+        "family":    {"cats": ["wildlife", "cities", "museums", "hill-stations", "cable-car", "viewpoints"], "kw": ["national park", "safari", "museum", "chitwan", "cable car", "zoo", "family"]},
+        "spiritual": {"cats": ["pilgrimage", "temples", "buddhist-sites", "spiritual-wellness"], "kw": ["temple", "stupa", "monastery", "gompa", "pilgrim", "pashupati", "lumbini", "muktinath", "manakamana", "pathibhara"]},
+        "religious": {"cats": ["pilgrimage", "temples", "buddhist-sites"], "kw": ["temple", "stupa", "dham", "mandir"]},
+        "peaceful":  {"cats": ["lakes", "spiritual-wellness", "hill-stations", "monasteries"], "kw": ["lake", "gompa", "monastery", "village", "retreat"]},
+        "cultural":  {"cats": ["heritage", "culture", "museums", "festivals", "cities"], "kw": ["durbar", "palace", "heritage", "newar", "traditional", "museum", "bazaar"]},
+        "culture":   {"cats": ["heritage", "culture", "museums"], "kw": ["durbar", "palace", "heritage"]},
+        "wildlife":  {"cats": ["wildlife", "bird-watching", "national parks"], "kw": ["national park", "safari", "rhino", "tiger", "elephant", "bird"]},
+        "jungle":    {"cats": ["wildlife", "forests"], "kw": ["jungle", "safari", "chitwan", "bardiya"]},
+        "trekking":  {"cats": ["trekking", "mountains", "valleys"], "kw": ["trek", "base camp", "circuit", "himal", "pass", "la"]},
+        "hiking":    {"cats": ["trekking", "viewpoints", "hills"], "kw": ["hill", "viewpoint", "hike", "day hike", "poon hill"]},
+        "scenic":    {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes"], "kw": ["view", "sunrise", "panorama", "himal", "lake", "gorge"]},
+        "photography": {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes", "wildlife", "culture"], "kw": ["view", "sunrise", "photography", "panorama"]},
+        "happy":     {"cats": ["viewpoints", "festivals", "adventure"], "kw": ["sunrise", "festival", "paragliding", "pokhara"]},
+        "excited":   {"cats": ["adventure", "air-sports", "water-sports"], "kw": ["bungee", "zip", "rafting", "paragliding", "skydive"]},
+        "solitude":  {"cats": ["lakes", "valleys", "trekking", "spiritual-wellness"], "kw": ["remote", "quiet", "high altitude", "lake", "retreat", "rara", "phoksundo", "dolpo", "humla"]},
+        "sad":       {"cats": ["spiritual-wellness", "pilgrimage", "lakes", "villages"], "kw": ["peace", "retreat", "meditation", "spiritual", "gompa"]},
+        "energetic": {"cats": ["adventure", "air-sports", "water-sports", "trekking"], "kw": ["rafting", "bungee", "paragliding", "zip", "trek"]},
+        "winter":    {"cats": ["winter", "mountains", "trekking"], "kw": ["snow", "winter", "frozen", "kalinchowk"]},
+        "snow":      {"cats": ["winter", "mountains"], "kw": ["snow", "winter", "kalinchowk", "poon hill"]},
+        "pilgrimage": {"cats": ["pilgrimage", "temples", "buddhist-sites"], "kw": ["dham", "temple", "mandir", "stupa", "pilgrim"]},
+        "lakeside":  {"cats": ["lakes"], "kw": ["lake", "phewa", "begnas", "rara", "tilicho", "gokyo"]},
+    }
+
+    def get_queryset(self):
+        from .filters import (
+            ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+            NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
+        )
+        mood = (self.request.query_params.get("mood") or self.request.query_params.get("feeling") or "scenic").lower()
+        limit = int(self.request.query_params.get("limit") or 12)
+        limit = max(3, min(limit, 48))
+
+        qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED
+        ).select_related("category")
+
+        # Exclude accommodation/noise
+        exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
+        qs = qs.exclude(category__slug__in=exclude_slugs)
+        for hint in ACCOMMODATION_NAME_HINTS:
+            qs = qs.exclude(name__icontains=hint)
+        for hint in NON_ATTRACTION_NAME_HINTS:
+            qs = qs.exclude(name__icontains=hint)
+
+        profile = self.MOOD_PROFILES.get(mood)
+        if profile is None:
+            # Fuzzy: try substring match
+            for k, v in self.MOOD_PROFILES.items():
+                if k in mood or mood in k:
+                    profile = v
+                    break
+        if profile is None:
+            profile = {"cats": ["mountains", "lakes", "heritage", "wildlife"], "kw": []}
+
+        # Build filter
+        from django.db.models import Q
+        q = Q()
+        for slug in profile.get("cats", []):
+            q |= Q(category__slug=slug)
+        for kw in profile.get("kw", []):
+            q |= Q(name__icontains=kw)
+            q |= Q(short_description__icontains=kw)
+            q |= Q(description__icontains=kw)
+
+        qs = qs.filter(q).distinct()
+
+        # Days-based filter (if days<=2, only close-to-Kathmandu/Pokhara; if days>=7, allow long treks)
+        days = self.request.query_params.get("days")
+        if days:
+            try:
+                days = int(days)
+                if days <= 2:
+                    # Short trip: near Kathmandu/Pokhara
+                    qs = qs.filter(Q(district__icontains="kathmandu") |
+                                   Q(district__icontains="lalitpur") |
+                                   Q(district__icontains="bhaktapur") |
+                                   Q(district__icontains="kaski") |
+                                   Q(district__icontains="makwanpur") |
+                                   Q(district__icontains="dhading") |
+                                   Q(district__icontains="kavre"))
+                elif days <= 5:
+                    # Mid-range: include Chitwan, Nagarkot, Pokhara, Lumbini nearby
+                    qs = qs.exclude(Q(name__icontains="base camp") & ~Q(name__icontains="mardi"))
+            except (ValueError, TypeError):
+                pass
+
+        # Randomize order for discovery feel; but deterministic per mood
+        return qs.order_by("?")[:limit]

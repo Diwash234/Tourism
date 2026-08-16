@@ -149,7 +149,7 @@ class NearbyHospitalsView(APIView):
                     "longitude": float(ec.longitude),
                     "distance_km": round(d, 2),
                     "is_24_hours": ec.is_24_hours,
-                    "image_url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80",
+                    "image_url": ["https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80","https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80","https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80","https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80"][(ec.id % 4)],
                 })
 
         if not ec_hospitals.exists():
@@ -168,7 +168,7 @@ class NearbyHospitalsView(APIView):
                         "distance_km": round(d, 2),
                         "district": h.district,
                         "is_24_hours": True,
-                        "image_url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80",
+                        "image_url": ["https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80","https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80","https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80","https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80"][(h.id % 4)],
                     })
             if not results and hospitals.exists():
                 all_sorted = []
@@ -185,7 +185,7 @@ class NearbyHospitalsView(APIView):
                         "distance_km": round(d, 2),
                         "district": h.district,
                         "is_24_hours": True,
-                        "image_url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80",
+                        "image_url": ["https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80","https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80","https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&q=80","https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80"][(h.id % 4)],
                     })
                 all_sorted.sort(key=lambda x: x["distance_km"])
                 results = all_sorted[:10]
@@ -451,6 +451,20 @@ class NearbyPlacesCompatView(APIView):
 
         from .models import Destination, EmergencyContact
         from .utils import overpass_search_nearby, bounding_box
+        from . import photo_catalog
+
+        def _img_for_poi(category, name, seed):
+            photo = photo_catalog.resolve_poi_photo(category or "", name or "", seed or 0)
+            return photo["url"]
+
+        def _cover_url(destination):
+            raw = str(destination.cover_image or "").strip()
+            if raw.startswith("http://") or raw.startswith("https://"):
+                return raw
+            cover = destination.gallery.filter(is_cover=True).first()
+            if cover and cover.external_url:
+                return cover.external_url
+            return photo_catalog.resolve_cover_photo(destination)["url"]
 
         box = bounding_box(lat, lon, radius_km)
         own_destinations = Destination.objects.filter(
@@ -478,6 +492,7 @@ class NearbyPlacesCompatView(APIView):
                 "city": destination.city,
                 "district": destination.district,
                 "country": destination.country,
+                "image_url": _cover_url(destination),
             })
 
         local_body_results = []
@@ -502,6 +517,7 @@ class NearbyPlacesCompatView(APIView):
                 "designation": body.designation,
                 "city": body.city,
                 "district": body.city,
+                "image_url": _img_for_poi("office", body.name, body.id),
             })
 
         osm_results = []
@@ -519,6 +535,7 @@ class NearbyPlacesCompatView(APIView):
                 "distance": round(distance, 2),
                 "category": place.get("type") or "place",
                 "type": "osm",
+                "image_url": _img_for_poi(place.get("type") or "place", place.get("name") or "", place.get("osm_id") or 0),
             })
 
         combined = sorted(own_results + local_body_results + osm_results, key=lambda p: p["distance"])

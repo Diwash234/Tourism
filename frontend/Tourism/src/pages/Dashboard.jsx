@@ -148,7 +148,6 @@ const Dashboard = () => {
   const handleHeroSearch = (e) => {
     e.preventDefault();
     if (!heroQuery.trim()) return;
-    // FIXED: this used to fill the Community Photos section's picker
     // (small cards, no "Explore Now", meant for choosing a place to
     // upload a photo for) — not what someone typing a destination name
     // into the hero search expects. Now it goes to the real destination

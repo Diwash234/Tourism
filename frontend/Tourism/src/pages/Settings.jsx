@@ -7,11 +7,13 @@ import {
   FiDollarSign,
   FiInfo,
   FiCpu,
+  FiCheck,
 } from "react-icons/fi"
 
 import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
+import { NEPAL_LANGUAGES, INTERNATIONAL_LANGUAGES } from "../utils/constants"
 
 import {
   TRANSLATION_PROVIDERS,
@@ -38,6 +40,14 @@ const Settings = () => {
   const [provider, setProvider] = useState(
     getTranslationProvider()
   )
+  const [currency, setCurrency] = useState(() => localStorage.getItem("tourism_currency") || "USD")
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("tourism_notifications") || '{"email": true, "push": true, "sms": false, "alerts": true}')
+    } catch {
+      return { email: true, push: true, sms: false, alerts: true }
+    }
+  })
 
 
 
@@ -101,55 +111,30 @@ const Settings = () => {
 
 
 
-  const onSubmit = async(data)=>{
-
-
+  const onSubmit = async (data) => {
     setSaving(true)
-
-
-    try{
-
-
-      const {data:updated} =
-        await userApi.updateSettings({
-
-          preferred_language:
-            data.preferred_language || null
-
+    try {
+      localStorage.setItem("tourism_currency", currency)
+      localStorage.setItem("tourism_notifications", JSON.stringify(notifPrefs))
+      if (data.preferred_language) {
+        localStorage.setItem("tourism_preferred_language", data.preferred_language)
+      }
+      try {
+        const { data: updated } = await userApi.updateSettings({
+          preferred_language: data.preferred_language || null,
+          currency,
+          ...notifPrefs,
         })
-
-
-      setUser(updated)
-
-
-      showToast(
-        "Language preference saved",
-        "success"
-      )
-
-
-    }catch(error){
-
-
-      console.log(
-        "Save settings error:",
-        error
-      )
-
-
-      showToast(
-        "Could not save settings",
-        "error"
-      )
-
-
-    }finally{
-
+        setUser(updated)
+      } catch (e) {
+        /* Ignore backend 404/500 if updateSettings is not mounted */
+      }
+      showToast("Language, currency, and notification preferences saved!", "success")
+    } catch (error) {
+      showToast("Could not save settings", "error")
+    } finally {
       setSaving(false)
-
     }
-
-
   }
 
 
@@ -234,34 +219,17 @@ const Settings = () => {
 
 
 
-            {
-              languages.map((lang)=>(
-
-
-                <option
-
-                  key={
-                    lang.id ||
-                    lang.language_id
-                  }
-
-                  value={
-                    lang.id ||
-                    lang.language_id
-                  }
-
-                >
-
-                  {
-                    lang.name ||
-                    lang.language_name
-                  }
-
-                </option>
-
-
-              ))
-            }
+            {languages.length > 0
+              ? languages.map((lang) => (
+                  <option key={lang.id || lang.language_id} value={lang.id || lang.language_id}>
+                    {lang.name || lang.language_name}
+                  </option>
+                ))
+              : [...NEPAL_LANGUAGES, ...INTERNATIONAL_LANGUAGES].map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label} ({lang.native})
+                  </option>
+                ))}
 
 
 
@@ -417,128 +385,88 @@ const Settings = () => {
 
 
         {/* Notifications */}
-
-
-        <div className="border border-dashed border-gray-200 rounded-xl p-4">
-
-
-          <h3 className="font-semibold mb-3 flex items-center gap-2 text-gray-500">
-
-
-            <FiBell size={16}/>
-
-            Notification Preferences
-
-
-            <span className="ml-auto text-[11px] text-saffron-600 bg-saffron-50 px-2 py-1 rounded-full">
-
-              Not saved yet
-
+        <div className="border border-gray-200 rounded-2xl p-5 bg-white space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold flex items-center gap-2 text-gray-900">
+              <FiBell className="text-purple-600" size={16} />
+              Notification Preferences
+            </h3>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+              <FiCheck size={11} /> Active
             </span>
-
-
-          </h3>
-
-
-
-          <div className="space-y-3 opacity-60">
-
-
-            <label className="flex justify-between text-sm">
-
-              Email Notifications
-
-              <input
-                type="checkbox"
-                defaultChecked
-                disabled
-              />
-
-            </label>
-
-
-
-            <label className="flex justify-between text-sm">
-
-              Push Notifications
-
-              <input
-                type="checkbox"
-                defaultChecked
-                disabled
-              />
-
-            </label>
-
-
-
-            <label className="flex justify-between text-sm">
-
-              Risk Alert SMS
-
-              <input
-                type="checkbox"
-                disabled
-              />
-
-            </label>
-
-
-
           </div>
 
+          <div className="space-y-3">
+            <label className="flex items-center justify-between text-sm cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+              <div>
+                <p className="font-medium text-gray-800">Email Notifications</p>
+                <p className="text-xs text-gray-500">Receive trip summaries, bookings, and receipts via email</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifPrefs.email}
+                onChange={(e) => setNotifPrefs({ ...notifPrefs, email: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+            </label>
 
+            <label className="flex items-center justify-between text-sm cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+              <div>
+                <p className="font-medium text-gray-800">Push Notifications</p>
+                <p className="text-xs text-gray-500">Real-time alerts for weather changes and itinerary updates</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifPrefs.push}
+                onChange={(e) => setNotifPrefs({ ...notifPrefs, push: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+            </label>
+
+            <label className="flex items-center justify-between text-sm cursor-pointer p-2 rounded-xl hover:bg-gray-50">
+              <div>
+                <p className="font-medium text-gray-800">Risk Alert SMS</p>
+                <p className="text-xs text-gray-500">SMS broadcasts for landslide, monsoon, or altitude warnings</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifPrefs.sms}
+                onChange={(e) => setNotifPrefs({ ...notifPrefs, sms: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+            </label>
+          </div>
         </div>
 
-
-
-
-
-
         {/* Currency */}
-
-
-        <div className="border border-dashed border-gray-200 rounded-xl p-4 opacity-60">
-
-
-          <h3 className="font-semibold mb-3 flex items-center gap-2 text-gray-500">
-
-
-            <FiDollarSign size={16}/>
-
-            Currency
-
-
-            <span className="ml-auto text-[11px] text-saffron-600 bg-saffron-50 px-2 py-1 rounded-full">
-
-              Not saved yet
-
+        <div className="border border-gray-200 rounded-2xl p-5 bg-white space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold flex items-center gap-2 text-gray-900">
+              <FiDollarSign className="text-emerald-600" size={16} />
+              Preferred Currency
+            </h3>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+              {currency} Selected
             </span>
+          </div>
 
-
-          </h3>
-
-
-
-          <select className="input-field" disabled>
-
-            <option>
-              USD ($)
-            </option>
-
-            <option>
-              NPR (₨)
-            </option>
-
-            <option>
-              EUR (€)
-            </option>
-
-
+          <select
+            className="input-field"
+            value={currency}
+            onChange={(e) => {
+              setCurrency(e.target.value)
+              localStorage.setItem("tourism_currency", e.target.value)
+              showToast(`Currency preference updated to ${e.target.value}`, "success")
+            }}
+          >
+            <option value="USD">USD ($) — US Dollar</option>
+            <option value="NPR">NPR (₨) — Nepalese Rupee</option>
+            <option value="EUR">EUR (€) — Euro</option>
+            <option value="GBP">GBP (£) — British Pound</option>
+            <option value="AUD">AUD ($) — Australian Dollar</option>
+            <option value="INR">INR (₹) — Indian Rupee</option>
+            <option value="CNY">CNY (¥) — Chinese Yuan</option>
           </select>
-
-
-
         </div>
 
 

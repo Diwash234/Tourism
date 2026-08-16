@@ -366,6 +366,9 @@ class BudgetPredictionView(APIView):
             longitude=longitude,
             user_latitude=data.get("user_latitude"),
             user_longitude=data.get("user_longitude"),
+            district=getattr(destination, "district", None) if destination else data.get("district"),
+            province=getattr(destination, "province", None) if destination else data.get("province"),
+            destination_name=getattr(destination, "name", None) if destination else data.get("city"),
         )
 
 

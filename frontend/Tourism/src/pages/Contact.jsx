@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { FiMail, FiPhone, FiMapPin } from "react-icons/fi"
 import useToast from "../hooks/useToast"
+import adminApi from "../api/adminApi"
 
 const SUPPORT_EMAIL = "support@tourists.app"
 
@@ -19,36 +20,20 @@ const Contact = () => {
 
 
   const onSubmit = async () => {
-
-    const {
-      name,
-      email,
-      message
-    } = getValues()
-
-
-    const subject =
-      encodeURIComponent(`Message from ${name}`)
-
-
-    const body =
-      encodeURIComponent(
-        `${message}\n\n— ${name} (${email})`
-      )
-
-
-    window.location.href =
-      `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
-
-
-    showToast(
-      "Opening your email application.",
-      "info"
-    )
-
-
-    reset()
-
+    const { name, email, message, subject } = getValues()
+    try {
+      await adminApi.sendFeedback({
+        name: name || "",
+        email: email || "",
+        subject: subject || `Message from ${name || "visitor"}`,
+        message,
+        category: "contact",
+      })
+      showToast("Your message has been sent to the admin team.", "success")
+      reset()
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Could not send message. Please try again.", "error")
+    }
   }
 
 
