@@ -2,93 +2,124 @@
   Nepal Tourism Platform — Offline Snapshot
 ==========================================================================
 
-This folder contains a ready-to-run snapshot of the Nepal Tourism
-Django+React project. After `git pull`, run `./run.sh` from the repo
-root — it creates a venv, installs pip packages, runs migrations,
-installs npm packages, and starts Django on 0.0.0.0:8000 and Vite on
-0.0.0.0:5173 (LAN-accessible out of the box).
+After `git pull` (or extracting this zip), run `./run.sh` from the repo
+root. It creates a Python virtualenv in `.venv/`, installs pip packages,
+runs migrations, installs npm packages, and starts:
+  - Django API   : http://0.0.0.0:8000
+  - Vite/React   : http://0.0.0.0:5173
+Both are bound to 0.0.0.0 so any device on your LAN can reach them.
+
+--------------------------------------------------------------------------
+DEFAULT ADMIN LOGIN
+--------------------------------------------------------------------------
+  Email     : admin123@gmail.com
+  Password  : admin123
+If you ever reset the DB you can re-create it with:
+  cd Tourism && python manage.py shell -c "
+  from django.contrib.auth import get_user_model; User=get_user_model()
+  User.objects.create_superuser(email='admin123@gmail.com',
+    password='admin123', first_name='Site', last_name='Admin',
+    role='SUPER_ADMIN')"
 
 --------------------------------------------------------------------------
 CONTENTS
 --------------------------------------------------------------------------
-
-1. nepal-tourism-full-project.zip
-   A snapshot of the repository (excluding venv, node_modules, build
-   artifacts) for offline transfer.
-
-2. nepal-images-only.zip
-   Curated Nepal destination imagery (30 AI JPEGs for headline places
-   + 14 SVG category icons). Extract into
-   frontend/Tourism/public/images/ if your clone is missing images.
-
-3. nepal-tourism-database.sqlite3 / .gz
-   Pre-seeded SQLite database:
-     • ~6,810 destinations across Nepal covering a 36-category
-       taxonomy (mountains, hills, valleys, trekking, temples,
-       buddhist-sites, heritage, lakes, rivers, waterfalls, forests,
-       wildlife, bird-watching, caves, viewpoints, villages, culture,
-       festivals, spiritual-wellness, adventure, air-sports,
-       water-sports, agriculture, tea-coffee, camping, cycling,
-       winter, hot-springs, cities, shopping, food-culinary,
-       scenic-routes, eco-tourism, museums, natural-wonders,
-       pilgrimage).
-     • 40,000+ curated image rows (deterministic Unsplash-licensed
-       gallery pools per category + 30 bundled AI photos).
-     • Default listing shows REAL attractions; hotels/lodges live
-       behind the "Hotels & Stays" type chip.
-     • Admin image-moderation enabled (approve / reject / mark
-       verified per image; reassign covers in bulk).
-   To restore: copy the .sqlite3 to Tourism/db.sqlite3 and run
-   `python manage.py migrate`.
+1. nepal-tourism-full-project.zip   — snapshot of the full source
+2. nepal-images-only.zip            — /images/ public assets (30 AI JPEGs
+                                      for headline places + 14 category SVGs)
+3. nepal-tourism-database.sqlite3   — pre-seeded SQLite DB (shipped as
+                                      Tourism/db.sqlite3 by the repo too)
+4. nepal-tourism-database.sqlite3.gz— compressed DB for slower links
 
 --------------------------------------------------------------------------
-WHAT WAS FIXED / ADDED
+WHAT IS IN THE DB (as of this snapshot)
 --------------------------------------------------------------------------
- • Register page "FiLock is not defined" crash → fixed import.
- • QA Tester checkbox removed from Register & Login pages.
- • photo_catalog.py rewritten: pool ordering fixed (category keywords
-   evaluated before generic mountain/lake/heritage so "Annapurna
-   Butterfly Museum" gets museum photos, not trekking photos);
-   every destination now receives category-accurate covers + 6 gallery
-   images (40,860 total rows).
- • Old solid-colour placeholders removed.
- • 30 headline destinations have accurate bundled AI photos in
-   frontend/Tourism/public/images/destinations/<place>/.
- • Added: Mahendra Cave, Davis Falls / Patale Chhango, Dharahara,
-   Langtang Valley, Rani Mahal, Gorkha Durbar, Pathibhara, Khaptad,
-   plus 310 more seeded across all 36 categories.
- • Category filter chips on Destinations page (Lakes, Mountains,
-   Temples, Stupas, Caves, Waterfalls, Wildlife, Viewpoints,
-   Museums, Tea Gardens, …).
- • A–Z alphabet browsing bar and real-time autocomplete search.
- • Mood-based AI recommendations (happy / relaxed / chill /
-   adventure / romantic / family / spiritual / cultural / wildlife
-   / trekking / photography / solitude / winter / pilgrimage) with
-   number-of-days filter — wired to /api/v1/destinations/mood-recommendations/.
- • Admin Dashboard can create staff/admin/sub-admin users directly
-   (role + district assignment) and moderate images.
- • Diagnostics Center page for system-health + error reporting.
- • PageHeader uses Nepal palette (deep mountain green #1f6b4d,
-   terracotta #c2603a, Himalayan gold #b8862f, off-white #faf8f4);
-   no purple/blue.
- • ReactBits components working: LightRays, CrazyButton, FlowingMenu,
-   CircularGallery, PasswordStrengthField.
- • LAN access: Django 0.0.0.0:8000, Vite 0.0.0.0:5173,
-   ALLOWED_HOSTS=['*'], CORS_ALLOW_ALL_ORIGINS=True.
- • downloads/ folder is committed to git.
+  • 7,052 destinations across Nepal
+  • 42,312 total image rows (cover + 6 gallery per destination)
+  • 36-category taxonomy (mountains / hills / valleys / trekking /
+    temples / buddhist-sites / heritage / lakes / rivers / waterfalls /
+    forests / wildlife / bird-watching / caves / viewpoints / villages /
+    culture / festivals / spiritual-wellness / adventure / air-sports /
+    water-sports / agriculture / tea-coffee / camping / cycling /
+    winter / hot-springs / cities / shopping / food-culinary /
+    scenic-routes / eco-tourism / museums / natural-wonders / pilgrimage)
+  • 250+ hand-curated LANDMARK photos mapped by name (no more generic
+    mountain-on-temple / beach-on-rafting mismatches):
+    - All major Durbar Squares (Kathmandu / Bhaktapur / Patan)
+    - Pashupatinath / Boudhanath / Swayambhunath / Janaki Mandir /
+      Muktinath / Manakamana / Dakshinkali / Guhyeshwari /
+      Bindhyabasini / Pathibhara / Changunarayan / Doleshwor /
+      Kalinchowk / Halesi Mahadev / Bhaleshwor
+    - Phewa / Begnas / Rara / Tilicho / Phoksundo / Gosaikunda /
+      Gokyo / Panch Pokhari / Rani Pokhari / Indra Sarovar
+    - Davis / Rupse / Pachaljharana / Hyatung / Sundarijal /
+      Jhor / Tindhare waterfalls
+    - Mahendra / Gupteshwor / Chamere (Bat) / Siddha / Halesi caves
+    - Everest / Annapurna / Manaslu / Dhaulagiri / Makalu /
+      Kanchenjunga / Machhapuchhre peaks
+    - EBC / ABC / Annapurna Circuit / Langtang / Manaslu /
+      Upper Mustang / Rara / Mardi Himal / Khopra treks
+    - Chitwan / Bardiya / Khaptad / Sagarmatha / Shey Phoksundo /
+      Langtang / Shivapuri / Makalu Barun / Koshi Tappu parks
+    - Sarangkot / Nagarkot / Chandragiri / Phulchowki / Shree Antu /
+      Daman / Kakani / Kala Patthar / Gokyo Ri / Poon Hill viewpoints
+    - Manakamana / Chandragiri cable cars
+    - Trishuli / Bhote Koshi / Sun Koshi / Karnali rafting;
+      Sarangkot paragliding / ultralight; Kushma bungee
+    - Kanyam / Ilam tea gardens
+    - Ghandruk / Ghale Gaun / Bandipur / Marpha / Kagbeni / Jomsom /
+      Dhampus / Chitlang / Panauti / Bungamati / Khokana / Kirtipur /
+      Dhulikhel / Tansen / Barpak villages
+    - Indra Jatra / Bisket / Rato Machhindranath / Mani Rimdu /
+      Tiji / Dashain / Tihar / Holi / Gai Jatra / Ghode Jatra festivals
+    - Lumbini / Maya Devi / Kopan / Tengboche / Thrangu Tashi Yangtse /
+      Thame / Braga / Rinchenling / Shey monasteries & stupas
+  • Hotels/lodges separated behind a type filter (default list shows
+    REAL attractions, not thousands of hotels).
+  • Category chips on the Destinations page for every taxonomy group.
+  • Mood-based AI recommendations: /api/v1/destinations/mood-recommendations
+    ?mood=happy|relaxed|chill|adventure|romantic|family|spiritual|cultural
+    |wildlife|trekking|hiking|scenic|photography|excited|solitude|sad|
+    energetic|winter|snow|pilgrimage|lakeside&days=N
+  • Autocomplete search: /api/v1/destinations/autocomplete/?q=...
 
 --------------------------------------------------------------------------
-ADMIN QUICK START
+IMAGE SOURCING & ACCURACY
 --------------------------------------------------------------------------
-Default superuser (if seeded): admin / admin123
-If none exists, create one with:
-    python manage.py createsuperuser
-Then visit /admin for Django admin or /admin-dashboard for the React
-admin panel (image moderation, staff creation, pending queue).
+  - 30 bundled AI JPEGs for the top 30 headline destinations (Everest,
+    Phewa, Chitwan, Lumbini, Bhaktapur, Patan, Kathmandu Durbar,
+    Annapurna, Upper Mustang, Ilam, Janakpur, Bandipur, Bardiya, Dolpo,
+    Gosaikunda, Koshi Tappu, Manaslu, Rara, Tilicho, Pashupatinath,
+    Boudhanath, Swayambhunath, Dharahara, Mahendra Cave, Davis Falls,
+    Langtang, Muktinath, Manakamana).
+  - All other covers come from large, category-pure Unsplash photo
+    pools (30-40 photos per category) with STRICT whole-word keyword
+    matching so we no longer get beach photos on rafting or wetlands
+    on rivers.
+  - The /admin interface (Django) lets you:
+      * Browse every destination with its cover thumbnail & image count
+      * Approve / reject / mark-verified any image in bulk
+      * Reassign covers for selected destinations (action menu)
+      * Upload/replace individual destination images
+      * Create new staff/admin/super-admin users via the Users page
+  - The React Admin Dashboard (`/admin-dashboard`) exposes the same
+    image-moderation queue and a staff-user creation form.
+  - Default cover/gallery photos are committed in APPROVED state. New
+    user-uploaded images can be required to go through the pending
+    queue by toggling the setting in the admin.
 
 --------------------------------------------------------------------------
-ADDING MORE AI IMAGES (requires internet)
+COLORS / THEME
 --------------------------------------------------------------------------
-    python manage.py download_ai_images --all --num 8
-Generates photos via Pollinations.ai and saves them under
-frontend/Tourism/public/images/destinations/<slug>/.
+  Deep mountain green : #1f6b4d
+  Warm terracotta     : #c2603a
+  Himalayan gold      : #b8862f
+  Warm off-white      : #faf8f4
+  (No purple / blue theme anywhere — only the Nepal palette.)
+
+--------------------------------------------------------------------------
+LAN ACCESS
+--------------------------------------------------------------------------
+Both servers bind 0.0.0.0. ALLOWED_HOSTS = ['*'],
+CORS_ALLOW_ALL_ORIGINS = True. Point any phone/laptop on the same WiFi
+at http://<your-lan-ip>:5173 and it will work.
