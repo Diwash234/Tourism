@@ -2,8 +2,16 @@
 Management command: reassign_covers
 ====================================
 Reassigns cover images and gallery photos for ALL Destinations using the
-curated photo_catalog pools, so every attraction/hotel gets deterministic,
-CATEGORY-CORRECT imagery (no more bike-on-temple, lion-on-mountain, beach-on-temple, etc.).
+curated photo_catalog system:
+
+  * LANDMARK destinations get the accurate bundled AI photos.
+  * All other destinations get UNIQUE deterministic Nepal-themed SVG postcards
+    (one per destination, no repeats).
+  * Cover images are set APPROVED (so the site works).
+  * Gallery (non-cover) images are set PENDING so admins can review and
+    replace them with real photos through the image moderation pipeline.
+  * Old generic Unsplash images are deleted (they were repeating across
+    thousands of destinations, causing the "same photo everywhere" problem).
 
 Usage:
     python manage.py reassign_covers --clear-first
@@ -23,17 +31,24 @@ from tourist import photo_catalog
 # Source enum shortcuts
 SOURCE_REFERENCE = DestinationImage.Source.REFERENCE
 SOURCE_UNSPLASH = DestinationImage.Source.UNSPLASH
-SOURCE_FALLBACK = "fallback"
+# We use REFERENCE for postcards too since they're generated locally.
+SOURCE_POSTCARD = SOURCE_REFERENCE
+SOURCE_FALLBACK = SOURCE_REFERENCE
 
 STATUS_APPROVED = DestinationImage.ImageStatus.APPROVED
+STATUS_PENDING = DestinationImage.ImageStatus.PENDING
 
 
 def _source_key_for(url: str) -> str:
+    if url.startswith("/api/v1/postcard/") or url.startswith("postcard://"):
+        return SOURCE_POSTCARD
     if url.startswith("/images/"):
         return SOURCE_REFERENCE
     if "images.unsplash.com" in url:
         return SOURCE_UNSPLASH
-    return SOURCE_FALLBACK
+    if "pexels" in url:
+        return SOURCE_UNSPLASH
+    return SOURCE_REFERENCE
 
 
 def _photo_to_row(dest: Destination, photo: dict, *, is_cover: bool) -> DestinationImage:
@@ -45,7 +60,17 @@ def _photo_to_row(dest: Destination, photo: dict, *, is_cover: bool) -> Destinat
     caption = photo.get("caption", "") or (photo.get("tags", [""])[0] if photo.get("tags") else "") or ""
     license_type = photo.get("license", "")
     source_url = photo.get("source_url", "")
-    authenticity = 0.95 if source == SOURCE_REFERENCE else 0.65
+    is_postcard = url.startswith("/api/v1/postcard/")
+    is_bundled = url.startswith("/images/")
+    # Covers are always approved so the site shows images.
+    # Gallery images default to PENDING so they go through admin moderation.
+    status = STATUS_APPROVED if is_cover else STATUS_PENDING
+    if is_bundled:
+        authenticity = 0.95  # curated AI landmark photos
+    elif is_postcard:
+        authenticity = 1.0  # generated, always "correct" for the name
+    else:
+        authenticity = 0.65
     return DestinationImage(
         destination=dest,
         external_url=url,
@@ -58,27 +83,29 @@ def _photo_to_row(dest: Destination, photo: dict, *, is_cover: bool) -> Destinat
         license_type=license_type[:100] if license_type else "",
         copyright_status="verified_reusable",
         image_category="cover" if is_cover else "gallery",
-        verification_status=STATUS_APPROVED,
-        is_verified=True,
+        verification_status=status,
+        is_verified=is_cover,
         authenticity_score=authenticity,
-        quality_score=0.8 if is_cover else 0.7,
+        quality_score=0.85 if is_cover else 0.7,
         overall_score=authenticity,
         attribution=(f"{author} / {license_type}" if author else "").strip(" /"),
     )
 
 
 class Command(BaseCommand):
-    help = "Reassign deterministic, category-correct cover + gallery photos for all destinations."
+    help = "Reassign curated covers + unique SVG postcard gallery images for all destinations."
 
     def add_arguments(self, parser):
         parser.add_argument("--gallery-target", type=int, default=6,
-                            help="Number of gallery photos per destination (including cover). Default 6.")
+                            help="Total images per destination (cover + gallery). Default 6.")
         parser.add_argument("--only-missing", action="store_true",
                             help="Only assign to destinations that have no images yet.")
         parser.add_argument("--clear-first", action="store_true",
                             help="Delete ALL existing auto-assigned images first.")
         parser.add_argument("--limit", type=int, default=0,
                             help="Only process N destinations. 0 = all.")
+        parser.add_argument("--approve-gallery", action="store_true",
+                            help="Also approve gallery images (default: leave as PENDING).")
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -86,23 +113,30 @@ class Command(BaseCommand):
         only_missing = bool(options["only_missing"])
         clear_first = bool(options["clear_first"])
         limit = int(options["limit"]) or 0
+        approve_gallery = bool(options["approve_gallery"])
+
+        global STATUS_PENDING
+        if approve_gallery:
+            STATUS_PENDING = STATUS_APPROVED
 
         self.stdout.write(self.style.MIGRATE_HEADING("Reassigning destination photos..."))
         self.stdout.write(f"  gallery-target = {gallery_target}")
         self.stdout.write(f"  only-missing   = {only_missing}")
         self.stdout.write(f"  clear-first    = {clear_first}")
+        self.stdout.write(f"  approve-gallery= {approve_gallery}")
 
+        # Clear ALL old images first (we're replacing them with new curated/postcard ones)
         if clear_first:
+            deleted, _ = DestinationImage.objects.all().delete()
+            Destination.objects.update(cover_image=None)
+            self.stdout.write(self.style.WARNING(f"  Cleared {deleted} existing image rows."))
+        else:
+            # Remove old unsplash/reference images (keep any user-uploaded ones which are not auto-assigned)
             deleted, _ = DestinationImage.objects.filter(
-                source__in=[SOURCE_UNSPLASH, SOURCE_REFERENCE, SOURCE_FALLBACK],
+                source__in=[SOURCE_UNSPLASH, SOURCE_REFERENCE],
             ).delete()
             Destination.objects.update(cover_image=None)
-            self.stdout.write(self.style.WARNING(f"  Cleared {deleted} existing auto-assigned image rows."))
-        else:
-            DestinationImage.objects.filter(
-                source__in=[SOURCE_UNSPLASH, SOURCE_REFERENCE, SOURCE_FALLBACK],
-                is_cover=True,
-            ).update(is_cover=False)
+            self.stdout.write(self.style.WARNING(f"  Removed {deleted} old stock/reference images."))
 
         qs = Destination.objects.select_related("category").order_by("name")
         if limit:
@@ -114,7 +148,7 @@ class Command(BaseCommand):
         skipped = 0
         new_rows = []
 
-        for i, dest in enumerate(qs.iterator(), 1):
+        for i, dest in enumerate(qs.iterator(chunk_size=200), 1):
             existing_urls = set(
                 DestinationImage.objects.filter(destination=dest)
                 .exclude(external_url="")
@@ -145,8 +179,6 @@ class Command(BaseCommand):
                     new_rows.append(row)
                     seen.add(cover_url)
                     assigned_cover += 1
-            elif cover_url:
-                DestinationImage.objects.filter(destination=dest, external_url=cover_url).update(is_cover=True)
 
             for photo in gallery:
                 url = photo.get("url", "")
@@ -174,6 +206,9 @@ class Command(BaseCommand):
         total_dests = Destination.objects.count()
         with_cover = Destination.objects.filter(gallery__is_cover=True).distinct().count()
         total_imgs = DestinationImage.objects.count()
+        approved = DestinationImage.objects.filter(verification_status=STATUS_APPROVED).count()
+        pending = DestinationImage.objects.filter(verification_status=STATUS_PENDING).count()
         self.stdout.write(self.style.SUCCESS(
-            f"  Final state: {total_dests} destinations, {with_cover} with covers, {total_imgs} total images."
+            f"  Final state: {total_dests} destinations, {with_cover} with covers, "
+            f"{total_imgs} total images ({approved} approved, {pending} pending moderation)."
         ))

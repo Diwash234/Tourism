@@ -946,3 +946,34 @@ class MoodRecommendationsView(generics.ListAPIView):
 
         # Randomize order for discovery feel; but deterministic per mood
         return qs.order_by("?")[:limit]
+
+
+# ---------------------------------------------------------------------------
+# SVG postcard endpoint — deterministic unique Nepal-themed "photo" per place
+# URL format: /api/v1/postcard/<cat>/<name>/<district> (district optional)
+# ---------------------------------------------------------------------------
+def destination_postcard(request, path_info=""):
+    """Serve a unique deterministic SVG postcard for a destination."""
+    from django.http import HttpResponse
+    from urllib.parse import unquote
+    from .svg_postcards import generate_postcard_svg
+    parts = [unquote(p) for p in (path_info or "").rstrip("/").split("/") if p]
+    # Strip trailing .svg suffix if present on last part
+    if parts and parts[-1].lower().endswith(".svg"):
+        parts[-1] = parts[-1][:-4]
+    cat = parts[0] if len(parts) >= 1 else "general"
+    name = parts[1] if len(parts) >= 2 else "Nepal"
+    dist = ""
+    if len(parts) >= 3:
+        # Third part may contain district + optional /id-N suffix
+        # Join any remaining parts before id- into district; id- is optional
+        extra = "/".join(parts[2:])
+        if "/id-" in extra:
+            dist, _ = extra.split("/id-", 1)
+        elif extra.startswith("id-"):
+            dist = ""
+        else:
+            dist = extra
+    svg = generate_postcard_svg(name, cat, dist)
+    return HttpResponse(svg, content_type="image/svg+xml; charset=utf-8",
+                        headers={"Cache-Control": "public, max-age=86400"})

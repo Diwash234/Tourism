@@ -1,48 +1,22 @@
 /**
  * frontend/Tourism/src/utils/imageUtils.js
  *
- * Central image resolver for the whole app.
+ * Central image resolver for the Nepal Tourism app.
  *
- * Design rules:
- *  1. Always prefer the image URL returned by the backend (cover_image_url /
- *     image_url / external_url), which now correctly resolves external
- *     Unsplash/Wikimedia URLs stored in the database instead of mangling
- *     them into broken "/media/https%3A/..." links.
- *  2. Never return solid colour blocks. The old bundled /images/destinations/*
- *     files were flat purple rectangles, so we no longer fall back to them.
- *  3. Provide a varied, category-aware set of REAL landscape photos as the
- *     last-resort fallback so cards never look identical.
+ * Priority:
+ *  1. Backend-provided cover_image_url / external_url (curated AI photos
+ *     for named landmarks + unique SVG postcards for everything else).
+ *  2. First APPROVED gallery image.
+ *  3. Local curated /images/destinations/... JPEGs for known landmarks.
+ *  4. Deterministic SVG postcard via /api/v1/postcard/ endpoint (NEVER a
+ *     generic Unsplash photo that repeats across destinations).
+ *
+ * No more generic stock-photo fallbacks — every destination gets a unique,
+ * Nepal-themed visual.
  */
 
-// A varied pool of openly-licensed (Unsplash License) landscape photos used
-// only when the backend has no image at all. The pool is intentionally
-// diverse so cards don't all show the same picture.
-const FALLBACK_POOL = [
-  "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80",
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80",
-  "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80",
-  "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&q=80",
-  "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1200&q=80",
-  "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=1200&q=80",
-  "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80",
-  "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80",
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80",
-  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=80",
-  "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80",
-  "https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=1200&q=80",
-  "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
-  "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80",
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80",
-  "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80",
-]
-
-/*
- * Real place-specific curated Nepal photos (generated AI JPEGs stored locally
- * under /images/destinations/<slug>/...). These are proper photographic images
- * (not colour blocks) used as the highest-priority fallback when the backend
- * has no usable cover_image_url for a destination.
- * Slug keys match lowercased destination names / common aliases.
- */
+// Curated Nepal-specific AI photos bundled with the frontend.
+// Slug keys are matched against destination name/city/district.
 const LOCAL_NEPAL_PHOTOS = {
   // Nagarkot
   nagarkot:        "/images/destinations/nagarkot/sunrise-view.jpg",
@@ -62,126 +36,192 @@ const LOCAL_NEPAL_PHOTOS = {
   // Kathmandu Valley
   kathmandu:       "/images/destinations/kathmandu/durbar-square.jpg",
   "kathmandu durbar": "/images/destinations/kathmandu/durbar-square.jpg",
+  pashupatinath:   "/images/destinations/pashupatinath/main-temple.jpg",
+  boudhanath:      "/images/destinations/boudhanath/stupa.jpg",
+  boudha:          "/images/destinations/boudhanath/stupa.jpg",
+  swayambhunath:   "/images/destinations/swayambhunath/stupa.jpg",
+  swayambhu:       "/images/destinations/swayambhunath/stupa.jpg",
+  dharahara:       "/images/destinations/dharahara/tower.jpg",
+  "bhimsen tower": "/images/destinations/dharahara/tower.jpg",
+  // Bhaktapur / Patan / Lalitpur
   bhaktapur:       "/images/destinations/bhaktapur/durbar.jpg",
-  patan:           "/images/destinations/patan/durbar.jpg",
-  lalitpur:        "/images/destinations/patan/durbar.jpg",
-  "patan durbar":  "/images/destinations/patan/durbar.jpg",
   "bhaktapur durbar": "/images/destinations/bhaktapur/durbar.jpg",
+  patan:           "/images/destinations/patan/durbar-square.jpg",
+  lalitpur:        "/images/destinations/patan/durbar-square.jpg",
+  "patan durbar":  "/images/destinations/patan/durbar-square.jpg",
   // Chitwan
   chitwan:         "/images/destinations/chitwan/safari.jpg",
   "chitwan national park": "/images/destinations/chitwan/safari.jpg",
+  sauraha:         "/images/destinations/chitwan/safari.jpg",
   // Lumbini
   lumbini:         "/images/destinations/lumbini/garden.jpg",
-  // Annapurna
+  // Annapurna / Ghandruk / Sarangkot
   annapurna:       "/images/destinations/annapurna/trek.jpg",
   "annapurna circuit": "/images/destinations/annapurna/trek.jpg",
   "annapurna base camp": "/images/destinations/annapurna/trek.jpg",
   abc:             "/images/destinations/annapurna/trek.jpg",
-  // Mustang
+  ghandruk:        "/images/destinations/ghandruk/village.jpg",
+  sarangkot:       "/images/destinations/sarangkot/view.jpg",
+  "poon hill":     "/images/destinations/annapurna/trek.jpg",
+  // Mustang / Muktinath
   mustang:         "/images/destinations/mustang/lo-manthang.jpg",
   "upper mustang": "/images/destinations/mustang/lo-manthang.jpg",
   "lo manthang":   "/images/destinations/mustang/lo-manthang.jpg",
-  "lower mustang": "/images/destinations/mustang/lo-manthang.jpg",
-  // Ilam
+  muktinath:       "/images/destinations/muktinath/temple.jpg",
+  jomsom:          "/images/destinations/mustang/lo-manthang.jpg",
+  kagbeni:         "/images/destinations/mustang/lo-manthang.jpg",
+  marpha:          "/images/destinations/mustang/lo-manthang.jpg",
+  // Ilam / tea / Kanyam
   ilam:            "/images/destinations/ilam/tea-gardens.jpg",
   "ilam tea":      "/images/destinations/ilam/tea-gardens.jpg",
-  kanyam:          "/images/destinations/ilam/tea-gardens.jpg",
+  kanyam:          "/images/destinations/kanyam/tea-garden.jpg",
+  "shree antu":    "/images/destinations/ilam/tea-gardens.jpg",
   // Janakpur
   janakpur:        "/images/destinations/janakpur/janaki-mandir.jpg",
   "janaki mandir": "/images/destinations/janakpur/janaki-mandir.jpg",
   "janakpur dham": "/images/destinations/janakpur/janaki-mandir.jpg",
-  // Bandipur
+  // Bandipur / Gorkha / Dhulikhel / Tansen / Rani Mahal
   bandipur:        "/images/destinations/bandipur/hilltop-village.jpg",
-  // Bardiya
+  gorkha:          "/images/destinations/gorkha/durbar.jpg",
+  "gorkha durbar": "/images/destinations/gorkha/durbar.jpg",
+  dhulikhel:       "/images/destinations/dhulikhel/town.jpg",
+  tansen:          "/images/destinations/rani-mahal/palace.jpg",
+  "rani mahal":    "/images/destinations/rani-mahal/palace.jpg",
+  // Bardiya / Chitwan wildlife
   bardiya:         "/images/destinations/bardiya/tiger-reserve.jpg",
   "bardiya national park": "/images/destinations/bardiya/tiger-reserve.jpg",
-  "bardia":        "/images/destinations/bardiya/tiger-reserve.jpg",
-  // Dolpo
+  bardia:          "/images/destinations/bardiya/tiger-reserve.jpg",
+  // Dolpo / Phoksundo
   dolpo:           "/images/destinations/dolpo/highland-village.jpg",
   "upper dolpo":   "/images/destinations/dolpo/highland-village.jpg",
-  "shey phoksundo":"/images/destinations/dolpo/highland-village.jpg",
-  phoksundo:       "/images/destinations/dolpo/highland-village.jpg",
-  // Gosaikunda
+  phoksundo:       "/images/destinations/phoksundo/lake.jpg",
+  "phoksundo lake": "/images/destinations/phoksundo/lake.jpg",
+  "shey phoksundo": "/images/destinations/phoksundo/lake.jpg",
+  // Gosaikunda / Langtang
   gosaikunda:      "/images/destinations/gosaikunda/glacial-lake.jpg",
-  "gosainkunda":   "/images/destinations/gosaikunda/glacial-lake.jpg",
-  langtang:        "/images/destinations/gosaikunda/glacial-lake.jpg",
+  gosainkunda:     "/images/destinations/gosaikunda/glacial-lake.jpg",
+  langtang:        "/images/destinations/langtang/valley.jpg",
+  "langtang valley": "/images/destinations/langtang/valley.jpg",
   // Koshi Tappu
   "koshi tappu":   "/images/destinations/koshi-tappu/wetlands.jpg",
   "kosi tappu":    "/images/destinations/koshi-tappu/wetlands.jpg",
-  "koshi tuppu":   "/images/destinations/koshi-tappu/wetlands.jpg",
   // Manaslu
   manaslu:         "/images/destinations/manaslu/mountain-peak.jpg",
-  "manaslu circuit":"/images/destinations/manaslu/mountain-peak.jpg",
+  "manaslu circuit": "/images/destinations/manaslu/mountain-peak.jpg",
   // Rara
   rara:            "/images/destinations/rara/alpine-lake.jpg",
   "rara lake":     "/images/destinations/rara/alpine-lake.jpg",
-  "rara national park": "/images/destinations/rara/alpine-lake.jpg",
   // Tilicho
   tilicho:         "/images/destinations/tilicho/himalayan-lake.jpg",
   "tilicho lake":  "/images/destinations/tilicho/himalayan-lake.jpg",
+  // Peaks
+  dhaulagiri:      "/images/destinations/dhaulagiri/peak.jpg",
+  kanchenjunga:    "/images/destinations/kanchenjunga/peak.jpg",
+  kanchanjunga:    "/images/destinations/kanchenjunga/peak.jpg",
+  // Rivers / adventure
+  "bhote koshi":   "/images/destinations/bhote-koshi/rafting.jpg",
+  // Chandragiri
+  chandragiri:     "/images/destinations/chandragiri/view.jpg",
+  // Manakamana
+  manakamana:      "/images/destinations/manakamana/temple.jpg",
+  // Caves / falls
+  "mahendra cave": "/images/destinations/mahendra-cave/interior.jpg",
+  "davis falls":   "/images/destinations/davis-falls/waterfall.jpg",
+  "patale chhango": "/images/destinations/davis-falls/waterfall.jpg",
+  // Khaptad / Pathibhara
+  khaptad:         "/images/destinations/khaptad/landscape.jpg",
+  pathibhara:      "/images/destinations/pathibhara/temple.jpg",
+  "pathibhara devi": "/images/destinations/pathibhara/temple.jpg",
 }
 
 const lookupLocalNepal = (name) => {
   if (!name) return null
   const n = String(name).toLowerCase().trim()
   if (LOCAL_NEPAL_PHOTOS[n]) return LOCAL_NEPAL_PHOTOS[n]
-  // substring match (e.g. "Nagarkot Viewpoint" -> nagarkot)
+  // Longest-key substring match (more specific names first)
+  let best = null
+  let bestLen = 0
   for (const key of Object.keys(LOCAL_NEPAL_PHOTOS)) {
-    if (n.includes(key)) return LOCAL_NEPAL_PHOTOS[key]
+    if (n.includes(key) && key.length > bestLen) {
+      best = LOCAL_NEPAL_PHOTOS[key]
+      bestLen = key.length
+    }
   }
-  return null
+  return best
 }
 
-// Category-keyword -> fallback image (only used when no backend image exists)
-const CATEGORY_FALLBACK = {
-  mountain: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80",
-  trek: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80",
-  peak: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80",
-  lake: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80",
-  water: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80",
-  waterfall: "https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=1200&q=80",
-  temple: "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&q=80",
-  heritage: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80",
-  stupa: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80",
-  religious: "https://images.unsplash.com/photo-1570192977-f48187449e48?w=1200&q=80",
-  wildlife: "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=1200&q=80",
-  safari: "https://images.unsplash.com/photo-1549366021-9f761d450615?w=1200&q=80",
-  park: "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=1200&q=80",
-  hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80",
-  resort: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1200&q=80",
-  city: "https://images.unsplash.com/photo-1572953107300-18597face4ba?w=1200&q=80",
+// Map category slugs/keywords to postcard categories
+const CATEGORY_FOR_POSTCARD = [
+  [/(waterfall|jharna|chhango|fall)/i, "waterfalls"],
+  [/(cave|gufa|mahadev cave)/i, "caves"],
+  [/(hot.?spring|tatopani)/i, "hot-springs"],
+  [/(lake|tal|pokhari|kunda|sarovar|daha)/i, "lakes"],
+  [/(river|khola|kosi|koshi|karnali|gandaki|trishuli|narayani)/i, "rivers"],
+  [/(trek|hik|base camp|circuit|pass|la)/i, "trekking"],
+  [/(peak|mountain|mount |everest|sagarmatha|annapurna|manaslu|dhaulagiri|makalu|kanchenjunga|himal)/i, "mountains"],
+  [/(stupa|gompa|monastery|buddhist|buddha|vihar|lumbini|boudha|swayambhu)/i, "buddhist-sites"],
+  [/(temple|mandir|mahadev|shiva|bhairav|kumari|devi|bhagwati|narayan|ganesh|pashupati|muktinath|manakamana)/i, "temples"],
+  [/(durbar|palace|heritage|museum|narayanhiti)/i, "heritage"],
+  [/(national park|wildlife|safari|rhino|tiger|elephant|bardiya|chitwan)/i, "wildlife"],
+  [/(bird|wetland|koshi tappu)/i, "bird-watching"],
+  [/(forest|jungle|rhododendron|sal )/i, "forests"],
+  [/(viewpoint|view point|view tower|danda|hill station|nagarkot|chandragiri|sarangkot|poon.?hill)/i, "viewpoints"],
+  [/(tea garden|tea estate|ilam|kanyam)/i, "tea-coffee"],
+  [/(garden|park|botanical)/i, "parks-gardens"],
+  [/(cable.?car|ropeway)/i, "cablecar"],
+  [/(festival|jatra|mela|dashain|tihar|holi)/i, "festivals"],
+  [/(paragliding|ultralight|skydive|zip.?flyer)/i, "air-sports"],
+  [/(rafting|kayak|boating|canoeing)/i, "water-sports"],
+  [/(bungee|rock climb|bouldering|canyoning|climbing)/i, "adventure"],
+  [/(camp|tent)/i, "camping"],
+  [/(cycling|mountain bike|biking)/i, "cycling"],
+  [/(snow|winter|ski|kalinchowk)/i, "winter"],
+  [/(scenic|highway|road trip)/i, "scenic-routes"],
+  [/(eco.?tourism|community|organic)/i, "eco-tourism"],
+  [/(farm|agriculture|terrace|rice)/i, "agriculture"],
+  [/(restaurant|cafe|momo|food|culinary|dal bhat)/i, "food-culinary"],
+  [/(shop|market|bazaar|bazar|store)/i, "shopping"],
+  [/(village|gaun)/i, "villages"],
+  [/(hotel|resort|lodge|guesthouse|hostel|motel|homestay|inn)/i, "hotel"],
+  [/(city|thamel|kathmandu|pokhara|biratnagar|birgunj|nepalgunj|dharan|butwal)/i, "cities"],
+  [/(hill)/i, "hills"],
+  [/(valley)/i, "valleys"],
+]
+
+const deriveCategory = (dest) => {
+  if (!dest) return "general"
+  const slug = dest.category?.slug || dest.category_slug
+  if (slug && typeof slug === "string") return slug
+  const catName = dest.category_name || dest.category?.name
+  const hay = `${dest.name || ""} ${dest.city || ""} ${dest.district || ""} ${catName || ""} ${slug || ""}`
+  for (const [re, cat] of CATEGORY_FOR_POSTCARD) {
+    if (re.test(hay)) return cat
+  }
+  return "general"
+}
+
+const postcardUrl = (dest) => {
+  const cat = deriveCategory(dest)
+  const name = encodeURIComponent(dest.name || "Nepal")
+  const dist = encodeURIComponent(dest.district || dest.city || "")
+  return `/api/v1/postcard/${cat}/${name}/${dist}`
 }
 
 const isUsable = (url) => {
   if (!url || typeof url !== "string") return false
   const u = url.trim()
   if (!u) return false
-  // Reject obvious placeholders
   if (u.includes("placeholder")) return false
-  // Reject the old bundled /images/destinations/<place>/img1..img5.jpg
-  // solid-colour blocks (~8KB) — but ALLOW the new curated named photos
-  // (e.g. sunrise-view.jpg, fewatal.jpg, base-camp.jpg, safari.jpg, ...).
-  if (/\/images\/destinations\/[^/]+\/img\d+\.jpg(\?|$)/.test(u)) return false
   return true
-}
-
-const pickFromPool = (seed) => {
-  const s = String(seed || "nepal")
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
-  return FALLBACK_POOL[h % FALLBACK_POOL.length]
 }
 
 /**
  * Return a usable image URL for a destination/hotel/card.
- * @param {object} destination - object that may carry cover_image_url,
- *   cover_image, image, image_url, or gallery images.
  */
 export const getDestinationImageUrl = (destination) => {
-  if (!destination) return FALLBACK_POOL[0]
+  if (!destination) return postcardUrl({ name: "Nepal" })
 
-  // 1. Explicit cover image from API / DB (backend now resolves external
-  //    URLs correctly, so these are real, loadable photo URLs)
+  // 1. Explicit cover image from API / DB
   const cover =
     destination.cover_image_url ||
     destination.cover_image ||
@@ -189,52 +229,39 @@ export const getDestinationImageUrl = (destination) => {
     destination.image
   if (isUsable(cover)) return cover
 
-  // 2. Attached gallery photos
+  // 2. Gallery (approved only if we know status)
   if (Array.isArray(destination.gallery) && destination.gallery.length > 0) {
     for (const g of destination.gallery) {
+      if (g.verification_status && g.verification_status !== "approved") continue
       const gUrl = g?.display_url || g?.external_url || g?.image || g?.url
       if (isUsable(gUrl)) return gUrl
     }
   }
 
-  // 2b. Local curated Nepal photo for specific named destinations
+  // 3. Local curated Nepal photos for known landmarks
   const haystack = `${destination.name || ""} ${destination.city || ""} ${destination.district || ""}`
   const local = lookupLocalNepal(haystack)
   if (local) return local
 
-  // 3. Category-aware fallback
-  const cat = String(
-    destination.category_name ||
-      destination.category?.name ||
-      destination.category ||
-      ""
-  ).toLowerCase()
-  for (const [key, url] of Object.entries(CATEGORY_FALLBACK)) {
-    if (cat.includes(key)) return url
-  }
-
-  // 4. Name/city keyword fallback
-  for (const [key, url] of Object.entries(CATEGORY_FALLBACK)) {
-    if (haystack.toLowerCase().includes(key)) return url
-  }
-
-  // 5. Stable varied pool pick (different per name, same per place)
-  return pickFromPool(destination.name || destination.id || "nepal")
+  // 4. Deterministic SVG postcard (unique per destination — no repeats!)
+  return postcardUrl(destination)
 }
 
 /**
- * Return a usable image URL for a hotel. Mirrors getDestinationImageUrl but
- * prefers hotel-specific fields.
+ * Return a usable image URL for a hotel.
  */
 export const getHotelImageUrl = (hotel) => {
-  if (!hotel) return CATEGORY_FALLBACK.hotel
+  if (!hotel) return postcardUrl({ name: "Hotel", category: { slug: "hotel" } })
   const cover = hotel.image_url || hotel.cover_image_url || hotel.cover_image || hotel.external_image_url
   if (isUsable(cover)) return cover
   if (Array.isArray(hotel.gallery) && hotel.gallery.length > 0) {
-    const gUrl = hotel.gallery[0]?.external_url || hotel.gallery[0]?.image
-    if (isUsable(gUrl)) return gUrl
+    for (const g of hotel.gallery) {
+      if (g.verification_status && g.verification_status !== "approved") continue
+      const gUrl = g?.display_url || g?.external_url || g?.image
+      if (isUsable(gUrl)) return gUrl
+    }
   }
-  return pickFromPool(hotel.name || hotel.id || "hotel")
+  return postcardUrl({ name: hotel.name || "Hotel", category: { slug: "hotel" } })
 }
 
 export const createLocalImagePreview = (file) => {
@@ -242,8 +269,7 @@ export const createLocalImagePreview = (file) => {
   return URL.createObjectURL(file)
 }
 
-/** A single sensible default image (e.g. for og:image / empties). */
-export const DEFAULT_DESTINATION_IMAGE = FALLBACK_POOL[0]
+/** Default image for og:image / empties. */
+export const DEFAULT_DESTINATION_IMAGE = "/images/destinations/everest/base-camp.jpg"
 
-/** Re-export the curated local photo map for PlaceholderImage. */
 export const LOCAL_NEPAL_PHOTOS_PLACEHOLDER = LOCAL_NEPAL_PHOTOS
