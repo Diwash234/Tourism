@@ -20,14 +20,24 @@ import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import { PAGE_SIZE } from "../../utils/constants"
 
+// Type chips control the "attractions vs hotels" split
+const TYPE_OPTIONS = [
+  { label: "🏔️ Attractions", value: "attraction" },
+  { label: "🏨 Hotels & Stays", value: "hotel" },
+  { label: "🌐 All Places", value: "all" },
+]
+
 const CATEGORY_OPTIONS = [
   { label: "All Categories", value: "" },
-  { label: "🏔️ Mountains & Trekking", value: "mountains" },
-  { label: "🌊 Lakes & Water", value: "lakes" },
-  { label: "🐅 Forest & Wildlife", value: "wildlife" },
-  { label: "🏛️ Heritage & Temples", value: "heritage" },
-  { label: "🪂 Adventure Sports", value: "adventure" },
-  { label: "📸 Photography Spots", value: "photography" },
+  { label: "🏔️ Mountains & Trekking", value: "nature-trekking" },
+  { label: "🌊 Lakes & Water", value: "lakes-water-activities" },
+  { label: "🐅 Wildlife & Safari", value: "wildlife" },
+  { label: "🏛️ Heritage & Temples", value: "heritage-temples" },
+  { label: "🛕 Religious Sites", value: "religious-sites" },
+  { label: "📸 Photography Spots", value: "photography-spots" },
+  { label: "⭐ Attractions", value: "attraction" },
+  { label: "🖼️ Viewpoints", value: "viewpoint" },
+  { label: "🏛️ Museums", value: "museum" },
 ]
 
 export default function DestinationList() {
@@ -42,6 +52,7 @@ export default function DestinationList() {
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [category, setCategory] = useState("")
+  const [type, setType] = useState("attraction") // default: real attractions, not hotels
   const [query, setQuery] = useState(initialQuery)
   const [favoriteMap, setFavoriteMap] = useState({})
   const [loading, setLoading] = useState(true)
@@ -55,6 +66,7 @@ export default function DestinationList() {
     const params = {
       page,
       limit: 12,
+      type,
     }
 
     if (category) params.category = category
@@ -86,7 +98,7 @@ export default function DestinationList() {
       .finally(() => {
         setLoading(false)
       })
-  }, [page, category, query, position])
+  }, [page, category, type, query, position])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -151,29 +163,48 @@ export default function DestinationList() {
     }
   }
 
+  // Nepal-themed palette: deep green / terracotta / gold
+  const chipActive = "bg-[#1f6b4d] text-white shadow-md"
+  const chipIdle = "bg-white text-[#1f6b4d] border border-[#1f6b4d]/30 hover:bg-[#1f6b4d]/5"
+
   return (
     <div className="container-app py-8 space-y-8 animate-fadeIn">
       <Breadcrumbs items={[{ label: "Destinations Explorer", to: "/destinations" }]} />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1f6b4d]/20 pb-4">
         <div>
-          <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+          <span className="px-3.5 py-1 rounded-full bg-[#c2603a]/10 text-[#c2603a] text-xs font-black uppercase tracking-wider">
             Himalayan Atlas
           </span>
-          <h1 className="text-3xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
-            <FiMapPin className="text-purple-700" /> Explore Nepal Destinations
+          <h1 className="text-3xl md:text-4xl font-extrabold text-[#1f3329] mt-1 flex items-center gap-2"
+              style={{ fontFamily: 'ui-serif, Georgia, "Noto Serif Devanagari", serif' }}>
+            <FiMapPin className="text-[#c2603a]" /> Explore Nepal
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Over 5,800+ verified mountain passes, cultural heritage temples, serene lakes, and hidden valleys.
+          <p className="text-gray-600 text-sm mt-1 max-w-xl">
+            Discover real temples, stupas, caves, lakes, Himalayan viewpoints and heritage
+            sites across Nepal — no hotels or lodges cluttering the map.
           </p>
         </div>
 
         <Link
           to="/destinations/submit"
-          className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-[#1f6b4d] hover:bg-[#174f38] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-[#1f6b4d]/20 transition-all shrink-0"
         >
           <FiPlus size={16} /> Submit a Place
         </Link>
+      </div>
+
+      {/* Type chips (Attractions / Hotels / All) */}
+      <div className="flex flex-wrap gap-2">
+        {TYPE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => { setType(opt.value); setPage(1) }}
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${type === opt.value ? chipActive : chipIdle}`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {/* Search & Category Filter */}
@@ -181,7 +212,7 @@ export default function DestinationList() {
         <SearchBar
           className="flex-1"
           defaultValue={initialQuery}
-          placeholder="Search by name, city, temple, trek (e.g. Swargadwari, Waling, Pokhara, Everest)..."
+          placeholder="Search by name, city, temple, trek (e.g. Mahendra Cave, Phewa, Everest)..."
           onSearch={(val) => {
             setQuery(val)
             setPage(1)
@@ -230,27 +261,28 @@ export default function DestinationList() {
           )}
         </div>
       ) : (
-        /* Research & Discovery Card when no local match exists */
-        <div className="card-base p-8 sm:p-12 text-center max-w-xl mx-auto space-y-5 border border-purple-200 bg-gradient-to-br from-white to-purple-50/70 rounded-3xl shadow-2xl">
-          <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-700 mx-auto flex items-center justify-center font-black text-2xl shadow-sm">
+        <div className="card-base p-8 sm:p-12 text-center max-w-xl mx-auto space-y-5 border border-[#1f6b4d]/30 bg-gradient-to-br from-white to-[#faf8f4] rounded-3xl shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-[#c2603a]/10 text-[#c2603a] mx-auto flex items-center justify-center font-black text-2xl shadow-sm">
             ✨
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-extrabold text-2xl text-gray-900">
-              Destination Not Found in Local Index
+            <h3 className="font-extrabold text-2xl text-[#1f3329]">
+              Destination Not Found
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-              Would you like the <b>AI Destination Discovery Sentinel</b> to research and assemble a verified record for <b>"{query || "this destination"}"</b> from Nepal Tourism Board, municipal archives, and Wikimedia?
+            <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+              No matching attractions yet. Would you like the AI Discovery Sentinel to
+              research and assemble a verified record for{" "}
+              <b>"{query || "this destination"}"</b>?
             </p>
           </div>
 
           <button
             onClick={handleResearchQuery}
             disabled={researching || !query}
-            className="btn-primary px-8 py-3.5 bg-gradient-to-r from-purple-700 to-rose-600 hover:from-purple-800 hover:to-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+            className="px-8 py-3.5 bg-[#1f6b4d] hover:bg-[#174f38] text-white font-black text-sm rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50"
           >
-            {researching ? "Researching & Collecting Verified Data..." : `Research & Discover "${query || "Place"}" with AI ➔`}
+            {researching ? "Researching..." : `Research "${query || "Place"}" ➔`}
           </button>
         </div>
       )}

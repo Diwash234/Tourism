@@ -1,25 +1,34 @@
 const THEMES = {
-  coral: "from-primary-500 via-primary-600 to-ink",
-  teal: "from-secondary-500 via-secondary-600 to-ink",
-  blue: "from-blue-500 via-blue-600 to-ink",
-  cyan: "from-cyan-500 via-cyan-600 to-ink",
-  purple: "from-purple-500 via-purple-600 to-ink",
-  indigo: "from-indigo-500 via-indigo-600 to-ink",
-  amber: "from-marigold-500 via-marigold-600 to-ink",
-  emerald: "from-emerald-500 via-emerald-600 to-ink",
-  rose: "from-rose-500 via-rose-600 to-ink",
-  red: "from-red-500 via-red-600 to-ink",
+  // Nepal-themed palette: deep mountain green, terracotta, Himalayan gold
+  forest:  "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
+  mountain:"from-[#14503a] via-[#1f6b4d] to-[#0a281d]",
+  terracotta: "from-[#c2603a] via-[#a34a29] to-[#6d2f18]",
+  gold:    "from-[#b8862f] via-[#a3721f] to-[#6b4910]",
+  cream:   "from-[#faf8f4] via-[#efe8d9] to-[#e5dcc5]",
+  heritage:"from-[#7a1f1f] via-[#5a1515] to-[#2d0808]",
+  lake:    "from-[#2f6f7f] via-[#245864] to-[#12323a]",
+  // Legacy aliases (deprecated — kept so existing pages don't break)
+  coral:   "from-[#c2603a] via-[#a34a29] to-[#6d2f18]",
+  teal:    "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
+  amber:   "from-[#b8862f] via-[#a3721f] to-[#6b4910]",
+  emerald: "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
+  rose:    "from-[#c2603a] via-[#a34a29] to-[#6d2f18]",
+  red:     "from-[#7a1f1f] via-[#5a1515] to-[#2d0808]",
+  blue:    "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
+  cyan:    "from-[#2f6f7f] via-[#245864] to-[#12323a]",
+  purple:  "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
+  indigo:  "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
 }
 
 /**
  * Colored gradient banner used to give each page/dashboard its own visual identity.
- * theme: one of coral | teal | blue | cyan | purple | indigo | amber | emerald | rose | red
- * Every theme ends in the shared brand "ink" tone and carries the lungta
- * (prayer flag) strip + mountain-ridge silhouette signature for consistency.
+ * theme: forest | mountain | terracotta | gold | cream | heritage | lake
+ *        (legacy: coral/teal/amber/emerald/rose/red map to the Nepal palette)
+ * Every theme carries the lungta (prayer flag) strip + mountain-ridge silhouette.
  */
-const PageHeader = ({ title, subtitle, icon: Icon, theme = "coral", actions }) => (
+const PageHeader = ({ title, subtitle, icon: Icon, theme = "forest", actions }) => (
   <div className="relative overflow-hidden rounded-xl2 mb-8 shadow-card">
-    <div className={`bg-gradient-to-br ${THEMES[theme] || THEMES.coral} text-white p-6 pb-8 relative`}>
+    <div className={`bg-gradient-to-br ${THEMES[theme] || THEMES.forest} text-white p-6 pb-8 relative`}>
       {/* Mountain-ridge silhouette, evokes the Himalayan skyline on every dashboard */}
       <svg
         className="absolute bottom-0 left-0 w-full h-16 opacity-20"

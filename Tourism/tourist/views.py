@@ -188,8 +188,27 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         if user.is_authenticated:
             # Public approved places + this user's own submissions (any status)
             from django.db.models import Q
-            return qs.filter(Q(is_active=True, status=Destination.SubmissionStatus.APPROVED) | Q(created_by=user))
-        return qs.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+            qs = qs.filter(Q(is_active=True, status=Destination.SubmissionStatus.APPROVED) | Q(created_by=user))
+        else:
+            qs = qs.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+
+        # Default destination listing: show real attractions, not hotels/info/noise.
+        # Pass ?type=all or ?type=hotel to override (see DestinationFilter).
+        if self.action == "list":
+            requested_type = (self.request.query_params.get("type") or "").lower()
+            if requested_type not in ("all", "hotel", "hotels", "lodging", "accommodation", "stay",
+                                      "attraction", "attractions", "destination", "destinations"):
+                from .filters import (
+                    ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+                    NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
+                )
+                exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
+                qs = qs.exclude(category__slug__in=exclude_slugs)
+                for hint in ACCOMMODATION_NAME_HINTS:
+                    qs = qs.exclude(name__icontains=hint)
+                for hint in NON_ATTRACTION_NAME_HINTS:
+                    qs = qs.exclude(name__icontains=hint)
+        return qs
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
