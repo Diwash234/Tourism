@@ -28,9 +28,25 @@ photos being attached to unrelated destinations.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+import os
 import re
 from urllib.parse import quote
+
+# ---------------------------------------------------------------------------
+# Verified real-photo registry (Wikimedia Commons, checked against the
+# Commons API). Destination id -> photo dict. Loaded from
+# verified_wikimedia_photos.json so covers stay accurate and reproducible.
+# ---------------------------------------------------------------------------
+_VERIFIED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "verified_wikimedia_photos.json")
+VERIFIED_WIKIMEDIA = {}
+try:
+    with open(_VERIFIED_PATH, encoding="utf-8") as _f:
+        VERIFIED_WIKIMEDIA = {int(k): v for k, v in json.load(_f).items()}
+except Exception:  # pragma: no cover - registry is optional
+    VERIFIED_WIKIMEDIA = {}
+
 
 logger = logging.getLogger(__name__)
 
@@ -557,17 +573,41 @@ def _is_accommodation(destination):
 # Public API
 # ---------------------------------------------------------------------------
 
+def _verified_photo(dest_id):
+    """Return the verified Wikimedia Commons photo for this destination, if any."""
+    if dest_id is None:
+        return None
+    info = VERIFIED_WIKIMEDIA.get(int(dest_id))
+    if not info:
+        return None
+    return {
+        "url": info.get("url"),
+        "thumb": info.get("thumb") or info.get("url"),
+        "source": "wikimedia",
+        "author": info.get("photographer") or "Wikimedia Commons",
+        "caption": info.get("caption") or info.get("label"),
+        "tags": ["verified", "wikimedia", info.get("tier") or "verified"],
+        "license": info.get("license"),
+        "source_url": info.get("source_url"),
+        "qid": info.get("qid"),
+    }
+
+
 def resolve_cover_photo(destination):
     """Return a cover photo dict for the destination.
 
     Priority:
-      1. Curated LANDMARK photo if name matches a known Nepal place.
-      2. Unique deterministic SVG postcard keyed to name+category+district+id.
+      1. Verified real photo from Wikimedia Commons (checked via Commons API).
+      2. Curated LANDMARK photo if name matches a known Nepal place.
+      3. Unique deterministic SVG postcard keyed to name+category+district+id.
     """
     name = getattr(destination, "name", "") or ""
     district = getattr(destination, "district", "") or ""
     city = getattr(destination, "city", "") or ""
     dest_id = getattr(destination, "id", None)
+    verified = _verified_photo(dest_id)
+    if verified is not None:
+        return verified
     landmark = _match_landmark(name)
     if landmark is not None:
         return landmark

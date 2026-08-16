@@ -46,3 +46,31 @@ Every reported issue across destination imagery, admin dashboard text/actions, n
 - **Backend**: 🟢 **100% Healthy** (Django 5.0.6 REST API, 79/79 automated tests passing in ~27s, 0 system check issues)
 - **ML Microservice**: 🟢 **100% Healthy** (FastAPI on port `8001`, trained TF-IDF vectorizer, RandomForest risk & budget regressors)
 - **Database (`Tourism/db.sqlite3`)**: 🟢 **Enriched & Populated** with verified cover imagery across all districts.
+
+---
+
+## 🖼️ Verified Real Photos for 1,300+ Destinations (Wikimedia Commons)
+
+Building on the curated landmark photos and SVG postcard system, this update attaches **real, verified photographs** to Nepal destinations:
+
+### What was done
+1. **Dumped Wikidata** for every Nepal item with an image (P18) + coordinates (P625) — 823 notable items after strict filtering (no maps, logos, languages, people, events, non-image files; Nepal bounding box enforced).
+2. **Matched 1,008 destinations** to real places via:
+   - `exact` (195) — normalized label == name (+ common suffix variants),
+   - `contains` (199) — word-boundary containment with distance caps,
+   - `fuzzy` (3) — token Jaccard ≥ 0.6,
+   - `coords` (611) — nearest item within 1.5 km (attractions only, honestly captioned "Near …").
+3. **Verified every image on the Wikimedia Commons API** (`imageinfo` → existence, canonical `upload.wikimedia.org` CDN URL, photographer, license). CDN hash-path construction was proven against 118 API-verified URLs (md5 of underscore filename).
+4. **Updated `Tourism/db.sqlite3`**:
+   - 1,008 verified cover rows (`source=wikimedia`, `verification_status=approved`, `is_verified=1`) with photographer + license attribution and `source_url` to the Commons file page.
+   - **321 new destinations** added from the verified dataset (notable peaks, lakes, temples, waterfalls, villages missing from the DB), each with a verified cover.
+   - No existing rows deleted — previous covers were demoted to gallery (`is_cover=0`).
+   - Final state: **7,568 destinations**, 45,819 image rows, 1,323 real-photo covers + 501 accurate AI landmark covers + 5,744 unique SVG postcards.
+5. **Reproducibility**:
+   - `Tourism/tourist/verified_wikimedia_photos.json` — dest_id → verified photo manifest (1,008 entries).
+   - `Tourism/scripts/enrich_verified_photos.py` — self-contained matcher/URL-builder/DB-applier.
+   - `photo_catalog.resolve_cover_photo()` now prefers the verified registry, then curated landmarks, then postcards.
+6. Refreshed `downloads/` (database snapshot + gz).
+
+### Image sources
+All photos are from **Wikimedia Commons** (CC BY / CC BY-SA / CC0 / Public domain), individually attributed with photographer + license in the database; `source_url` links each image to its Commons file page.
