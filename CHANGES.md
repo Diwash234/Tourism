@@ -694,3 +694,37 @@ Thuli Bheri River dup (kept the Rukum West rafting entry).
 DB: **8,319 destinations**, 20,958 verified real image rows, 0 dests >1
 cover, 0 dests <2 photos, integrity ok; manifest 8,319 × 2; Karnali 342 →
 484 dests; download .gz refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏔️ Round 19: Sudurpashchim Province — 19 famous places added (8,338 dests)
+
+Added the missing ★ named places from the Sudurpashchim ward-by-ward data
+(Achham, Baitadi, Bajhang, Bajura, Dadeldhura, Darchula, Doti). Most flagship
+destinations already existed from earlier rounds (Ramaroshan, Badimalika,
+Saipal Himal, Api Himal + Api Nampa Conservation Area, Malikarjun Temple,
+Amargadhi Fort, Ugratara Temple, Aalital Lake, Ajayameru Kot, Parshuram Dham,
+Tikapur Park, Ghodaghodi Lake, Siddhanath, Bhimdatta, Dhangadhi, Khaptad
+National Park, Melauli Bhagawati Temple, Chainpur Bajhang, Dipayal Silgadhi,
+Mangalsen, Martadi, Baidyanath Dham, Jorayal, Panchadeval, Badikedar,
+Gaddachauki, Mahakali River) and were skipped.
+
+New additions:
+- **Achham (4)**: Jingale Lake (Ramaroshan 12-lake complex), Mangalsen
+  Durbar, Bannigadhi, Jayagadh.
+- **Baitadi (6)**: Tripurasundari Bhagawati Temple, Nigalasaini Bhagawati
+  Temple, Dilasaini Bhagawati Temple (the four-sister-goddess circuit minus
+  the existing Melauli), Rauleshwar Kedar, Deulek Kedar, Sigas Kedar
+  (Seven Kedar circuit).
+- **Bajhang (1)**: Kedarseu (Kedar landscape).
+- **Bajura (3)**: Gaumul, Budhiganga River, Himali (Bajura).
+- **Dadeldhura (3)**: Ghatalthan, Asirgram, Jogbudha.
+- **Darchula (1)**: Byas (Darchula) high-Himalayan area.
+- **Doti (1)**: Silgadhi Heritage Area.
+
+Fix: **Parshuram Dham** was tagged Doti; the canonical site is in Dadeldhura
+(Parshuram Municipality) - relocated.
+
+DB: **8,338 destinations**, 20,996 verified real image rows, 0 dests >1
+cover, 0 dests <2 photos, integrity ok; manifest 8,338 × 2; Sudurpashchim
+173 → 192; download .gz refreshed; 60 tests pass; frontend builds clean.
