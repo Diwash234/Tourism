@@ -755,3 +755,71 @@ Deuti Bajai/Baraha Tal), Rara + Phoksundo + Sinja + Limi + Api + Saipal etc.
 DB: **8,347 destinations**, 21,014 verified real image rows, 0 dests >1
 cover, 0 dests <2 photos, integrity ok; manifest 8,347 × 2; download .gz
 refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏔️ Round 21: Lumbini + Gandaki — 179 famous places added (8,524 dests)
+
+Added the missing named destinations from the Lumbini/Gandaki ward-level
+destination pools. Lumbini 579 → 680 dests, Gandaki 2,543 → 2,621 dests.
+
+- **Rupandehi (21)**: Puskarini Pond, Myanmar Golden Temple, Royal Thai /
+  Chinese / German Monasteries (Lumbini monastic zone), Jitgadhi Fort,
+  Manimukunda Sen Park, Butwal Hill Park, Sainamaina, Parroha Dham,
+  Muktinath Dham Butwal, Santaneshwar Ghat, Global Peace Park, Ban Batika,
+  Gajedi + Danapur + Gaidahawa + Nandabhoj + Karpakatti Lakes, Kotihawa,
+  Devdaha.
+- **Kapilvastu (23)**: Gotihawa, Aurorakot, Piprahawa, Taulihawa Bazaar,
+  Tauleshwarnath Temple, Shivagadhi, Ramghat, Laxman Ghat, Samay Mai
+  Temple, Sisahaniya Kot, Dohani, Kramukot, Banganga River, Shringighat /
+  Madhuban / Kapil / Ram Datiwan Dhams, Kharkhani, Sonwagadh Temple,
+  Dudhdhari Baba, Shankarpur Lake, Puraina Baba, Badki Mai.
+- **Palpa (3)**: Shitalpati, Ramdi, Nuwakot Fort Palpa.
+- **Gulmi (6)**: Bichitra Cave, Khadgakot, Isma Durbar, Musikot Durbar,
+  Tamghas, Malika Banjhakateri.
+- **Arghakhanchi (5)**: Panini Tapobhumi, Argha Durbar, Khanchi Durbar,
+  Narpani, Chhatradev Devalaya.
+- **Nawalparasi West (5)**: Somnath Temple Triveni, Daunne Devi Temple,
+  Palhi Bhagwati, Sunwal, Parasi.
+- **Dang (11)**: Ambikeshwari Temple, Barahakune Daha, Dangisharan Palace,
+  Chaughera, Tulsipur, Ratnanath Temple, Jangalkuti, Devikot,
+  Jakhera Lake (relocated from Dailekh), Bagar Baba, Dharapani Dham.
+- **Banke (6)**: Kohalpur, Barfeni Baba Dham, Gavar Valley, Khajura,
+  Narainapur, Sikta.
+- **Bardiya (4)**: Badhaiya Lake, Geruwa River, Dalla Community Homestay,
+  Thakurdwara (fixed Bardia→Bardiya).
+- **Pyuthan (4)**: Gaumukhi Dham, Naubahini Danda, Mallarani Danda,
+  Jhimruk Hydropower.
+- **Rolpa (7)**: Holeri, Liwang, Jelbang, Runtigadhi Fort,
+  Sunchhahari Waterfall, Tilachan Daha, Guerrilla Trek.
+- **Rukum East (8)**: Sundaha, Golde Waterfall, Lawang, Taksera, Maikot,
+  Pelma, Hukam, Rukumkot Durbar.
+- **Kaski (10)**: Gurkha Museum, Matepani Gumba, Hemja, Naudanda,
+  Kahun Danda, Machhapuchhre Base Camp, Tangting, Dhital, Lumle, Pumdikot.
+- **Gorkha (9)**: Siranchok, Mu Gompa, Rachen Gompa, Chhokangparo, Philim,
+  Machha Khola, Soti Khola, Aarughat, Birendra Lake.
+- **Lamjung (9)**: Ghan Pokhara, Pasgaun, Rainas Kot, Dordi Valley,
+  Tarkughat, Gaunshahar Durbar, Purankot, Karaputar, Sundarbazar.
+- **Manang (9)**: Ngawal, Tal, Timang, Koto, Ledar, Thorong Phedi,
+  Kang La Pass, Phu Village, Nar Village.
+- **Mustang (8)**: Jwala Mai Temple, Tingkhar, Nyphu Cave,
+  Konchok Ling Cave, Dhakmar, Tsarang Palace, Chele, Dhumba Lake.
+- **Myagdi (1)**: Galeshwor Temple.
+- **Baglung (7)**: Galkot Durbar, Balewa, Bhakunde, Tamankhola Valley,
+  Nisi Valley, Jaimini Dham, Gaja Daha.
+- **Parbat (6)**: Alapeshwor Cave, Phalewas, Arthar Danda, Paiyun, Bihadi,
+  Seti Beni.
+- **Syangja (6)**: Putalibazar, Panchamul, Bhirkot Durbar,
+  Aandhikhola River, Karkineta Viewpoint, Chhangchhangdi Temple.
+- **Tanahun (10)**: Khadga Devi Temple, Thani Mai Temple, Damauli,
+  Chabdi Barahi, Dhorbarahi, Tanahun Durbar, Ghiring, Rishing,
+  Mukundeshwari Temple, Aakase Jharana.
+- **Nawalpur (4)**: Gaindakot, Hupsekot Waterfall + Hill, CG Shashwat Dham.
+
+Fix: 'Seti River George' renamed to **Seti River Gorge**; Jakhera Lake
+relocated Dailekh → Dang; Thakurdwara district Bardia → Bardiya; duplicates
+removed.
+
+DB: **8,524 destinations**, 21,368 verified real image rows, 0 dests >1
+cover, 0 dests <2 photos, integrity ok; manifest 8,524 × 2; download .gz
+refreshed; 60 tests pass; frontend builds clean.
