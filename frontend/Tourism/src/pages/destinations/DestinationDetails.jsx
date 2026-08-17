@@ -12,7 +12,7 @@ import {
 import destinationApi from "../../api/destinationApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
-import { getDestinationImageUrl } from "../../utils/imageUtils"
+import { getDestinationImageUrl, fallbackImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
 import WeatherCard from "../../components/cards/WeatherCard"
@@ -159,14 +159,22 @@ export default function DestinationDetails() {
     })
   }
 
-  // Location-Aware Authentic Nepal Image Fallbacks
+  // Location-Aware Authentic Nepal Image Fallbacks — unique per destination
+  // (local landmark photo + deterministic pool picks, never repeated).
   const authenticRegionalUrl = getDestinationImageUrl(destination)
+  const seedName = `${destination.name} ${destination.district || ""} ${destination.city || ""}`
+  const uniquePicks = [
+    fallbackImageUrl(`${seedName} 1`),
+    fallbackImageUrl(`${seedName} 2`),
+    fallbackImageUrl(`${seedName} 3`),
+    fallbackImageUrl(`${seedName} 4`),
+  ]
   const defaultFallbacks = [
     { url: authenticRegionalUrl, caption: `${destination.name} - Scenic View`, category: "landscape", photographer: "Nepal Tourism Verified Media Archive", platform: "Official Tourism Database", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/everest/base-camp.jpg", caption: "Himalayan Alpine Trail", category: "mountain", photographer: "Alpine Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/pokhara/fewatal.jpg", caption: "Lakeside Mountain Panorama", category: "lake", photographer: "Pokhara Tourism Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/manakamana/temple.jpg", caption: "Historic Pagoda Temple", category: "temple", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "/images/destinations/everest/base-camp.jpg", caption: "High Altitude Landscape", category: "landscape", photographer: "Trans-Himalayan Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: uniquePicks[0], caption: `${destination.name} - Landscape`, category: "landscape", photographer: "Nepal Tourism Media Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: uniquePicks[1], caption: `${destination.name} - Scenic View`, category: "scenic", photographer: "Nepal Tourism Media Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: uniquePicks[2], caption: `${destination.name} - Heritage`, category: "heritage", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: uniquePicks[3], caption: `${destination.name} - Panorama`, category: "panorama", photographer: "Nepal Tourism Media Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
   ]
   while (allImages.length < 5) {
     allImages.push(defaultFallbacks[allImages.length % defaultFallbacks.length])

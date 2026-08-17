@@ -196,3 +196,35 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   per-destination unique postcard, never a shared photo.
 - DB URL audit: 0 junk/utm URLs, every upload.wikimedia.org thumb row is
   960px. DB 15 MB; manifest 2,995; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏔️ Round 7: Local-landmark photos everywhere + 23 more real covers (total 3,018) + gallery photos
+
+- **SVG postcards now fall back to real photos first**: frontend `isUsable()`
+  treats `/api/v1/postcard/` URLs as "no real photo", so the chain becomes:
+  real verified cover → API images/gallery → **local landmark photo** →
+  deterministic pool (Unsplash + local) → unique postcard (last resort).
+  Every destination page now shows a real photo instead of an SVG whenever
+  the place is known.
+- **Local landmark map massively expanded** (~150 extra name→photo entries):
+  Thamel, Asan, Pashupati, Swayambhu, Boudha, Chandragiri, Phulchowki,
+  Nagarkot, Panauti, Nyatapola, Krishna Mandir, Lakeside, Tal Barahi,
+  World Peace Pagoda, Davis Falls, Bat Cave, Bindabasini, Poon Hill,
+  Ghorepani, Dhampus, Bandipur, Namche, Tengboche, Lukla, Gokyo, Mustang/
+  Lo Manthang/Jomsom/Kagbeni/Marpha, Tilicho, Phoksundo, Begnas, Khaptad
+  Lake, Api Himal, Shuklaphanta, Parsa/Banke NP, Maya Devi, Ilam, Kanyam,
+  Janaki Mandir, Manakamana, Dharahara, Rafting/Bungee, Rani Pokhari + more.
+- **Destination detail gallery now unique per place**: 4 deterministic pool
+  picks (no more duplicated Everest photo on every page).
+- **23 more real covers** (total **3,018**): Annapurna Circuit Trek, Asan
+  Bazaar, Dhampus ×2, Dhunche Hot Spring, Godavari Kunda, Khumbu Icefall,
+  Koshi Tappu Birding, Itahari, Jomsom Tatopani, Jomsom Sadak, Mahadev Cave
+  (Gupteshwor) Pokhara, Makalu, Makalu Barun NP, Bhadrakali Temple,
+  Annapurna Rhododendron Forests, Maratika Caves (Halesi), Maya Devi Temple,
+  Lumbini Meditation Retreat ×2, Koshi/Lumbini/Madhesh province cards.
+- **8 real gallery photos added** (second image for same place): Gupteshwor,
+  Bhadrakali, Koshi Tappu, Godavari Kunda, Makalu, Dhunche, Jomsom, Maya Devi.
+- Audit: 7,517 dests → 3,018 real + 274 AI-landmark + 3,629 SVG (mostly
+  hotels) + 596 no-cover (all resolved via frontend chain → nothing blank).
+  DB 15 MB, manifest 3,018, 60 tests pass, frontend builds clean.

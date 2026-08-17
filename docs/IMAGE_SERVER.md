@@ -302,3 +302,18 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   real verified cover → API images/gallery → local landmark photos →
   deterministic pool (local + Unsplash landscapes) → unique postcard.
 - DB URL audit: 0 junk/utm/1000px URLs. DB 15 MB, manifest 2,995, 60 tests.
+
+## 16. Round 7 — local-landmark photos replace SVG on destination pages
+
+- Frontend now treats SVG postcard URLs as "not a real photo": the resolution
+  chain goes real cover → gallery → **local landmark photo** → multi-source
+  pool → unique postcard (last resort). ~150 extra place-name → local-photo
+  mappings added (Kathmandu sites, Pokhara sites, trek routes, Mustang,
+  Terai parks, tea gardens, temples, falls, caves…).
+- Destination detail gallery generates 4 deterministic unique photos per
+  place (no repeated generic fallbacks).
+- 23 more real covers (total **3,018**) + 8 real gallery rows for famous
+  places (Gupteshwor, Bhadrakali, Koshi Tappu, Godavari, Makalu, Dhunche,
+  Jomsom, Maya Devi).
+- Audit totals: 3,018 real + 274 AI + 3,629 SVG (mostly hotels) + 596
+  no-cover (frontend chain guarantees a visible photo for every destination).

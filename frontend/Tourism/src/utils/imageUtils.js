@@ -136,6 +136,140 @@ const LOCAL_NEPAL_PHOTOS = {
   "pathibhara devi": "/images/destinations/pathibhara/temple.jpg",
 }
 
+// ---------------------------------------------------------------------------
+// EXTRA LOCAL LANDMARK MAP — many more place names -> the best-matching local
+// landmark photo, so destination pages show a real Nepal photo instead of an
+// SVG postcard whenever the place is known.
+// ---------------------------------------------------------------------------
+const EXTRA_LOCAL_PHOTOS = {
+  // Kathmandu Valley
+  thamel: "/images/destinations/kathmandu/durbar-square.jpg",
+  asan: "/images/destinations/kathmandu/durbar-square.jpg",
+  "kathmandu durbar square": "/images/destinations/kathmandu/durbar-square.jpg",
+  "hanuman dhoka": "/images/destinations/kathmandu/durbar-square.jpg",
+  kirtipur: "/images/destinations/kathmandu/durbar-square.jpg",
+  balaju: "/images/destinations/kathmandu/durbar-square.jpg",
+  budhanilkantha: "/images/destinations/kathmandu/durbar-square.jpg",
+  "swayambhu stupa": "/images/destinations/swayambhunath/stupa.jpg",
+  "boudhanath stupa": "/images/destinations/boudhanath/stupa.jpg",
+  "boudha stupa": "/images/destinations/boudhanath/stupa.jpg",
+  pashupati: "/images/destinations/pashupatinath/main-temple.jpg",
+  "pashupatinath temple": "/images/destinations/pashupatinath/main-temple.jpg",
+  guhyeshwari: "/images/destinations/pashupatinath/main-temple.jpg",
+  "chandragiri hill": "/images/destinations/chandragiri/view.jpg",
+  "chandragiri cable": "/images/destinations/chandragiri/view.jpg",
+  phulchowki: "/images/destinations/chandragiri/view.jpg",
+  nagarkot: "/images/destinations/nagarkot/sunrise-view.jpg",
+  dhulikhel: "/images/destinations/dhulikhel/town.jpg",
+  panauti: "/images/destinations/bhaktapur/durbar.jpg",
+  banepa: "/images/destinations/bhaktapur/durbar.jpg",
+  changunarayan: "/images/destinations/bhaktapur/durbar.jpg",
+  kakani: "/images/destinations/nagarkot/sunrise-view.jpg",
+  // Bhaktapur / Patan
+  "bhaktapur durbar square": "/images/destinations/bhaktapur/durbar.jpg",
+  nyatapola: "/images/destinations/bhaktapur/durbar.jpg",
+  "patan durbar square": "/images/destinations/patan/durbar-square.jpg",
+  "krishna mandir": "/images/destinations/patan/durbar-square.jpg",
+  "golden temple": "/images/destinations/patan/durbar-square.jpg",
+  // Pokhara
+  phewa: "/images/destinations/pokhara/fewatal.jpg",
+  fewa: "/images/destinations/pokhara/fewatal.jpg",
+  lakeside: "/images/destinations/pokhara/fewatal.jpg",
+  "tal barahi": "/images/destinations/pokhara/fewatal.jpg",
+  "world peace pagoda": "/images/destinations/pokhara/fewatal.jpg",
+  "shanti stupa": "/images/destinations/pokhara/fewatal.jpg",
+  "davis falls": "/images/destinations/davis-falls/waterfall.jpg",
+  "devi's falls": "/images/destinations/davis-falls/waterfall.jpg",
+  "patale chhango": "/images/destinations/davis-falls/waterfall.jpg",
+  "mahendra cave": "/images/destinations/mahendra-cave/interior.jpg",
+  "bat cave": "/images/destinations/mahendra-cave/interior.jpg",
+  bindabasini: "/images/destinations/pokhara/fewatal.jpg",
+  sarangkot: "/images/destinations/sarangkot/view.jpg",
+  "poon hill": "/images/destinations/annapurna/trek.jpg",
+  ghorepani: "/images/destinations/annapurna/trek.jpg",
+  ghandruk: "/images/destinations/ghandruk/village.jpg",
+  dhampus: "/images/destinations/ghandruk/village.jpg",
+  "australian camp": "/images/destinations/ghandruk/village.jpg",
+  bandipur: "/images/destinations/bandipur/hilltop-village.jpg",
+  // Mountains
+  everest: "/images/destinations/everest/base-camp.jpg",
+  sagarmatha: "/images/destinations/everest/base-camp.jpg",
+  "everest base camp": "/images/destinations/everest/base-camp.jpg",
+  khumbu: "/images/destinations/everest/base-camp.jpg",
+  namche: "/images/destinations/everest/base-camp.jpg",
+  tengboche: "/images/destinations/everest/base-camp.jpg",
+  lukla: "/images/destinations/everest/base-camp.jpg",
+  amadablam: "/images/destinations/everest/base-camp.jpg",
+  annapurna: "/images/destinations/annapurna/trek.jpg",
+  "annapurna base camp": "/images/destinations/annapurna/trek.jpg",
+  "annapurna circuit": "/images/destinations/annapurna/trek.jpg",
+  "abc trek": "/images/destinations/annapurna/trek.jpg",
+  manaslu: "/images/destinations/manaslu/mountain-peak.jpg",
+  "manaslu circuit": "/images/destinations/manaslu/mountain-peak.jpg",
+  dhaulagiri: "/images/destinations/dhaulagiri/peak.jpg",
+  kanchenjunga: "/images/destinations/kanchenjunga/peak.jpg",
+  makalu: "/images/destinations/kanchenjunga/peak.jpg",
+  gosaikunda: "/images/destinations/gosaikunda/glacial-lake.jpg",
+  langtang: "/images/destinations/langtang/valley.jpg",
+  "kyanjin gompa": "/images/destinations/langtang/valley.jpg",
+  // Mustang / Dolpo
+  mustang: "/images/destinations/mustang/lo-manthang.jpg",
+  "lo manthang": "/images/destinations/mustang/lo-manthang.jpg",
+  jomsom: "/images/destinations/mustang/lo-manthang.jpg",
+  kagbeni: "/images/destinations/mustang/lo-manthang.jpg",
+  marpha: "/images/destinations/mustang/lo-manthang.jpg",
+  muktinath: "/images/destinations/muktinath/temple.jpg",
+  tilicho: "/images/destinations/tilicho/himalayan-lake.jpg",
+  dolpo: "/images/destinations/dolpo/highland-village.jpg",
+  phoksundo: "/images/destinations/phoksundo/lake.jpg",
+  "shey phoksundo": "/images/destinations/phoksundo/lake.jpg",
+  // Lakes
+  rara: "/images/destinations/rara/alpine-lake.jpg",
+  "rara lake": "/images/destinations/rara/alpine-lake.jpg",
+  "phewa lake": "/images/destinations/pokhara/fewatal.jpg",
+  begnas: "/images/destinations/pokhara/fewatal.jpg",
+  "rupa lake": "/images/destinations/pokhara/fewatal.jpg",
+  gokyo: "/images/destinations/rara/alpine-lake.jpg",
+  imja: "/images/destinations/rara/alpine-lake.jpg",
+  // West Nepal
+  "khaptad lake": "/images/destinations/khaptad/landscape.jpg",
+  "api himal": "/images/destinations/khaptad/landscape.jpg",
+  saipal: "/images/destinations/khaptad/landscape.jpg",
+  "rani mahal": "/images/destinations/rani-mahal/palace.jpg",
+  // Terai / wildlife
+  sauraha: "/images/destinations/chitwan/safari.jpg",
+  "chitwan national park": "/images/destinations/chitwan/safari.jpg",
+  bardia: "/images/destinations/bardiya/tiger-reserve.jpg",
+  "bardiya national park": "/images/destinations/bardiya/tiger-reserve.jpg",
+  "koshi tappu": "/images/destinations/koshi-tappu/wetlands.jpg",
+  "kosi tappu": "/images/destinations/koshi-tappu/wetlands.jpg",
+  shuklaphanta: "/images/destinations/bardiya/tiger-reserve.jpg",
+  "parsa national park": "/images/destinations/chitwan/safari.jpg",
+  "banke national park": "/images/destinations/bardiya/tiger-reserve.jpg",
+  "maya devi": "/images/destinations/lumbini/garden.jpg",
+  "lumbini garden": "/images/destinations/lumbini/garden.jpg",
+  // East / tea
+  "ilam tea": "/images/destinations/ilam/tea-gardens.jpg",
+  "shree antu": "/images/destinations/ilam/tea-gardens.jpg",
+  birtamod: "/images/destinations/ilam/tea-gardens.jpg",
+  "janaki mandir": "/images/destinations/janakpur/janaki-mandir.jpg",
+  "janakpur dham": "/images/destinations/janakpur/janaki-mandir.jpg",
+  // Gorkha / Manakamana
+  "gorkha durbar": "/images/destinations/gorkha/durbar.jpg",
+  // Misc landmarks
+  dharahara: "/images/destinations/dharahara/tower.jpg",
+  "bhimsen tower": "/images/destinations/dharahara/tower.jpg",
+  "bhote koshi": "/images/destinations/bhote-koshi/rafting.jpg",
+  trishuli: "/images/destinations/bhote-koshi/rafting.jpg",
+  bungee: "/images/destinations/bhote-koshi/rafting.jpg",
+  rafting: "/images/destinations/bhote-koshi/rafting.jpg",
+  "garden of dreams": "/images/destinations/kathmandu/durbar-square.jpg",
+  ranipokhari: "/images/destinations/kathmandu/durbar-square.jpg",
+  kumari: "/images/destinations/kathmandu/durbar-square.jpg",
+}
+
+Object.assign(LOCAL_NEPAL_PHOTOS, EXTRA_LOCAL_PHOTOS)
+
 const lookupLocalNepal = (name) => {
   if (!name) return null
   const n = String(name).toLowerCase().trim()
@@ -214,6 +348,9 @@ const isUsable = (url) => {
   const u = url.trim()
   if (!u) return false
   if (u.includes("placeholder")) return false
+  // SVG postcards are the LAST resort — treat them as "no real photo" so the
+  // local landmark photo / multi-source pool can take over first.
+  if (u.includes("/api/v1/postcard/")) return false
   return true
 }
 
