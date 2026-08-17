@@ -352,3 +352,15 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   5,013 destinations that previously had none.
 - API `images[]` = cover + 2 real gallery photos; frontend ignores SVG
   postcard URLs so real images show on cards and detail pages.
+
+## 20. Round 12 — 77-district places + category-correct pools + unlimited admin images
+
+- 132 new destinations covering all 77 districts (Koshi/Madhesh/Bagmati/
+  Gandaki/Lumbini/Karnali/Sudurpashchim); every destination has 2 real
+  photos; manifest = 7,680 entries × 2.
+- imageUtils category pools rebuilt: shopping/food/culture/festival/snow/
+  hotspring/cycling/camping/air-sports/adventure/tea/wildlife/city/road all
+  have correct, varied photo pools (fixes "shopping shows temples", "winter
+  shows the place not snow", "air-sports shows rafting", "Chitwan all
+  rhino", "hot springs unrelated photos", etc.).
+- Admin dashboard "Fetch real photos" accepts 1-200 images per run.

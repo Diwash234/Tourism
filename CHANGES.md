@@ -336,3 +336,45 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   every destination has at least 2 real photos first.
 - DB 24 MB (was 15 MB, +10k small URL-metadata rows); snapshot 3.1 MB;
   60 tests pass; frontend builds clean.
+
+---
+
+## 🗺️ Round 12: 77-district famous places (132 new) + category-correct image pools + unlimited admin image fetch
+
+- **132 new destinations** from the 77-district tourism list (28 already existed,
+  skipped) — now **7,680 destinations** covering every province: Koshi
+  (Sandakpur, Mai Pokhari, Gokyo Lakes, Barun Valley, Kakarbhitta, Dantakali…),
+  Madhesh (Kankalini, Salhesh, Ram Mandir, Birgunj Ghantaghar…), Bagmati
+  (Jiri, Tsho Rolpa, Nuwakot Durbar, Kakani, Bishazari Tal…), Gandaki (Ghale
+  Gaun, Gangapurna, Ice Lake, Rupse Falls, Kushma Bridge, Sirubari,
+  Maulakalika…), Lumbini (Ashoka Pillar, Kapilvastu sites, Ridi, Jaljala,
+  Putha Himal, Ramgram Stupa…), Karnali (Syarpu Lake, Kupinde Lake, Shey
+  Gompa, Limi Valley, Raskot, Pachal Jharana, Chhayanath, Bulbule, Pancha
+  Koshi, Dullu…), Sudurpashchim (Malikarjun, Lipulekh, Melauli, Niglasaini,
+  Patal Bhumeshwar, Amargadhi, Ghodaghodi, Tikapur, Siddhanath…).
+- **All 132 new + existing destinations got their 2 real photos**
+  (verified pool) — manifest rebuilt: **7,680 entries, all with 2 photos**.
+- **Category-correct image pools FIXED (root of the wrong-image complaints)**:
+  - shopping → market/shop photos (was: heritage→temples)
+  - food → food photos (was: heritage→temples)
+  - culture → art/gallery/people photos (had none)
+  - festivals → festival/crowd photos (was: heritage→temples)
+  - winter/snow → snow photos (was: mountain — showed the place not the snow)
+  - hot-springs → spa/hot-tub photos (was: waterfall/lake)
+  - cycling → cycling photos (had none)
+  - camping → tent/campfire photos (had none)
+  - air-sports → paragliding/balloon photos (had none — used rafting!)
+  - adventure → climbing/hiking/rafting mix (was rafting-only)
+  - water-sports → rafting/kayak photos
+  - tea → tea photos (Dhobi Dhara etc.)
+  - wildlife → expanded to 8 varied photos (was 2 → "Chitwan all rhino")
+  - cities → 9 city photos (was 4)
+  - roads/highways → road photos
+- **Specific wrong covers fixed**: Mountain Biking (was observatory photo →
+  removed, now cycling pool), Rock Climbing Hattiban (was Vishnu statue →
+  removed, now climbing pool), Kyanjin Ri Panorama (real photo added),
+  Gaighat (real photo added).
+- **Admin dashboard: unlimited image adding** — "Fetch real photos" now has
+  a **count input (1–200, default 50)** and the backend already accepts any
+  number; admin can add as many real photos per destination as they want.
+- Manifest 7,680×2; DB ~25 MB; 60 tests pass; frontend builds clean.

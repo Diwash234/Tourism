@@ -172,6 +172,7 @@ const AdminDashboard = () => {
   // Free web image search (Wikimedia / DuckDuckGo / Openverse) for the
   // currently selected destination.
   const [webSearching, setWebSearching] = useState(false)
+  const [webImageCount, setWebImageCount] = useState(50) // admin can add up to 50 images at once
   const [destSearch, setDestSearch] = useState("")
   const [destSearchResults, setDestSearchResults] = useState([])
 
@@ -179,7 +180,7 @@ const AdminDashboard = () => {
     if (!pipelineDestSlug) return
     setWebSearching(true)
     try {
-      const { data } = await adminApi.fetchWebImages(pipelineDestSlug, 12)
+      const { data } = await adminApi.fetchWebImages(pipelineDestSlug, webImageCount || 50)
       showToast(`${data.saved} real images saved for ${data.destination}`, "success")
       loadPipelineImages()
     } catch (e) {
@@ -1611,13 +1612,21 @@ const AdminDashboard = () => {
                   >
                     {aiGenerating ? "🤖 Generating..." : "✨ Generate AI images"}
                   </button>
-                  <button
-                    onClick={handleFetchWebImages}
-                    disabled={webSearching}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all disabled:opacity-50"
-                  >
-                    {webSearching ? "⏳ Searching web..." : "🌐 Fetch real photos (free)"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number" min={1} max={200} value={webImageCount}
+                      onChange={(e) => setWebImageCount(parseInt(e.target.value, 10) || 50)}
+                      title="Number of real photos to fetch (1-200)"
+                      className="w-20 px-2 py-2.5 rounded-xl bg-slate-800/80 border border-slate-600/60 text-center text-white font-bold text-xs focus:outline-none focus:border-emerald-400"
+                    />
+                    <button
+                      onClick={handleFetchWebImages}
+                      disabled={webSearching}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all disabled:opacity-50"
+                    >
+                      {webSearching ? "⏳ Searching web..." : `🌐 Fetch ${webImageCount || 50} real photos`}
+                    </button>
+                  </div>
                 </div>
               </div>
 
