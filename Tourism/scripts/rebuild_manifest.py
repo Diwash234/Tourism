@@ -40,36 +40,48 @@ def main():
     cur = conn.cursor()
     cur.execute(
         """SELECT destination_id, thumbnail_url, external_url, caption, alt_text,
-                  source_url, photographer, license_type, source
+                  source_url, photographer, license_type, source, is_cover, ordering
            FROM tourist_destinationimage
-           WHERE source IN ('wikimedia', 'openverse') AND is_cover=1
-           ORDER BY destination_id"""
+           WHERE source IN ('wikimedia', 'openverse') AND is_verified=1
+           ORDER BY destination_id, is_cover DESC, ordering, id"""
     )
     rows = cur.fetchall()
     conn.close()
 
     manifest = {}
-    for did, thumb, url, caption, alt_text, source_url, photographer, license_type, source in rows:
+    for did, thumb, url, caption, alt_text, source_url, photographer, license_type, source, is_cover, ordering in rows:
         thumb = thumb or url
         original = original_from_thumb(thumb)
         fn = file_from_source_url(source_url or original)
-        manifest[str(did)] = {
-            "url": thumb,
-            "thumb": thumb,
-            "original": original,
-            "file": fn,
-            "label": caption or alt_text,
-            "caption": caption or alt_text,
+        entry = manifest.setdefault(str(did), {
+            "url": thumb, "thumb": thumb, "original": original, "file": fn,
+            "label": caption or alt_text, "caption": caption or alt_text,
             "source": source,
             "source_url": source_url or f"https://commons.wikimedia.org/wiki/File:{urllib.parse.quote(fn.replace(' ', '_'))}",
             "photographer": photographer or GENERIC_ARTIST,
             "license": license_type or GENERIC_LICENSE,
             "tier": "exact",
-        }
+        })
+        if is_cover:
+            entry["url"] = thumb
+            entry["thumb"] = thumb
+            entry["original"] = original
+            entry["file"] = fn
+            entry["label"] = caption or alt_text
+            entry["caption"] = caption or alt_text
+        else:
+            entry.setdefault("url2", thumb)
+            entry.setdefault("thumb2", thumb)
+            entry.setdefault("original2", original)
+            entry.setdefault("file2", fn)
+            entry.setdefault("label2", caption or alt_text)
+            entry.setdefault("source_url2", source_url or entry.get("source_url", ""))
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=1)
-    print(f"manifest written: {MANIFEST_PATH} ({len(manifest)} entries)")
+
+    with2 = sum(1 for e in manifest.values() if e.get("url2"))
+    print(f"manifest written: {MANIFEST_PATH} ({len(manifest)} entries, {with2} with a 2nd photo)")
 
 
 if __name__ == "__main__":

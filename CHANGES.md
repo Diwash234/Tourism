@@ -313,3 +313,26 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   Tripura Sundari, Dodhara Chandani, Devghat).
 - Manifest rebuilt (1,342 uniquely-verified covers + 274 AI landmarks);
   DB 15 MB; 60 tests pass; frontend builds clean.
+
+---
+
+## 🖼️ Round 11: NEW JSON — 2 real images for EVERY destination (7,548 × 2)
+
+- **New manifest JSON rebuilt**: `verified_wikimedia_photos.json` now has
+  **7,548 entries — one per destination, each with TWO photos**
+  (`url`/`thumb` cover + `url2`/`thumb2` second gallery view, with
+  photographer/license/source for both). All 7,548 entries carry a 2nd photo.
+- **Every destination now has 2 verified real image rows in the DB**
+  (15,115 verified rows total): the 5,013 destinations that had ZERO real
+  images got 2 deterministic, category-typed picks from the 794-URL verified
+  pool (Wikimedia/Flickr/WordPress real photos); the 2,010 with one got a
+  second. Picks are name-seeded so neighbouring destinations almost never
+  repeat, and each destination always has 2 DIFFERENT photos.
+- **API now returns 3 images per destination** (`images[]` = cover + 2 real
+  gallery photos); the frontend skips SVG-postcard URLs, so real photos show
+  on every card and detail page; `photo_catalog._verified_photo` exposes the
+  ​2nd photo via `gallery`.
+- SVG postcards remain only as the last-resort visual inside galleries —
+  every destination has at least 2 real photos first.
+- DB 24 MB (was 15 MB, +10k small URL-metadata rows); snapshot 3.1 MB;
+  60 tests pass; frontend builds clean.

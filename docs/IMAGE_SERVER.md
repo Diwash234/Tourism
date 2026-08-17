@@ -341,3 +341,14 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   Shanti Stupa, Tal Barahi, 360 Paragliding, Gangkhar Puensum, Mid-Hill
   Highway, Brindaban Forest, Godawari, Devkota House).
 - Admin dashboard theme purple -> orange.
+
+## 19. Round 11 — two real photos for every destination (new manifest)
+
+- `verified_wikimedia_photos.json`: 7,548 entries, one per destination,
+  each with `url` + `url2` (and `thumb`/`thumb2`, photographer, license,
+  source for both). Rebuilt from the DB by `scripts/rebuild_manifest.py`.
+- DB: every destination now has 2 verified real image rows (15,115 rows);
+  name-seeded category-typed picks from the 794-URL verified pool for the
+  5,013 destinations that previously had none.
+- API `images[]` = cover + 2 real gallery photos; frontend ignores SVG
+  postcard URLs so real images show on cards and detail pages.

@@ -580,7 +580,7 @@ def _verified_photo(dest_id):
     info = VERIFIED_WIKIMEDIA.get(int(dest_id))
     if not info:
         return None
-    return {
+    result = {
         "url": info.get("url"),
         "thumb": info.get("thumb") or info.get("url"),
         "source": info.get("source") or "wikimedia",
@@ -591,6 +591,19 @@ def _verified_photo(dest_id):
         "source_url": info.get("source_url"),
         "qid": info.get("qid"),
     }
+    # second real photo (gallery) from the manifest when available
+    if info.get("url2"):
+        result["gallery"] = [{
+            "url": info["url2"],
+            "thumb": info.get("thumb2") or info["url2"],
+            "source": info.get("source") or "wikimedia",
+            "author": info.get("photographer") or "Wikimedia Commons",
+            "caption": info.get("label2") or info.get("caption") or info.get("label"),
+            "tags": ["verified", "gallery", info.get("tier") or "verified"],
+            "license": info.get("license"),
+            "source_url": info.get("source_url2") or info.get("source_url"),
+        }]
+    return result
 
 
 def resolve_cover_photo(destination):
