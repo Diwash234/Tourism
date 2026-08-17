@@ -524,3 +524,71 @@ Also fixed:
   0 dests with >1 cover, 0 dests with <2 verified photos, integrity ok;
   manifest rebuilt 7,853 × 2; `downloads/nepal-tourism-database.sqlite3.gz`
   refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏔️ Round 16: Bagmati Province — 279 famous places added (8,132 dests)
+
+Added the named famous places from the ward-by-ward Bagmati district data
+(Kathmandu 138 wards, Lalitpur 81, Bhaktapur 38, Kavre 135, Sindhupalchok 103,
+Dolakha 74, Ramechhap 64, Sindhuli 79) as real destinations with correct
+categories + coordinates. 21 names already existed and were skipped
+(Doleshwor Mahadev, Pilot Baba Ashram, Kailashnath Mahadev Statue,
+Tindhare Jharana, Indreshwar Mahadev, Kamalamai Temple, Sindhuli Gadhi War
+Museum, Tsho Rolpa, Rolwaling Valley, Dolakha Bhimsen, Panch Pokhari, ...).
+
+Highlights by district:
+
+- **Kathmandu (96 new)**: Kapan Monastery, Sundarijal + Waterfall, Bagdwar,
+  Dhap Pokhari, Gokarna Forest, Kageshwori Temple, Vishnudwar, Nagi Gumba,
+  Tarebhir, Tokha Old Town + Chandeshwari, Ichangu Narayan, Nagarjun Jamacho,
+  White Gumba, Switzerland Park, Kumari Ghar, Taleju Temple, Rani Pokhari,
+  Dharahara, Singha Durbar, Narayanhiti Museum, Thamel, Asan/Indra Chowk,
+  Freak Street, Kaiser Library, Balaju Water Garden, Chobhar Gorge,
+  Taudaha Lake, Jal Binayak, Bagh Bhairav, Uma Maheshwor, Chilancho Stupa,
+  Kirtipur Historic City, Panga, Dahachok View Tower, Matatirtha Kunda,
+  Balambu Kotghar, Sankhu Historic City, Bajrayogini Sankhu, Manichud,
+  Dakshinkali Temple, Pharping, Sheshnarayan, Asura Cave, Hyanglasi Gumba,
+  Banasur Danda, Katuwal Daha, Chandra Jyoti Hydropower, etc.
+- **Lalitpur (44 new)**: Mul Chowk, Sundari Chowk, Kumbheshwor Pokhari,
+  Rato Machhindranath, Khokana, Harisiddhi, Sunakothi, Godawari Botanical
+  Garden, Godawari Kunda, Naudhara, Phulchoki, Bajrabarahi, Chapagaun,
+  Vishankhunarayan, Lele Valley, Mahalaxmi Temple (Lubhu), Ashok Stupa
+  Imadol, Lakuri Bhanjyang, Shringirishi + Kamadhenu Caves, Konjyosom
+  Statue, Pathibhara Nallu, Gupteshwar Cave Nallu, Kanchhikot Temple,
+  Malta Phant, Bhattedanda, Ghyampe Daha, Chamero Cave, Kaleshwor Mahadev,
+  Vaitarani Dham, Simba Waterfall, Gotikhel, Baitadi Dham.
+- **Bhaktapur (22 new)**: 55-Window Palace, Golden Gate, National Art
+  Museum, Bhairavnath, Pottery Square, Dattatraya, Siddha Pokhari,
+  Changu Narayan Temple, Nagarkot View Tower, Suryabinayak Temple,
+  Ranikot Gadhi, Ghyampedanda, Chapacho Pottery Centre, Nagadesh, Bode,
+  Telkot + Gadhi, Kileshwor, Sankha Daha, Muhan Pokhari, Duwakot, Chhaling.
+- **Kavrepalanchok (46 new)**: Dhulikhel Old Town, Kali Temple + 1000 Steps,
+  Namobuddha Monastery, Thrangu Tashi Yangtse, Panauti Triveni Ghat,
+  Unmatta Bhairav, Balthali, Chandeshwori Banepa, Nala Bhagawati, Banepa
+  Layaku, Nasiksthan, Sanga Bhajyang, Anaikot View Tower, Dugdheshwari,
+  Khasre Gurung, Kashyapeshwar, Trinetreshwar Gufa, Bethanchok Narayan,
+  Tarkhase Lake, Mhabar Lake, Bhumichuli, Tara Khase Pond, Hattiahaal,
+  Dolalghat, Dullaleshwar Mahadev, Bhimsen Sthan, Sangaswati, Gaidedanda.
+- **Sindhupalchok (22 new)**: Tatopani Hot Springs, Bhote Koshi River,
+  Dugunagadhi Fort, Ama Yangri, Tarkeghyang, Melamchi Ghyang, Sermathang,
+  Kutumsang, Tharepati, Chisopani, Nagitham Danda, Sipa Pyughar Gumba,
+  Tripurasundari Mai Temple, Mahabhir Waterfall, Toklakhu Danda, Chautara,
+  Bhotechaur Tea Garden, Bahrabise + Gosaikunda (Rasuwa).
+- **Dolakha (17 new)**: Beding, Na Village, Khare, Bigu Monastery,
+  Lamabagar, Kalinchowk Bhagawati, Kuri Village, Kalinchowk Cable Car,
+  Singati, Lapilang, Suspa Kshyamawati, Jiri Bazaar + Valley, Deurali,
+  Shailung Danda, Dolakha Old Town, Tripurasundari Temple.
+- **Ramechhap (22 new)**: Ramechhap Bazaar, Old Ramechhap, Doramba,
+  Gupteshwor Mahadev Gufa, Nagdaha, Bijulikot, Jalapadevi, Niranjana
+  Bhagawati, Khandadevi Temple, Sithkha, Sunapati Danda, Numbur,
+  Numbur Cheese Circuit, Thodung Monastery, Jatapokhari, Numburchuili.
+- **Sindhuli (20 new)**: Sindhuligadhi + Durbar Square, Siddhababa,
+  Bhadrakali, Ranichuri Durbar, Madhuganga Mahadev, Marin Drive + Khola,
+  Kusheshwar Mahadev, Faparchuli, BP Park, Devithan Satdobato,
+  Fikkal Chuchuro + View Tower, Mahakali Temple, Hattidhunga Caves,
+  Rachanetham Danda, Shahid Memorial.
+
+DB: **8,132 destinations**, 20,585 verified real image rows, 0 dests >1
+cover, 0 dests <2 photos, integrity ok; manifest rebuilt 8,132 × 2;
+`downloads/nepal-tourism-database.sqlite3.gz` refreshed; tests + build clean.
