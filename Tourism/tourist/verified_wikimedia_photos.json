@@ -168,6 +168,19 @@
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
+ "23": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Trail_exiting_the_village_of_Phakding..jpg/1000px-Trail_exiting_the_village_of_Phakding..jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Trail_exiting_the_village_of_Phakding..jpg/1000px-Trail_exiting_the_village_of_Phakding..jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/9/90/Trail_exiting_the_village_of_Phakding..jpg",
+  "file": "index.php?curid=22538098",
+  "label": "Phakding",
+  "caption": "Phakding",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=22538098",
+  "photographer": "DARIO SEVERI",
+  "license": "CC BY-SA 3.0",
+  "tier": "exact"
+ },
  "24": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/RK_0602_00825_LuklaFlugplatz.jpg/1000px-RK_0602_00825_LuklaFlugplatz.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/RK_0602_00825_LuklaFlugplatz.jpg/1000px-RK_0602_00825_LuklaFlugplatz.jpg",
@@ -3884,6 +3897,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Wangah_square.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "756": {
+  "url": "https://live.staticflickr.com/8658/16612252085_53a3eb6fb9_b.jpg",
+  "thumb": "https://live.staticflickr.com/8658/16612252085_53a3eb6fb9_b.jpg",
+  "original": "https://live.staticflickr.com/8658/16612252085_53a3eb6fb9_b.jpg",
+  "file": "16612252085",
+  "label": "Chamera (BAT) Cave",
+  "caption": "Chamera (BAT) Cave",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/75938119@N04/16612252085",
+  "photographer": "cat_collector",
+  "license": "CC BY 2.0",
   "tier": "exact"
  },
  "757": {
@@ -7887,6 +7913,19 @@
   "source": "wikimedia",
   "source_url": "https://commons.wikimedia.org/wiki/File:BhutanDevi_Temple.jpg",
   "photographer": "Sooshil007",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
+ "1496": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Pokhara-Shanti-Stupa.jpg/1000px-Pokhara-Shanti-Stupa.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Pokhara-Shanti-Stupa.jpg/1000px-Pokhara-Shanti-Stupa.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Pokhara-Shanti-Stupa.jpg",
+  "file": "index.php?curid=117492645",
+  "label": "Pumdi Bhumdi View Tower",
+  "caption": "Pumdi Bhumdi View Tower",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=117492645",
+  "photographer": "PageantUpdatess",
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
@@ -13714,6 +13753,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "2890": {
+  "url": "https://live.staticflickr.com/7541/16050750885_ffff3c7924_b.jpg",
+  "thumb": "https://live.staticflickr.com/7541/16050750885_ffff3c7924_b.jpg",
+  "original": "https://live.staticflickr.com/7541/16050750885_ffff3c7924_b.jpg",
+  "file": "16050750885",
+  "label": "Garphu Cave",
+  "caption": "Garphu Cave",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/32856635@N00/16050750885",
+  "photographer": "jmhullot",
+  "license": "CC BY 2.0",
+  "tier": "exact"
+ },
  "2897": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Pashupatinath-oberer_Zugang-10-Guhyeshvari-2013-gje.jpg/1000px-Pashupatinath-oberer_Zugang-10-Guhyeshvari-2013-gje.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Pashupatinath-oberer_Zugang-10-Guhyeshvari-2013-gje.jpg/1000px-Pashupatinath-oberer_Zugang-10-Guhyeshvari-2013-gje.jpg",
@@ -14647,6 +14699,19 @@
   "source": "wikimedia",
   "source_url": "https://commons.wikimedia.org/wiki/File:Khanyi_%28the_gateway_chorten%29_to_Ro_%28Samagaun%29%2C_Gorkha.jpg",
   "photographer": "Sonam Lama",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
+ "3228": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Gompa_Milarepa_Cave.png/1000px-Gompa_Milarepa_Cave.png",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Gompa_Milarepa_Cave.png/1000px-Gompa_Milarepa_Cave.png",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Gompa_Milarepa_Cave.png",
+  "file": "index.php?curid=84469824",
+  "label": "Milarepa Cave",
+  "caption": "Milarepa Cave",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=84469824",
+  "photographer": "Mario Biondi writer",
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
@@ -16678,6 +16743,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "3823": {
+  "url": "https://pd.w.org/2025/04/5067fbf1760006d3.82103724-1536x2048.jpeg",
+  "thumb": "https://pd.w.org/2025/04/5067fbf1760006d3.82103724-1536x2048.jpeg",
+  "original": "https://pd.w.org/2025/04/5067fbf1760006d3.82103724-1536x2048.jpeg",
+  "file": "",
+  "label": "Dipang Lake",
+  "caption": "Dipang Lake",
+  "source": "openverse",
+  "source_url": "https://wordpress.org/photos/photo/5067fbf176/",
+  "photographer": "appealdahal",
+  "license": "CC0 1.0",
+  "tier": "exact"
+ },
  "3826": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Bangalamukhi_Temple_Patan-IMG_5101.jpg/1000px-Bangalamukhi_Temple_Patan-IMG_5101.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Bangalamukhi_Temple_Patan-IMG_5101.jpg/1000px-Bangalamukhi_Temple_Patan-IMG_5101.jpg",
@@ -17625,6 +17703,32 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Children%27s_Art_Museum_of_Nepal.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "4066": {
+  "url": "https://live.staticflickr.com/7381/9220148369_f6cc510672_b.jpg",
+  "thumb": "https://live.staticflickr.com/7381/9220148369_f6cc510672_b.jpg",
+  "original": "https://live.staticflickr.com/7381/9220148369_f6cc510672_b.jpg",
+  "file": "9220148369",
+  "label": "Rice fields Valley",
+  "caption": "Rice fields Valley",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/11124467@N02/9220148369",
+  "photographer": "CS Sharada Prasad",
+  "license": "CC BY 2.0",
+  "tier": "exact"
+ },
+ "4068": {
+  "url": "https://live.staticflickr.com/7381/9220148369_f6cc510672_b.jpg",
+  "thumb": "https://live.staticflickr.com/7381/9220148369_f6cc510672_b.jpg",
+  "original": "https://live.staticflickr.com/7381/9220148369_f6cc510672_b.jpg",
+  "file": "9220148369",
+  "label": "Rice Fields",
+  "caption": "Rice Fields",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/11124467@N02/9220148369",
+  "photographer": "CS Sharada Prasad",
+  "license": "CC BY 2.0",
   "tier": "exact"
  },
  "4075": {
@@ -25583,6 +25687,19 @@
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
+ "5822": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Banke_National_Park.jpg/1000px-Banke_National_Park.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Banke_National_Park.jpg/1000px-Banke_National_Park.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/3/32/Banke_National_Park.jpg",
+  "file": "index.php?curid=79209219",
+  "label": "Banke National Park",
+  "caption": "Banke National Park",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=79209219",
+  "photographer": "Hopingyousuf",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
  "5823": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Swargadwari_temple.jpg/1000px-Swargadwari_temple.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Swargadwari_temple.jpg/1000px-Swargadwari_temple.jpg",
@@ -25815,6 +25932,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Namche_Bazaar_Nepal.jpg",
   "photographer": "stevehicks",
   "license": "CC BY 2.0",
+  "tier": "exact"
+ },
+ "5865": {
+  "url": "https://live.staticflickr.com/5656/21179111906_4118e1f897_b.jpg",
+  "thumb": "https://live.staticflickr.com/5656/21179111906_4118e1f897_b.jpg",
+  "original": "https://live.staticflickr.com/5656/21179111906_4118e1f897_b.jpg",
+  "file": "21179111906",
+  "label": "Panchase Trek",
+  "caption": "Panchase Trek",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/84292292@N00/21179111906",
+  "photographer": "Aleksandr Zykov",
+  "license": "CC BY-SA 2.0",
   "tier": "exact"
  },
  "5866": {
@@ -28742,6 +28872,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "6462": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Emerald_Drop_of_Tindhare_Falls.jpg/1000px-Emerald_Drop_of_Tindhare_Falls.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Emerald_Drop_of_Tindhare_Falls.jpg/1000px-Emerald_Drop_of_Tindhare_Falls.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/3/32/Emerald_Drop_of_Tindhare_Falls.jpg",
+  "file": "index.php?curid=190874928",
+  "label": "Tindhare Jharana",
+  "caption": "Tindhare Jharana",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=190874928",
+  "photographer": "Sunuwargr",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
  "6464": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/2009-03_Dakshinkali_02.jpg/1000px-2009-03_Dakshinkali_02.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/2009-03_Dakshinkali_02.jpg/1000px-2009-03_Dakshinkali_02.jpg",
@@ -28898,6 +29041,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "6479": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Indian_pitta_at_Parsa_National_Park.jpg/1000px-Indian_pitta_at_Parsa_National_Park.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Indian_pitta_at_Parsa_National_Park.jpg/1000px-Indian_pitta_at_Parsa_National_Park.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Indian_pitta_at_Parsa_National_Park.jpg",
+  "file": "index.php?curid=107669653",
+  "label": "Parsa National Park",
+  "caption": "Parsa National Park",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=107669653",
+  "photographer": "Mildeep",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
  "6480": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Annapurna_I.jpg/1000px-Annapurna_I.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Annapurna_I.jpg/1000px-Annapurna_I.jpg",
@@ -28935,6 +29091,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Kangchenjunga_view_from_Darjeeling.jpg",
   "photographer": "EJH",
   "license": "Public domain",
+  "tier": "exact"
+ },
+ "6483": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Api_nampa_conservation_area.jpg/1000px-Api_nampa_conservation_area.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Api_nampa_conservation_area.jpg/1000px-Api_nampa_conservation_area.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Api_nampa_conservation_area.jpg",
+  "file": "index.php?curid=79356012",
+  "label": "Api Nampa Conservation Area",
+  "caption": "Api Nampa Conservation Area",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=79356012",
+  "photographer": "Bikku24",
+  "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
  "6484": {
@@ -29314,6 +29483,19 @@
   "license": "Public domain",
   "tier": "exact"
  },
+ "6527": {
+  "url": "https://live.staticflickr.com/2662/3852179714_62645c680a_b.jpg",
+  "thumb": "https://live.staticflickr.com/2662/3852179714_62645c680a_b.jpg",
+  "original": "https://live.staticflickr.com/2662/3852179714_62645c680a_b.jpg",
+  "file": "3852179714",
+  "label": "Makalu Base Camp Trek",
+  "caption": "Makalu Base Camp Trek",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/7236858@N07/3852179714",
+  "photographer": "dhilung",
+  "license": "CC BY 2.0",
+  "tier": "exact"
+ },
  "6531": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Poh092-Treking_na_Mardi_Himal.jpg/1000px-Poh092-Treking_na_Mardi_Himal.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Poh092-Treking_na_Mardi_Himal.jpg/1000px-Poh092-Treking_na_Mardi_Himal.jpg",
@@ -29325,6 +29507,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Poh092-Treking_na_Mardi_Himal.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "6534": {
+  "url": "https://live.staticflickr.com/65535/54300812313_bbb794c78c_b.jpg",
+  "thumb": "https://live.staticflickr.com/65535/54300812313_bbb794c78c_b.jpg",
+  "original": "https://live.staticflickr.com/65535/54300812313_bbb794c78c_b.jpg",
+  "file": "54300812313",
+  "label": "Nar Phu Trek",
+  "caption": "Nar Phu Trek",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/37003135@N00/54300812313",
+  "photographer": "Bruno Rijsman",
+  "license": "CC BY-SA 2.0",
   "tier": "exact"
  },
  "6535": {
@@ -29455,6 +29650,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Chhairo_gompa_lhakhang.JPG",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "6548": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Braga_Village%2C_Manang.jpg/1000px-Braga_Village%2C_Manang.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Braga_Village%2C_Manang.jpg/1000px-Braga_Village%2C_Manang.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/1/16/Braga_Village%2C_Manang.jpg",
+  "file": "index.php?curid=59400597",
+  "label": "Braga Gompa",
+  "caption": "Braga Gompa",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=59400597",
+  "photographer": "Pitambergrg",
+  "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
  "6551": {
@@ -30562,6 +30770,19 @@
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
+ "6676": {
+  "url": "https://pd.w.org/2023/10/523651d37b996a860.59106669-1536x2048.jpeg",
+  "thumb": "https://pd.w.org/2023/10/523651d37b996a860.59106669-1536x2048.jpeg",
+  "original": "https://pd.w.org/2023/10/523651d37b996a860.59106669-1536x2048.jpeg",
+  "file": "",
+  "label": "Dhindo Thali",
+  "caption": "Dhindo Thali",
+  "source": "openverse",
+  "source_url": "https://wordpress.org/photos/photo/523651d37b/",
+  "photographer": "Bijay Yadav",
+  "license": "CC0 1.0",
+  "tier": "exact"
+ },
  "6677": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Annapurna_Range_and_the_Phewa_Lake.jpg/1000px-Annapurna_Range_and_the_Phewa_Lake.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Annapurna_Range_and_the_Phewa_Lake.jpg/1000px-Annapurna_Range_and_the_Phewa_Lake.jpg",
@@ -31002,6 +31223,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Siddha_Gufa-Cave_Bimal_Nagar%2C_Nepal-WLV-1986.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "6725": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Kalinchowk_Snow.jpg/1000px-Kalinchowk_Snow.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Kalinchowk_Snow.jpg/1000px-Kalinchowk_Snow.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/6/60/Kalinchowk_Snow.jpg",
+  "file": "index.php?curid=80048214",
+  "label": "Kalinchowk Bhagwati Snow",
+  "caption": "Kalinchowk Bhagwati Snow",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=80048214",
+  "photographer": "Nabina Dhami",
+  "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
  "6726": {
@@ -32811,6 +33045,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "6938": {
+  "url": "https://live.staticflickr.com/7520/16041058585_f1b9b90433_b.jpg",
+  "thumb": "https://live.staticflickr.com/7520/16041058585_f1b9b90433_b.jpg",
+  "original": "https://live.staticflickr.com/7520/16041058585_f1b9b90433_b.jpg",
+  "file": "16041058585",
+  "label": "Chhoser Jhong Cave",
+  "caption": "Chhoser Jhong Cave",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/32856635@N00/16041058585",
+  "photographer": "jmhullot",
+  "license": "CC BY 2.0",
+  "tier": "exact"
+ },
  "6940": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Dhorpatan2.jpg/1000px-Dhorpatan2.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Dhorpatan2.jpg/1000px-Dhorpatan2.jpg",
@@ -32912,6 +33159,19 @@
   "source": "wikimedia",
   "source_url": "https://commons.wikimedia.org/wiki/File:Ghorepani-12-Dorfstupa-2013-gje.jpg",
   "photographer": "Gerd Eichmann",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
+ "6950": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Braga_Village%2C_Manang.jpg/1000px-Braga_Village%2C_Manang.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Braga_Village%2C_Manang.jpg/1000px-Braga_Village%2C_Manang.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/1/16/Braga_Village%2C_Manang.jpg",
+  "file": "index.php?curid=59400597",
+  "label": "Manang Braga",
+  "caption": "Manang Braga",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=59400597",
+  "photographer": "Pitambergrg",
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
@@ -33396,6 +33656,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "7009": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Kalinchowk_Snow.jpg/1000px-Kalinchowk_Snow.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Kalinchowk_Snow.jpg/1000px-Kalinchowk_Snow.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/6/60/Kalinchowk_Snow.jpg",
+  "file": "index.php?curid=80048214",
+  "label": "Kalinchowk Snow View",
+  "caption": "Kalinchowk Snow View",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=80048214",
+  "photographer": "Nabina Dhami",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
  "7012": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Daman_%283%29.jpg/1000px-Daman_%283%29.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Daman_%283%29.jpg/1000px-Daman_%283%29.jpg",
@@ -33615,6 +33888,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Tukche%2C_Nepal-WLV-1444.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "7044": {
+  "url": "https://live.staticflickr.com/6103/6336553905_15e5bd21c4_b.jpg",
+  "thumb": "https://live.staticflickr.com/6103/6336553905_15e5bd21c4_b.jpg",
+  "original": "https://live.staticflickr.com/6103/6336553905_15e5bd21c4_b.jpg",
+  "file": "6336553905",
+  "label": "Bhojpur Momo Trail",
+  "caption": "Bhojpur Momo Trail",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/9751325@N02/6336553905",
+  "photographer": "kudumomo",
+  "license": "CC BY 2.0",
   "tier": "exact"
  },
  "7046": {
@@ -34280,6 +34566,32 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "7167": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Maratika_cave_1.jpg/1000px-Maratika_cave_1.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Maratika_cave_1.jpg/1000px-Maratika_cave_1.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Maratika_cave_1.jpg",
+  "file": "index.php?curid=67324403",
+  "label": "Maratika Caves",
+  "caption": "Maratika Caves",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=67324403",
+  "photographer": "Christopher J. Fynn",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
+ "7168": {
+  "url": "https://live.staticflickr.com/7541/16050750885_ffff3c7924_b.jpg",
+  "thumb": "https://live.staticflickr.com/7541/16050750885_ffff3c7924_b.jpg",
+  "original": "https://live.staticflickr.com/7541/16050750885_ffff3c7924_b.jpg",
+  "file": "16050750885",
+  "label": "Chhoser Sky Caves",
+  "caption": "Chhoser Sky Caves",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/32856635@N00/16050750885",
+  "photographer": "jmhullot",
+  "license": "CC BY 2.0",
+  "tier": "exact"
+ },
  "7180": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Ghalegaun%2C_Village_in_Lamjung.jpg/1000px-Ghalegaun%2C_Village_in_Lamjung.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Ghalegaun%2C_Village_in_Lamjung.jpg/1000px-Ghalegaun%2C_Village_in_Lamjung.jpg",
@@ -34356,6 +34668,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:NEPAL_Route_2.JPG",
   "photographer": "Michel Royon",
   "license": "CC0",
+  "tier": "exact"
+ },
+ "7193": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Tatopani_hot_spring_Sindhupalchok.jpg/1000px-Tatopani_hot_spring_Sindhupalchok.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Tatopani_hot_spring_Sindhupalchok.jpg/1000px-Tatopani_hot_spring_Sindhupalchok.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/0/01/Tatopani_hot_spring_Sindhupalchok.jpg",
+  "file": "index.php?curid=194385117",
+  "label": "Sunkoshi Hot Spring",
+  "caption": "Sunkoshi Hot Spring",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=194385117",
+  "photographer": "Saddam19",
+  "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
  "7198": {
@@ -34772,6 +35097,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Pullahari_Monastery_%28KTM%29.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
+  "tier": "exact"
+ },
+ "7245": {
+  "url": "https://live.staticflickr.com/7518/15673176648_188d38e99d_b.jpg",
+  "thumb": "https://live.staticflickr.com/7518/15673176648_188d38e99d_b.jpg",
+  "original": "https://live.staticflickr.com/7518/15673176648_188d38e99d_b.jpg",
+  "file": "15673176648",
+  "label": "Nagi Gompa",
+  "caption": "Nagi Gompa",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/11253414@N00/15673176648",
+  "photographer": "qcom",
+  "license": "CC BY-SA 2.0",
   "tier": "exact"
  },
  "7248": {

@@ -3,12 +3,12 @@ NEPAL TOURISM PLATFORM — DOWNLOADS
 
 Files in this folder (kept intentionally small so the repo stays easy to clone):
 ------------------------------------------------------------------------------
-1. nepal-tourism-database.sqlite3.gz  (~4.4 MB) — Compressed full SQLite DB snapshot
+1. nepal-tourism-database.sqlite3.gz  (~2.0 MB) — Compressed full SQLite DB snapshot
 2. README.txt                         — This file
 
 Why only the compressed snapshot?
 ---------------------------------
-The full database is already committed at `Tourism/Tourism/db.sqlite3` (~45 MB).
+The full database is already committed at `Tourism/Tourism/db.sqlite3` (~15 MB).
 Keeping an *uncompressed copy* here as well made the GitHub repo >100 MB and
 slow to clone, so the duplicate copy and the stale zip bundles were removed.
 
@@ -27,7 +27,7 @@ Regenerate anything you need from the committed DB:
   # images-only zip (curated landmark photo pack, if you need a copy)
   cd frontend/Tourism && zip -r ../../downloads/nepal-images-only.zip public/images
 
-GitHub's hard limit is 100 MB per file; the committed DB (~45 MB) stays well
+GitHub's hard limit is 100 MB per file; the committed DB (~15 MB) stays well
 under it, and future photo rows are just URL metadata (no binaries in SQLite),
 so the DB grows only a few KB per thousand photos.
 
@@ -35,7 +35,8 @@ so the DB grows only a few KB per thousand photos.
 CURRENT SNAPSHOT
 ----------------
 - 7,517 destinations
-- 2,925 verified real Wikimedia Commons cover photos (temples, stupas,
+- 2,951 verified real cover photos from Wikimedia Commons, Flickr and
+  WordPress.org (temples, stupas,
   mountains, lakes, rivers, waterfalls, festivals, heritage, tea/coffee,
   adventure, viewpoints …) + 274 curated AI landmark photos
 - SVG postcards only for places that have no public photo yet
@@ -55,9 +56,10 @@ After starting the site (./run.sh), log in at:
 
 IMAGE SYSTEM
 ------------
-1. VERIFIED REAL PHOTOS (2,925): every approved cover carries a real
-   Wikimedia Commons photo URL (hotlinked from upload.wikimedia.org) with
-   photographer + license attribution stored in the DB and served by the API.
+1. VERIFIED REAL PHOTOS (2,951): every approved cover carries a real
+   photo URL hotlinked from its platform (upload.wikimedia.org,
+   live.staticflickr.com, pd.w.org) with photographer + license attribution
+   stored in the DB and served by the API.
 
 2. CURATED AI LANDMARK PHOTOS (274): 40+ famous Nepal landmarks
    (Pashupatinath, Boudhanath, Swayambhunath, Dharahara, Kathmandu Durbar

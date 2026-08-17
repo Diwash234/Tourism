@@ -124,3 +124,18 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   - DB integrity verified: **7,517 dests, 0 destinations with >1 cover, `PRAGMA integrity_check` = ok**; DB vacuumed (45 MB).
   - **Repo slimmed**: removed `downloads/nepal-tourism-database.sqlite3` (45 MB dup), `nepal-images-only.zip` (22 MB), `nepal-tourism-full-project.zip` (14 MB) — only the 4.4 MB `.gz` snapshot stays; all are git-ignored and regenerable (see `downloads/README.txt`). Keeps clone size under ~50 MB at HEAD.
   - Docs updated: `docs/IMAGE_SERVER.md` §10 (enrichment rounds) & §11 (repo-size strategy).
+
+---
+
+## 🌐 Round 3: Multi-Platform Real Photos (Openverse — Flickr, WordPress.org, Commons) + DB Shrunk 45MB → 15MB
+
+- **26 more destinations** got real photos from **other platforms** (no longer only Wikimedia/Unsplash):
+  - **Flickr** (via Openverse, direct `live.staticflickr.com` hotlinks): Bat Cave Pokhara, Chhoser Jhong Cave, Chhoser Sky Caves, Garphu Cave, Nagi Gompa, Panchase Trek, Makalu Base Camp Trek, Nar Phu Trek, Bhojpur Momo Trail, Paddy fields (Rice Fields ×2).
+  - **WordPress.org Photos** (CC0): Dhindo Thali, Dipang Lake.
+  - **Wikimedia via Openverse search** (new finds Commons missed): Maratika Caves, Milarepa Cave, Tindhare Falls, Tatopani (Sunkoshi) Hot Spring, Phakding, Braga Village (Braga Gompa + Manang Braga), Banke National Park, Kalinchowk Snow ×2, Api Nampa Conservation Area, Parsa National Park, Shanti Stupa (Pumdi Bhumdi View Tower).
+- **New categories covered with real photos**: Caves, Waterfalls, Hot Springs, Villages, Wildlife/Safari, Trekking, Snow/Winter, Food, Viewpoints.
+- **License safety**: only CC BY / CC BY-SA / CC0 photos used (NC/ND rejected); every row stores photographer + license + source page.
+- **DB size reduced 45 MB → 15 MB**: deleted 38,381 redundant SVG postcard gallery-variant rows (5 per destination; covers untouched — exactly 1 per destination, `integrity_check` ok, 60 tests pass). The compressed download snapshot shrank to **2.0 MB**.
+- Manifest rebuilt to **2,951** entries (wikimedia + openverse) via `scripts/rebuild_manifest.py`; `photo_catalog._verified_photo` now returns the real source platform.
+- Reproducible mapping: `scripts/round3_verified_photos.tsv` + `scripts/apply_round3_photos.py`.
+- Docs updated: `docs/IMAGE_SERVER.md` §12, `downloads/README.txt`.

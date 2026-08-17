@@ -1,7 +1,8 @@
 """Rebuild tourist/verified_wikimedia_photos.json from the live DB.
 
-Every approved 'wikimedia' cover row in tourist_destinationimage becomes a
-manifest entry, so the manifest always mirrors the database (no network needed).
+Every approved 'wikimedia' or 'openverse' cover row in
+tourist_destinationimage becomes a manifest entry, so the manifest always
+mirrors the database (no network needed).
 
 Usage:
     /home/user/.venv/bin/python scripts/rebuild_manifest.py
@@ -38,17 +39,17 @@ def main():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        """SELECT destination_id, thumbnail_url, external_url, caption,
-                  source_url, photographer, license_type
+        """SELECT destination_id, thumbnail_url, external_url, caption, alt_text,
+                  source_url, photographer, license_type, source
            FROM tourist_destinationimage
-           WHERE source='wikimedia' AND is_cover=1
+           WHERE source IN ('wikimedia', 'openverse') AND is_cover=1
            ORDER BY destination_id"""
     )
     rows = cur.fetchall()
     conn.close()
 
     manifest = {}
-    for did, thumb, url, caption, source_url, photographer, license_type in rows:
+    for did, thumb, url, caption, alt_text, source_url, photographer, license_type, source in rows:
         thumb = thumb or url
         original = original_from_thumb(thumb)
         fn = file_from_source_url(source_url or original)
@@ -57,9 +58,9 @@ def main():
             "thumb": thumb,
             "original": original,
             "file": fn,
-            "label": caption,
-            "caption": caption,
-            "source": "wikimedia",
+            "label": caption or alt_text,
+            "caption": caption or alt_text,
+            "source": source,
             "source_url": source_url or f"https://commons.wikimedia.org/wiki/File:{urllib.parse.quote(fn.replace(' ', '_'))}",
             "photographer": photographer or GENERIC_ARTIST,
             "license": license_type or GENERIC_LICENSE,

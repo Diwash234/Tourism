@@ -574,7 +574,7 @@ def _is_accommodation(destination):
 # ---------------------------------------------------------------------------
 
 def _verified_photo(dest_id):
-    """Return the verified Wikimedia Commons photo for this destination, if any."""
+    """Return the verified real photo (Commons / Openverse) for this destination, if any."""
     if dest_id is None:
         return None
     info = VERIFIED_WIKIMEDIA.get(int(dest_id))
@@ -583,10 +583,10 @@ def _verified_photo(dest_id):
     return {
         "url": info.get("url"),
         "thumb": info.get("thumb") or info.get("url"),
-        "source": "wikimedia",
+        "source": info.get("source") or "wikimedia",
         "author": info.get("photographer") or "Wikimedia Commons",
         "caption": info.get("caption") or info.get("label"),
-        "tags": ["verified", "wikimedia", info.get("tier") or "verified"],
+        "tags": ["verified", info.get("source") or "wikimedia", info.get("tier") or "verified"],
         "license": info.get("license"),
         "source_url": info.get("source_url"),
         "qid": info.get("qid"),

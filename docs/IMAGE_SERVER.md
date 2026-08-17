@@ -177,8 +177,8 @@ Nginx streams the file from disk. Django is never involved.
 
 ## 10. Verified real-photo enrichment rounds (temples, festivals, viewpoints …)
 
-On top of the image-server pipeline, the DB itself now carries **2,925
-verified Wikimedia Commons cover photos** (hotlinked from
+On top of the image-server pipeline, the DB itself now carries **2,951
+verified cover photos** (Wikimedia Commons, Flickr and WordPress.org) (hotlinked from
 `upload.wikimedia.org` — no binaries stored in SQLite, so the DB grows only
 a few KB per photo). Two enrichment rounds were applied:
 
@@ -218,10 +218,10 @@ postcard system covers those so no card is ever blank.
 
 The repo intentionally stays under ~50 MB of tracked data at HEAD:
 
-- `Tourism/db.sqlite3` (~45 MB) is the single committed database — it is
+- `Tourism/db.sqlite3` (~15 MB) is the single committed database — it is
   under GitHub's 100 MB/file limit, and photo rows are metadata only.
 - `downloads/` keeps **only** the compressed snapshot
-  `nepal-tourism-database.sqlite3.gz` (~4.4 MB). The uncompressed duplicate,
+  `nepal-tourism-database.sqlite3.gz` (~2.0 MB). The uncompressed duplicate,
   the images zip and the full-project zip are git-ignored and regenerable
   (`downloads/README.txt` shows the exact commands).
 - The 100k+ photo dataset lives in `image-server/images/`, which is
@@ -230,3 +230,28 @@ The repo intentionally stays under ~50 MB of tracked data at HEAD:
   working tree); if you want a fully slim clone, rewrite history with
   `git filter-repo` and force-push — do this only when you're ready to
   invalidate existing clones.
+
+## 12. Round 3 — multi-platform real photos (Openverse: Flickr / WordPress.org)
+
+The user asked to stop relying on Wikimedia/Unsplash only and pull from other
+social media + platforms too. Round 3 added **26 more real covers** (total
+**2,951**) sourced through the **Openverse API** (`api.openverse.org`, an open
+aggregator of CC-licensed images):
+
+- **Flickr** (via Openverse): Bat Cave Pokhara, Jhong Cave, Chhoser valley,
+  Nagi Gompa, Panchase Trek, Makalu Base Camp, Nar Phu Valley, momo, paddy
+  fields — direct `live.staticflickr.com` URLs with photographer + CC license.
+- **WordPress.org Photos** (via Openverse): Dhindo Thali, Dipang Lake — CC0.
+- **Wikimedia Commons** (via Openverse search): Maratika Caves, Milarepa
+  Cave, Tindhare Falls, Tatopani Sindhupalchok, Phakding, Braga Village,
+  Banke NP, Kalinchowk Snow, Api Nampa, Parsa NP, Shanti Stupa (Pumdi Bhumdi).
+
+New categories covered: caves, waterfalls, hot springs, villages, wildlife,
+trekking, snow/winter, food, forests/eco. Legal rule applied: **only
+CC BY / CC BY-SA / CC0** photos are used (no NC/ND), attribution stored per
+row. `source_platform`/`license_type`/`photographer` are exposed by the API.
+
+**DB size cut 45 MB → 15 MB:** the 38,381 redundant SVG postcard *gallery*
+variant rows (5 per destination) were deleted — every destination keeps its
+cover (real photo or the single deterministic postcard), and gallery
+fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
