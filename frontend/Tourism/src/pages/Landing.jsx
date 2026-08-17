@@ -85,6 +85,7 @@ const FAQ_ITEMS = [
 ]
 
 export default function Landing() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -130,16 +131,16 @@ export default function Landing() {
 
           <FadeIn delay={0.2}>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] max-w-4xl mx-auto">
-              Explore Local Wonders,{" "}
+              {t("home.hero_title1")}{" "}
               <span className="bg-gradient-to-r from-amber-300 via-rose-300 to-amber-200 bg-clip-text text-transparent">
-                Travel Smart & Safe
+                {t("home.hero_title2")}
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.3}>
             <p className="text-base sm:text-xl text-stone-100/90 max-w-2xl mx-auto font-normal leading-relaxed">
-              Your official Himalayan travel companion — AI-curated destinations, real-time ML budgets, turn-by-turn road navigation, and 24/7 emergency rescue.
+              {t("home.hero_subtitle")}
             </p>
           </FadeIn>
 
@@ -147,7 +148,7 @@ export default function Landing() {
           <FadeIn delay={0.4} className="max-w-2xl mx-auto space-y-3">
             <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white/20">
               <SearchBar
-                placeholder="Search places, temples, treks, cities (e.g. Pokhara, Everest, Chitwan)..."
+                placeholder={t("nav.search")}
                 className="w-full text-gray-900"
                 onSearch={(val) => navigate(`/destinations?q=${encodeURIComponent(val)}`)}
                 fetchSuggestions={fetchSuggestions}
@@ -156,7 +157,7 @@ export default function Landing() {
 
             {/* Quick search pills */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-              <span className="text-[11px] font-bold text-amber-200">Popular:</span>
+              <span className="text-[11px] font-bold text-amber-200">{t("home.popular")}</span>
               {QUICK_SEARCH_PILLS.map((pill, i) => (
                 <button
                   key={i}
@@ -175,14 +176,14 @@ export default function Landing() {
               to="/destinations"
               className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-gray-950 font-black text-sm hover:scale-105 shadow-xl shadow-amber-400/25 transition-all flex items-center gap-2"
             >
-              <FiCompass size={18} /> Explore 5,800+ Destinations <FiArrowRight size={16} />
+              <FiCompass size={18} /> {t("home.hero_cta")} <FiArrowRight size={16} />
             </Link>
 
             <Link
               to="/budget-estimator"
               className="px-7 py-3.5 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm border border-amber-400/40 backdrop-blur shadow-lg transition-all"
             >
-              Calculate Trip Budget (ML)
+              {t("home.hero_budget")}
             </Link>
           </FadeIn>
 

@@ -1101,6 +1101,38 @@ class SOSAlert(models.Model):
         return f"SOS from {self.user} ({self.status})"
 
 
+class FamilyLink(models.Model):
+    """
+    Account-to-account family linking (unlike TrustedContact, both sides
+    have accounts here). A link is requested by `requester`, accepted by
+    `member`. Once accepted, either side can:
+      * see the other's live location while a SharedTrip is active,
+      * see the other's recent trip history + SOS history,
+      * get an in-app Notification when the other starts a trip or
+        triggers an SOS.
+    """
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_links_sent")
+    member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_links_received")
+    relationship = models.CharField(max_length=100, blank=True, help_text="e.g. 'Parent', 'Spouse', 'Sibling'")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["requester", "member"], name="unique_family_link_pair"),
+        ]
+
+    def __str__(self):
+        return f"FamilyLink {self.requester_id} -> {self.member_id} ({self.status})"
+
+
 class DeviceToken(models.Model):
     """Push notification device tokens (FCM)."""
 

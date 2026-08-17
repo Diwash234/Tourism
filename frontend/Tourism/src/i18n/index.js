@@ -128,6 +128,36 @@ const en = {
   "gallery.title": "Nepal Photo Gallery",
   // compare
   "compare.title": "Compare Destinations",
+  "common.home": "Home",
+  "common.back": "Back",
+  "common.share": "Share",
+  "common.live": "Live",
+  "common.history": "History",
+  "common.notifications": "Notifications",
+  "dest.title": "Destinations",
+  "dest.search_placeholder": "Search destinations...",
+  "dest.all": "All destinations",
+  "family.title": "Family Live Safety",
+  "family.link_member": "Link a family member",
+  "family.my_family": "My Family",
+  "family.live_location": "Live Location",
+  "family.trip_history": "Trip History",
+  "family.trigger_sos": "Trigger SOS",
+  "family.sos_active": "SOS ACTIVE — family notified",
+  "family.no_members": "No family members linked yet.",
+  "family.pending": "Pending request",
+  "family.accept": "Accept",
+  "family.decline": "Decline",
+  "family.start_sharing": "Start Sharing My Location",
+  "family.stop_sharing": "Stop Sharing",
+  "footer.about": "About Nepal Tourism",
+  "footer.contact": "Contact",
+  "footer.rights": "All rights reserved.",
+  "footer.tagline": "Discover the Himalayas, plan smart, travel safe.",
+  "home.hero_title1": "Explore Local Wonders,",
+  "home.hero_title2": "Travel Smart & Safe",
+  "home.hero_budget": "Calculate Trip Budget (ML)",
+  "home.popular": "Popular:",
 }
 
 const ne = {
@@ -229,6 +259,36 @@ const ne = {
   "settings.saved": "प्राथमिकताहरू सुरक्षित भयो!",
   "gallery.title": "नेपाल तस्बिर ग्यालेरी",
   "compare.title": "गन्तव्य तुलना गर्नुहोस्",
+  "common.home": "गृहपृष्ठ",
+  "common.back": "फर्कनुहोस्",
+  "common.share": "सेयर गर्नुहोस्",
+  "common.live": "प्रत्यक्ष",
+  "common.history": "इतिहास",
+  "common.notifications": "सूचनाहरू",
+  "dest.title": "गन्तव्यहरू",
+  "dest.search_placeholder": "गन्तव्य खोज्नुहोस्...",
+  "dest.all": "सबै गन्तव्यहरू",
+  "family.title": "पारिवारिक प्रत्यक्ष सुरक्षा",
+  "family.link_member": "परिवारको सदस्य लिङ्क गर्नुहोस्",
+  "family.my_family": "मेरो परिवार",
+  "family.live_location": "प्रत्यक्ष स्थान",
+  "family.trip_history": "यात्रा इतिहास",
+  "family.trigger_sos": "एसओएस सक्रिय गर्नुहोस्",
+  "family.sos_active": "एसओएस सक्रिय — परिवारलाई सूचित गरियो",
+  "family.no_members": "अहिलेसम्म परिवारका सदस्य लिङ्क भएका छैनन्।",
+  "family.pending": "पर्खाइमा रहेको अनुरोध",
+  "family.accept": "स्वीकार गर्नुहोस्",
+  "family.decline": "अस्वीकार गर्नुहोस्",
+  "family.start_sharing": "मेरो स्थान साझेदारी सुरु गर्नुहोस्",
+  "family.stop_sharing": "साझेदारी रोक्नुहोस्",
+  "footer.about": "नेपाल पर्यटन बारे",
+  "footer.contact": "सम्पर्क",
+  "footer.rights": "सर्वाधिकार सुरक्षित।",
+  "footer.tagline": "हिमालय पत्ता लगाउनुहोस्, स्मार्ट योजना बनाउनुहोस्, सुरक्षित यात्रा गर्नुहोस्।",
+  "home.hero_title1": "स्थानीय आश्चर्यहरू अन्वेषण गर्नुहोस्,",
+  "home.hero_title2": "स्मार्ट र सुरक्षित यात्रा",
+  "home.hero_budget": "यात्रा बजट गणना गर्नुहोस् (एमएल)",
+  "home.popular": "लोकप्रिय:",
 }
 
 const hi = {
@@ -330,6 +390,36 @@ const hi = {
   "settings.saved": "प्राथमिकताएं सहेजी गईं!",
   "gallery.title": "नेपाल फोटो गैलरी",
   "compare.title": "गंतव्य तुलना करें",
+  "common.home": "होम",
+  "common.back": "वापस",
+  "common.share": "साझा करें",
+  "common.live": "लाइव",
+  "common.history": "इतिहास",
+  "common.notifications": "सूचनाएं",
+  "dest.title": "गंतव्य",
+  "dest.search_placeholder": "गंतव्य खोजें...",
+  "dest.all": "सभी गंतव्य",
+  "family.title": "पारिवारिक लाइव सुरक्षा",
+  "family.link_member": "परिवार सदस्य लिंक करें",
+  "family.my_family": "मेरा परिवार",
+  "family.live_location": "लाइव स्थान",
+  "family.trip_history": "यात्रा इतिहास",
+  "family.trigger_sos": "एसओएस दबाएं",
+  "family.sos_active": "एसओएस सक्रिय — परिवार को सूचित किया गया",
+  "family.no_members": "अभी तक कोई परिवार सदस्य लिंक नहीं।",
+  "family.pending": "लंबित अनुरोध",
+  "family.accept": "स्वीकार करें",
+  "family.decline": "अस्वीकार करें",
+  "family.start_sharing": "मेरा स्थान साझा करना शुरू करें",
+  "family.stop_sharing": "साझा करना बंद करें",
+  "footer.about": "नेपाल पर्यटन के बारे में",
+  "footer.contact": "संपर्क",
+  "footer.rights": "सर्वाधिकार सुरक्षित।",
+  "footer.tagline": "हिमालय खोजें, स्मार्ट योजना बनाएं, सुरक्षित यात्रा करें।",
+  "home.hero_title1": "स्थानीय आश्चर्य खोजें,",
+  "home.hero_title2": "स्मार्ट और सुरक्षित यात्रा",
+  "home.hero_budget": "यात्रा बजट गणना करें (एमएल)",
+  "home.popular": "लोकप्रिय:",
 }
 
 const DICTS = { en, ne, hi }
@@ -342,6 +432,15 @@ function detectLang() {
   if (typeof window === "undefined") return "en"
   const saved = window.localStorage?.getItem(STORAGE_KEY)
   if (saved && DICTS[saved]) return saved
+  // The Settings page persists its choice under a different key
+  // (tourism_preferred_language) — honour it so a language picked in
+  // Settings switches the whole site (this was previously a dead key).
+  const pref = window.localStorage?.getItem("tourism_preferred_language") || ""
+  const prefMap = {
+    nepali: "ne", hindi: "hi", "nepali (नेपाली)": "ne", "hindi (हिन्दी)": "hi",
+    english: "en",
+  }
+  if (prefMap[String(pref).toLowerCase()]) return prefMap[String(pref).toLowerCase()]
   const nav = (window.navigator?.language || "en").slice(0, 2)
   return DICTS[nav] ? nav : "en"
 }

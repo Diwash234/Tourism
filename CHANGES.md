@@ -875,3 +875,87 @@ Dhampus, Ghandruk, Poon Hill, Phewa Lake, Tal Barahi, Sarangkot, Sauraha...
 
 DB: **8,524 destinations**, 20,012 real verified image rows, manifest
 8,524 × 2, download .gz refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🖼️ Round 23: Name-accurate photos for every flagged destination + family linking, site-wide language switching & bug fixes
+
+### 1. Real, name-matched photos for every destination the user flagged (all CC BY / CC BY-SA / CC0)
+Fetched **~60 new verified photos** from Wikimedia Commons + Openverse and assigned them
+by exact destination name:
+
+- **Forests** (no more same-rhododendron-everywhere): Buruse Forest & Chhapre Lekha →
+  real Surkhet pine forest photos; Gokarna Forest → Rhesus macaque photo taken at
+  Gokarna + Gokarneshwor temple; Chitwan Sal Forest → real Chitwan jungle trail;
+  Khaptad Grass & Oak / Khaptad Mixed Forests / Khaptad NP / Eco-Trail / Chandrabhoga →
+  3 real Khaptad National Park photos by Anil Bhatta; Brindaban (Rautahat) → Terai
+  morning photo; Jalthal & Char Koshe Jhadi (Jhapa) → distinct real Terai/national
+  park forest photos; Annapurna Rhododendron → real rhododendron forest + flower.
+- **Food** (real food photos now): Bhojan Griha (Dilli Bazaar) → photos taken inside
+  Bhojan Griha restaurant; Bhojpur Momo Trail → real momo photos; Fish Curry Phewa →
+  fish curry & rice; Juju Dhau → the famous Bhaktapur curd; Nepali Chiya → masala tea
+  photos; Newari Bhoj → Newari khaja set; Sel Roti → sel roti; Thamel Food Street →
+  real Thamel streets; Pokhara Lakeside Cafes → real Pokhara Lakeside (CC0);
+  + EVERY food-culinary destination got a real food photo (name-matched first).
+- **Museums**: Bhaktapur National Art Museum → its own entrance photos (CC0);
+  Tansen Durbar Museum & Palpa Darbar → real Palpa Durbar & Museum photos; Rani Mahal →
+  real Rani Mahal photos; Chhauni Museum → National Museum Kathmandu; Pokhara Regional
+  Museum, Nepal Art Council, NAFA Gallery, Student Art Gallery, Raji Museum + every
+  museum destination → distinct real museum photos; Tharu museums → real Tharu
+  cultural-show photos.
+- **Festivals** (all 13 flagged festivals now have real festival photos): Holi
+  (Kathmandu 2025), Dashain tika, Tihar diyas, Gai Jatra, Indra Jatra (Kumari chariot),
+  Mani Rimdu (Tengboche), Shivaratri (sadhu at Pashupatinath), Rato Machhindranath
+  (chariot), Teej (dancing), Yomari, Janai Purnima (kwati), Ghode Jatra (historic
+  Tundikhel horse-racing ground, Public Domain).
+- **Palpa**: no more Tansen-sunset-on-everything — Bhairabsthan → its own photo,
+  Dhaka Topi Weaving → real dhaka topi caps, Nuwakot Fort Palpa → Nuwakot Palace,
+  Palpa Coffee Farms → plantation photo, Bhagwati Temple → real temple photos.
+
+### 2. Global image de-duplication
+- Max times one cover photo is reused dropped **198 → 41** (pool-limited floor: 754
+  real photos for 8,524 destinations) by swapping the most-shared covers to
+  least-shared category-appropriate photos (≥2 name-token match required to keep).
+- Deleted 1,599+ junk rows globally (school/college/clinic/airline-crash/army photos,
+  maps, stamps) and re-topped every affected destination to 2 verified photos.
+- Result: **8,524 destinations · 8,524 covers (1 each) · 0 dests <2 photos · 0
+  postcards · PRAGMA integrity_check ok**; manifest rebuilt 8,524 × 2; db.sqlite3
+  vacuumed (23.6 MB); download .gz refreshed.
+
+### 3. New: Family linking (account ↔ account) with live location, history & SOS to family
+- Backend: `FamilyLink` model (pending/accepted/declined, unique pair) + migration;
+  `/api/v1/safety/family-links/` (send/accept/decline/unlink, lookup by email or
+  username); `/api/v1/safety/family/members/` returns every accepted member's live
+  status (active trip, latest GPS ping, trip history, active SOS alerts);
+  in-app notifications to family when a link is requested/accepted, when a trip
+  starts sharing, and on **every SOS trigger**; FamilyLink in Django admin.
+- Frontend: `/family-safety` page rebuilt — link family members, accept/decline
+  pending requests, live "My Family" grid (LIVE badge, last ping + coords + time ago,
+  trip count, 🚨 ACTIVE SOS banner, unlink), 30 s polling, plus the existing live
+  location sharing + SOS button (now also notifies family).
+
+### 4. Language setting now actually switches the whole site
+- Root cause: Settings saved `tourism_preferred_language` to localStorage but the
+  i18n store read a different key (`tourism_lang`) and the backend Languages table
+  was **empty** (dropdown showed "No languages available").
+- Seeded 13 languages (data migration `0017`); Settings now calls the i18n store on
+  save and on load; i18n `detectLang()` honours the Settings key.
+- Wired `t()` into SearchBar, Breadcrumbs, Landing hero, Navbar/Sidebar (already),
+  Family page + new en/ne/hi keys (nav, home hero, family, footer, destinations).
+
+### 5. Bug fixes
+- `FiArrowRight is not defined` on the SearchBar → import added (site no longer
+  crashes when typing in search).
+- Recommendation model verified: mood endpoint tested across food/heritage/winter/
+  photography/romantic/pilgrimage — returns correct ranked destinations with
+  `ml_score`, real covers, budget & season (the "not working" reports were the wrong
+  images, fixed in §1-2).
+
+### 6. Local landmark images (AI) added to frontend pool
+- 9 new local images in `public/images/destinations/`: food (momo, sel roti, juju
+  dhau, masala chiya, newari bhoj), festivals (holi, dashain tika, tihar diyas),
+  culture (tharu dance) — registered in imageUtils name maps + photo types so
+  category fallbacks are Nepali-accurate.
+
+**Verification:** `manage.py test tourist` = 60 OK; `npm run build` clean; DB
+integrity ok; all pushed to GitHub `arena/01a00b65-tourism`.

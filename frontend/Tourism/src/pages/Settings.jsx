@@ -13,6 +13,7 @@ import {
 import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
+import { setLang } from "../i18n"
 import { NEPAL_LANGUAGES, INTERNATIONAL_LANGUAGES } from "../utils/constants"
 
 import {
@@ -118,6 +119,20 @@ const Settings = () => {
       localStorage.setItem("tourism_notifications", JSON.stringify(notifPrefs))
       if (data.preferred_language) {
         localStorage.setItem("tourism_preferred_language", data.preferred_language)
+        // Sync the site-wide i18n store so the whole UI switches language
+        // immediately (Settings previously saved to a key nothing read).
+        const code = String(data.preferred_language).toLowerCase()
+        const langCode =
+          code === "ne" || code === "nepali" || code === "नेपाली" ? "ne"
+          : code === "hi" || code === "hindi" || code === "हिन्दी" ? "hi"
+          : code === "en" || code === "english" ? "en"
+          : code.length === 2 ? code
+          : null
+        if (langCode) {
+          try {
+            setLang(langCode)
+          } catch { /* i18n store unavailable */ }
+        }
       }
       try {
         const { data: updated } = await userApi.updateSettings({

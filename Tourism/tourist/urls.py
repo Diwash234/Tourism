@@ -50,6 +50,7 @@ router.register("osm-essentials", views.OSMEssentialServiceViewSet, basename="os
 router.register("safety/trusted-contacts", views_family_safety.TrustedContactViewSet, basename="trusted-contact")
 router.register("safety/trips", views_family_safety.SharedTripViewSet, basename="shared-trip")
 router.register("safety/sos", views_family_safety.SOSAlertViewSet, basename="sos-alert")
+router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, basename="family-link")
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
 
@@ -161,6 +162,7 @@ urlpatterns = [
     # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)
     path("postcard/<path:path_info>", views.destination_postcard, name="destination-postcard"),
     path("safety/trip-share/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public"),
+    path("safety/family/members/", views_family_safety.FamilyMembersView.as_view(), name="family-members"),
 
     # Router includes
     path("", include(router.urls)),

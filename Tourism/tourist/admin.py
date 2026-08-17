@@ -7,7 +7,7 @@ from .models import (
     DestinationImage, DestinationVideo, Review, Rating, Favorite,
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
-    OSMEssentialService, OSMTourismPlace,
+    OSMEssentialService, OSMTourismPlace, FamilyLink,
 )
 
 
@@ -439,3 +439,11 @@ class OSMTourismPlaceAdmin(admin.ModelAdmin):
     list_display = ["name", "category", "address"]
     list_filter = ["category"]
     search_fields = ["name", "address"]
+
+
+@admin.register(FamilyLink)
+class FamilyLinkAdmin(admin.ModelAdmin):
+    list_display = ["id", "requester", "member", "relationship", "status", "created_at", "accepted_at"]
+    list_filter = ["status"]
+    search_fields = ["requester__email", "member__email", "requester__first_name", "member__first_name"]
+    readonly_fields = ["created_at", "accepted_at"]

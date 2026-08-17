@@ -234,6 +234,33 @@ const EXTRA_LOCAL_PHOTOS = {
   bungee: "/images/destinations/bhote-koshi/rafting.jpg",
   rafting: "/images/destinations/bhote-koshi/rafting.jpg",
   kumari: "/images/destinations/kathmandu/durbar-square.jpg",
+  // Round 23 — local landmark images: food (real Nepali dishes)
+  momo: "/images/destinations/food/momo.jpg",
+  "momo trail": "/images/destinations/food/momo.jpg",
+  "bhojpur momo": "/images/destinations/food/momo.jpg",
+  "sel roti": "/images/destinations/food/sel-roti.jpg",
+  "juju dhau": "/images/destinations/food/juju-dhau.jpg",
+  chiya: "/images/destinations/food/masala-chiya.jpg",
+  "nepali chiya": "/images/destinations/food/masala-chiya.jpg",
+  "masala chai": "/images/destinations/food/masala-chiya.jpg",
+  "newari bhoj": "/images/destinations/food/newari-bhoj.jpg",
+  "newari khaja": "/images/destinations/food/newari-bhoj.jpg",
+  "samay baji": "/images/destinations/food/newari-bhoj.jpg",
+  "bhojan griha": "/images/destinations/food/newari-bhoj.jpg",
+  "street food": "/images/destinations/food/momo.jpg",
+  "food street": "/images/destinations/food/momo.jpg",
+  "thamel food": "/images/destinations/food/momo.jpg",
+  // Round 23 — festivals
+  holi: "/images/destinations/festivals/holi-kathmandu.jpg",
+  "fagu purnima": "/images/destinations/festivals/holi-kathmandu.jpg",
+  dashain: "/images/destinations/festivals/dashain-tika.jpg",
+  "dashain tika": "/images/destinations/festivals/dashain-tika.jpg",
+  tihar: "/images/destinations/festivals/tihar-diya.jpg",
+  deepawali: "/images/destinations/festivals/tihar-diya.jpg",
+  "laxmi puja": "/images/destinations/festivals/tihar-diya.jpg",
+  // Round 23 — culture
+  "tharu dance": "/images/destinations/culture/tharu-dance.jpg",
+  tharu: "/images/destinations/culture/tharu-dance.jpg",
 }
 
 Object.assign(LOCAL_NEPAL_PHOTOS, EXTRA_LOCAL_PHOTOS)
@@ -286,6 +313,16 @@ const LOCAL_PHOTO_TYPES = {
   "/images/destinations/manakamana/temple.jpg": "temple",
   "/images/destinations/mahendra-cave/interior.jpg": "cave",
   "/images/destinations/davis-falls/waterfall.jpg": "waterfall",
+  // Round 23 — local food / festival / culture landmark images
+  "/images/destinations/food/momo.jpg": "food",
+  "/images/destinations/food/sel-roti.jpg": "food",
+  "/images/destinations/food/juju-dhau.jpg": "food",
+  "/images/destinations/food/masala-chiya.jpg": "food",
+  "/images/destinations/food/newari-bhoj.jpg": "food",
+  "/images/destinations/festivals/holi-kathmandu.jpg": "festival",
+  "/images/destinations/festivals/dashain-tika.jpg": "festival",
+  "/images/destinations/festivals/tihar-diya.jpg": "festival",
+  "/images/destinations/culture/tharu-dance.jpg": "culture",
   "/images/destinations/khaptad/landscape.jpg": "mountain",
   "/images/destinations/pathibhara/temple.jpg": "temple",
 }

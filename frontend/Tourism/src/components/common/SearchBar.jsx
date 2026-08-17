@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react"
-import { FiSearch, FiMapPin, FiNavigation, FiCompass, FiX } from "react-icons/fi"
+import { FiSearch, FiMapPin, FiNavigation, FiCompass, FiX, FiArrowRight } from "react-icons/fi"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { resolveFuzzyPlaceLocation } from "../../utils/nepalGeocoder"
+import { useI18n } from "../../i18n"
 
 // Nepal palette constants matching design system
 const INK = "#1f3329"
@@ -13,7 +14,7 @@ const GOLD = "#b8862f"
 const BG_WARM = "#faf8f4"
 
 const SearchBar = ({
-  placeholder = "Search any place (e.g. pkr, phewa, ebc, pashupati)...",
+  placeholder = null,
   onSearch,
   className = "",
   defaultValue = "",
@@ -139,7 +140,7 @@ const SearchBar = ({
             e.currentTarget.style.borderColor = MOUNTAIN_GREEN
           }}
           onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(31,107,77,0.25)")}
-          placeholder={placeholder}
+          placeholder={placeholder || t("nav.search")}
           className="w-full pl-11 pr-10 py-3 sm:py-3.5 bg-white border rounded-2xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 transition-all shadow-lg"
           style={{
             borderColor: "rgba(31,107,77,0.25)",
