@@ -276,3 +276,40 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
 - **Admin dashboard + all admin components: purple → orange** (dark purple
   gradient → dark orange; indigo/purple/violet accents → orange).
 - Manifest 3,025; DB 15 MB; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏛️ Round 10: 1,688 wrong shared images removed + 19 new temples across districts + Akala Devi fixed
+
+- **The BIG "same image" bug fixed**: the original coordinate-based enrichment
+  assigned the same photo to hundreds of destinations (177 places shared one
+  Annapurna panorama, 162 shared one Tal Barahi photo, 115 shared one Poon
+  Hill photo, hotels across Nepal shared a handful of photos). A global audit
+  now keeps each shared photo ONLY on destinations whose name actually
+  matches the photo (token overlap), and **removed 1,688 wrong shared covers**
+  (kept 872 correctly-matched ones). The removed ones now get distinct,
+  category-typed real photos via the frontend resolver (name-hash based), so
+  every place shows a different, appropriate image.
+- **Destination detail hero fixed**: no longer uses the SVG-postcard cover
+  directly — it goes through the real-photo resolver, so SVG never shows on
+  the page hero either.
+- **Akala Devi ×3 fixed**: the Syangja (Sirsekot) temple keeps the only real
+  Akala Devi photo; the Lamjung and Kaski Akala Devi temples no longer show
+  the same image (distinct temple-typed photos instead).
+- **19 new real destinations for under-served districts** (temples +
+  pilgrimage + cities + lakes): Chandannath Temple & Kanakasundari Temple
+  (Jumla, Karnali), Kakrebihar & Deuti Bajai (Surkhet, Karnali), Tripura
+  Sundari (Dolpa, Karnali), Chinnamasta Bhagawati (Saptari, Madhesh), Aurahi
+  Mahadev (Mahottari, Madhesh), Rajdevi Temple (Dhanusha, Madhesh),
+  Simraungadh (Bara, Madhesh), Devdaha (Rupandehi, Lumbini), Siddha Baba
+  Temple & Waling Bazaar (Syangja, Gandaki), Dhorpokhari Lake (Parbat,
+  Gandaki), Baglung Kalika Temple (Baglung), Bhimsen Temple Pokhara (Kaski),
+  Devghat & Kasara Durbar (Chitwan, Bagmati), Ugrachandi (Dadeldhura),
+  Dodhara Chandani Ghat (Kanchanpur), Gokuleshwor Temple (Baitadi) —
+  Sudurpashchim; Kalikasthan Temple (Rasuwa), Bhanu Bhakta Memorial
+  (Dhankuta, Koshi), Siddhakali Temple (Bhojpur, Koshi).
+- **9 real cover photos applied** to the new temples (Chandannath,
+  Kanakasundari/Sinja Valley, Chinnamasta, Rajdevi, Kakrebihar, Siddhakali,
+  Tripura Sundari, Dodhara Chandani, Devghat).
+- Manifest rebuilt (1,342 uniquely-verified covers + 274 AI landmarks);
+  DB 15 MB; 60 tests pass; frontend builds clean.

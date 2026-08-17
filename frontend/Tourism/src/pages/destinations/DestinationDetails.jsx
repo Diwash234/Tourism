@@ -130,11 +130,13 @@ export default function DestinationDetails() {
     )
   }
 
-  // Compile all images with metadata
+  // Compile all images with metadata. The hero prefers the real-photo
+  // resolver (category-aware), so SVG-postcard covers never show on the page.
   const allImages = []
-  if (destination.cover_image_url) {
+  const heroUrl = getDestinationImageUrl(destination)
+  if (heroUrl) {
     allImages.push({
-      url: destination.cover_image_url,
+      url: heroUrl,
       caption: destination.name,
       category: "hero",
       photographer: "Verified Heritage Archive",
