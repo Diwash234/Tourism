@@ -451,3 +451,76 @@ destinations with correct categories + coordinates, each with **2 real photos**
   Bahudarmai Temple, Pokhariya, Jagarnathpur, Adhabar.
 - DB: 7,851 destinations, 15,723 verified real image rows, 1 cover each,
   integrity ok; manifest 7,851 × 2; 60 tests pass; frontend builds clean.
+
+---
+
+## 🧭 Round 15: All 270 Wikidata destinations got district+province + Koshi/Madhesh gaps closed (7,853 dests)
+
+The earlier Wikidata import (ids 7248–7517) had created **270 real famous places
+with `province=None, district=None`** — they existed in the DB but were invisible
+in province filters and missing from district pages. This round fixed all of them
+(district + province + city assigned; ambiguous entries verified against Wikidata
+P131 "located in the administrative territorial entity"):
+
+- **Koshi (+98)**: Olangchung Gola, Tapethok, Lelep, Kabru, Kangbachen,
+  Kanchenjunga West, Gimmigela Chuli, Kokthang, Ramthang Chang, Nepal Peak,
+  Kabeli River, Sakfara (Ilam), Naya Bazar (Ilam), Gauradaha, Baniyani,
+  Budhabare, Rajgadh, Kolbung, Bhadrapur, Birtamod area, Koshi Barrage,
+  Khuwalung (sacred rock), Itahari, Prakashpur, Urlabari, Rangeli, Jhurkiya,
+  Basantatar, Ramailo, Gaighat, Katari, Bashasa, Gupteshwor, Rumjatar,
+  Katunje, Siddhicharan, Diktel, Sungdel, Khiji Chandeshwori, Mane Bhanjyang,
+  Pakhribas, Chaurikharka, Ombigaichan, Dole, Tsoboje, Takargo, Tengi Ragi Tau,
+  Syangboche, Necha Salyan, Mount Khumbila, Khumbu Icefall, Khumbu Glacier,
+  Imja Glacier, Western Cwm, Ngozumpa Glacier, Nuptse, Lhotse Middle,
+  South Summit, Lingtren, Peak 38, Peak 41, Num Ri, Kyashar, Pethang Tse,
+  Chumbu, Tenzing Peak, Kyajo Ri, Kongma Tse, Lho La, Chamlang, Barun River,
+  Ripuk, Chainpur, Barahathawa-adjacent hills, Kabeli, + Solukhumbu peaks.
+- **Madhesh (+22)**: Shambhunath Temple (Saptari), Chandra Canal, Bodebarsaien,
+  Mauwaha, Boriya, Kataiya, Hariharpur (Sagarmatha), Khajuri Chanha (Siraha),
+  Dudhouli (Sarlahi), Karmaihiya, Barahathawa, Khayarmara (Mahottari),
+  Gaushala, Gadhi + Katahariya (Rautahat), Simraungadh, Mahagadhimai,
+  Nijgadh Municipality, Amlekhganj (Bara).
+- **Bagmati (+89)**: Kasthamandap, Tangal/Seto/Lal Durbar, Nautalle Durbar,
+  Tundikhel, Ratna Park, Gokarneshwor, Tarakeshwor, Maru, Jhochhen,
+  Thankot, Balambu, Dalchoki, Shankarapur, Halchowk Stadium, Supreme Court,
+  Melamchi, Helumbu, Jalbire, Lamo waterfall, Listikot, Haibung, Bhotechaur,
+  Jyamire, Tauthali, Dorje Lhakpa, Jugal Himal, Gangchempo, Gurkarpo Ri,
+  Dragmarpo Ri, Palanchok Bhagawati, Kushadevi, Methinkot, Saping, Dapcha,
+  Jaisithok Mandan, Simalchour Syampati, Mahadevsthan Mandan, Manthali,
+  Sailungeswor, Pawati, Gumdel, Babare, Namdu, Bulung, Gauri Sankar,
+  Kalinchowk, Hariharpur Gadhi, Markhu, Handikhola, Bhimfedi, Nilkantha,
+  Naubise, Kumpur, Madi Kalyanpur, Pragatinagar, East Rapti River,
+  Thuman, Haku, Rasuwa Fort, Langtang Himal, Langtang Ri, Langshisa Ri,
+  Kimshung, Naya Kanga, Ratmate, Khari, Charghare.
+- **Gandaki (+82)**: Arjun Chaupari, Bhattarai Danda, Patasar, Majuwa, Sakhar,
+  Rampur, Taksar, Harinas, Biruwa, Galyang, Saldanda, Tilahar, Bange Phadke,
+  Aruchaur, Thapathana, Pidikhola, Bahakot, Arukharka, Chandikalika, Sorek,
+  Chapakot, Fhedikhola, Kusmishera, Chhisti, Limgha, Dhorpatan, Ratnechaur,
+  Dana, Lete, Chhusang, Tangbe, Mustang Caves, Tashi Kang, Nilgiri North,
+  Lo-Ghekar Damodarkunda, Varagung Muktichhetra, Thoche, Tanki Manang,
+  Ngadi Chuli, Thulagi Chuli, Kang Guru, Annapurna I East/Middle, Ghermu,
+  Udipur, Bhorletar, Sildujure, Hiletaksar, Karapu, Duradanda, Taghring,
+  Ghansikuwa, Dulegaunda, Dedgaun, Shuklagandaki, Kawasoti, Madhyabindu,
+  Ghyalchok, Darechok, Chumchet, Sirdibas, Aarupokhari, Nyawal, Jaubari,
+  Takukot, Himalchuli, Gyaji Kang, Salasungo, Ganesh NW, Dhaulagiri Himal,
+  Shiva Temple (Kaski).
+- **Lumbini (+18)**: Tilaurakot, Jahadi, Suryapura, Pokharathok, Chhahara,
+  Alam Devi, Ranighat Palace, Argali Darbar, Wamitaksar, Rupakot Gulmi,
+  Jhimruk Khola, Koldada, Thawang, Bhrikuti, Jama Masjid Bhairahawa.
+- **Karnali (+10)**: Sinja Valley, Tripurakot, Musikot Khalanga, Rukumkot,
+  Latikoili, Syalakhadi, Jailwang, Dolpo, Chhonhup, Dhami.
+- **Sudurpashchim (+10)**: Kalapani territory, Gurans Himal, Seti River,
+  Ghodaghodi Tal, Amargadhi, Amaragadhi, Dasharathchand, Sanphebagar,
+  Kanda (Bajura), Ladagada.
+
+Also fixed:
+- **Bindabasini Temple** — the entry had Kathmandu coordinates + "Gandaki"
+  province on a Parsa temple; now correctly Birgunj, Parsa, **Madhesh**.
+- **81 legacy rows** with a district but no province got their province assigned
+  (Rajbiraj→Madhesh, Malangwa→Madhesh, Bardibas→Madhesh, etc.).
+- Added the last missing named places from the Koshi/Madhesh ward data:
+  **Surunga Baba** (Saptari), **Birtamod** (Jhapa) — both with 2 real photos.
+- DB: **7,853 destinations**, 20,027 verified real image rows, 5,239 covers,
+  0 dests with >1 cover, 0 dests with <2 verified photos, integrity ok;
+  manifest rebuilt 7,853 × 2; `downloads/nepal-tourism-database.sqlite3.gz`
+  refreshed; 60 tests pass; frontend builds clean.
