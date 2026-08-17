@@ -65,7 +65,7 @@ def urls_for(fn):
     e = urllib.parse.quote(f, safe="-_.~")
     return (
         f"https://upload.wikimedia.org/wikipedia/commons/{h1}/{h2}/{e}",
-        f"https://upload.wikimedia.org/wikipedia/commons/thumb/{h1}/{h2}/{e}/1000px-{e}",
+        f"https://upload.wikimedia.org/wikipedia/commons/thumb/{h1}/{h2}/{e}/960px-{e}",
     )
 
 # ---------------------------------------------------------------- filters

@@ -483,6 +483,13 @@ NEPAL_CURATED_PHOTOS = [
     "/images/destinations/lumbini/garden.jpg",
     "/images/destinations/ilam/tea-gardens.jpg",
     "/images/destinations/dhaulagiri/peak.jpg",
+    # Multi-source fallback: keep Unsplash landscape photos as one tier of
+    # the chain (used only when no real/local photo exists for a place).
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
 ]
 
 

@@ -21,7 +21,7 @@ MANIFEST_PATH = os.path.join(REPO, "tourist", "verified_wikimedia_photos.json")
 GENERIC_ARTIST = "Wikimedia Commons contributor"
 GENERIC_LICENSE = "See Commons file page"
 
-THUMB_RE = re.compile(r"^https://upload\.wikimedia\.org/wikipedia/commons/thumb/([0-9a-f])/([0-9a-f]{2})/(.+)/(1000px-.*)$")
+THUMB_RE = re.compile(r"^https://upload\.wikimedia\.org/wikipedia/commons/thumb/([0-9a-f])/([0-9a-f]{2})/(.+)/(960px-.*)$")
 
 
 def original_from_thumb(thumb: str) -> str:

@@ -5,14 +5,15 @@ import React, { useState, useMemo } from "react"
  *
  * Renders a REAL Nepal photo as a fallback — first the curated local
  * landmark photo for the named place (40 unique /images/destinations/*
- * photos, no external hotlinks), otherwise a deterministic pick from that
- * same pool keyed by `seed`, so different cards always show different
- * photos and no card repeats the same image as its neighbour.
+ * photos), otherwise a deterministic pick from the multi-source fallback
+ * pool (Unsplash landscape photos + local landmarks) keyed by `seed`, so
+ * different cards always show different photos and no card repeats the
+ * same image as its neighbour.
  */
-import { LOCAL_NEPAL_PHOTOS_PLACEHOLDER } from "../../utils/imageUtils"
+import { LOCAL_NEPAL_PHOTOS_PLACEHOLDER, FALLBACK_POOL } from "../../utils/imageUtils"
 
-// Pool of unique local landmark photos (no Unsplash, no repeats).
-const FALLBACK_IMAGES = [...new Set(Object.values(LOCAL_NEPAL_PHOTOS_PLACEHOLDER))]
+// Multi-source fallback pool: local landmark photos + Unsplash landscapes.
+const FALLBACK_IMAGES = [...new Set(FALLBACK_POOL)]
 
 const matchLocal = (name) => {
   if (!name) return null
@@ -32,7 +33,7 @@ const PlaceholderImage = ({ seed = 0, className = "", title = "Nepal landscape",
     // 1. Try place-specific local photo if the title names a known place
     const local = matchLocal(title)
     if (local) return local
-    // 2. Otherwise deterministic varied local-landmark pool
+    // 2. Otherwise deterministic multi-source pool (Unsplash + local)
     let h = 0
     const s = String(seed ?? title ?? "nepal")
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0

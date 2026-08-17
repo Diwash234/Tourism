@@ -69,7 +69,7 @@ Then run the import command (section 5).
 | `alt_text`     | `Kathmandu Durbar Square 001` |
 | `ordering`     | `1` |
 | `external_url` | full URL (cache of the image-server URL) |
-| `thumbnail_url`| full URL (1000px thumb served by the image server) |
+| `thumbnail_url`| full URL (960px thumb served by the image server) |
 
 - No `ImageField` is used for dataset images — the binary never enters SQLite.
 - URL builder: `Tourism/tourist/image_server.py::image_server_url(path)`
@@ -290,3 +290,15 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   River, Darchula/Api + verified reuses (Chitwan ×5, Lo Manthang ×3, Halesi ×2,
   Poon Hill, Budhanilkantha, Bagmati, Chhoser).
 - Totals: **2,995 real covers** / 7,517 dests; no-cover 619; DB 15 MB.
+
+## 15. Round 6 — broken-thumbnail root cause fixed + multi-source fallback chain
+
+- **All Wikimedia cover URLs fixed**: the app built `1000px-` thumb URLs, but
+  Wikimedia only serves standard sizes (…500/960/1280/1920…) and rejects
+  hotlinks to non-standard sizes (phab T414805). All 4,699 rows now use
+  `960px-` — verified byte-for-byte against the imageinfo API thumburl.
+- **Multi-source fallback chain** (user request: keep Unsplash/Wikimedia as
+  filters — use the next source when one is missing):
+  real verified cover → API images/gallery → local landmark photos →
+  deterministic pool (local + Unsplash landscapes) → unique postcard.
+- DB URL audit: 0 junk/utm/1000px URLs. DB 15 MB, manifest 2,995, 60 tests.

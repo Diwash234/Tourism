@@ -171,3 +171,28 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   reuses for sister destinations: Chitwan NP ×5, Lo Manthang ×3, Halesi ×2,
   Poon Hill Trek, Budhanilkantha, Bagmati River, Chhoser Gompa.
 - No-cover destinations: 649 → **619**. DB still 15 MB; manifest 2,995; 60 tests pass.
+
+---
+
+## 🔗 Round 6: FIXED ALL BROKEN IMAGE URLS (the real "same images" bug) + multi-source fallback chain
+
+- **ROOT CAUSE FOUND & FIXED**: Wikimedia only serves thumbnails at standard
+  sizes (…500, **960**, 1280, 1920… — hotlinks to other sizes are rejected,
+  see T414805 / w.wiki/GHai). All 4,699 rows used `1000px-` thumbs → every
+  Wikimedia photo 404'd in the browser → cards fell back to the shared
+  generic images (the "same images everywhere" the user reported).
+  **All DB rows + all scripts + the manifest now use `960px-`** (verified
+  identical to the API's own thumburls). No more broken covers.
+- **Multi-source fallback chain restored per user request** (keep Unsplash,
+  Wikimedia, Flickr, WordPress as filters — if one source has no image, the
+  next one is used):
+  1. real verified cover (Wikimedia/Flickr/WordPress from the DB)
+  2. API images[] / gallery
+  3. local landmark photos (/images/destinations/*)
+  4. deterministic fallback pool = 40 local + 46 Unsplash landscape photos
+  5. unique SVG postcard (absolute last resort)
+- Frontend imageUtils + PlaceholderImage + HotelCard + backend
+  NEPAL_CURATED_PHOTOS all use the pool; onError fallbacks point to the
+  per-destination unique postcard, never a shared photo.
+- DB URL audit: 0 junk/utm URLs, every upload.wikimedia.org thumb row is
+  960px. DB 15 MB; manifest 2,995; 60 tests pass; frontend builds clean.

@@ -3,16 +3,18 @@
  *
  * Central image resolver for the Nepal Tourism app.
  *
- * Priority:
- *  1. Backend-provided cover_image_url / external_url (curated AI photos
- *     for named landmarks + unique SVG postcards for everything else).
+ * Multi-source fallback chain (each tier only used when the previous one
+ * has no usable image):
+ *  1. Backend-provided cover_image_url / external_url (real verified
+ *     Wikimedia Commons / Flickr / WordPress.org photos + curated AI
+ *     landmark photos) and the API `images[]` array.
  *  2. First APPROVED gallery image.
  *  3. Local curated /images/destinations/... JPEGs for known landmarks.
- *  4. Deterministic SVG postcard via /api/v1/postcard/ endpoint (NEVER a
- *     generic Unsplash photo that repeats across destinations).
- *
- * No more generic stock-photo fallbacks — every destination gets a unique,
- * Nepal-themed visual.
+ *  4. Deterministic multi-source fallback pool (Unsplash landscape photos
+ *     + the local landmark photos) — picked by name hash so each
+ *     destination is stable and neighbours rarely repeat.
+ *  5. Unique deterministic SVG postcard via /api/v1/postcard/ endpoint
+ *     (absolute last resort — never a shared generic photo).
  */
 
 // Curated Nepal-specific AI photos bundled with the frontend.
@@ -215,6 +217,71 @@ const isUsable = (url) => {
   return true
 }
 
+// ---------------------------------------------------------------------------
+// Multi-source fallback pool (Unsplash + local landmarks)
+// ---------------------------------------------------------------------------
+// Real landscape photos from Unsplash (kept as a fallback tier — if a real
+// verified photo or a local landmark photo is missing, these fill the gap).
+const UNSPLASH_POOL = [
+  "photo-1506905925346-21bda4d32df4",
+  "photo-1464822759023-fed622ff2c3b",
+  "photo-1506744038136-46273834b3fb",
+  "photo-1544735716-392fe2489ffa",
+  "photo-1470071459604-3b5ec3a7fe05",
+  "photo-1501785888041-af3ef285b470",
+  "photo-1441974231531-c6227db76b6e",
+  "photo-1476514525535-07fb3b4ae5f1",
+  "photo-1507525428034-b723cf961d3e",
+  "photo-1519681393784-d120267933ba",
+  "photo-1502786129293-79981df4e689",
+  "photo-1486870591958-9b9d0d1dda99",
+  "photo-1526778548025-fa2f459cd5c1",
+  "photo-1565008447742-97f6f38c985c",
+  "photo-1575550959106-5a7defe28b56",
+  "photo-1605649487212-47bdab064df7",
+  "photo-1609766428351-8e1a5c4e8e8a",
+  "photo-1605640840605-14ac1855827b",
+  "photo-1546484475-7f7bd55792da",
+  "photo-1558981359-219d6364c9c8",
+  "photo-1589308078056-3eb0e4a3a5c5",
+  "photo-1589308078058-c6dba4792c60",
+  "photo-1439066615861-d1af74d74000",
+  "photo-1454496522488-7a8e488e8606",
+  "photo-1470770841072-f978cf4d019e",
+  "photo-1483728642387-6c3bdd6c93e5",
+  "photo-1500534623283-312aade485b7",
+  "photo-1518002171953-a080ee817e1f",
+  "photo-1518709594023-6eab9bab7b23",
+  "photo-1524492412937-b28074a5d7da",
+  "photo-1544198365-f5d60b6d8190",
+  "photo-1544967082-d9d25d867d66",
+  "photo-1546182990-dffeafbe841d",
+  "photo-1548013146-72479768bada",
+  "photo-1549366021-9f761d450615",
+  "photo-1568322445389-f64ac2515020",
+  "photo-1570192977-f48187449e48",
+  "photo-1571401835393-8c5f35328320",
+  "photo-1571847140471-1d7766e825ea",
+  "photo-1572953107300-18597face4ba",
+  "photo-1582650625119-3a31f8418b7d",
+  "photo-1583212292454-1fe6229603b7",
+  "photo-1585511582812-88478e0a2705",
+  "photo-1590766940554-153d9e0b2eff",
+  "photo-1602088113235-229c19758e9c",
+  "photo-1626621331169-5f34be280ed9",
+].map((id) => `https://images.unsplash.com/${id}?w=1200&auto=format&fit=crop&q=80`)
+
+// Local landmark photos + Unsplash pool = one big deterministic fallback pool.
+export const FALLBACK_POOL = [...Object.values(LOCAL_NEPAL_PHOTOS), ...UNSPLASH_POOL]
+
+/** Deterministic multi-source fallback image for a seed (name/slug/id). */
+export const fallbackImageUrl = (seed) => {
+  let h = 0
+  const s = String(seed ?? "nepal")
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return FALLBACK_POOL[h % FALLBACK_POOL.length]
+}
+
 /**
  * Return a usable image URL for a destination/hotel/card.
  */
@@ -250,8 +317,8 @@ export const getDestinationImageUrl = (destination) => {
   const local = lookupLocalNepal(haystack)
   if (local) return local
 
-  // 4. Deterministic SVG postcard (unique per destination — no repeats!)
-  return postcardUrl(destination)
+  // 4. Multi-source fallback pool (Unsplash + local landmarks), deterministic
+  return fallbackImageUrl(haystack || destination.name || destination.slug || destination.id)
 }
 
 /**
@@ -281,7 +348,9 @@ export const getHotelImageUrl = (hotel) => {
       if (isUsable(gUrl)) return gUrl
     }
   }
-  return postcardUrl({ name: hotel.name || "Hotel", category: { slug: "hotel" } })
+  // Multi-source pool before the unique postcard
+  const seed = `${hotel.name || "Hotel"} ${hotel.city || ""} ${hotel.district || ""}`
+  return fallbackImageUrl(seed) || postcardUrl({ name: hotel.name || "Hotel", category: { slug: "hotel" } })
 }
 
 export const createLocalImagePreview = (file) => {

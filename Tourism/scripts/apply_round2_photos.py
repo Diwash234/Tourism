@@ -16,7 +16,7 @@ django.setup()
 from tourist.models import Destination, DestinationImage  # noqa: E402
 
 TSV = os.path.join(os.path.dirname(__file__), "round2_verified_photos.tsv")
-BASE = "https://upload.wikimedia.org/wikipedia/commons/thumb/{a}/{ab}/{q}/1000px-{q}"
+BASE = "https://upload.wikimedia.org/wikipedia/commons/thumb/{a}/{ab}/{q}/960px-{q}"
 
 
 def thumb_url(filename: str) -> str:

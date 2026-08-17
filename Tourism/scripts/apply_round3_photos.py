@@ -17,7 +17,7 @@ django.setup()
 from tourist.models import Destination, DestinationImage  # noqa: E402
 
 TSV = os.path.join(os.path.dirname(__file__), "round3_verified_photos.tsv")
-BASE = "https://upload.wikimedia.org/wikipedia/commons/thumb/{a}/{ab}/{q}/1000px-{q}"
+BASE = "https://upload.wikimedia.org/wikipedia/commons/thumb/{a}/{ab}/{q}/960px-{q}"
 
 CATEGORY_IMAGE_KIND = {
     52: "cave", 49: "waterfall", 66: "hot_spring", 44: "temple", 45: "monastery",
