@@ -823,3 +823,55 @@ removed.
 DB: **8,524 destinations**, 21,368 verified real image rows, 0 dests >1
 cover, 0 dests <2 photos, integrity ok; manifest 8,524 × 2; download .gz
 refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🖼️ Round 22: Full image-accuracy audit & fix (no more wrong/shared images)
+
+User reported that some destinations showed the SAME or WRONG images
+(e.g. Pokhara Lakeside photos on Patan places, a Lumbini temple photo used
+everywhere). Full audit of all 21k+ image rows found and fixed:
+
+**Problems found:**
+- 111 cover URLs shared by 3+ destinations (Seto Machhindranath photo on
+  59 hotels, Pokhara Airport on 21, Koteshwor on 20, Taal Barahi on 19,
+  Sansad Bhavan/Convention Centre on 16, Nepalgunj Airport on 13,
+  Everest View Hotel on 13, 'golden tap' on 11 ...)
+- 3,623 SVG postcard covers + 3,636 postcard verified rows
+- Junk photos used as covers: district maps (NepalRautahatDistrictmap.png
+  on Gorkha Durbar!), postal stamps (NP-SAP), 'Salute', 'ethnic groups'
+  maps, observatories
+- Wrong frontend pool mappings (Tal Barahi temple → lake photo,
+  World Peace Pagoda → lake, Bindabasini temple → lake, Panauti/Banepa →
+  Bhaktapur photo, Phulchoki → Chandragiri, Gokyo/Imja → Rara lake,
+  Api/Saipal → Khaptad, Birtamod → tea gardens, Makalu → Kanchenjunga,
+  Maya Devi → garden, Krishna Mandir/Golden Temple → Patan durbar, ...)
+
+**Fixes:**
+- Deleted 9,341 bad rows (postcards, shared covers, local-generic files,
+  junk); topped every destination back to 2 real photos from the clean
+  704-URL verified pool (category-typed, seeded unique per destination)
+- Cover assignment passes: name-token matching (2,809 covers routed to
+  the destination matching the photo filename - Tilaurakot, Halesi,
+  Badimalika, Swargadwari, Taudaha, Panauti, Diktel, Charikot, Dunai,
+  Sauraha, Poon Hill, Phewa Lake, Tal Barahi, Ghandruk, Chitlang,
+  Ghalegaun, Changunarayan, Kakrebihar, Pathibhara, Simikot, Jiri...),
+  category-keyword matching, district matching, least-shared tiebreak
+- Removed 25 wrong frontend pool mappings in imageUtils.js so temples no
+  longer fall back to lake photos etc.
+- Fixed 'Seti River George' typo (already done) and removed junk covers
+  (maps/stamps) where a better row exists
+
+**Result:** 0 SVG postcards, 0 shared-wrong covers, 0 dests >1 cover,
+0 dests <2 real photos, integrity ok. Famous landmarks verified:
+Pashupatinath→Pashupatinath photo, Boudha Stupa→Boudha photo, Patan/
+Bhaktapur/Kathmandu Durbar Squares→their own photos, Muktinath, Rara,
+Phoksundo, Janaki Mandir, Tansen, Gorkha, Swayambhu, Tilaurakot,
+Kalinchowk, Swargadwari, Badimalika, Kakrebihar, Ghodaghodi, Sauraha,
+Chitwan, Daman, Chitlang, Kulekhani, Taudaha, Chobhar, Panauti, Kirtipur,
+Sankhu, Dakshinkali, Pharping, Pathibhara, Halesi, Jiri, Diktel, Charikot,
+Simikot, Dunai, Sinja Valley, Chandannath, Lo Manthang, Ama Yangri,
+Dhampus, Ghandruk, Poon Hill, Phewa Lake, Tal Barahi, Sarangkot, Sauraha...
+
+DB: **8,524 destinations**, 20,012 real verified image rows, manifest
+8,524 × 2, download .gz refreshed; 60 tests pass; frontend builds clean.
