@@ -728,3 +728,30 @@ Fix: **Parshuram Dham** was tagged Doti; the canonical site is in Dadeldhura
 DB: **8,338 destinations**, 20,996 verified real image rows, 0 dests >1
 cover, 0 dests <2 photos, integrity ok; manifest 8,338 × 2; Sudurpashchim
 173 → 192; download .gz refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🔍 Round 20: Final audit gap-fill — Bagmati/Karnali/Sudurpashchim (8,347 dests)
+
+Full audit of the three provinces: image coverage is 100% (0 destinations
+with fewer than 2 verified photos; 0 destinations with >1 cover) and the
+remaining named places from the ward-by-ward data were added:
+
+- **Surkhet (Karnali)**: Surkhet Valley, Chamere Gufa Bheriganga,
+  Chamere Gufa Gurbhakot.
+- **Dailekh (Karnali)**: Dullu Malika, Pathangini (Panchakoshi circuit).
+- **Lalitpur (Bagmati)**: Mahabouddha Temple (the Patan 'Temple of a
+  Thousand Buddhas').
+- **Kavrepalanchok (Bagmati)**: Mathurapati Shiva Shrine (Namobuddha).
+- **Achham (Sudurpashchim)**: Kamalbazar.
+- **Baitadi (Sudurpashchim)**: Patan Baitadi.
+
+Audit confirmed already present: Chandragiri Hill + Cable Car + Bhaleshwor,
+Birendranagar, Charikot, Karnali River, Shuklaphanta National Park, Bedkot
+Lake, Dodhara Chandani Ghat, Bungamati, Khokana, Kirtipur, Chilancho Stupa,
+Tatopani (Sindhupalchok), Bahrabise, Surkhet's big four (Kakrebihar/Bulbule/
+Deuti Bajai/Baraha Tal), Rara + Phoksundo + Sinja + Limi + Api + Saipal etc.
+
+DB: **8,347 destinations**, 21,014 verified real image rows, 0 dests >1
+cover, 0 dests <2 photos, integrity ok; manifest 8,347 × 2; download .gz
+refreshed; 60 tests pass; frontend builds clean.
