@@ -592,3 +592,40 @@ Highlights by district:
 DB: **8,132 destinations**, 20,585 verified real image rows, 0 dests >1
 cover, 0 dests <2 photos, integrity ok; manifest rebuilt 8,132 × 2;
 `downloads/nepal-tourism-database.sqlite3.gz` refreshed; tests + build clean.
+
+---
+
+## 🌄 Round 17: Bagmati completed — Makwanpur, Chitwan, Dhading, Nuwakot, Rasuwa (8,177 dests)
+
+Added the remaining Bagmati Province famous places (the user asked to continue
+on our own after Kathmandu/Lalitpur/Bhaktapur/Kavre/Sindhupalchok/Dolakha/
+Ramechhap/Sindhuli rounds):
+
+- **Makwanpur (11)**: Chitlang (historic Newar village + goat cheese), Daman
+  hill station, Sim Bhangyang, Kulekhani Dam, Indra Sarobar Lake, Palung,
+  Tistung, Phaparbari, Manahari, Bhainse. (Makwanpur Gadhi + Hetauda already
+  existed; Markhu/Bhimfedi/Handikhola/Nilkantha from earlier rounds.)
+- **Chitwan (18)**: Sauraha, Elephant Breeding Centre, Gharial Breeding
+  Centre, Meghauli, Devghat (fixed to Chitwan — was mislabelled Tanahun),
+  Valmiki Ashram, Someshwor Hill, Kumroj, Ratnanagar, Narayanghat,
+  Rapti River, Siraichuli viewpoint, Bhandara. (Chitwan National Park,
+  Bishazari Tal, Tharu Cultural Museum, Kasara Durbar, Bharatpur, Narayani
+  River already existed; Kasara's missing province fixed.)
+- **Dhading (13)**: Dhading Besi, Gajuri, Jibjibe, Ruby Valley villages
+  (Tipling, Somdang Mines, Jharlang, Shertung, Brabal, Lapa), Maidi,
+  Dhunibesi, Benighat.
+- **Nuwakot (7)**: Nuwakot Bhairabi Temple, Nuwakot Taleju Temple,
+  Trishuli Bazaar, Betrawati Hot Springs, Bidur, Batar Si (cheese village).
+  (Nuwakot Durbar + Kakani + Devighat already existed; Trishuli River kept
+  as the single Dhading entry.)
+- **Rasuwa (11)**: Dhunche, Syabrubesi, Timure, Briddim, Thulo Syabru,
+  Gatlang, Parvati Kunda, Chandanbari, Sing Gompa. (Langtang National Park,
+  Langtang Village, Gosaikunda, Rasuwa Fort, Thuman, Haku, Kyanjin Gompa
+  covered by earlier entries.)
+
+Duplicates prevented: Devghat + Trishuli River second entries removed,
+Devghat relocated to Chitwan, Kasara Chitwan got district/province.
+
+DB: **8,177 destinations**, 20,675 verified real image rows, 0 dests >1
+cover, 0 dests <2 photos, integrity ok; manifest 8,177 × 2; download .gz
+refreshed; 60 tests pass; frontend builds clean.
