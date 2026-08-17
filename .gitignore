@@ -169,3 +169,14 @@ image-server/images/**/*
 # ...but keep the placeholder files and let Git descend into the dirs
 !image-server/images/**/
 !image-server/images/**/.gitkeep
+
+#################################
+# DOWNLOADS (keep repo small)
+#################################
+# Only the compressed DB snapshot is tracked in downloads/.
+# The uncompressed copy, the images zip and the full-project zip are
+# regenerable from the committed DB + source; ignore them so the repo
+# doesn't grow past ~50MB.
+downloads/nepal-tourism-database.sqlite3
+downloads/nepal-images-only.zip
+downloads/nepal-tourism-full-project.zip

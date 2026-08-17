@@ -106,3 +106,21 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
 - Fixed 2 bad assignments discovered in audit (Manang Braga ← Panauti photo reverted; Serchan Hotel ← Rani Pokhari reverted) and corrected Rani Pokhari's cover (was Ghanta Ghar clock tower).
 - Manifest (`verified_wikimedia_photos.json`) rebuilt from DB: **2,853 entries**.
 - Final: 7,517 destinations — **2,853 real photo covers** + 274 AI landmark covers + 3,735 SVG postcards (mostly hotels/lodges with no publicly licensed photo).
+---
+
+## 🖼️ Round 2: Verified Real Photos for Viewpoints, Stupas, Festivals, Tea/Coffee, Adventures & Heritage
+
+- **72 more destinations** now show real Wikimedia Commons photos instead of SVG postcards (total verified covers: **2,853 → 2,925**).
+- **Viewpoints**: Pikey Peak, Phulchowki Hill (x2), Chukhung Ri, View to Cho Oyu, Larke La (x2), Dho Tarap, Sarangkot Sunset, Mohare Dada (x3), Lamjura La, Maipokhari, Resunga (x2), Jamacho/Nagarjun, Makalu Viewpoint.
+- **Stupas & gompas**: Thubchen Gompa, Jampa Gompa, Chhairo Gompa, Chhoser Jhong Cave Gompa.
+- **Festivals**: Chhath (Terai) — the last SVG festival card is now a real Chhath Puja photo.
+- **Tea / coffee / farms**: Jhapa Tea Gardens, Gulmi Coffee, Syangja Orange, Rasuwa Apple Orchards, Humla Apple & Barley.
+- **Adventures**: Kusma Bungee (Cliff Nepal), The Last Resort Bungee, Trishuli / Seti / Sun Koshi rafting, Birethanti canyoning, Pokhara paragliding.
+- **Heritage**: Makwanpur Gadhi, Sindhuli Gadhi, Lo Manthang Royal Palace, Tilaurakot (Suddhodana's Palace), Araniko / BP Koirala / Prithvi / Siddhartha / Pasang Lhamu / Mahendra highways, Kali Gandaki Corridor.
+- **Temples (no more SVG)**: Ambikeshwori, Badimalika (x2), Barahachhetra (x5), Bhairabsthan, Chhintang Devi, Padukasthan, Panch Pokhari, Kailashnath Mahadev, Ridi Kunda, Shesh Narayan, Siddha Gufa, Siddhi Lakshmi, Surma Sarovar, Swargadwari (x3), Triveni Dham, Halesi, Bibah Panchami Mandap.
+- **Housekeeping**:
+  - Manifest rebuilt to **2,925** entries via new `scripts/rebuild_manifest.py` (DB-driven, no network).
+  - Reproducible mapping kept at `scripts/round2_verified_photos.tsv` + `scripts/apply_round2_photos.py`.
+  - DB integrity verified: **7,517 dests, 0 destinations with >1 cover, `PRAGMA integrity_check` = ok**; DB vacuumed (45 MB).
+  - **Repo slimmed**: removed `downloads/nepal-tourism-database.sqlite3` (45 MB dup), `nepal-images-only.zip` (22 MB), `nepal-tourism-full-project.zip` (14 MB) — only the 4.4 MB `.gz` snapshot stays; all are git-ignored and regenerable (see `downloads/README.txt`). Keeps clone size under ~50 MB at HEAD.
+  - Docs updated: `docs/IMAGE_SERVER.md` §10 (enrichment rounds) & §11 (repo-size strategy).

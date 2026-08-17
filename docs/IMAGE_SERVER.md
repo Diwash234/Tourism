@@ -174,3 +174,59 @@ Nginx streams the file from disk. Django is never involved.
 - **Unchanged**: SQLite stays the database; existing models/migrations intact;
   existing image pipeline (Wikimedia/Unsplash/AI/postcards) still works and is
   just extended by `image_path`-based rows.
+
+## 10. Verified real-photo enrichment rounds (temples, festivals, viewpoints …)
+
+On top of the image-server pipeline, the DB itself now carries **2,925
+verified Wikimedia Commons cover photos** (hotlinked from
+`upload.wikimedia.org` — no binaries stored in SQLite, so the DB grows only
+a few KB per photo). Two enrichment rounds were applied:
+
+- **Round 1** (`6a18bd0`): 72 covers for temples, peaks, lakes, rivers,
+  gompas, cities, waterfalls, pilgrimage sites.
+- **Round 2** (this change): 72 covers for **viewpoints, stupas/gompas,
+  festivals (Chhath), tea/coffee/apple farms, adventure sports (bungee,
+  rafting, paragliding, canyoning), heritage (forts, palaces, highways) and
+  temples** — e.g. Kusma Bungee, Last Resort Bungee, Trishuli/Seti/Sun
+  Koshi rafting, Jhapa Tea Gardens, Pikey Peak, Chukhung Ri, Larke La,
+  Dho Tarap, Makwanpur Gadhi, Sindhuli Gadhi, Lo Manthang Royal Palace,
+  Tilaurakot, Araniko/BP/Prithvi/Siddhartha/Pasang Lhamu/Mahendra highways,
+  Ambikeshwori, Badimalika, Barahachhetra, Bhairabsthan, Padukasthan,
+  Siddha Gufa, Swargadwari, Halesi, Thubchen Gompa, Jampa Gompa,
+  Chhairo Gompa, Chhoser Jhong Cave Gompa and more.
+
+Rules that keep this safe and reproducible:
+
+1. **Every destination keeps exactly 1 cover** — the old SVG postcard cover
+   is demoted to `is_cover=0` (kept as gallery) and the new verified photo
+   becomes the cover. `dests>1 cover = 0` is asserted after every run.
+2. Filenames are validated against the junk filters in
+   `scripts/enrich_verified_photos.py` (maps, logos, `.svg/.gif/.pdf`, crash/
+   war/party photos, generic "Himalayas" shots …) and matched by name tokens
+   to the destination.
+3. Photo metadata (photographer, license, source URL) is stored per row;
+   the API serves `attribution` so credit is always shown.
+4. The manifest `Tourism/tourist/verified_wikimedia_photos.json` is rebuilt
+   from the DB (`scripts/rebuild_manifest.py`, no network needed) and drives
+   the frontend cover resolution in `photo_catalog.py`.
+
+Remaining SVG postcards are mostly hotels/guest-houses, tiny OSM viewpoint
+nodes and obscure villages with genuinely no public photo — the deterministic
+postcard system covers those so no card is ever blank.
+
+## 11. Keeping the GitHub repo small (clone size)
+
+The repo intentionally stays under ~50 MB of tracked data at HEAD:
+
+- `Tourism/db.sqlite3` (~45 MB) is the single committed database — it is
+  under GitHub's 100 MB/file limit, and photo rows are metadata only.
+- `downloads/` keeps **only** the compressed snapshot
+  `nepal-tourism-database.sqlite3.gz` (~4.4 MB). The uncompressed duplicate,
+  the images zip and the full-project zip are git-ignored and regenerable
+  (`downloads/README.txt` shows the exact commands).
+- The 100k+ photo dataset lives in `image-server/images/`, which is
+  git-ignored by design (section 8) — never commit binaries there.
+- Old copies remain in git history (that's why `.git` is larger than the
+  working tree); if you want a fully slim clone, rewrite history with
+  `git filter-repo` and force-push — do this only when you're ready to
+  invalidate existing clones.
