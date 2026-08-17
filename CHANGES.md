@@ -419,3 +419,35 @@ with **2 real photos** (verified pool; manifest now 7,788 entries × 2):
   Bazaar, Khamlalung, Pattek Danda, Hyatrung Jharana.
 - DB: 7,788 destinations, 15,597 verified real image rows, 1 cover each,
   integrity ok; manifest 7,788 × 2; 60 tests pass; frontend builds clean.
+
+---
+
+## 🛕 Round 14: Madhesh Province — 63 famous places added (7,851 dests)
+
+Added the named attractions from the detailed Madhesh ward-level district data
+(Saptari, Dhanusha, Mahottari, Sarlahi, Rautahat, Bara, Parsa) as real
+destinations with correct categories + coordinates, each with **2 real photos**
+(verified pool; manifest now 7,851 entries × 2):
+
+- **Saptari**: Chandra Nahar (historic first irrigation canal), Ankuri Mahadev
+  Temple, Rupani Devi Temple, Dina-Bhadri Baba, Shani Dev Temple, Khaki Baba,
+  Seta Devi Temple, Bhediya Children's Park, Bisnariya Daha, Musharniya Daha.
+- **Dhanusha**: Vivah Mandap, Ganga Sagar Pond, Dhanusha Sagar Pond, Parshuram
+  Kunda, Mithila Bihari Mandir, Janak Temple, Rangabhoomi, Dulha-Dulhan Mandir,
+  Parshuram Talau.
+- **Mahottari**: Matihani Math, Rauja Mazaar (Islamic heritage).
+- **Sarlahi**: Nunthar Pahad (hill viewpoint), Nadiman Lake (Yaksha Kunda),
+  Sagaranatha Temple, Chaturbhuj Eshwara, Sarlahi Devi, Durga Devi, Lalbandi
+  Tomato Region, Malangwa Baba, Buddha Park Malangwa, Karmaihiya.
+- **Rautahat**: Paurai Brahmasthal, Shivnagar Shiva Temple, Nazarpur Krishna
+  Temple, Matsari Durga Temple, Mardhar Simsar Wetland, Barahwa Wetland,
+  Junge Jharana (waterfall), Purenawa Palace, Pataura Historical Temple,
+  Shahid Smriti Park, Tileshwor Park.
+- **Bara**: Kankali Temple Simraungadh, Raniwas Temple, Deutal Pond,
+  Hariharpur Pillar, Baba Parasnath, Kamaleshwarnath Mahadev, Simraungadh
+  Kotwali, Amlekhganj, Pathlaiya, Jitpur, Simara Airport.
+- **Parsa**: Birgunj Ghantaghar, Ghadiarwa Pokhari, Gahawa Mai Temple,
+  Maisthan Temple, Thori, Kailash Bhata, Parsagadhi Temple, Koilabhar Temple,
+  Bahudarmai Temple, Pokhariya, Jagarnathpur, Adhabar.
+- DB: 7,851 destinations, 15,723 verified real image rows, 1 cover each,
+  integrity ok; manifest 7,851 × 2; 60 tests pass; frontend builds clean.
