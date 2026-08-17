@@ -629,3 +629,68 @@ Devghat relocated to Chitwan, Kasara Chitwan got district/province.
 DB: **8,177 destinations**, 20,675 verified real image rows, 0 dests >1
 cover, 0 dests <2 photos, integrity ok; manifest 8,177 × 2; download .gz
 refreshed; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏔️ Round 18: Karnali Province — 143 famous places added (8,319 dests)
+
+Added the named famous places (★ documented attractions) from the Karnali
+ward-by-ward district data (Surkhet, Dailekh, Jajarkot, Salyan, Rukum West,
+Kalikot, Jumla, Mugu, Dolpa, Humla). 19 names already existed and were
+skipped (Rara Lake, Kakrebihar, Bulbule Lake, Deuti Bajai Temple, Kupinde
+Lake, Syarpu Lake, Chandannath Temple, Simikot, Sinja Valley, Dunai, ...).
+
+Highlights by district:
+
+- **Surkhet (35)**: Ghantaghar, Province Museum, Sahid Park, Latikoili Shiva
+  Temple, Mangalgadhi, Bayalkanda Gadhi, Chamere Gufa, Baraha Tal (largest
+  lake of Surkhet), Jajura Daha, Panchatale Gufa, Kundilini Gufa,
+  Chhapre Lekha, Raji Museum, Bheri-Karnali confluence, Malarani Gufa,
+  Khatang, Gumi Chuli, Ramrikanda Daha, Dhage Chari Jharana, Bhote Chuli,
+  Buruse Forest + Jharana, Malika Than, Bhotedarbar, Sattale Gufa,
+  Kotko Thumko, Koteshwar Temple, Ranipakha Cave, Rajkanda Darbar,
+  Lapu Village (Deuti Bajai's birthplace), Chhinchu Bazaar...
+- **Dailekh (30)**: Panchakoshi Dham + Nabhisthan + Dhuleshwar + Paduka,
+  Bhurti Temple Complex (22 devals, UNESCO tentative), Kotgadhi, Kotila,
+  Belaspur, Kritideval, Bagmani, Raili Tripani, Pallo Kalimati, Mahabu Lek,
+  Rani Jharana, Dwari Khola Waterfall, Giddha Nuhane Tal, Nau Mul,
+  Basudhara, Shivatal, Gauni Dobilla, Akhanda Jwala (natural gas flames),
+  Dungel Temple, Ranimatta-Guranshe Trail, Kotafara, Chupra Confluence,
+  Dhaukhani + Madantal Caves, Badapokhara, Tiyadi Temple.
+- **Jajarkot (11)**: Jajarkot Durbar, Jagatipur Darbar ruins, Kalika Temple,
+  Chyortens of Jajarkot, Kalegaun Shivalaya, Suyada Malika, Chhatryal Deval,
+  Gurshe Khola, Kusemuse, Barekot Heritage Trail (12-kot circuit),
+  Shivalaya Jajarkot.
+- **Salyan (3)**: Kupinde Lake (already existed), Chhayakshetra Temple,
+  Shankh Park.
+- **Rukum West (6)**: Syarpu Lake (existed), Chitripatan Lake, Sattale Cave,
+  Masta Mahankal Temple, Thuli Bheri River, Chaurjahari Valley.
+- **Kalikot (19)**: Pachaljharana Waterfall (381 m; wrong-district duplicate
+  in Jajarkot deleted), Manma, Kot Durbar, Chuli Malika, Puja Malika,
+  Pancha Deval, Tiseli + Tila Gufas, Pili War Tourism Area, Raskot Durbar,
+  Deura Malika, Thigelni Temple, Dademasta Temple, Bayal Jharna,
+  Yengeli Chour, Mastadevi Temple, Mahawai Lekh, Bobka Than, Triveni Jyuli.
+- **Jumla (22)**: Bhairavnath Temple, Duddul Stupa, Khalanga Bazaar,
+  Birat Durbar, Sinjapati Durbar, Narakot, Kanakasundari Temple,
+  Tatopani Hot Spring, Guru Phokto, Budbudi Dham, Patarasi Peak,
+  Chhum Jyulo, Guthichaur, Chimra Malika, Akashe Taal, Pandav Gufa,
+  Rupichhada Waterfall, Kedarnath + Pugjhulaina (Hima), Tila River,
+  Jumla Apple Country.
+- **Mugu (13)**: Rara National Park, Chuchemara Peak (4,097 m), Ruma Kand,
+  Malika Kand, Chhayanath Dham, Danda Bhumya Temple, Bhadali Park,
+  Talcha Mahadev, Khesma Malika, Dolphi Copper Mine, Mugu Karnali River,
+  Gamgadhi.
+- **Dolpa (14)**: Phoksundo Lake, Shey Phoksundo National Park,
+  Ringmo Village, Shey Gompa, Kanjiroba Himal, Dho-Tarap, Chharka Village,
+  Tinje Valley, Saldang Village, Jagadulla Lake, Rakshas Tal,
+  Suligad Waterfall, Tripura Sundari Temple.
+- **Humla (10)**: Limi Valley, Halji Village + Rinchenling Monastery,
+  Til + Jang Villages, Kharpunath Temple, Hilsa (fixed H umla typo),
+  Humla Karnali River, Raling Gompa, Muchu.
+
+Duplicates removed: 'Waterfall at Pachal' (wrong Jajarkot tag), Hilsa dup,
+Thuli Bheri River dup (kept the Rukum West rafting entry).
+
+DB: **8,319 destinations**, 20,958 verified real image rows, 0 dests >1
+cover, 0 dests <2 photos, integrity ok; manifest 8,319 × 2; Karnali 342 →
+484 dests; download .gz refreshed; 60 tests pass; frontend builds clean.
