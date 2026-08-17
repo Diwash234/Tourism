@@ -255,3 +255,25 @@ row. `source_platform`/`license_type`/`photographer` are exposed by the API.
 variant rows (5 per destination) were deleted — every destination keeps its
 cover (real photo or the single deterministic postcard), and gallery
 fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
+
+## 13. Round 4 — Karnali & Sudurpashchim real photos + search autocorrect
+
+- **12 more real covers** for the far-west provinces the user reported as
+  missing: **Rara Lake & National Park** (3 destinations — including two that
+  previously had *no cover row at all*), **Shuklaphanta National Park** ×2,
+  **Kanjiroba Himal**, **Karnali River** (Humla Karnali Valley, Karnali
+  Corridor/Hilsa Road, Karnali Highway), **Krishnasar Conservation Area**
+  (blackbucks), **Dho Tarap** village and **Bhimdatta (Mahendranagar)**.
+  Real covers now **2,963** (2,925 Commons + 38 Openverse/Flickr/WordPress).
+- **Remaining gap report** (7,517 destinations): 2,963 real covers, 274
+  curated AI landmark covers, 3,631 SVG postcards (≈2,900 are hotels/guest
+  houses with no public photo anywhere), 649 destinations with no cover row
+  (168 are non-hotel — mostly tiny OSM nodes).
+- **Search suggestions + autocorrect**: `GET /api/v1/destinations/autocomplete/`
+  now returns `{query, did_you_mean, results}` — fuzzy `did_you_mean` is
+  computed from the real destination names (difflib, prefix+ratio guards so
+  "katmandu"→"Kathmandu" works but garbage never corrects to unrelated
+  villages). `?letter=A..Z` returns names starting with that letter.
+  `DestinationFilter` gained `letter`/`starts_with` so `/destinations?letter=M`
+  filters server-side across all pages. Frontend: Landing search bar and the
+  Destinations explorer show suggestion dropdowns + "Did you mean" rows.

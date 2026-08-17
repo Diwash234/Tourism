@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
@@ -89,6 +89,16 @@ export default function Landing() {
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Search-as-you-type suggestions + did-you-mean autocorrect from the API
+  const fetchSuggestions = useCallback(async (q, signal) => {
+    try {
+      const res = await destinationApi.autocomplete(q, { type: "attraction" })
+      return res.data
+    } catch {
+      return []
+    }
+  }, [])
+
   useEffect(() => {
     destinationApi
       .getAll({ limit: 6, featured: true })
@@ -140,6 +150,7 @@ export default function Landing() {
                 placeholder="Search places, temples, treks, cities (e.g. Pokhara, Everest, Chitwan)..."
                 className="w-full text-gray-900"
                 onSearch={(val) => navigate(`/destinations?q=${encodeURIComponent(val)}`)}
+                fetchSuggestions={fetchSuggestions}
               />
             </div>
 

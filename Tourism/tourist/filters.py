@@ -48,11 +48,16 @@ class DestinationFilter(df.FilterSet):
     #: ?type=hotel       -> ONLY accommodation
     #: ?type=all         -> everything (default)
     type = df.CharFilter(method="filter_type")
+    #: ?letter=A .. Z  -> names starting with that letter (A-Z browsing)
+    letter = df.CharFilter(method="filter_letter")
+    #: ?starts_with=Poka -> names starting with this prefix (alias for letter)
+    starts_with = df.CharFilter(field_name="name", lookup_expr="istartswith")
 
     class Meta:
         model = Destination
         fields = ["category", "city", "city_english", "district", "province", "country",
-                  "min_rating", "max_entry_fee", "is_active", "featured", "type"]
+                  "min_rating", "max_entry_fee", "is_active", "featured", "type",
+                  "letter", "starts_with"]
 
     def filter_featured(self, queryset, name, value):
         """?featured=true -> highly-rated destinations, for homepage widgets."""
@@ -80,6 +85,12 @@ class DestinationFilter(df.FilterSet):
                 | Q(name__icontains="motel") | Q(name__icontains="homestay")
             )
         return queryset
+
+    def filter_letter(self, queryset, name, value):
+        v = (value or "").strip()[:1]
+        if not v or not v.isalpha():
+            return queryset
+        return queryset.filter(name__istartswith=v)
 
 
 class AlertFilter(df.FilterSet):

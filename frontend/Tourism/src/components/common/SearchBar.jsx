@@ -23,6 +23,7 @@ const SearchBar = ({
   const [query, setQuery] = useState(defaultValue)
   const [geocodedResult, setGeocodedResult] = useState(null)
   const [suggestions, setSuggestions] = useState([])
+  const [didYouMean, setDidYouMean] = useState(null)
   const [isOpen, setIsOpen] = useState(false)
   const [loadingSug, setLoadingSug] = useState(false)
   const containerRef = useRef(null)
@@ -46,8 +47,16 @@ const SearchBar = ({
       const ctrl = new AbortController()
       abortRef.current = ctrl
       try {
-        const results = await fetchSuggestions(q.trim(), ctrl.signal)
-        if (!ctrl.signal.aborted) setSuggestions(results || [])
+        const res = await fetchSuggestions(q.trim(), ctrl.signal)
+        if (ctrl.signal.aborted) return
+        // Support both array responses and { results, did_you_mean } envelopes
+        if (Array.isArray(res)) {
+          setSuggestions(res || [])
+          setDidYouMean(null)
+        } else {
+          setSuggestions(res?.results || [])
+          setDidYouMean(res?.did_you_mean || null)
+        }
       } catch {
         if (!ctrl.signal.aborted) setSuggestions([])
       } finally {
@@ -69,7 +78,9 @@ const SearchBar = ({
       loadSuggestions(q)
     } else {
       setSuggestions([])
+      setDidYouMean(null)
     }
+    if (!q) setDidYouMean(null)
     setIsOpen(q.length >= 1)
   }, [query, fetchSuggestions, loadSuggestions])
 
@@ -113,7 +124,7 @@ const SearchBar = ({
     else navigate(`/destinations?q=${encodeURIComponent(place.correctedName)}`)
   }
 
-  const hasDropdown = isOpen && (suggestions.length > 0 || geocodedResult || loadingSug)
+  const hasDropdown = isOpen && (suggestions.length > 0 || didYouMean || geocodedResult || loadingSug)
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
@@ -162,6 +173,32 @@ const SearchBar = ({
             className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border shadow-2xl p-3 z-50 text-left space-y-2 max-h-96 overflow-y-auto"
             style={{ borderColor: "rgba(31,107,77,0.2)", boxShadow: "0 20px 50px -12px rgba(31,51,41,0.25)" }}
           >
+            {/* Did-you-mean autocorrect (from real destination names) */}
+            {didYouMean && (
+              <div>
+                <div className="flex items-center gap-2 px-1 pb-1 mb-1 border-b border-gray-100">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ background: `${GOLD}25`, color: "#7a5a10" }}>
+                    ✨ Did you mean
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSelectSuggestion(didYouMean)}
+                  className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-[#1f6b4d]/5 transition-all text-left group"
+                >
+                  <span className="text-lg">💡</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="text-sm font-black" style={{ color: INK }}>{didYouMean.name}</span>
+                    <span className="block text-[11px] text-gray-500">
+                      {didYouMean.category ? `${didYouMean.category} · ` : ""}autocorrected from “{query.trim()}”
+                    </span>
+                  </span>
+                  <FiArrowRight className="text-gray-300 group-hover:text-[#c2603a] transition-colors shrink-0" size={16} />
+                </button>
+              </div>
+            )}
+
             {/* Destination name suggestions */}
             {suggestions.length > 0 && (
               <div>

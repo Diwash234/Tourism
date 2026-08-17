@@ -35,11 +35,13 @@ so the DB grows only a few KB per thousand photos.
 CURRENT SNAPSHOT
 ----------------
 - 7,517 destinations
-- 2,951 verified real cover photos from Wikimedia Commons, Flickr and
+- 2,963 verified real cover photos from Wikimedia Commons, Flickr and
   WordPress.org (temples, stupas,
   mountains, lakes, rivers, waterfalls, festivals, heritage, tea/coffee,
   adventure, viewpoints …) + 274 curated AI landmark photos
-- SVG postcards only for places that have no public photo yet
+- SVG postcards only for places that have no public photo yet (mostly hotels)
+- Search autocorrect: typing "katmandu" suggests "Kathmandu" (did-you-mean), and
+  the A-Z bar filters destinations by first letter across all 7,517 places
 - Every destination has exactly 1 cover image
 
 
@@ -56,7 +58,7 @@ After starting the site (./run.sh), log in at:
 
 IMAGE SYSTEM
 ------------
-1. VERIFIED REAL PHOTOS (2,951): every approved cover carries a real
+1. VERIFIED REAL PHOTOS (2,963): every approved cover carries a real
    photo URL hotlinked from its platform (upload.wikimedia.org,
    live.staticflickr.com, pd.w.org) with photographer + license attribution
    stored in the DB and served by the API.

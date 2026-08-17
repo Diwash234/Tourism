@@ -139,3 +139,15 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
 - Manifest rebuilt to **2,951** entries (wikimedia + openverse) via `scripts/rebuild_manifest.py`; `photo_catalog._verified_photo` now returns the real source platform.
 - Reproducible mapping: `scripts/round3_verified_photos.tsv` + `scripts/apply_round3_photos.py`.
 - Docs updated: `docs/IMAGE_SERVER.md` §12, `downloads/README.txt`.
+
+---
+
+## 🗺️ Round 4: Karnali/Sudurpashchim real photos + Search autocorrect (A–Z + Did-you-mean)
+
+- **12 real covers for the far-west provinces**: Rara Lake & National Park ×3 (2 of them had NO cover row at all — the reason the user saw no Karnali images), Shuklaphanta National Park ×2, Kanjiroba Himal, Karnali River ×3 (Humla Karnali Valley, Karnali Corridor/Hilsa Road, Karnali Highway), Krishnasar Conservation Area, Dho Tarap, Bhimdatta (Mahendranagar). Real covers now **2,963**.
+- **Search now autocorrects and suggests from the real data**:
+  - `/api/v1/destinations/autocomplete/?q=katmandu` → `did_you_mean: Kathmandu` (fuzzy match against all 7,517 real names; guards prevent junk corrections like "safary"→"Sakfara").
+  - `?letter=A..Z` → alphabetically-sorted place suggestions per letter; `/destinations?letter=M` filters server-side across all pages (was broken: filtered only the current page).
+  - Landing page search bar + Destinations explorer now show live suggestion dropdowns with a "✨ Did you mean" row.
+- **Gap report**: 7,517 dests → 2,963 real + 274 AI-landmark + 3,631 SVG (mostly hotels) + 649 no-cover (168 non-hotel). Remaining real-photo candidates are obscure OSM nodes with zero public photos.
+- DB still 15 MB; snapshot 2.0 MB; manifest rebuilt to **2,963**; 60 tests pass; frontend builds clean.

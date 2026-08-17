@@ -764,9 +764,21 @@ class TravelRiskFeedbackViewSet(viewsets.ModelViewSet):
 class DestinationAutocompleteView(generics.ListAPIView):
     """
     GET /api/v1/destinations/autocomplete/?q=ann&type=attraction&limit=10
-    Lightweight name/id/cover suggestions for search-as-you-type dropdowns.
-    Returns at most `limit` alphabetically-sorted matches, excluding
-    accommodation by default (pass type=hotel or type=all to override).
+    GET /api/v1/destinations/autocomplete/?letter=A&limit=20
+
+    Search-as-you-type suggestions for the dropdown. Returns:
+      {
+        "query": "katmandu",
+        "letter": "",
+        "did_you_mean": {"name": "Kathmandu", "slug": "kathmandu", "category": "cities"} | null,
+        "results": [ ...DestinationListSerializer... ]
+      }
+    When the typed query matches almost nothing, `did_you_mean` carries the
+    closest real destination name from the DB (fuzzy autocorrect), so a
+    typo like "pashupatinat" or "katmandu" still finds the right place.
+    `letter=A..Z` returns alphabetically-sorted names starting with that
+    letter (A-Z browsing). Accommodation is excluded by default (pass
+    type=hotel or type=all to override).
     """
     permission_classes = [permissions.AllowAny]
     serializer_class = DestinationListSerializer
@@ -778,9 +790,8 @@ class DestinationAutocompleteView(generics.ListAPIView):
             NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
         )
         q = (self.request.query_params.get("q") or "").strip()
+        letter = (self.request.query_params.get("letter") or "").strip()[:1].upper()
         type_v = (self.request.query_params.get("type") or "attraction").lower().strip()
-        limit = int(self.request.query_params.get("limit") or 10)
-        limit = max(1, min(limit, 50))
 
         qs = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED,
@@ -806,7 +817,74 @@ class DestinationAutocompleteView(generics.ListAPIView):
                 | Q(city__icontains=q)
                 | Q(district__icontains=q)
             )
-        return qs.order_by("name")[:limit]
+        if letter and letter.isalpha():
+            qs = qs.filter(name__istartswith=letter)
+        return qs.order_by("name")
+
+    def list(self, request, *args, **kwargs):
+        qs = self.filter_queryset(self.get_queryset())
+        q = (request.query_params.get("q") or "").strip()
+        letter = (request.query_params.get("letter") or "").strip()[:1].upper()
+        limit = int(request.query_params.get("limit") or 10)
+        limit = max(1, min(limit, 50))
+
+        results = list(qs[:limit])
+        did_you_mean = self._autocorrect(q, results) if q and len(results) < 3 and len(q) >= 3 else None
+        data = self.get_serializer(results, many=True).data
+        return Response({
+            "query": q,
+            "letter": letter if letter.isalpha() else "",
+            "did_you_mean": did_you_mean,
+            "results": data,
+        })
+
+    @staticmethod
+    def _name_index():
+        """(name_lower, name, slug, category_slug) for every approved destination."""
+        from functools import lru_cache
+
+        @lru_cache(maxsize=1)
+        def build():
+            return [
+                (d.name.lower(), d.name, d.slug, d.category.slug if d.category_id else "")
+                for d in Destination.objects.filter(
+                    is_active=True, status=Destination.SubmissionStatus.APPROVED,
+                ).select_related("category")
+            ]
+        return build()
+
+    def _autocorrect(self, q, results):
+        """Fuzzy 'did you mean' correction against real destination names."""
+        import difflib
+
+        from .filters import ACCOMMODATION_SLUGS
+        index = self._name_index()
+        norm = q.strip().lower()
+
+        def good(cand):
+            # must be a close match AND share a real prefix with the typo,
+            # so "safary" never gets corrected to an unrelated "Sakfara".
+            ratio = difflib.SequenceMatcher(None, norm, cand).ratio()
+            prefix = 0
+            for a, b in zip(norm, cand):
+                if a != b:
+                    break
+                prefix += 1
+            return ratio >= 0.75 and prefix >= 3
+
+        close = [c for c in difflib.get_close_matches(norm, [row[0] for row in index], n=5, cutoff=0.68) if good(c)]
+        if not close:
+            return None
+        result_slugs = {r.slug for r in results}
+        fallback = None
+        for cand in close:
+            for name_lower, name, slug, cat_slug in index:
+                if name_lower == cand and slug not in result_slugs:
+                    if cat_slug in ACCOMMODATION_SLUGS:
+                        fallback = fallback or {"name": name, "slug": slug, "category": cat_slug}
+                        continue
+                    return {"name": name, "slug": slug, "category": cat_slug}
+        return fallback
 
 
 class HotelSearchView(generics.ListAPIView):

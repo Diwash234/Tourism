@@ -107,6 +107,7 @@ export default function DestinationList() {
   const [favoriteMap, setFavoriteMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [researching, setResearching] = useState(false)
+  const [didYouMean, setDidYouMean] = useState(null)
 
   const { position } = useGeolocation()
 
@@ -144,8 +145,8 @@ export default function DestinationList() {
       params.search = chipParams.search
     }
     if (letter) {
-      // ?search is combined with name istartswith filter — use starts-with via search
-      params.search = params.search ? `${params.search} ${letter}` : letter
+      // A-Z browsing: filter server-side by first letter (works across ALL pages)
+      params.letter = letter
     }
     if (position) {
       params.latitude = position.lat
@@ -156,14 +157,7 @@ export default function DestinationList() {
       .getAll(params)
       .then(({ data }) => {
         const results = data.results || data || []
-        // Client-side letter filter (backend search is contains-only; we need istartswith)
-        let filtered = results
-        if (letter) {
-          filtered = results.filter((d) =>
-            (d.name || "").toUpperCase().startsWith(letter.toUpperCase())
-          )
-        }
-        setDestinations(filtered)
+        setDestinations(results)
         setTotalPages(
           data.total_pages ||
           data.totalPages ||
@@ -171,6 +165,17 @@ export default function DestinationList() {
           1
         )
         setTotalCount(data.count || results.length)
+        setDidYouMean(null)
+        // Empty result + typed query -> ask the API for a did-you-mean correction
+        if (query && results.length === 0 && !letter) {
+          destinationApi
+            .autocomplete(query, { type })
+            .then((res) => {
+              const dym = res.data?.did_you_mean
+              if (dym) setDidYouMean(dym)
+            })
+            .catch(() => {})
+        }
       })
       .catch(() => {
         setDestinations([])
@@ -425,6 +430,28 @@ export default function DestinationList() {
               <b style={{ color: TERRACOTTA }}>"{query || letter || "this destination"}"</b>?
             </p>
           </div>
+
+          {/* Did-you-mean autocorrect from the real destination names */}
+          {didYouMean && (
+            <div className="rounded-2xl border p-4 text-left"
+                 style={{ borderColor: `${GOLD}55`, background: `${GOLD}12` }}>
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#7a5a10] mb-1">
+                ✨ Did you mean
+              </div>
+              <button
+                onClick={() => { setQuery(didYouMean.name); setDidYouMean(null); setPage(1) }}
+                className="w-full flex items-center justify-between gap-3 text-left group"
+              >
+                <span className="font-black text-lg" style={{ color: INK }}>
+                  💡 {didYouMean.name}
+                </span>
+                <span className="text-xs font-bold px-3 py-1.5 rounded-xl text-white shadow group-hover:scale-105 transition-all"
+                      style={{ background: TERRACOTTA }}>
+                  Search instead →
+                </span>
+              </button>
+            </div>
+          )}
 
           <button
             onClick={handleResearchQuery}
