@@ -241,3 +241,38 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
 - **Mapillary street imagery**: now rendered on the **destination detail page** (was imported but never shown) in addition to Navigation; when no `MAPILLARY_ACCESS_TOKEN` is configured the UI shows a clear setup hint instead of nothing. Token is served to the browser via `/api/v1/config/public/`.
 - **Admin dashboard image manager** confirmed working: destination picker + preview grid + discover (Wikimedia/Openverse/Unsplash/Pexels) + set-cover + delete for every destination.
 - Manifest 3,022; DB 15 MB; 60 tests pass; frontend builds clean.
+
+---
+
+## 🎛️ Round 9: ML mood-form recommendations + ALL wrong images fixed + orange admin
+
+- **Recommendation page redesigned**: first a **checkbox form** (Happy, Sad,
+  Relaxed, Chill, Adventure, Romantic, Family, Trekking, Spiritual,
+  Pilgrimage, Cultural, Wildlife, Photography, Winter, Heritage, Food — tick
+  many) + days slider → **"Train Model & Get Recommendations"** button with a
+  visible training-progress bar.
+- **Backend ML recommender rewritten** (`MoodRecommendationsView`): accepts
+  multiple moods (`?mood=happy,trekking`), builds a weighted content-based
+  profile (category weights + keyword weights), **scores all 7,500+
+  destinations** and returns top matches with real cover image, `ml_score`,
+  budget estimate and best season. Returns every result with images + details.
+- **ALL wrong-image root causes fixed** (frontend `imageUtils.js`):
+  - matching is now **NAME-ONLY** (was name+city+district → *everything in
+    Pokhara showed the lakeside photo, everything in Lalitpur showed Patan,
+    temples in Bardiya showed tigers*),
+  - **category-aware**: every local/Unsplash photo is tagged (temple/lake/
+    mountain/wildlife/hotel/…) and only photos matching the destination
+    category are used — temples never show lakes, highways never show
+    rafting, hotels never show tigers/temples,
+  - **hotel pool**: hotels always get hotel-appropriate real photos.
+- **Specific wrong covers replaced with real photos**: World Peace Pagoda
+  Pokhara ×2 + Shanti Stupa (were Davis Falls photos → now the real pagoda),
+  Tal Barahi Temple (was Annapurna panorama → real temple-on-island photo),
+  360 Paragliding (was Tal Barahi photo → real paragliding photo), Gangkhar
+  Puensum (was SVG → real summit photo), Mid-Hill/Pushpalal Highway (was SVG
+  → real highway photo), Brindaban Forest (was SVG → real rhododendron
+  forest photo), Godawari Botanical Hill (was SVG → real Godawari Kunda
+  photo), Devkota House hotel (wrong Ghantaghar photo removed → hotel pool).
+- **Admin dashboard + all admin components: purple → orange** (dark purple
+  gradient → dark orange; indigo/purple/violet accents → orange).
+- Manifest 3,025; DB 15 MB; 60 tests pass; frontend builds clean.

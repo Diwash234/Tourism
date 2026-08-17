@@ -270,17 +270,130 @@ const EXTRA_LOCAL_PHOTOS = {
 
 Object.assign(LOCAL_NEPAL_PHOTOS, EXTRA_LOCAL_PHOTOS)
 
-const lookupLocalNepal = (name) => {
+// ---------------------------------------------------------------------------
+// SEMANTIC PHOTO TYPES — every local landmark photo is tagged so we never
+// show a lake photo on a temple, a tiger photo on a temple, a rafting photo
+// on a highway, etc. Matching is NAME-ONLY (never city/district), so Pokhara
+// destinations no longer all show the same lakeside image and Lalitpur
+// places no longer all show the Patan photo.
+// ---------------------------------------------------------------------------
+const LOCAL_PHOTO_TYPES = {
+  "/images/destinations/nagarkot/sunrise-view.jpg": "viewpoint",
+  "/images/destinations/pokhara/fewatal.jpg": "lake",
+  "/images/destinations/everest/base-camp.jpg": "mountain",
+  "/images/destinations/kathmandu/durbar-square.jpg": "heritage",
+  "/images/destinations/pashupatinath/main-temple.jpg": "temple",
+  "/images/destinations/boudhanath/stupa.jpg": "buddhist",
+  "/images/destinations/swayambhunath/stupa.jpg": "buddhist",
+  "/images/destinations/dharahara/tower.jpg": "city",
+  "/images/destinations/bhaktapur/durbar.jpg": "heritage",
+  "/images/destinations/patan/durbar-square.jpg": "heritage",
+  "/images/destinations/chitwan/safari.jpg": "wildlife",
+  "/images/destinations/lumbini/garden.jpg": "buddhist",
+  "/images/destinations/annapurna/trek.jpg": "mountain",
+  "/images/destinations/ghandruk/village.jpg": "village",
+  "/images/destinations/sarangkot/view.jpg": "viewpoint",
+  "/images/destinations/mustang/lo-manthang.jpg": "heritage",
+  "/images/destinations/muktinath/temple.jpg": "temple",
+  "/images/destinations/ilam/tea-gardens.jpg": "farm",
+  "/images/destinations/kanyam/tea-garden.jpg": "farm",
+  "/images/destinations/janakpur/janaki-mandir.jpg": "temple",
+  "/images/destinations/bandipur/hilltop-village.jpg": "village",
+  "/images/destinations/gorkha/durbar.jpg": "heritage",
+  "/images/destinations/dhulikhel/town.jpg": "city",
+  "/images/destinations/rani-mahal/palace.jpg": "heritage",
+  "/images/destinations/bardiya/tiger-reserve.jpg": "wildlife",
+  "/images/destinations/dolpo/highland-village.jpg": "village",
+  "/images/destinations/phoksundo/lake.jpg": "lake",
+  "/images/destinations/gosaikunda/glacial-lake.jpg": "lake",
+  "/images/destinations/langtang/valley.jpg": "mountain",
+  "/images/destinations/koshi-tappu/wetlands.jpg": "wildlife",
+  "/images/destinations/manaslu/mountain-peak.jpg": "mountain",
+  "/images/destinations/rara/alpine-lake.jpg": "lake",
+  "/images/destinations/tilicho/himalayan-lake.jpg": "lake",
+  "/images/destinations/dhaulagiri/peak.jpg": "mountain",
+  "/images/destinations/kanchenjunga/peak.jpg": "mountain",
+  "/images/destinations/bhote-koshi/rafting.jpg": "adventure",
+  "/images/destinations/chandragiri/view.jpg": "viewpoint",
+  "/images/destinations/manakamana/temple.jpg": "temple",
+  "/images/destinations/mahendra-cave/interior.jpg": "cave",
+  "/images/destinations/davis-falls/waterfall.jpg": "waterfall",
+  "/images/destinations/khaptad/landscape.jpg": "mountain",
+  "/images/destinations/pathibhara/temple.jpg": "temple",
+}
+
+// Destination category -> acceptable photo types (preferred first).
+const CATEGORY_TYPES = {
+  temple: ["temple", "buddhist", "heritage"],
+  pilgrimage: ["temple", "buddhist", "heritage"],
+  religious: ["temple", "buddhist", "heritage"],
+  "buddhist-sites": ["buddhist", "temple", "heritage"],
+  lakes: ["lake"],
+  rivers: ["waterfall", "lake", "adventure"],
+  waterfalls: ["waterfall"],
+  caves: ["cave"],
+  mountains: ["mountain"],
+  peaks: ["mountain"],
+  viewpoint: ["viewpoint", "mountain"],
+  viewpoints: ["viewpoint", "mountain"],
+  hills: ["viewpoint", "mountain"],
+  valleys: ["mountain", "viewpoint"],
+  wildlife: ["wildlife"],
+  "national parks": ["wildlife"],
+  "bird-watching": ["wildlife"],
+  forests: ["mountain", "wildlife"],
+  villages: ["village"],
+  cities: ["city", "heritage"],
+  heritage: ["heritage", "city"],
+  museums: ["heritage"],
+  trekking: ["mountain", "adventure", "viewpoint"],
+  adventure: ["adventure", "mountain"],
+  "air-sports": ["adventure", "viewpoint"],
+  "water-sports": ["adventure", "waterfall", "lake"],
+  "hot-springs": ["waterfall", "lake"],
+  "tea-coffee": ["farm"],
+  winter: ["mountain"],
+  "scenic-routes": ["viewpoint", "mountain"],
+  "eco-tourism": ["village", "mountain"],
+  hotel: ["hotel"],
+  "guest_house": ["hotel"],
+  hostel: ["hotel"],
+  resort: ["hotel"],
+  homestay: ["hotel"],
+  "home_stay": ["hotel"],
+  motel: ["hotel"],
+  apartment: ["hotel"],
+  "camp_site": ["mountain", "wildlife"],
+  chalet: ["hotel"],
+  "alpine_hut": ["hotel", "mountain"],
+  "wilderness_hut": ["hotel", "mountain"],
+  food: ["heritage", "city"],
+  "food-culinary": ["heritage", "city"],
+  shopping: ["heritage", "city"],
+  festivals: ["heritage", "city"],
+  "parks-gardens": ["viewpoint", "heritage"],
+  "natural-wonders": ["mountain", "lake", "viewpoint"],
+}
+
+const normalizeName = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ")
+
+const lookupLocalNepal = (name, categoryType) => {
   if (!name) return null
-  const n = String(name).toLowerCase().trim()
+  const n = normalizeName(name)
+  // 1. Exact full-name match always wins (e.g. "Pokhara", "Phewa Lake")
   if (LOCAL_NEPAL_PHOTOS[n]) return LOCAL_NEPAL_PHOTOS[n]
-  // Longest-key substring match (more specific names first)
+  // 2. Longest-key substring match — NAME ONLY — respecting photo type.
+  const allowed = CATEGORY_TYPES[categoryType] || null
   let best = null
   let bestLen = 0
   for (const key of Object.keys(LOCAL_NEPAL_PHOTOS)) {
     if (n.includes(key) && key.length > bestLen) {
-      best = LOCAL_NEPAL_PHOTOS[key]
-      bestLen = key.length
+      const path = LOCAL_NEPAL_PHOTOS[key]
+      const ptype = LOCAL_PHOTO_TYPES[path] || "any"
+      if (!allowed || allowed.includes(ptype) || ptype === "any") {
+        best = path
+        bestLen = key.length
+      }
     }
   }
   return best
@@ -357,66 +470,87 @@ const isUsable = (url) => {
 // ---------------------------------------------------------------------------
 // Multi-source fallback pool (Unsplash + local landmarks)
 // ---------------------------------------------------------------------------
-// Real landscape photos from Unsplash (kept as a fallback tier — if a real
-// verified photo or a local landmark photo is missing, these fill the gap).
 const UNSPLASH_POOL = [
-  "photo-1506905925346-21bda4d32df4",
-  "photo-1464822759023-fed622ff2c3b",
-  "photo-1506744038136-46273834b3fb",
-  "photo-1544735716-392fe2489ffa",
-  "photo-1470071459604-3b5ec3a7fe05",
-  "photo-1501785888041-af3ef285b470",
-  "photo-1441974231531-c6227db76b6e",
-  "photo-1476514525535-07fb3b4ae5f1",
-  "photo-1507525428034-b723cf961d3e",
-  "photo-1519681393784-d120267933ba",
-  "photo-1502786129293-79981df4e689",
-  "photo-1486870591958-9b9d0d1dda99",
-  "photo-1526778548025-fa2f459cd5c1",
-  "photo-1565008447742-97f6f38c985c",
-  "photo-1575550959106-5a7defe28b56",
-  "photo-1605649487212-47bdab064df7",
-  "photo-1609766428351-8e1a5c4e8e8a",
-  "photo-1605640840605-14ac1855827b",
-  "photo-1546484475-7f7bd55792da",
-  "photo-1558981359-219d6364c9c8",
-  "photo-1589308078056-3eb0e4a3a5c5",
-  "photo-1589308078058-c6dba4792c60",
-  "photo-1439066615861-d1af74d74000",
-  "photo-1454496522488-7a8e488e8606",
-  "photo-1470770841072-f978cf4d019e",
-  "photo-1483728642387-6c3bdd6c93e5",
-  "photo-1500534623283-312aade485b7",
-  "photo-1518002171953-a080ee817e1f",
-  "photo-1518709594023-6eab9bab7b23",
-  "photo-1524492412937-b28074a5d7da",
-  "photo-1544198365-f5d60b6d8190",
-  "photo-1544967082-d9d25d867d66",
-  "photo-1546182990-dffeafbe841d",
-  "photo-1548013146-72479768bada",
-  "photo-1549366021-9f761d450615",
-  "photo-1568322445389-f64ac2515020",
-  "photo-1570192977-f48187449e48",
-  "photo-1571401835393-8c5f35328320",
-  "photo-1571847140471-1d7766e825ea",
-  "photo-1572953107300-18597face4ba",
-  "photo-1582650625119-3a31f8418b7d",
-  "photo-1583212292454-1fe6229603b7",
-  "photo-1585511582812-88478e0a2705",
-  "photo-1590766940554-153d9e0b2eff",
-  "photo-1602088113235-229c19758e9c",
-  "photo-1626621331169-5f34be280ed9",
+  "photo-1506905925346-21bda4d32df4", "photo-1464822759023-fed622ff2c3b",
+  "photo-1506744038136-46273834b3fb", "photo-1544735716-392fe2489ffa",
+  "photo-1470071459604-3b5ec3a7fe05", "photo-1501785888041-af3ef285b470",
+  "photo-1441974231531-c6227db76b6e", "photo-1476514525535-07fb3b4ae5f1",
+  "photo-1507525428034-b723cf961d3e", "photo-1519681393784-d120267933ba",
+  "photo-1502786129293-79981df4e689", "photo-1486870591958-9b9d0d1dda99",
+  "photo-1526778548025-fa2f459cd5c1", "photo-1565008447742-97f6f38c985c",
+  "photo-1575550959106-5a7defe28b56", "photo-1605649487212-47bdab064df7",
+  "photo-1609766428351-8e1a5c4e8e8a", "photo-1605640840605-14ac1855827b",
+  "photo-1546484475-7f7bd55792da", "photo-1558981359-219d6364c9c8",
+  "photo-1589308078056-3eb0e4a3a5c5", "photo-1589308078058-c6dba4792c60",
+  "photo-1439066615861-d1af74d74000", "photo-1454496522488-7a8e488e8606",
+  "photo-1470770841072-f978cf4d019e", "photo-1483728642387-6c3bdd6c93e5",
+  "photo-1500534623283-312aade485b7", "photo-1518002171953-a080ee817e1f",
+  "photo-1518709594023-6eab9bab7b23", "photo-1524492412937-b28074a5d7da",
+  "photo-1544198365-f5d60b6d8190", "photo-1544967082-d9d25d867d66",
+  "photo-1546182990-dffeafbe841d", "photo-1548013146-72479768bada",
+  "photo-1549366021-9f761d450615", "photo-1568322445389-f64ac2515020",
+  "photo-1570192977-f48187449e48", "photo-1571401835393-8c5f35328320",
+  "photo-1571847140471-1d7766e825ea", "photo-1572953107300-18597face4ba",
+  "photo-1582650625119-3a31f8418b7d", "photo-1583212292454-1fe6229603b7",
+  "photo-1585511582812-88478e0a2705", "photo-1590766940554-153d9e0b2eff",
+  "photo-1602088113235-229c19758e9c", "photo-1626621331169-5f34be280ed9",
 ].map((id) => `https://images.unsplash.com/${id}?w=1200&auto=format&fit=crop&q=80`)
 
-// Local landmark photos + Unsplash pool = one big deterministic fallback pool.
 export const FALLBACK_POOL = [...Object.values(LOCAL_NEPAL_PHOTOS), ...UNSPLASH_POOL]
 
-/** Deterministic multi-source fallback image for a seed (name/slug/id). */
-export const fallbackImageUrl = (seed) => {
+// Unsplash photos tagged by semantic type for category-aware fallbacks.
+const U = (id) => `https://images.unsplash.com/${id}?w=1200&auto=format&fit=crop&q=80`
+const UNSPLASH_TYPED = {
+  mountain: [U("photo-1464822759023-fed622ff2c3b"), U("photo-1506905925346-21bda4d32df4"), U("photo-1470071459604-3b5ec3a7fe05"), U("photo-1501785888041-af3ef285b470"), U("photo-1519681393784-d120267933ba"), U("photo-1526778548025-fa2f459cd5c1"), U("photo-1589308078056-3eb0e4a3a5c5"), U("photo-1589308078058-c6dba4792c60"), U("photo-1454496522488-7a8e488e8606"), U("photo-1544735716-392fe2489ffa"), U("photo-1558981359-219d6364c9c8")],
+  lake: [U("photo-1502786129293-79981df4e689"), U("photo-1439066615861-d1af74d74000"), U("photo-1470770841072-f978cf4d019e"), U("photo-1500534623283-312aade485b7"), U("photo-1549366021-9f761d450615"), U("photo-1476514525535-07fb3b4ae5f1"), U("photo-1507525428034-b723cf961d3e"), U("photo-1486870591958-9b9d0d1dda99")],
+  temple: [U("photo-1544967082-d9d25d867d66"), U("photo-1548013146-72479768bada"), U("photo-1568322445389-f64ac2515020"), U("photo-1570192977-f48187449e48"), U("photo-1571847140471-1d7766e825ea"), U("photo-1585511582812-88478e0a2705"), U("photo-1590766940554-153d9e0b2eff"), U("photo-1626621331169-5f34be280ed9"), U("photo-1605640840605-14ac1855827b"), U("photo-1524492412937-b28074a5d7da")],
+  heritage: [U("photo-1605649487212-47bdab064df7"), U("photo-1609766428351-8e1a5c4e8e8a"), U("photo-1544198365-f5d60b6d8190"), U("photo-1518002171953-a080ee817e1f"), U("photo-1524492412937-b28074a5d7da"), U("photo-1546182990-dffeafbe841d")],
+  city: [U("photo-1518709594023-6eab9bab7b23"), U("photo-1518002171953-a080ee817e1f"), U("photo-1544198365-f5d60b6d8190"), U("photo-1546182990-dffeafbe841d")],
+  hotel: [U("photo-1566073771259-6a8506099945"), U("photo-1602088113235-229c19758e9c"), U("photo-1583212292454-1fe6229603b7"), U("photo-1546484475-7f7bd55792da"), U("photo-1571003123894-1f8a6c5b3a2e"), U("photo-1582719508461-905c673771fd")],
+  village: [U("photo-1575550959106-5a7defe28b56"), U("photo-1483728642387-6c3bdd6c93e5"), U("photo-1441974231531-c6227db76b6e")],
+  nature: [U("photo-1441974231531-c6227db76b6e"), U("photo-1470071459604-3b5ec3a7fe05"), U("photo-1572953107300-18597face4ba"), U("photo-1582650625119-3a31f8418b7d")],
+  waterfall: [U("photo-1582650625119-3a31f8418b7d"), U("photo-1486870591958-9b9d0d1dda99")],
+  wildlife: [U("photo-1546182990-dffeafbe841d"), U("photo-1441974231531-c6227db76b6e")],
+}
+
+const POOL_BY_TYPE = {}
+const buildPool = (types) => {
+  const out = []
+  for (const t of types) {
+    out.push(...(UNSPLASH_TYPED[t] || []))
+    for (const [path, ptype] of Object.entries(LOCAL_PHOTO_TYPES)) {
+      if (ptype === t) out.push(path)
+    }
+  }
+  return [...new Set(out)]
+}
+for (const [cat, types] of Object.entries(CATEGORY_TYPES)) {
+  POOL_BY_TYPE[cat] = buildPool(types)
+}
+POOL_BY_TYPE.hotel = [...new Set([...UNSPLASH_TYPED.hotel, ...UNSPLASH_TYPED.heritage])]
+
+const hashStr = (s) => {
   let h = 0
-  const s = String(seed ?? "nepal")
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
-  return FALLBACK_POOL[h % FALLBACK_POOL.length]
+  return h
+}
+
+/** Deterministic category-aware fallback image for a seed (name only!). */
+export const fallbackImageUrl = (seed, category) => {
+  const pool = (category && POOL_BY_TYPE[category]) || FALLBACK_POOL
+  return pool[hashStr(String(seed ?? "nepal")) % pool.length]
+}
+
+/** Derive the semantic category type key from a destination object. */
+export const deriveImageCategory = (destination) => {
+  if (!destination) return null
+  const slug = destination.category?.slug || destination.category_slug || ""
+  if (slug && CATEGORY_TYPES[slug]) return slug
+  const catName = (destination.category_name || destination.category?.name || "").toLowerCase()
+  for (const [cat, types] of Object.entries(CATEGORY_TYPES)) {
+    if (catName.includes(cat)) return cat
+  }
+  return null
 }
 
 /**
@@ -425,22 +559,14 @@ export const fallbackImageUrl = (seed) => {
 export const getDestinationImageUrl = (destination) => {
   if (!destination) return postcardUrl({ name: "Nepal" })
 
-  // 0. `images` array from the API — absolute URLs served by the standalone
-  //    image server (IMAGE_BASE_URL + /images/ + path). Displayed directly.
   if (Array.isArray(destination.images) && destination.images.length > 0) {
     const first = destination.images.find(isUsable)
     if (first) return first
   }
 
-  // 1. Explicit cover image from API / DB
-  const cover =
-    destination.cover_image_url ||
-    destination.cover_image ||
-    destination.image_url ||
-    destination.image
+  const cover = destination.cover_image_url || destination.cover_image || destination.image_url || destination.image
   if (isUsable(cover)) return cover
 
-  // 2. Gallery (approved only if we know status)
   if (Array.isArray(destination.gallery) && destination.gallery.length > 0) {
     for (const g of destination.gallery) {
       if (g.verification_status && g.verification_status !== "approved") continue
@@ -449,20 +575,17 @@ export const getDestinationImageUrl = (destination) => {
     }
   }
 
-  // 3. Local curated Nepal photos for known landmarks
-  const haystack = `${destination.name || ""} ${destination.city || ""} ${destination.district || ""}`
-  const local = lookupLocalNepal(haystack)
+  // Local curated Nepal photos — NAME-ONLY + category-aware.
+  const catType = deriveImageCategory(destination)
+  const local = lookupLocalNepal(destination.name, catType)
   if (local) return local
 
-  // 4. Multi-source fallback pool (Unsplash + local landmarks), deterministic
-  return fallbackImageUrl(haystack || destination.name || destination.slug || destination.id)
+  // Category-aware multi-source fallback pool (deterministic by name)
+  return fallbackImageUrl(destination.name || destination.slug || destination.id || "nepal", catType)
 }
 
 /**
  * Build a standalone-image-server URL from a relative path.
- * Path is something like "nepal/kathmandu/001.webp".
- * Uses VITE_IMAGE_BASE_URL when set, otherwise returns the path as-is
- * (the API normally already returns absolute URLs).
  */
 export const getImageServerUrl = (path) => {
   if (!path) return ""
@@ -472,7 +595,8 @@ export const getImageServerUrl = (path) => {
 }
 
 /**
- * Return a usable image URL for a hotel.
+ * Return a usable image URL for a hotel — always a hotel-appropriate real
+ * photo (never a temple/lake/tiger photo from another category).
  */
 export const getHotelImageUrl = (hotel) => {
   if (!hotel) return postcardUrl({ name: "Hotel", category: { slug: "hotel" } })
@@ -485,9 +609,8 @@ export const getHotelImageUrl = (hotel) => {
       if (isUsable(gUrl)) return gUrl
     }
   }
-  // Multi-source pool before the unique postcard
-  const seed = `${hotel.name || "Hotel"} ${hotel.city || ""} ${hotel.district || ""}`
-  return fallbackImageUrl(seed) || postcardUrl({ name: hotel.name || "Hotel", category: { slug: "hotel" } })
+  const seed = hotel.name || hotel.slug || "Hotel"
+  return fallbackImageUrl(seed, "hotel") || postcardUrl({ name: hotel.name || "Hotel", category: { slug: "hotel" } })
 }
 
 export const createLocalImagePreview = (file) => {

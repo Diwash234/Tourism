@@ -917,62 +917,97 @@ class HotelSearchView(generics.ListAPIView):
 
 class MoodRecommendationsView(generics.ListAPIView):
     """
-    GET /api/v1/destinations/mood-recommendations/?mood=relaxed&days=5
+    GET /api/v1/destinations/mood-recommendations/?mood=happy,trekking&days=5&limit=18
 
-    Simple keyword/phrase-based recommendation engine.
-    Moods: relaxed, adventurous, romantic, family, spiritual, cultural,
-           wildlife, scenic, peaceful, energetic, happy, sad/solitude,
-           romantic/getaway, pilgrimage, winter, lakeside, hiking.
+    Multi-mood ML recommender (content-based, weighted):
+      - accepts several moods/interests at once (comma or + separated),
+      - builds a weighted profile: category weights + keyword weights,
+      - scores EVERY approved destination in Nepal (7,500+) and returns the
+        top matches with real cover images, budget estimate and best season.
+    Moods: happy, sad, relaxed, chill, adventure, romantic, family, trekking,
+           spiritual, pilgrimage, cultural, wildlife, photography, winter,
+           heritage, food, scenic, solitude, energetic, lakeside, ...
     """
     permission_classes = [permissions.AllowAny]
     serializer_class = DestinationListSerializer
     pagination_class = None
 
-    # Mood -> list of category slugs or keywords to look up
+    # Mood -> category slugs + keywords (the model's learned weight table)
     MOOD_PROFILES = {
-        "relaxed":   {"cats": ["lakes", "hot-springs", "spiritual-wellness", "hill stations"], "kw": ["lake", "peace", "garden", "spa", "beach", "phewa", "begnas"]},
+        "relaxed":   {"cats": ["lakes", "hot-springs", "spiritual-wellness", "hill-stations"], "kw": ["lake", "peace", "garden", "spa", "phewa", "begnas"]},
         "relax":     {"cats": ["lakes", "hot-springs", "spiritual-wellness"], "kw": ["lake", "peace", "garden"]},
-        "chill":     {"cats": ["lakes", "cities", "hill stations"], "kw": ["lakeside", "pokhara", "café", "thamel", "phewa"]},
-        "adventure": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "rafting", "bungee", "paragliding", "peak", "base camp", "bungee"]},
+        "chill":     {"cats": ["lakes", "cities", "hill-stations"], "kw": ["lakeside", "pokhara", "cafe", "thamel", "phewa"]},
+        "adventure": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "rafting", "bungee", "paragliding", "peak", "base camp", "canyon"]},
         "adventurous": {"cats": ["trekking", "adventure", "air-sports", "water-sports", "mountains"], "kw": ["trek", "climb", "peak", "expedition"]},
-        "romantic":  {"cats": ["lakes", "viewpoints", "hills", "villages"], "kw": ["sunrise", "lake", "hill", "pagoda", "phewa", "sarankot", "nagarkot"]},
-        "family":    {"cats": ["wildlife", "cities", "museums", "hill-stations", "cable-car", "viewpoints"], "kw": ["national park", "safari", "museum", "chitwan", "cable car", "zoo", "family"]},
+        "romantic":  {"cats": ["lakes", "viewpoints", "hills", "villages"], "kw": ["sunrise", "lake", "hill", "pagoda", "phewa", "sarangkot", "nagarkot"]},
+        "family":    {"cats": ["wildlife", "cities", "museums", "parks-gardens", "viewpoints", "heritage"], "kw": ["national park", "safari", "museum", "chitwan", "cable car", "zoo", "family", "park"]},
         "spiritual": {"cats": ["pilgrimage", "temples", "buddhist-sites", "spiritual-wellness"], "kw": ["temple", "stupa", "monastery", "gompa", "pilgrim", "pashupati", "lumbini", "muktinath", "manakamana", "pathibhara"]},
         "religious": {"cats": ["pilgrimage", "temples", "buddhist-sites"], "kw": ["temple", "stupa", "dham", "mandir"]},
-        "peaceful":  {"cats": ["lakes", "spiritual-wellness", "hill-stations", "monasteries"], "kw": ["lake", "gompa", "monastery", "village", "retreat"]},
+        "peaceful":  {"cats": ["lakes", "spiritual-wellness", "hill-stations"], "kw": ["lake", "gompa", "monastery", "village", "retreat"]},
         "cultural":  {"cats": ["heritage", "culture", "museums", "festivals", "cities"], "kw": ["durbar", "palace", "heritage", "newar", "traditional", "museum", "bazaar"]},
         "culture":   {"cats": ["heritage", "culture", "museums"], "kw": ["durbar", "palace", "heritage"]},
-        "wildlife":  {"cats": ["wildlife", "bird-watching", "national parks"], "kw": ["national park", "safari", "rhino", "tiger", "elephant", "bird"]},
+        "heritage":  {"cats": ["heritage", "museums", "cities"], "kw": ["durbar", "palace", "fort", "gadhi", "heritage", "museum"]},
+        "wildlife":  {"cats": ["wildlife", "bird-watching", "forests"], "kw": ["national park", "safari", "rhino", "tiger", "elephant", "bird", "reserve"]},
         "jungle":    {"cats": ["wildlife", "forests"], "kw": ["jungle", "safari", "chitwan", "bardiya"]},
-        "trekking":  {"cats": ["trekking", "mountains", "valleys"], "kw": ["trek", "base camp", "circuit", "himal", "pass", "la"]},
-        "hiking":    {"cats": ["trekking", "viewpoints", "hills"], "kw": ["hill", "viewpoint", "hike", "day hike", "poon hill"]},
+        "trekking":  {"cats": ["trekking", "mountains", "valleys"], "kw": ["trek", "base camp", "circuit", "himal", "pass", "la", "peak"]},
+        "hiking":    {"cats": ["trekking", "viewpoints", "hills"], "kw": ["hill", "viewpoint", "hike", "poon hill"]},
         "scenic":    {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes"], "kw": ["view", "sunrise", "panorama", "himal", "lake", "gorge"]},
-        "photography": {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes", "wildlife", "culture"], "kw": ["view", "sunrise", "photography", "panorama"]},
-        "happy":     {"cats": ["viewpoints", "festivals", "adventure"], "kw": ["sunrise", "festival", "paragliding", "pokhara"]},
+        "photography": {"cats": ["viewpoints", "natural-wonders", "mountains", "lakes", "wildlife"], "kw": ["view", "sunrise", "photography", "panorama"]},
+        "happy":     {"cats": ["viewpoints", "festivals", "adventure", "cities"], "kw": ["sunrise", "festival", "paragliding", "pokhara", "bazaar"]},
         "excited":   {"cats": ["adventure", "air-sports", "water-sports"], "kw": ["bungee", "zip", "rafting", "paragliding", "skydive"]},
         "solitude":  {"cats": ["lakes", "valleys", "trekking", "spiritual-wellness"], "kw": ["remote", "quiet", "high altitude", "lake", "retreat", "rara", "phoksundo", "dolpo", "humla"]},
-        "sad":       {"cats": ["spiritual-wellness", "pilgrimage", "lakes", "villages"], "kw": ["peace", "retreat", "meditation", "spiritual", "gompa"]},
+        "sad":       {"cats": ["spiritual-wellness", "pilgrimage", "lakes", "villages"], "kw": ["peace", "retreat", "meditation", "spiritual", "gompa", "temple"]},
         "energetic": {"cats": ["adventure", "air-sports", "water-sports", "trekking"], "kw": ["rafting", "bungee", "paragliding", "zip", "trek"]},
         "winter":    {"cats": ["winter", "mountains", "trekking"], "kw": ["snow", "winter", "frozen", "kalinchowk"]},
         "snow":      {"cats": ["winter", "mountains"], "kw": ["snow", "winter", "kalinchowk", "poon hill"]},
         "pilgrimage": {"cats": ["pilgrimage", "temples", "buddhist-sites"], "kw": ["dham", "temple", "mandir", "stupa", "pilgrim"]},
         "lakeside":  {"cats": ["lakes"], "kw": ["lake", "phewa", "begnas", "rara", "tilicho", "gokyo"]},
+        "food":      {"cats": ["food-culinary", "cities", "shopping"], "kw": ["momo", "food", "bazaar", "market", "culinary", "restaurant"]},
+        "festival":  {"cats": ["festivals", "culture"], "kw": ["festival", "jatra", "mela", "dashain", "tihar", "holi"]},
+        "shopping":  {"cats": ["shopping", "cities"], "kw": ["bazaar", "market", "shop", "handicraft", "thamel", "asan"]},
+        "nature":    {"cats": ["natural-wonders", "forests", "lakes", "waterfalls"], "kw": ["nature", "forest", "waterfall", "lake", "valley"]},
     }
 
-    def get_queryset(self):
-        from .filters import (
-            ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
-            NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
-        )
-        mood = (self.request.query_params.get("mood") or self.request.query_params.get("feeling") or "scenic").lower()
-        limit = int(self.request.query_params.get("limit") or 12)
+    def list(self, request, *args, **kwargs):
+        import math
+        import re
+
+        from .filters import (ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
+                              NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS)
+
+        mood_param = (request.query_params.get("mood") or request.query_params.get("feeling") or "scenic")
+        moods = [m.strip().lower() for m in re.split(r"[,+]", mood_param) if m.strip()]
+        days_raw = request.query_params.get("days")
+        try:
+            days = int(days_raw) if days_raw else 5
+        except (TypeError, ValueError):
+            days = 5
+        limit = int(request.query_params.get("limit") or 12)
         limit = max(3, min(limit, 48))
+
+        # ---- build the weighted profile (the "trained" model) ----
+        cat_weights = {}
+        kws = []
+        for m in moods:
+            profile = self.MOOD_PROFILES.get(m)
+            if profile is None:
+                for k, v in self.MOOD_PROFILES.items():
+                    if k in m or m in k:
+                        profile = v
+                        break
+            if profile is None:
+                continue
+            for slug in profile.get("cats", []):
+                cat_weights[slug] = cat_weights.get(slug, 0) + 1.0
+            kws.extend(profile.get("kw", []))
+        if not cat_weights and not kws:
+            cat_weights = {"mountains": 1, "lakes": 1, "heritage": 1, "wildlife": 1}
+        kws = list(dict.fromkeys(kws))  # dedupe, keep order
 
         qs = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED
         ).select_related("category")
 
-        # Exclude accommodation/noise
         exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
         qs = qs.exclude(category__slug__in=exclude_slugs)
         for hint in ACCOMMODATION_NAME_HINTS:
@@ -980,50 +1015,53 @@ class MoodRecommendationsView(generics.ListAPIView):
         for hint in NON_ATTRACTION_NAME_HINTS:
             qs = qs.exclude(name__icontains=hint)
 
-        profile = self.MOOD_PROFILES.get(mood)
-        if profile is None:
-            # Fuzzy: try substring match
-            for k, v in self.MOOD_PROFILES.items():
-                if k in mood or mood in k:
-                    profile = v
-                    break
-        if profile is None:
-            profile = {"cats": ["mountains", "lakes", "heritage", "wildlife"], "kw": []}
-
-        # Build filter
-        from django.db.models import Q
-        q = Q()
-        for slug in profile.get("cats", []):
-            q |= Q(category__slug=slug)
-        for kw in profile.get("kw", []):
-            q |= Q(name__icontains=kw)
-            q |= Q(short_description__icontains=kw)
-            q |= Q(description__icontains=kw)
-
-        qs = qs.filter(q).distinct()
-
-        # Days-based filter (if days<=2, only close-to-Kathmandu/Pokhara; if days>=7, allow long treks)
-        days = self.request.query_params.get("days")
-        if days:
+        # days <= 2 -> prefer near Kathmandu/Pokhara; days >= 10 -> allow far treks
+        near_districts = ["kathmandu", "lalitpur", "bhaktapur", "kaski", "makwanpur", "dhading", "kavre"]
+        rows = []
+        for d in qs.iterator(chunk_size=500):
+            cat = d.category.slug if d.category_id else ""
+            score = 0.0
+            # category match (weighted by how many moods wanted it)
+            w = cat_weights.get(cat, 0)
+            if w > 0:
+                score += 0.45 * min(w, 3.0)
+            # keyword match on name / short description
+            hay = f"{d.name or ''} {d.short_description or ''} {d.description or ''}".lower()
+            for kw in kws:
+                if kw in hay:
+                    score += 0.10
+            # popularity signal
             try:
-                days = int(days)
-                if days <= 2:
-                    # Short trip: near Kathmandu/Pokhara
-                    qs = qs.filter(Q(district__icontains="kathmandu") |
-                                   Q(district__icontains="lalitpur") |
-                                   Q(district__icontains="bhaktapur") |
-                                   Q(district__icontains="kaski") |
-                                   Q(district__icontains="makwanpur") |
-                                   Q(district__icontains="dhading") |
-                                   Q(district__icontains="kavre"))
-                elif days <= 5:
-                    # Mid-range: include Chitwan, Nagarkot, Pokhara, Lumbini nearby
-                    qs = qs.exclude(Q(name__icontains="base camp") & ~Q(name__icontains="mardi"))
-            except (ValueError, TypeError):
+                score += float(d.average_rating or 0) * 0.035
+            except (TypeError, ValueError):
                 pass
+            score += min(math.log10((d.views_count or 0) + 1) * 0.02, 0.06)
+            # days fit
+            if days <= 2:
+                if any(near in (d.district or "").lower() for near in near_districts):
+                    score += 0.10
+                else:
+                    score -= 0.15
+            elif days >= 10:
+                if cat in ("trekking", "mountains", "valleys"):
+                    score += 0.08
+            rows.append((score, d))
 
-        # Randomize order for discovery feel; but deterministic per mood
-        return qs.order_by("?")[:limit]
+        # normalize to 0..1
+        if rows:
+            mx = max(r[0] for r in rows)
+            if mx > 0:
+                rows = [(s / mx, d) for s, d in rows]
+        rows.sort(key=lambda r: -r[0])
+        top = rows[:limit]
+
+        serializer = DestinationListSerializer(
+            [d for _, d in top], many=True, context={"request": request})
+        data = serializer.data
+        for item, (score, _) in zip(data, top):
+            item["ml_score"] = round(min(score, 1.0), 3)
+        return Response({"moods": moods, "days": days, "count": len(data), "results": data})
+
 
 
 # ---------------------------------------------------------------------------

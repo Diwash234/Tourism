@@ -471,7 +471,7 @@ const AdminDashboard = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#180421] via-[#2d0836] to-[#480c35] text-white -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-[#2b1508] via-[#4a1f0a] to-[#7a3b12] text-white -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
       {/* Top Banner */}
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
@@ -1790,9 +1790,9 @@ const AdminDashboard = () => {
                   {pipelineImages.filter((i) => i.source === "pexels").length}
                 </p>
               </div>
-              <div className="p-3 rounded-2xl bg-indigo-950/50 border border-indigo-800/40 text-center">
-                <span className="text-[10px] uppercase font-black text-indigo-300 block">Flickr/Pixabay</span>
-                <p className="text-lg font-black text-indigo-400 mt-0.5">
+              <div className="p-3 rounded-2xl bg-orange-950/50 border border-orange-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-orange-300 block">Flickr/Pixabay</span>
+                <p className="text-lg font-black text-orange-400 mt-0.5">
                   {pipelineImages.filter((i) => i.source === "flickr" || i.source === "pixabay").length}
                 </p>
               </div>

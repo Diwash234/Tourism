@@ -328,3 +328,16 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   Haversine distance + compass bearing (all 7 provinces).
 - Emergency page covers all 77 districts.
 - MapillaryImages rendered on destination details; setup hint when no token.
+
+## 18. Round 9 — ML mood-form recommendations + category-correct images
+
+- Recommendation page: multi-checkbox mood form → weighted content-based ML
+  recommender scoring all destinations; results carry ml_score + real cover +
+  budget + best season.
+- imageUtils: name-only, category-aware matching with typed photo pools
+  (temple/lake/mountain/wildlife/hotel/…) — fixes the "everything in Pokhara
+  shows lakeside / Lalitpur shows Patan / temples show tigers" bugs.
+- 9 wrong covers replaced with correct real photos (World Peace Pagoda,
+  Shanti Stupa, Tal Barahi, 360 Paragliding, Gangkhar Puensum, Mid-Hill
+  Highway, Brindaban Forest, Godawari, Devkota House).
+- Admin dashboard theme purple -> orange.

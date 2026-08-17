@@ -12,7 +12,7 @@ import {
 import destinationApi from "../../api/destinationApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
-import { getDestinationImageUrl, fallbackImageUrl } from "../../utils/imageUtils"
+import { getDestinationImageUrl, fallbackImageUrl, deriveImageCategory } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
 import WeatherCard from "../../components/cards/WeatherCard"
@@ -162,12 +162,13 @@ export default function DestinationDetails() {
   // Location-Aware Authentic Nepal Image Fallbacks — unique per destination
   // (local landmark photo + deterministic pool picks, never repeated).
   const authenticRegionalUrl = getDestinationImageUrl(destination)
-  const seedName = `${destination.name} ${destination.district || ""} ${destination.city || ""}`
+  const catType = deriveImageCategory(destination)
+  const seedName = destination.name || destination.slug || "nepal"
   const uniquePicks = [
-    fallbackImageUrl(`${seedName} 1`),
-    fallbackImageUrl(`${seedName} 2`),
-    fallbackImageUrl(`${seedName} 3`),
-    fallbackImageUrl(`${seedName} 4`),
+    fallbackImageUrl(`${seedName} 1`, catType),
+    fallbackImageUrl(`${seedName} 2`, catType),
+    fallbackImageUrl(`${seedName} 3`, catType),
+    fallbackImageUrl(`${seedName} 4`, catType),
   ]
   const defaultFallbacks = [
     { url: authenticRegionalUrl, caption: `${destination.name} - Scenic View`, category: "landscape", photographer: "Nepal Tourism Verified Media Archive", platform: "Official Tourism Database", license: "Creative Commons CC BY-SA 4.0" },

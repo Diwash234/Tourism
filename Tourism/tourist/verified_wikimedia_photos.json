@@ -7527,14 +7527,14 @@
   "tier": "exact"
  },
  "1418": {
-  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Taal_Barahi_Temple_-_Pokhara_-_02.jpg/960px-Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Taal_Barahi_Temple_-_Pokhara_-_02.jpg/960px-Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "original": "https://upload.wikimedia.org/wikipedia/commons/1/13/Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "file": "Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "label": "Near 360 Paragliding",
-  "caption": "Near 360 Paragliding",
-  "source": "wikimedia",
-  "source_url": "https://commons.wikimedia.org/wiki/File:Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Paragliding_in_Pokhara_2008.jpg/960px-Paragliding_in_Pokhara_2008.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Paragliding_in_Pokhara_2008.jpg/960px-Paragliding_in_Pokhara_2008.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/4/49/Paragliding_in_Pokhara_2008.jpg",
+  "file": "Paragliding_in_Pokhara_2008.jpg",
+  "label": "360 Paragliding",
+  "caption": "360 Paragliding",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/wiki/File:Paragliding_in_Pokhara_2008.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
   "tier": "exact"
@@ -13140,19 +13140,6 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:Children%27s_Art_Museum_of_Nepal.jpg",
   "photographer": "Wikimedia Commons contributor",
   "license": "See Commons file page",
-  "tier": "exact"
- },
- "2758": {
-  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Ghantaghar%40surkhet.JPG/960px-Ghantaghar%40surkhet.JPG",
-  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Ghantaghar%40surkhet.JPG/960px-Ghantaghar%40surkhet.JPG",
-  "original": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Ghantaghar%40surkhet.JPG",
-  "file": "Ghantaghar@surkhet.JPG",
-  "label": "Near Devkota House",
-  "caption": "Near Devkota House",
-  "source": "wikimedia",
-  "source_url": "https://commons.wikimedia.org/wiki/File:Ghantaghar%40surkhet.JPG",
-  "photographer": "Krish Dulal",
-  "license": "CC BY-SA 3.0",
   "tier": "exact"
  },
  "2773": {
@@ -26142,6 +26129,19 @@
   "license": "CC BY-SA 3.0",
   "tier": "exact"
  },
+ "5875": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Rhododendron_forest_at_Ghorepani_%284525879748%29.jpg/960px-Rhododendron_forest_at_Ghorepani_%284525879748%29.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Rhododendron_forest_at_Ghorepani_%284525879748%29.jpg/960px-Rhododendron_forest_at_Ghorepani_%284525879748%29.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Rhododendron_forest_at_Ghorepani_%284525879748%29.jpg",
+  "file": "index.php?curid=24310365",
+  "label": "Brindaban Forest",
+  "caption": "Brindaban Forest",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=24310365",
+  "photographer": "Greg Willis",
+  "license": "CC BY-SA 2.0",
+  "tier": "exact"
+ },
  "5877": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Ganesh_Himal_air_view.jpg/960px-Ganesh_Himal_air_view.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Ganesh_Himal_air_view.jpg/960px-Ganesh_Himal_air_view.jpg",
@@ -28587,16 +28587,16 @@
   "tier": "exact"
  },
  "6416": {
-  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Taal_Barahi_Temple_-_Pokhara_-_02.jpg/960px-Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Taal_Barahi_Temple_-_Pokhara_-_02.jpg/960px-Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "original": "https://upload.wikimedia.org/wikipedia/commons/1/13/Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "file": "Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "label": "Near World Peace Pagoda Pokhara",
-  "caption": "Near World Peace Pagoda Pokhara",
-  "source": "wikimedia",
-  "source_url": "https://commons.wikimedia.org/wiki/File:Taal_Barahi_Temple_-_Pokhara_-_02.jpg",
-  "photographer": "Wikimedia Commons contributor",
-  "license": "See Commons file page",
+  "url": "https://live.staticflickr.com/5580/14831297633_03675377b1_b.jpg",
+  "thumb": "https://live.staticflickr.com/5580/14831297633_03675377b1_b.jpg",
+  "original": "https://live.staticflickr.com/5580/14831297633_03675377b1_b.jpg",
+  "file": "14831297633",
+  "label": "World Peace Pagoda Pokhara",
+  "caption": "World Peace Pagoda Pokhara",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/61998678@N00/14831297633",
+  "photographer": "untitled_folder",
+  "license": "CC BY 2.0",
   "tier": "exact"
  },
  "6417": {
@@ -31160,6 +31160,19 @@
   "license": "See Commons file page",
   "tier": "exact"
  },
+ "6685": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Prithvi_Highway_at_Ghansikuwa.jpg/960px-Prithvi_Highway_at_Ghansikuwa.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Prithvi_Highway_at_Ghansikuwa.jpg/960px-Prithvi_Highway_at_Ghansikuwa.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/0/03/Prithvi_Highway_at_Ghansikuwa.jpg",
+  "file": "Prithvi_Highway_at_Ghansikuwa.jpg",
+  "label": "Mid-Hill Highway (Pushpalal)",
+  "caption": "Mid-Hill Highway (Pushpalal)",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/wiki/File:Prithvi_Highway_at_Ghansikuwa.jpg",
+  "photographer": "Wikimedia Commons contributor",
+  "license": "See Commons file page",
+  "tier": "exact"
+ },
  "6686": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Bus_Stand%2C_Jomsom_Village-WLV-0671.jpg/960px-Bus_Stand%2C_Jomsom_Village-WLV-0671.jpg",
   "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Bus_Stand%2C_Jomsom_Village-WLV-0671.jpg/960px-Bus_Stand%2C_Jomsom_Village-WLV-0671.jpg",
@@ -32435,16 +32448,16 @@
   "tier": "exact"
  },
  "6827": {
-  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Annapurna_Range_and_the_Phewa_Lake.jpg/960px-Annapurna_Range_and_the_Phewa_Lake.jpg",
-  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Annapurna_Range_and_the_Phewa_Lake.jpg/960px-Annapurna_Range_and_the_Phewa_Lake.jpg",
-  "original": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Annapurna_Range_and_the_Phewa_Lake.jpg",
-  "file": "Annapurna_Range_and_the_Phewa_Lake.jpg",
-  "label": "Near Tal Barahi Temple",
-  "caption": "Near Tal Barahi Temple",
-  "source": "wikimedia",
-  "source_url": "https://commons.wikimedia.org/wiki/File:Annapurna_Range_and_the_Phewa_Lake.jpg",
-  "photographer": "Saroj Pandey",
-  "license": "CC BY-SA 3.0",
+  "url": "https://pd.w.org/2023/03/40164064f8a55cca4.98603101-2048x1536.jpg",
+  "thumb": "https://pd.w.org/2023/03/40164064f8a55cca4.98603101-2048x1536.jpg",
+  "original": "https://pd.w.org/2023/03/40164064f8a55cca4.98603101-2048x1536.jpg",
+  "file": "",
+  "label": "Tal Barahi Temple",
+  "caption": "Tal Barahi Temple",
+  "source": "openverse",
+  "source_url": "https://wordpress.org/photos/photo/40164064f8/",
+  "photographer": "Bigul Malayi",
+  "license": "CC0 1.0",
   "tier": "exact"
  },
  "6828": {
@@ -32942,16 +32955,16 @@
   "tier": "exact"
  },
  "6874": {
-  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Davisefalls.jpg/960px-Davisefalls.jpg",
-  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Davisefalls.jpg/960px-Davisefalls.jpg",
-  "original": "https://upload.wikimedia.org/wikipedia/commons/4/41/Davisefalls.jpg",
-  "file": "Davisefalls.jpg",
-  "label": "Near Shanti Stupa Pokhara",
-  "caption": "Near Shanti Stupa Pokhara",
-  "source": "wikimedia",
-  "source_url": "https://commons.wikimedia.org/wiki/File:Davisefalls.jpg",
-  "photographer": "Nirmal Dulal",
-  "license": "CC BY-SA 3.0",
+  "url": "https://live.staticflickr.com/5580/14831297633_03675377b1_b.jpg",
+  "thumb": "https://live.staticflickr.com/5580/14831297633_03675377b1_b.jpg",
+  "original": "https://live.staticflickr.com/5580/14831297633_03675377b1_b.jpg",
+  "file": "14831297633",
+  "label": "Shanti Stupa Pokhara",
+  "caption": "Shanti Stupa Pokhara",
+  "source": "openverse",
+  "source_url": "https://www.flickr.com/photos/61998678@N00/14831297633",
+  "photographer": "untitled_folder",
+  "license": "CC BY 2.0",
   "tier": "exact"
  },
  "6875": {
@@ -33276,6 +33289,19 @@
   "source": "wikimedia",
   "source_url": "https://commons.wikimedia.org/wiki/File:Ghorepani-Tadapani-34-Machhapuchhre-2013-gje.jpg",
   "photographer": "Gerd Eichmann",
+  "license": "CC BY-SA 4.0",
+  "tier": "exact"
+ },
+ "6903": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Gangkhar_puensum_summit.JPG/960px-Gangkhar_puensum_summit.JPG",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Gangkhar_puensum_summit.JPG/960px-Gangkhar_puensum_summit.JPG",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Gangkhar_puensum_summit.JPG",
+  "file": "index.php?curid=44718637",
+  "label": "Gangkhar Puensum",
+  "caption": "Gangkhar Puensum",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=44718637",
+  "photographer": "Gradythebadger",
   "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
@@ -33732,6 +33758,19 @@
   "source_url": "https://commons.wikimedia.org/wiki/File:NAST_Astronomical_Observatory_Nagarkot_Nepal.jpg",
   "photographer": "Nagarkot Panoramic Hiking Trail",
   "license": "CC BY-SA 3.0",
+  "tier": "exact"
+ },
+ "6948": {
+  "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Godawari_Kunda_Holy_Spot_Godawari_Lalitpur_Nepal_Rajehs_Dhungana_%2811%29.jpg/960px-Godawari_Kunda_Holy_Spot_Godawari_Lalitpur_Nepal_Rajehs_Dhungana_%2811%29.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Godawari_Kunda_Holy_Spot_Godawari_Lalitpur_Nepal_Rajehs_Dhungana_%2811%29.jpg/960px-Godawari_Kunda_Holy_Spot_Godawari_Lalitpur_Nepal_Rajehs_Dhungana_%2811%29.jpg",
+  "original": "https://upload.wikimedia.org/wikipedia/commons/2/26/Godawari_Kunda_Holy_Spot_Godawari_Lalitpur_Nepal_Rajehs_Dhungana_%2811%29.jpg",
+  "file": "index.php?curid=122383766",
+  "label": "Godawari Botanical Hill",
+  "caption": "Godawari Botanical Hill",
+  "source": "openverse",
+  "source_url": "https://commons.wikimedia.org/w/index.php?curid=122383766",
+  "photographer": "Rajesh Dhungana",
+  "license": "CC BY-SA 4.0",
   "tier": "exact"
  },
  "6949": {
