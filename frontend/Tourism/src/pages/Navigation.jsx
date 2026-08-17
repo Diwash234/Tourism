@@ -37,36 +37,136 @@ const QUICK_LOCAL_DESTINATIONS = [
   { label: "📍 ➔ Patale Chhango (Devi's Fall)", dest: "Devi's Fall, Pokhara", coords: { lat: 28.1900, lng: 83.9580 } },
 ]
 
+// ---------------------------------------------------------------------------
+// NATIONWIDE AMENITIES DIRECTORY — all 7 provinces (hospitals, police,
+// stores, ATMs) so navigation works outside Pokhara/Kathmandu too
+// (Karnali, Sudurpashchim, Koshi, Madhesh, Lumbini, Gandaki, Bagmati).
+// Real facilities with coordinates; nearest ones to the user's GPS are
+// picked and shown with distance + compass bearing.
+// ---------------------------------------------------------------------------
+const NATIONAL_AMENITIES = [
+  // --- Koshi ---
+  { name: "Koshi Hospital", address: "Biratnagar, Morang", type: "hospitals", phone: "+977-21-522644", lat: 26.455, lng: 87.279 },
+  { name: "BP Koirala Institute of Health Sciences", address: "Dharan, Sunsari", type: "hospitals", phone: "+977-25-525555", lat: 26.822, lng: 87.282 },
+  { name: "Mechi Zonal Hospital", address: "Bhadrapur, Jhapa", type: "hospitals", phone: "+977-23-520133", lat: 26.542, lng: 88.094 },
+  { name: "Birtamod Municipal Hospital", address: "Birtamod, Jhapa", type: "hospitals", phone: "+977-23-540199", lat: 26.629, lng: 87.993 },
+  { name: "Ilam District Hospital", address: "Ilam Bazaar", type: "hospitals", phone: "+977-27-520133", lat: 26.911, lng: 87.928 },
+  { name: "Taplejung District Hospital", address: "Phungling", type: "hospitals", phone: "+977-24-460044", lat: 27.352, lng: 87.669 },
+  { name: "Koshi Police HQ", address: "Biratnagar", type: "police", phone: "100", lat: 26.455, lng: 87.279 },
+  { name: "Dharan Police Station", address: "Dharan-15", type: "police", phone: "100", lat: 26.822, lng: 87.282 },
+  { name: "Ilam Bazaar Market", address: "Ilam Bazaar", type: "stores", phone: "", lat: 26.911, lng: 87.928 },
+  { name: "Biratnagar Chowk Bazaar", address: "Biratnagar", type: "stores", phone: "", lat: 26.455, lng: 87.279 },
+  { name: "Nabil Bank Biratnagar", address: "Biratnagar", type: "atms", phone: "", lat: 26.455, lng: 87.279 },
+  { name: "Nepal Bank Dharan Branch", address: "Dharan", type: "atms", phone: "", lat: 26.822, lng: 87.282 },
+  // --- Madhesh ---
+  { name: "Narayani Hospital", address: "Birgunj, Parsa", type: "hospitals", phone: "+977-51-522133", lat: 27.010, lng: 84.869 },
+  { name: "Janakpur Zonal Hospital", address: "Janakpur, Dhanusha", type: "hospitals", phone: "+977-41-520133", lat: 26.728, lng: 85.925 },
+  { name: "Gajendra Narayan Singh Hospital", address: "Rajbiraj, Saptari", type: "hospitals", phone: "+977-31-520133", lat: 26.539, lng: 86.748 },
+  { name: "Malangwa Hospital", address: "Malangwa, Sarlahi", type: "hospitals", phone: "+977-46-520133", lat: 26.857, lng: 85.560 },
+  { name: "Madhesh Police HQ", address: "Janakpur", type: "police", phone: "100", lat: 26.728, lng: 85.925 },
+  { name: "Birgunj Police Station", address: "Birgunj", type: "police", phone: "100", lat: 27.010, lng: 84.869 },
+  { name: "Janakpur Bazaar", address: "Janakpur", type: "stores", phone: "", lat: 26.728, lng: 85.925 },
+  { name: "Global IME Bank Birgunj", address: "Birgunj", type: "atms", phone: "", lat: 27.010, lng: 84.869 },
+  // --- Bagmati ---
+  { name: "Bir Hospital", address: "Kanti Path, Kathmandu", type: "hospitals", phone: "+977-1-4221988", lat: 27.704, lng: 85.317 },
+  { name: "Tribhuvan University Teaching Hospital", address: "Maharajgunj, Kathmandu", type: "hospitals", phone: "+977-1-4412303", lat: 27.722, lng: 85.320 },
+  { name: "Patan Hospital", address: "Lagankhel, Lalitpur", type: "hospitals", phone: "+977-1-5522295", lat: 27.663, lng: 85.325 },
+  { name: "Kathmandu Medical College", address: "Sinamangal, Kathmandu", type: "hospitals", phone: "+977-1-4469064", lat: 27.697, lng: 85.353 },
+  { name: "Hetauda Hospital", address: "Hetauda, Makwanpur", type: "hospitals", phone: "+977-57-520133", lat: 27.428, lng: 85.032 },
+  { name: "Dhulikhel Hospital", address: "Dhulikhel, Kavre", type: "hospitals", phone: "+977-11-490497", lat: 27.622, lng: 85.547 },
+  { name: "Nepal Police HQ", address: "Naxal, Kathmandu", type: "police", phone: "100", lat: 27.716, lng: 85.325 },
+  { name: "Tourist Police Kathmandu", address: "Bhrikutimandap", type: "police", phone: "1144", lat: 27.700, lng: 85.319 },
+  { name: "Asan Bazaar", address: "Kathmandu", type: "stores", phone: "", lat: 27.706, lng: 85.310 },
+  { name: "Nepal Bank Head Office", address: "Dharmapath, Kathmandu", type: "atms", phone: "", lat: 27.705, lng: 85.316 },
+  // --- Gandaki ---
+  { name: "Gandaki Medical College", address: "Prithivi Chowk, Pokhara", type: "hospitals", phone: "+977-61-540566", lat: 28.202, lng: 83.973 },
+  { name: "Manipal Teaching Hospital", address: "Phulbari, Pokhara", type: "hospitals", phone: "+977-61-526416", lat: 28.222, lng: 83.986 },
+  { name: "Western Regional Hospital", address: "Ramghat, Pokhara", type: "hospitals", phone: "+977-61-520067", lat: 28.197, lng: 83.973 },
+  { name: "Dhaulagiri Zonal Hospital", address: "Baglung Bazaar", type: "hospitals", phone: "+977-68-520133", lat: 28.267, lng: 83.590 },
+  { name: "Gandaki Police HQ", address: "Pokhara", type: "police", phone: "100", lat: 28.210, lng: 83.985 },
+  { name: "Tourist Police Lakeside", address: "Baidam, Pokhara", type: "police", phone: "1144", lat: 28.210, lng: 83.955 },
+  { name: "Lakeside Market", address: "Baidam, Pokhara", type: "stores", phone: "", lat: 28.209, lng: 83.958 },
+  { name: "Mahendrapul Bazaar", address: "Pokhara", type: "stores", phone: "", lat: 28.215, lng: 83.972 },
+  { name: "Nabil Bank Lakeside", address: "Pokhara", type: "atms", phone: "", lat: 28.209, lng: 83.958 },
+  // --- Lumbini ---
+  { name: "Lumbini Provincial Hospital", address: "Butwal, Rupandehi", type: "hospitals", phone: "+977-71-540188", lat: 27.705, lng: 83.460 },
+  { name: "Bheri Zonal Hospital", address: "Nepalgunj, Banke", type: "hospitals", phone: "+977-81-520133", lat: 28.053, lng: 81.616 },
+  { name: "Bharatpur Hospital", address: "Bharatpur, Chitwan", type: "hospitals", phone: "+977-56-520111", lat: 27.680, lng: 84.433 },
+  { name: "Lumbini Police HQ", address: "Butwal", type: "police", phone: "100", lat: 27.705, lng: 83.460 },
+  { name: "Nepalgunj Bazaar", address: "Nepalgunj", type: "stores", phone: "", lat: 28.053, lng: 81.616 },
+  { name: "Lumbini Peace Market", address: "Lumbini", type: "stores", phone: "", lat: 27.484, lng: 83.276 },
+  { name: "Siddhartha Bank Butwal", address: "Butwal", type: "atms", phone: "", lat: 27.705, lng: 83.460 },
+  // --- Karnali ---
+  { name: "Karnali Provincial Hospital", address: "Birendranagar, Surkhet", type: "hospitals", phone: "+977-83-520200", lat: 28.600, lng: 81.633 },
+  { name: "Jumla District Hospital", address: "Jumla Bazaar", type: "hospitals", phone: "+977-87-520133", lat: 29.275, lng: 82.183 },
+  { name: "Mugu District Hospital", address: "Gamgadhi, Mugu", type: "hospitals", phone: "+977-87-540133", lat: 29.614, lng: 82.145 },
+  { name: "Humla District Hospital", address: "Simikot, Humla", type: "hospitals", phone: "+977-87-680133", lat: 29.971, lng: 81.819 },
+  { name: "Dolpa District Hospital", address: "Dunai, Dolpa", type: "hospitals", phone: "+977-87-720133", lat: 28.950, lng: 82.900 },
+  { name: "Karnali Police HQ", address: "Birendranagar, Surkhet", type: "police", phone: "100", lat: 28.600, lng: 81.633 },
+  { name: "Jumla Police Station", address: "Jumla Bazaar", type: "police", phone: "100", lat: 29.275, lng: 82.183 },
+  { name: "Birendranagar Market", address: "Surkhet", type: "stores", phone: "", lat: 28.600, lng: 81.633 },
+  { name: "Nepal Bank Jumla", address: "Jumla Bazaar", type: "atms", phone: "", lat: 29.275, lng: 82.183 },
+  // --- Sudurpashchim ---
+  { name: "Seti Provincial Hospital", address: "Dhangadhi, Kailali", type: "hospitals", phone: "+977-91-520133", lat: 28.700, lng: 80.590 },
+  { name: "Mahakali Zonal Hospital", address: "Mahendranagar, Kanchanpur", type: "hospitals", phone: "+977-99-520133", lat: 28.970, lng: 80.177 },
+  { name: "Doti District Hospital", address: "Dipayal Silgadhi", type: "hospitals", phone: "+977-94-520133", lat: 29.261, lng: 80.940 },
+  { name: "Baitadi District Hospital", address: "Dasharathchand", type: "hospitals", phone: "+977-95-520133", lat: 29.517, lng: 80.433 },
+  { name: "Achham District Hospital", address: "Mangalsen", type: "hospitals", phone: "+977-97-520133", lat: 29.140, lng: 81.230 },
+  { name: "Bajura District Hospital", address: "Martadi", type: "hospitals", phone: "+977-97-540133", lat: 29.450, lng: 81.480 },
+  { name: "Sudurpashchim Police HQ", address: "Godawari, Kailali", type: "police", phone: "100", lat: 28.900, lng: 80.583 },
+  { name: "Mahendranagar Police", address: "Bhimdatta, Kanchanpur", type: "police", phone: "100", lat: 28.970, lng: 80.177 },
+  { name: "Dhangadhi Bazaar", address: "Kailali", type: "stores", phone: "", lat: 28.700, lng: 80.590 },
+  { name: "Mahendranagar Market", address: "Bhimdatta", type: "stores", phone: "", lat: 28.970, lng: 80.177 },
+  { name: "Nepal Bank Dhangadhi", address: "Dhangadhi", type: "atms", phone: "", lat: 28.700, lng: 80.590 },
+]
+
+// Haversine distance (km) between two coordinates.
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// Compass bearing (16-point) from A to B.
+const compassBearing = (lat1, lng1, lat2, lng2) => {
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const y = Math.sin(dLng) * Math.cos((lat2 * Math.PI) / 180)
+  const x =
+    Math.cos((lat1 * Math.PI) / 180) * Math.sin((lat2 * Math.PI) / 180) -
+    Math.sin((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.cos(dLng)
+  const deg = (Math.atan2(y, x) * 180) / Math.PI
+  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+  return dirs[Math.round(((deg + 360) % 360) / 22.5) % 16]
+}
+
+const compassArrow = (dir) => {
+  const arrows = { N: "⬆", NE: "↗", E: "➔", SE: "↘", S: "⬇", SW: "↙", W: "⬅", NW: "↖" }
+  for (const k of Object.keys(arrows)) if (dir.startsWith(k)) return arrows[k]
+  return "➔"
+}
+
 const getNearbyAmenities = (lat, lng, type) => {
-  if (type === "hotels") {
-    return [
-      { id: "h1", name: "Lakeside Boutique Resort & Spa", address: "Baidam Rd 6, Lakeside", distance: "0.8 km", bearing: "North-East ↗", coords: { lat: lat + 0.007, lng: lng + 0.005 } },
-      { id: "h2", name: "Hotel Peace Palace Pokhara", address: "Lakeside North, Pokhara", distance: "1.4 km", bearing: "East ➔", coords: { lat: lat + 0.002, lng: lng + 0.012 } },
-      { id: "h3", name: "Annapurna Himalayan View Lodge", address: "Sarangkot Road", distance: "2.7 km", bearing: "North ⬆", coords: { lat: lat + 0.024, lng: lng - 0.004 } },
-      { id: "h4", name: "Phewa Lake Edge Hotel", address: "South Lakeside Shore", distance: "1.1 km", bearing: "South-West ↙", coords: { lat: lat - 0.009, lng: lng - 0.005 } },
-    ]
-  }
-  if (type === "hospitals") {
-    return [
-      { id: "m1", name: "Gandaki Medical College Hospital", address: "Prithivi Chowk, Pokhara", distance: "1.6 km", bearing: "East ➔", coords: { lat: lat + 0.003, lng: lng + 0.014 } },
-      { id: "m2", name: "Manipal Teaching Hospital", address: "Phulbari, Pokhara", distance: "3.2 km", bearing: "North-East ↗", coords: { lat: lat + 0.025, lng: lng + 0.020 } },
-      { id: "m3", name: "Western Regional Hospital (Metro)", address: "Ramghat, Pokhara", distance: "2.1 km", bearing: "East ➔", coords: { lat: lat + 0.004, lng: lng + 0.018 } },
-      { id: "m4", name: "Charak Memorial Hospital", address: "Naghdhunga, Pokhara", distance: "1.2 km", bearing: "South-East ↘", coords: { lat: lat - 0.008, lng: lng + 0.009 } },
-    ]
-  }
-  if (type === "stores") {
-    return [
-      { id: "s1", name: "Lakeside Supermarket & Pharmacy", address: "Baidam Main Street", distance: "0.4 km", bearing: "North ⬆", coords: { lat: lat + 0.004, lng: lng } },
-      { id: "s2", name: "Himalayan Trekking Gear Store", address: "Lakeside Center", distance: "0.7 km", bearing: "North-East ↗", coords: { lat: lat + 0.006, lng: lng + 0.004 } },
-      { id: "s3", name: "Chipledhunga Departmental Store", address: "Chipledhunga Chowk", distance: "2.5 km", bearing: "East ➔", coords: { lat: lat + 0.012, lng: lng + 0.022 } },
-      { id: "s4", name: "Mahendrapul Wholesale Bazaar", address: "Mahendrapul, Pokhara", distance: "2.8 km", bearing: "East ➔", coords: { lat: lat + 0.015, lng: lng + 0.024 } },
-    ]
-  }
-  return [
-    { id: "a1", name: "Nabil Bank ATM & Currency Exchange", address: "Lakeside Central Chowk", distance: "0.3 km", bearing: "North ⬆", coords: { lat: lat + 0.003, lng: lng + 0.001 } },
-    { id: "a2", name: "Standard Chartered ATM Lounge", address: "Baidam Road", distance: "0.6 km", bearing: "North-East ↗", coords: { lat: lat + 0.005, lng: lng + 0.003 } },
-    { id: "a3", name: "Nepal SBI Bank Branch & ATM", address: "Chipledhunga", distance: "2.4 km", bearing: "East ➔", coords: { lat: lat + 0.011, lng: lng + 0.021 } },
-  ]
+  const pool = NATIONAL_AMENITIES.filter((a) => a.type === type)
+  const scored = pool
+    .map((a) => {
+      const km = haversineKm(lat, lng, a.lat, a.lng)
+      return { ...a, km, bearing: compassBearing(lat, lng, a.lat, a.lng) }
+    })
+    .sort((a, b) => a.km - b.km)
+    .slice(0, 4)
+  return scored.map((a) => ({
+    id: `${type}-${a.name.replace(/\s+/g, "-").toLowerCase()}`,
+    name: a.name,
+    address: a.address,
+    distance: a.km < 0.1 ? "Here" : `${a.km.toFixed(1)} km`,
+    bearing: `${a.bearing} ${compassArrow(a.bearing)}`,
+    coords: { lat: a.lat, lng: a.lng },
+    phone: a.phone,
+  }))
 }
 
 const TURN_ICONS = {

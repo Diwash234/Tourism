@@ -468,6 +468,18 @@ export default function DestinationDetails() {
                 height="400px"
               />
             </div>
+
+            {/* Street-level Mapillary imagery (Google-Street-View style) */}
+            {destination.latitude && destination.longitude && (
+              <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">
+                <MapillaryImages
+                  latitude={Number(destination.latitude)}
+                  longitude={Number(destination.longitude)}
+                  radiusM={800}
+                  limit={6}
+                />
+              </div>
+            )}
           </div>
 
           {/* Section 7: Verified Source Citations & References */}

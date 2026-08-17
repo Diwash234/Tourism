@@ -317,3 +317,14 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   Jomsom, Maya Devi).
 - Audit totals: 3,018 real + 274 AI + 3,629 SVG (mostly hotels) + 596
   no-cover (frontend chain guarantees a visible photo for every destination).
+
+## 17. Round 8 — all-province data, real images & nationwide emergency/navigation
+
+- Province values normalized to 7 canonical names (filter by `?province=...`).
+- 12 new destinations + 12 real covers (total 3,022) for Koshi/Madhesh/Karnali/
+  Sudurpashchim incl. Akala Devi, Pathibhara, Jumla, Simikot, Dharan, Gadhimai,
+  Lahan, Charikot, Dolakha Bhimsen, Parshuram Dham, Bhimeshwor.
+- Navigation "nearby" now uses a 77-facility nationwide directory with real
+  Haversine distance + compass bearing (all 7 provinces).
+- Emergency page covers all 77 districts.
+- MapillaryImages rendered on destination details; setup hint when no token.

@@ -228,3 +228,16 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
 - Audit: 7,517 dests → 3,018 real + 274 AI-landmark + 3,629 SVG (mostly
   hotels) + 596 no-cover (all resolved via frontend chain → nothing blank).
   DB 15 MB, manifest 3,018, 60 tests pass, frontend builds clean.
+
+---
+
+## 🗺️ Round 8: All-province coverage — new destinations, real images, nationwide emergency/navigation, Mapillary
+
+- **Province data normalized**: fragmented values (Nepali/English/`Province N`/numbers) unified to 7 canonical names — `?province=Karnali/Sudurpashchim/Koshi/Madhesh/...` filters now work everywhere.
+- **12 new real destinations** in under-represented provinces (cities + temples + pilgrimage): Kalaiya (Bara/Madhesh), Simikot (Humla/Karnali), Gamgadhi (Mugu), Dunai (Dolpa), Birendranagar (Surkhet — Karnali capital), Manma (Kalikot), Dipayal Silgadhi (Doti — Sudurpashchim capital), Martadi (Bajura), Mangalsen (Achham), Parshuram Dham (Doti), Bhimeshwor Temple (Dolakha), Pathibhara Devi Temple (Taplejung/Koshi).
+- **12 more real covers** (total **3,022**): **Akala Devi Mandir Sirsekot** (was the user's complaint — real photo now!), Akala Devi Temple, Akala Devi Pokhara, Pathibhara Devi, Jumla (Tila Valley), Simikot, Dharan (Budasubba Temple), Gadhimai Temple, Lahan (Mahendra Highway), Charikot/Dolakha, Dolakha Bhimsen, Bhimeshwor Temple.
+- **Navigation fixed — nationwide amenities**: replaced the Pokhara-only hardcoded "nearby" lists with a **77-facility nationwide directory** (hospitals/police/stores/ATMs across all 7 provinces) + real Haversine distance + compass bearing computed from the user's GPS. Navigation now works in Karnali, Sudurpashchim, Koshi, Madhesh — not just Pokhara/Kathmandu.
+- **Emergency page: all 77 districts covered** — added Jumla, Humla (Simikot), Mugu, Dolpa, Kalikot, Jajarkot, Rukum, Salyan, Dailekh (Karnali); Darchula, Baitadi, Bajhang, Bajura, Achham, Doti, Kanchanpur (Sudurpashchim); Ilam, Panchthar, Taplejung, Dhankuta, Terhathum, Bhojpur, Khotang, Solukhumbu, Udayapur, Saptari, Siraha (Koshi); Parsa, Bara, Rautahat, Sarlahi, Mahottari, Dhanusha (Madhesh); plus Banke/Bardiya/Dang/Rolpa/Palpa/Gulmi/etc. (Lumbini) and all Gandaki districts.
+- **Mapillary street imagery**: now rendered on the **destination detail page** (was imported but never shown) in addition to Navigation; when no `MAPILLARY_ACCESS_TOKEN` is configured the UI shows a clear setup hint instead of nothing. Token is served to the browser via `/api/v1/config/public/`.
+- **Admin dashboard image manager** confirmed working: destination picker + preview grid + discover (Wikimedia/Openverse/Unsplash/Pexels) + set-cover + delete for every destination.
+- Manifest 3,022; DB 15 MB; 60 tests pass; frontend builds clean.
