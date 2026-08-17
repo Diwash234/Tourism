@@ -378,3 +378,44 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   a **count input (1–200, default 50)** and the backend already accepts any
   number; admin can add as many real photos per destination as they want.
 - Manifest 7,680×2; DB ~25 MB; 60 tests pass; frontend builds clean.
+
+---
+
+## 🏔️ Round 13: Koshi Province — 108 famous places added (7,788 dests)
+
+Added the famous named attractions from the detailed Koshi-province ward-level
+data (Taplejung, Panchthar, Ilam, Jhapa, Morang, Sunsari, Dhankuta, Terhathum,
+Udayapur) as real destinations with correct categories + coordinates, each
+with **2 real photos** (verified pool; manifest now 7,788 entries × 2):
+
+- **Taplejung**: Khangpachen, Khambachen, Timbung Pokhari (4,481 m), Dhangdhange
+  Waterfall, Sidingwa Dham, Diki Chhyoling Monastery.
+- **Panchthar**: Sadhutar Viewpoint, Hilihang Palace, Jor Pokhari, Timbu
+  Pokhari, Chiwabhanjyang, Phalot, Phokte Danda, Aagejung Monastery, Labrekuti,
+  Silauti, Mahaguru Phalgunanda Mausoleum, Kummayak Kussayak, Battise Waterfall,
+  Hile Pokhari, Gumse Pathibhara, Pauwa Bhanjyang, Loha Kil, Sumhatlung.
+- **Ilam**: Antu Danda, Chhintapu, Gajur Mukhi, Sanu Pathibhara, Mai Beni Dham,
+  Siddhi Thumka, Pashupatinagar, Panchakanya Temple, Panitar Tea Garden,
+  Mangmanglung, Larumba Mangsebung, Meghma Gumba, Thumkerani, Singhdevi,
+  Tare Bhir, Deumai Pokhari, Kuibhir, Ratna Tunnel, Guphathumki, Sohana Devi,
+  Todke Jharana.
+- **Jhapa**: Satakshi Dham, Kankai Dham Kotihom, Domukha, Chillagadh,
+  Dhanuskoti Dham, Jamunkhadi Simsar, Kechana Lake (southernmost Nepal),
+  Char Koshe Jhadi, Sukhani Martyrs' Park, Biratpokhar, Timai Suspension Bridge,
+  Dharagola View Tower, Selfie Danda.
+- **Morang**: Raja Rani Lake, Kane Pokhari, Kalikoshi Simsar, Sunwarshi Pokhari,
+  Beteni Simsar, Lampate Simsar, Biratnagar Jute Mills, Dhanpalgadhi, Letang
+  Chure Forest, Budha Thakur, Gidhaniya Park, Miklajung Danda, Chuli Pokhari,
+  Miklubeteni, Neselung Danda, Devisthan Simsar.
+- **Sunsari**: Chhinnamasta Temple (Barahakshetra), Vishnupaduka, Panchakanya
+  Natural Park, Taltalaiya, Kachana Mahadev, Ramdhuni Temple, Barju Tal, Chimdi
+  Wetland, Amaha Pokhari, Tegne Pokhari, Kavyabatika.
+- **Udayapur**: Chaudandigadhi Fort, Basaha Than Shivalaya, Shivalaya Temple
+  Belha, Pushpalal Chowk Park, Lingeshwar Shivalaya, Kanya Aulshree Gumba,
+  Dwardani Devi Sthan, Mini Apraha Waterfall, Thanpokhari Than, Katari Bazaar,
+  Tawa River, Triyuga River.
+- **Dhankuta / Terhathum**: Namaste Jharna, Dhwaje Danda, Hile Bazaar, Mulghat,
+  Marg Pokhari, Panchakanya Pokhari, Myanglung Bazaar, Singha Bahini, Sankranti
+  Bazaar, Khamlalung, Pattek Danda, Hyatrung Jharana.
+- DB: 7,788 destinations, 15,597 verified real image rows, 1 cover each,
+  integrity ok; manifest 7,788 × 2; 60 tests pass; frontend builds clean.
