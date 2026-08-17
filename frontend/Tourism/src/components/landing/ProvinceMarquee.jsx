@@ -13,7 +13,7 @@ const PROVINCES = [
     famous: "Ilam tea gardens, Kanchenjunga, Pathibhara",
     food: "Kinema, gundruk",
     festival: "Udhauli Ubhauli, Sakela",
-    img: "https://images.unsplash.com/photo-1589308078056-3eb0e4a3a5c5?w=800&q=80",
+    img: "/images/destinations/kanchenjunga/peak.jpg",
     q: "Ilam Nepal",
   },
   {
@@ -21,7 +21,7 @@ const PROVINCES = [
     famous: "Janaki Mandir, Chitwan edge, Mithila art",
     food: "litti chokha, fish curry",
     festival: "Chhath, Vivah Panchami",
-    img: "https://images.unsplash.com/photo-1605640840605-14ac1855827b?w=800&q=80",
+    img: "/images/destinations/janakpur/janaki-mandir.jpg",
     q: "Janakpur Nepal",
   },
   {
@@ -29,7 +29,7 @@ const PROVINCES = [
     famous: "Kathmandu Durbar Square, Pashupatinath, Boudha",
     food: "momo, Newari khaja",
     festival: "Indra Jatra, Bisket",
-    img: "https://images.unsplash.com/photo-1605640840605-14ac1855827b?w=800&q=80",
+    img: "/images/destinations/kathmandu/durbar-square.jpg",
     q: "Kathmandu Nepal",
   },
   {
@@ -37,7 +37,7 @@ const PROVINCES = [
     famous: "Pokhara, Phewa Lake, Annapurna, Muktinath",
     food: "thakali thali, sel roti",
     festival: "Tamu Lhosar, Bagh Jatra",
-    img: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80",
+    img: "/images/destinations/pokhara/fewatal.jpg",
     q: "Pokhara Nepal",
   },
   {
@@ -45,7 +45,7 @@ const PROVINCES = [
     famous: "Birthplace of Buddha, Ashoka Pillar",
     food: "chukauni, dhikri",
     festival: "Buddha Jayanti",
-    img: "https://images.unsplash.com/photo-1609766428351-8e1a5c4e8e8a?w=800&q=80",
+    img: "/images/destinations/lumbini/garden.jpg",
     q: "Lumbini Nepal",
   },
   {
@@ -53,7 +53,7 @@ const PROVINCES = [
     famous: "Rara Lake, Phoksundo, Jumla wilderness",
     food: "chaklagau, marsi rice",
     festival: "Jatpokhara, Sinhasan",
-    img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
+    img: "/images/destinations/rara/alpine-lake.jpg",
     q: "Rara Lake Nepal",
   },
   {
@@ -61,7 +61,7 @@ const PROVINCES = [
     famous: "Khaptad plateau, Shuklaphanta, Saipal",
     food: "kachila, chyakhna",
     festival: "Gaura Parva",
-    img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
+    img: "/images/destinations/khaptad/landscape.jpg",
     q: "Khaptad Nepal",
   },
 ]

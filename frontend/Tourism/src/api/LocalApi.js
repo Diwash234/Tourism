@@ -76,7 +76,7 @@ const localApi = {
       })
       return res
     } catch {
-      return { data: { success: true, url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600" } }
+      return { data: { success: true, url: "/images/destinations/everest/base-camp.jpg" } }
     }
   },
 }

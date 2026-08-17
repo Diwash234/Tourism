@@ -18,7 +18,7 @@ const PORTAL_THEMES = {
     accent: "from-teal-600 to-emerald-600",
     ring: "ring-teal-400",
     badge: "bg-teal-50 text-teal-700 border-teal-200",
-    hero: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1400&q=80",
+    hero: "/images/destinations/pokhara/fewatal.jpg",
     note: "Explore 6,000+ destinations, build itineraries and estimate trip costs.",
   },
   staff: {
@@ -27,7 +27,7 @@ const PORTAL_THEMES = {
     accent: "from-amber-500 to-orange-600",
     ring: "ring-amber-400",
     badge: "bg-amber-50 text-amber-700 border-amber-200",
-    hero: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1400&q=80",
+    hero: "/images/destinations/gorkha/durbar.jpg",
     note: "Staff accounts are issued by an administrator. Contact your supervisor for access.",
   },
   admin: {
@@ -36,7 +36,7 @@ const PORTAL_THEMES = {
     accent: "from-slate-800 to-nepalred-600",
     ring: "ring-nepalred-400",
     badge: "bg-slate-100 text-slate-700 border-slate-300",
-    hero: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1400&q=80",
+    hero: "/images/destinations/rani-mahal/palace.jpg",
     note: "Super-admin accounts are created securely on the server with `python manage.py createsuperuser`.",
   },
 }

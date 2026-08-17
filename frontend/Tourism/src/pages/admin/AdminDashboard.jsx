@@ -1829,7 +1829,7 @@ const AdminDashboard = () => {
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.onerror = null
-                          e.target.src = "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80"
+                          e.target.src = "/images/destinations/patan/durbar-square.jpg"
                         }}
                       />
                       <div className="absolute top-2 left-2">

@@ -10,7 +10,7 @@ const EXPEDITIONS = [
     route: "Kathmandu ➔ Lukla ➔ Namche ➔ Dingboche ➔ EBC (5,364m)",
     metrics: { days: 12, maxAlt: "5,364m", totalBudget: "$680 USD", safetyStatus: "100% Verified" },
     desc: "Seamless acclimatization schedule with AI altitude sentinel monitoring, teahouse reservations in Namche Bazaar, and real-time emergency helpline connectivity.",
-    image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
+    image: "/images/destinations/everest/base-camp.jpg",
     slug: "everest-base-camp-ebc",
   },
   {
@@ -19,7 +19,7 @@ const EXPEDITIONS = [
     route: "Pokhara ➔ Nayapul ➔ Ghandruk ➔ Chomrong ➔ ABC (4,130m)",
     metrics: { days: 7, maxAlt: "4,130m", totalBudget: "$340 USD", safetyStatus: "Zero AMS Sickness" },
     desc: "Navigated through blooming rhododendron forests into the 360-degree Annapurna glacier amphitheater with turn-by-turn road graph waypoints.",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
+    image: "/images/destinations/everest/base-camp.jpg",
     slug: "annapurna-base-camp-abc-sanctuary",
   },
   {
@@ -28,7 +28,7 @@ const EXPEDITIONS = [
     route: "Kathmandu ➔ Prithvi Hwy ➔ Sarangkot ➔ Phewa Boating",
     metrics: { days: 4, maxAlt: "1,592m", totalBudget: "$195 USD", safetyStatus: "Full Comfort" },
     desc: "Paragliding over Machhapuchhre reflection, world peace pagoda sunrise hike, and local Newari feast in Bandipur old quarter.",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
+    image: "/images/destinations/pokhara/fewatal.jpg",
     slug: "phewa-lake-tal-barahi",
   },
 ]

@@ -26,7 +26,7 @@ const LocalDashboard = () => {
   useEffect(() => { load() }, [])
 
   const onSubmit = async (data) => {
-    const imageUrl = data.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600"
+    const imageUrl = data.imageUrl || "/images/destinations/mustang/lo-manthang.jpg"
     try {
       const { data: created } = await localApi.addPlace({ ...data, image: imageUrl })
       setPlaces((prev) => [created || { id: Date.now().toString(), ...data, image: imageUrl, status: "pending" }, ...prev])

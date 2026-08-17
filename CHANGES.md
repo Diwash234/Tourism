@@ -151,3 +151,23 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
   - Landing page search bar + Destinations explorer now show live suggestion dropdowns with a "✨ Did you mean" row.
 - **Gap report**: 7,517 dests → 2,963 real + 274 AI-landmark + 3,631 SVG (mostly hotels) + 649 no-cover (168 non-hotel). Remaining real-photo candidates are obscure OSM nodes with zero public photos.
 - DB still 15 MB; snapshot 2.0 MB; manifest rebuilt to **2,963**; 60 tests pass; frontend builds clean.
+
+---
+
+## 🚫 Round 5: Zero repeated/generic images + 32 more real covers (total 2,995)
+
+- **Every Unsplash hotlink removed from the frontend (0 remaining)** — they were the
+  "same image everywhere" problem (shared mountain/lake photos on cards, one hotel
+  photo for all hotels). Replaced with:
+  - per-destination unique SVG postcard fallbacks (DestinationCard/HotelCard onError),
+  - the 40 unique local landmark photos (PlaceholderImage, ProvinceMarquee,
+    AuthShell, Chatbot, Gallery, Compare, AdminDashboard, LocalApi, geocoder,
+    nepalDestinations data) — deterministic per card, no repeats, no external deps.
+  - backend `NEPAL_CURATED_PHOTOS` Unsplash list replaced with local paths.
+- **32 more real covers** (total **2,995**): Ghandruk, International Mountain
+  Museum ×2, Bardia NP, Lumbini Maya Devi Temple ×4, Chandragiri Cable Car,
+  Bageshwori Temple ×2, Bhaleshwor Mahadev, Kumari Cave, Kodari Tatopani,
+  Bhedetar/Namaste Jharna, Sailung, Kankai River, Darchula (Api BC) + verified
+  reuses for sister destinations: Chitwan NP ×5, Lo Manthang ×3, Halesi ×2,
+  Poon Hill Trek, Budhanilkantha, Bagmati River, Chhoser Gompa.
+- No-cover destinations: 649 → **619**. DB still 15 MB; manifest 2,995; 60 tests pass.

@@ -6,7 +6,7 @@ const TESTIMONIALS = [
   {
     name: "Elena Rostova",
     country: "Germany",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+    avatar: "/images/destinations/gorkha/durbar.jpg",
     dest: "Annapurna Base Camp",
     review: "The turn-by-turn navigation HUD and real-time altitude sickness guides gave us complete peace of mind. We saved nearly $200 by following the ML budget estimations!",
     rating: 5,
@@ -14,7 +14,7 @@ const TESTIMONIALS = [
   {
     name: "Aarav Sharma",
     country: "India",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+    avatar: "/images/destinations/muktinath/temple.jpg",
     dest: "Pashupatinath & Janakpur",
     review: "Having the multi-dialect Nepali & Maithili phrasebook with audio pronunciation made interacting with local temple priests and artisans so rewarding.",
     rating: 5,
@@ -22,7 +22,7 @@ const TESTIMONIALS = [
   {
     name: "Liam O'Connor",
     country: "Canada",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
+    avatar: "/images/destinations/langtang/valley.jpg",
     dest: "Everest & Gokyo Lakes",
     review: "When weather dropped unexpectedly, the live hazard alerts and direct police helpline (1144) were immediate. Best all-in-one portal for Nepal travel.",
     rating: 5,

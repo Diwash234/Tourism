@@ -8,7 +8,7 @@ import {
 } from "react-icons/fi"
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
-import { getDestinationImageUrl } from "../../utils/imageUtils"
+import { getDestinationImageUrl, postcardUrl } from "../../utils/imageUtils"
 
 const RISK_STYLES = {
   low: {
@@ -148,11 +148,11 @@ const DestinationCard = ({
           alt={name}
           loading="lazy"
           onError={(e) => {
-            // Cycle to the next real fallback photo, never the old
-            // solid-colour placeholder block.
+            // Never repeat a shared generic photo: fall back to this
+            // destination's own unique postcard (deterministic per place).
             if (!e.target.dataset.fallback) {
               e.target.dataset.fallback = "1"
-              e.target.src = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80"
+              e.target.src = postcardUrl(destination)
             }
           }}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"

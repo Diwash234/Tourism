@@ -97,7 +97,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.0250, lng: 83.6210, alt: "1,150m",
     district: "Parbat", province: "Gandaki", municipality: "Bihadi Rural Municipality",
     category: "Scenic Hill Settlement",
-    image: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "bihadi-parbat",
     description: "Scenic rural settlement along the Kali Gandaki river corridor in Parbat district."
   },
@@ -109,7 +109,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.9833, lng: 83.7667, alt: "740m",
     district: "Syangja", province: "Gandaki", municipality: "Waling Municipality",
     category: "Heritage Town",
-    image: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "waling-bazaar",
     description: "Vibrant cultural town on the Siddhartha Highway surrounded by lush terraced green hills."
   },
@@ -121,7 +121,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.2096, lng: 83.9856, alt: "822m",
     district: "Kaski", province: "Gandaki", municipality: "Pokhara Metropolitan City",
     category: "Lakes & Adventure",
-    image: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "phewa-lake-tal-barahi",
     description: "Tourism capital of Nepal with freshwater lakes and 360-degree views of Mt. Machhapuchhre."
   },
@@ -133,7 +133,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.7172, lng: 85.3240, alt: "1,400m",
     district: "Kathmandu", province: "Bagmati", municipality: "Kathmandu Metropolitan City",
     category: "UNESCO World Heritage",
-    image: "https://images.unsplash.com/photo-1570192977-f48187449e48?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "pashupatinath-temple",
     description: "Historic capital city renowned for ancient Licchavi and Malla pagoda architecture."
   },
@@ -145,7 +145,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.3800, lng: 83.5600, alt: "880m",
     district: "Myagdi", province: "Gandaki", municipality: "Beni Municipality",
     category: "Sacred Temple",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "galeshwor-temple-myagdi",
     description: "Sacred Shiva pilgrimage temple built over a single massive rock on the banks of Kali Gandaki."
   },
@@ -156,7 +156,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.4000, lng: 83.7000, alt: "3,210m",
     district: "Myagdi", province: "Gandaki", municipality: "Annapurna Rural Municipality",
     category: "Panoramic Viewpoint",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "ghorepani-poon-hill",
     description: "World-famous sunrise vantage point over Dhaulagiri, Annapurna, and Nilgiri ranges."
   },
@@ -168,7 +168,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.1800, lng: 82.6800, alt: "2,120m",
     district: "Pyuthan", province: "Lumbini", municipality: "Swargadwari Municipality",
     category: "Pilgrimage Sanctuary",
-    image: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "swargadwari-pyuthan",
     description: "Ancient Vedic sacrificial holy shrine legendary as the gateway to heaven in Mahabharata."
   },
@@ -180,7 +180,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.0042, lng: 86.8570, alt: "5,364m",
     district: "Solukhumbu", province: "Koshi", municipality: "Khumbu Pasang Lhamu",
     category: "Alpine Trekking",
-    image: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "everest-base-camp-ebc",
     description: "Foot of Mt. Everest (8,848m) surrounded by the highest snow-capped summits on Earth."
   },
@@ -192,7 +192,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.5300, lng: 83.8800, alt: "4,130m",
     district: "Kaski", province: "Gandaki", municipality: "Annapurna Rural Municipality",
     category: "High Mountain Amphitheater",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "annapurna-base-camp-abc-sanctuary",
     description: "Spectacular 360-degree mountain bowl surrounded by Annapurna I (8,091m) and Fishtail."
   },
@@ -204,7 +204,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.5800, lng: 84.4900, alt: "208m",
     district: "Chitwan", province: "Bagmati", municipality: "Ratnanagar Municipality",
     category: "Wildlife & Safari",
-    image: "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "chitwan-national-park-safari",
     description: "UNESCO protected subtropical wilderness home to wild Bengal Tigers and One-Horned Rhinos."
   },
@@ -216,7 +216,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.4833, lng: 83.2767, alt: "150m",
     district: "Rupandehi", province: "Lumbini", municipality: "Lumbini Sanskritik Municipality",
     category: "Birthplace of Buddha",
-    image: "https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "lumbini-sacred-garden-maya-devi-temple",
     description: "The historical birthplace of Siddhartha Gautama Buddha in 623 BC with international monasteries."
   },
@@ -228,7 +228,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.9985, lng: 83.8473, alt: "3,840m",
     district: "Mustang", province: "Gandaki", municipality: "Lo-Ghekar Damodarkunda",
     category: "High Altitude Desert",
-    image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "upper-mustang-lo-manthang",
     description: "Ancient walled Tibetan kingdom in the rain-shadow of Annapurna and Dhaulagiri."
   },
@@ -240,7 +240,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 29.5375, lng: 82.0911, alt: "2,990m",
     district: "Mugu", province: "Karnali", municipality: "Chhayanath Rara Municipality",
     category: "Alpine Lake",
-    image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "rara-lake-national-park",
     description: "Nepal's largest freshwater lake with deep crystal waters surrounded by coniferous forests."
   },
@@ -252,7 +252,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.6800, lng: 83.8400, alt: "4,919m",
     district: "Manang", province: "Gandaki", municipality: "Manang Ngisyang",
     category: "High Glacial Lake",
-    image: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "tilicho-lake-trek",
     description: "One of the highest alpine glacial lakes on Earth at nearly 5,000m elevation."
   },
@@ -264,7 +264,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 29.3500, lng: 81.9700, alt: "2,450m",
     district: "Jumla", province: "Karnali", municipality: "Sinja Rural Municipality",
     category: "Historic Valley",
-    image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "sinja-valley-jumla",
     description: "Ancient capital of the Khas Malla Empire and the historic birthplace of the Nepali language."
   },
@@ -276,7 +276,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 28.5300, lng: 83.0500, alt: "2,850m",
     district: "Baglung", province: "Gandaki", municipality: "Dhorpatan Municipality",
     category: "Alpine Meadows & Reserve",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "dhorpatan-hunting-reserve",
     description: "Nepal's only hunting reserve featuring high marshlands, alpine forests, and Blue Sheep."
   },
@@ -288,7 +288,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 29.3600, lng: 81.1200, alt: "3,100m",
     district: "Doti", province: "Sudurpashchim", municipality: "Khaptad Chhanna",
     category: "Sacred Plateau Meadows",
-    image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "khaptad-national-park",
     description: "Spiritual plateau of rolling green meadows, ancient hermitages, and 200+ bird species."
   },
@@ -300,7 +300,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.4200, lng: 87.7700, alt: "3,794m",
     district: "Taplejung", province: "Koshi", municipality: "Phungling Municipality",
     category: "High Altitude Sacred Shrine",
-    image: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "pathibhara-devi-temple",
     description: "Revered Shakti Peeth atop an alpine ridge offering vistas of Mt. Kanchenjunga."
   },
@@ -312,7 +312,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.7000, lng: 87.1000, alt: "3,600m",
     district: "Sankhuwasabha", province: "Koshi", municipality: "Makalu Rural Municipality",
     category: "Pristine Glacial Wilderness",
-    image: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "makalu-barun-national-park",
     description: "Untouched deep Himalayan canyon featuring rare wildlife, waterfalls, and granite cliffs."
   },
@@ -324,7 +324,7 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
     lat: 27.9300, lng: 83.4300, alt: "450m",
     district: "Gulmi", province: "Lumbini", municipality: "Ruru Rural Municipality",
     category: "Historic Confluence Shrine",
-    image: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=1200&q=80",
+    image: "/images/destinations/mustang/lo-manthang.jpg",
     slug: "ruru-kshetra-ridi",
     description: "Sacred confluence of Ridi and Kali Gandaki rivers with ancient Rishikesh Temple."
   }
@@ -389,7 +389,7 @@ export function resolveFuzzyPlaceLocation(query) {
         municipality: info.munis[0] || "",
         category: "District Center",
         confidence: 90,
-        image: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80",
+        image: "/images/destinations/mustang/lo-manthang.jpg",
         slug: distName.toLowerCase(),
         description: `Official administrative center of ${distName} in ${prov} Province.`,
       }

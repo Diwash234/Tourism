@@ -473,13 +473,16 @@ class HotelSerializer(serializers.ModelSerializer):
 
 
 NEPAL_CURATED_PHOTOS = [
-    "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1575550959106-5a7defe28b56?w=800&auto=format&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=800&auto=format&fit=crop&q=80",
+    "/images/destinations/everest/base-camp.jpg",
+    "/images/destinations/annapurna/trek.jpg",
+    "/images/destinations/pokhara/fewatal.jpg",
+    "/images/destinations/kathmandu/durbar-square.jpg",
+    "/images/destinations/bhaktapur/durbar.jpg",
+    "/images/destinations/chitwan/safari.jpg",
+    "/images/destinations/rara/alpine-lake.jpg",
+    "/images/destinations/lumbini/garden.jpg",
+    "/images/destinations/ilam/tea-gardens.jpg",
+    "/images/destinations/dhaulagiri/peak.jpg",
 ]
 
 

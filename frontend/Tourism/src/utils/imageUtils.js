@@ -200,7 +200,7 @@ const deriveCategory = (dest) => {
   return "general"
 }
 
-const postcardUrl = (dest) => {
+export const postcardUrl = (dest) => {
   const cat = deriveCategory(dest)
   const name = encodeURIComponent(dest.name || "Nepal")
   const dist = encodeURIComponent(dest.district || dest.city || "")

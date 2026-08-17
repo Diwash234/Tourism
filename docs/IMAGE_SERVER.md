@@ -277,3 +277,16 @@ fallbacks are generated on the fly (`resolve_gallery_photos`). `VACUUM` after.
   `DestinationFilter` gained `letter`/`starts_with` so `/destinations?letter=M`
   filters server-side across all pages. Frontend: Landing search bar and the
   Destinations explorer show suggestion dropdowns + "Did you mean" rows.
+
+## 14. Round 5 — no repeated images + 32 more real covers (2,995)
+
+- All `images.unsplash.com` hotlinks removed from the frontend (was the source of
+  "same image on every card": shared mountain/lake fallbacks, one hotel photo for
+  all hotels). Fallbacks are now per-destination unique postcards or the 40
+  curated local landmark photos — deterministic per card, zero repeats.
+- 32 more real covers: Ghandruk, Intl. Mountain Museum ×2, Bardia NP, Lumbini
+  Maya Devi ×4, Chandragiri Cable Car, Bageshwori ×2, Bhaleshwor Mahadev,
+  Kumari Cave, Kodari Tatopani, Namaste Jharna (Bhedetar), Sailung, Kankai
+  River, Darchula/Api + verified reuses (Chitwan ×5, Lo Manthang ×3, Halesi ×2,
+  Poon Hill, Budhanilkantha, Bagmati, Chhoser).
+- Totals: **2,995 real covers** / 7,517 dests; no-cover 619; DB 15 MB.

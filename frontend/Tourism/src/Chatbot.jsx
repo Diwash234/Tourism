@@ -29,7 +29,7 @@ export default function ChatBot() {
         {
           name: "Pokhara & Phewa Lake",
           city: "Kaski, Gandaki",
-          image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
+          image: "/images/destinations/pokhara/fewatal.jpg",
           slug: "phewa-lake-tal-barahi",
           rating: "4.9",
           budget: "NPR 4,500/day",
@@ -39,7 +39,7 @@ export default function ChatBot() {
         {
           name: "Everest Base Camp (5,364m)",
           city: "Solukhumbu, Koshi",
-          image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
+          image: "/images/destinations/everest/base-camp.jpg",
           slug: "everest-base-camp-ebc",
           rating: "5.0",
           budget: "NPR 7,000/day",

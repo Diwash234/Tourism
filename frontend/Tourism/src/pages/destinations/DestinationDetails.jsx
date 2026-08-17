@@ -163,10 +163,10 @@ export default function DestinationDetails() {
   const authenticRegionalUrl = getDestinationImageUrl(destination)
   const defaultFallbacks = [
     { url: authenticRegionalUrl, caption: `${destination.name} - Scenic View`, category: "landscape", photographer: "Nepal Tourism Verified Media Archive", platform: "Official Tourism Database", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80", caption: "Himalayan Alpine Trail", category: "mountain", photographer: "Alpine Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=1200&q=80", caption: "Lakeside Mountain Panorama", category: "lake", photographer: "Pokhara Tourism Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "https://images.unsplash.com/photo-1570192977-f48187449e48?w=1200&q=80", caption: "Historic Pagoda Temple", category: "temple", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1200&q=80", caption: "High Altitude Landscape", category: "landscape", photographer: "Trans-Himalayan Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "/images/destinations/everest/base-camp.jpg", caption: "Himalayan Alpine Trail", category: "mountain", photographer: "Alpine Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "/images/destinations/pokhara/fewatal.jpg", caption: "Lakeside Mountain Panorama", category: "lake", photographer: "Pokhara Tourism Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "/images/destinations/manakamana/temple.jpg", caption: "Historic Pagoda Temple", category: "temple", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
+    { url: "/images/destinations/everest/base-camp.jpg", caption: "High Altitude Landscape", category: "landscape", photographer: "Trans-Himalayan Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
   ]
   while (allImages.length < 5) {
     allImages.push(defaultFallbacks[allImages.length % defaultFallbacks.length])
