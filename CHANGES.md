@@ -94,3 +94,15 @@ React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL �
 - **Frontend** — `getDestinationImageUrl()` now prefers the API's `images` array; `getImageServerUrl()` helper for client-side path→URL building.
 - Docs: `docs/IMAGE_SERVER.md` + `image-server/README.md` (local run, dataset placement, import, Nginx, env config, Git-prevention, teammate dataset access).
 - Backward compatible: existing Wikimedia/Unsplash/AI/postcard image flow untouched; SQLite stays the database; 36 offline tests pass.
+
+---
+
+## 📸 Real Photos for Festivals, Temples, Lakes, Rivers, Peaks & More (+70 verified covers)
+
+- **70+ new verified Wikimedia Commons photos** attached as covers for destinations that previously showed SVG postcards, across:
+  Temples & Hindu Sites (58→93 real), Mountains & Peaks (24→68), City Tourism, Rivers & River Valleys (29→44), Lakes (31→43), Buddhist Sites & Monasteries (24→37), Waterfalls, UNESCO/Heritage, Pilgrimage, Caves, Hot Springs.
+- Notable additions: Badimalika Temple, Bindabasini Temple, Budhasubba Temple, Janaki Temple, Dhanushadham, Jaleshwar Mahadev, Palanchowk Bhagwati, Kalinchowk Bhagwati, Dolakha Bhimsen, Bajrayogini, Matatirtha, Pindeshwor, Kankalini, Baidyanath Dham, Namo Buddha, Pullahari, Shey Gompa, Seto Gumba, Thrangu Tashi Yangtse, Bedkot Lake, Panch Pokhari, Tsho Rolpa, Imja Lake, Jagadishpur Lake, Gunde Lake, Dudh Pokhari (Gokyo), Arun/Karnali/Koshi/Marshyangdi/Mahakali/Indrawati/Bishnumati/Tamur/Tama Koshi rivers, Ama Dablam, Cho Oyu, Gauri Shankar, Api Himal, Cholatse, Chulu East, Dorje Lakpa, Hyatung Falls→Rani Pokhari fix, Tindhare, Purandhara, Namaste, Jhor, Lamo Jharana, Pachal, Rupal, Biratnagar, Birgunj, Bharatpur (Narayanghat), Pullahari, Pharping Yangleshö, Bhurung Tatopani.
+- Every photo verified to exist via the Wikimedia Commons search API (thumbnails + canonical CDN URLs); rows are `source=wikimedia`, `verification_status=approved`, with attribution & source links.
+- Fixed 2 bad assignments discovered in audit (Manang Braga ← Panauti photo reverted; Serchan Hotel ← Rani Pokhari reverted) and corrected Rani Pokhari's cover (was Ghanta Ghar clock tower).
+- Manifest (`verified_wikimedia_photos.json`) rebuilt from DB: **2,853 entries**.
+- Final: 7,517 destinations — **2,853 real photo covers** + 274 AI landmark covers + 3,735 SVG postcards (mostly hotels/lodges with no publicly licensed photo).
