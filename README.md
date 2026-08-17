@@ -249,3 +249,17 @@ districts) and parses range cells like `"40-120"` into midpoint baselines.
 Numeric trip inputs (e.g. 3 or 4 days / travellers) are accepted directly;
 the response includes `"baseline_source": "dataset_csv"` and the dataset
 coverage so the UI can show that the estimate is data-backed.
+
+---
+
+## 🖼️ Standalone Image Server (100k+ images, NOT in Git)
+
+The large tourism image dataset is served from a **separate static image server**;
+Django stores only paths + metadata and the browser loads images directly from
+the image server.
+
+- **Docs:** [docs/IMAGE_SERVER.md](docs/IMAGE_SERVER.md) and [image-server/README.md](image-server/README.md)
+- **Local dev:** `cd image-server && python -m http.server 8000`
+- **Import metadata:** `python manage.py import_images ./image-server/images`
+- **Config:** `IMAGE_BASE_URL` (dev `http://localhost:8000`, prod `https://images.example.com`) in `Tourism/.env`
+- **Dataset:** never committed — lives outside Git (shared drive / rsync); see docs.

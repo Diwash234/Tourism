@@ -135,6 +135,21 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# ---------------------------------------------------------------------------
+# STANDALONE IMAGE SERVER
+# ---------------------------------------------------------------------------
+# Django never stores or transfers the large image dataset. The database only
+# stores relative paths (DestinationImage.image_path) and the full URL is built
+# from IMAGE_BASE_URL, which points at the static image server:
+#   dev:   IMAGE_BASE_URL=http://localhost:8000  (python -m http.server in image-server/)
+#   prod:  IMAGE_BASE_URL=https://images.example.com  (Nginx serving image-server/images/)
+IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="http://localhost:8000").rstrip("/")
+# Local root of the image dataset (used by the import_images management command).
+IMAGE_SERVER_ROOT = config(
+    "IMAGE_SERVER_ROOT",
+    default=str(BASE_DIR.parent / "image-server" / "images"),
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ------------------------------------------------------------------

@@ -154,3 +154,18 @@ Tourism/staticfiles/
 # avoid pushing huge DBs.
 # Tourism/db.sqlite3  (intentionally NOT ignored)
 Tourism/db.sqlite3.gz
+
+#################################
+# STANDALONE IMAGE SERVER DATASET
+#################################
+
+# The 100k+ tourism image dataset must NEVER be committed to Git.
+# image-server/ contains code/config only; the images live on disk / a
+# shared drive / an external host and are served statically (dev: python -m
+# http.server, prod: Nginx). See docs/IMAGE_SERVER.md.
+# ignore every file inside the dataset tree (any depth)...
+image-server/images/*
+image-server/images/**/*
+# ...but keep the placeholder files and let Git descend into the dirs
+!image-server/images/**/
+!image-server/images/**/.gitkeep

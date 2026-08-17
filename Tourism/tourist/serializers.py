@@ -37,6 +37,7 @@ from .models import (
     OSMTourismPlace,
     DestinationAuditLog,
 )
+from .image_server import image_server_url
 from .utils import (
     haversine_distance,
     ensure_cover_photo,
@@ -179,12 +180,14 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class DestinationImageSerializer(serializers.ModelSerializer):
     display_url = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
     uploaded_by_name = serializers.CharField(source="uploaded_by.full_name", read_only=True)
 
     class Meta:
         model = DestinationImage
         fields = [
-            "id", "destination", "image", "external_url", "display_url", "caption", "is_cover",
+            "id", "destination", "image", "image_path", "image_url", "external_url", "display_url",
+            "caption", "alt_text", "ordering", "is_cover",
             "source", "source_url", "source_platform", "photographer", "license_type",
             "copyright_status", "image_category", "uploaded_by", "uploaded_by_name",
             "attribution", "is_promoted", "view_count", "created_at",
@@ -192,8 +195,17 @@ class DestinationImageSerializer(serializers.ModelSerializer):
         read_only_fields = ["source", "uploaded_by", "is_promoted", "view_count", "created_at"]
 
     @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_image_url(self, obj):
+        """Full URL on the standalone image server (IMAGE_BASE_URL + /images/ + image_path)."""
+        if obj.image_path:
+            return image_server_url(obj.image_path)
+        return None
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_display_url(self, obj):
         """Single field the frontend can always render, whether the photo is locally hosted or external."""
+        if obj.image_path:
+            return image_server_url(obj.image_path)
         if obj.image:
             request = self.context.get("request")
             return request.build_absolute_uri(obj.image.url) if request else obj.image.url
@@ -576,6 +588,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
 class DestinationDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     cover_image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
     gallery = DestinationImageSerializer(many=True, read_only=True)
     videos = DestinationVideoSerializer(many=True, read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
@@ -607,7 +620,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "country", "opening_hours", "entry_fee", "contact_phone", "contact_email", "website",
             "average_rating", "ratings_count", "views_count", "created_by", "created_by_name",
             "created_by_email", "is_user_submitted", "status", "research_status", "review_note",
-            "is_active", "created_at", "updated_at", "gallery", "videos", "reviews", "translations",
+            "is_active", "created_at", "updated_at", "images", "gallery", "videos", "reviews", "translations",
             "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels",
             "sources", "activities", "attractions", "transit_routes", "nearby_places",
         ]
@@ -635,6 +648,25 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         if "test" not in sys.argv:
             return resolve_authentic_destination_image(obj)
         return None
+
+    @extend_schema_field(serializers.ListField(child=serializers.URLField(), allow_empty=True))
+    def get_images(self, obj):
+        """Ordered list of absolute image URLs (standalone image server first, then other sources)."""
+        urls = []
+        seen = set()
+        for photo in obj.gallery.all():
+            url = None
+            if photo.image_path:
+                url = image_server_url(photo.image_path)
+            elif photo.image:
+                request = self.context.get("request")
+                url = request.build_absolute_uri(photo.image.url) if request else photo.image.url
+            else:
+                url = photo.external_url
+            if url and url not in seen:
+                seen.add(url)
+                urls.append(url)
+        return urls
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_km(self, obj):
@@ -682,6 +714,7 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
             "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info",
             "entry_fee", "contact_phone", "contact_email", "website", "is_active",
         ]
+
 
     def validate(self, attrs):
         # Duplicate detection: block an exact-name match within 300m of an

@@ -613,6 +613,7 @@ class DestinationImage(TimeStampedModel):
         FOURSQUARE = "foursquare", "Foursquare"
         AI_GENERATED = "ai_generated", "AI Generated"
         REFERENCE = "reference", "Reference Image"
+        IMAGE_SERVER = "image_server", "Standalone Image Server"
 
     class ImageStatus(models.TextChoices):
         PENDING = "pending", "Needs Review"
@@ -625,6 +626,14 @@ class DestinationImage(TimeStampedModel):
         blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
     )
     thumbnail_url = models.URLField(blank=True, help_text="Optimized thumbnail for fast web delivery")
+    image_path = models.CharField(
+        max_length=500, blank=True,
+        help_text="Relative path on the standalone image server, e.g. nepal/kathmandu/001.webp. "
+                  "When set, the full URL is IMAGE_BASE_URL + /images/ + image_path and the "
+                  "binary is served by the image server, never by Django.",
+    )
+    alt_text = models.CharField(max_length=255, blank=True, help_text="Accessible alt text for the image")
+    ordering = models.PositiveIntegerField(default=0, help_text="Display order within the destination gallery")
     caption = models.CharField(max_length=200, blank=True)
     is_cover = models.BooleanField(default=False)
 
@@ -673,7 +682,11 @@ class DestinationImage(TimeStampedModel):
     view_count = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["-is_cover", "-is_promoted", "-view_count", "-created_at"]
+        ordering = ["-is_cover", "ordering", "-is_promoted", "-view_count", "-created_at"]
+        indexes = [
+            models.Index(fields=["destination", "ordering"], name="destimg_dest_order_idx"),
+            models.Index(fields=["image_path"], name="destimg_path_idx"),
+        ]
 
     def __str__(self):
         return f"{self.destination.name} photo ({self.get_source_display()})"

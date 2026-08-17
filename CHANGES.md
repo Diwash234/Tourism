@@ -75,3 +75,22 @@ Building on the curated landmark photos and SVG postcard system, this update att
 
 ### Image sources
 All photos are from **Wikimedia Commons** (CC BY / CC BY-SA / CC0 / Public domain), individually attributed with photographer + license in the database; `source_url` links each image to its Commons file page.
+
+---
+
+## 🖼️ Standalone Image Server (100k+ images kept OUT of Git)
+
+### Architecture
+```
+React frontend → Django REST API → SQLite (image_path) → IMAGE_BASE_URL → separate image server (dev: python -m http.server, prod: Nginx) → 100,000+ images on disk
+```
+- `image-server/` — code/config only: `images/` tree (git-ignored, `.gitkeep` placeholders committed), `scripts/serve.py`, `scripts/verify_tree.py`, `deploy/nginx-image-server.conf`.
+- `.gitignore` — `image-server/images/**` is ignored at any depth (verified with `git check-ignore`); dataset stays out of Git (no LFS).
+- `Tourism/tourist/image_server.py` — `image_server_url()`, path normalization, extension/alt-text helpers.
+- `settings.py` — `IMAGE_BASE_URL` (default `http://localhost:8000`) and `IMAGE_SERVER_ROOT`, both env-configurable via `.env` (`Tourism/.env.example` updated; frontend `VITE_IMAGE_BASE_URL` in `frontend/Tourism/.env.example`).
+- **Migration `0016_alter_destinationimage_options_and_more`** — adds `image_path`, `alt_text`, `ordering` to `DestinationImage`; new `image_server` source; indexes `destimg_dest_order_idx` and `destimg_path_idx`.
+- **Serializers** — `DestinationImageSerializer` exposes `image_url` (built from `IMAGE_BASE_URL`), `alt_text`, `ordering`, `image_path`; `DestinationDetailSerializer` adds an `images` array of ready-to-use URLs.
+- **Management command `import_images`** — `python manage.py import_images [dir]` (options: `--dry-run`, `--base-url`, `--link-by slug|name`, `--cover`, `--set-ordering`, `--max-per-destination`). Recursively scans, matches folder/filename to destination slugs/names, stores path+URL metadata only (never binaries), skips duplicates, prints progress/unmatched.
+- **Frontend** — `getDestinationImageUrl()` now prefers the API's `images` array; `getImageServerUrl()` helper for client-side path→URL building.
+- Docs: `docs/IMAGE_SERVER.md` + `image-server/README.md` (local run, dataset placement, import, Nginx, env config, Git-prevention, teammate dataset access).
+- Backward compatible: existing Wikimedia/Unsplash/AI/postcard image flow untouched; SQLite stays the database; 36 offline tests pass.

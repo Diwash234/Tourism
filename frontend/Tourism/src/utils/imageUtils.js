@@ -221,6 +221,13 @@ const isUsable = (url) => {
 export const getDestinationImageUrl = (destination) => {
   if (!destination) return postcardUrl({ name: "Nepal" })
 
+  // 0. `images` array from the API — absolute URLs served by the standalone
+  //    image server (IMAGE_BASE_URL + /images/ + path). Displayed directly.
+  if (Array.isArray(destination.images) && destination.images.length > 0) {
+    const first = destination.images.find(isUsable)
+    if (first) return first
+  }
+
   // 1. Explicit cover image from API / DB
   const cover =
     destination.cover_image_url ||
@@ -233,7 +240,7 @@ export const getDestinationImageUrl = (destination) => {
   if (Array.isArray(destination.gallery) && destination.gallery.length > 0) {
     for (const g of destination.gallery) {
       if (g.verification_status && g.verification_status !== "approved") continue
-      const gUrl = g?.display_url || g?.external_url || g?.image || g?.url
+      const gUrl = g?.display_url || g?.image_url || g?.external_url || g?.image || g?.url
       if (isUsable(gUrl)) return gUrl
     }
   }
@@ -245,6 +252,19 @@ export const getDestinationImageUrl = (destination) => {
 
   // 4. Deterministic SVG postcard (unique per destination — no repeats!)
   return postcardUrl(destination)
+}
+
+/**
+ * Build a standalone-image-server URL from a relative path.
+ * Path is something like "nepal/kathmandu/001.webp".
+ * Uses VITE_IMAGE_BASE_URL when set, otherwise returns the path as-is
+ * (the API normally already returns absolute URLs).
+ */
+export const getImageServerUrl = (path) => {
+  if (!path) return ""
+  const base = (import.meta.env.VITE_IMAGE_BASE_URL || "").replace(/\/+$/, "")
+  if (!base) return path
+  return `${base}/images/${String(path).replace(/^\/+/, "")}`
 }
 
 /**
