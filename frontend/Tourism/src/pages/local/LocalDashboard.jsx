@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiHome, FiPlus, FiTrash2, FiImage, FiClock } from "react-icons/fi"
-import localApi from "../../api/localApi"
+import localApi from "../../api/LocalApi"
 import PageHeader from "../../components/common/PageHeader"
 import Loader from "../../components/common/Loader"
 import EmptyState from "../../components/common/EmptyState"
