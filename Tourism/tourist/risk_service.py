@@ -9,7 +9,7 @@ from math import atan2, cos, radians, sin, sqrt
 from django.db.models import Avg, Q
 from django.utils import timezone
 
-from .models import Alert, CurrentHazard, RiskIncident, TravelRiskFeedback
+from .models import Alert, CurrentHazard, RiskIncident, RiskNewsReport, RiskObservation, TravelRiskFeedback
 
 SEVERITY_WEIGHT = {"low": 1.0, "moderate": 2.0, "high": 3.5, "critical": 5.0}
 HAZARD_LABELS = dict(RiskIncident.HazardType.choices)
@@ -167,6 +167,23 @@ def build_destination_risk(destination):
                 "incident_count": count,
             })
 
+    observations = [{
+        "id": item.id, "observation_type": item.observation_type, "value": item.value,
+        "unit": item.unit, "trend": item.trend, "station_name": item.station_name,
+        "station_latitude": item.station_latitude, "station_longitude": item.station_longitude,
+        "distance_km": item.distance_km, "source_type": item.source_type,
+        "source_name": item.source_name, "source_url": item.source_url,
+        "observed_at": item.observed_at, "published_at": item.published_at,
+        "verified": item.verified,
+    } for item in RiskObservation.objects.filter(destination=destination)[:20]]
+    news = [{
+        "id": item.id, "title": item.title, "summary": item.summary,
+        "hazard_type": item.hazard_type, "source_name": item.source_name,
+        "source_url": item.source_url, "published_at": item.published_at,
+        "affected_area": item.affected_area, "verification_status": item.verification_status,
+        "promoted_to_warning": item.promoted_to_warning,
+    } for item in RiskNewsReport.objects.filter(destination=destination, verification_status="verified")[:10]]
+
     return {
         "destination": {
             "id": destination.id, "name": destination.name, "slug": destination.slug,
@@ -201,6 +218,8 @@ def build_destination_risk(destination):
             "accident_reports": sum(1 for f in feedback if f.accident_occurred),
             "sickness_reports": sum(1 for f in feedback if f.became_sick),
         },
+        "observations": observations,
+        "verified_news": news,
         "sources": [
             {"name": "DHM Nepal", "type": "official_reference", "url": "https://www.dhm.gov.np/", "status": "No live record" if not current_items else "See current observations"},
             {"name": "BIPAD Portal", "type": "official_reference", "url": "https://bipadportal.gov.np/", "status": "Reference source"},

@@ -846,3 +846,35 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
         self.assertEqual(result["safety_context"]["availability"], "temporarily_unavailable")
         self.assertEqual(result["safety_context"]["current_warning"]["severity"], "critical")
+
+    def test_recommendation_events_require_consent(self):
+        user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
+        self.client.force_authenticate(user)
+        denied = self.client.post(reverse("recommendation-events"), {
+            "event_type": "select", "destination": self.trek.id, "consented": False,
+        })
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        accepted = self.client.post(reverse("recommendation-events"), {
+            "event_type": "select", "destination": self.trek.id,
+            "score": 0.91, "context": {"source": "test"}, "consented": True,
+        })
+        self.assertEqual(accepted.status_code, status.HTTP_201_CREATED)
+
+    def test_verified_news_and_station_observation_remain_separate_from_warning(self):
+        from django.utils import timezone
+        from .models import RiskNewsReport, RiskObservation
+        RiskNewsReport.objects.create(
+            destination=self.trek, title="Road concerns reported", hazard_type="road_accident",
+            source_name="Verified newsroom", source_url="https://example.com/news/road",
+            published_at=timezone.now(), verification_status="verified",
+        )
+        RiskObservation.objects.create(
+            destination=self.trek, observation_type="rainfall", value=32.5, unit="mm",
+            trend="rising", station_name="Kaski Test Station", distance_km=6.4,
+            source_name="DHM test", source_url="https://example.com/station",
+            observed_at=timezone.now(), verified=True,
+        )
+        response = self.client.get(reverse("destination-risk-assessment", kwargs={"destination_ref": self.trek.slug}))
+        self.assertEqual(len(response.data["verified_news"]), 1)
+        self.assertEqual(response.data["observations"][0]["station_name"], "Kaski Test Station")
+        self.assertFalse(response.data["current_conditions"]["official_warning_present"])

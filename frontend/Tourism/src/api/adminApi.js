@@ -81,9 +81,10 @@ const adminApi = {
   getInfrastructureSubmissions: (params) => axiosClient.get("/admin/infrastructure-submissions/", { params }),
   reviewInfrastructureSubmission: (id, payload) => axiosClient.post(`/admin/infrastructure-submissions/${id}/`, payload),
   runMLDataPipeline: (payload) => axiosClient.post("/admin/ml-data-pipeline/", payload),
+  getMLStatus: () => axiosClient.get("/admin/ml/status/"),
   getFeedback: (params) => axiosClient.get("/admin/feedback", { params }),
   replyFeedback: (id, reply) => axiosClient.post(`/admin/feedback/${id}/reply`, { reply }),
-  sendFeedback: (payload) => axiosClient.post("/feedback", payload),
+  sendFeedback: (payload) => axiosClient.post("/feedback", payload, payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined),
 
   // Admin destination detail (data, gallery, edit history)
   getAdminDestination: (id) => axiosClient.get(`/admin/destinations/${id}`),

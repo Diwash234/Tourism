@@ -9,6 +9,8 @@ This document maps the existing implementation to the master requirements. The p
 | Database-backed destination catalog | Keep SQLite as live source; CSV only import/export/ML exchange | `tourist.models.Destination`, destination ViewSet, CSV management commands | Implemented |
 | Existing mood/content recommender | Preserve base score; add preferences, feedback, popularity, safety, services and routes | `MoodRecommendationsView`, `Recommendation.jsx` | Implemented; diversity/current-warning reranking tracked below |
 | Destination images and gallery | Destination-ID relationship, verified media only, no unrelated fallback | `DestinationImage`, serializers, `imageUtils.js`, cards/details/gallery | Implemented |
+| Structured destination features | Difficulty, duration, budget and 0–5 experience scores | `DestinationFeatureProfile` | Implemented |
+| Risk/news separation | Verified news remains distinct and cannot become warning automatically | `RiskNewsReport`, `/news`, risk response | Implemented |
 | User place submission | Expand to hotels, hospitals, police, bank/ATM, blood bank, fire, ambulance, pharmacy, route and media | `InfrastructureSubmission`, `InfrastructureMedia`, `/submit-service` | Implemented |
 | Moderation | Pending → approved/rejected/needs correction; admin identity/time; DB + CSV publication | `InfrastructureModerationView`, `community_data_service.py`, admin panel | Implemented |
 | CSV compatibility | Preserve existing schemas; write richer additions to compatible community CSVs; merge verified risk rows | `community_data_service.py`, `community_*.csv`, existing destination/risk CSVs | Implemented |
@@ -21,12 +23,12 @@ This document maps the existing implementation to the master requirements. The p
 | DHM/BIPAD/news extensibility | Provider-neutral normalized ingestion with provenance | `risk_ingestion.py`, `ingest_risk_feed` command | Implemented; automatic upstream download requires confirmed official machine APIs |
 | Geofenced alerts | Notify users in 2–4 km radius and opted-in accepted family links | Alert signal and admin advisory form | Implemented |
 | Itinerary integration | Add nearest approved hotels, hospitals, police and essentials per day | itinerary API enrichment and `Itinerary.jsx` | Implemented |
-| Feedback/correction | Admin queue and correction categories | `UserFeedback`, Contact page, admin feedback APIs | Implemented; evidence-media enhancement pending |
-| Admin ML pipeline | Export only approved rows; whitelisted one-click training | `MLDataPipelineView`, admin panel | Implemented; model-version/metric registry pending |
+| Feedback/correction | Admin queue, correction categories and evidence media | `UserFeedback`, `FeedbackEvidence`, Contact page, admin feedback APIs | Implemented |
+| Admin ML pipeline | Export approved rows; one-click training; version/status history | `MLDataPipelineView`, `MLTrainingRun`, admin panel/status API | Implemented |
 | Recommendation diversity | Avoid category/district near-duplicates while preserving base model | `MoodRecommendationsView` | Implemented (MMR-style category/district reranking) |
 | Current official warning penalty | Stronger than historical risk; mark critical destination unavailable | recommender + `CurrentHazard` | Implemented |
-| Recommendation events | Search/view/save/select event history and explicit consent | new indexed event model/API | Pending |
-| Observation station values | Station, unit, trend, observed time, destination distance | CurrentHazard has station/distance; structured numeric observation model | Pending |
+| Recommendation events | Search/view/save/select event history and explicit consent | `RecommendationEvent`, consent-gated API and Recommendation UI | Implemented |
+| Observation station values | Station, unit, trend, observed time, destination distance | `RiskObservation`, ingestion adapter and risk response | Implemented |
 | Road distance | Distinguish straight-line from routed road distance | navigation/route engine + emergency UI | Straight-line and estimated time implemented; true road distance depends on route graph coverage |
 | Acceptance matrix | Pokhara, Kathmandu, Rara, Mustang, Jumla, Humla, Chitwan, Lumbini, Dhangadhi, Dadeldhura | `acceptance_check_nepal` command + tests | Implemented; current data gaps are reported rather than fabricated |
 

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { FiMail, FiPhone, FiMapPin } from "react-icons/fi"
@@ -17,20 +18,22 @@ const Contact = () => {
   } = useForm()
 
   const {showToast}=useToast()
+  const [evidence, setEvidence] = useState([])
 
 
   const onSubmit = async () => {
     const { name, email, message, subject, category } = getValues()
     try {
-      await adminApi.sendFeedback({
-        name: name || "",
-        email: email || "",
-        subject: subject || `Message from ${name || "visitor"}`,
-        message,
-        category: category || "correction",
-      })
-      showToast("Your message has been sent to the admin team.", "success")
-      reset()
+      const body = new FormData()
+      body.append("name", name || "")
+      body.append("email", email || "")
+      body.append("subject", subject || `Message from ${name || "visitor"}`)
+      body.append("message", message)
+      body.append("category", category || "correction")
+      evidence.forEach((file) => body.append("evidence", file))
+      await adminApi.sendFeedback(body)
+      showToast("Your report and evidence were sent to the admin review queue.", "success")
+      reset(); setEvidence([])
     } catch (e) {
       showToast(e?.response?.data?.detail || "Could not send message. Please try again.", "error")
     }
@@ -171,6 +174,11 @@ Message is required
 </div>
 
 
+
+<label className="block rounded-xl border-2 border-dashed border-gray-200 p-4 text-center text-xs font-bold text-gray-500 cursor-pointer">
+Evidence images/videos ({evidence.length}/8)
+<input hidden type="file" multiple accept="image/*,video/*" onChange={(e) => setEvidence(Array.from(e.target.files).slice(0,8))} />
+</label>
 
 <button
 

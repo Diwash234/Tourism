@@ -16,7 +16,7 @@ from .models import (
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
-    CurrentHazard,
+    CurrentHazard, RecommendationEvent, RiskNewsReport,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -27,7 +27,7 @@ from .serializers import (
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
-    InfrastructureSubmissionSerializer, InfrastructureMediaSerializer,
+    InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -736,6 +736,42 @@ class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     filterset_fields = ["category"]
     search_fields = ["name", "address"]
+
+
+class RiskNewsReportViewSet(viewsets.ModelViewSet):
+    serializer_class = RiskNewsReportSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filterset_fields = ["destination", "hazard_type", "verification_status"]
+    search_fields = ["title", "summary", "affected_area", "source_name"]
+
+    def get_queryset(self):
+        qs = RiskNewsReport.objects.select_related("destination")
+        user = self.request.user
+        if not user.is_authenticated or not (user.is_staff or user.role in {"admin", "super_admin", "tourism_admin", "content_moderator"}):
+            qs = qs.filter(verification_status="verified")
+        return qs
+
+
+class RecommendationEventView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not request.data.get("consented", False):
+            return Response({"detail": "Explicit interaction-data consent is required."}, status=status.HTTP_400_BAD_REQUEST)
+        event_type = request.data.get("event_type")
+        if event_type not in dict(RecommendationEvent.EventType.choices):
+            return Response({"detail": "Invalid event_type."}, status=status.HTTP_400_BAD_REQUEST)
+        destination = None
+        if request.data.get("destination"):
+            destination = Destination.objects.filter(pk=request.data["destination"]).first()
+            if not destination:
+                return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        event = RecommendationEvent.objects.create(
+            user=request.user, destination=destination, event_type=event_type,
+            session_key=request.session.session_key or "", query=request.data.get("query", "")[:300],
+            score=request.data.get("score"), context=request.data.get("context", {}), consented=True,
+        )
+        return Response({"id": event.id, "created_at": event.created_at}, status=status.HTTP_201_CREATED)
 
 
 class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):

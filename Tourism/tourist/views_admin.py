@@ -10,7 +10,7 @@ from .models import (
     Destination, Alert, DestinationImage, VisitHistory,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
-    DestinationAuditLog, UserFeedback, InfrastructureSubmission
+    DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -853,6 +853,15 @@ class MLDataPipelineView(APIView):
     """Approve feedback, synchronize CSVs, and optionally run whitelisted trainers."""
     permission_classes = [IsAdminOrStaff]
 
+    def get(self, request):
+        return Response([{
+            "id": run.id, "model_type": run.model_type, "status": run.status,
+            "version": run.version, "previous_version": run.previous_version,
+            "dataset_size": run.dataset_size, "newly_approved_records": run.newly_approved_records,
+            "validation_metrics": run.validation_metrics, "started_at": run.started_at,
+            "completed_at": run.completed_at, "requested_by": run.requested_by_id,
+        } for run in MLTrainingRun.objects.all()[:100]])
+
     def post(self, request):
         import subprocess
         import sys
@@ -887,22 +896,46 @@ class MLDataPipelineView(APIView):
                 "budget": [sys.executable, "training/train_budget_model.py"],
                 "risk": [sys.executable, "training/train_risk_model.py"],
                 "recommendation": [sys.executable, "training/train_recommendation_model.py"],
+                "destination": [sys.executable, "training/train_destination_model.py"],
+                "hotel": [sys.executable, "training/train_destination_model.py"],
+                "route": [sys.executable, "training/build_route_graph.py"],
             }
             requested = request.data.get("models") or list(commands)
             for model_name in requested:
                 if model_name not in commands:
                     continue
+                previous = MLTrainingRun.objects.filter(model_type=model_name, status="succeeded").first()
+                version = f"{model_name}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+                dataset_size = (
+                    TravelExpenseFeedback.objects.filter(is_employee_verified=True).count() if model_name == "budget"
+                    else TravelRiskFeedback.objects.filter(is_admin_verified=True).count() if model_name == "risk"
+                    else Destination.objects.filter(is_active=True, status="approved").count()
+                )
+                training_run = MLTrainingRun.objects.create(
+                    model_type=model_name, status="running", version=version,
+                    previous_version=previous.version if previous else "", dataset_size=dataset_size,
+                    newly_approved_records=InfrastructureSubmission.objects.filter(status="approved").count(),
+                    requested_by=request.user, started_at=timezone.now(),
+                )
                 try:
-                    run = subprocess.run(
+                    process = subprocess.run(
                         commands[model_name], cwd=root / "ml_service", capture_output=True,
                         text=True, timeout=180, check=False,
                     )
-                    results[model_name] = {
-                        "success": run.returncode == 0,
-                        "output": (run.stdout or run.stderr)[-1200:],
-                    }
+                    success = process.returncode == 0
+                    output = (process.stdout or process.stderr)[-1200:]
+                    results[model_name] = {"success": success, "version": version, "output": output}
+                    training_run.status = "succeeded" if success else "failed"
+                    training_run.output_log = output
+                    training_run.validation_metrics = {"process_return_code": process.returncode}
+                    training_run.completed_at = timezone.now()
+                    training_run.save()
                 except (subprocess.TimeoutExpired, OSError) as exc:
-                    results[model_name] = {"success": False, "output": str(exc)}
+                    results[model_name] = {"success": False, "version": version, "output": str(exc)}
+                    training_run.status = "failed"
+                    training_run.output_log = str(exc)
+                    training_run.completed_at = timezone.now()
+                    training_run.save()
         return Response({"exported": exported, "training": results, "message": "Only admin-verified rows were exported."})
 
 
@@ -924,6 +957,11 @@ class FeedbackListView(APIView):
             "category": f.category,
             "status": f.status,
             "admin_reply": f.admin_reply,
+            "evidence": [{
+                "id": evidence.id, "media_type": evidence.media_type,
+                "url": request.build_absolute_uri(evidence.file.url),
+                "caption": evidence.caption, "is_verified": evidence.is_verified,
+            } for evidence in f.evidence.all()],
             "created_at": f.created_at,
         } for f in qs[:200]])
 
@@ -960,7 +998,14 @@ class PublicFeedbackCreateView(APIView):
             message=data["message"],
             category=data.get("category", "general"),
         )
-        return Response({"id": fb.id, "message": "feedback received"}, status=201)
+        files = request.FILES.getlist("evidence")
+        for uploaded in files[:8]:
+            FeedbackEvidence.objects.create(
+                feedback=fb,
+                media_type="video" if (uploaded.content_type or "").startswith("video/") else "image",
+                file=uploaded, caption=data.get("evidence_caption", ""),
+            )
+        return Response({"id": fb.id, "message": "feedback received", "evidence_count": min(len(files), 8)}, status=201)
 
 
 class FetchWebImagesView(APIView):

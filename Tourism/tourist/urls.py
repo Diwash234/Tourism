@@ -54,6 +54,7 @@ router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, ba
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
 router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
+router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
 
 urlpatterns = [
     # Auth endpoints
@@ -117,6 +118,7 @@ urlpatterns = [
     path("admin/infrastructure-submissions/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submissions"),
     path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
     path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),
+    path("admin/ml/status/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-status"),
     path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
     path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),
     path("feedback", views_admin.PublicFeedbackCreateView.as_view(), name="public-feedback"),
@@ -164,6 +166,7 @@ urlpatterns = [
     path("destinations/autocomplete/", views.DestinationAutocompleteView.as_view(), name="destination-autocomplete"),
     path("destinations/mood-recommendations/", views.MoodRecommendationsView.as_view(), name="mood-recommendations"),
     path("destinations/<str:destination_ref>/risk/", views.DestinationRiskAssessmentView.as_view(), name="destination-risk-assessment"),
+    path("recommendation-events/", views.RecommendationEventView.as_view(), name="recommendation-events"),
     path("destinations/<str:destination_ref>/emergency/", views.DestinationEmergencyServicesView.as_view(), name="destination-emergency-services"),
     path("emergency/nearby/", views.NearbyEmergencyServicesView.as_view(), name="nearby-emergency-services"),
     # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)

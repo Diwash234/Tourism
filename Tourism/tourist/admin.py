@@ -8,7 +8,8 @@ from .models import (
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
-    InfrastructureSubmission,
+    InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
+    RecommendationEvent, RiskNewsReport, RiskObservation,
 )
 
 
@@ -472,3 +473,43 @@ class FamilyLinkAdmin(admin.ModelAdmin):
     list_filter = ["status"]
     search_fields = ["requester__email", "member__email", "requester__first_name", "member__first_name"]
     readonly_fields = ["created_at", "accepted_at"]
+
+
+@admin.register(DestinationFeatureProfile)
+class DestinationFeatureProfileAdmin(admin.ModelAdmin):
+    list_display = ["destination", "difficulty", "budget_level", "is_verified", "updated_at"]
+    list_filter = ["difficulty", "budget_level", "is_verified"]
+    search_fields = ["destination__name"]
+
+
+@admin.register(RiskObservation)
+class RiskObservationAdmin(admin.ModelAdmin):
+    list_display = ["destination", "observation_type", "value", "unit", "station_name", "observed_at", "verified"]
+    list_filter = ["observation_type", "trend", "verified"]
+    search_fields = ["destination__name", "station_name", "source_name"]
+
+
+@admin.register(RiskNewsReport)
+class RiskNewsReportAdmin(admin.ModelAdmin):
+    list_display = ["title", "destination", "hazard_type", "source_name", "published_at", "verification_status"]
+    list_filter = ["hazard_type", "verification_status", "promoted_to_warning"]
+    search_fields = ["title", "destination__name", "affected_area", "source_name"]
+
+
+@admin.register(MLTrainingRun)
+class MLTrainingRunAdmin(admin.ModelAdmin):
+    list_display = ["model_type", "version", "status", "dataset_size", "requested_by", "created_at"]
+    list_filter = ["model_type", "status"]
+    readonly_fields = ["created_at", "updated_at", "started_at", "completed_at"]
+
+
+@admin.register(RecommendationEvent)
+class RecommendationEventAdmin(admin.ModelAdmin):
+    list_display = ["event_type", "user", "destination", "score", "consented", "created_at"]
+    list_filter = ["event_type", "consented"]
+
+
+@admin.register(FeedbackEvidence)
+class FeedbackEvidenceAdmin(admin.ModelAdmin):
+    list_display = ["feedback", "media_type", "caption", "is_verified", "created_at"]
+    list_filter = ["media_type", "is_verified"]

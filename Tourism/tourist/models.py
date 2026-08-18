@@ -1941,6 +1941,122 @@ class InfrastructureMedia(TimeStampedModel):
         ordering = ["-is_primary", "created_at"]
 
 
+class DestinationFeatureProfile(TimeStampedModel):
+    """Structured, editable content features used alongside the existing recommender."""
+    destination = models.OneToOneField(Destination, on_delete=models.CASCADE, related_name="feature_profile")
+    difficulty = models.CharField(max_length=20, choices=[("easy", "Easy"), ("moderate", "Moderate"), ("hard", "Hard")], default="moderate")
+    duration_days = models.PositiveSmallIntegerField(default=2)
+    budget_level = models.CharField(max_length=20, choices=[("low", "Low"), ("medium", "Medium"), ("high", "High")], default="medium")
+    nature_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    adventure_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    culture_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    spiritual_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    wildlife_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    photography_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    family_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    accessibility_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    source_type = models.CharField(max_length=30, default="admin")
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+
+class RecommendationEvent(TimeStampedModel):
+    class EventType(models.TextChoices):
+        IMPRESSION = "impression", "Recommendation impression"
+        SELECT = "select", "Recommendation selected"
+        SEARCH = "search", "Search"
+        VIEW = "view", "Destination viewed"
+        SAVE = "save", "Destination saved"
+        RATING = "rating", "Rating"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="recommendation_events")
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, null=True, blank=True, related_name="recommendation_events")
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    session_key = models.CharField(max_length=80, blank=True)
+    query = models.CharField(max_length=300, blank=True)
+    score = models.FloatField(null=True, blank=True)
+    context = models.JSONField(default=dict, blank=True)
+    consented = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "event_type", "created_at"]), models.Index(fields=["destination", "event_type"])]
+
+
+class RiskObservation(TimeStampedModel):
+    class ObservationType(models.TextChoices):
+        RAINFALL = "rainfall", "Rainfall"
+        RIVER_LEVEL = "river_level", "River level"
+        TEMPERATURE = "temperature", "Temperature"
+        WIND = "wind", "Wind"
+        SNOW = "snow", "Snow"
+        WARNING_LEVEL = "warning_level", "Warning level"
+        OTHER = "other", "Other"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="risk_observations")
+    observation_type = models.CharField(max_length=30, choices=ObservationType.choices)
+    value = models.FloatField()
+    unit = models.CharField(max_length=30)
+    trend = models.CharField(max_length=30, blank=True, choices=[("rising", "Rising"), ("falling", "Falling"), ("steady", "Steady"), ("unknown", "Unknown")])
+    station_name = models.CharField(max_length=180)
+    station_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    station_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    distance_km = models.FloatField(null=True, blank=True)
+    source_type = models.CharField(max_length=30, default="official")
+    source_name = models.CharField(max_length=180)
+    source_url = models.URLField(max_length=600, blank=True)
+    observed_at = models.DateTimeField()
+    published_at = models.DateTimeField(null=True, blank=True)
+    verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-observed_at"]
+        indexes = [models.Index(fields=["destination", "observation_type", "observed_at"])]
+
+
+class RiskNewsReport(TimeStampedModel):
+    destination = models.ForeignKey(Destination, on_delete=models.SET_NULL, null=True, blank=True, related_name="risk_news")
+    title = models.CharField(max_length=260)
+    summary = models.TextField(blank=True)
+    hazard_type = models.CharField(max_length=30, choices=RiskIncident.HazardType.choices, default=RiskIncident.HazardType.OTHER)
+    source_name = models.CharField(max_length=180)
+    source_url = models.URLField(max_length=600, unique=True)
+    published_at = models.DateTimeField()
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    affected_area = models.CharField(max_length=240, blank=True)
+    verification_status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("verified", "Verified"), ("rejected", "Rejected"), ("outdated", "Outdated")], default="pending")
+    promoted_to_warning = models.BooleanField(default=False, help_text="Requires a separate verified Alert; news alone is never an official warning")
+
+    class Meta:
+        ordering = ["-published_at"]
+        indexes = [models.Index(fields=["destination", "verification_status", "published_at"])]
+
+
+class MLTrainingRun(TimeStampedModel):
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    model_type = models.CharField(max_length=40)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.QUEUED)
+    version = models.CharField(max_length=80)
+    previous_version = models.CharField(max_length=80, blank=True)
+    dataset_size = models.PositiveIntegerField(default=0)
+    newly_approved_records = models.PositiveIntegerField(default=0)
+    validation_metrics = models.JSONField(default=dict, blank=True)
+    output_log = models.TextField(blank=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="ml_training_runs")
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["model_type", "status", "created_at"])]
+
+
 class UserFeedback(TimeStampedModel):
     """Direct messages / feedback from a user to the admin team."""
     class Status(models.TextChoices):
@@ -1972,3 +2088,11 @@ class UserFeedback(TimeStampedModel):
 
     def __str__(self):
         return f"{self.subject} ({self.status})"
+
+
+class FeedbackEvidence(TimeStampedModel):
+    feedback = models.ForeignKey(UserFeedback, on_delete=models.CASCADE, related_name="evidence")
+    media_type = models.CharField(max_length=10, choices=[("image", "Image"), ("video", "Video")])
+    file = models.FileField(upload_to="feedback/evidence/")
+    caption = models.CharField(max_length=220, blank=True)
+    is_verified = models.BooleanField(default=False)

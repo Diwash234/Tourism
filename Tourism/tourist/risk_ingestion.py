@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
 from .emergency_service import resolve_destination
-from .models import CurrentHazard, Destination, RiskIncident
+from .models import CurrentHazard, Destination, RiskIncident, RiskObservation
 from .utils import haversine_distance
 
 PROVIDERS = {
@@ -46,16 +46,34 @@ def ingest_records(records, provider_key, verified=False):
     provider = PROVIDERS.get(provider_key)
     if not provider:
         raise ValueError(f"Unknown provider '{provider_key}'. Register it before ingestion.")
-    summary = {"current_created": 0, "historical_created": 0, "skipped": 0}
+    summary = {"current_created": 0, "historical_created": 0, "observations_created": 0, "skipped": 0}
     for record in records:
         destination = _destination(record)
-        if not destination or not record.get("title") or not record.get("hazard_type"):
+        kind = record.get("record_kind", "current")
+        required = bool(record.get("observation_type") and record.get("value") is not None and record.get("unit")) if kind == "observation" else bool(record.get("title") and record.get("hazard_type"))
+        if not destination or not required:
             summary["skipped"] += 1; continue
         source_name = record.get("source_name") or provider["name"]
         source_url = record.get("source_url", "")
         source_type = record.get("source_type") or provider["source_type"]
         is_verified = bool(verified and source_url and source_type in {"official", "admin", "news", "api"})
-        if record.get("record_kind", "current") == "historical":
+        if kind == "observation":
+            observed_at = _datetime(record.get("observed_at"), timezone.now())
+            _, created = RiskObservation.objects.update_or_create(
+                destination=destination, observation_type=record["observation_type"],
+                station_name=record.get("station_name") or source_name, observed_at=observed_at,
+                defaults={
+                    "value": float(record["value"]), "unit": record["unit"],
+                    "trend": record.get("trend", "unknown"),
+                    "station_latitude": record.get("station_latitude"),
+                    "station_longitude": record.get("station_longitude"),
+                    "distance_km": record.get("distance_km"), "source_type": source_type,
+                    "source_name": source_name, "source_url": source_url,
+                    "published_at": _datetime(record.get("published_at")), "verified": is_verified,
+                },
+            )
+            summary["observations_created"] += int(created)
+        elif kind == "historical":
             event_date = parse_date(str(record.get("event_date", ""))) or date.today()
             _, created = RiskIncident.objects.update_or_create(
                 destination=destination, title=record["title"], event_date=event_date,

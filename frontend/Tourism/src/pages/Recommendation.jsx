@@ -7,6 +7,7 @@ import {
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import destinationApi from "../api/destinationApi"
+import axiosClient from "../api/axiosClient"
 import { getDestinationImageUrl } from "../utils/imageUtils"
 import PlaceholderImage from "../components/common/PlaceholderImage"
 import Loader from "../components/common/Loader"
@@ -63,6 +64,7 @@ export default function Recommendation() {
   const [loading, setLoading] = useState(false)
   const [hasRun, setHasRun] = useState(false)
   const [meta, setMeta] = useState(null)
+  const [interactionConsent, setInteractionConsent] = useState(false)
 
   const toggleInterest = (key) => setSelected((current) =>
     current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
@@ -92,6 +94,14 @@ export default function Recommendation() {
   }
 
   useEffect(() => { loadRecommendations() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const trackSelection = (item) => {
+    if (!interactionConsent) return
+    axiosClient.post("/recommendation-events/", {
+      event_type: "select", destination: item.id, score: item.ml_score,
+      context: { preferences: meta?.preferences || {}, source: meta?.source }, consented: true,
+    }).catch(() => {})
+  }
 
   return (
     <div className="min-h-screen bg-[#faf8f4]">
@@ -147,7 +157,8 @@ export default function Recommendation() {
               <FiCompass /> {loading ? "Matching live destinations…" : "Find my best destinations"}
             </button>
           </div>
-          <p className="text-[11px] text-gray-500">This is a content-based ranking request, not simulated model training. Results come from approved database destinations and existing traveler behavior.</p>
+          <label className="flex items-center gap-2 text-[11px] text-gray-600"><input type="checkbox" checked={interactionConsent} onChange={(e)=>setInteractionConsent(e.target.checked)} />Allow my recommendation selections to improve future results. Only consented events are stored.</label>
+          <p className="text-[11px] text-gray-500">This is a content-based ranking request, not simulated model training. Results come from approved database destinations; interaction history is used only with consent.</p>
         </section>
 
         {meta && !loading && (
@@ -191,7 +202,7 @@ export default function Recommendation() {
                   <p className="text-[10px] text-gray-400">Source: {item.data_source || "Database"} · Best: {item.recommended_season}</p>
                 </div>
                 <div className="p-5 pt-0 grid grid-cols-2 gap-2">
-                  <Link to={`/destinations/${item.slug}`} className="rounded-xl py-2.5 text-center text-white text-xs font-bold" style={{ background: GREEN }}>Explore <FiArrowRight className="inline" /></Link>
+                  <Link to={`/destinations/${item.slug}`} onClick={() => trackSelection(item)} className="rounded-xl py-2.5 text-center text-white text-xs font-bold" style={{ background: GREEN }}>Explore <FiArrowRight className="inline" /></Link>
                   <Link to={`/risk-alerts?destination=${encodeURIComponent(item.slug)}`} className="rounded-xl py-2.5 text-center text-xs font-bold border border-rose-200 text-rose-700">Check risk</Link>
                 </div>
               </motion.article>
