@@ -571,11 +571,15 @@ def is_destination_specific_image(destination, photo):
         token for token in re.findall(r"[a-z0-9]+", (destination.name or "").lower())
         if len(token) >= 4 and token not in ignored
     }
-    evidence = " ".join(filter(None, [
-        getattr(photo, "external_url", ""), getattr(photo, "image_path", ""),
-        str(getattr(photo, "image", "") or ""), getattr(photo, "caption", ""),
-        getattr(photo, "alt_text", ""), getattr(photo, "source_url", ""),
-    ])).lower()
+    external_url = getattr(photo, "external_url", "") or ""
+    local_image = str(getattr(photo, "image", "") or "")
+    # Imported captions/alt text were generated from destination names and can
+    # falsely label an unrelated URL. Trust URL/path identity for external
+    # media; captions are evidence only for actual uploaded files.
+    evidence_parts = [external_url, getattr(photo, "image_path", ""), local_image, getattr(photo, "source_url", "")]
+    if local_image and not external_url:
+        evidence_parts.extend([getattr(photo, "caption", ""), getattr(photo, "alt_text", "")])
+    evidence = " ".join(filter(None, evidence_parts)).lower()
     return bool(tokens and any(token in evidence for token in tokens))
 
 

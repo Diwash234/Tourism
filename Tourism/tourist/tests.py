@@ -809,6 +809,7 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         from .serializers import DestinationListSerializer
         DestinationImage.objects.create(
             destination=self.trek, external_url="https://example.com/rara-lake.jpg",
+            caption=self.trek.name, alt_text=self.trek.name,
             is_cover=True, is_verified=True, verification_status="approved",
         )
         data = DestinationListSerializer(self.trek).data
