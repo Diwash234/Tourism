@@ -87,6 +87,8 @@ const destinationApi = {
   moodRecommendations: (params = {}) =>
     axiosClient.get("/destinations/mood-recommendations/", { params }),
 
+  getDistrictGallery: () => axiosClient.get("/gallery/districts/"),
+
 }
 
 

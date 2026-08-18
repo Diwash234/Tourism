@@ -613,6 +613,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
     budget_estimate = serializers.SerializerMethodField()
     risk_level = serializers.SerializerMethodField()
     recommended_season = serializers.SerializerMethodField()
+    gallery_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
@@ -621,7 +622,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
             "latitude", "longitude", "city", "country", "district", "province", "municipality", "ward_number", "type",
             "average_rating", "ratings_count", "views_count", "entry_fee", "source",
             "cover_image_url", "distance_km", "status", "is_user_submitted", "is_active",
-            "budget_estimate", "risk_level", "recommended_season", "created_at", "updated_at",
+            "budget_estimate", "risk_level", "recommended_season", "gallery_preview", "created_at", "updated_at",
         ]
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -641,6 +642,26 @@ class DestinationListSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_recommended_season(self, obj):
         return obj.best_time_to_visit or "Sep - Nov / Mar - May"
+
+    def get_gallery_preview(self, obj):
+        request = self.context.get("request")
+        items = []
+        for photo in verified_destination_photos(obj)[:5]:
+            if photo.image_path:
+                url = image_server_url(photo.image_path)
+            elif photo.external_url:
+                url = photo.external_url
+            elif photo.image:
+                url = resolve_image_url(photo.image, request)
+            else:
+                continue
+            items.append({
+                "id": photo.id, "url": url, "caption": photo.caption or obj.name,
+                "source": photo.source, "source_url": photo.source_url,
+                "photographer": photo.photographer, "license": photo.license_type,
+                "verification_status": photo.verification_status,
+            })
+        return items
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_image_url(self, obj):

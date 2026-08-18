@@ -3,6 +3,14 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Prevent invalid-hook-call / null React dispatcher errors when linked
+  // packages or Vite dependency optimization resolve React more than once.
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

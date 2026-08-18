@@ -343,26 +343,49 @@ export default function Gallery() {
           list.forEach((dest) => {
             if (!dest.name || existingNames.has(dest.name.toLowerCase())) return
             existingNames.add(dest.name.toLowerCase())
-            const verifiedImage = getDestinationImageUrl(dest)
-            if (!verifiedImage) return
+            const preview = Array.isArray(dest.gallery_preview) ? dest.gallery_preview : []
+            const fallback = getDestinationImageUrl(dest)
+            const images = preview.length ? preview.map((media) => ({
+              url: media.url,
+              caption: media.caption || dest.name,
+              category: dest.category_name?.toLowerCase() || "landscape",
+              photographer: media.photographer,
+              license: media.license,
+              source: media.source,
+              verification_status: media.verification_status,
+            })) : (fallback ? [{ url: fallback, caption: dest.name, category: dest.category_name?.toLowerCase() || "landscape" }] : [])
+            if (!images.length) return
             dynamicEntries.push({
               key: dest.slug || dest.id,
               name: dest.name,
               slug: dest.slug,
               location: `${dest.district || dest.city || "Nepal"}, ${dest.province || ""}`.replace(/, $/, ""),
               category: dest.category_name?.toLowerCase() || "landscape",
-              tag: "🌿 Verified Nepal Destination",
-              images: [
-                {
-                  url: verifiedImage,
-                  caption: dest.name,
-                  category: dest.category_name?.toLowerCase() || "landscape",
-                },
-              ],
+              tag: `🌿 Nepal Destination · ${images.length} image${images.length === 1 ? "" : "s"}`,
+              images,
             })
           })
-          setDestinationsMedia(dynamicEntries)
+          setDestinationsMedia((current) => [...dynamicEntries, ...current.filter((entry) => String(entry.key).startsWith("district-"))])
         }
+      })
+      .catch(() => {})
+
+    destinationApi.getDistrictGallery()
+      .then(({ data }) => {
+        const districtEntries = (data.districts || []).map((group) => ({
+          key: `district-${group.district}`,
+          name: `${group.district} District`,
+          slug: group.images?.[0]?.destination_slug,
+          location: `${group.district}, ${group.images?.[0]?.province || "Nepal"}`,
+          category: "landscape",
+          tag: `🗺️ District Gallery · ${group.images.length} image${group.images.length === 1 ? "" : "s"}`,
+          images: group.images.map((media) => ({
+            url: media.url, caption: media.caption || media.destination_name,
+            category: "landscape", photographer: media.photographer,
+            license: media.license, source: media.source,
+          })),
+        }))
+        setDestinationsMedia((current) => [...current.filter((entry) => !String(entry.key).startsWith("district-")), ...districtEntries])
       })
       .catch(() => {})
   }, [])
@@ -513,8 +536,7 @@ export default function Gallery() {
                         alt={img.caption}
                         loading="lazy"
                         onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "/images/destinations/gorkha/durbar.jpg";
+                          e.currentTarget.style.display = "none"
                         }}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
@@ -571,8 +593,7 @@ export default function Gallery() {
                 src={activePhoto.url}
                 alt={activePhoto.caption}
                 onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/images/destinations/gorkha/durbar.jpg";
+                  e.currentTarget.style.display = "none"
                 }}
                 className="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl"
               />
@@ -607,8 +628,7 @@ export default function Gallery() {
                     src={p.url}
                     alt={`Thumb ${i}`}
                     onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "/images/destinations/gorkha/durbar.jpg";
+                      e.currentTarget.style.display = "none"
                     }}
                     className="w-full h-full object-cover"
                   />

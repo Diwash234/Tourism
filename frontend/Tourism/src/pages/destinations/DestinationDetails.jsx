@@ -391,29 +391,33 @@ export default function DestinationDetails() {
             </h2>
 
             <div className="space-y-3">
-              {(destination.transit_routes?.length > 0 ? destination.transit_routes : [
-                { origin: "Kathmandu (Kalanki / Gongabu)", transport_mode: "Public Deluxe Bus / Tourist Coach", distance_km: destination.distance_from_kathmandu_km || 204.5, approx_duration: destination.approx_travel_time || "5-6 hours", road_condition: "Paved Highway with scenic river corridor", key_stops: "Kathmandu ➔ Naubise ➔ Malekhu ➔ Highway Junction ➔ Destination", estimated_fare_npr: 1200 },
-                { origin: `${destination.nearest_major_city || "Regional"} City Center`, transport_mode: "Shared 4WD Jeep / Local Taxi", distance_km: destination.distance_from_nearest_city_km || 40, approx_duration: "1-2 hours", road_condition: "Metalled Blacktopped & Hill Feeder Road", key_stops: `City Center ➔ Feeder Road ➔ ${destination.name}`, estimated_fare_npr: 450 },
-              ]).map((rt, i) => (
-                <div key={i} className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
+              {destination.transit_routes?.length > 0 ? destination.transit_routes.map((rt) => (
+                <div key={rt.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
                       <FiNavigation className="text-primary-600" /> {rt.origin} ➔ {destination.name}
                     </h4>
                     <span className="text-emerald-700 font-black">
-                      Est. Fare: NPR {rt.estimated_fare_npr || 800}
+                      {rt.estimated_fare_npr != null ? `Est. Fare: NPR ${rt.estimated_fare_npr}` : "Fare unavailable"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-gray-600">
-                    <p>🚗 <b>Transit:</b> {rt.transport_mode}</p>
-                    <p>⏱️ <b>Duration:</b> {rt.approx_duration}</p>
-                    <p>🛣️ <b>Condition:</b> {rt.road_condition}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-gray-600">
+                    <p>🚗 <b>Transit:</b> {rt.transport_mode || "Unavailable"}</p>
+                    <p>⏱️ <b>Duration:</b> {rt.approx_duration || "Unavailable"}</p>
+                    <p>📏 <b>Distance:</b> {rt.distance_km != null ? `${rt.distance_km} km` : "Unavailable"}</p>
+                    <p>🛣️ <b>Condition:</b> {rt.road_condition || "Not recently verified"}</p>
                   </div>
-                  {rt.key_stops && (
-                    <p className="text-[11px] text-gray-500 pt-1 border-t">📍 <b>Key Stops:</b> {rt.key_stops}</p>
-                  )}
+                  {rt.key_stops && <p className="text-[11px] text-gray-500 pt-1 border-t">📍 <b>Key Stops:</b> {rt.key_stops}</p>}
+                  <p className="text-[10px] text-gray-400">Source: {rt.route_source || "Database route record"}</p>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+                  No verified destination-specific transit record is available. Use the GraphML navigation engine to calculate an approximate route from your current location.
+                  <button onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)} className="block mt-3 rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white">
+                    Calculate GraphML Route
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

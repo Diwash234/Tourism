@@ -825,6 +825,18 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         data = DestinationListSerializer(self.trek).data
         self.assertEqual(data["cover_image_url"], "https://images.example.com/asset-abc123.jpg")
 
+    def test_district_gallery_uses_canonical_77_districts(self):
+        from .models import DestinationImage
+        DestinationImage.objects.create(
+            destination=self.trek, external_url="https://example.com/test-himalayan-trek.jpg",
+            is_cover=True, verification_status="approved",
+        )
+        response = self.client.get(reverse("district-gallery"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["district_count"], 77)
+        kaski = next(item for item in response.data["districts"] if item["district"] == "Kaski")
+        self.assertEqual(len(kaski["images"]), 1)
+
     def test_verified_risk_feed_ingestion_keeps_source_provenance(self):
         from .models import CurrentHazard
         from .risk_ingestion import ingest_records

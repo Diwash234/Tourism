@@ -164,7 +164,7 @@ def search_destination(request):
 
 
 class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewsets.ModelViewSet):
-    queryset = Destination.objects.select_related("category", "created_by")
+    queryset = Destination.objects.select_related("category", "created_by").prefetch_related("gallery")
     permission_classes = [CanSubmitPlace]
     filterset_class = DestinationFilter
     search_fields = ["name", "description", "city", "country"]
@@ -1080,6 +1080,57 @@ class DestinationEmergencyServicesView(APIView):
         from .risk_service import build_destination_risk
         payload["risk"] = build_destination_risk(destination)
         return Response(payload)
+
+
+class DistrictGalleryView(APIView):
+    """Up to five destination-linked media items per represented Nepal district."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .serializers import is_destination_specific_image
+        from .image_server import image_server_url
+        canonical_districts = [
+            "Bhojpur","Dhankuta","Ilam","Jhapa","Khotang","Morang","Okhaldhunga","Panchthar","Sankhuwasabha","Solukhumbu","Sunsari","Taplejung","Terhathum","Udayapur",
+            "Bara","Dhanusha","Mahottari","Parsa","Rautahat","Saptari","Sarlahi","Siraha",
+            "Bhaktapur","Chitwan","Dhading","Dolakha","Kathmandu","Kavrepalanchok","Lalitpur","Makwanpur","Nuwakot","Ramechhap","Rasuwa","Sindhuli","Sindhupalchok",
+            "Baglung","Gorkha","Kaski","Lamjung","Manang","Mustang","Myagdi","Nawalpur","Parbat","Syangja","Tanahun",
+            "Arghakhanchi","Banke","Bardiya","Dang","Gulmi","Kapilvastu","Parasi","Palpa","Pyuthan","Rolpa","Rukum East","Rupandehi",
+            "Dailekh","Dolpa","Humla","Jajarkot","Jumla","Kalikot","Mugu","Rukum West","Salyan","Surkhet",
+            "Achham","Baitadi","Bajhang","Bajura","Dadeldhura","Darchula","Doti","Kailali","Kanchanpur",
+        ]
+        lookup = {name.lower(): name for name in canonical_districts}
+        lookup.update({"kavre": "Kavrepalanchok", "tanahu": "Tanahun", "nawalparasi east": "Nawalpur", "nawalparasi west": "Parasi", "east rukum": "Rukum East", "west rukum": "Rukum West", "bardiya": "Bardiya", "kapilbastu": "Kapilvastu"})
+        groups = {district: [] for district in canonical_districts}
+        photos = DestinationImage.objects.select_related("destination").exclude(verification_status="rejected").order_by("destination__district", "-is_cover", "id")
+        for photo in photos.iterator(chunk_size=500):
+            destination = photo.destination
+            raw_district = (destination.district or "").strip().lower().replace(" district", "")
+            district = lookup.get(raw_district)
+            if not district or len(groups[district]) >= 5:
+                continue
+            if not is_destination_specific_image(destination, photo):
+                continue
+            if photo.image_path:
+                url = image_server_url(photo.image_path)
+            elif photo.external_url:
+                url = photo.external_url
+            elif photo.image:
+                url = request.build_absolute_uri(photo.image.url)
+            else:
+                continue
+            groups.setdefault(district, []).append({
+                "id": photo.id, "url": url, "caption": photo.caption or destination.name,
+                "destination_id": destination.id, "destination_name": destination.name,
+                "destination_slug": destination.slug, "province": destination.province,
+                "source": photo.source, "source_url": photo.source_url,
+                "photographer": photo.photographer, "license": photo.license_type,
+                "verification_status": photo.verification_status,
+            })
+        return Response({
+            "district_count": len(groups),
+            "image_count": sum(len(items) for items in groups.values()),
+            "districts": [{"district": district, "images": images} for district, images in sorted(groups.items())],
+        })
 
 
 class DestinationRiskAssessmentView(APIView):

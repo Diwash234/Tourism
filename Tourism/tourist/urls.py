@@ -165,6 +165,7 @@ urlpatterns = [
     path("hotels/search/", views.HotelSearchView.as_view(), name="hotel-search"),
     path("destinations/autocomplete/", views.DestinationAutocompleteView.as_view(), name="destination-autocomplete"),
     path("destinations/mood-recommendations/", views.MoodRecommendationsView.as_view(), name="mood-recommendations"),
+    path("gallery/districts/", views.DistrictGalleryView.as_view(), name="district-gallery"),
     path("destinations/<str:destination_ref>/risk/", views.DestinationRiskAssessmentView.as_view(), name="destination-risk-assessment"),
     path("recommendation-events/", views.RecommendationEventView.as_view(), name="recommendation-events"),
     path("destinations/<str:destination_ref>/emergency/", views.DestinationEmergencyServicesView.as_view(), name="destination-emergency-services"),
