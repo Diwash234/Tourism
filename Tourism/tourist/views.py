@@ -1082,6 +1082,46 @@ class DestinationEmergencyServicesView(APIView):
         return Response(payload)
 
 
+class FeaturedGalleryView(APIView):
+    """Named Nepal collections requested by the visual archive UI."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        requested = [
+            ("annapurna-base-camp", "Annapurna Base Camp"),
+            ("bandipur-heritage-hill-station", "Bandipur Heritage"),
+            ("bardiya-national-park", "Bardiya National Park"),
+            ("bhaktapur-durbar-square", "Bhaktapur Durbar Square"),
+            ("chitwan-national-park", "Chitwan National Park"),
+            ("dolpo-shey-gompa", "Dolpo Shey Gompa"),
+            ("everest-base-camp", "Everest Base Camp"),
+            ("gosaikunda", "Gosaikunda"),
+            ("ilam-tea-gardens-kanyam", "Ilam Tea Gardens"),
+            ("janakpurdham-janaki-mandir", "Janakpurdham"),
+            ("kathmandu-durbar-square", "Kathmandu Durbar Square"),
+            ("koshi-tappu-wildlife-reserve", "Koshi Tappu"),
+            ("lumbini-sacred-garden-maya-devi-temple", "Lumbini"),
+            ("manaslu-circuit-trek", "Manaslu Circuit"),
+            ("upper-mustang-lo-manthang", "Upper Mustang"),
+            ("nagarkot-himalayan-sunrise-viewpoint", "Nagarkot"),
+            ("patan-durbar-square", "Patan Durbar Square"),
+            ("pokhara", "Pokhara"),
+            ("rara-lake", "Rara Lake"),
+            ("tilicho-lake", "Tilicho Lake"),
+        ]
+        destinations, seen = [], set()
+        for slug, name in requested:
+            destination = Destination.objects.filter(slug=slug, is_active=True, status="approved").first()
+            if destination is None:
+                destination = Destination.objects.filter(name__icontains=name, is_active=True, status="approved").order_by("-average_rating", "-views_count").first()
+            if destination and destination.id not in seen:
+                seen.add(destination.id); destinations.append(destination)
+        return Response({
+            "count": len(destinations),
+            "results": DestinationListSerializer(destinations, many=True, context={"request": request}).data,
+        })
+
+
 class DistrictGalleryView(APIView):
     """Up to five destination-linked media items per represented Nepal district."""
     permission_classes = [permissions.AllowAny]
@@ -1122,6 +1162,7 @@ class DistrictGalleryView(APIView):
                 "id": photo.id, "url": url, "caption": photo.caption or destination.name,
                 "destination_id": destination.id, "destination_name": destination.name,
                 "destination_slug": destination.slug, "province": destination.province,
+                "category_name": destination.category.name if destination.category else "landscape",
                 "source": photo.source, "source_url": photo.source_url,
                 "photographer": photo.photographer, "license": photo.license_type,
                 "verification_status": photo.verification_status,
