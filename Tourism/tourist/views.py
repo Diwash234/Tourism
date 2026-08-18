@@ -991,6 +991,18 @@ class HotelSearchView(generics.ListAPIView):
         )
 
 
+class RouteMetricsView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        try:
+            values = [float(request.data[key]) for key in ["start_latitude", "start_longitude", "end_latitude", "end_longitude"]]
+        except (KeyError, TypeError, ValueError):
+            return Response({"detail": "Valid start/end latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
+        from .routing_service import route_metrics
+        return Response(route_metrics(*values))
+
+
 class NearbyEmergencyServicesView(APIView):
     """Nearest Nepal emergency services for raw GPS coordinates."""
 

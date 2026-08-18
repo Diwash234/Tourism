@@ -878,3 +878,21 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(len(response.data["verified_news"]), 1)
         self.assertEqual(response.data["observations"][0]["station_name"], "Kaski Test Station")
         self.assertFalse(response.data["current_conditions"]["official_warning_present"])
+
+    @override_settings(DHM_FEED_URL="", BIPAD_FEED_URL="")
+    def test_unconfigured_official_feed_is_reported_not_fabricated(self):
+        from .official_connectors import fetch_official_feed
+        result = fetch_official_feed("dhm")
+        self.assertFalse(result["configured"])
+        self.assertFalse(result["ingested"])
+
+    @override_settings(ROUTING_API_URL="")
+    def test_routing_fallback_labels_straight_line_distance(self):
+        response = self.client.post(reverse("route-metrics"), {
+            "start_latitude": 28.2096, "start_longitude": 83.9856,
+            "end_latitude": 28.2380, "end_longitude": 83.9956,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "routing_unconfigured")
+        self.assertIsNone(response.data["road_distance_km"])
+        self.assertGreater(response.data["straight_line_km"], 0)

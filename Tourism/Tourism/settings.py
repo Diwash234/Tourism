@@ -333,6 +333,16 @@ PHOTO_PROMOTION_IMPRESSION_THRESHOLD = config("PHOTO_PROMOTION_IMPRESSION_THRESH
 ML_SERVICE_URL = config("ML_SERVICE_URL", default="http://localhost:8001")
 ML_SERVICE_API_KEY = config("ML_SERVICE_API_KEY", default="change-this-ml-api-key")
 ML_SERVICE_TIMEOUT = config("ML_SERVICE_TIMEOUT", default=5, cast=int)
+
+# Optional authoritative/operational integrations. Blank means disabled; the
+# application reports the integration as unconfigured rather than inventing data.
+DHM_FEED_URL = config("DHM_FEED_URL", default="")
+DHM_API_KEY = config("DHM_API_KEY", default="")
+BIPAD_FEED_URL = config("BIPAD_FEED_URL", default="")
+BIPAD_API_KEY = config("BIPAD_API_KEY", default="")
+ROUTING_API_URL = config("ROUTING_API_URL", default="")
+ROUTING_API_KEY = config("ROUTING_API_KEY", default="")
+EXTERNAL_SYNC_TIMEOUT = config("EXTERNAL_SYNC_TIMEOUT", default=15, cast=int)
 ML_WEBHOOK_SECRET = config("ML_WEBHOOK_SECRET", default="change-this-shared-secret")
 BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")
 # Language codes that should try the ML teammate's local-language model

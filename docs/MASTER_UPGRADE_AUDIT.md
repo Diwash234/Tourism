@@ -20,7 +20,7 @@ This document maps the existing implementation to the master requirements. The p
 | National versus local numbers | Never invent local number; explicit national fallback | emergency API/UI | Implemented |
 | Nepal-wide risk | Destination-specific endpoint, exact or disclosed nearest baseline | `risk_service.py`, destination risk API, risk panel | Implemented |
 | Risk layers | Keep current warnings, history, traveler evidence and model indicator separate | `RiskIncident`, `CurrentHazard`, risk response/UI | Implemented |
-| DHM/BIPAD/news extensibility | Provider-neutral normalized ingestion with provenance | `risk_ingestion.py`, `ingest_risk_feed` command | Implemented; automatic upstream download requires confirmed official machine APIs |
+| DHM/BIPAD/news extensibility | Provider-neutral ingestion plus scheduled HTTPS connectors | `risk_ingestion.py`, `official_connectors.py`, `sync_official_risk` | Implemented; URLs remain deliberately unconfigured until authorities approve machine endpoints |
 | Geofenced alerts | Notify users in 2–4 km radius and opted-in accepted family links | Alert signal and admin advisory form | Implemented |
 | Itinerary integration | Add nearest approved hotels, hospitals, police and essentials per day | itinerary API enrichment and `Itinerary.jsx` | Implemented |
 | Feedback/correction | Admin queue, correction categories and evidence media | `UserFeedback`, `FeedbackEvidence`, Contact page, admin feedback APIs | Implemented |
@@ -29,7 +29,7 @@ This document maps the existing implementation to the master requirements. The p
 | Current official warning penalty | Stronger than historical risk; mark critical destination unavailable | recommender + `CurrentHazard` | Implemented |
 | Recommendation events | Search/view/save/select event history and explicit consent | `RecommendationEvent`, consent-gated API and Recommendation UI | Implemented |
 | Observation station values | Station, unit, trend, observed time, destination distance | `RiskObservation`, ingestion adapter and risk response | Implemented |
-| Road distance | Distinguish straight-line from routed road distance | navigation/route engine + emergency UI | Straight-line and estimated time implemented; true road distance depends on route graph coverage |
+| Road distance | Distinguish straight-line from routed road distance | navigation/route engine, optional OSRM-compatible routing connector, `/routing/metrics/` | Implemented with explicit unconfigured/unavailable fallback; actual routes require configured graph service |
 | Acceptance matrix | Pokhara, Kathmandu, Rara, Mustang, Jumla, Humla, Chitwan, Lumbini, Dhangadhi, Dadeldhura | `acceptance_check_nepal` command + tests | Implemented; current data gaps are reported rather than fabricated |
 
 ## Data-quality rules
@@ -40,3 +40,19 @@ This document maps the existing implementation to the master requirements. The p
 4. User records are excluded from trusted CSV/ML data until admin approval.
 5. Straight-line distance and estimated travel time are labeled; neither is falsely called road distance.
 6. Source and freshness metadata travel with safety-critical records.
+
+## Latest production data audit
+
+The operational audit intentionally reports gaps rather than upgrading imported rows to verified:
+
+- 8,524 approved destinations
+- 218 missing coordinates
+- 8,523 missing municipality
+- 925 missing district
+- 6,639 missing verified destination media
+- 393 imported hospitals, 0 independently admin/authority verified
+- 641 imported police stations, 0 independently admin/authority verified
+- 1,552 imported hotels, 0 independently admin/authority verified
+- 0 persisted essential-service rows
+
+Use `python manage.py audit_data_quality --output reports/data-gaps.csv` to reproduce and prioritize this work. These are data-acquisition tasks; populating them without authority records would violate the no-fabrication requirement.
