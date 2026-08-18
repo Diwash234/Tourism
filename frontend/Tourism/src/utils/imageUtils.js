@@ -597,11 +597,26 @@ export const deriveImageCategory = (destination) => {
   return null
 }
 
+// Manually corrected media for records whose imported DB cover is known to
+// depict a different attraction. These take priority until an admin replaces
+// the cover through the media dashboard.
+const CORRECTED_DESTINATION_MEDIA = {
+  "hot air balloon pokhara": "/images/destinations/hot-air-balloon-pokhara/img1.jpg",
+  "ultralight flight pokhara": "/images/destinations/ultralight-flight-pokhara/img1.jpg",
+  "pokhara ultralight flights": "/images/destinations/ultralight-flight-pokhara/img1.jpg",
+  "zipflyer nepal pokhara": "/images/destinations/zipflyer-pokhara/img1.jpg",
+  "zipflyer pokhara": "/images/destinations/zipflyer-pokhara/img1.jpg",
+  "chhoser sky caves": "/images/destinations/chhoser-sky-caves/img1.jpg",
+  "gupteswor gupha": "/images/destinations/gupteswor-gupha/img1.jpg",
+}
+
 /**
  * Return a usable image URL for a destination/hotel/card.
  */
 export const getDestinationImageUrl = (destination) => {
   if (!destination) return ""
+  const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
+  if (corrected) return corrected
   if (Array.isArray(destination.images)) {
     const first = destination.images.find(isUsable)
     if (first) return first

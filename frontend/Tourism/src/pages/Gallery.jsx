@@ -345,15 +345,18 @@ export default function Gallery() {
             existingNames.add(dest.name.toLowerCase())
             const preview = Array.isArray(dest.gallery_preview) ? dest.gallery_preview : []
             const fallback = getDestinationImageUrl(dest)
-            const images = preview.length ? preview.map((media) => ({
-              url: media.url,
-              caption: media.caption || dest.name,
-              category: dest.category_name?.toLowerCase() || "landscape",
-              photographer: media.photographer,
-              license: media.license,
-              source: media.source,
-              verification_status: media.verification_status,
-            })) : (fallback ? [{ url: fallback, caption: dest.name, category: dest.category_name?.toLowerCase() || "landscape" }] : [])
+            const manuallyCorrected = fallback && ["hot-air-balloon-pokhara", "ultralight-flight-pokhara", "zipflyer-pokhara", "chhoser-sky-caves", "gupteswor-gupha"].some((folder) => fallback.includes(`/${folder}/`))
+            const images = manuallyCorrected
+              ? [{ url: fallback, caption: dest.name, category: dest.category_name?.toLowerCase() || "landscape", source: "manual_correction" }]
+              : preview.length ? preview.map((media) => ({
+                  url: media.url,
+                  caption: media.caption || dest.name,
+                  category: dest.category_name?.toLowerCase() || "landscape",
+                  photographer: media.photographer,
+                  license: media.license,
+                  source: media.source,
+                  verification_status: media.verification_status,
+                })) : (fallback ? [{ url: fallback, caption: dest.name, category: dest.category_name?.toLowerCase() || "landscape" }] : [])
             if (!images.length) return
             dynamicEntries.push({
               key: dest.slug || dest.id,
@@ -400,13 +403,15 @@ export default function Gallery() {
           destinationName: d.name,
           slug: d.slug,
           location: d.location,
-          photographer: "Nepal Tourism Media Archive",
-          license: "Creative Commons CC BY-SA 4.0",
+          photographer: img.photographer || "Source contributor",
+          license: img.license || "See source record",
         })
       })
     })
     setFlatPhotoList(all)
   }, [destinationsMedia])
+
+  const districtMedia = destinationsMedia.filter((dest) => String(dest.key).startsWith("district-") && dest.images.length)
 
   const filteredDestinations = destinationsMedia.filter((dest) => {
     const matchesCat = selectedCategory === "all" || dest.category === selectedCategory || dest.images.some(i => i.category === selectedCategory)
@@ -454,7 +459,7 @@ export default function Gallery() {
           📸 Nepal Destination Photography & Visual Stories
         </h1>
         <p className="text-sm text-gray-500">
-          Explore over 100+ verified high-resolution photographs from Everest, Annapurna, Pokhara, Mustang, Rara, and all 7 Provinces with complete license and photographer attribution.
+          Explore destination-linked and source-attributed photographs from all 77 districts and 7 provinces. Imported and corrected media remains manageable through the Admin Image Dashboard.
         </p>
       </div>
 
@@ -488,6 +493,29 @@ export default function Gallery() {
           />
         </div>
       </div>
+
+      {/* 77-district moving visual index */}
+      {districtMedia.length > 0 && (
+        <section className="overflow-hidden rounded-3xl bg-slate-950 py-5 border border-purple-900/40">
+          <div className="px-5 mb-4 flex items-center justify-between">
+            <div><p className="text-[10px] uppercase tracking-widest text-purple-300 font-black">All Nepal District Visual Index</p><h2 className="text-white font-black text-xl">77 District Photo Marquee</h2></div>
+            <span className="text-xs text-slate-400">5 images per district · swipe or browse below</span>
+          </div>
+          <motion.div
+            className="flex gap-3 w-max px-3"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
+          >
+            {[...districtMedia, ...districtMedia].map((district, index) => (
+              <button key={`${district.key}-${index}`} onClick={() => setSearchQuery(district.name.replace(" District", ""))} className="relative w-48 h-28 shrink-0 rounded-2xl overflow-hidden border border-white/10 group">
+                <img src={district.images[index % district.images.length]?.url} alt={district.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10" />
+                <span className="absolute bottom-2 left-3 text-white text-xs font-black">{district.name}</span>
+              </button>
+            ))}
+          </motion.div>
+        </section>
+      )}
 
       {/* Destination Collections Grid */}
       <div className="space-y-10">
@@ -526,8 +554,8 @@ export default function Gallery() {
                       destinationName: dest.name,
                       slug: dest.slug,
                       location: dest.location,
-                      photographer: "Nepal Tourism Media Archive",
-                      license: "Creative Commons CC BY-SA 4.0",
+                      photographer: img.photographer || "Source contributor",
+                      license: img.license || "See source record",
                     }, globalIdx)}
                   >
                     <div className="h-40 w-full relative overflow-hidden">
@@ -549,7 +577,7 @@ export default function Gallery() {
 
                     <div className="p-2 bg-white text-[11px] space-y-0.5">
                       <p className="font-bold text-gray-900 truncate">{img.caption}</p>
-                      <p className="text-[9px] text-emerald-600 font-mono">✓ CC BY-SA 4.0</p>
+                      <p className="text-[9px] text-emerald-600 font-mono truncate">{img.license || "Source attribution available"}</p>
                     </div>
                   </motion.div>
                 )
