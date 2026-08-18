@@ -571,7 +571,14 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        if result.get("route") and "routing_engine" not in result:
+            result["routing_engine"] = "bundled_nepal_graphml"
+            result["road_distance_km"] = None
+            result["duration_min"] = result.get("duration_min") or max(1, round(float(result.get("distance_km", 0)) / 35 * 60))
+            result["steps"] = result.get("steps") or result.get("directions", [])
+            result["note"] = result.get("note") or "Approximate GraphML route; not a GraphHopper/OSRM street-level road route."
+        return result
     except requests.RequestException as exc:
         logger.warning("ML routing service unreachable; trying bundled GraphML: %s", exc)
         try:
