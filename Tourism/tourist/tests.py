@@ -815,6 +815,16 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         data = DestinationListSerializer(self.trek).data
         self.assertIsNone(data["cover_image_url"])
 
+    def test_destination_linked_unverified_media_remains_visible_for_admin_review(self):
+        from .models import DestinationImage
+        from .serializers import DestinationListSerializer
+        DestinationImage.objects.create(
+            destination=self.trek, external_url="https://images.example.com/asset-abc123.jpg",
+            is_cover=True, is_verified=False, verification_status="pending",
+        )
+        data = DestinationListSerializer(self.trek).data
+        self.assertEqual(data["cover_image_url"], "https://images.example.com/asset-abc123.jpg")
+
     def test_verified_risk_feed_ingestion_keeps_source_provenance(self):
         from .models import CurrentHazard
         from .risk_ingestion import ingest_records
@@ -886,7 +896,7 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertFalse(result["configured"])
         self.assertFalse(result["ingested"])
 
-    @override_settings(ROUTING_API_URL="")
+    @override_settings(ROUTING_API_URL="", LOCAL_GRAPH_ROUTING_ENABLED=False)
     def test_routing_fallback_labels_straight_line_distance(self):
         response = self.client.post(reverse("route-metrics"), {
             "start_latitude": 28.2096, "start_longitude": 83.9856,

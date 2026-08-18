@@ -573,31 +573,34 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
         response.raise_for_status()
         return response.json()
     except requests.RequestException as exc:
-        logger.warning("ML routing service unreachable: %s", exc)
-        import sys
-        if "test" in sys.argv:
-            return None
+        logger.warning("ML routing service unreachable; trying bundled GraphML: %s", exc)
         try:
-            dist_km = round(haversine_distance(float(start_latitude), float(start_longitude), float(end_latitude), float(end_longitude)), 2)
-            duration_min = round(dist_km * 1.8)
+            from .routing_service import route_metrics
+            metrics = route_metrics(start_latitude, start_longitude, end_latitude, end_longitude)
+            if metrics.get("status") not in {"graph_routed", "routed"}:
+                return None
+            directions = metrics.get("directions", [])
+            steps = []
+            for direction in directions:
+                steps.append({
+                    "turn": str(direction.get("turn", "straight")).lower(),
+                    "instruction": direction.get("instruction", "Continue along the graph route"),
+                    "distance_km": direction.get("distance_km", 0),
+                    "distance_m": round(float(direction.get("distance_km", 0)) * 1000),
+                })
             return {
-                "distance_km": dist_km,
-                "duration_min": duration_min,
+                "distance_km": metrics.get("route_distance_km"),
+                "duration_min": metrics.get("duration_min"),
                 "route_type": route_type,
-                "route": [
-                    [float(start_latitude), float(start_longitude)],
-                    [round((float(start_latitude) + float(end_latitude)) / 2, 4), round((float(start_longitude) + float(end_longitude)) / 2, 4)],
-                    [float(end_latitude), float(end_longitude)],
-                ],
-                "steps": [
-                    {"turn": "start", "instruction": f"Depart from starting GPS coordinates ({start_latitude}, {start_longitude})", "distance_km": round(dist_km * 0.15, 2), "distance_m": round(dist_km * 150)},
-                    {"turn": "straight", "instruction": "Follow main arterial highway corridor towards destination province", "distance_km": round(dist_km * 0.6, 2), "distance_m": round(dist_km * 600)},
-                    {"turn": "right", "instruction": "Turn right onto local feeder highway towards destination center", "distance_km": round(dist_km * 0.2, 2), "distance_m": round(dist_km * 200)},
-                    {"turn": "straight", "instruction": f"Arrive at destination coordinates ({end_latitude}, {end_longitude}) - Safe Tourist Zone", "distance_km": round(dist_km * 0.05, 2), "distance_m": round(dist_km * 50)},
-                ],
-                "note": "Calculated via reliable Haversine route network fallback",
+                "route": metrics.get("route", []),
+                "steps": steps,
+                "routing_engine": metrics.get("routing_engine"),
+                "straight_line_km": metrics.get("straight_line_km"),
+                "road_distance_km": metrics.get("road_distance_km"),
+                "note": metrics.get("note"),
             }
-        except Exception:
+        except Exception as graph_exc:  # noqa: BLE001
+            logger.warning("Bundled GraphML routing failed: %s", graph_exc)
             return None
 
 

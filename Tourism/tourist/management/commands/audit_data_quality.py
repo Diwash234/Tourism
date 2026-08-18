@@ -5,7 +5,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 
-from tourist.models import Destination, Hospital, Hotel, OSMEssentialService, PoliceStation
+from tourist.models import Destination, DestinationImage, Hospital, Hotel, OSMEssentialService, PoliceStation
 
 
 class Command(BaseCommand):
@@ -21,7 +21,8 @@ class Command(BaseCommand):
             "missing_coordinates": approved.filter(Q(latitude__isnull=True) | Q(longitude__isnull=True)).count(),
             "missing_municipality": approved.filter(Q(municipality__isnull=True) | Q(municipality="")).count(),
             "missing_district": approved.filter(Q(district__isnull=True) | Q(district="")).count(),
-            "missing_verified_image": 0,
+            "missing_displayable_image": 0,
+            "destination_media_rows": DestinationImage.objects.count(),
             "hospitals": Hospital.objects.count(),
             "verified_hospitals": Hospital.objects.filter(is_verified=True).count(),
             "police_stations": PoliceStation.objects.count(),
@@ -39,7 +40,7 @@ class Command(BaseCommand):
             if not destination.municipality: issues.append("municipality")
             if not destination.district: issues.append("district")
             if not destination.cover_image and not verified_destination_photos(destination):
-                issues.append("verified_image"); summary["missing_verified_image"] += 1
+                issues.append("displayable_image"); summary["missing_displayable_image"] += 1
             if issues:
                 gaps.append({"id": destination.id, "name": destination.name, "district": destination.district or "", "province": destination.province or "", "missing": "|".join(issues)})
         if options.get("output"):

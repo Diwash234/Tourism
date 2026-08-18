@@ -21,7 +21,7 @@ ROUTING_API_KEY=
 
 Feed URLs must return the normalized `records` schema accepted by `risk_ingestion.py`. Configure them only after the authority confirms endpoint access and data-use conditions.
 
-`ROUTING_API_URL` must expose an OSRM-compatible `/route/v1/driving/...` API. If blank or unavailable, the application returns `road_distance_km: null` and labels the displayed value as straight-line distance.
+The bundled `ml_service/model/route/nepal_graph.graphml` is used automatically when `LOCAL_GRAPH_ROUTING_ENABLED=True`. It returns an approximate graph route, route distance, duration and polyline, but is explicitly not labeled as street-level road distance. `ROUTING_API_URL` can optionally expose an OSRM-compatible `/route/v1/driving/...` API for true road metrics. If neither backend can route the coordinates, the application returns `road_distance_km: null` and labels the displayed value as straight-line distance.
 
 ## Scheduled jobs
 
@@ -83,3 +83,7 @@ The current trainers do not all emit comparable quality metrics. A successful pr
 ## Monitoring
 
 Admin health output includes database, storage, ML service, Overpass, Wikimedia, DHM feed, BIPAD feed and routing configuration/reachability. Unconfigured optional integrations are reported as unconfigured, not as healthy live feeds.
+
+### GraphHopper clarification
+
+GraphHopper is a valid routing option, but the Java GraphHopper server normally imports an OpenStreetMap `.osm.pbf` road network and builds its own graph. It does not directly consume the project's tourism GraphML as a production road graph. The application therefore uses the existing GraphML through NetworkX for immediate approximate routing, while retaining OSRM/GraphHopper/OpenRouteService as optional street-routing backends through a configured service URL/adapter.

@@ -610,13 +610,16 @@ export const getDestinationImageUrl = (destination) => {
   if (isUsable(cover)) return cover
   if (Array.isArray(destination.gallery)) {
     for (const media of destination.gallery) {
-      if (media.is_verified === false) continue
-      if (media.verification_status && !["approved", "verified"].includes(media.verification_status)) continue
+      if (media.verification_status === "rejected") continue
       const url = media.display_url || media.image_url || media.external_url || media.image || media.url
       if (isUsable(url)) return url
     }
   }
-  return ""
+  // Restore the previously generated, bundled place-specific media for known
+  // Nepal landmarks. This is deterministic by place name, not a random stock
+  // pool, and admins can replace it from the image dashboard.
+  const local = lookupLocalNepal(destination.name, deriveImageCategory(destination))
+  return local || ""
 }
 
 /**

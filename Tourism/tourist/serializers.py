@@ -562,33 +562,41 @@ NEPAL_CURATED_PHOTOS = [
 
 
 def is_destination_specific_image(destination, photo):
-    """Reject generic/cross-destination media even if it was marked approved."""
+    """Keep destination-linked media unless there is strong mismatch evidence.
+
+    Verification controls trust badges and admin review, not basic visibility.
+    This restores generated/imported media while still blocking obvious cases
+    such as a Kathmandu photo assigned to Phewa Lake or crash/news imagery.
+    """
     import re
-    ignored = {
-        "lake", "park", "temple", "stupa", "mountain", "national", "area",
-        "view", "valley", "museum", "city", "nepal", "the", "and", "tourism",
-    }
-    tokens = {
-        token for token in re.findall(r"[a-z0-9]+", (destination.name or "").lower())
-        if len(token) >= 4 and token not in ignored
-    }
+    ignored = {"lake", "park", "temple", "stupa", "mountain", "national", "area", "view", "valley", "museum", "city", "nepal", "the", "and", "tourism"}
+    destination_text = " ".join(filter(None, [
+        destination.name, destination.aliases, destination.city, destination.district, destination.province,
+    ])).lower()
+    allowed = {token for token in re.findall(r"[a-z0-9]+", destination_text) if len(token) >= 4 and token not in ignored}
     external_url = getattr(photo, "external_url", "") or ""
     local_image = str(getattr(photo, "image", "") or "")
-    # Imported captions/alt text were generated from destination names and can
-    # falsely label an unrelated URL. Trust URL/path identity for external
-    # media; captions are evidence only for actual uploaded files.
-    evidence_parts = [external_url, getattr(photo, "image_path", ""), local_image, getattr(photo, "source_url", "")]
-    if local_image and not external_url:
-        evidence_parts.extend([getattr(photo, "caption", ""), getattr(photo, "alt_text", "")])
-    evidence = " ".join(filter(None, evidence_parts)).lower()
-    return bool(tokens and any(token in evidence for token in tokens))
+    image_path = getattr(photo, "image_path", "") or ""
+    evidence = " ".join([external_url, local_image, image_path, getattr(photo, "source_url", "") or ""]).lower()
+    if any(term in evidence for term in ["airlines_crash", "plane_crash", "accident_scene", "placeholder", "stock-photo"]):
+        return False
+    # A locally uploaded/generated file is explicitly attached by destination_id.
+    if (local_image or image_path) and not external_url:
+        return True
+    own_match = any(token in evidence for token in allowed)
+    known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
+    conflicts = {place for place in known_places if place in evidence and place not in allowed}
+    if conflicts and not own_match:
+        return False
+    # Unknown/hash-based external URLs remain visible as destination-linked,
+    # but retain their pending/unverified badge for admin moderation.
+    return True
 
 
 def verified_destination_photos(destination):
     return [
         photo for photo in destination.gallery.all()
-        if photo.is_verified
-        and photo.verification_status in {DestinationImage.ImageStatus.APPROVED, "verified"}
+        if photo.verification_status != DestinationImage.ImageStatus.REJECTED
         and is_destination_specific_image(destination, photo)
     ]
 

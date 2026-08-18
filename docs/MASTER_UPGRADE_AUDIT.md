@@ -29,7 +29,7 @@ This document maps the existing implementation to the master requirements. The p
 | Current official warning penalty | Stronger than historical risk; mark critical destination unavailable | recommender + `CurrentHazard` | Implemented |
 | Recommendation events | Search/view/save/select event history and explicit consent | `RecommendationEvent`, consent-gated API and Recommendation UI | Implemented |
 | Observation station values | Station, unit, trend, observed time, destination distance | `RiskObservation`, ingestion adapter and risk response | Implemented |
-| Road distance | Distinguish straight-line from routed road distance | navigation/route engine, optional OSRM-compatible routing connector, `/routing/metrics/` | Implemented with explicit unconfigured/unavailable fallback; actual routes require configured graph service |
+| Routing | Distinguish straight-line, bundled graph-route and true road distance | existing GraphML/NetworkX engine, Navigation API, optional OSRM-compatible connector, `/routing/metrics/` | Implemented; GraphML routes are labeled approximate, OSRM/GraphHopper remains optional for street-level road metrics |
 | Acceptance matrix | Pokhara, Kathmandu, Rara, Mustang, Jumla, Humla, Chitwan, Lumbini, Dhangadhi, Dadeldhura | `acceptance_check_nepal` command + tests | Implemented; current data gaps are reported rather than fabricated |
 
 ## Data-quality rules
@@ -49,7 +49,8 @@ The operational audit intentionally reports gaps rather than upgrading imported 
 - 218 missing coordinates
 - 8,523 missing municipality
 - 925 missing district
-- 6,639 missing verified destination media
+- 19,328 destination media rows restored for display and admin moderation
+- 260 destinations still have no displayable linked/bundled media
 - 393 imported hospitals, 0 independently admin/authority verified
 - 641 imported police stations, 0 independently admin/authority verified
 - 1,552 imported hotels, 0 independently admin/authority verified
