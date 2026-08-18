@@ -584,6 +584,9 @@ def is_destination_specific_image(destination, photo):
     if (local_image or image_path) and not external_url:
         return True
     own_match = any(token in evidence for token in allowed)
+    strict_subject = any(term in destination_text for term in ["cave", "gupha", "gufa", "balloon", "ultralight", "paragliding", "zipflyer", "zip flyer"])
+    if strict_subject and not own_match:
+        return False
     known_places = {"kathmandu", "patan", "bhaktapur", "pokhara", "rara", "lumbini", "mustang", "chitwan", "janakpur", "everest", "annapurna", "tilicho", "gosaikunda", "bardiya", "ilam", "dhangadhi", "dadeldhura", "pashupatinath", "boudhanath", "swayambhunath"}
     conflicts = {place for place in known_places if place in evidence and place not in allowed}
     if conflicts and not own_match:
