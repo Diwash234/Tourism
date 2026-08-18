@@ -783,6 +783,9 @@ class Hotel(TimeStampedModel):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.DATASET)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-rating", "name"]
@@ -810,6 +813,13 @@ class Hospital(models.Model):
 
     district = models.CharField(max_length=100)
     image = models.ImageField(upload_to="services/hospitals/", blank=True, null=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    emergency_available = models.BooleanField(default=True)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class PoliceStation(models.Model):
@@ -830,6 +840,13 @@ class PoliceStation(models.Model):
 
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     image = models.ImageField(upload_to="services/police/", blank=True, null=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    emergency_available = models.BooleanField(default=True)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class BudgetEstimation(models.Model):
     destination = models.OneToOneField(
@@ -1028,6 +1045,11 @@ class RiskIncident(TimeStampedModel):
     source_type = models.CharField(max_length=20, choices=SourceType.choices, default=SourceType.ADMIN)
     source_name = models.CharField(max_length=160, blank=True)
     source_url = models.URLField(max_length=600, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    municipality = models.CharField(max_length=160, blank=True)
+    affected_area = models.CharField(max_length=240, blank=True)
     verified = models.BooleanField(default=False)
 
     class Meta:
@@ -1046,7 +1068,9 @@ class CurrentHazard(TimeStampedModel):
     source_type = models.CharField(max_length=20, choices=RiskIncident.SourceType.choices, default=RiskIncident.SourceType.OFFICIAL)
     source_name = models.CharField(max_length=160)
     source_url = models.URLField(max_length=600, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
     observed_at = models.DateTimeField()
+    affected_area = models.CharField(max_length=240, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     station_name = models.CharField(max_length=160, blank=True)
     distance_km = models.FloatField(null=True, blank=True)
@@ -1251,6 +1275,8 @@ class OSMEssentialService(TimeStampedModel):
         ARMED_FORCE = "armed_force", "Armed Force"
         FIRE_STATION = "fire_station", "Fire Station"
         BANK = "bank", "Bank"
+        BLOOD_BANK = "blood_bank", "Blood Bank"
+        ATM = "atm", "ATM"
         AMBULANCE = "ambulance", "Ambulance"
         MUNICIPALITY_OFFICE = "municipality_office", "Municipality Office"
         TOURISM_OFFICE = "tourism_office", "Tourism Information Office"
@@ -1263,6 +1289,12 @@ class OSMEssentialService(TimeStampedModel):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     address = models.CharField(max_length=255, blank=True)
     image = models.ImageField(upload_to="services/essential/", blank=True, null=True)
+    source_name = models.CharField(max_length=160, blank=True, default="OpenStreetMap")
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    emergency_available = models.BooleanField(default=False)
     raw_tags = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -1824,7 +1856,9 @@ class InfrastructureSubmission(TimeStampedModel):
         HOTEL = "hotel", "Hotel / homestay"
         HOSPITAL = "hospital", "Hospital / clinic"
         POLICE = "police", "Police station"
-        BANK = "bank", "Bank / ATM"
+        BANK = "bank", "Bank"
+        ATM = "atm", "ATM"
+        BLOOD_BANK = "blood_bank", "Blood bank"
         FIRE_STATION = "fire_station", "Fire station"
         AMBULANCE = "ambulance", "Ambulance service"
         TOURISM_OFFICE = "tourism_office", "Tourism office"
@@ -1889,6 +1923,22 @@ class InfrastructureSubmission(TimeStampedModel):
 
     def __str__(self):
         return f"{self.get_place_type_display()}: {self.name} ({self.status})"
+
+
+class InfrastructureMedia(TimeStampedModel):
+    class MediaType(models.TextChoices):
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+
+    submission = models.ForeignKey(InfrastructureSubmission, on_delete=models.CASCADE, related_name="media")
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    file = models.FileField(upload_to="community/services/media/")
+    caption = models.CharField(max_length=220, blank=True)
+    is_primary = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-is_primary", "created_at"]
 
 
 class UserFeedback(TimeStampedModel):

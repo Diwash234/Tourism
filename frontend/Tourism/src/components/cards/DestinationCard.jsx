@@ -8,7 +8,7 @@ import {
 } from "react-icons/fi"
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
-import { getDestinationImageUrl, postcardUrl } from "../../utils/imageUtils"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 const RISK_STYLES = {
   low: {
@@ -112,8 +112,7 @@ const DestinationCard = ({
   const theme =
     CATEGORY_THEMES[categoryKey] ||
     CATEGORY_THEMES.mountains
-
-
+  const imageUrl = getDestinationImageUrl(destination)
 
   return (
 
@@ -143,20 +142,11 @@ const DestinationCard = ({
 
       {/* IMAGE */}
       <div className="relative h-48 overflow-hidden bg-slate-900">
-        <img
-          src={getDestinationImageUrl(destination)}
-          alt={name}
-          loading="lazy"
-          onError={(e) => {
-            // Never repeat a shared generic photo: fall back to this
-            // destination's own unique postcard (deterministic per place).
-            if (!e.target.dataset.fallback) {
-              e.target.dataset.fallback = "1"
-              e.target.src = postcardUrl(destination)
-            }
-          }}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
+        {imageUrl ? (
+          <PlaceholderImage src={imageUrl} title={name} alt={name} className="w-full h-full group-hover:scale-110 transition-transform duration-500" />
+        ) : (
+          <PlaceholderImage title={name} className="w-full h-full" />
+        )}
 
         <div className="
         absolute inset-0 

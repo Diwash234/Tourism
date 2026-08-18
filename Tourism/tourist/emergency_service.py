@@ -54,7 +54,11 @@ def _nearest_rows(rows, latitude, longitude, limit, radius_km, mapper):
     ranked.sort(key=lambda pair: pair[0])
     within = [pair for pair in ranked if pair[0] <= radius_km]
     chosen = (within or ranked)[:limit]
-    return [mapper(row, round(distance, 2), distance > radius_km) for distance, row in chosen]
+    items = [mapper(row, round(distance, 2), distance > radius_km) for distance, row in chosen]
+    for item in items:
+        item["estimated_travel_time_min"] = max(1, round(item["distance_km"] / 30 * 60))
+        item["travel_time_basis"] = "Road estimate at 30 km/h; verify navigation conditions"
+    return items
 
 
 def build_emergency_directory(latitude, longitude, destination=None, radius_km=50, limit=8):
@@ -69,7 +73,10 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
             "image_url": row.image.url if row.image else None,
-            "source_name": "Nepal hospital dataset", "source_url": "https://mohp.gov.np/",
+            "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
+            "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
+            "source_name": row.source_name or "Nepal hospital dataset",
+            "source_url": row.source_url or "https://mohp.gov.np/",
         }
 
     def police_item(row, distance, outside_radius):
@@ -81,7 +88,10 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
             "image_url": row.image.url if row.image else None,
-            "source_name": "Nepal police station dataset", "source_url": "https://nepalpolice.gov.np/",
+            "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
+            "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
+            "source_name": row.source_name or "Nepal police station dataset",
+            "source_url": row.source_url or "https://nepalpolice.gov.np/",
         }
 
     hospitals = _nearest_rows(Hospital.objects.all(), latitude, longitude, limit, radius_km, hospital_item)
@@ -104,6 +114,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "alternate_phone": str(contact.alternate_phone or ""),
             "latitude": float(contact.latitude), "longitude": float(contact.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
+            "estimated_travel_time_min": max(1, round(distance / 30 * 60)),
+            "travel_time_basis": "Road estimate at 30 km/h; verify navigation conditions",
             "is_24_hours": contact.is_24_hours, "source_name": "Verified emergency directory", "source_url": "",
         })
 
@@ -127,10 +139,14 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "phone_number": service.phone, "alternate_phone": "",
             "latitude": float(service.latitude), "longitude": float(service.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
-            "is_24_hours": False,
+            "estimated_travel_time_min": max(1, round(distance / 30 * 60)),
+            "travel_time_basis": "Road estimate at 30 km/h; verify navigation conditions",
+            "is_24_hours": service.emergency_available,
+            "opening_hours": service.opening_hours,
             "image_url": service.image.url if service.image else None,
-            "source_name": "Admin verified" if service.osm_id.startswith("community/") else "OpenStreetMap",
-            "source_url": "https://www.openstreetmap.org/" if not service.osm_id.startswith("community/") else "",
+            "verified": service.is_verified, "verified_at": service.verified_at, "updated_at": service.updated_at,
+            "source_name": service.source_name or ("Admin verified" if service.osm_id.startswith("community/") else "OpenStreetMap"),
+            "source_url": service.source_url or ("https://www.openstreetmap.org/" if not service.osm_id.startswith("community/") else ""),
         })
 
     facility_counts = {

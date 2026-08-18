@@ -12,7 +12,7 @@ import {
 import destinationApi from "../../api/destinationApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
-import { getDestinationImageUrl, fallbackImageUrl, deriveImageCategory } from "../../utils/imageUtils"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
 import WeatherCard from "../../components/cards/WeatherCard"
@@ -161,26 +161,18 @@ export default function DestinationDetails() {
     })
   }
 
-  // Location-Aware Authentic Nepal Image Fallbacks — unique per destination
-  // (local landmark photo + deterministic pool picks, never repeated).
-  const authenticRegionalUrl = getDestinationImageUrl(destination)
-  const catType = deriveImageCategory(destination)
-  const seedName = destination.name || destination.slug || "nepal"
-  const uniquePicks = [
-    fallbackImageUrl(`${seedName} 1`, catType),
-    fallbackImageUrl(`${seedName} 2`, catType),
-    fallbackImageUrl(`${seedName} 3`, catType),
-    fallbackImageUrl(`${seedName} 4`, catType),
-  ]
-  const defaultFallbacks = [
-    { url: authenticRegionalUrl, caption: `${destination.name} - Scenic View`, category: "landscape", photographer: "Nepal Tourism Verified Media Archive", platform: "Official Tourism Database", license: "Creative Commons CC BY-SA 4.0" },
-    { url: uniquePicks[0], caption: `${destination.name} - Landscape`, category: "landscape", photographer: "Nepal Tourism Media Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: uniquePicks[1], caption: `${destination.name} - Scenic View`, category: "scenic", photographer: "Nepal Tourism Media Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: uniquePicks[2], caption: `${destination.name} - Heritage`, category: "heritage", photographer: "Heritage Media Trust", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-    { url: uniquePicks[3], caption: `${destination.name} - Panorama`, category: "panorama", photographer: "Nepal Tourism Media Archive", platform: "Nepal Tourism Media Archive", license: "Creative Commons CC BY-SA 4.0" },
-  ]
-  while (allImages.length < 5) {
-    allImages.push(defaultFallbacks[allImages.length % defaultFallbacks.length])
+  // Never substitute another destination's media. An explicit unavailable
+  // state is rendered until an admin verifies destination-linked media.
+  const verifiedImageCount = allImages.length
+  if (!allImages.length) {
+    allImages.push({
+      url: null,
+      caption: "Image unavailable",
+      category: "unavailable",
+      photographer: "No verified media",
+      platform: "Destination media review required",
+      license: "Not applicable",
+    })
   }
 
   const activeImage = allImages[activeImageIdx] || allImages[0]
@@ -275,10 +267,11 @@ export default function DestinationDetails() {
             <span>{activeImage.license}</span>
           </div>
           <button
-            onClick={() => setLightboxOpen(true)}
-            className="px-3 py-1 rounded-full border border-stone-200 hover:bg-stone-50 inline-flex items-center gap-1 text-xs"
+            onClick={() => verifiedImageCount && setLightboxOpen(true)}
+            disabled={!verifiedImageCount}
+            className="px-3 py-1 rounded-full border border-stone-200 hover:bg-stone-50 disabled:opacity-50 inline-flex items-center gap-1 text-xs"
           >
-            Fullscreen lightbox ({allImages.length} photos)
+            {verifiedImageCount ? `Fullscreen lightbox (${verifiedImageCount} photos)` : "Image unavailable"}
           </button>
         </div>
 

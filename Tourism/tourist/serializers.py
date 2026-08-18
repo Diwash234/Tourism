@@ -37,6 +37,7 @@ from .models import (
     OSMTourismPlace,
     DestinationAuditLog,
     InfrastructureSubmission,
+    InfrastructureMedia,
 )
 from .image_server import image_server_url
 from .utils import (
@@ -348,7 +349,7 @@ class HospitalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hospital
-        fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url"]
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
 
     def get_image_url(self, obj):
         if obj.image:
@@ -371,7 +372,7 @@ class PoliceStationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PoliceStation
-        fields = ["id", "name", "address", "phone", "latitude", "longitude", "image_url"]
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
 
     def get_image_url(self, obj):
         if not obj.image:
@@ -403,10 +404,27 @@ class RiskAnalysisSerializer(serializers.ModelSerializer):
         ]
 
 
+class InfrastructureMediaSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InfrastructureMedia
+        fields = ["id", "media_type", "file", "file_url", "caption", "is_primary", "is_verified", "created_at"]
+        read_only_fields = ["is_verified", "created_at"]
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+        except (ValueError, AttributeError):
+            return None
+
+
 class InfrastructureSubmissionSerializer(serializers.ModelSerializer):
     submitted_by_name = serializers.CharField(source="submitted_by.full_name", read_only=True)
     image_url = serializers.SerializerMethodField()
     video_url = serializers.SerializerMethodField()
+    media = InfrastructureMediaSerializer(many=True, read_only=True)
 
     class Meta:
         model = InfrastructureSubmission
@@ -501,7 +519,7 @@ class HotelSerializer(serializers.ModelSerializer):
             "rating",
             "booking_status",
             "booking_url",
-            "image_url",
+            "image_url", "source", "source_url", "is_verified", "verified_at", "updated_at",
         ]
 
     def get_image_url(self, obj):
@@ -542,23 +560,37 @@ NEPAL_CURATED_PHOTOS = [
 ]
 
 
+def is_destination_specific_image(destination, photo):
+    """Reject generic/cross-destination media even if it was marked approved."""
+    import re
+    ignored = {
+        "lake", "park", "temple", "stupa", "mountain", "national", "area",
+        "view", "valley", "museum", "city", "nepal", "the", "and", "tourism",
+    }
+    tokens = {
+        token for token in re.findall(r"[a-z0-9]+", (destination.name or "").lower())
+        if len(token) >= 4 and token not in ignored
+    }
+    evidence = " ".join(filter(None, [
+        getattr(photo, "external_url", ""), getattr(photo, "image_path", ""),
+        str(getattr(photo, "image", "") or ""), getattr(photo, "caption", ""),
+        getattr(photo, "alt_text", ""), getattr(photo, "source_url", ""),
+    ])).lower()
+    return bool(tokens and any(token in evidence for token in tokens))
+
+
+def verified_destination_photos(destination):
+    return [
+        photo for photo in destination.gallery.all()
+        if photo.is_verified
+        and photo.verification_status in {DestinationImage.ImageStatus.APPROVED, "verified"}
+        and is_destination_specific_image(destination, photo)
+    ]
+
+
 def resolve_authentic_destination_image(obj):
-    """
-    Final production fallback for a destination with no usable cover photo
-    and no gallery images. Returns a category-appropriate, openly-licensed
-    landscape photo (with full provenance available in tourist.photo_catalog)
-    so the UI never renders a broken image or a solid colour block. Returns
-    None during tests so existing test expectations hold.
-    """
-    import sys
-    if "test" in sys.argv:
-        return None
-    try:
-        from . import photo_catalog
-        return photo_catalog.resolve_cover_photo(obj)["url"]
-    except Exception:  # noqa: BLE001
-        seed = sum(ord(c) for c in (getattr(obj, "name", "") or "")) or 1
-        return NEPAL_CURATED_PHOTOS[seed % len(NEPAL_CURATED_PHOTOS)]
+    """No cross-destination fallback: missing verified media stays unavailable."""
+    return None
 
 
 class DestinationListSerializer(serializers.ModelSerializer):
@@ -605,16 +637,15 @@ class DestinationListSerializer(serializers.ModelSerializer):
         # those verbatim instead of producing broken /media/https%3A/...
         if obj.cover_image:
             return resolve_image_url(obj.cover_image, request)
-        cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
+        photos = verified_destination_photos(obj)
+        cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
         if cover:
+            if cover.image_path:
+                return image_server_url(cover.image_path)
             if cover.external_url:
                 return cover.external_url
             if cover.image:
                 return resolve_image_url(cover.image, request)
-
-        import sys
-        if "test" not in sys.argv:
-            return resolve_authentic_destination_image(obj)
         return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -648,7 +679,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     cover_image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
-    gallery = DestinationImageSerializer(many=True, read_only=True)
+    gallery = serializers.SerializerMethodField()
     videos = DestinationVideoSerializer(many=True, read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
     translations = DestinationTranslationSerializer(many=True, read_only=True)
@@ -696,24 +727,27 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         # those verbatim instead of producing broken /media/https%3A/...
         if obj.cover_image:
             return resolve_image_url(obj.cover_image, request)
-        cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
+        photos = verified_destination_photos(obj)
+        cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
         if cover:
+            if cover.image_path:
+                return image_server_url(cover.image_path)
             if cover.external_url:
                 return cover.external_url
             if cover.image:
                 return resolve_image_url(cover.image, request)
-
-        import sys
-        if "test" not in sys.argv:
-            return resolve_authentic_destination_image(obj)
         return None
+
+    def get_gallery(self, obj):
+        photos = verified_destination_photos(obj)
+        return DestinationImageSerializer(photos, many=True, context=self.context).data
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField(), allow_empty=True))
     def get_images(self, obj):
         """Ordered list of absolute image URLs (standalone image server first, then other sources)."""
         urls = []
         seen = set()
-        for photo in obj.gallery.all():
+        for photo in verified_destination_photos(obj):
             url = None
             if photo.image_path:
                 url = image_server_url(photo.image_path)
@@ -1059,7 +1093,7 @@ class OSMEssentialServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OSMEssentialService
-        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address", "image_url"]
+        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "created_at", "updated_at"]
 
     def get_image_url(self, obj):
         if not obj.image:

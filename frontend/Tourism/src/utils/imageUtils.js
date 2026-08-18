@@ -601,31 +601,22 @@ export const deriveImageCategory = (destination) => {
  * Return a usable image URL for a destination/hotel/card.
  */
 export const getDestinationImageUrl = (destination) => {
-  if (!destination) return postcardUrl({ name: "Nepal" })
-
-  if (Array.isArray(destination.images) && destination.images.length > 0) {
+  if (!destination) return ""
+  if (Array.isArray(destination.images)) {
     const first = destination.images.find(isUsable)
     if (first) return first
   }
-
   const cover = destination.cover_image_url || destination.cover_image || destination.image_url || destination.image
   if (isUsable(cover)) return cover
-
-  if (Array.isArray(destination.gallery) && destination.gallery.length > 0) {
-    for (const g of destination.gallery) {
-      if (g.verification_status && g.verification_status !== "approved") continue
-      const gUrl = g?.display_url || g?.image_url || g?.external_url || g?.image || g?.url
-      if (isUsable(gUrl)) return gUrl
+  if (Array.isArray(destination.gallery)) {
+    for (const media of destination.gallery) {
+      if (media.is_verified === false) continue
+      if (media.verification_status && !["approved", "verified"].includes(media.verification_status)) continue
+      const url = media.display_url || media.image_url || media.external_url || media.image || media.url
+      if (isUsable(url)) return url
     }
   }
-
-  // Local curated Nepal photos — NAME-ONLY + category-aware.
-  const catType = deriveImageCategory(destination)
-  const local = lookupLocalNepal(destination.name, catType)
-  if (local) return local
-
-  // Category-aware multi-source fallback pool (deterministic by name)
-  return fallbackImageUrl(destination.name || destination.slug || destination.id || "nepal", catType)
+  return ""
 }
 
 /**
@@ -643,18 +634,18 @@ export const getImageServerUrl = (path) => {
  * photo (never a temple/lake/tiger photo from another category).
  */
 export const getHotelImageUrl = (hotel) => {
-  if (!hotel) return postcardUrl({ name: "Hotel", category: { slug: "hotel" } })
+  if (!hotel) return ""
   const cover = hotel.image_url || hotel.cover_image_url || hotel.cover_image || hotel.external_image_url
   if (isUsable(cover)) return cover
-  if (Array.isArray(hotel.gallery) && hotel.gallery.length > 0) {
-    for (const g of hotel.gallery) {
-      if (g.verification_status && g.verification_status !== "approved") continue
-      const gUrl = g?.display_url || g?.external_url || g?.image
-      if (isUsable(gUrl)) return gUrl
+  if (Array.isArray(hotel.gallery)) {
+    for (const media of hotel.gallery) {
+      if (media.is_verified === false) continue
+      if (media.verification_status && !["approved", "verified"].includes(media.verification_status)) continue
+      const url = media.display_url || media.external_url || media.image
+      if (isUsable(url)) return url
     }
   }
-  const seed = hotel.name || hotel.slug || "Hotel"
-  return fallbackImageUrl(seed, "hotel") || postcardUrl({ name: hotel.name || "Hotel", category: { slug: "hotel" } })
+  return ""
 }
 
 export const createLocalImagePreview = (file) => {

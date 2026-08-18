@@ -16,6 +16,10 @@ const TYPE_META = {
   hospital: { label: "Hospital / Clinic", icon: "🏥", color: "bg-rose-100 text-rose-800", fallback: "102" },
   police: { label: "Police Station", icon: "👮", color: "bg-blue-100 text-blue-800", fallback: "100" },
   ambulance: { label: "Ambulance", icon: "🚑", color: "bg-emerald-100 text-emerald-800", fallback: "102" },
+  blood_bank: { label: "Blood Bank", icon: "🩸", color: "bg-red-100 text-red-800", fallback: "102" },
+  bank: { label: "Bank", icon: "🏦", color: "bg-cyan-100 text-cyan-800", fallback: "" },
+  atm: { label: "ATM", icon: "🏧", color: "bg-cyan-100 text-cyan-800", fallback: "" },
+  pharmacy: { label: "Pharmacy", icon: "💊", color: "bg-green-100 text-green-800", fallback: "102" },
   fire_station: { label: "Fire & Rescue", icon: "🚒", color: "bg-orange-100 text-orange-800", fallback: "101" },
   tourist_police: { label: "Tourist Police", icon: "🛡️", color: "bg-purple-100 text-purple-800", fallback: "1144" },
   traffic_police: { label: "Traffic Police", icon: "🚦", color: "bg-slate-100 text-slate-800", fallback: "103" },
@@ -38,7 +42,7 @@ function FacilityCard({ facility }) {
     <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-lg transition space-y-3">
       <div className="flex items-start justify-between gap-2">
         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${meta.color}`}>{meta.icon} {meta.label}</span>
-        {facility.distance_km != null && <span className="text-xs font-black text-purple-700">{facility.distance_km} km</span>}
+        {facility.distance_km != null && <span className="text-xs font-black text-purple-700">{facility.distance_km} km · ~{facility.estimated_travel_time_min} min</span>}
       </div>
       <div>
         <h3 className="font-extrabold text-sm text-gray-900">{facility.name}</h3>
@@ -47,8 +51,13 @@ function FacilityCard({ facility }) {
       {facility.outside_requested_radius && <p className="text-[10px] rounded-lg bg-amber-50 text-amber-800 px-2 py-1">No service found inside the selected radius; showing the nearest known result.</p>}
       {facility.phone_is_national_fallback && <p className="text-[10px] text-gray-500">Local phone unavailable in the source dataset — national {meta.label.toLowerCase()} line shown.</p>}
       <div className="flex gap-2 pt-2 border-t">
-        <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 rounded-xl bg-purple-700 text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a>
+        {(facility.phone_number || meta.fallback) ? <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 rounded-xl bg-purple-700 text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a> : <span className="flex-1 rounded-xl bg-gray-100 text-gray-500 py-2 text-center text-xs font-bold">Phone unavailable</span>}
         {facility.latitude != null && <a href={directions} target="_blank" rel="noreferrer" className="rounded-xl border border-purple-200 text-purple-800 px-3 py-2 text-xs font-bold"><FiNavigation className="inline" /> Route</a>}
+      </div>
+      <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
+        <span>{facility.verified ? "✓ Verified" : "Verification pending"}</span>
+        {facility.opening_hours && <span>· {facility.opening_hours}</span>}
+        {facility.updated_at && <span>· Updated {new Date(facility.updated_at).toLocaleDateString()}</span>}
       </div>
       <a href={facility.source_url || "https://mohp.gov.np/"} target="_blank" rel="noreferrer" className="block text-[10px] text-gray-400 hover:underline">Source: {facility.source_name || "Emergency directory"} <FiExternalLink className="inline" /></a>
     </article>

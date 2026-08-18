@@ -6,8 +6,8 @@ import Breadcrumbs from "../components/common/Breadcrumbs"
 
 const TYPES = [
   ["hospital", "Hospital / Clinic"], ["hotel", "Hotel / Homestay"],
-  ["police", "Police Station"], ["bank", "Bank / ATM"],
-  ["fire_station", "Fire Station"], ["ambulance", "Ambulance Service"],
+  ["police", "Police Station"], ["bank", "Bank"], ["atm", "ATM"],
+  ["blood_bank", "Blood Bank"], ["fire_station", "Fire Station"], ["ambulance", "Ambulance Service"],
   ["pharmacy", "Pharmacy"], ["tourism_office", "Tourism Office"],
   ["destination", "Tourism Destination"],
 ]
@@ -17,8 +17,8 @@ export default function SubmitServicePage() {
   const { showToast } = useToast()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ place_type: "hospital", name: "", description: "", phone: "", website: "", address: "", city: "", municipality: "", municipality_type: "municipality", ward_number: "", district: "", province: "Gandaki", latitude: "", longitude: "", transport_mode: "", route_origin: "", travel_time_minutes: "", distance_km: "", road_condition: "", price_npr: "", opening_hours: "", source_notes: "" })
-  const [image, setImage] = useState(null)
-  const [video, setVideo] = useState(null)
+  const [images, setImages] = useState([])
+  const [videos, setVideos] = useState([])
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }))
 
   const useGPS = () => navigator.geolocation?.getCurrentPosition(
@@ -31,11 +31,15 @@ export default function SubmitServicePage() {
     try {
       const body = new FormData()
       Object.entries(form).forEach(([key, value]) => { if (value !== "") body.append(key, value) })
-      if (image) body.append("image", image)
-      if (video) body.append("video", video)
-      await axiosClient.post("/infrastructure-submissions/", body, { headers: { "Content-Type": "multipart/form-data" } })
+      const { data: submission } = await axiosClient.post("/infrastructure-submissions/", body, { headers: { "Content-Type": "multipart/form-data" } })
+      const files = [...images, ...videos]
+      if (files.length) {
+        const media = new FormData()
+        files.forEach((file) => media.append("files", file))
+        await axiosClient.post(`/infrastructure-submissions/${submission.id}/media/`, media, { headers: { "Content-Type": "multipart/form-data" } })
+      }
       showToast("Submitted for admin verification. It will appear publicly only after approval.", "success")
-      setForm((old) => ({ ...old, name: "", description: "", phone: "", address: "", source_notes: "" })); setImage(null); setVideo(null)
+      setForm((old) => ({ ...old, name: "", description: "", phone: "", address: "", source_notes: "" })); setImages([]); setVideos([])
     } catch (error) { showToast(error.response?.data?.detail || "Submission failed. Check required fields.", "error") }
     finally { setSaving(false) }
   }
@@ -56,7 +60,7 @@ export default function SubmitServicePage() {
       </div>
       <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 space-y-3"><div className="flex justify-between"><b className="text-sm">Accurate location *</b><button type="button" onClick={useGPS} className="text-xs font-black text-blue-700"><FiMapPin className="inline" /> Use current GPS</button></div><div className="grid grid-cols-2 gap-3"><input required type="number" step="any" className="input-field" placeholder="Latitude" value={form.latitude} onChange={(e) => update("latitude",e.target.value)} /><input required type="number" step="any" className="input-field" placeholder="Longitude" value={form.longitude} onChange={(e) => update("longitude",e.target.value)} /></div></div>
       <div><h2 className="font-black">Route and planning information</h2><div className="grid md:grid-cols-3 gap-3 mt-3">{[['route_origin','Route starts from'],['transport_mode','Transportation mode'],['travel_time_minutes','Travel time (minutes)'],['distance_km','Distance (km)'],['road_condition','Road/trail condition'],['price_npr','Fare or price (NPR)']].map(([key,label]) => <label key={key} className="text-xs font-bold">{label}<input type={['travel_time_minutes','distance_km','price_npr'].includes(key)?'number':'text'} step="any" className="input-field mt-1" value={form[key]} onChange={(e) => update(key,e.target.value)} /></label>)}</div></div>
-      <div className="grid sm:grid-cols-2 gap-3"><label className="rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer"><FiCamera className="mx-auto" /> <b className="text-sm block">Photo evidence</b><span className="text-xs text-gray-400">{image?.name || "Choose image"}</span><input hidden type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} /></label><label className="rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer"><FiVideo className="mx-auto" /><b className="text-sm block">Video evidence</b><span className="text-xs text-gray-400">{video?.name || "Choose video"}</span><input hidden type="file" accept="video/*" onChange={(e) => setVideo(e.target.files[0])} /></label></div>
+      <div className="grid sm:grid-cols-2 gap-3"><label className="rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer"><FiCamera className="mx-auto" /> <b className="text-sm block">Photo evidence</b><span className="text-xs text-gray-400">{images.length ? `${images.length} images selected` : "Choose up to 12 images"}</span><input hidden multiple type="file" accept="image/*" onChange={(e) => setImages(Array.from(e.target.files).slice(0,12))} /></label><label className="rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer"><FiVideo className="mx-auto" /><b className="text-sm block">Video evidence</b><span className="text-xs text-gray-400">{videos.length ? `${videos.length} videos selected` : "Choose videos"}</span><input hidden multiple type="file" accept="video/*" onChange={(e) => setVideos(Array.from(e.target.files).slice(0,4))} /></label></div>
       <label className="text-xs font-bold">Source / verification notes<textarea className="input-field mt-1" value={form.source_notes} onChange={(e) => update("source_notes",e.target.value)} /></label>
       <button disabled={saving} className="rounded-xl bg-emerald-700 text-white px-7 py-3 font-black disabled:opacity-50"><FiSend className="inline mr-2" />{saving ? "Submitting…" : "Submit for admin review"}</button>
     </form>

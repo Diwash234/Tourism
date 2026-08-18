@@ -132,6 +132,8 @@ def publish_submission(submission, reviewer, admin_note=""):
         return submission
     destination = _nearest_destination(submission)
     place_type = submission.place_type
+    primary_media = submission.media.filter(media_type="image").order_by("-is_primary", "created_at").first()
+    primary_image = submission.image.name if submission.image else (primary_media.file.name if primary_media else None)
     obj = None
 
     if place_type == InfrastructureSubmission.PlaceType.DESTINATION:
@@ -148,9 +150,9 @@ def publish_submission(submission, reviewer, admin_note=""):
             source="Admin-approved community submission",
         )
         destination = obj
-        if submission.image:
+        if primary_image:
             DestinationImage.objects.create(
-                destination=obj, image=submission.image.name, caption=submission.name,
+                destination=obj, image=primary_image, caption=submission.name,
                 is_cover=True, source=DestinationImage.Source.USER_UPLOAD,
                 verification_status=DestinationImage.ImageStatus.APPROVED,
                 is_verified=True, uploaded_by=submission.submitted_by,
@@ -163,27 +165,35 @@ def publish_submission(submission, reviewer, admin_note=""):
             address=submission.address, latitude=submission.latitude, longitude=submission.longitude,
             price_per_night=submission.price_npr, currency="NPR", source=Hotel.Source.MANUAL,
             booking_status=Hotel.BookingStatus.UNKNOWN,
-            cover_image=submission.image.name if submission.image else None,
+            cover_image=primary_image,
+            source_url=submission.website, is_verified=True, verified_at=timezone.now(),
         )
     elif place_type == InfrastructureSubmission.PlaceType.HOSPITAL:
         obj = Hospital.objects.create(
             destination=destination, name=submission.name, phone=submission.phone,
             address=submission.address, district=submission.district,
             latitude=submission.latitude, longitude=submission.longitude,
-            image=submission.image.name if submission.image else None,
+            image=primary_image,
+            opening_hours=submission.opening_hours, source_name="Admin-approved community submission",
+            source_url=submission.website, is_verified=True, verified_at=timezone.now(),
         )
     elif place_type == InfrastructureSubmission.PlaceType.POLICE:
         obj = PoliceStation.objects.create(
             destination=destination, name=submission.name, phone=submission.phone,
             address=submission.address, latitude=submission.latitude, longitude=submission.longitude,
-            image=submission.image.name if submission.image else None,
+            image=primary_image,
+            opening_hours=submission.opening_hours, source_name="Admin-approved community submission",
+            source_url=submission.website, is_verified=True, verified_at=timezone.now(),
         )
     else:
         obj = OSMEssentialService.objects.create(
             osm_id=f"community/{submission.id}", category=place_type, name=submission.name,
             phone=submission.phone, address=submission.address,
             latitude=submission.latitude, longitude=submission.longitude,
-            image=submission.image.name if submission.image else None,
+            image=primary_image,
+            source_name="Admin-approved community submission", source_url=submission.website,
+            is_verified=True, verified_at=timezone.now(), opening_hours=submission.opening_hours,
+            emergency_available=place_type in {"fire_station", "ambulance", "blood_bank"},
             raw_tags={
                 "source": "admin-approved community submission", "verified": True,
                 "municipality": submission.municipality, "ward": submission.ward_number,
@@ -206,6 +216,7 @@ def publish_submission(submission, reviewer, admin_note=""):
     if destination:
         submission.destination = destination
     submission.status = InfrastructureSubmission.Status.APPROVED
+    submission.media.update(is_verified=True)
     submission.reviewed_by = reviewer
     submission.reviewed_at = timezone.now()
     submission.admin_note = admin_note

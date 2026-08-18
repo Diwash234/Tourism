@@ -803,3 +803,29 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         )
         self.assertTrue(Notification.objects.filter(user=nearby, title__icontains="Nearby").exists())
         self.assertTrue(Notification.objects.filter(user=family, related_alert__title="Test flood warning").exists())
+
+    def test_cross_destination_image_is_not_used_as_fallback(self):
+        from .models import DestinationImage
+        from .serializers import DestinationListSerializer
+        DestinationImage.objects.create(
+            destination=self.trek, external_url="https://example.com/rara-lake.jpg",
+            is_cover=True, is_verified=True, verification_status="approved",
+        )
+        data = DestinationListSerializer(self.trek).data
+        self.assertIsNone(data["cover_image_url"])
+
+    def test_verified_risk_feed_ingestion_keeps_source_provenance(self):
+        from .models import CurrentHazard
+        from .risk_ingestion import ingest_records
+        summary = ingest_records([{
+            "destination_slug": self.trek.slug, "record_kind": "current",
+            "hazard_type": "heavy_rain", "title": "Official rainfall watch",
+            "severity": "high", "source_url": "https://example.com/dhm-record",
+            "observed_at": "2026-08-18T08:00:00Z", "published_at": "2026-08-18T07:55:00Z",
+            "affected_area": "Upper Kaski slopes",
+        }], "dhm", verified=True)
+        self.assertEqual(summary["current_created"], 1)
+        hazard = CurrentHazard.objects.get(title="Official rainfall watch")
+        self.assertTrue(hazard.verified)
+        self.assertEqual(hazard.source_type, "official")
+        self.assertEqual(hazard.affected_area, "Upper Kaski slopes")

@@ -7,7 +7,8 @@ import {
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import destinationApi from "../api/destinationApi"
-import { getDestinationImageUrl, postcardUrl } from "../utils/imageUtils"
+import { getDestinationImageUrl } from "../utils/imageUtils"
+import PlaceholderImage from "../components/common/PlaceholderImage"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import Breadcrumbs from "../components/common/Breadcrumbs"
@@ -162,8 +163,7 @@ export default function Recommendation() {
               <motion.article key={item.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
                 className="rounded-3xl overflow-hidden border border-black/5 shadow-sm bg-white flex flex-col">
                 <div className="h-52 relative overflow-hidden bg-gray-900">
-                  <img src={item.cover_image_url} alt={item.name} className="w-full h-full object-cover"
-                    onError={(e) => { if (!e.currentTarget.dataset.fallback) { e.currentTarget.dataset.fallback = "1"; e.currentTarget.src = postcardUrl(item) } }} />
+                  <PlaceholderImage src={item.cover_image_url} title={item.name} alt={item.name} className="w-full h-full" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent" />
                   <span className="absolute top-3 left-3 rounded-full px-3 py-1 bg-white/95 text-emerald-800 text-xs font-black flex items-center gap-1"><FiTrendingUp /> {Math.round((item.ml_score || 0) * 100)}% match</span>
                   <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-black ${riskColor(item.risk_summary?.level)}`}><FiShield className="inline mr-1" />{item.risk_summary?.level || "unknown"}</span>
@@ -181,6 +181,11 @@ export default function Recommendation() {
                     <ul className="mt-1 space-y-1">
                       {(item.why_recommended || []).map((reason) => <li key={reason} className="text-xs text-gray-600 flex gap-2"><FiCheckCircle className="shrink-0 mt-0.5 text-emerald-600" />{reason}</li>)}
                     </ul>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-600">
+                    <span>🏥 {item.safety_context?.nearest_hospital ? `${item.safety_context.nearest_hospital.distance_km} km` : "Unavailable"}</span>
+                    <span>👮 {item.safety_context?.nearest_police ? `${item.safety_context.nearest_police.distance_km} km` : "Unavailable"}</span>
+                    <span className="col-span-2">🛣️ {item.safety_context?.route_condition || "No verified route condition"}</span>
                   </div>
                   <p className="text-[10px] text-gray-400">Source: {item.data_source || "Database"} · Best: {item.recommended_season}</p>
                 </div>

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import F,Q
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404,render
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, permissions, status, mixins, generics
@@ -15,7 +15,7 @@ from .models import (
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
-    TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission,
+    TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -26,7 +26,7 @@ from .serializers import (
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
-    InfrastructureSubmissionSerializer,
+    InfrastructureSubmissionSerializer, InfrastructureMediaSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -752,6 +752,28 @@ class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
             return qs
         return qs.filter(submitted_by=user)
 
+    @action(detail=True, methods=["post"], url_path="media")
+    def upload_media(self, request, pk=None):
+        submission = self.get_object()
+        files = request.FILES.getlist("files") or ([request.FILES["file"]] if request.FILES.get("file") else [])
+        if not files:
+            return Response({"detail": "At least one media file is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if len(files) > 12:
+            return Response({"detail": "A maximum of 12 files can be uploaded at once."}, status=status.HTTP_400_BAD_REQUEST)
+        created = []
+        for uploaded in files:
+            content_type = (uploaded.content_type or "").lower()
+            media_type = "video" if content_type.startswith("video/") else "image"
+            media = InfrastructureMedia.objects.create(
+                submission=submission, media_type=media_type, file=uploaded,
+                caption=request.data.get("caption", ""), is_primary=not submission.media.exists(),
+            )
+            created.append(media)
+        return Response(
+            InfrastructureMediaSerializer(created, many=True, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
 
 class TravelExpenseFeedbackViewSet(viewsets.ModelViewSet):
     """
@@ -1129,7 +1151,11 @@ class MoodRecommendationsView(generics.ListAPIView):
         # destinations automatically participate without retraining a CSV model.
         qs = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED
-        ).select_related("category", "risk_analysis")
+        ).select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
+            hospital_total=Count("hospitals", distinct=True),
+            police_total=Count("police_stations", distinct=True),
+            hotel_total=Count("hotels", distinct=True),
+        )
 
         exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
         qs = qs.exclude(category__slug__in=exclude_slugs)
@@ -1229,9 +1255,29 @@ class MoodRecommendationsView(generics.ListAPIView):
             risk_level = (risk.risk_category or "low").lower() if risk else "low"
             # Avoid silently pushing high-risk places to the top, but keep them
             # available and explain the indicator in the result.
-            if risk_level in {"high", "critical"}:
-                score -= 0.08
-            rows.append((score, destination, reasons[:4], breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level))
+            risk_adjustment = -0.08 if risk_level in {"high", "critical"} else 0.0
+            score += risk_adjustment
+            breakdown["current_risk_adjustment"] = risk_adjustment
+
+            service_count = destination.hospital_total + destination.police_total + destination.hotel_total
+            emergency_score = min(service_count * 0.015, 0.09)
+            score += emergency_score
+            breakdown["services"] = round(emergency_score, 3)
+            if destination.hospital_total and destination.police_total:
+                reasons.append("Verified hospital and police coverage")
+
+            route_records = list(destination.transit_routes.all())
+            route_text = " ".join((route.road_condition or "") for route in route_records).lower()
+            route_penalty = -0.10 if any(word in route_text for word in ["blocked", "closed", "landslide", "impassable", "dangerous"]) else 0.04 if route_records else 0.0
+            score += route_penalty
+            breakdown["route_condition"] = route_penalty
+            safety_context = {
+                "hospital_count": destination.hospital_total,
+                "police_count": destination.police_total,
+                "hotel_count": destination.hotel_total,
+                "route_condition": route_records[0].road_condition if route_records else "No verified route condition",
+            }
+            rows.append((score, destination, reasons[:5], breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level, safety_context))
 
         rows.sort(key=lambda row: (-row[0], row[1].id))
         candidates = rows[: max(limit * 3, limit)]
@@ -1252,7 +1298,7 @@ class MoodRecommendationsView(generics.ListAPIView):
                 continue
             if image_key:
                 used_images.add(image_key)
-            score, destination, reasons, breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level = row
+            score, destination, reasons, breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level, safety_context = row
             item["ml_score"] = round(min(score, 1.0), 3)
             item["why_recommended"] = reasons or ["Strong overall match from the live destination catalog"]
             item["match_breakdown"] = breakdown
@@ -1261,6 +1307,12 @@ class MoodRecommendationsView(generics.ListAPIView):
             item["estimated_daily_cost"] = round(estimated_daily, 2)
             item["recommended_days"] = destination.recommended_days or 2
             item["risk_summary"] = {"level": risk_level, "label": "Historical/model indicator"}
+            if destination.latitude is not None and destination.longitude is not None:
+                from .emergency_service import build_emergency_directory
+                nearby = build_emergency_directory(destination.latitude, destination.longitude, destination=destination, radius_km=100, limit=1)
+                safety_context["nearest_hospital"] = nearby["hospitals"][0] if nearby["hospitals"] else None
+                safety_context["nearest_police"] = nearby["police"][0] if nearby["police"] else None
+            item["safety_context"] = safety_context
             item["data_source"] = destination.source or ("User submission" if destination.is_user_submitted else "Database")
             data.append(item)
             chosen_rows.append(row)

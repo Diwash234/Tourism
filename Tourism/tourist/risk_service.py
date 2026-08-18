@@ -135,7 +135,8 @@ def build_destination_risk(destination):
             "id": f"hazard-{item.id}", "hazard_type": item.hazard_type,
             "title": item.title, "description": item.description, "severity": item.severity,
             "source_type": item.source_type, "source_name": item.source_name,
-            "source_url": item.source_url, "observed_at": item.observed_at,
+            "source_url": item.source_url, "published_at": item.published_at,
+            "observed_at": item.observed_at, "affected_area": item.affected_area,
             "expires_at": item.expires_at, "station_name": item.station_name,
             "distance_km": item.distance_km, "verified": item.verified,
         })
@@ -188,7 +189,10 @@ def build_destination_risk(destination):
             "timeline": [{
                 "id": i.id, "event_date": i.event_date, "hazard_type": i.hazard_type,
                 "title": i.title, "severity": i.severity, "source_type": i.source_type,
-                "source_name": i.source_name, "source_url": i.source_url, "verified": i.verified,
+                "source_name": i.source_name, "source_url": i.source_url,
+                "published_at": i.published_at, "affected_area": i.affected_area,
+                "municipality": i.municipality, "latitude": i.latitude, "longitude": i.longitude,
+                "verified": i.verified,
             } for i in incidents[:20]],
         },
         "traveler_evidence": {

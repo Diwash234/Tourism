@@ -325,7 +325,7 @@ import { getDestinationImageUrl } from "../utils/imageUtils"
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
-  const [destinationsMedia, setDestinationsMedia] = useState(DESTINATIONS_MEDIA)
+  const [destinationsMedia, setDestinationsMedia] = useState([])
 
   // Lightbox state
   const [activePhoto, setActivePhoto] = useState(null)
@@ -338,11 +338,13 @@ export default function Gallery() {
       .then(({ data }) => {
         const list = data.results || data.items || data || []
         if (Array.isArray(list) && list.length > 0) {
-          const existingNames = new Set(DESTINATIONS_MEDIA.map((d) => d.name.toLowerCase()))
+          const existingNames = new Set()
           const dynamicEntries = []
           list.forEach((dest) => {
             if (!dest.name || existingNames.has(dest.name.toLowerCase())) return
             existingNames.add(dest.name.toLowerCase())
+            const verifiedImage = getDestinationImageUrl(dest)
+            if (!verifiedImage) return
             dynamicEntries.push({
               key: dest.slug || dest.id,
               name: dest.name,
@@ -352,14 +354,14 @@ export default function Gallery() {
               tag: "🌿 Verified Nepal Destination",
               images: [
                 {
-                  url: getDestinationImageUrl(dest),
+                  url: verifiedImage,
                   caption: dest.name,
                   category: dest.category_name?.toLowerCase() || "landscape",
                 },
               ],
             })
           })
-          setDestinationsMedia([...DESTINATIONS_MEDIA, ...dynamicEntries])
+          setDestinationsMedia(dynamicEntries)
         }
       })
       .catch(() => {})
