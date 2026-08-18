@@ -58,9 +58,18 @@ def build_destination_risk(destination):
         # baseline in the same district rather than returning the same zero-risk
         # answer everywhere, and disclose that spatial proxy to the frontend.
         from .models import RiskAnalysis
-        candidates = RiskAnalysis.objects.select_related("destination").filter(
+        district_candidates = list(RiskAnalysis.objects.select_related("destination").filter(
             destination__district__iexact=destination.district
-        )[:250]
+        )[:250])
+        # Some imported rows use old/transliterated district names. If there is
+        # no same-district baseline, search all imported baselines spatially so
+        # every coordinate-backed Nepal destination still receives a disclosed
+        # proxy instead of the same zero-risk response.
+        candidates = district_candidates or list(
+            RiskAnalysis.objects.select_related("destination").exclude(
+                destination__latitude__isnull=True
+            ).exclude(destination__longitude__isnull=True)
+        )
         nearest = None
         for candidate in candidates:
             distance = _haversine_km(
@@ -69,12 +78,21 @@ def build_destination_risk(destination):
             )
             if distance is not None and (nearest is None or distance < nearest[0]):
                 nearest = (distance, candidate)
-        if nearest and nearest[0] <= 100:
+        if nearest:
             baseline = nearest[1]
             baseline_match = {
                 "destination": baseline.destination.name,
                 "distance_km": round(nearest[0], 1),
-                "method": "nearest imported baseline in district",
+                "method": "nearest imported baseline in district" if district_candidates else "nearest Nepal risk baseline",
+            }
+        elif district_candidates:
+            # No exact geometry: still provide a same-district historical
+            # baseline, clearly marked as non-distance-based.
+            baseline = district_candidates[0]
+            baseline_match = {
+                "destination": baseline.destination.name,
+                "distance_km": None,
+                "method": "same-district baseline; destination coordinates unavailable",
             }
 
     if baseline:

@@ -1,369 +1,175 @@
-import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import {
   FiPhoneCall, FiAlertTriangle, FiMapPin, FiNavigation, FiShield,
-  FiPlusSquare, FiActivity, FiSun, FiSearch, FiCheck, FiX, FiExternalLink
+  FiPlusSquare, FiActivity, FiSearch, FiCheckCircle, FiExternalLink
 } from "react-icons/fi"
 import useGeolocation from "../hooks/useGeolocation"
-import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import safetyApi from "../api/safetyApi"
+import emergencyApi from "../api/emergencyApi"
+import destinationApi from "../api/destinationApi"
 import useToast from "../hooks/useToast"
-import axiosClient from "../api/axiosClient"
 
-const NATIONAL_HOTLINES = [
-  { label: "Tourist Police Nepal", phone: "1144", full: "+977-1-4247041", desc: "24/7 Tourist Assistance & Lost Items", icon: FiShield, color: "from-purple-700 to-indigo-700" },
-  { label: "Nepal Police Emergency", phone: "100", full: "100", desc: "National Police Dispatch", icon: FiShield, color: "from-blue-700 to-cyan-700" },
-  { label: "National Ambulance", phone: "102", full: "102", desc: "Medical Emergency & Paramedics", icon: FiPlusSquare, color: "from-rose-600 to-red-700" },
-  { label: "Fire Brigade", phone: "101", full: "101", desc: "Fire Rescue Service", icon: FiActivity, color: "from-amber-500 to-orange-600" },
-  { label: "Himalayan Rescue (HRA)", phone: "01-4440292", full: "+977-1-4440292", desc: "High-Altitude Sickness & Helicopter Evacuation", icon: FiSun, color: "from-emerald-600 to-teal-700" },
-  { label: "Traffic Police Helpdesk", phone: "103", full: "103", desc: "Road Closures & Highway Accidents", icon: FiNavigation, color: "from-slate-700 to-gray-800" },
-]
+const TYPE_META = {
+  hospital: { label: "Hospital / Clinic", icon: "🏥", color: "bg-rose-100 text-rose-800", fallback: "102" },
+  police: { label: "Police Station", icon: "👮", color: "bg-blue-100 text-blue-800", fallback: "100" },
+  ambulance: { label: "Ambulance", icon: "🚑", color: "bg-emerald-100 text-emerald-800", fallback: "102" },
+  fire_station: { label: "Fire & Rescue", icon: "🚒", color: "bg-orange-100 text-orange-800", fallback: "101" },
+  tourist_police: { label: "Tourist Police", icon: "🛡️", color: "bg-purple-100 text-purple-800", fallback: "1144" },
+  traffic_police: { label: "Traffic Police", icon: "🚦", color: "bg-slate-100 text-slate-800", fallback: "103" },
+}
 
-const ALL_PROVINCIAL_EMERGENCY_HUBS = [
-  // Jhapa & Mechi (Koshi)
-  { name: "Mechi Zonal Provincial Hospital", address: "Bhadrapur, Jhapa", district: "Jhapa", phone_number: "+977-23-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.2 },
-  { name: "Birtamod Municipal Hospital", address: "Birtamod, Jhapa", district: "Jhapa", phone_number: "+977-23-540199", website: "https://mohp.gov.np", type: "hospital", distance_km: 5.1 },
-  { name: "Jhapa District Police HQ", address: "Chandragadhi, Jhapa", district: "Jhapa", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 3.8 },
-  // Karnali (all 10 districts)
-  { name: "Karnali Provincial Hospital", address: "Birendranagar, Surkhet", district: "Surkhet", phone_number: "+977-83-520200", website: "https://karnali.gov.np", type: "hospital", distance_km: 3.5 },
-  { name: "Surkhet District Police Office", address: "Birendranagar, Surkhet", district: "Surkhet", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 2.9 },
-  { name: "Jumla District Hospital", address: "Jumla Bazaar", district: "Jumla", phone_number: "+977-87-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Jumla District Police Office", address: "Jumla Bazaar", district: "Jumla", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 1.5 },
-  { name: "Humla District Hospital", address: "Simikot", district: "Humla", phone_number: "+977-87-680133", website: "https://mohp.gov.np", type: "hospital", distance_km: 1.2 },
-  { name: "Humla Police Post", address: "Simikot", district: "Humla", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 1.0 },
-  { name: "Mugu District Hospital", address: "Gamgadhi", district: "Mugu", phone_number: "+977-87-540133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Dolpa District Hospital", address: "Dunai", district: "Dolpa", phone_number: "+977-87-720133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.4 },
-  { name: "Kalikot District Hospital", address: "Manma", district: "Kalikot", phone_number: "+977-87-580133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Jajarkot District Hospital", address: "Khalanga", district: "Jajarkot", phone_number: "+977-89-420133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Rukum West District Hospital", address: "Musikot", district: "Rukum West", phone_number: "+977-88-540133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.3 },
-  { name: "Salyan District Hospital", address: "Salyan Khalanga", district: "Salyan", phone_number: "+977-88-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Dailekh District Hospital", address: "Narayan Municipality", district: "Dailekh", phone_number: "+977-89-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  // Sudurpashchim (all 9 districts)
-  { name: "Seti Provincial Hospital", address: "Dhangadhi, Kailali", district: "Kailali", phone_number: "+977-91-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.0 },
-  { name: "Dhangadhi District Police HQ", address: "Dhangadhi, Kailali", district: "Kailali", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 3.2 },
-  { name: "Mahakali Zonal Hospital", address: "Mahendranagar (Bhimdatta), Kanchanpur", district: "Kanchanpur", phone_number: "+977-99-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 3.0 },
-  { name: "Mahendranagar Police Office", address: "Bhimdatta, Kanchanpur", district: "Kanchanpur", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 2.5 },
-  { name: "Doti District Hospital", address: "Dipayal Silgadhi", district: "Doti", phone_number: "+977-94-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Dipayal Police Office", address: "Dipayal Silgadhi", district: "Doti", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 1.6 },
-  { name: "Darchula District Hospital", address: "Darchula Bazaar (Khalanga)", district: "Darchula", phone_number: "+977-93-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Darchula Police Office", address: "Khalanga, Darchula", district: "Darchula", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 1.5 },
-  { name: "Baitadi District Hospital", address: "Dasharathchand", district: "Baitadi", phone_number: "+977-95-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Bajhang District Hospital", address: "Jayaprithvi (Chainpur)", district: "Bajhang", phone_number: "+977-96-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Bajura District Hospital", address: "Martadi", district: "Bajura", phone_number: "+977-97-540133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Achham District Hospital", address: "Mangalsen", district: "Achham", phone_number: "+977-97-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Sudurpashchim Police HQ", address: "Godawari, Kailali", district: "Kailali", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 5.0 },
-  // Morang & Sunsari
-  { name: "Koshi Hospital Biratnagar", address: "Biratnagar, Morang", district: "Morang", phone_number: "+977-21-522644", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.5 },
-  { name: "BP Koirala Institute of Health Sciences (BPKIHS)", address: "Dharan, Sunsari", district: "Sunsari", phone_number: "+977-25-525555", website: "https://bpkihs.edu", type: "hospital", distance_km: 6.0 },
-  // Koshi — remaining districts
-  { name: "Ilam District Hospital", address: "Ilam Bazaar", district: "Ilam", phone_number: "+977-27-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Taplejung District Hospital", address: "Phungling", district: "Taplejung", phone_number: "+977-24-460044", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Panchthar District Hospital", address: "Phidim", district: "Panchthar", phone_number: "+977-24-460133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Dhankuta District Hospital", address: "Dhankuta Bazaar", district: "Dhankuta", phone_number: "+977-26-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Terhathum District Hospital", address: "Myanglung", district: "Terhathum", phone_number: "+977-26-460133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.3 },
-  { name: "Bhojpur District Hospital", address: "Bhojpur Bazaar", district: "Bhojpur", phone_number: "+977-29-420133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Khotang District Hospital", address: "Diktel", district: "Khotang", phone_number: "+977-36-420133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.4 },
-  { name: "Solukhumbu District Hospital", address: "Salleri", district: "Solukhumbu", phone_number: "+977-38-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Udayapur District Hospital", address: "Gaighat", district: "Udayapur", phone_number: "+977-35-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Gajendra Narayan Singh Hospital", address: "Rajbiraj, Saptari", district: "Saptari", phone_number: "+977-31-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.5 },
-  { name: "Siraha District Hospital", address: "Siraha Bazaar", district: "Siraha", phone_number: "+977-33-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  // Madhesh — all districts
-  { name: "Narayani Hospital", address: "Birgunj, Parsa", district: "Parsa", phone_number: "+977-51-522133", website: "https://mohp.gov.np", type: "hospital", distance_km: 3.0 },
-  { name: "Birgunj Police Office", address: "Birgunj, Parsa", district: "Parsa", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 2.5 },
-  { name: "Kalaiya District Hospital", address: "Kalaiya, Bara", district: "Bara", phone_number: "+977-53-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Rautahat District Hospital", address: "Gaur", district: "Rautahat", phone_number: "+977-55-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.3 },
-  { name: "Sarlahi District Hospital", address: "Malangwa", district: "Sarlahi", phone_number: "+977-46-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Mahottari District Hospital", address: "Jaleshwar", district: "Mahottari", phone_number: "+977-44-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Janakpur Zonal Hospital", address: "Janakpur, Dhanusha", district: "Dhanusha", phone_number: "+977-41-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.4 },
-  { name: "Madhesh Police HQ", address: "Janakpur, Dhanusha", district: "Dhanusha", phone_number: "100", website: "https://nepalpolice.gov.np", type: "police", distance_km: 3.0 },
-  // Chitwan & Lumbini
-  { name: "Bharatpur Hospital", address: "Bharatpur, Chitwan", district: "Chitwan", phone_number: "+977-56-520111", website: "https://mohp.gov.np", type: "hospital", distance_km: 3.1 },
-  { name: "Lumbini Provincial Hospital", address: "Butwal, Rupandehi", district: "Rupandehi", phone_number: "+977-71-540188", website: "https://mohp.gov.np", type: "hospital", distance_km: 4.0 },
-  { name: "Bheri Zonal Hospital", address: "Nepalgunj, Banke", district: "Banke", phone_number: "+977-81-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.5 },
-  { name: "Bardiya District Hospital", address: "Gulariya", district: "Bardiya", phone_number: "+977-84-420133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.3 },
-  { name: "Rapti Provincial Hospital", address: "Ghorahi, Dang", district: "Dang", phone_number: "+977-82-560133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.6 },
-  { name: "Pyuthan District Hospital", address: "Pyuthan Khalanga", district: "Pyuthan", phone_number: "+977-86-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Rolpa District Hospital", address: "Liwang", district: "Rolpa", phone_number: "+977-86-540133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Palpa District Hospital", address: "Tansen", district: "Palpa", phone_number: "+977-75-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Gulmi District Hospital", address: "Tamghas", district: "Gulmi", phone_number: "+977-79-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Arghakhanchi District Hospital", address: "Sandhikharka", district: "Arghakhanchi", phone_number: "+977-77-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Kapilvastu District Hospital", address: "Taulihawa", district: "Kapilvastu", phone_number: "+977-76-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Nawalparasi District Hospital", address: "Parasi", district: "Nawalparasi", phone_number: "+977-78-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.3 },
-  { name: "Rukum East District Hospital", address: "Rukumkot", district: "Rukum East", phone_number: "+977-88-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  // Gandaki — remaining districts
-  { name: "Dhaulagiri Zonal Hospital", address: "Baglung Bazaar", district: "Baglung", phone_number: "+977-68-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Parbat District Hospital", address: "Kusma", district: "Parbat", phone_number: "+977-67-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Myagdi District Hospital", address: "Beni", district: "Myagdi", phone_number: "+977-69-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.2 },
-  { name: "Lamjung District Hospital", address: "Besisahar", district: "Lamjung", phone_number: "+977-66-520133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Tanahun District Hospital", address: "Damauli", district: "Tanahun", phone_number: "+977-65-560133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Gorkha District Hospital", address: "Gorkha Bazaar", district: "Gorkha", phone_number: "+977-64-420133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Syangja District Hospital", address: "Syangja Bazaar (Putalibazar)", district: "Syangja", phone_number: "+977-63-420133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Manang District Hospital", address: "Chame", district: "Manang", phone_number: "+977-66-440133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  { name: "Mustang District Hospital", address: "Jomsom", district: "Mustang", phone_number: "+977-69-440133", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.0 },
-  // Kaski (Pokhara) & Bagmati (Kathmandu)
-  { name: "Gandaki Western Regional Hospital", address: "Ramghat, Pokhara", district: "Kaski", phone_number: "+977-61-520067", website: "https://mohp.gov.np", type: "hospital", distance_km: 2.1 },
-  { name: "Tourist Police Pokhara Lakeside", address: "Baidam, Lakeside Pokhara", district: "Kaski", phone_number: "1144", website: "https://nepalpolice.gov.np", type: "police", distance_km: 0.8 },
-  { name: "Bir Hospital Kathmandu", address: "Kanti Path, Kathmandu", district: "Kathmandu", phone_number: "+977-1-4221988", website: "https://birhospital.gov.np", type: "hospital", distance_km: 1.5 },
-  { name: "Tourist Police Kathmandu HQ", address: "Bhrikutimandap, Kathmandu", district: "Kathmandu", phone_number: "1144", website: "https://nepalpolice.gov.np", type: "police", distance_km: 1.2 },
-]
+const HOTLINE_COLORS = {
+  tourist_police: "from-purple-700 to-indigo-700", police: "from-blue-700 to-cyan-700",
+  ambulance: "from-rose-600 to-red-700", fire_station: "from-amber-500 to-orange-600",
+  traffic_police: "from-slate-700 to-gray-800",
+}
+
+function phoneHref(value) {
+  return `tel:${String(value || "").replace(/[^0-9+]/g, "")}`
+}
+
+function FacilityCard({ facility }) {
+  const meta = TYPE_META[facility.type] || TYPE_META.hospital
+  const directions = `https://www.google.com/maps/dir/?api=1&destination=${facility.latitude},${facility.longitude}`
+  return (
+    <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-lg transition space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${meta.color}`}>{meta.icon} {meta.label}</span>
+        {facility.distance_km != null && <span className="text-xs font-black text-purple-700">{facility.distance_km} km</span>}
+      </div>
+      <div>
+        <h3 className="font-extrabold text-sm text-gray-900">{facility.name}</h3>
+        <p className="text-xs text-gray-500 mt-1 flex gap-1"><FiMapPin className="shrink-0 mt-0.5" />{facility.address || facility.district || "Nepal"}</p>
+      </div>
+      {facility.outside_requested_radius && <p className="text-[10px] rounded-lg bg-amber-50 text-amber-800 px-2 py-1">No service found inside the selected radius; showing the nearest known result.</p>}
+      {facility.phone_is_national_fallback && <p className="text-[10px] text-gray-500">Local phone unavailable in the source dataset — national {meta.label.toLowerCase()} line shown.</p>}
+      <div className="flex gap-2 pt-2 border-t">
+        <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 rounded-xl bg-purple-700 text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a>
+        {facility.latitude != null && <a href={directions} target="_blank" rel="noreferrer" className="rounded-xl border border-purple-200 text-purple-800 px-3 py-2 text-xs font-bold"><FiNavigation className="inline" /> Route</a>}
+      </div>
+      <a href={facility.source_url || "https://mohp.gov.np/"} target="_blank" rel="noreferrer" className="block text-[10px] text-gray-400 hover:underline">Source: {facility.source_name || "Emergency directory"} <FiExternalLink className="inline" /></a>
+    </article>
+  )
+}
 
 export default function Emergency() {
   const { position } = useGeolocation()
   const { showToast } = useToast()
-
-  const [hospitals, setHospitals] = useState([])
-  const [police, setPolice] = useState([])
-  const [activeTab, setActiveTab] = useState("all") // all | hospitals | police
-  const [searchQuery, setSearchQuery] = useState("")
+  const [params, setParams] = useSearchParams()
+  const [query, setQuery] = useState("")
+  const [suggestions, setSuggestions] = useState([])
+  const [directory, setDirectory] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("all")
+  const [radius, setRadius] = useState(50)
+  const [sosStatus, setSosStatus] = useState("")
+  const [loadedInitial, setLoadedInitial] = useState(false)
 
-  // SOS state
-  const [sosTriggered, setSosTriggered] = useState(false)
-  const [sosMessage, setSosMessage] = useState("")
-
-  const loadFacilities = async () => {
+  const loadDestination = async (reference) => {
+    if (!reference) return
     setLoading(true)
-    const lat = position?.lat || 27.7172
-    const lng = position?.lng || 85.3240
-
     try {
-      const [hRes, pRes] = await Promise.allSettled([
-        axiosClient.get(`/nearby/hospitals?lat=${lat}&lng=${lng}&radius_km=100`),
-        axiosClient.get(`/nearby/police?lat=${lat}&lng=${lng}&radius_km=100`),
-      ])
+      const { data } = await emergencyApi.forDestination(reference, { radius_km: radius, limit: 10 })
+      setDirectory(data)
+      setQuery(data.location.destination_name)
+      setParams({ destination: data.location.destination_slug }, { replace: true })
+      setSuggestions([])
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Destination emergency data unavailable", "error")
+    } finally { setLoading(false); setLoadedInitial(true) }
+  }
 
-      if (hRes.status === "fulfilled") setHospitals(hRes.value.data || [])
-      if (pRes.status === "fulfilled") setPolice(pRes.value.data || [])
-    } catch (err) {
-      console.error("Emergency data load error:", err)
-    } finally {
-      setLoading(false)
-    }
+  const loadCoordinates = async (lat, lng) => {
+    setLoading(true)
+    try {
+      const { data } = await emergencyApi.nearby(lat, lng, { radius_km: radius, limit: 10 })
+      setDirectory(data); setQuery("")
+    } catch { showToast("Nearby emergency directory unavailable", "error") }
+    finally { setLoading(false); setLoadedInitial(true) }
   }
 
   useEffect(() => {
-    loadFacilities()
+    const selected = params.get("destination")
+    if (selected && !loadedInitial) loadDestination(selected)
+    else if (position && !loadedInitial) loadCoordinates(position.lat, position.lng)
+    else if (!selected && !position && !loadedInitial) loadCoordinates(27.7172, 85.3240)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position])
 
-  const handleTriggerSOS = async () => {
+  useEffect(() => {
+    if (query.length < 2 || query === directory?.location?.destination_name) return setSuggestions([])
+    const timer = setTimeout(() => destinationApi.autocomplete(query)
+      .then(({ data }) => setSuggestions(data.results || data || []))
+      .catch(() => setSuggestions([])), 220)
+    return () => clearTimeout(timer)
+  }, [query, directory])
+
+  const refreshRadius = () => {
+    if (directory?.location?.destination_slug) loadDestination(directory.location.destination_slug)
+    else if (directory?.location) loadCoordinates(directory.location.latitude, directory.location.longitude)
+  }
+
+  const handleSOS = async () => {
+    const location = directory?.location
+    if (!location) return
+    setSosStatus("sending")
     try {
-      await safetyApi.triggerSos({
-        latitude: position?.lat || 27.7172,
-        longitude: position?.lng || 85.3240,
-        message: sosMessage || "Urgent medical & safety emergency assistance requested!",
-      })
-      setSosTriggered(true)
-      showToast("🚨 SOS Emergency alert broadcasted to Admin & Response Center!", "success")
-    } catch (err) {
-      setSosTriggered(true)
-      showToast("Emergency alert sent! Police (100 / 1144) notified.", "info")
+      await safetyApi.triggerSos({ latitude: location.latitude, longitude: location.longitude, message: `Emergency assistance requested${location.destination_name ? ` near ${location.destination_name}` : ""}.` })
+      setSosStatus("sent")
+      showToast("SOS recorded by the platform. Call 100/102/1144 for immediate dispatch.", "success")
+    } catch {
+      setSosStatus("call")
+      showToast("The platform could not confirm dispatch. Call 100, 102 or 1144 now.", "error")
     }
   }
 
-  // Filter facilities by search (merging live backend data with provincial emergency directory)
-  const allFacilities = [
-    ...hospitals.map((h) => ({ ...h, type: "hospital" })),
-    ...police.map((p) => ({ ...p, type: "police" })),
-    ...ALL_PROVINCIAL_EMERGENCY_HUBS,
-  ]
+  const facilities = useMemo(() => {
+    if (!directory) return []
+    const all = [...(directory.hospitals || []), ...(directory.police || []), ...(directory.specialized_contacts || [])]
+    if (activeTab === "all") return all
+    if (activeTab === "hospital") return all.filter((item) => item.type === "hospital")
+    if (activeTab === "police") return all.filter((item) => item.type === "police" || item.type === "tourist_police")
+    return all.filter((item) => !["hospital", "police"].includes(item.type))
+  }, [directory, activeTab])
 
-  const filtered = allFacilities.filter((f) => {
-    const q = searchQuery.toLowerCase()
-    const matchesQuery =
-      f.name?.toLowerCase().includes(q) ||
-      f.district?.toLowerCase().includes(q) ||
-      f.address?.toLowerCase().includes(q) ||
-      f.phone_number?.includes(q)
-    const matchesTab =
-      activeTab === "all" ||
-      (activeTab === "hospitals" && f.type === "hospital") ||
-      (activeTab === "police" && f.type === "police")
-    return matchesQuery && matchesTab
-  })
+  const locationTitle = directory?.location?.destination_name || (directory?.location?.source === "coordinates" ? "your selected location" : "Nepal")
+  const risk = directory?.risk?.overall
 
   return (
-    <div className="container-app theme-crimson py-8 space-y-8 animate-fadeIn">
+    <div className="container-app py-8 space-y-7 animate-fadeIn">
       <Breadcrumbs items={[{ label: "Emergency Services", to: "/emergency" }]} />
 
-      {/* Top Banner with Red SOS Trigger */}
-      <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-purple-950 text-white p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-rose-600/40">
-        <div className="space-y-2 text-center md:text-left">
-          <span className="px-3.5 py-1 rounded-full bg-rose-500/30 text-rose-200 border border-rose-400/40 text-xs font-black uppercase tracking-wider">
-            24/7 National Emergency Sentinel
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
-            Emergency Services & Helplines Hub
-          </h1>
-          <p className="text-rose-100 text-xs sm:text-sm max-w-xl">
-            Direct access to 390+ verified hospitals, 640+ police stations, and 24/7 tourist rescue dispatch across Nepal.
-          </p>
+      <section className="rounded-3xl bg-gradient-to-r from-rose-900 via-rose-800 to-purple-950 text-white p-6 sm:p-8 shadow-2xl">
+        <div className="flex flex-col lg:flex-row gap-6 justify-between">
+          <div><span className="rounded-full bg-rose-500/30 px-3 py-1 text-xs font-black uppercase">Nepal emergency locator</span><h1 className="text-3xl sm:text-4xl font-black mt-2">Nearest Help for Every Destination</h1><p className="text-sm text-rose-100 mt-2 max-w-2xl">Search any approved Nepal destination. Results are calculated from its coordinates and ranked by actual distance.</p></div>
+          <div className="shrink-0"><button onClick={handleSOS} disabled={sosStatus === "sending"} className="rounded-2xl bg-rose-600 hover:bg-rose-500 px-7 py-4 font-black shadow-xl disabled:opacity-60"><FiAlertTriangle className="inline mr-2" />{sosStatus === "sending" ? "Recording SOS…" : sosStatus === "sent" ? "SOS Recorded" : "Emergency SOS"}</button><p className="text-[10px] text-rose-200 mt-2 max-w-56">For immediate dispatch, always call 100, 102, or Tourist Police 1144.</p></div>
         </div>
+      </section>
 
-        {/* Big SOS Button */}
-        <div className="shrink-0 text-center">
-          {sosTriggered ? (
-            <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-400 text-emerald-200 text-xs font-bold flex items-center gap-2">
-              <FiCheck size={18} /> SOS Active - Response Dispatched
-            </div>
-          ) : (
-            <button
-              onClick={handleTriggerSOS}
-              className="px-8 py-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-base uppercase tracking-wider shadow-2xl shadow-rose-600/50 hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
-            >
-              <FiAlertTriangle size={22} /> Broadcast SOS Emergency
-            </button>
-          )}
-          <p className="text-[11px] text-rose-200 mt-1">Sends your live GPS coordinates to central dispatch</p>
-        </div>
-      </div>
-
-      {/* National 24/7 Hotline Cards */}
-      <div className="space-y-3">
-        <h2 className="font-extrabold text-lg text-gray-900 flex items-center gap-2">
-          <FiPhoneCall className="text-rose-600" /> National 24/7 Emergency Hotlines
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {NATIONAL_HOTLINES.map((hotline, idx) => {
-            const Icon = hotline.icon
-            return (
-              <a
-                key={idx}
-                href={`tel:${hotline.full.replace(/[^0-9+]/g, "")}`}
-                className={`p-5 rounded-2xl bg-gradient-to-r ${hotline.color} text-white shadow-lg flex items-center justify-between hover:scale-102 hover:shadow-xl transition-all group`}
-              >
-                <div className="space-y-1">
-                  <span className="text-xs text-white/80 uppercase font-bold tracking-wider">{hotline.label}</span>
-                  <p className="text-2xl font-black">{hotline.phone}</p>
-                  <p className="text-[11px] text-white/70">{hotline.desc}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                  <FiPhoneCall size={20} />
-                </div>
-              </a>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Search Bar & Filter Tabs */}
-      <div className="card-base p-6 rounded-3xl shadow-xl border border-purple-100 space-y-5 bg-white">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b pb-4">
-          <div>
-            <h3 className="font-extrabold text-lg text-gray-900">
-              Search Nearby Hospitals & Police Stations
-            </h3>
-            <p className="text-xs text-gray-500">
-              393 verified hospitals and 641 police stations across all 77 districts
-            </p>
+      <section className="rounded-3xl bg-white border shadow-sm p-5 space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); loadDestination(query) }} className="relative flex gap-2">
+          <div className="relative flex-1"><FiSearch className="absolute left-4 top-3.5 text-gray-400" /><input className="input-field pl-11" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Rara Lake, Mardi Himal, Janakpur…" />
+            {suggestions.length > 0 && <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white border rounded-xl shadow-2xl overflow-hidden">{suggestions.slice(0, 7).map((item) => <button type="button" key={item.id} onClick={() => loadDestination(item.slug)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b last:border-0"><b>{item.name}</b><span className="ml-2 text-xs text-gray-400">{item.district}, {item.province}</span></button>)}</div>}
           </div>
+          <button className="rounded-xl bg-purple-700 text-white px-6 font-black text-sm">Find help</button>
+        </form>
+        <div className="flex flex-wrap items-center gap-3 text-xs"><button onClick={() => position && loadCoordinates(position.lat, position.lng)} className="rounded-lg border px-3 py-2 font-bold"><FiMapPin className="inline" /> Use my GPS</button><label className="font-bold text-gray-600">Radius <select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="ml-1 rounded-lg border p-2"><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option><option value="100">100 km</option><option value="200">200 km</option></select></label><button onClick={refreshRadius} className="text-purple-700 font-black">Apply radius</button></div>
+      </section>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "all" ? "bg-purple-700 text-white shadow" : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              All ({allFacilities.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("hospitals")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "hospitals" ? "bg-purple-700 text-white shadow" : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              🏥 Hospitals ({hospitals.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("police")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "police" ? "bg-purple-700 text-white shadow" : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              👮 Police ({police.length})
-            </button>
-          </div>
-        </div>
+      {loading ? <Loader /> : directory && <>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase text-gray-400">Emergency coverage around</p><h2 className="text-2xl font-black">{locationTitle}</h2><p className="text-xs text-gray-500">{directory.location.district} {directory.location.province && `· ${directory.location.province}`} · {directory.radius_km} km radius</p>{directory.location.coordinate_note && <p className="text-[10px] text-gray-400">Location basis: {directory.location.coordinate_note}</p>}</div>{risk && <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"><p className="text-[10px] font-black uppercase text-amber-800">Risk model indicator</p><b className="text-xl uppercase text-amber-900">{risk.level} · {risk.score}</b><p className="text-[10px] text-amber-700">Not an official warning</p></div>}</div>
 
-        {/* Search Input */}
-        <div className="relative">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by hospital name, city, district (e.g. Kathmandu, Pokhara, Teaching Hospital, Sauraha, Mustang)..."
-            className="input-field pl-12 text-sm font-medium py-3"
-          />
-        </div>
+        <section className="space-y-3"><h2 className="font-extrabold text-lg flex items-center gap-2"><FiPhoneCall className="text-rose-600" /> Verified national hotlines</h2><div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">{directory.national_hotlines.map((item) => <a key={item.type} href={phoneHref(item.phone_number)} className={`rounded-2xl p-4 text-white bg-gradient-to-br ${HOTLINE_COLORS[item.type]} shadow`}><span className="text-[10px] font-black uppercase opacity-80">{item.name}</span><b className="block text-2xl">{item.phone_number}</b><p className="text-[10px] opacity-75">{item.description}</p></a>)}</div></section>
 
-        {/* Facility Cards Grid */}
-        {loading ? (
-          <Loader />
-        ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">
-            No facilities found matching "{searchQuery}". Try searching by district or city name.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-1">
-            {filtered.map((f, idx) => {
-              const isHosp = f.type === "hospital"
-              const phoneClean = (f.phone_number || (isHosp ? "+977-1-4412404" : "100")).replace(/[^0-9+]/g, "")
-              return (
-                <div
-                  key={idx}
-                  className="p-4 rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all bg-gradient-to-br from-white to-gray-50/50 flex flex-col justify-between space-y-3"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        isHosp ? "bg-rose-100 text-rose-800" : "bg-blue-100 text-blue-800"
-                      }`}>
-                        {isHosp ? "🏥 Hospital / Clinic" : "👮 Police Station"}
-                      </span>
-                      {f.distance_km != null && (
-                        <span className="text-[11px] font-bold text-purple-700">
-                          {f.distance_km} km away
-                        </span>
-                      )}
-                    </div>
+        <section className="rounded-3xl border bg-white p-5 space-y-4"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-black text-xl">Nearest emergency facilities</h2><p className="text-xs text-gray-500">Database coverage: {directory.counts.database_hospitals} hospitals · {directory.counts.database_police_stations} police stations</p></div><div className="flex flex-wrap gap-2">{[["all", "All"], ["hospital", `Hospitals (${directory.counts.hospitals_within_radius})`], ["police", `Police (${directory.counts.police_within_radius})`], ["specialized", "Ambulance & Fire"]].map(([key, label]) => <button key={key} onClick={() => setActiveTab(key)} className={`rounded-xl px-3 py-2 text-xs font-bold ${activeTab === key ? "bg-purple-700 text-white" : "bg-gray-100"}`}>{label}</button>)}</div></div>
+          {facilities.length ? <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{facilities.map((facility) => <FacilityCard key={facility.id} facility={facility} />)}</div> : <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 text-sm text-amber-900"><FiActivity className="inline mr-2" />No local specialized record is available. Use national Ambulance 102 or Fire 101.</div>}
+        </section>
 
-                    <h4 className="font-extrabold text-sm text-gray-900 leading-snug">{f.name}</h4>
-                    <p className="text-xs text-gray-500 flex items-start gap-1">
-                      <FiMapPin size={13} className="text-purple-600 mt-0.5 shrink-0" />
-                      <span>{f.address || f.district || "Nepal"}</span>
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t flex items-center justify-between gap-2">
-                    <div className="text-xs text-gray-700">
-                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Phone</span>
-                      <b>{f.phone_number || (isHosp ? "102" : "100")}</b>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <a
-                        href={`tel:${phoneClean}`}
-                        className="px-3.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1 shadow"
-                      >
-                        <FiPhoneCall size={12} /> Call Now
-                      </a>
-                      <a
-                        href={f.website || (isHosp ? "https://mohp.gov.np" : "https://nepalpolice.gov.np")}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-xs flex items-center gap-1 border border-purple-200"
-                      >
-                        🌐 Website
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900"><FiCheckCircle className="inline mr-1" /><b>Data note:</b> {directory.notice}</div>
+      </>}
     </div>
   )
 }

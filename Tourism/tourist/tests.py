@@ -702,3 +702,28 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(response.data["historical"]["incident_count"], 1)
         self.assertEqual(response.data["current_conditions"]["active_count"], 1)
         self.assertEqual(response.data["traveler_evidence"]["report_count"], 1)
+
+    def test_destination_emergency_directory_is_distance_ranked(self):
+        from .models import Hospital, PoliceStation
+        Hospital.objects.create(
+            destination=self.trek, name="Test Mountain Hospital", address="Kaski",
+            phone="061123456", latitude=28.401, longitude=84.001, district="Kaski",
+        )
+        PoliceStation.objects.create(
+            destination=self.trek, name="Test Mountain Police", address="Kaski",
+            phone="", latitude=28.402, longitude=84.002,
+        )
+        response = self.client.get(reverse(
+            "destination-emergency-services", kwargs={"destination_ref": self.trek.slug}
+        ), {"radius_km": 25})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["location"]["destination_id"], self.trek.id)
+        self.assertEqual(response.data["hospitals"][0]["phone_number"], "061123456")
+        self.assertEqual(response.data["police"][0]["phone_number"], "100")
+        self.assertTrue(response.data["police"][0]["phone_is_national_fallback"])
+        self.assertIn("risk", response.data)
+        self.assertEqual(response.data["national_hotlines"][0]["phone_number"], "1144")
+
+    def test_coordinate_emergency_directory_requires_valid_coordinates(self):
+        response = self.client.get(reverse("nearby-emergency-services"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

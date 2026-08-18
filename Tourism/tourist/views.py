@@ -915,8 +915,87 @@ class HotelSearchView(generics.ListAPIView):
         )
 
 
+class NearbyEmergencyServicesView(APIView):
+    """Nearest Nepal emergency services for raw GPS coordinates."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        try:
+            latitude = float(request.query_params["latitude"])
+            longitude = float(request.query_params["longitude"])
+            radius_km = max(1, min(float(request.query_params.get("radius_km", 50)), 300))
+            limit = max(1, min(int(request.query_params.get("limit", 8)), 25))
+        except (KeyError, TypeError, ValueError):
+            return Response(
+                {"detail": "Valid latitude and longitude query parameters are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        from .emergency_service import build_emergency_directory
+        return Response(build_emergency_directory(latitude, longitude, radius_km=radius_km, limit=limit))
+
+
+class DestinationEmergencyServicesView(APIView):
+    """Nearest services plus destination risk for any approved Nepal place."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, destination_ref):
+        from .emergency_service import build_emergency_directory, resolve_destination
+        destination = resolve_destination(destination_ref)
+        if destination is None:
+            return Response({"detail": "Approved destination not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        latitude, longitude = destination.latitude, destination.longitude
+        coordinate_source = "destination"
+        coordinate_note = "Exact stored destination coordinates"
+        if latitude is None or longitude is None:
+            # A small portion of imported destinations lack point geometry.
+            # Use a disclosed city/district centroid so emergency lookup still
+            # works country-wide; never pretend the proxy is the exact place.
+            from django.db.models import Avg
+            nearby_locations = Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+            if destination.city:
+                aggregate = nearby_locations.filter(city__iexact=destination.city).aggregate(
+                    latitude=Avg("latitude"), longitude=Avg("longitude")
+                )
+                coordinate_source = "city_centroid_proxy"
+                coordinate_note = f"Approximate centroid for {destination.city}"
+            else:
+                aggregate = {"latitude": None, "longitude": None}
+            if aggregate["latitude"] is None and destination.district:
+                aggregate = nearby_locations.filter(district__iexact=destination.district).aggregate(
+                    latitude=Avg("latitude"), longitude=Avg("longitude")
+                )
+                coordinate_source = "district_centroid_proxy"
+                coordinate_note = f"Approximate centroid for {destination.district} district"
+            latitude, longitude = aggregate["latitude"], aggregate["longitude"]
+            if latitude is None or longitude is None:
+                return Response(
+                    {"detail": "No destination or district coordinates are available for distance calculation."},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+        try:
+            radius_km = max(1, min(float(request.query_params.get("radius_km", 50)), 300))
+            limit = max(1, min(int(request.query_params.get("limit", 8)), 25))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid radius or limit."}, status=status.HTTP_400_BAD_REQUEST)
+
+        payload = build_emergency_directory(
+            latitude, longitude, destination=destination,
+            radius_km=radius_km, limit=limit,
+        )
+        payload["location"]["source"] = coordinate_source
+        payload["location"]["coordinate_note"] = coordinate_note
+        from .risk_service import build_destination_risk
+        payload["risk"] = build_destination_risk(destination)
+        return Response(payload)
+
+
 class DestinationRiskAssessmentView(APIView):
-    """Risk evidence for one DB destination, resolved by slug/id/name."""
+    """Risk evidence for any approved Nepal destination, resolved by slug/id/name."""
 
     permission_classes = [permissions.AllowAny]
 

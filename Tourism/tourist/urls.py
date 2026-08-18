@@ -160,6 +160,8 @@ urlpatterns = [
     path("destinations/autocomplete/", views.DestinationAutocompleteView.as_view(), name="destination-autocomplete"),
     path("destinations/mood-recommendations/", views.MoodRecommendationsView.as_view(), name="mood-recommendations"),
     path("destinations/<str:destination_ref>/risk/", views.DestinationRiskAssessmentView.as_view(), name="destination-risk-assessment"),
+    path("destinations/<str:destination_ref>/emergency/", views.DestinationEmergencyServicesView.as_view(), name="destination-emergency-services"),
+    path("emergency/nearby/", views.NearbyEmergencyServicesView.as_view(), name="nearby-emergency-services"),
     # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)
     path("postcard/<path:path_info>", views.destination_postcard, name="destination-postcard"),
     path("safety/trip-share/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public"),
