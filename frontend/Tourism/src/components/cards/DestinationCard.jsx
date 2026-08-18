@@ -8,7 +8,7 @@ import {
 } from "react-icons/fi"
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
-import { getDestinationImageUrl, postcardUrl } from "../../utils/imageUtils"
+import { getDestinationImageUrl, postcardUrl, fallbackImageUrl, deriveImageCategory } from "../../utils/imageUtils"
 
 const RISK_STYLES = {
   low: {
@@ -148,10 +148,16 @@ const DestinationCard = ({
           alt={name}
           loading="lazy"
           onError={(e) => {
-            // Never repeat a shared generic photo: fall back to this
-            // destination's own unique postcard (deterministic per place).
+            // 1st fallback: a real local landmark / Unsplash pool photo
+            // (deterministic per destination) — never a blank slot.
             if (!e.target.dataset.fallback) {
               e.target.dataset.fallback = "1"
+              e.target.src = fallbackImageUrl(name, deriveImageCategory(destination))
+              return
+            }
+            // 2nd (absolute last) resort: unique SVG postcard.
+            if (!e.target.dataset.fallback2) {
+              e.target.dataset.fallback2 = "1"
               e.target.src = postcardUrl(destination)
             }
           }}
