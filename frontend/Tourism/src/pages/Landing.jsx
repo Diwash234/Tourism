@@ -5,6 +5,7 @@ import {
   FiMapPin, FiShield, FiDollarSign, FiNavigation, FiStar,
   FiCompass, FiArrowRight, FiCheckCircle, FiPhoneCall, FiSun
 } from "react-icons/fi"
+import { useI18n } from "../i18n"
 
 import SearchBar from "../components/common/SearchBar"
 import DestinationCard from "../components/cards/DestinationCard"
