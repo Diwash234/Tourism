@@ -830,3 +830,19 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertTrue(hazard.verified)
         self.assertEqual(hazard.source_type, "official")
         self.assertEqual(hazard.affected_area, "Upper Kaski slopes")
+
+    def test_verified_critical_warning_marks_recommendation_unavailable(self):
+        from django.utils import timezone
+        from .models import CurrentHazard
+        CurrentHazard.objects.create(
+            destination=self.trek, hazard_type="landslide", title="Trail officially closed",
+            severity="critical", source_type="official", source_name="Test authority",
+            source_url="https://example.com/closure", observed_at=timezone.now(),
+            verified=True, is_active=True,
+        )
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "trekking", "days": 7, "limit": 6,
+        })
+        result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
+        self.assertEqual(result["safety_context"]["availability"], "temporarily_unavailable")
+        self.assertEqual(result["safety_context"]["current_warning"]["severity"], "critical")

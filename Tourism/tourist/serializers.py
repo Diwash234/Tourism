@@ -609,10 +609,10 @@ class DestinationListSerializer(serializers.ModelSerializer):
         model = Destination
         fields = [
             "id", "name", "slug", "category", "category_name", "short_description",
-            "latitude", "longitude", "city", "country", "district", "province",
-            "average_rating", "ratings_count", "views_count", "entry_fee",
+            "latitude", "longitude", "city", "country", "district", "province", "municipality", "ward_number", "type",
+            "average_rating", "ratings_count", "views_count", "entry_fee", "source",
             "cover_image_url", "distance_km", "status", "is_user_submitted", "is_active",
-            "budget_estimate", "risk_level", "recommended_season",
+            "budget_estimate", "risk_level", "recommended_season", "created_at", "updated_at",
         ]
 
     @extend_schema_field(serializers.FloatField(allow_null=True))

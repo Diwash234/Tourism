@@ -182,6 +182,7 @@ export default function Recommendation() {
                       {(item.why_recommended || []).map((reason) => <li key={reason} className="text-xs text-gray-600 flex gap-2"><FiCheckCircle className="shrink-0 mt-0.5 text-emerald-600" />{reason}</li>)}
                     </ul>
                   </div>
+                  {item.safety_context?.current_warning && <div className={`rounded-lg px-2 py-1 text-[10px] font-bold ${item.safety_context.availability === "temporarily_unavailable" ? "bg-red-100 text-red-800" : "bg-amber-50 text-amber-800"}`}>⚠ {item.safety_context.current_warning.severity.toUpperCase()}: {item.safety_context.current_warning.title}{item.safety_context.availability === "temporarily_unavailable" && " · Temporarily unavailable"}</div>}
                   <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-600">
                     <span>🏥 {item.safety_context?.nearest_hospital ? `${item.safety_context.nearest_hospital.distance_km} km` : "Unavailable"}</span>
                     <span>👮 {item.safety_context?.nearest_police ? `${item.safety_context.nearest_police.distance_km} km` : "Unavailable"}</span>

@@ -16,6 +16,7 @@ from .models import (
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
+    CurrentHazard,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -1178,6 +1179,19 @@ class MoodRecommendationsView(generics.ListAPIView):
                     affinity[slug] = affinity.get(slug, 0) + 1
 
         near_districts = ["kathmandu", "lalitpur", "bhaktapur", "kaski", "makwanpur", "dhading", "kavre"]
+        # Current sourced warnings are distinct from historical/model risk and
+        # receive stronger, recency-appropriate ranking influence.
+        from django.utils import timezone
+        active_hazards = CurrentHazard.objects.filter(is_active=True).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gte=timezone.now())
+        ).values("destination_id", "severity", "verified", "source_type", "title")
+        severity_order = {"low": 1, "moderate": 2, "high": 3, "critical": 4}
+        current_warning_by_destination = {}
+        for hazard in active_hazards:
+            previous = current_warning_by_destination.get(hazard["destination_id"])
+            if previous is None or severity_order.get(hazard["severity"], 0) > severity_order.get(previous["severity"], 0):
+                current_warning_by_destination[hazard["destination_id"]] = hazard
+
         high_altitude_cats = {"mountains", "trekking", "winter", "valleys"}
         easy_cats = {"cities", "heritage", "museums", "parks-gardens", "shopping", "food-culinary"}
         rows = []
@@ -1255,9 +1269,26 @@ class MoodRecommendationsView(generics.ListAPIView):
             risk_level = (risk.risk_category or "low").lower() if risk else "low"
             # Avoid silently pushing high-risk places to the top, but keep them
             # available and explain the indicator in the result.
-            risk_adjustment = -0.08 if risk_level in {"high", "critical"} else 0.0
-            score += risk_adjustment
-            breakdown["current_risk_adjustment"] = risk_adjustment
+            historical_risk_adjustment = -0.08 if risk_level in {"high", "critical"} else 0.0
+            score += historical_risk_adjustment
+            breakdown["historical_risk_adjustment"] = historical_risk_adjustment
+
+            warning = current_warning_by_destination.get(destination.id)
+            current_warning_adjustment = 0.0
+            availability = "available"
+            if warning:
+                current_warning_adjustment = {
+                    "low": -0.02, "moderate": -0.10, "high": -0.28, "critical": -0.55,
+                }.get(warning["severity"], 0.0)
+                # Only a verified official/admin critical warning can mark a
+                # destination temporarily unavailable; news/model rows cannot.
+                if (
+                    warning["severity"] == "critical" and warning["verified"]
+                    and warning["source_type"] in {"official", "admin", "api"}
+                ):
+                    availability = "temporarily_unavailable"
+                score += current_warning_adjustment
+            breakdown["current_warning_adjustment"] = current_warning_adjustment
 
             service_count = destination.hospital_total + destination.police_total + destination.hotel_total
             emergency_score = min(service_count * 0.015, 0.09)
@@ -1276,11 +1307,35 @@ class MoodRecommendationsView(generics.ListAPIView):
                 "police_count": destination.police_total,
                 "hotel_count": destination.hotel_total,
                 "route_condition": route_records[0].road_condition if route_records else "No verified route condition",
+                "availability": availability,
+                "current_warning": {
+                    "title": warning["title"], "severity": warning["severity"],
+                    "verified": warning["verified"], "source_type": warning["source_type"],
+                } if warning else None,
             }
             rows.append((score, destination, reasons[:5], breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level, safety_context))
 
+        # Diversity-aware reranking (MMR-style): preserve the existing score,
+        # then progressively penalize repeated categories and districts.
         rows.sort(key=lambda row: (-row[0], row[1].id))
-        candidates = rows[: max(limit * 3, limit)]
+        pool = rows[: max(limit * 12, 120)]
+        candidates, category_counts, district_counts = [], {}, {}
+        target_count = min(len(pool), max(limit * 3, limit))
+        while pool and len(candidates) < target_count:
+            def diversity_score(row):
+                destination = row[1]
+                category = destination.category.slug if destination.category_id else "uncategorized"
+                district = (destination.district or "unknown").lower()
+                return row[0] - category_counts.get(category, 0) * 0.13 - district_counts.get(district, 0) * 0.035
+            best = max(pool, key=diversity_score)
+            pool.remove(best)
+            candidates.append(best)
+            chosen = best[1]
+            category = chosen.category.slug if chosen.category_id else "uncategorized"
+            district = (chosen.district or "unknown").lower()
+            category_counts[category] = category_counts.get(category, 0) + 1
+            district_counts[district] = district_counts.get(district, 0) + 1
+
         if candidates:
             max_score = max(row[0] for row in candidates) or 1
             candidates = [(max(0.0, row[0] / max_score), *row[1:]) for row in candidates]
