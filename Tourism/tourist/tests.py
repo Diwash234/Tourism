@@ -727,3 +727,36 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
     def test_coordinate_emergency_directory_requires_valid_coordinates(self):
         response = self.client.get(reverse("nearby-emergency-services"))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("tourist.community_data_service.sync_submission_csv")
+    def test_admin_approval_publishes_community_hospital(self, sync_csv):
+        from .community_data_service import publish_submission
+        from .models import Hospital, InfrastructureSubmission
+        admin = User.objects.create_user(
+            email="infra-admin@example.com", password="StrongPass123!", role="admin", is_verified=True,
+        )
+        submission = InfrastructureSubmission.objects.create(
+            submitted_by=admin, destination=self.trek, place_type="hospital",
+            name="Community Mountain Clinic", phone="061999999", address="Ward 4",
+            district="Kaski", province="Gandaki", latitude=28.401, longitude=84.001,
+            municipality="Machhapuchhre", municipality_type="rural_municipality",
+            route_origin="Pokhara", transport_mode="Jeep", travel_time_minutes=90,
+        )
+        publish_submission(submission, admin)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, "approved")
+        self.assertTrue(Hospital.objects.filter(name="Community Mountain Clinic").exists())
+        sync_csv.assert_called_once()
+
+    def test_osm_nearby_returns_nearest_outside_small_radius(self):
+        from .models import OSMEssentialService
+        OSMEssentialService.objects.create(
+            osm_id="node/far-bank", category="bank", name="Verified Far Bank",
+            latitude=28.80, longitude=84.80, address="Regional center",
+        )
+        response = self.client.get(reverse("osm-essential-nearby"), {
+            "latitude": 28.4, "longitude": 84.0, "radius_km": 1, "category": "bank",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]["name"], "Verified Far Bank")
+        self.assertTrue(response.data[0]["outside_requested_radius"])

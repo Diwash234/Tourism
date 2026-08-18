@@ -1,7 +1,7 @@
 """Location-aware emergency directory built from the SQLite source of truth."""
 from django.db.models import Q
 
-from .models import Destination, EmergencyContact, Hospital, PoliceStation
+from .models import Destination, EmergencyContact, Hospital, OSMEssentialService, PoliceStation
 from .utils import haversine_distance
 
 NATIONAL_HOTLINES = [
@@ -68,6 +68,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "phone_number": phone, "phone_is_national_fallback": fallback,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
+            "image_url": row.image.url if row.image else None,
             "source_name": "Nepal hospital dataset", "source_url": "https://mohp.gov.np/",
         }
 
@@ -79,6 +80,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "phone_number": phone, "phone_is_national_fallback": fallback,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
+            "image_url": row.image.url if row.image else None,
             "source_name": "Nepal police station dataset", "source_url": "https://nepalpolice.gov.np/",
         }
 
@@ -103,6 +105,32 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "latitude": float(contact.latitude), "longitude": float(contact.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
             "is_24_hours": contact.is_24_hours, "source_name": "Verified emergency directory", "source_url": "",
+        })
+
+    # Admin-approved and OpenStreetMap fire, ambulance, bank, pharmacy and
+    # tourism-office records share the same accurate distance calculation.
+    existing_ids = {item["id"] for item in specialized}
+    osm_ranked = []
+    for service in OSMEssentialService.objects.exclude(category__in=["hospital", "police"]):
+        distance = haversine_distance(latitude, longitude, float(service.latitude), float(service.longitude))
+        osm_ranked.append((distance, service))
+    osm_ranked.sort(key=lambda pair: pair[0])
+    for distance, service in osm_ranked:
+        if len(specialized) >= limit:
+            break
+        item_id = f"essential-{service.id}"
+        if item_id in existing_ids:
+            continue
+        specialized.append({
+            "id": item_id, "type": service.category, "name": service.name,
+            "address": service.address, "district": service.raw_tags.get("district", ""),
+            "phone_number": service.phone, "alternate_phone": "",
+            "latitude": float(service.latitude), "longitude": float(service.longitude),
+            "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
+            "is_24_hours": False,
+            "image_url": service.image.url if service.image else None,
+            "source_name": "Admin verified" if service.osm_id.startswith("community/") else "OpenStreetMap",
+            "source_url": "https://www.openstreetmap.org/" if not service.osm_id.startswith("community/") else "",
         })
 
     facility_counts = {

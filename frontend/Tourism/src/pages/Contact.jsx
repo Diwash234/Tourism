@@ -20,14 +20,14 @@ const Contact = () => {
 
 
   const onSubmit = async () => {
-    const { name, email, message, subject } = getValues()
+    const { name, email, message, subject, category } = getValues()
     try {
       await adminApi.sendFeedback({
         name: name || "",
         email: email || "",
         subject: subject || `Message from ${name || "visitor"}`,
         message,
-        category: "contact",
+        category: category || "correction",
       })
       showToast("Your message has been sent to the admin team.", "success")
       reset()
@@ -135,6 +135,18 @@ Email is required
 
 
 
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<input className="input-field" placeholder="Subject / place name" {...register("subject",{required:true})} />
+<select className="input-field" {...register("category")}>
+<option value="correction">Correct wrong information</option>
+<option value="emergency_service">Emergency service feedback</option>
+<option value="hotel_hospital">Hotel / hospital information</option>
+<option value="route_distance">Route or distance problem</option>
+<option value="risk_news">Risk / disaster news</option>
+<option value="general">General feedback</option>
+</select>
+</div>
+
 <div>
 
 <textarea
@@ -170,13 +182,13 @@ disabled={isSubmitting}
 
 >
 
-{isSubmitting ? "Opening..." : "Send Message"}
+{isSubmitting ? "Sending..." : "Send to Admin"}
 
 </button>
 
 
 <p className="text-xs text-gray-400 text-center">
-Opens your email app — there is no in-app contact backend yet.
+Saved in the admin feedback queue for review and correction.
 </p>
 
 

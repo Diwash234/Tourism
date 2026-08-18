@@ -34,6 +34,7 @@ import VerifyPhone from "./pages/VerifyPhone"
 import DestinationList from "./pages/destinations/DestinationList"
 import DestinationDetails from "./pages/destinations/DestinationDetails"
 import SubmitPlacePage from "./pages/SubmitPlacePage"
+import SubmitServicePage from "./pages/SubmitServicePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
 import ExploreNepalMap from "./pages/ExploreNepalMap"
 import CompareDestinations from "./pages/CompareDestinations"
@@ -156,6 +157,7 @@ function App() {
           {/* Dedicated search endpoint (richer data: image_url, destination_name) */}
           <Route path="/hotels/search" element={<HotelSearch />} />
           <Route path="/destinations/submit" element={<SubmitPlacePage />} />
+          <Route path="/submit-service" element={<SubmitServicePage />} />
           <Route path="/discover-nepal" element={<DiscoverNepal />} />
           <Route path="/explore-map" element={<ExploreNepalMap />} />
 

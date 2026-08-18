@@ -36,6 +36,7 @@ from .models import (
     OSMEssentialService,
     OSMTourismPlace,
     DestinationAuditLog,
+    InfrastructureSubmission,
 )
 from .image_server import image_server_url
 from .utils import (
@@ -350,10 +351,12 @@ class HospitalSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url"]
 
     def get_image_url(self, obj):
-        # Hospitals don't carry their own photos and a destination's
-        # landscape cover isn't semantically a hospital photo, so use a
-        # stable, openly-licensed medical-facility image (deterministic
-        # per hospital so cards still vary slightly).
+        if obj.image:
+            request = self.context.get("request")
+            try:
+                return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            except (ValueError, AttributeError):
+                pass
         medical = [
             "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&q=80",
             "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1200&q=80",
@@ -364,9 +367,20 @@ class HospitalSerializer(serializers.ModelSerializer):
 
 
 class PoliceStationSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = PoliceStation
-        fields = ["id", "name", "address", "phone", "latitude", "longitude"]
+        fields = ["id", "name", "address", "phone", "latitude", "longitude", "image_url"]
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        except (ValueError, AttributeError):
+            return None
 
 
 class BudgetEstimationSerializer(serializers.ModelSerializer):
@@ -387,6 +401,41 @@ class RiskAnalysisSerializer(serializers.ModelSerializer):
             "hospital_count", "police_count", "fire_station_count", "emergency_risk",
             "natural_disaster_risk", "tourism_risk_index", "risk_category"
         ]
+
+
+class InfrastructureSubmissionSerializer(serializers.ModelSerializer):
+    submitted_by_name = serializers.CharField(source="submitted_by.full_name", read_only=True)
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InfrastructureSubmission
+        fields = "__all__"
+        read_only_fields = [
+            "submitted_by", "status", "admin_note", "reviewed_by", "reviewed_at",
+            "published_model", "published_object_id", "csv_synced_at", "created_at", "updated_at",
+        ]
+
+    def _url(self, field):
+        if not field:
+            return None
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(field.url) if request else field.url
+        except (ValueError, AttributeError):
+            return None
+
+    def get_image_url(self, obj):
+        return self._url(obj.image)
+
+    def get_video_url(self, obj):
+        return self._url(obj.video)
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["submitted_by"] = request.user
+        return super().create(validated_data)
 
 
 class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
@@ -420,9 +469,9 @@ class TravelRiskFeedbackSerializer(serializers.ModelSerializer):
             "misleading_details", "accident_occurred", "accident_details",
             "hazard_witnessed", "transport_accessibility_rating",
             "people_helpfulness_rating", "greeting_behavior_rating",
-            "overall_safety_rating", "comments", "created_at"
+            "overall_safety_rating", "comments", "is_admin_verified", "reviewed_by", "reviewed_at", "created_at"
         ]
-        read_only_fields = ["user", "created_at"]
+        read_only_fields = ["user", "is_admin_verified", "reviewed_by", "reviewed_at", "created_at"]
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -1021,9 +1070,20 @@ class ItineraryRequestSerializer(serializers.Serializer):
 
 
 class OSMEssentialServiceSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = OSMEssentialService
-        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address"]
+        fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address", "image_url"]
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        except (ValueError, AttributeError):
+            return None
 
 
 class OSMTourismPlaceSerializer(serializers.ModelSerializer):

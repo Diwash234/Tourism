@@ -10,9 +10,10 @@ from .models import (
     Destination, Alert, DestinationImage, VisitHistory,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
-    DestinationAuditLog, UserFeedback
+    DestinationAuditLog, UserFeedback, InfrastructureSubmission
 )
 from .permissions import IsAdminOrStaff
+from .serializers import InfrastructureSubmissionSerializer
 
 User = get_user_model()
 
@@ -808,6 +809,101 @@ class AdminSendVerificationView(APIView):
 
         return Response({"message": f"sent via {', '.join(sent) or 'none'}",
                          "channels": sent, "is_verified": u.is_verified})
+
+
+class InfrastructureModerationView(APIView):
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request, id=None):
+        qs = InfrastructureSubmission.objects.select_related("submitted_by", "destination", "reviewed_by")
+        requested_status = request.query_params.get("status")
+        if requested_status:
+            qs = qs.filter(status=requested_status)
+        if id:
+            item = qs.filter(pk=id).first()
+            if not item:
+                return Response({"detail": "Submission not found."}, status=404)
+            return Response(InfrastructureSubmissionSerializer(item, context={"request": request}).data)
+        return Response(InfrastructureSubmissionSerializer(qs[:300], many=True, context={"request": request}).data)
+
+    def post(self, request, id=None):
+        item = InfrastructureSubmission.objects.filter(pk=id).first()
+        if not item:
+            return Response({"detail": "Submission not found."}, status=404)
+        action = request.data.get("action")
+        note = request.data.get("admin_note", "")
+        if action == "approve":
+            try:
+                from .community_data_service import publish_submission
+                publish_submission(item, request.user, note)
+            except ValueError as exc:
+                return Response({"detail": str(exc)}, status=400)
+        elif action in {"reject", "needs_changes"}:
+            item.status = "rejected" if action == "reject" else "needs_changes"
+            item.admin_note = note
+            item.reviewed_by = request.user
+            item.reviewed_at = timezone.now()
+            item.save()
+        else:
+            return Response({"detail": "action must be approve, reject, or needs_changes"}, status=400)
+        return Response(InfrastructureSubmissionSerializer(item, context={"request": request}).data)
+
+
+class MLDataPipelineView(APIView):
+    """Approve feedback, synchronize CSVs, and optionally run whitelisted trainers."""
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        import subprocess
+        import sys
+        from pathlib import Path
+        from .community_data_service import export_verified_ml_feedback
+
+        record_type = request.data.get("record_type")
+        record_id = request.data.get("record_id")
+        if record_type and record_id:
+            if record_type == "budget":
+                record = TravelExpenseFeedback.objects.filter(pk=record_id).first()
+                if not record:
+                    return Response({"detail": "Budget feedback not found."}, status=404)
+                record.is_employee_verified = True
+                record.save(update_fields=["is_employee_verified", "updated_at"])
+            elif record_type == "risk":
+                record = TravelRiskFeedback.objects.filter(pk=record_id).first()
+                if not record:
+                    return Response({"detail": "Risk feedback not found."}, status=404)
+                record.is_admin_verified = True
+                record.reviewed_by = request.user
+                record.reviewed_at = timezone.now()
+                record.save(update_fields=["is_admin_verified", "reviewed_by", "reviewed_at", "updated_at"])
+            else:
+                return Response({"detail": "record_type must be budget or risk."}, status=400)
+
+        exported = export_verified_ml_feedback()
+        results = {}
+        if bool(request.data.get("train", False)):
+            root = Path(settings.BASE_DIR).parent
+            commands = {
+                "budget": [sys.executable, "training/train_budget_model.py"],
+                "risk": [sys.executable, "training/train_risk_model.py"],
+                "recommendation": [sys.executable, "training/train_recommendation_model.py"],
+            }
+            requested = request.data.get("models") or list(commands)
+            for model_name in requested:
+                if model_name not in commands:
+                    continue
+                try:
+                    run = subprocess.run(
+                        commands[model_name], cwd=root / "ml_service", capture_output=True,
+                        text=True, timeout=180, check=False,
+                    )
+                    results[model_name] = {
+                        "success": run.returncode == 0,
+                        "output": (run.stdout or run.stderr)[-1200:],
+                    }
+                except (subprocess.TimeoutExpired, OSError) as exc:
+                    results[model_name] = {"success": False, "output": str(exc)}
+        return Response({"exported": exported, "training": results, "message": "Only admin-verified rows were exported."})
 
 
 class FeedbackListView(APIView):

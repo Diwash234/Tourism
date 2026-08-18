@@ -21,6 +21,7 @@ const GROUPS = [
       { to: "/discover-nepal", label: "Discover Nepal", tk: "sidebar.discover", icon: FiBookOpen, color: "himalaya" },
       { to: "/packages", label: "Travel Packages", tk: "sidebar.packages", icon: FiBriefcase, color: "orange" },
       { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: FiPlusCircle, color: "saffron" },
+      { to: "/submit-service", label: "Submit Hotel / Hospital / Service", icon: FiPlusCircle, color: "emerald" },
       { to: "/explore-map", label: "Explore by Province", tk: "sidebar.explore_map", icon: FiCompass, color: "forest" },
       { to: "/recommendation", label: "AI Recommendations", tk: "sidebar.recommendations", icon: FiHeart, color: "emerald" },
       { to: "/navigation", label: "GTA Navigation HUD", tk: "sidebar.navigation", icon: FiNavigation, color: "sky" },

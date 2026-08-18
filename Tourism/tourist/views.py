@@ -15,7 +15,7 @@ from .models import (
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
-    TravelExpenseFeedback, TravelRiskFeedback,
+    TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -26,6 +26,7 @@ from .serializers import (
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
+    InfrastructureSubmissionSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -734,6 +735,22 @@ class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     filterset_fields = ["category"]
     search_fields = ["name", "address"]
+
+
+class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
+    """Traveler service/place submissions; publication always requires admin review."""
+
+    serializer_class = InfrastructureSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ["place_type", "status", "district", "province"]
+    search_fields = ["name", "address", "city", "municipality", "district"]
+
+    def get_queryset(self):
+        qs = InfrastructureSubmission.objects.select_related("submitted_by", "destination", "reviewed_by")
+        user = self.request.user
+        if user.is_staff or user.role in {"admin", "super_admin", "tourism_admin", "content_moderator", "district_manager"}:
+            return qs
+        return qs.filter(submitted_by=user)
 
 
 class TravelExpenseFeedbackViewSet(viewsets.ModelViewSet):

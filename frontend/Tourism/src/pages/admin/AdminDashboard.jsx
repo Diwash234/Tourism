@@ -16,6 +16,7 @@ import LineChartCard from "../../components/charts/LineChartCard"
 import BarChartCard from "../../components/charts/BarChartCard"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
+import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -525,6 +526,7 @@ const AdminDashboard = () => {
             { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
             { id: "image_pipeline", label: "🖼️ Multi-Source Image Pipeline (Wikimedia, Openverse, Unsplash, Pexels)", count: null },
             { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
+            { id: "infrastructure", label: "🏥 Community Services & ML", count: null },
             { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
             { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
           ].map((tab) => (
@@ -1977,6 +1979,8 @@ const AdminDashboard = () => {
             </div>
           </motion.div>
         )}
+
+        {activeTab === "infrastructure" && <InfrastructureModerationPanel />}
 
         {/* TAB 7: EXPENSES */}
         {activeTab === "expenses" && (

@@ -53,6 +53,7 @@ router.register("safety/sos", views_family_safety.SOSAlertViewSet, basename="sos
 router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, basename="family-link")
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
+router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
 
 urlpatterns = [
     # Auth endpoints
@@ -113,6 +114,9 @@ urlpatterns = [
     path("admin/users/<int:id>/", views_admin.AdminUsersDetailView.as_view(), name="admin-user-detail-full"),
     path("admin/users/<int:id>/status", views_admin.UpdateUserStatusView.as_view(), name="admin-update-user-status"),
     path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
+    path("admin/infrastructure-submissions/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submissions"),
+    path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
+    path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),
     path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
     path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),
     path("feedback", views_admin.PublicFeedbackCreateView.as_view(), name="public-feedback"),

@@ -56,16 +56,21 @@ class OSMEssentialServiceNearbyView(APIView):
         if category:
             qs = qs.filter(category=category)
 
-        results = []
+        ranked = []
         for obj in qs:
             distance = haversine_distance(lat, lon, obj.latitude, obj.longitude)
-            if distance <= radius_km:
-                results.append((distance, obj))
-        results.sort(key=lambda pair: pair[0])
+            ranked.append((distance, obj))
+        ranked.sort(key=lambda pair: pair[0])
+        results = [pair for pair in ranked if pair[0] <= radius_km]
+        used_fallback = not results and bool(ranked)
+        if used_fallback:
+            results = ranked[:20]
 
         data = OSMEssentialServiceSerializer([o for _, o in results], many=True).data
         for item, (distance, _) in zip(data, results):
             item["distance_km"] = round(distance, 2)
+            item["outside_requested_radius"] = distance > radius_km
+            item["requested_radius_km"] = radius_km
         return Response(data)
 
 

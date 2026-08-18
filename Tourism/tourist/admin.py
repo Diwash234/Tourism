@@ -8,6 +8,7 @@ from .models import (
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
+    InfrastructureSubmission,
 )
 
 
@@ -412,6 +413,14 @@ class CurrentHazardAdmin(admin.ModelAdmin):
     list_filter = ["hazard_type", "severity", "source_type", "is_active", "verified"]
     search_fields = ["title", "destination__name", "source_name", "station_name"]
     autocomplete_fields = ["destination"]
+
+
+@admin.register(InfrastructureSubmission)
+class InfrastructureSubmissionAdmin(admin.ModelAdmin):
+    list_display = ["name", "place_type", "district", "province", "status", "submitted_by", "created_at"]
+    list_filter = ["place_type", "status", "province", "district"]
+    search_fields = ["name", "address", "municipality", "submitted_by__email"]
+    readonly_fields = ["created_at", "updated_at", "reviewed_at", "csv_synced_at"]
 
 
 @admin.register(EmergencyContact)

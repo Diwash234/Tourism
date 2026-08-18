@@ -809,9 +809,9 @@ class Hospital(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     district = models.CharField(max_length=100)
+    image = models.ImageField(upload_to="services/hospitals/", blank=True, null=True)
 
 
-    district = models.CharField(max_length=100)
 class PoliceStation(models.Model):
 
     destination = models.ForeignKey(
@@ -829,6 +829,7 @@ class PoliceStation(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    image = models.ImageField(upload_to="services/police/", blank=True, null=True)
 
 class BudgetEstimation(models.Model):
     destination = models.OneToOneField(
@@ -1255,6 +1256,7 @@ class OSMEssentialService(TimeStampedModel):
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     address = models.CharField(max_length=255, blank=True)
+    image = models.ImageField(upload_to="services/essential/", blank=True, null=True)
     raw_tags = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -1415,6 +1417,12 @@ class TravelRiskFeedback(TimeStampedModel):
     )
     overall_safety_rating = models.FloatField(default=9.0, help_text="Safety score from 1.0 to 10.0")
     comments = models.TextField(blank=True)
+    is_admin_verified = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="verified_risk_feedbacks",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -1800,6 +1808,81 @@ class DestinationReferenceImage(TimeStampedModel):
 
     def __str__(self):
         return f"ref for {self.destination_id}: {self.image_url[:60]}"
+
+
+class InfrastructureSubmission(TimeStampedModel):
+    """Community-supplied place/service data, published only after review."""
+
+    class PlaceType(models.TextChoices):
+        DESTINATION = "destination", "Tourism destination"
+        HOTEL = "hotel", "Hotel / homestay"
+        HOSPITAL = "hospital", "Hospital / clinic"
+        POLICE = "police", "Police station"
+        BANK = "bank", "Bank / ATM"
+        FIRE_STATION = "fire_station", "Fire station"
+        AMBULANCE = "ambulance", "Ambulance service"
+        TOURISM_OFFICE = "tourism_office", "Tourism office"
+        PHARMACY = "pharmacy", "Pharmacy"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved and published"
+        REJECTED = "rejected", "Rejected"
+        NEEDS_CHANGES = "needs_changes", "Needs changes"
+
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="infrastructure_submissions",
+    )
+    place_type = models.CharField(max_length=30, choices=PlaceType.choices)
+    name = models.CharField(max_length=220)
+    description = models.TextField(blank=True)
+    phone = models.CharField(max_length=60, blank=True)
+    website = models.URLField(blank=True)
+    address = models.CharField(max_length=300, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    municipality = models.CharField(max_length=160, blank=True)
+    municipality_type = models.CharField(
+        max_length=30, blank=True,
+        choices=[("metropolitan", "Metropolitan"), ("sub_metropolitan", "Sub-metropolitan"),
+                 ("municipality", "Municipality"), ("rural_municipality", "Rural municipality")],
+    )
+    ward_number = models.PositiveSmallIntegerField(null=True, blank=True)
+    district = models.CharField(max_length=120)
+    province = models.CharField(max_length=120)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="infrastructure_submissions",
+    )
+    transport_mode = models.CharField(max_length=100, blank=True)
+    route_origin = models.CharField(max_length=160, blank=True)
+    travel_time_minutes = models.PositiveIntegerField(null=True, blank=True)
+    distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    road_condition = models.CharField(max_length=160, blank=True)
+    price_npr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    image = models.ImageField(upload_to="community/services/images/", blank=True, null=True)
+    video = models.FileField(upload_to="community/services/videos/", blank=True, null=True)
+    source_notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    admin_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="infrastructure_reviews",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    published_model = models.CharField(max_length=60, blank=True)
+    published_object_id = models.PositiveIntegerField(null=True, blank=True)
+    csv_synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "place_type"]), models.Index(fields=["latitude", "longitude"])]
+
+    def __str__(self):
+        return f"{self.get_place_type_display()}: {self.name} ({self.status})"
 
 
 class UserFeedback(TimeStampedModel):
