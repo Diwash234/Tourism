@@ -865,36 +865,21 @@ class AlertSerializer(serializers.ModelSerializer):
         model = Alert
         fields = [
             "id", "alert_type", "title", "description", "severity",
-            "latitude", "longitude", "city", "country", "source",
+            "latitude", "longitude", "city", "country", "municipality", "district", "province",
+            "source", "source_url", "is_verified", "radius_km",
             "is_active", "starts_at", "ends_at", "created_at", "distance_km",
         ]
-        @extend_schema_field(serializers.FloatField(allow_null=True))
-        def get_distance_km(self, obj):
 
-            user_lat = self.context.get("user_lat")
-            user_lon = self.context.get("user_lon")
-
-            if (
-                user_lat is None
-                or user_lon is None
-                or obj.latitude is None
-                or obj.longitude is None
-            ):
-                return None
-
-            try:
-                return round(
-                    haversine_distance(
-                        user_lat,
-                        user_lon,
-                        obj.latitude,
-                        obj.longitude,
-                    ),
-                    2,
-                )
-
-            except (ValueError, TypeError):
-                return None
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_distance_km(self, obj):
+        user_lat = self.context.get("user_lat")
+        user_lon = self.context.get("user_lon")
+        if user_lat is None or user_lon is None or obj.latitude is None or obj.longitude is None:
+            return None
+        try:
+            return round(haversine_distance(user_lat, user_lon, obj.latitude, obj.longitude), 2)
+        except (ValueError, TypeError):
+            return None
 
 
 

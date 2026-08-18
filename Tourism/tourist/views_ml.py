@@ -23,7 +23,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, MLInsight
+from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
 from .serializers import (
     DestinationListSerializer,
     MLInsightSerializer,
@@ -38,6 +38,7 @@ from .utils import (
     get_ml_safety_prediction,
     get_ml_budget_prediction,
     get_ml_best_route,
+    haversine_distance,
 )
 
 
@@ -456,6 +457,63 @@ class BestRouteView(APIView):
         return Response(result)
 
 
+def _safe_file_url(field):
+    try:
+        return field.url if field else None
+    except (ValueError, AttributeError):
+        return str(field) if field else None
+
+
+def _nearest_for_itinerary(rows, lat, lon, mapper):
+    ranked = []
+    for row in rows:
+        if row.latitude is None or row.longitude is None:
+            continue
+        distance = haversine_distance(lat, lon, row.latitude, row.longitude)
+        ranked.append((distance, row))
+    ranked.sort(key=lambda pair: pair[0])
+    return [mapper(row, round(distance, 2)) for distance, row in ranked[:2]]
+
+
+def enrich_itinerary_with_services(payload):
+    """Attach DB-backed planning and emergency services to every itinerary day."""
+    for day in payload.get("itinerary", []):
+        destinations = day.get("destinations") or []
+        anchor = next((item for item in destinations if item.get("latitude") is not None and item.get("longitude") is not None), None)
+        if anchor:
+            lat, lon = float(anchor["latitude"]), float(anchor["longitude"])
+        else:
+            match = Destination.objects.filter(city__icontains=day.get("city", "")).exclude(latitude__isnull=True).first()
+            if not match:
+                continue
+            lat, lon = float(match.latitude), float(match.longitude)
+
+        day["nearby_services"] = {
+            "hotels": _nearest_for_itinerary(
+                Hotel.objects.all(), lat, lon,
+                lambda row, distance: {
+                    "id": row.id, "name": row.name, "distance_km": distance,
+                    "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
+                    "image_url": _safe_file_url(row.cover_image) or row.external_image_url or None,
+                },
+            ),
+            "hospitals": _nearest_for_itinerary(
+                Hospital.objects.all(), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone, "distance_km": distance},
+            ),
+            "police": _nearest_for_itinerary(
+                PoliceStation.objects.all(), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone or "100", "distance_km": distance},
+            ),
+            "essentials": _nearest_for_itinerary(
+                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"]), lat, lon,
+                lambda row, distance: {"id": row.id, "type": row.category, "name": row.name, "phone": row.phone, "distance_km": distance},
+            ),
+        }
+    payload["service_data_source"] = "live_database_distance_ranking"
+    return payload
+
+
 class ItineraryView(APIView):
     """
     POST /api/v1/ml/itinerary/
@@ -491,7 +549,7 @@ class ItineraryView(APIView):
                 timeout=settings.ML_SERVICE_TIMEOUT * 3,
             )
             response.raise_for_status()
-            return Response(response.json())
+            return Response(enrich_itinerary_with_services(response.json()))
         except requests.RequestException as exc:
             logger.warning("ML itinerary service unreachable: %s", exc)
             # Internal database fallback itinerary builder
@@ -543,7 +601,7 @@ class ItineraryView(APIView):
                 })
 
             total_npr = daily_npr * days
-            return Response({
+            fallback_payload = {
                 "source": "internal_db_engine",
                 "days": days,
                 "travelers": travelers,
@@ -558,4 +616,5 @@ class ItineraryView(APIView):
                 "budget_npr": data.get("budget_npr"),
                 "fits_budget": (total_npr <= float(data.get("budget_npr"))) if data.get("budget_npr") else None,
                 "itinerary": itinerary_days,
-            }, status=status.HTTP_200_OK)
+            }
+            return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)

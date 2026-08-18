@@ -30,7 +30,8 @@ def notify_nearby_users_of_new_alert(sender, instance, created, **kwargs):
     from .models import FamilyLink, User
     from .utils import haversine_distance
 
-    radius_km = 4.0 if instance.severity in {Alert.Severity.HIGH, Alert.Severity.CRITICAL} else 2.0
+    default_radius = 4.0 if instance.severity in {Alert.Severity.HIGH, Alert.Severity.CRITICAL} else 2.0
+    radius_km = max(2.0, min(float(instance.radius_km or default_radius), 4.0))
     users = User.objects.filter(is_active=True, is_verified=True)
     affected = []
     for user in users.iterator():

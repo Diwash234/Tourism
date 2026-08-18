@@ -760,3 +760,46 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]["name"], "Verified Far Bank")
         self.assertTrue(response.data[0]["outside_requested_radius"])
+
+    def test_itinerary_days_are_enriched_with_nearest_services(self):
+        from .models import Hospital, Hotel, PoliceStation
+        from .views_ml import enrich_itinerary_with_services
+        Hotel.objects.create(
+            destination=self.trek, name="Trail Hotel", latitude=28.401, longitude=84.001,
+            price_per_night=2500, currency="NPR",
+        )
+        Hospital.objects.create(
+            destination=self.trek, name="Trail Hospital", address="Kaski", phone="102",
+            latitude=28.402, longitude=84.002, district="Kaski",
+        )
+        PoliceStation.objects.create(
+            destination=self.trek, name="Trail Police", address="Kaski", phone="100",
+            latitude=28.403, longitude=84.003,
+        )
+        payload = {"itinerary": [{"day": 1, "city": "Kaski", "destinations": [{
+            "name": self.trek.name, "latitude": 28.4, "longitude": 84.0,
+        }]}]}
+        enriched = enrich_itinerary_with_services(payload)
+        services = enriched["itinerary"][0]["nearby_services"]
+        self.assertEqual(services["hotels"][0]["name"], "Trail Hotel")
+        self.assertEqual(services["hospitals"][0]["name"], "Trail Hospital")
+        self.assertEqual(services["police"][0]["name"], "Trail Police")
+
+    def test_geofenced_alert_notifies_nearby_user_and_family(self):
+        from .models import Alert, FamilyLink, Notification
+        nearby = User.objects.create_user(
+            email="nearby@example.com", password="StrongPass123!", is_verified=True,
+            latitude=28.400, longitude=84.000,
+        )
+        family = User.objects.create_user(
+            email="family@example.com", password="StrongPass123!", is_verified=True,
+            latitude=27.7, longitude=85.3,
+        )
+        FamilyLink.objects.create(requester=nearby, member=family, status="accepted")
+        Alert.objects.create(
+            alert_type="flood", title="Test flood warning", description="Move away from the river.",
+            severity="high", latitude=28.401, longitude=84.001, radius_km=4,
+            source="DHM test", source_url="https://example.com/advisory", is_verified=True,
+        )
+        self.assertTrue(Notification.objects.filter(user=nearby, title__icontains="Nearby").exists())
+        self.assertTrue(Notification.objects.filter(user=family, related_alert__title="Test flood warning").exists())

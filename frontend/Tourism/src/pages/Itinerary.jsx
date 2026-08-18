@@ -1208,7 +1208,29 @@ const Itinerary = () => {
 
                   </div>
 
-
+                  {day.nearby_services && (
+                    <div className="mt-5 pt-4 border-t">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {[
+                          ["🏨 Stay", day.nearby_services.hotels],
+                          ["🏥 Hospital", day.nearby_services.hospitals],
+                          ["👮 Police", day.nearby_services.police],
+                          ["🏦 Essentials", day.nearby_services.essentials],
+                        ].map(([label, services]) => (
+                          <div key={label} className="rounded-xl bg-gray-50 p-3">
+                            <b className="text-xs">{label}</b>
+                            {(services || []).length ? services.map((service) => (
+                              <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
+                                <span className="font-semibold block truncate">{service.name}</span>
+                                <span>{service.distance_km} km{service.phone ? ` · ${service.phone}` : ""}</span>
+                              </div>
+                            )) : <p className="text-[11px] text-gray-400 mt-2">No verified record nearby</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 </motion.div>
 
