@@ -915,6 +915,31 @@ class HotelSearchView(generics.ListAPIView):
         )
 
 
+class DestinationRiskAssessmentView(APIView):
+    """Risk evidence for one DB destination, resolved by slug/id/name."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, destination_ref):
+        lookup = Q(slug__iexact=destination_ref) | Q(name__iexact=destination_ref)
+        if str(destination_ref).isdigit():
+            lookup |= Q(pk=int(destination_ref))
+        destination = Destination.objects.filter(
+            lookup, is_active=True, status=Destination.SubmissionStatus.APPROVED
+        ).select_related("risk_analysis").first()
+        if destination is None:
+            destination = Destination.objects.filter(
+                Q(name__icontains=destination_ref) | Q(city__icontains=destination_ref) |
+                Q(district__icontains=destination_ref),
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            ).select_related("risk_analysis").first()
+        if destination is None:
+            return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        from .risk_service import build_destination_risk
+        return Response(build_destination_risk(destination))
+
+
 class MoodRecommendationsView(generics.ListAPIView):
     """
     GET /api/v1/destinations/mood-recommendations/?mood=happy,trekking&days=5&limit=18
@@ -979,34 +1004,36 @@ class MoodRecommendationsView(generics.ListAPIView):
         moods = [m.strip().lower() for m in re.split(r"[,+]", mood_param) if m.strip()]
         days_raw = request.query_params.get("days")
         try:
-            days = int(days_raw) if days_raw else 5
+            days = max(1, min(int(days_raw or 5), 30))
         except (TypeError, ValueError):
             days = 5
-        limit = int(request.query_params.get("limit") or 12)
-        limit = max(3, min(limit, 48))
+        limit = max(3, min(int(request.query_params.get("limit") or 12), 36))
+        budget = (request.query_params.get("budget") or "any").lower()
+        difficulty = (request.query_params.get("difficulty") or "any").lower()
+        season = (request.query_params.get("season") or "any").lower()
+        travel_style = (request.query_params.get("travel_style") or "any").lower()
+        province = (request.query_params.get("province") or "").strip().lower()
 
-        # ---- build the weighted profile (the "trained" model) ----
-        cat_weights = {}
-        kws = []
-        for m in moods:
-            profile = self.MOOD_PROFILES.get(m)
+        # Build the weighted profile while preserving the existing mood model.
+        cat_weights, kws = {}, []
+        for mood in moods:
+            profile = self.MOOD_PROFILES.get(mood)
             if profile is None:
-                for k, v in self.MOOD_PROFILES.items():
-                    if k in m or m in k:
-                        profile = v
-                        break
-            if profile is None:
+                profile = next((v for key, v in self.MOOD_PROFILES.items() if key in mood or mood in key), None)
+            if not profile:
                 continue
             for slug in profile.get("cats", []):
                 cat_weights[slug] = cat_weights.get(slug, 0) + 1.0
             kws.extend(profile.get("kw", []))
         if not cat_weights and not kws:
             cat_weights = {"mountains": 1, "lakes": 1, "heritage": 1, "wildlife": 1}
-        kws = list(dict.fromkeys(kws))  # dedupe, keep order
+        kws = list(dict.fromkeys(kws))
 
+        # The live database is the source of truth: newly approved admin/user
+        # destinations automatically participate without retraining a CSV model.
         qs = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED
-        ).select_related("category")
+        ).select_related("category", "risk_analysis")
 
         exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
         qs = qs.exclude(category__slug__in=exclude_slugs)
@@ -1014,53 +1041,141 @@ class MoodRecommendationsView(generics.ListAPIView):
             qs = qs.exclude(name__icontains=hint)
         for hint in NON_ATTRACTION_NAME_HINTS:
             qs = qs.exclude(name__icontains=hint)
+        if province:
+            qs = qs.filter(province__icontains=province)
 
-        # days <= 2 -> prefer near Kathmandu/Pokhara; days >= 10 -> allow far treks
+        # Existing user behaviour adds a small category-affinity signal; it
+        # never replaces the current content model or explicit form choices.
+        affinity = {}
+        if request.user.is_authenticated:
+            favorite_categories = Favorite.objects.filter(user=request.user).values_list(
+                "destination__category__slug", flat=True
+            )
+            for slug in favorite_categories:
+                if slug:
+                    affinity[slug] = affinity.get(slug, 0) + 1
+
         near_districts = ["kathmandu", "lalitpur", "bhaktapur", "kaski", "makwanpur", "dhading", "kavre"]
+        high_altitude_cats = {"mountains", "trekking", "winter", "valleys"}
+        easy_cats = {"cities", "heritage", "museums", "parks-gardens", "shopping", "food-culinary"}
         rows = []
-        for d in qs.iterator(chunk_size=500):
-            cat = d.category.slug if d.category_id else ""
-            score = 0.0
-            # category match (weighted by how many moods wanted it)
-            w = cat_weights.get(cat, 0)
-            if w > 0:
-                score += 0.45 * min(w, 3.0)
-            # keyword match on name / short description
-            hay = f"{d.name or ''} {d.short_description or ''} {d.description or ''}".lower()
-            for kw in kws:
-                if kw in hay:
-                    score += 0.10
-            # popularity signal
-            try:
-                score += float(d.average_rating or 0) * 0.035
-            except (TypeError, ValueError):
-                pass
-            score += min(math.log10((d.views_count or 0) + 1) * 0.02, 0.06)
-            # days fit
-            if days <= 2:
-                if any(near in (d.district or "").lower() for near in near_districts):
-                    score += 0.10
-                else:
-                    score -= 0.15
-            elif days >= 10:
-                if cat in ("trekking", "mountains", "valleys"):
-                    score += 0.08
-            rows.append((score, d))
+        for destination in qs.iterator(chunk_size=500):
+            cat = destination.category.slug if destination.category_id else ""
+            hay = f"{destination.name or ''} {destination.short_description or ''} {destination.description or ''} {destination.city or ''} {destination.district or ''}".lower()
+            score, reasons, breakdown = 0.05, [], {}
 
-        # normalize to 0..1
-        if rows:
-            mx = max(r[0] for r in rows)
-            if mx > 0:
-                rows = [(s / mx, d) for s, d in rows]
-        rows.sort(key=lambda r: -r[0])
-        top = rows[:limit]
+            category_score = 0.45 * min(cat_weights.get(cat, 0), 3.0)
+            if category_score:
+                score += category_score
+                reasons.append(f"Matches your {', '.join(moods[:2])} interests")
+            keyword_hits = [kw for kw in kws if kw in hay]
+            keyword_score = min(len(keyword_hits) * 0.09, 0.36)
+            score += keyword_score
+            if keyword_hits:
+                reasons.append("Relevant experiences: " + ", ".join(keyword_hits[:3]))
+            breakdown["interests"] = round(category_score + keyword_score, 3)
 
-        serializer = DestinationListSerializer(
-            [d for _, d in top], many=True, context={"request": request})
-        data = serializer.data
-        for item, (score, _) in zip(data, top):
+            duration_score = 0.0
+            recommended_days = destination.recommended_days or 2
+            if abs(recommended_days - days) <= 1:
+                duration_score = 0.18
+                reasons.append(f"Fits a {days}-day trip")
+            elif days <= 2 and any(x in (destination.district or "").lower() for x in near_districts):
+                duration_score = 0.10
+            elif days >= 10 and cat in high_altitude_cats:
+                duration_score = 0.10
+            score += duration_score
+            breakdown["duration"] = duration_score
+
+            inferred_difficulty = "hard" if cat in high_altitude_cats and recommended_days >= 4 else ("easy" if cat in easy_cats else "moderate")
+            difficulty_score = 0.0
+            if difficulty != "any":
+                difficulty_score = 0.16 if difficulty == inferred_difficulty else -0.08
+                if difficulty == inferred_difficulty:
+                    reasons.append(f"{inferred_difficulty.title()} difficulty match")
+            score += difficulty_score
+            breakdown["difficulty"] = difficulty_score
+
+            estimated_daily = float(destination.entry_fee or 0) + (30 if cat in easy_cats else 50 if cat not in high_altitude_cats else 75)
+            inferred_budget = "low" if estimated_daily <= 40 else "medium" if estimated_daily <= 80 else "high"
+            budget_score = 0.0
+            if budget != "any":
+                budget_score = 0.14 if budget == inferred_budget else -0.06
+                if budget == inferred_budget:
+                    reasons.append(f"Fits a {budget} budget")
+            score += budget_score
+            breakdown["budget"] = budget_score
+
+            season_score = 0.0
+            best_season = (destination.best_time_to_visit or "").lower()
+            if season != "any" and season in best_season:
+                season_score = 0.12
+                reasons.append(f"Recommended in {season.title()}")
+            score += season_score
+            breakdown["season"] = season_score
+
+            if travel_style == "family" and cat in {"wildlife", "cities", "museums", "parks-gardens", "heritage"}:
+                score += 0.14
+                reasons.append("Family-friendly experience")
+            elif travel_style == "solo" and cat in {"cities", "trekking", "spiritual-wellness"}:
+                score += 0.10
+                reasons.append("Suitable for solo travel")
+            elif travel_style == "couple" and cat in {"lakes", "viewpoints", "hills"}:
+                score += 0.12
+                reasons.append("Strong couple-trip fit")
+
+            popularity = float(destination.average_rating or 0) * 0.025 + min(math.log10((destination.views_count or 0) + 1) * 0.015, 0.05)
+            behavior = min(affinity.get(cat, 0) * 0.025, 0.10)
+            score += popularity + behavior
+            breakdown["community"] = round(popularity + behavior, 3)
+
+            risk = getattr(destination, "risk_analysis", None)
+            risk_level = (risk.risk_category or "low").lower() if risk else "low"
+            # Avoid silently pushing high-risk places to the top, but keep them
+            # available and explain the indicator in the result.
+            if risk_level in {"high", "critical"}:
+                score -= 0.08
+            rows.append((score, destination, reasons[:4], breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level))
+
+        rows.sort(key=lambda row: (-row[0], row[1].id))
+        candidates = rows[: max(limit * 3, limit)]
+        if candidates:
+            max_score = max(row[0] for row in candidates) or 1
+            candidates = [(max(0.0, row[0] / max_score), *row[1:]) for row in candidates]
+
+        serialized = DestinationListSerializer(
+            [row[1] for row in candidates], many=True, context={"request": request}
+        ).data
+
+        # Never show the same photo for two recommendation cards. If the
+        # catalog resolves a duplicate, skip it and take the next ranked DB row.
+        data, chosen_rows, used_images = [], [], set()
+        for item, row in zip(serialized, candidates):
+            image_key = (item.get("cover_image_url") or "").split("?")[0]
+            if image_key and image_key in used_images:
+                continue
+            if image_key:
+                used_images.add(image_key)
+            score, destination, reasons, breakdown, inferred_difficulty, inferred_budget, estimated_daily, risk_level = row
             item["ml_score"] = round(min(score, 1.0), 3)
-        return Response({"moods": moods, "days": days, "count": len(data), "results": data})
+            item["why_recommended"] = reasons or ["Strong overall match from the live destination catalog"]
+            item["match_breakdown"] = breakdown
+            item["difficulty"] = inferred_difficulty
+            item["budget_level"] = inferred_budget
+            item["estimated_daily_cost"] = round(estimated_daily, 2)
+            item["recommended_days"] = destination.recommended_days or 2
+            item["risk_summary"] = {"level": risk_level, "label": "Historical/model indicator"}
+            item["data_source"] = destination.source or ("User submission" if destination.is_user_submitted else "Database")
+            data.append(item)
+            chosen_rows.append(row)
+            if len(data) >= limit:
+                break
+
+        return Response({
+            "source": "live_database_content_model", "model_version": "content-v2",
+            "preferences": {"moods": moods, "days": days, "budget": budget, "difficulty": difficulty, "season": season, "travel_style": travel_style, "province": province},
+            "count": len(data), "results": data,
+        })
 
 
 

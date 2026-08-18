@@ -958,36 +958,97 @@ class EmergencyContact(TimeStampedModel):
             return f"{self.get_contact_type_display()} (Ward {self.ward_number}) - {self.name}"
         return f"{self.get_contact_type_display()} - {self.name}"
 class RiskAnalysis(models.Model):
+    """Imported/modelled baseline risk features for a destination."""
 
     destination = models.OneToOneField(
         Destination,
         on_delete=models.CASCADE,
         related_name="risk_analysis"
     )
-
     accidents = models.IntegerField(default=0)
-
     landslide = models.IntegerField(default=0)
-
     avalanche = models.IntegerField(default=0)
-
     flood = models.IntegerField(default=0)
-
     earthquake_damage = models.IntegerField(default=0)
-
     hospital_count = models.IntegerField(default=0)
-
     police_count = models.IntegerField(default=0)
-
     fire_station_count = models.IntegerField(default=0)
-
     emergency_risk = models.FloatField()
-
     natural_disaster_risk = models.FloatField()
-
     tourism_risk_index = models.FloatField()
-
     risk_category = models.CharField(max_length=50)
+
+
+class RiskIncident(TimeStampedModel):
+    """A dated, source-attributed historical incident (not a live warning)."""
+
+    class HazardType(models.TextChoices):
+        FLOOD = "flood", "Flood"
+        LANDSLIDE = "landslide", "Landslide"
+        AVALANCHE = "avalanche", "Avalanche"
+        EARTHQUAKE = "earthquake", "Earthquake"
+        GLOF = "glof", "Glacial lake outburst flood"
+        HEAVY_RAIN = "heavy_rain", "Heavy rain"
+        SNOWSTORM = "snowstorm", "Snowstorm"
+        FOREST_FIRE = "forest_fire", "Forest fire"
+        LIGHTNING = "lightning", "Lightning"
+        ROAD_ACCIDENT = "road_accident", "Road accident"
+        HEALTH = "health", "Health / altitude"
+        OTHER = "other", "Other"
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Low"
+        MODERATE = "moderate", "Moderate"
+        HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
+
+    class SourceType(models.TextChoices):
+        CSV_IMPORT = "csv_import", "CSV import"
+        ADMIN = "admin", "Admin verified"
+        OFFICIAL = "official", "Official authority"
+        NEWS = "news", "News report"
+        API = "api", "External API"
+        USER = "user", "Traveler report"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="risk_incidents")
+    hazard_type = models.CharField(max_length=30, choices=HazardType.choices)
+    event_date = models.DateField()
+    title = models.CharField(max_length=240)
+    description = models.TextField(blank=True)
+    severity = models.CharField(max_length=12, choices=Severity.choices, default=Severity.MODERATE)
+    fatalities = models.PositiveIntegerField(default=0)
+    injuries = models.PositiveIntegerField(default=0)
+    source_type = models.CharField(max_length=20, choices=SourceType.choices, default=SourceType.ADMIN)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-event_date", "-created_at"]
+        indexes = [models.Index(fields=["destination", "event_date"]), models.Index(fields=["hazard_type"])]
+
+
+class CurrentHazard(TimeStampedModel):
+    """Time-bounded observation/warning kept separate from model predictions."""
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="current_hazards")
+    hazard_type = models.CharField(max_length=30, choices=RiskIncident.HazardType.choices)
+    title = models.CharField(max_length=240)
+    description = models.TextField(blank=True)
+    severity = models.CharField(max_length=12, choices=RiskIncident.Severity.choices, default=RiskIncident.Severity.MODERATE)
+    source_type = models.CharField(max_length=20, choices=RiskIncident.SourceType.choices, default=RiskIncident.SourceType.OFFICIAL)
+    source_name = models.CharField(max_length=160)
+    source_url = models.URLField(max_length=600, blank=True)
+    observed_at = models.DateTimeField()
+    expires_at = models.DateTimeField(null=True, blank=True)
+    station_name = models.CharField(max_length=160, blank=True)
+    distance_km = models.FloatField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-observed_at"]
+        indexes = [models.Index(fields=["destination", "is_active", "observed_at"])]
 
 # ---------------------------------------------------------------------------
 # Notifications

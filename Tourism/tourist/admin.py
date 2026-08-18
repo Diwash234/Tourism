@@ -7,7 +7,7 @@ from .models import (
     DestinationImage, DestinationVideo, Review, Rating, Favorite,
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
-    OSMEssentialService, OSMTourismPlace, FamilyLink,
+    OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
 )
 
 
@@ -396,6 +396,22 @@ class AlertAdmin(admin.ModelAdmin):
     list_display = ["title", "alert_type", "severity", "city", "is_active", "created_at"]
     list_filter = ["alert_type", "severity", "is_active"]
     search_fields = ["title", "city", "country"]
+
+
+@admin.register(RiskIncident)
+class RiskIncidentAdmin(admin.ModelAdmin):
+    list_display = ["title", "destination", "hazard_type", "severity", "event_date", "source_type", "verified"]
+    list_filter = ["hazard_type", "severity", "source_type", "verified"]
+    search_fields = ["title", "destination__name", "source_name"]
+    autocomplete_fields = ["destination"]
+
+
+@admin.register(CurrentHazard)
+class CurrentHazardAdmin(admin.ModelAdmin):
+    list_display = ["title", "destination", "hazard_type", "severity", "source_name", "observed_at", "is_active", "verified"]
+    list_filter = ["hazard_type", "severity", "source_type", "is_active", "verified"]
+    search_fields = ["title", "destination__name", "source_name", "station_name"]
+    autocomplete_fields = ["destination"]
 
 
 @admin.register(EmergencyContact)

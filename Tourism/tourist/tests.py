@@ -647,3 +647,58 @@ class OSMOverpassTests(APITestCase):
         response = self.client.get(reverse("osm-tourism-nearby"), {"latitude": 28.21, "longitude": 83.96, "radius_km": 10})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]["category"], "viewpoint")
+
+
+class RecommendationAndRiskArchitectureTests(APITestCase):
+    def setUp(self):
+        self.trekking = Category.objects.create(name="Trekking Test", slug="trekking")
+        self.heritage = Category.objects.create(name="Heritage Test", slug="heritage")
+        self.trek = Destination.objects.create(
+            name="Test Himalayan Trek", slug="test-himalayan-trek", category=self.trekking,
+            district="Kaski", province="Gandaki", latitude=28.4, longitude=84.0,
+            recommended_days=7, short_description="A mountain trek and base camp adventure",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        self.city = Destination.objects.create(
+            name="Test Heritage Square", slug="test-heritage-square", category=self.heritage,
+            district="Kathmandu", province="Bagmati", latitude=27.7, longitude=85.3,
+            recommended_days=1, short_description="A cultural durbar heritage museum",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+    def test_recommendation_uses_form_preferences_and_explains_match(self):
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "trekking,adventure", "days": 7, "difficulty": "hard", "limit": 3,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["source"], "live_database_content_model")
+        result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
+        self.assertTrue(result["why_recommended"])
+        self.assertEqual(result["difficulty"], "hard")
+        self.assertIn("risk_summary", result)
+
+    def test_risk_response_separates_history_current_and_prediction(self):
+        from datetime import date
+        from django.utils import timezone
+        from .models import CurrentHazard, RiskIncident, TravelRiskFeedback
+
+        RiskIncident.objects.create(
+            destination=self.trek, hazard_type="landslide", event_date=date(2025, 7, 1),
+            title="Verified trail landslide", severity="high", source_type="official",
+            source_name="Test authority", verified=True,
+        )
+        CurrentHazard.objects.create(
+            destination=self.trek, hazard_type="heavy_rain", title="Heavy rain watch",
+            severity="moderate", source_type="official", source_name="DHM test feed",
+            observed_at=timezone.now(), verified=True,
+        )
+        TravelRiskFeedback.objects.create(
+            destination=self.trek, destination_name=self.trek.name,
+            hazard_witnessed="Landslide", overall_safety_rating=6,
+        )
+        response = self.client.get(reverse("destination-risk-assessment", kwargs={"destination_ref": self.trek.slug}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["overall"]["is_official_warning"])
+        self.assertEqual(response.data["historical"]["incident_count"], 1)
+        self.assertEqual(response.data["current_conditions"]["active_count"], 1)
+        self.assertEqual(response.data["traveler_evidence"]["report_count"], 1)

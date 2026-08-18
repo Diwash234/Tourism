@@ -1,305 +1,197 @@
 import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
-  FiCompass, FiStar, FiMapPin, FiArrowRight, FiHeart, FiTrendingUp,
+  FiCompass, FiMapPin, FiArrowRight, FiTrendingUp, FiShield,
   FiSun, FiCoffee, FiZap, FiUsers, FiDroplet, FiWind, FiCamera,
-  FiMoon, FiCloudSnow, FiAnchor, FiHeart as FiHeartRom, FiAperture,
-  FiCpu, FiCheckCircle
+  FiMoon, FiAnchor, FiAperture, FiCheckCircle, FiSliders
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import destinationApi from "../api/destinationApi"
-import { getDestinationImageUrl } from "../utils/imageUtils"
+import { getDestinationImageUrl, postcardUrl } from "../utils/imageUtils"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import Breadcrumbs from "../components/common/Breadcrumbs"
-import { FadeIn, HoverCard } from "../components/common/MotionSystem"
 import PageHeader from "../components/common/PageHeader"
 
-// Nepal palette
-const C_GREEN = "#1f6b4d"
-const C_TERRA = "#c2603a"
-const C_GOLD = "#b8862f"
-const C_BG = "#faf8f4"
+const GREEN = "#1f6b4d"
+const TERRA = "#c2603a"
+const GOLD = "#b8862f"
 
-// Multi-select mood / interest checkboxes. The ML model combines the checked
-// tags into a weighted profile and re-ranks ALL destinations.
-const MOODS = [
-  { key: "happy", label: "😊 Happy", icon: FiSun, desc: "Sunrises, festivals, fun" },
-  { key: "sad", label: "😔 Sad / Need calm", icon: FiMoon, desc: "Peaceful retreats, meditation" },
-  { key: "relaxed", label: "🌿 Relaxed", icon: FiCoffee, desc: "Lakes, gardens, slow days" },
-  { key: "chill", label: "☕ Chill", icon: FiAnchor, desc: "Cafés, lakeside walks" },
-  { key: "adventure", label: "⚡ Adventure", icon: FiZap, desc: "Trek, raft, paraglide, bungee" },
-  { key: "romantic", label: "💕 Romantic", icon: FiHeartRom, desc: "Sunset views & quiet hills" },
-  { key: "family", label: "👨‍👩‍👧 Family", icon: FiUsers, desc: "Parks, safaris, easy sights" },
-  { key: "trekking", label: "🥾 Trekking", icon: FiCompass, desc: "Himalayan trails & base camps" },
-  { key: "spiritual", label: "🕉️ Spiritual", icon: FiDroplet, desc: "Temples, stupas, monasteries" },
-  { key: "pilgrimage", label: "🛕 Pilgrimage", icon: FiHeart, desc: "Sacred sites & dham yatra" },
-  { key: "cultural", label: "🏛️ Cultural", icon: FiAperture, desc: "Durbar squares, heritage" },
-  { key: "wildlife", label: "🐅 Wildlife", icon: FiWind, desc: "Safaris, birding, jungles" },
-  { key: "photography", label: "📸 Photography", icon: FiCamera, desc: "Best views & panoramas" },
-  { key: "winter", label: "❄️ Winter / Snow", icon: FiCloudSnow, desc: "Snow, cold-weather getaways" },
-  { key: "heritage", label: "🏯 Heritage Sites", icon: FiAperture, desc: "Palaces, forts, old towns" },
-  { key: "food", label: "🍜 Food & Culture", icon: FiCoffee, desc: "Momo trails, bazaars, cuisine" },
+const INTERESTS = [
+  { key: "relaxed", label: "Relaxation", icon: FiCoffee },
+  { key: "adventure", label: "Adventure", icon: FiZap },
+  { key: "family", label: "Family", icon: FiUsers },
+  { key: "trekking", label: "Trekking", icon: FiCompass },
+  { key: "spiritual", label: "Spiritual", icon: FiDroplet },
+  { key: "cultural", label: "Culture", icon: FiAperture },
+  { key: "wildlife", label: "Wildlife", icon: FiWind },
+  { key: "photography", label: "Photography", icon: FiCamera },
+  { key: "romantic", label: "Romantic", icon: FiSun },
+  { key: "solitude", label: "Solitude", icon: FiMoon },
+  { key: "food", label: "Food", icon: FiAnchor },
 ]
 
-const DAY_OPTIONS = [1, 2, 3, 5, 7, 10, 14]
+const SELECTS = {
+  budget: [["any", "Any budget"], ["low", "Budget"], ["medium", "Mid-range"], ["high", "Premium"]],
+  difficulty: [["any", "Any difficulty"], ["easy", "Easy"], ["moderate", "Moderate"], ["hard", "Hard"]],
+  season: [["any", "Any season"], ["spring", "Spring"], ["summer", "Summer / Monsoon"], ["autumn", "Autumn"], ["winter", "Winter"]],
+  travelStyle: [["any", "Any group"], ["solo", "Solo"], ["couple", "Couple"], ["family", "Family"]],
+}
+
+const PROVINCES = ["", "Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"]
+
+function SelectField({ label, value, options, onChange }) {
+  return (
+    <label className="space-y-1.5">
+      <span className="text-xs font-bold text-gray-600">{label}</span>
+      <select className="input-field bg-white" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
+      </select>
+    </label>
+  )
+}
+
+function riskColor(level) {
+  return { low: "text-emerald-700 bg-emerald-50", moderate: "text-amber-700 bg-amber-50", high: "text-red-700 bg-red-50", critical: "text-red-800 bg-red-100" }[level] || "text-gray-700 bg-gray-50"
+}
 
 export default function Recommendation() {
   const [items, setItems] = useState([])
-  const [selected, setSelected] = useState(["happy", "family"]) // checkbox set
-  const [days, setDays] = useState(5)
+  const [selected, setSelected] = useState(["family", "cultural"])
+  const [form, setForm] = useState({ days: 5, budget: "any", difficulty: "any", season: "any", travelStyle: "family", province: "" })
   const [loading, setLoading] = useState(false)
-  const [training, setTraining] = useState(false)
-  const [trainProgress, setTrainProgress] = useState(0)
-  const [trainedMoods, setTrainedMoods] = useState([])
+  const [hasRun, setHasRun] = useState(false)
+  const [meta, setMeta] = useState(null)
 
-  const toggleMood = (key) => {
-    setSelected((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    )
-  }
+  const toggleInterest = (key) => setSelected((current) =>
+    current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+  )
 
-  // Simulated ML training run (weighted mood profile -> destination ranking).
-  const runTraining = () => {
-    setTraining(true)
-    setTrainProgress(0)
-    let p = 0
-    const timer = setInterval(() => {
-      p += 8 + Math.floor(Math.random() * 10)
-      if (p >= 100) {
-        p = 100
-        clearInterval(timer)
-        setTrainProgress(100)
-        setTimeout(async () => {
-          setTraining(false)
-          setTrainedMoods(selected)
-          await loadRecommendations()
-        }, 350)
-      } else {
-        setTrainProgress(p)
-      }
-    }, 90)
-  }
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
 
   async function loadRecommendations() {
+    if (!selected.length) return
     setLoading(true)
+    setHasRun(true)
     try {
-      // Multi-mood query: happy,trekking -> backend ML scoring over ALL dests
       const { data } = await destinationApi.moodRecommendations({
-        mood: selected.join(","),
-        days,
-        limit: 18,
+        mood: selected.join(","), days: form.days, budget: form.budget,
+        difficulty: form.difficulty, season: form.season,
+        travel_style: form.travelStyle, province: form.province, limit: 18,
       })
-      const results = Array.isArray(data) ? data : (data.results || data.recommendations || [])
-      const mapped = results.map((item, idx) => ({
-        id: item.id,
-        name: item.name,
-        slug: item.slug,
-        category: item.category_name || item.category || "Nepal",
-        city: item.city || item.district || "Nepal",
-        cover_image_url: getDestinationImageUrl(item),
-        score: item.ml_score != null ? Math.round(item.ml_score * 100) : (item.score || 96 - (idx % 8)),
-        rating: item.average_rating || (4.6 + ((idx * 13) % 4) / 10).toFixed(1),
-        budget: item.budget_estimate ? `$${item.budget_estimate}/day` : "$40–80/day",
-        season: item.recommended_season || "Oct–Nov · Mar–May",
-      }))
-      setItems(mapped)
+      const results = data.results || data.recommendations || (Array.isArray(data) ? data : [])
+      setMeta({ source: data.source, version: data.model_version, preferences: data.preferences })
+      setItems(results.map((item) => ({ ...item, cover_image_url: getDestinationImageUrl(item) })))
     } catch (error) {
-      console.log("Mood recommendation error:", error)
+      console.error("Recommendation request failed", error)
       setItems([])
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    // initial load
-    runTraining()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useEffect(() => { loadRecommendations() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-screen" style={{ background: C_BG }}>
-      <div className="container-app py-8 space-y-6 animate-fadeIn">
-        <Breadcrumbs items={[{ label: "AI Recommendations", to: "/recommendation" }]} />
-
+    <div className="min-h-screen bg-[#faf8f4]">
+      <div className="container-app py-8 space-y-6">
+        <Breadcrumbs items={[{ label: "Smart Recommendations", to: "/recommendation" }]} />
         <PageHeader
-          theme="forest"
-          title="AI Trip Matcher"
-          subtitle="Tick how you feel and what you love — the ML model re-ranks every Nepal destination for you."
+          theme="forest" title="Nepal Trip Recommendation Engine"
+          subtitle="Live database matching using your interests, trip length, budget, season and travel style. Newly approved destinations are included automatically."
           icon={FiCompass}
         />
 
-        {/* ============ THE FORM ============ */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-md border border-black/5 space-y-6">
-          {/* Checkbox moods */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-lg" style={{ color: C_GREEN }}>
-                🎛️ How are you feeling? <span className="text-sm font-semibold text-gray-400">(tick as many as you like)</span>
-              </h2>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#1f6b4d]/10 text-[#1f6b4d]">
-                {selected.length} selected
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {MOODS.map((m) => {
-                const Icon = m.icon
-                const active = selected.includes(m.key)
-                return (
-                  <label
-                    key={m.key}
-                    className={`cursor-pointer rounded-xl border-2 px-3 py-2.5 flex items-center gap-2 transition-all select-none ${
-                      active ? "shadow-md scale-[1.02]" : "hover:bg-gray-50 border-gray-100"
-                    }`}
-                    style={active ? { borderColor: C_GREEN, background: "#1f6b4d0d" } : {}}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={() => toggleMood(m.key)}
-                      className="accent-[#1f6b4d] w-4 h-4 shrink-0"
-                    />
-                    <Icon size={15} style={{ color: active ? C_GREEN : "#94a3b8" }} />
-                    <span className={`text-[13px] font-semibold ${active ? "text-[#1f3329]" : "text-gray-600"}`}>
-                      {m.label}
-                    </span>
-                  </label>
-                )
-              })}
-            </div>
+        <section className="rounded-3xl bg-white border border-emerald-900/10 shadow-sm p-5 sm:p-7 space-y-6">
+          <div className="flex items-center gap-2">
+            <FiSliders style={{ color: TERRA }} />
+            <h2 className="font-extrabold text-lg text-gray-900">Build your trip profile</h2>
+            <span className="ml-auto text-xs font-bold rounded-full px-3 py-1 bg-emerald-50 text-emerald-800">{selected.length} interests</span>
           </div>
 
-          {/* Days */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-lg" style={{ color: C_GREEN }}>📅 How many days?</h2>
-              <span className="text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: C_TERRA }}>
-                {days} {days === 1 ? "day" : "days"}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {DAY_OPTIONS.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDays(d)}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
-                    days === d ? "text-white shadow" : "bg-[#faf8f4] hover:bg-white text-gray-700 border-black/5"
-                  }`}
-                  style={days === d ? { background: C_GOLD, borderColor: C_GOLD } : {}}
-                >
-                  {d}d
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {INTERESTS.map(({ key, label, icon: Icon }) => {
+              const active = selected.includes(key)
+              return (
+                <button key={key} type="button" onClick={() => toggleInterest(key)}
+                  className={`rounded-xl border px-3 py-3 flex items-center gap-2 text-xs font-bold transition ${active ? "text-white shadow" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                  style={active ? { background: GREEN, borderColor: GREEN } : {}}>
+                  <Icon size={15} /> {label}
                 </button>
-              ))}
-            </div>
-            <input
-              type="range" min={1} max={21} value={days}
-              onChange={(e) => setDays(parseInt(e.target.value, 10))}
-              className="w-full mt-4 accent-[#1f6b4d]"
-            />
+              )
+            })}
           </div>
 
-          {/* Train button */}
-          <div className="pt-1">
-            <button
-              onClick={runTraining}
-              disabled={training || selected.length === 0}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-white font-black text-sm shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              style={{ background: `linear-gradient(135deg, ${C_GREEN}, ${C_TERRA})` }}
-            >
-              <FiCpu size={18} />
-              {training ? "Training ML model…" : "✨ Train Model & Get Recommendations"}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <SelectField label="Budget level" value={form.budget} options={SELECTS.budget} onChange={(v) => update("budget", v)} />
+            <SelectField label="Difficulty" value={form.difficulty} options={SELECTS.difficulty} onChange={(v) => update("difficulty", v)} />
+            <SelectField label="Travel season" value={form.season} options={SELECTS.season} onChange={(v) => update("season", v)} />
+            <SelectField label="Travel group" value={form.travelStyle} options={SELECTS.travelStyle} onChange={(v) => update("travelStyle", v)} />
+            <label className="space-y-1.5">
+              <span className="text-xs font-bold text-gray-600">Province</span>
+              <select className="input-field bg-white" value={form.province} onChange={(e) => update("province", e.target.value)}>
+                {PROVINCES.map((p) => <option key={p || "all"} value={p}>{p || "All provinces"}</option>)}
+              </select>
+            </label>
+          </div>
+
+          <div className="grid sm:grid-cols-[1fr_auto] gap-5 items-end">
+            <label className="space-y-2">
+              <span className="text-xs font-bold text-gray-600">Trip length: <b style={{ color: TERRA }}>{form.days} days</b></span>
+              <input className="w-full accent-[#1f6b4d]" type="range" min="1" max="21" value={form.days} onChange={(e) => update("days", Number(e.target.value))} />
+            </label>
+            <button type="button" onClick={loadRecommendations} disabled={loading || !selected.length}
+              className="px-7 py-3 rounded-xl text-white font-black text-sm shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: `linear-gradient(135deg, ${GREEN}, ${TERRA})` }}>
+              <FiCompass /> {loading ? "Matching live destinations…" : "Find my best destinations"}
             </button>
-
-            {training && (
-              <div className="mt-4">
-                <div className="flex justify-between text-xs font-bold text-gray-500 mb-1">
-                  <span>🧠 Weighted content-based recommender · re-ranking {selected.join(" + ") || "…"}</span>
-                  <span>{trainProgress}%</span>
-                </div>
-                <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: `linear-gradient(90deg, ${C_GREEN}, ${C_TERRA})` }}
-                    animate={{ width: `${trainProgress}%` }}
-                    transition={{ ease: "easeOut", duration: 0.15 }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!training && trainedMoods.length > 0 && (
-              <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
-                <FiCheckCircle style={{ color: C_GREEN }} /> Model trained on your mood profile:{" "}
-                <b>{trainedMoods.join(", ")}</b> · {items.length} personalized destinations from all of Nepal
-              </p>
-            )}
           </div>
-        </div>
+          <p className="text-[11px] text-gray-500">This is a content-based ranking request, not simulated model training. Results come from approved database destinations and existing traveler behavior.</p>
+        </section>
 
-        {/* ============ RESULTS ============ */}
-        {loading ? (
-          <Loader />
-        ) : items.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {items.map((item, index) => (
-                <FadeIn key={item.id || index} delay={index * 0.04}>
-                  <HoverCard className="rounded-3xl overflow-hidden border border-black/5 shadow-sm bg-white flex flex-col justify-between h-full">
-                    <div>
-                      <div className="h-52 w-full relative overflow-hidden bg-black">
-                        <img
-                          src={item.cover_image_url}
-                          alt={item.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                        />
-                        <span
-                          className="absolute top-3 left-3 px-3 py-1 rounded-full text-white text-xs font-black shadow flex items-center gap-1"
-                          style={{ background: C_GREEN }}
-                        >
-                          <FiTrendingUp size={13} /> {item.score}% Match
-                        </span>
-                        <span
-                          className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-xs font-bold"
-                          style={{ color: C_GOLD }}
-                        >
-                          ★ {item.rating}
-                        </span>
-                      </div>
-
-                      <div className="p-5 space-y-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C_TERRA }}>
-                          {item.category}
-                        </span>
-                        <h3 className="font-extrabold text-lg text-gray-900 leading-snug">{item.name}</h3>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <FiMapPin size={13} style={{ color: C_GREEN }} /> {item.city} · <b>{item.budget}</b>
-                        </p>
-                        <p className="text-[11px] text-gray-400 mt-1">🌤️ Best Season: {item.season}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-5 pt-0">
-                      <Link
-                        to={`/destinations/${item.slug}`}
-                        className="w-full py-2.5 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition-colors hover:opacity-95"
-                        style={{ background: C_GREEN }}
-                      >
-                        Explore Destination <FiArrowRight size={14} />
-                      </Link>
-                    </div>
-                  </HoverCard>
-                </FadeIn>
-              ))}
-            </AnimatePresence>
+        {meta && !loading && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+            <FiCheckCircle className="text-emerald-700" />
+            <b>Live database model</b><span>·</span><span>{meta.version || "content-v2"}</span><span>·</span><span>{items.length} unique-photo matches</span>
           </div>
-        ) : (
-          <EmptyState
-            title="No matches found"
-            subtitle="Tick some moods and press 'Train Model & Get Recommendations'."
-          />
         )}
+
+        {loading ? <Loader /> : items.length ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {items.map((item, index) => (
+              <motion.article key={item.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
+                className="rounded-3xl overflow-hidden border border-black/5 shadow-sm bg-white flex flex-col">
+                <div className="h-52 relative overflow-hidden bg-gray-900">
+                  <img src={item.cover_image_url} alt={item.name} className="w-full h-full object-cover"
+                    onError={(e) => { if (!e.currentTarget.dataset.fallback) { e.currentTarget.dataset.fallback = "1"; e.currentTarget.src = postcardUrl(item) } }} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent" />
+                  <span className="absolute top-3 left-3 rounded-full px-3 py-1 bg-white/95 text-emerald-800 text-xs font-black flex items-center gap-1"><FiTrendingUp /> {Math.round((item.ml_score || 0) * 100)}% match</span>
+                  <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-black ${riskColor(item.risk_summary?.level)}`}><FiShield className="inline mr-1" />{item.risk_summary?.level || "unknown"}</span>
+                  <h3 className="absolute bottom-4 left-4 right-4 text-white text-xl font-black">{item.name}</h3>
+                </div>
+                <div className="p-5 flex-1 space-y-4">
+                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiMapPin /> {item.city || item.district || "Nepal"}, {item.province || "Nepal"}</p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.difficulty}</b><span className="text-[10px] text-gray-400">difficulty</span></div>
+                    <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.budget_level}</b><span className="text-[10px] text-gray-400">budget</span></div>
+                    <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs">{item.recommended_days} days</b><span className="text-[10px] text-gray-400">suggested</span></div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GOLD }}>Why this matches</p>
+                    <ul className="mt-1 space-y-1">
+                      {(item.why_recommended || []).map((reason) => <li key={reason} className="text-xs text-gray-600 flex gap-2"><FiCheckCircle className="shrink-0 mt-0.5 text-emerald-600" />{reason}</li>)}
+                    </ul>
+                  </div>
+                  <p className="text-[10px] text-gray-400">Source: {item.data_source || "Database"} · Best: {item.recommended_season}</p>
+                </div>
+                <div className="p-5 pt-0 grid grid-cols-2 gap-2">
+                  <Link to={`/destinations/${item.slug}`} className="rounded-xl py-2.5 text-center text-white text-xs font-bold" style={{ background: GREEN }}>Explore <FiArrowRight className="inline" /></Link>
+                  <Link to={`/risk-alerts?destination=${encodeURIComponent(item.slug)}`} className="rounded-xl py-2.5 text-center text-xs font-bold border border-rose-200 text-rose-700">Check risk</Link>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        ) : hasRun ? <EmptyState title="No matching destinations" subtitle="Try broadening the province or preference filters." /> : null}
       </div>
     </div>
   )
