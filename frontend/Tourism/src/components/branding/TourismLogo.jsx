@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import usePublicConfig from "../../hooks/usePublicConfig"
 
 /**
  * TourismLogo — v2, circular mark.
@@ -15,6 +16,10 @@ import { Link } from "react-router-dom"
  * every motif, meant for splash/about-page contexts.
  */
 const TourismLogo = ({ to = "/", showTagline = true, size = "md" }) => {
+  const { branding } = usePublicConfig()
+  const siteTitle = branding.site_title || "Digital Nepal"
+  const tagline = branding.tagline || "Explore the Heart of the Himalayas"
+  const primaryColor = branding.primary_color || "#0B3D91"
   const dims = {
     sm: { box: 32, text: "text-lg", tagline: "hidden", detailed: false },
     md: { box: 40, text: "text-xl", tagline: "text-[11px]", detailed: false },
@@ -142,12 +147,10 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md" }) => {
       </svg>
 
       <div className="leading-tight hidden sm:block min-w-0">
-        <h1 className={`${dims.text} font-heading font-extrabold text-himalaya-500 whitespace-nowrap`}>
-          Digital<span className="text-forest-500">Nepal</span>
-        </h1>
+        <h1 className={`${dims.text} font-heading font-extrabold whitespace-nowrap`} style={{color:primaryColor}}>{siteTitle}</h1>
         {showTagline && (
           <p className={`${dims.tagline} font-medium text-gray-400 tracking-wide`}>
-            Explore the Heart of the Himalayas
+            {tagline}
           </p>
         )}
       </div>
