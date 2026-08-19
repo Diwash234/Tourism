@@ -11,7 +11,7 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage, StaffCapabilityProfile
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1043,6 +1043,27 @@ class AdminDataExplorerView(APIView):
         if rows:
             preferred += [key for key in rows[0].keys() if key not in preferred][:10]
         return Response({"resource": resource, "count": count, "columns": preferred, "results": rows})
+
+
+class StaffCapabilityManagementView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    def _admin(self, request):
+        return request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}
+    def get(self, request):
+        if not self._admin(request): return Response({"detail":"Admin only"},status=403)
+        staff=User.objects.filter(role__in=["staff","guide","content_moderator","district_manager","hotel_manager","tourist_police","hospital_staff","rescue_team","emergency_operator"]).order_by("email")
+        return Response({"modules":StaffCapabilityProfile.MODULES,"actions":StaffCapabilityProfile.ACTIONS,"results":[{"user_id":u.id,"email":u.email,"name":u.full_name,"role":u.role,"capabilities":getattr(getattr(u,"capability_profile",None),"capabilities",{}),"managed_districts":getattr(getattr(u,"capability_profile",None),"managed_districts",[]),"is_active":getattr(getattr(u,"capability_profile",None),"is_active",False)} for u in staff]})
+    def put(self, request):
+        if not self._admin(request): return Response({"detail":"Admin only"},status=403)
+        user=User.objects.filter(pk=request.data.get("user_id")).first()
+        if not user or user.role in {"admin","super_admin","tourism_admin"}: return Response({"detail":"Invalid staff user"},status=400)
+        profile,_=StaffCapabilityProfile.objects.get_or_create(user=user)
+        profile.capabilities=request.data.get("capabilities",{})
+        profile.managed_districts=request.data.get("managed_districts",[])
+        profile.is_active=bool(request.data.get("is_active",True));profile.assigned_by=request.user
+        try: profile.full_clean()
+        except Exception as exc: return Response({"detail":str(exc)},status=400)
+        profile.save();return Response({"message":"Capabilities updated","user_id":user.id})
 
 
 class AdminCMSView(APIView):

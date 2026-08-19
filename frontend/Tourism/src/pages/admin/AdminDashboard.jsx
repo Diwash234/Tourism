@@ -19,6 +19,7 @@ import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 import CMSPanel from "../../components/admin/CMSPanel"
+import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -542,6 +543,7 @@ const AdminDashboard = () => {
             { id: "cms", label: "📝 Website Content & Navigation", count: null },
             { id: "research", label: "🔬 AI Destination Discovery", count: null },
             { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
+            { id: "staff_permissions", label: "🔐 Staff Permissions", count: null },
             { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
             { id: "places", label: "📝 Place Approvals", count: pendingPlaces.length, badge: pendingPlaces.length > 0 },
             { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
@@ -703,6 +705,7 @@ const AdminDashboard = () => {
 
         {activeTab === "data_explorer" && <DataExplorerPanel />}
         {activeTab === "cms" && <CMSPanel />}
+        {activeTab === "staff_permissions" && <StaffPermissionsPanel />}
 
         {/* TAB: AI DESTINATION DISCOVERY & RESEARCH */}
         {activeTab === "research" && (
