@@ -10,7 +10,8 @@ from .models import (
     Destination, Alert, DestinationImage, VisitHistory,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
-    DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun
+    DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1042,6 +1043,42 @@ class AdminDataExplorerView(APIView):
         if rows:
             preferred += [key for key in rows[0].keys() if key not in preferred][:10]
         return Response({"resource": resource, "count": count, "columns": preferred, "results": rows})
+
+
+class AdminCMSView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    MODELS = {"settings": SiteSetting, "pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem}
+    FIELDS = {
+        "settings": {"key","value","description","is_public"},
+        "pages": {"route","key","title","meta_description","is_enabled","status"},
+        "sections": {"page_id","key","title","subtitle","body","image_url","cta_text","cta_url","icon","layout_variant","config","display_order","is_visible","status"},
+        "navigation": {"location","label","route","icon","parent_id","allowed_roles","display_order","is_active"},
+    }
+    def get(self, request):
+        resource=request.query_params.get("resource","pages"); model=self.MODELS.get(resource)
+        if not model:return Response({"detail":"Unknown CMS resource"},status=400)
+        rows=[]
+        for obj in model.objects.all()[:300]:
+            row={"id":obj.pk}
+            for field in self.FIELDS[resource]:
+                key=field[:-3] if field.endswith("_id") else field
+                value=getattr(obj,field,getattr(obj,key,None))
+                row[field]=value
+            rows.append(row)
+        return Response({"resource":resource,"results":rows})
+    def post(self, request):
+        resource=request.data.get("resource"); model=self.MODELS.get(resource)
+        if not model:return Response({"detail":"Unknown CMS resource"},status=400)
+        payload={k:v for k,v in request.data.items() if k in self.FIELDS[resource]}
+        payload["updated_by"]=request.user
+        obj=model.objects.create(**payload)
+        return Response({"id":obj.pk,"message":"Created"},status=201)
+    def patch(self, request):
+        resource=request.data.get("resource"); model=self.MODELS.get(resource); obj=model.objects.filter(pk=request.data.get("id")).first() if model else None
+        if not obj:return Response({"detail":"CMS record not found"},status=404)
+        for key,value in request.data.items():
+            if key in self.FIELDS[resource]:setattr(obj,key,value)
+        obj.updated_by=request.user;obj.save();return Response({"id":obj.pk,"message":"Updated"})
 
 
 class FeedbackListView(APIView):

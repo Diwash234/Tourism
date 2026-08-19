@@ -16,6 +16,7 @@ import NepalExperienceSection from "../components/dashboard/NepalExperienceSecti
 import NationalSymbols from "../components/dashboard/NationalSymbols"
 import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
+import configApi from "../api/configApi"
 import {
   FadeIn, SlideUp, Stagger, StaggerItem, HoverCard,
   BurnGlowBadge, InteractiveHeroCanvas
@@ -90,6 +91,14 @@ export default function Landing() {
   const navigate = useNavigate()
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [cmsHero, setCmsHero] = useState(null)
+
+  useEffect(() => {
+    configApi.getPublicConfig().then(({data}) => {
+      const home=data.pages?.find(page=>page.key==="home")
+      setCmsHero(home?.sections?.find(section=>section.key==="hero")||null)
+    }).catch(()=>{})
+  }, [])
 
   // Search-as-you-type suggestions + did-you-mean autocorrect from the API
   const fetchSuggestions = useCallback(async (q, signal) => {
@@ -132,16 +141,13 @@ export default function Landing() {
 
           <FadeIn delay={0.2}>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] max-w-4xl mx-auto">
-              {t("home.hero_title1")}{" "}
-              <span className="bg-gradient-to-r from-amber-300 via-rose-300 to-amber-200 bg-clip-text text-transparent">
-                {t("home.hero_title2")}
-              </span>
+              {cmsHero?.title || <>{t("home.hero_title1")}{" "}<span className="bg-gradient-to-r from-amber-300 via-rose-300 to-amber-200 bg-clip-text text-transparent">{t("home.hero_title2")}</span></>}
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.3}>
             <p className="text-base sm:text-xl text-stone-100/90 max-w-2xl mx-auto font-normal leading-relaxed">
-              {t("home.hero_subtitle")}
+              {cmsHero?.subtitle || cmsHero?.body || t("home.hero_subtitle") }
             </p>
           </FadeIn>
 

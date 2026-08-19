@@ -18,6 +18,7 @@ import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
+import CMSPanel from "../../components/admin/CMSPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -538,6 +539,7 @@ const AdminDashboard = () => {
           {[
             { id: "overview", label: "📊 Overview & Stats", count: null },
             { id: "data_explorer", label: "🗄️ Database & Records", count: null },
+            { id: "cms", label: "📝 Website Content & Navigation", count: null },
             { id: "research", label: "🔬 AI Destination Discovery", count: null },
             { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
             { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
@@ -700,6 +702,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "data_explorer" && <DataExplorerPanel />}
+        {activeTab === "cms" && <CMSPanel />}
 
         {/* TAB: AI DESTINATION DISCOVERY & RESEARCH */}
         {activeTab === "research" && (
