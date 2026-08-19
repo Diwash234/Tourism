@@ -121,6 +121,27 @@ class IsDistrictManagerForOwnDistrict(BasePermission):
         )
 
 
+class HasCapability(BasePermission):
+    """Backend-enforced module/action permission for staff; admins bypass."""
+    message = "You do not have the required staff capability."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        module = getattr(view, "capability_module", None)
+        action_map = {"GET": "view", "HEAD": "view", "OPTIONS": "view", "POST": "add", "PUT": "change", "PATCH": "change", "DELETE": "delete"}
+        action = getattr(view, "capability_action", action_map.get(request.method, "view"))
+        if not module:
+            return False
+        try:
+            return user.capability_profile.allows(module, action)
+        except Exception:
+            return False
+
+
 # ---------------------------------------------------------------------
 # LEGACY PERMISSIONS
 # ---------------------------------------------------------------------

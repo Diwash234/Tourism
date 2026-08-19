@@ -72,6 +72,7 @@ urlpatterns = [
     path("auth/change-password/", views_auth.ChangePasswordView.as_view(), name="auth-change-password"),
     path("auth/update-location/", views_auth.UpdateLocationView.as_view(), name="auth-update-location"),
     path("auth/detect-location/", views_auth.DetectLocationView.as_view(), name="auth-detect-location"),
+    path("auth/capabilities/", views_auth.MyCapabilitiesView.as_view(), name="auth-capabilities"),
     path("auth/google/callback/", views_oauth.GoogleOAuthCallbackView.as_view(), name="auth-google-callback"),
     path("auth/github/callback/", views_oauth.GithubOAuthCallbackView.as_view(), name="auth-github-callback"),
 

@@ -116,6 +116,30 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.first_name} {self.last_name}".strip() or self.email
 
 
+class StaffCapabilityProfile(TimeStampedModel):
+    """Granular module/action permissions layered on the existing User role."""
+    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "reviews", "safety", "feedback", "audit", "users", "settings"]
+    ACTIONS = ["view", "add", "change", "delete", "approve", "export", "train", "assign"]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_profile")
+    capabilities = models.JSONField(default=dict, blank=True, help_text='{"destinations":["view","change"],"images":["view","approve"]}')
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="capability_profiles_assigned")
+    managed_districts = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        invalid_modules = set(self.capabilities) - set(self.MODULES)
+        invalid_actions = {action for actions in self.capabilities.values() for action in actions if action not in self.ACTIONS}
+        if invalid_modules or invalid_actions:
+            raise ValidationError(f"Invalid modules/actions: {invalid_modules or invalid_actions}")
+
+    def allows(self, module, action="view"):
+        if not self.is_active:
+            return False
+        return action in self.capabilities.get(module, []) or "*" in self.capabilities.get(module, [])
+
+
 class EmailVerificationToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_tokens")
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)

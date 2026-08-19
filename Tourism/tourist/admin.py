@@ -9,7 +9,7 @@ from .models import (
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
-    RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback,
+    RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
 )
 
 
@@ -521,3 +521,11 @@ class UserFeedbackAdmin(admin.ModelAdmin):
     list_filter = ["category", "status", "created_at"]
     search_fields = ["subject", "message", "name", "email", "user__email"]
     readonly_fields = ["created_at", "updated_at", "replied_at"]
+
+
+@admin.register(StaffCapabilityProfile)
+class StaffCapabilityProfileAdmin(admin.ModelAdmin):
+    list_display = ["user", "is_active", "assigned_by", "updated_at"]
+    list_filter = ["is_active"]
+    search_fields = ["user__email", "user__first_name", "user__last_name"]
+    autocomplete_fields = ["user", "assigned_by"]

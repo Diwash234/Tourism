@@ -78,6 +78,7 @@ import LocalRoute from "./routes/LocalRoute"
 
 // Admin
 import AdminDashboard from "./pages/admin/AdminDashboard"
+import AdminLayout from "./components/admin/AdminLayout"
 import DiagnosticsCenter from "./pages/admin/DiagnosticsCenter"
 import HotelAssignments from "./pages/admin/HotelAssignments"
 import AdminTasks from "./pages/admin/Tasks"
@@ -249,7 +250,7 @@ function App() {
       {/* Admin Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminRoute />}>
-          <Route element={<DashboardLayout />}>
+          <Route element={<AdminLayout />}>
             <Route 
               path="/admin" 
               element={<AdminDashboard />} 
