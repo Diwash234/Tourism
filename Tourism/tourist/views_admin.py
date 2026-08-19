@@ -1007,6 +1007,12 @@ class AdminDataExplorerView(APIView):
         from django.db.models import Q
         from django.forms.models import model_to_dict
         resource = request.query_params.get("resource", "destinations")
+        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit"}
+        user = request.user
+        if not (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"}):
+            profile = getattr(user, "capability_profile", None)
+            if not profile or not profile.allows(module_map.get(resource, "settings"), "view"):
+                return Response({"detail": "Staff capability denied."}, status=403)
         if resource not in self.RESOURCES:
             return Response({"detail": "Unknown resource."}, status=400)
         label, search_fields = self.RESOURCES[resource]

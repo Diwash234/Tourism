@@ -5,6 +5,8 @@ const userApi = {
   getProfile: () =>
     axiosClient.get("/auth/profile/"),
 
+  getCapabilities: () => axiosClient.get("/auth/capabilities/"),
+
   updateProfile: (payload) =>
     axiosClient.put("/auth/profile/", payload),
 

@@ -79,6 +79,7 @@ import LocalRoute from "./routes/LocalRoute"
 // Admin
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminLayout from "./components/admin/AdminLayout"
+import StaffLayout from "./components/admin/StaffLayout"
 import DiagnosticsCenter from "./pages/admin/DiagnosticsCenter"
 import HotelAssignments from "./pages/admin/HotelAssignments"
 import AdminTasks from "./pages/admin/Tasks"
@@ -221,7 +222,7 @@ function App() {
       {/* Staff-only Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<StaffRoute />}>
-          <Route element={<DashboardLayout />}>
+          <Route element={<StaffLayout />}>
             <Route path="/staff" element={<StaffDashboard />} />
           </Route>
         </Route>
