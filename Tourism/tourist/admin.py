@@ -10,6 +10,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage,
 )
 
 
@@ -529,3 +530,22 @@ class StaffCapabilityProfileAdmin(admin.ModelAdmin):
     list_filter = ["is_active"]
     search_fields = ["user__email", "user__first_name", "user__last_name"]
     autocomplete_fields = ["user", "assigned_by"]
+
+class ContentSectionInline(admin.TabularInline):
+    model=ContentSection; extra=0; ordering=['display_order']
+
+@admin.register(ManagedPage)
+class ManagedPageAdmin(admin.ModelAdmin):
+    list_display=['title','route','is_enabled','status','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+
+@admin.register(SiteSetting)
+class SiteSettingAdmin(admin.ModelAdmin):
+    list_display=['key','is_public','updated_by','updated_at']; list_filter=['is_public']; search_fields=['key','description']
+
+@admin.register(ManagedNavigationItem)
+class ManagedNavigationItemAdmin(admin.ModelAdmin):
+    list_display=['label','location','route','parent','display_order','is_active']; list_filter=['location','is_active']; search_fields=['label','route']
+
+@admin.register(FeedbackMessage)
+class FeedbackMessageAdmin(admin.ModelAdmin):
+    list_display=['feedback','sender','is_internal','created_at']; list_filter=['is_internal']; search_fields=['body','feedback__subject']

@@ -2120,3 +2120,70 @@ class FeedbackEvidence(TimeStampedModel):
     file = models.FileField(upload_to="feedback/evidence/")
     caption = models.CharField(max_length=220, blank=True)
     is_verified = models.BooleanField(default=False)
+
+
+class SiteSetting(TimeStampedModel):
+    key = models.SlugField(max_length=120, unique=True)
+    value = models.JSONField(default=dict, blank=True)
+    description = models.CharField(max_length=255, blank=True)
+    is_public = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="site_settings_updated")
+
+    def __str__(self): return self.key
+
+
+class ManagedPage(TimeStampedModel):
+    route = models.CharField(max_length=180, unique=True)
+    key = models.SlugField(max_length=100, unique=True)
+    title = models.CharField(max_length=220)
+    meta_description = models.CharField(max_length=320, blank=True)
+    is_enabled = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("published","Published")], default="published")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_pages_updated")
+
+    def __str__(self): return f"{self.title} ({self.route})"
+
+
+class ContentSection(TimeStampedModel):
+    page = models.ForeignKey(ManagedPage, on_delete=models.CASCADE, related_name="sections")
+    key = models.SlugField(max_length=120)
+    title = models.CharField(max_length=240, blank=True)
+    subtitle = models.CharField(max_length=320, blank=True)
+    body = models.TextField(blank=True)
+    image_url = models.URLField(max_length=600, blank=True)
+    cta_text = models.CharField(max_length=100, blank=True)
+    cta_url = models.CharField(max_length=240, blank=True)
+    icon = models.CharField(max_length=50, blank=True)
+    layout_variant = models.CharField(max_length=30, choices=[("default","Default"),("compact","Compact"),("wide","Wide"),("cards","Cards")], default="default")
+    config = models.JSONField(default=dict, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("published","Published")], default="published")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_sections_updated")
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        constraints = [models.UniqueConstraint(fields=["page","key"], name="unique_page_section_key")]
+
+
+class ManagedNavigationItem(TimeStampedModel):
+    location = models.CharField(max_length=20, choices=[("navbar","Navbar"),("sidebar","Sidebar"),("footer","Footer")])
+    label = models.CharField(max_length=120)
+    route = models.CharField(max_length=240)
+    icon = models.CharField(max_length=50, blank=True)
+    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="children")
+    allowed_roles = models.JSONField(default=list, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="navigation_items_updated")
+
+    class Meta:
+        ordering = ["location", "display_order", "id"]
+
+
+class FeedbackMessage(TimeStampedModel):
+    feedback = models.ForeignKey(UserFeedback, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="feedback_messages")
+    body = models.TextField()
+    is_internal = models.BooleanField(default=False)
+    attachment = models.FileField(upload_to="feedback/messages/", blank=True, null=True)

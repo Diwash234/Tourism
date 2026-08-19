@@ -17,6 +17,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RecommendationEvent, RiskNewsReport,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
 from .serializers import (
@@ -107,8 +108,12 @@ class PublicConfigView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        pages = ManagedPage.objects.filter(is_enabled=True, status="published").prefetch_related("sections")
         return Response({
             "mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN,
+            "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
+            "pages": [{"key": page.key, "route": page.route, "title": page.title, "meta_description": page.meta_description, "sections": [{"key": section.key, "title": section.title, "subtitle": section.subtitle, "body": section.body, "image_url": section.image_url, "cta_text": section.cta_text, "cta_url": section.cta_url, "icon": section.icon, "layout_variant": section.layout_variant, "config": section.config, "display_order": section.display_order} for section in page.sections.filter(is_visible=True,status="published")]} for page in pages],
+            "navigation": [{"id": item.id, "location": item.location, "label": item.label, "route": item.route, "icon": item.icon, "parent_id": item.parent_id, "allowed_roles": item.allowed_roles, "display_order": item.display_order} for item in ManagedNavigationItem.objects.filter(is_active=True)],
         })
 
 
