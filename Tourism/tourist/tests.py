@@ -869,6 +869,14 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(result["safety_context"]["availability"], "temporarily_unavailable")
         self.assertEqual(result["safety_context"]["current_warning"]["severity"], "critical")
 
+    def test_admin_data_explorer_searches_destinations(self):
+        admin = User.objects.create_user(email="explorer-admin@example.com", password="StrongPass123!", role="admin", is_verified=True, is_staff=True)
+        self.client.force_authenticate(admin)
+        response = self.client.get(reverse("admin-data-explorer"), {"resource": "destinations", "q": "Test Himalayan"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], self.trek.id)
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

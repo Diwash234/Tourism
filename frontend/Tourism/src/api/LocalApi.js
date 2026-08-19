@@ -76,7 +76,7 @@ const localApi = {
       })
       return res
     } catch {
-      return { data: { success: true, url: "/images/destinations/everest/base-camp.jpg" } }
+      return { data: { success: false, url: null, pending_local_upload: true } }
     }
   },
 }

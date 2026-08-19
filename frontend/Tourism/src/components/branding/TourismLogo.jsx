@@ -22,7 +22,7 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md" }) => {
   }[size]
 
   return (
-    <Link to={to} className="flex items-center gap-2.5 select-none">
+    <Link to={to} className="flex items-center gap-2 sm:gap-2.5 select-none shrink-0 min-w-0">
       <svg
         width={dims.box}
         height={dims.box}
@@ -141,8 +141,8 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md" }) => {
         <circle cx="50" cy="50" r="42" fill="none" stroke="#0B3D91" strokeWidth="1" opacity="0.4" />
       </svg>
 
-      <div className="leading-tight">
-        <h1 className={`${dims.text} font-heading font-extrabold text-himalaya-500`}>
+      <div className="leading-tight hidden sm:block min-w-0">
+        <h1 className={`${dims.text} font-heading font-extrabold text-himalaya-500 whitespace-nowrap`}>
           Digital<span className="text-forest-500">Nepal</span>
         </h1>
         {showTagline && (

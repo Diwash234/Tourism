@@ -115,9 +115,10 @@ export default function Sidebar() {
       />
 
       <aside
-        className="sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 bg-white border-r border-gray-100 overflow-y-auto
-                   transform -translate-x-full transition-transform duration-300
-                   shadow-xl lg:translate-x-0 lg:shadow-none"
+        className="sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white border-r border-gray-100 overflow-y-auto overscroll-contain
+                   transform -translate-x-full transition-transform duration-300 will-change-transform
+                   shadow-xl lg:translate-x-0 lg:shadow-none lg:max-w-none"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       >
         <div className="p-4 space-y-6">
           <div className="flex items-center justify-between lg:hidden">

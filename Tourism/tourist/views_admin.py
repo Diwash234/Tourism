@@ -18,6 +18,32 @@ from .serializers import InfrastructureSubmissionSerializer
 User = get_user_model()
 
 
+def _sync_destination_json(destination):
+    """Atomic JSON exchange snapshot for admin-edited destinations."""
+    import json
+    import os
+    from pathlib import Path
+    path = Path(settings.BASE_DIR) / "dataset" / "data.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"destinations": {}}
+    except (json.JSONDecodeError, OSError):
+        existing = {"destinations": {}}
+    existing.setdefault("destinations", {})[str(destination.id)] = {
+        "id": destination.id, "name": destination.name, "slug": destination.slug,
+        "description": destination.description, "short_description": destination.short_description,
+        "city": destination.city, "district": destination.district, "province": destination.province,
+        "municipality": destination.municipality, "ward_number": destination.ward_number,
+        "latitude": float(destination.latitude) if destination.latitude is not None else None,
+        "longitude": float(destination.longitude) if destination.longitude is not None else None,
+        "status": destination.status, "updated_at": destination.updated_at.isoformat(),
+        "images": [{"id": image.id, "url": image.external_url or (image.image.url if image.image else ""), "caption": image.caption, "is_cover": image.is_cover, "status": image.verification_status} for image in destination.gallery.all()[:100]],
+    }
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, path)
+
+
 class AdminStatsView(APIView):
     permission_classes = [IsAdminOrStaff]
 
@@ -557,6 +583,7 @@ class AdminDestinationDetailView(APIView):
                     changed.append(key)
                 setattr(destination, key, value)
         destination.save()
+        _sync_destination_json(destination)
         if changed:
             DestinationAuditLog.objects.create(
                 destination=destination, actor=request.user if request.user.is_authenticated else None,
@@ -622,6 +649,7 @@ class AdminDestinationImageView(APIView):
             destination=destination, actor=request.user if request.user.is_authenticated else None,
             action=DestinationAuditLog.Action.EDITED, note=f"Admin added image {display_url[:80]}",
         )
+        _sync_destination_json(destination)
         return Response({"message": "Image added", "image_id": img.id, "cover_url": display_url}, status=201)
 
     def patch(self, request, id):
@@ -644,6 +672,7 @@ class AdminDestinationImageView(APIView):
                 destination=destination, actor=request.user if request.user.is_authenticated else None,
                 action=DestinationAuditLog.Action.EDITED, note=f"Admin set cover image #{img.id}",
             )
+            _sync_destination_json(destination)
             return Response({"message": "Cover updated", "cover_url": cover})
 
         # Directly change the cover URL

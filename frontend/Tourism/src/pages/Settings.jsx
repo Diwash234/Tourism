@@ -13,8 +13,7 @@ import {
 import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
-import { setLang } from "../i18n"
-import { NEPAL_LANGUAGES, INTERNATIONAL_LANGUAGES } from "../utils/constants"
+import { ALL_LANGS, setLang } from "../i18n"
 
 import {
   TRANSLATION_PROVIDERS,
@@ -98,8 +97,8 @@ const Settings = () => {
       reset({
 
         preferred_language:
-          user.preferred_language?.id ||
-          user.preferred_language
+          user.preferred_language?.code ||
+          (typeof user.preferred_language === "string" ? user.preferred_language : "en")
 
       })
 
@@ -117,11 +116,11 @@ const Settings = () => {
     try {
       localStorage.setItem("tourism_currency", currency)
       localStorage.setItem("tourism_notifications", JSON.stringify(notifPrefs))
+      const selectedLanguage = languages.find((item) => String(item.code || item.language_code).toLowerCase() === String(data.preferred_language || "").toLowerCase())
       if (data.preferred_language) {
         // Sync the site-wide i18n store so the whole UI switches language
         // immediately (Settings previously saved to a key nothing read).
-        const selectedLanguage = languages.find((item) => String(item.id || item.language_id) === String(data.preferred_language))
-        const code = String(selectedLanguage?.code || selectedLanguage?.language_code || data.preferred_language).toLowerCase()
+        const code = String(data.preferred_language).toLowerCase()
         const langCode =
           code === "ne" || code === "nepali" || code === "नेपाली" ? "ne"
           : code === "hi" || code === "hindi" || code === "हिन्दी" ? "hi"
@@ -137,7 +136,7 @@ const Settings = () => {
       }
       try {
         const { data: updated } = await userApi.updateSettings({
-          preferred_language: data.preferred_language || null,
+          preferred_language: selectedLanguage?.id || selectedLanguage?.language_id || null,
           currency,
           ...notifPrefs,
         })
@@ -214,38 +213,18 @@ const Settings = () => {
 
             className="input-field"
 
-            {...register(
-              "preferred_language"
-            )}
+            {...register("preferred_language", {
+              onChange: (event) => setLang(event.target.value),
+            })}
 
           >
 
 
-            <option value="">
-
-              {
-                languages.length
-                  ?
-                  "Select a language"
-                  :
-                  "No languages available"
-              }
-
-            </option>
-
-
-
-            {languages.length > 0
-              ? languages.map((lang) => (
-                  <option key={lang.id || lang.language_id} value={lang.id || lang.language_id}>
-                    {lang.name || lang.language_name}
-                  </option>
-                ))
-              : [...NEPAL_LANGUAGES, ...INTERNATIONAL_LANGUAGES].map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.label} ({lang.native})
-                  </option>
-                ))}
+            {ALL_LANGS.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.flag} {lang.label} ({lang.native})
+              </option>
+            ))}
 
 
 

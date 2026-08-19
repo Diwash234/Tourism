@@ -5,12 +5,15 @@ import localApi from "../../api/LocalApi"
 import PageHeader from "../../components/common/PageHeader"
 import Loader from "../../components/common/Loader"
 import EmptyState from "../../components/common/EmptyState"
+import PlaceholderImage from "../../components/common/PlaceholderImage"
 import useToast from "../../hooks/useToast"
 import { HERITAGE_CATEGORIES } from "../../utils/constants"
 
 const LocalDashboard = () => {
   const [places, setPlaces] = useState([])
   const [loading, setLoading] = useState(true)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState("")
   const { showToast } = useToast()
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm()
 
@@ -26,16 +29,23 @@ const LocalDashboard = () => {
   useEffect(() => { load() }, [])
 
   const onSubmit = async (data) => {
-    const imageUrl = data.imageUrl || "/images/destinations/mustang/lo-manthang.jpg"
+    const imageUrl = data.imageUrl || photoPreview || ""
     try {
       const { data: created } = await localApi.addPlace({ ...data, image: imageUrl })
-      setPlaces((prev) => [created || { id: Date.now().toString(), ...data, image: imageUrl, status: "pending" }, ...prev])
-      showToast("Place submitted for admin review", "success")
+      let saved = created || { id: Date.now().toString(), ...data, image: imageUrl, status: "pending" }
+      if (photoFile && saved.id) {
+        const form = new FormData()
+        form.append("image", photoFile)
+        const upload = await localApi.uploadPlaceImage(saved.id, form)
+        saved = { ...saved, image: upload?.data?.url || imageUrl }
+      }
+      setPlaces((prev) => [saved, ...prev])
+      showToast("Place and photo submitted for admin review", "success")
     } catch {
       setPlaces((prev) => [{ id: Date.now().toString(), ...data, image: imageUrl, status: "pending" }, ...prev])
       showToast("Saved locally — will sync once connected to the backend", "info")
     }
-    reset()
+    reset(); setPhotoFile(null); setPhotoPreview("")
   }
 
   const handleDelete = async (id) => {
@@ -78,7 +88,12 @@ const LocalDashboard = () => {
               <FiImage size={14} /> Photo URL
             </label>
             <input className="input-field mt-1" placeholder="https://..." {...register("imageUrl")} />
-            <p className="text-xs text-gray-400 mt-1">Paste a link to a photo of the place. Direct upload support depends on your backend.</p>
+            <label className="mt-2 block rounded-xl border-2 border-dashed p-3 text-center text-xs font-bold text-gray-500 cursor-pointer">
+              <FiImage className="inline mr-1" /> Browse photo from computer
+              <input hidden type="file" accept="image/*" onChange={(e) => { const file=e.target.files?.[0]||null; setPhotoFile(file); setPhotoPreview(file ? URL.createObjectURL(file) : "") }} />
+            </label>
+            {photoPreview && <img src={photoPreview} alt="Local preview" className="mt-2 h-36 w-full object-cover rounded-xl" />}
+            <p className="text-xs text-gray-400 mt-1">Use a URL or upload a local image. It remains pending until admin approval.</p>
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500">Description</label>
@@ -97,7 +112,7 @@ const LocalDashboard = () => {
             <div className="space-y-4">
               {places.map((place) => (
                 <div key={place.id} className="card-base overflow-hidden flex">
-                  <img src={place.image} alt={place.name} className="w-28 h-28 object-cover" />
+                  <PlaceholderImage src={place.image} title={place.name} alt={place.name} className="w-28 h-28" />
                   <div className="p-3 flex-1 flex flex-col justify-between">
                     <div>
                       <p className="font-semibold text-sm">{place.name}</p>
