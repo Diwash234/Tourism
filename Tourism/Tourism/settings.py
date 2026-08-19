@@ -173,6 +173,15 @@ CORS_ALLOWED_ORIGINS = config(
 )
 CORS_ALLOW_CREDENTIALS = True
 
+# Browser previews use dynamic HTTPS hosts. Django supports wildcard trusted
+# origins; production deployments should additionally set explicit origins in
+# CSRF_TRUSTED_ORIGINS through the environment.
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="https://*.e2b.app,https://*.arena.site,http://localhost:5173,http://localhost:8000",
+    cast=Csv(),
+)
+
 # ------------------------------------------------------------------
 # Django REST Framework
 # ------------------------------------------------------------------
