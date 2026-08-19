@@ -78,6 +78,7 @@ const adminApi = {
   getUserDetail: (id) => axiosClient.get(`/admin/users/${id}/`),
   updateUser: (id, payload) => axiosClient.patch(`/admin/users/${id}/`, payload),
   sendVerification: (id, payload) => axiosClient.post(`/admin/users/${id}/send-verification`, payload),
+  exploreData: (params) => axiosClient.get("/admin/data-explorer/", { params }),
   getInfrastructureSubmissions: (params) => axiosClient.get("/admin/infrastructure-submissions/", { params }),
   reviewInfrastructureSubmission: (id, payload) => axiosClient.post(`/admin/infrastructure-submissions/${id}/`, payload),
   runMLDataPipeline: (payload) => axiosClient.post("/admin/ml-data-pipeline/", payload),
@@ -89,7 +90,7 @@ const adminApi = {
   // Admin destination detail (data, gallery, edit history)
   getAdminDestination: (id) => axiosClient.get(`/admin/destinations/${id}`),
   updateAdminDestination: (id, payload) => axiosClient.put(`/admin/destinations/${id}`, payload),
-  addAdminDestinationImage: (id, payload) => axiosClient.post(`/admin/destinations/${id}/images`, payload),
+  addAdminDestinationImage: (id, payload) => axiosClient.post(`/admin/destinations/${id}/images`, payload, payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined),
   setAdminDestinationCover: (id, payload) => axiosClient.patch(`/admin/destinations/${id}/images`, payload),
   deleteAdminDestinationImage: (id, imageId) => axiosClient.delete(`/admin/destinations/${id}/images`, { data: { image_id: imageId } }),
 

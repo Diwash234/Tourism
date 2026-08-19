@@ -17,6 +17,7 @@ import BarChartCard from "../../components/charts/BarChartCard"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
+import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -96,6 +97,23 @@ const AdminDashboard = () => {
   const [pipelineDestId, setPipelineDestId] = useState(5900)
   const [newImageUrl, setNewImageUrl] = useState("")
   const [newImageCaption, setNewImageCaption] = useState("")
+  const [newImageFile, setNewImageFile] = useState(null)
+
+  const handleUploadAdminImage = async () => {
+    if (!newImageFile || !pipelineDestId) return
+    const form = new FormData()
+    form.append("image", newImageFile)
+    form.append("caption", newImageCaption || newImageFile.name)
+    form.append("is_cover", "true")
+    try {
+      await adminApi.addAdminDestinationImage(pipelineDestId, form)
+      showToast("Local image uploaded and set as cover.", "success")
+      setNewImageFile(null); setNewImageCaption("")
+      loadPipelineImages()
+    } catch (error) {
+      showToast(error?.response?.data?.detail || "Local image upload failed.", "error")
+    }
+  }
 
   const handleAddAdminImage = async () => {
     if (!newImageUrl.trim() || !pipelineDestId) return
@@ -519,6 +537,7 @@ const AdminDashboard = () => {
         <div className="flex overflow-x-auto gap-2 border-b border-slate-700/40 pb-3 no-scrollbar">
           {[
             { id: "overview", label: "📊 Overview & Stats", count: null },
+            { id: "data_explorer", label: "🗄️ Database & Records", count: null },
             { id: "research", label: "🔬 AI Destination Discovery", count: null },
             { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
             { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
@@ -679,6 +698,8 @@ const AdminDashboard = () => {
             </div>
           </motion.div>
         )}
+
+        {activeTab === "data_explorer" && <DataExplorerPanel />}
 
         {/* TAB: AI DESTINATION DISCOVERY & RESEARCH */}
         {activeTab === "research" && (
@@ -1734,7 +1755,11 @@ const AdminDashboard = () => {
                     + Add &amp; set cover
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-300">Changes save directly to the database and show on the site immediately.</p>
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-700/60">
+                  <input type="file" accept="image/*" onChange={(e)=>setNewImageFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
+                  <button type="button" disabled={!newImageFile} onClick={handleUploadAdminImage} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold">Browse PC & Upload Cover</button>
+                </div>
+                <p className="text-[10px] text-slate-300">URL and local-disk uploads save directly to the database and show on the site immediately.</p>
               </div>
             </div>
 

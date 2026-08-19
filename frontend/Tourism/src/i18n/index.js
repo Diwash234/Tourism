@@ -459,11 +459,59 @@ function persistLang(code) {
   }
 }
 
+const originalText = new WeakMap()
+let translationObserver = null
+
+function translateLegacyDom(root = document.body) {
+  if (typeof document === "undefined" || !root) return
+  const reverse = new Map(Object.entries(en).map(([key, value]) => [value, key]))
+  const target = DICTS[currentLang] || en
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node
+  while ((node = walker.nextNode())) {
+    if (!node.parentElement || ["SCRIPT","STYLE","CODE","PRE"].includes(node.parentElement.tagName)) continue
+    if (!originalText.has(node)) originalText.set(node, node.nodeValue)
+    const original = originalText.get(node)
+    const trimmed = original.trim()
+    const key = reverse.get(trimmed)
+    if (!key) continue
+    const translated = target[key] || trimmed
+    node.nodeValue = original.replace(trimmed, translated)
+  }
+  root.querySelectorAll?.("[placeholder],[title]").forEach((element) => {
+    for (const attribute of ["placeholder", "title"]) {
+      if (!element.hasAttribute(attribute)) continue
+      const storageKey = `i18nOriginal${attribute}`
+      if (!element.dataset[storageKey]) element.dataset[storageKey] = element.getAttribute(attribute)
+      const original = element.dataset[storageKey]
+      const key = reverse.get(original)
+      if (key) element.setAttribute(attribute, target[key] || original)
+    }
+  })
+}
+
+function enableLegacyTranslationBridge() {
+  if (typeof document === "undefined") return
+  queueMicrotask(() => translateLegacyDom())
+  if (!translationObserver) {
+    translationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) translateLegacyDom(node)
+          else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateLegacyDom(node.parentElement)
+        })
+      }
+    })
+    translationObserver.observe(document.documentElement, { childList: true, subtree: true })
+  }
+}
+
 export function setLang(code) {
-  if (!DICTS[code] || code === currentLang) return
+  if (!DICTS[code]) return
   currentLang = code
   persistLang(code)
   listeners.forEach((fn) => fn(code))
+  enableLegacyTranslationBridge()
 }
 
 export function getLang() {
@@ -494,4 +542,7 @@ export function useI18n() {
 }
 
 // Apply persisted language as early as possible (no-op on server).
-if (typeof window !== "undefined") persistLang(currentLang)
+if (typeof window !== "undefined") {
+  persistLang(currentLang)
+  if (currentLang !== "en") enableLegacyTranslationBridge()
+}

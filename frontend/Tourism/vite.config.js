@@ -36,6 +36,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/django-admin': { target: 'http://127.0.0.1:8000', changeOrigin: true, rewrite: (path) => path.replace(/^\/django-admin/, '/admin') },
       '/media': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/static': { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },
@@ -48,6 +49,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/django-admin': { target: 'http://127.0.0.1:8000', changeOrigin: true, rewrite: (path) => path.replace(/^\/django-admin/, '/admin') },
       '/media': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/static': { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },

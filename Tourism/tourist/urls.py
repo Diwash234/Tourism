@@ -115,6 +115,7 @@ urlpatterns = [
     path("admin/users/<int:id>/", views_admin.AdminUsersDetailView.as_view(), name="admin-user-detail-full"),
     path("admin/users/<int:id>/status", views_admin.UpdateUserStatusView.as_view(), name="admin-update-user-status"),
     path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
+    path("admin/data-explorer/", views_admin.AdminDataExplorerView.as_view(), name="admin-data-explorer"),
     path("admin/infrastructure-submissions/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submissions"),
     path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
     path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),

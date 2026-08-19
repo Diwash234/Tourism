@@ -589,18 +589,19 @@ class AdminDestinationImageView(APIView):
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        uploaded_file = request.FILES.get("image") or request.FILES.get("file")
         image_url = (request.data.get("image_url") or request.data.get("url") or "").strip()
-        if not image_url:
-            return Response({"detail": "image_url is required."}, status=400)
+        if not image_url and not uploaded_file:
+            return Response({"detail": "image file or image_url is required."}, status=400)
 
-        is_cover = bool(request.data.get("is_cover"))
+        is_cover = str(request.data.get("is_cover", "")).lower() in {"1", "true", "yes", "on"}
         if is_cover:
             destination.gallery.filter(is_cover=True).update(is_cover=False)
 
         img = DestinationImage.objects.create(
             destination=destination,
             external_url=image_url if image_url.startswith("http") else "",
-            image=image_url if not image_url.startswith("http") else None,
+            image=uploaded_file or (image_url if image_url and not image_url.startswith("http") else None),
             caption=(request.data.get("caption") or destination.name)[:200],
             is_cover=is_cover,
             source=DestinationImage.Source.ADMIN,
@@ -613,14 +614,15 @@ class AdminDestinationImageView(APIView):
             verification_status="approved",
             is_verified=True,
         )
-        if is_cover or not destination.cover_image:
+        display_url = img.external_url or (img.image.url if img.image else "")
+        if image_url and (is_cover or not destination.cover_image):
             Destination.objects.filter(pk=destination.pk).update(cover_image=image_url)
 
         DestinationAuditLog.objects.create(
             destination=destination, actor=request.user if request.user.is_authenticated else None,
-            action=DestinationAuditLog.Action.EDITED, note=f"Admin added image {image_url[:80]}",
+            action=DestinationAuditLog.Action.EDITED, note=f"Admin added image {display_url[:80]}",
         )
-        return Response({"message": "Image added", "image_id": img.id, "cover_url": image_url}, status=201)
+        return Response({"message": "Image added", "image_id": img.id, "cover_url": display_url}, status=201)
 
     def patch(self, request, id):
         destination = self._dest(id)
@@ -937,6 +939,74 @@ class MLDataPipelineView(APIView):
                     training_run.completed_at = timezone.now()
                     training_run.save()
         return Response({"exported": exported, "training": results, "message": "Only admin-verified rows were exported."})
+
+
+class AdminDataExplorerView(APIView):
+    """Searchable, paginated read view across admin-owned application models."""
+    permission_classes = [IsAdminOrStaff]
+
+    RESOURCES = {
+        "destinations": ("tourist.Destination", ["name","slug","city","district","province","status"]),
+        "destination_features": ("tourist.DestinationFeatureProfile", ["destination__name","difficulty","budget_level","source_type"]),
+        "destination_images": ("tourist.DestinationImage", ["destination__name","caption","external_url","source","verification_status"]),
+        "destination_translations": ("tourist.DestinationTranslation", ["destination__name","name","language__name"]),
+        "categories": ("tourist.Category", ["name","slug"]),
+        "languages": ("tourist.Language", ["name","code"]),
+        "hotels": ("tourist.Hotel", ["name","destination__name","address","phone"]),
+        "bookings": ("booking.Booking", ["user__email","hotel__name","status"]),
+        "hotel_reviews": ("booking.HotelReview", ["user__email","hotel__name","comment"]),
+        "reviews": ("tourist.Review", ["destination__name","user__email","comment"]),
+        "ratings": ("tourist.Rating", ["destination__name","user__email"]),
+        "favorites": ("tourist.Favorite", ["destination__name","user__email"]),
+        "visit_history": ("tourist.VisitHistory", ["destination__name","user__email"]),
+        "family_links": ("tourist.FamilyLink", ["requester__email","member__email","relationship","status"]),
+        "email_tokens": ("tourist.EmailVerificationToken", ["user__email"]),
+        "alerts": ("tourist.Alert", ["title","description","city","district","source"]),
+        "current_hazards": ("tourist.CurrentHazard", ["destination__name","title","source_name","severity"]),
+        "emergency_contacts": ("tourist.EmergencyContact", ["name","city","address","phone_number"]),
+        "osm_services": ("tourist.OSMEssentialService", ["name","category","address","phone"]),
+        "osm_places": ("tourist.OSMTourismPlace", ["name","category","address"]),
+        "budgets": ("tourist.Budget", ["user__email","title","category","currency"]),
+        "feedback": ("tourist.UserFeedback", ["user__email","name","email","subject","message","category"]),
+        "feedback_evidence": ("tourist.FeedbackEvidence", ["feedback__subject","caption","media_type"]),
+        "audit_logs": ("audit.AuditLog", ["action","message","object_type","user_email","endpoint"]),
+        "error_events": ("audit.ErrorEvent", ["error_type","error_message","endpoint","component"]),
+    }
+
+    def get(self, request):
+        from django.apps import apps
+        from django.db.models import Q
+        from django.forms.models import model_to_dict
+        resource = request.query_params.get("resource", "destinations")
+        if resource not in self.RESOURCES:
+            return Response({"detail": "Unknown resource."}, status=400)
+        label, search_fields = self.RESOURCES[resource]
+        model = apps.get_model(label)
+        qs = model.objects.all().order_by("-pk")
+        query = request.query_params.get("q", "").strip()
+        if query:
+            search = Q()
+            for field in search_fields:
+                search |= Q(**{f"{field}__icontains": query})
+            qs = qs.filter(search)
+        count = qs.count()
+        rows = []
+        for obj in qs[:100]:
+            raw = model_to_dict(obj)
+            row = {"id": obj.pk, "record": str(obj)}
+            for key, value in raw.items():
+                if hasattr(value, "isoformat"):
+                    value = value.isoformat()
+                elif hasattr(value, "name"):
+                    value = value.name
+                elif isinstance(value, (list, tuple, set)):
+                    value = ", ".join(map(str, value))
+                row[key] = value
+            rows.append(row)
+        preferred = ["id","record"]
+        if rows:
+            preferred += [key for key in rows[0].keys() if key not in preferred][:10]
+        return Response({"resource": resource, "count": count, "columns": preferred, "results": rows})
 
 
 class FeedbackListView(APIView):

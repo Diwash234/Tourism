@@ -9,7 +9,7 @@ from .models import (
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
-    RecommendationEvent, RiskNewsReport, RiskObservation,
+    RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback,
 )
 
 
@@ -326,7 +326,7 @@ class HotelAdmin(admin.ModelAdmin):
     search_fields = ["name", "destination__name", "address"]
     readonly_fields = ["image_preview_large"]
     fields = [
-        "destination", "name", "image", "external_image_url", "image_preview_large",
+        "destination", "name", "cover_image", "external_image_url", "image_preview_large",
         "price_per_night", "currency", "rating", "booking_status", "booking_url",
         "facilities", "address", "latitude", "longitude", "source", "phone",
     ]
@@ -513,3 +513,11 @@ class RecommendationEventAdmin(admin.ModelAdmin):
 class FeedbackEvidenceAdmin(admin.ModelAdmin):
     list_display = ["feedback", "media_type", "caption", "is_verified", "created_at"]
     list_filter = ["media_type", "is_verified"]
+
+
+@admin.register(UserFeedback)
+class UserFeedbackAdmin(admin.ModelAdmin):
+    list_display = ["subject", "user", "email", "category", "status", "created_at"]
+    list_filter = ["category", "status", "created_at"]
+    search_fields = ["subject", "message", "name", "email", "user__email"]
+    readonly_fields = ["created_at", "updated_at", "replied_at"]
