@@ -1099,6 +1099,7 @@ class FeedbackListView(APIView):
             "category": f.category,
             "status": f.status,
             "admin_reply": f.admin_reply,
+            "messages": [{"id":m.id,"sender":m.sender.email if m.sender else "visitor","body":m.body,"is_internal":m.is_internal,"created_at":m.created_at} for m in f.messages.all()],
             "evidence": [{
                 "id": evidence.id, "media_type": evidence.media_type,
                 "url": request.build_absolute_uri(evidence.file.url),
@@ -1116,7 +1117,11 @@ class FeedbackReplyView(APIView):
         f = UserFeedback.objects.filter(pk=id).first()
         if not f:
             return Response({"detail": "not found"}, status=404)
-        f.admin_reply = request.data.get("reply", "")
+        reply = request.data.get("reply", "")
+        if not reply:
+            return Response({"detail":"reply is required"},status=400)
+        FeedbackMessage.objects.create(feedback=f,sender=request.user,body=reply,is_internal=bool(request.data.get("is_internal",False)))
+        f.admin_reply = reply
         f.status = UserFeedback.Status.REPLIED
         f.replied_by = request.user if request.user.is_authenticated else None
         f.replied_at = timezone.now()
@@ -1140,6 +1145,7 @@ class PublicFeedbackCreateView(APIView):
             message=data["message"],
             category=data.get("category", "general"),
         )
+        FeedbackMessage.objects.create(feedback=fb, sender=request.user if request.user.is_authenticated else None, body=data["message"], is_internal=False)
         files = request.FILES.getlist("evidence")
         for uploaded in files[:8]:
             FeedbackEvidence.objects.create(

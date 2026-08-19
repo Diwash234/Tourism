@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 import {
   FiHome, FiUser, FiMapPin, FiHeart, FiClock, FiBell, FiSettings,
@@ -10,6 +11,7 @@ import {
 import useAuth from "../../hooks/useAuth"
 import { closeSidebar } from "../../hooks/useSidebarState"
 import { useI18n } from "../../i18n"
+import configApi from "../../api/configApi"
 
 const GROUPS = [
   {
@@ -88,15 +90,18 @@ export default function Sidebar() {
   const { isAuthenticated, user, isAdmin, isLocal } = useAuth()
   const { t } = useI18n()
   const location = useLocation()
+  const [managedItems, setManagedItems] = useState([])
+  useEffect(()=>{configApi.getPublicConfig().then(({data})=>setManagedItems((data.navigation||[]).filter(item=>item.location==="sidebar"))).catch(()=>{})},[])
 
   // Close the mobile drawer whenever the route changes.
   const handleNav = () => {
     if (window.innerWidth < 1024) closeSidebar()
   }
 
+  const managedByRoute = new Map(managedItems.filter(item=>String(item.route).startsWith("/")).map(item=>[item.route,item]))
   const visibleGroups = GROUPS.map((grp) => ({
     ...grp,
-    links: grp.links.filter((link) => {
+    links: grp.links.map(link=>managedByRoute.has(link.to)?{...link,label:managedByRoute.get(link.to).label}:link).filter((link) => {
       if (link.roleCheck === "admin" && !isAdmin) return false
       if (link.roleCheck === "staff" && !isAdmin && user?.role !== "staff") return false
       if (link.roleCheck === "local" && !isLocal && !isAdmin) return false

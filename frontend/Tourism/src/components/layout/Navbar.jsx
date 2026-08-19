@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
 import { FiMenu, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
 
@@ -9,6 +9,7 @@ import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import { useI18n } from "../../i18n"
+import configApi from "../../api/configApi"
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -16,6 +17,14 @@ const Navbar = () => {
   const { isAuthenticated, user, logout } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
+  const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
+
+  useEffect(() => {
+    configApi.getPublicConfig().then(({data}) => {
+      const items=(data.navigation||[]).filter(item=>item.location==="navbar"&&!item.parent_id&&String(item.route).startsWith("/"))
+      if(items.length)setManagedLinks(items.map(item=>({path:item.route,label:item.label})))
+    }).catch(()=>{})
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -69,7 +78,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-6 shrink-0">
-          {NAV_LINKS.map((link) => (
+          {managedLinks.map((link) => (
             <NavLink
               key={link.path}
               to={link.path}
