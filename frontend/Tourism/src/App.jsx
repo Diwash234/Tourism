@@ -6,6 +6,7 @@ import { installGlobalErrorHandlers } from "./utils/errorLogger"
 // Layouts
 import MainLayout from "./components/layout/MainLayout"
 import DashboardLayout from "./components/layout/DashboardLayout"
+import AuthLayout from "./components/auth/AuthLayout"
 import ScrollToTop from "./components/layout/ScrollToTop"
 
 // Route Guards
@@ -112,24 +113,24 @@ function App() {
       <ScrollToTop />
       <Routes>
 
-      {/* Public Routes */}
+      {/* Auth portals — no traveller navbar/sidebar so Admin, Staff and Traveller look different */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<UserLogin />} />
+        <Route path="/login/user" element={<UserLogin />} />
+        <Route path="/staff/login" element={<StaffLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/portal" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
+      </Route>
+
+      {/* Public traveller chrome */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/thank-you" element={<ThankYou />} />
-
-        {/* Auth — distinct portals for traveller, staff and admin */}
-        <Route path="/login" element={<UserLogin />} />
-        <Route path="/login/user" element={<UserLogin />} />
-        <Route path="/staff/login" element={<StaffLogin />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        {/* Legacy portal selector page (kept for backward compatibility) */}
-        <Route path="/portal" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        {/* Public — user isn't logged in yet during this step */}
-        <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
 
         {/* Destinations */}
         <Route path="/destinations" element={<DestinationList />} />

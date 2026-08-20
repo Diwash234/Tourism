@@ -16,7 +16,7 @@ const NavChildren = ({ items, depth = 0 }) => items.map(child => <div key={child
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [, , toggleSidebar] = useSidebarState()
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user, logout, isAdmin, isStaff } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
   const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
@@ -97,6 +97,16 @@ const Navbar = () => {
           <LanguageSwitcher compact />
           {isAuthenticated ? (
             <>
+              {isAdmin && (
+                <Link to="/admin" className="text-xs font-black uppercase tracking-wide rounded-lg bg-emerald-900 text-white px-3 py-2">
+                  Admin
+                </Link>
+              )}
+              {isStaff && !isAdmin && (
+                <Link to="/staff" className="text-xs font-black uppercase tracking-wide rounded-lg bg-amber-500 text-amber-950 px-3 py-2">
+                  Staff
+                </Link>
+              )}
               <Link
                 to="/notifications"
                 className="text-gray-600 hover:text-primary-600"

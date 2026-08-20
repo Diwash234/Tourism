@@ -18,12 +18,12 @@ export default function AdminLogin() {
     setLoading(true)
     try {
       const userData = await login(data)
+      const role = String(userData?.role || "").toLowerCase()
       const isAdmin =
         userData?.is_superuser === true ||
-        userData?.is_staff === true ||
-        ["admin", "super_admin", "tourism_admin"].includes(userData?.role)
+        ["admin", "super_admin", "tourism_admin"].includes(role)
       if (!isAdmin) {
-        showToast("Administrator access required for this portal.", "error")
+        showToast("Administrator access required. Staff should use the Staff login.", "error")
         return
       }
       showToast(`Welcome, ${userData?.first_name || userData?.email}`, "success")

@@ -20,9 +20,10 @@ export default function StaffLogin() {
     setLoading(true)
     try {
       const userData = await login(data)
+      const role = String(userData?.role || "").toLowerCase()
       const isStaff =
-        STAFF_ROLES.includes(userData?.role) ||
-        userData?.is_staff === true ||
+        STAFF_ROLES.includes(role) ||
+        ["admin", "super_admin", "tourism_admin"].includes(role) ||
         userData?.is_superuser === true
       if (!isStaff) {
         showToast("This account does not have staff privileges.", "error")
