@@ -22,6 +22,7 @@ import CMSPanel from "../../components/admin/CMSPanel"
 import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
 import DestinationFeaturesPanel from "../../components/admin/DestinationFeaturesPanel"
 import CategoryTranslationPanel from "../../components/admin/CategoryTranslationPanel"
+import HotelBookingPanel from "../../components/admin/HotelBookingPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -554,6 +555,7 @@ const AdminDashboard = () => {
             { id: "image_pipeline", label: "🖼️ Multi-Source Image Pipeline (Wikimedia, Openverse, Unsplash, Pexels)", count: null },
             { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
             { id: "infrastructure", label: "🏥 Community Services & ML", count: null },
+            { id: "hotel_bookings", label: "🏨 Hotels, Bookings & Reviews", count: null },
             { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
             { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
           ].map((tab) => (
@@ -2020,6 +2022,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "infrastructure" && <InfrastructureModerationPanel />}
+        {activeTab === "hotel_bookings" && <HotelBookingPanel />}
 
         {/* TAB 7: EXPENSES */}
         {activeTab === "expenses" && (
