@@ -299,6 +299,8 @@ class AdminPendingPlacesView(APIView):
     def get(self, request):
         _require_capability(request, "destinations", "view")
         places = Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).select_related("category", "created_by")
+        if request.user.role == "district_manager":
+            places = places.filter(district__iexact=request.user.managed_district)
         data = []
         for p in places:
             gallery_photos = [
@@ -340,6 +342,7 @@ class AdminPendingPlacesView(APIView):
         return Response(data)
 
     def post(self, request, id=None):
+        _require_capability(request, "destinations", "approve")
         action_type = request.data.get("action", "approve")  # approve or reject
         if not id:
             id = request.data.get("id")
@@ -347,6 +350,8 @@ class AdminPendingPlacesView(APIView):
             place = Destination.objects.get(id=id)
         except Destination.DoesNotExist:
             return Response({"detail": "Place not found."}, status=status.HTTP_404_NOT_FOUND)
+        if request.user.role == "district_manager" and (place.district or "").lower() != (request.user.managed_district or "").lower():
+            return Response({"detail": "District managers may only moderate their assigned district."}, status=403)
 
         if action_type == "approve":
             place.status = Destination.SubmissionStatus.APPROVED
