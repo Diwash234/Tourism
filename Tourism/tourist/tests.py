@@ -948,6 +948,32 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         replacement.refresh_from_db();self.assertTrue(replacement.is_cover)
         self.assertEqual(response.data["replacement_cover_id"],replacement.id)
 
+    def test_dataset_upload_validation_import_backup_and_capability(self):
+        import tempfile
+        from pathlib import Path
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        from .models import StaffCapabilityProfile
+        from .views_admin import AdminDatasetManagerView
+        staff=User.objects.create_user(email="dataset-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"datasets":["view"]})
+        self.client.force_authenticate(staff)
+        denied=self.client.post(reverse("admin-datasets"),{"dataset":"risk","file":SimpleUploadedFile("risk.csv",b"place,risk\nTest,low\n",content_type="text/csv")},format="multipart")
+        self.assertEqual(denied.status_code,status.HTTP_403_FORBIDDEN)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/"dataset").mkdir();(root/"dataset/risk.csv").write_text("place,risk\nOld,low\n")
+            original=AdminDatasetManagerView.DATASETS;AdminDatasetManagerView.DATASETS={"risk":"dataset/risk.csv"}
+            try:
+                staff.capability_profile.capabilities={"datasets":["view","add","change"]};staff.capability_profile.save()
+                with override_settings(BASE_DIR=root):
+                    valid=self.client.post(reverse("admin-datasets"),{"dataset":"risk","file":SimpleUploadedFile("risk.csv",b"place,risk\nNew,high\n",content_type="text/csv")},format="multipart")
+                    self.assertEqual(valid.status_code,status.HTTP_201_CREATED)
+                    imported=self.client.put(reverse("admin-datasets"),{"dataset":"risk","token":valid.data["token"]},format="json")
+                    self.assertEqual(imported.status_code,status.HTTP_200_OK)
+                    self.assertIn("New,high",(root/"dataset/risk.csv").read_text())
+                    self.assertTrue(list((root/"dataset").glob("risk.backup-*.csv")))
+            finally: AdminDatasetManagerView.DATASETS=original
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

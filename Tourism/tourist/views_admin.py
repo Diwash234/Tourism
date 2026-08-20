@@ -1198,6 +1198,72 @@ class AdminNotificationManagementView(APIView):
         return Response({"message":"Broadcast created","recipient_count":len(rows)},status=201)
 
 
+class AdminDatasetManagerView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    DATASETS = {
+        "destinations": "dataset/destinations_clean.csv",
+        "risk": "dataset/risk_features.csv",
+        "budget": "dataset/travel_cost_cleaned.csv",
+        "hospitals": "dataset/hospital_cleaned.csv",
+        "police": "dataset/police_station_cleaned.csv",
+        "community_services": "dataset/community_services.csv",
+        "community_routes": "dataset/community_routes.csv",
+    }
+    def get(self, request):
+        _require_capability(request,"datasets","view")
+        import csv
+        from pathlib import Path
+        key=request.query_params.get("dataset")
+        if not key:
+            rows=[]
+            for name,relative in self.DATASETS.items():
+                path=Path(settings.BASE_DIR)/relative
+                rows.append({"key":name,"path":relative,"exists":path.exists(),"size_bytes":path.stat().st_size if path.exists() else 0,"modified_at":path.stat().st_mtime if path.exists() else None})
+            return Response({"datasets":rows})
+        if key not in self.DATASETS:return Response({"detail":"Unknown dataset"},status=400)
+        path=Path(settings.BASE_DIR)/self.DATASETS[key]
+        if not path.exists():return Response({"detail":"Dataset file not found"},status=404)
+        if request.query_params.get("download") in {"1","true","yes"}:
+            from django.http import FileResponse
+            return FileResponse(path.open("rb"),as_attachment=True,filename=path.name)
+        try:page=max(1,int(request.query_params.get("page",1)));size=max(10,min(100,int(request.query_params.get("page_size",25))))
+        except ValueError:return Response({"detail":"Invalid pagination"},status=400)
+        with path.open(newline="",encoding="utf-8-sig") as handle:
+            reader=csv.DictReader(handle);all_rows=list(reader);headers=reader.fieldnames or []
+        start=(page-1)*size
+        return Response({"dataset":key,"headers":headers,"count":len(all_rows),"page":page,"total_pages":max(1,(len(all_rows)+size-1)//size),"results":all_rows[start:start+size]})
+    def post(self,request):
+        _require_capability(request,"datasets","add")
+        import csv,io,uuid
+        from pathlib import Path
+        key=request.data.get("dataset");uploaded=request.FILES.get("file")
+        if key not in self.DATASETS or not uploaded:return Response({"detail":"Valid dataset and CSV file are required"},status=400)
+        if uploaded.size>10*1024*1024 or not uploaded.name.lower().endswith(".csv"):return Response({"detail":"CSV must be 10 MB or smaller"},status=400)
+        try:text=uploaded.read().decode("utf-8-sig");reader=csv.DictReader(io.StringIO(text));headers=reader.fieldnames or [];rows=list(reader)
+        except Exception as exc:return Response({"detail":f"CSV parse failed: {exc}"},status=400)
+        current=Path(settings.BASE_DIR)/self.DATASETS[key]
+        with current.open(newline="",encoding="utf-8-sig") as handle:expected=csv.DictReader(handle).fieldnames or []
+        missing=[field for field in expected if field not in headers];extra=[field for field in headers if field not in expected]
+        errors=[]
+        for index,row in enumerate(rows[:1000],2):
+            if not any(str(value).strip() for value in row.values()):errors.append({"row":index,"error":"Empty row"})
+        if missing:return Response({"valid":False,"missing_headers":missing,"extra_headers":extra,"errors":errors[:100]},status=400)
+        staging=Path(settings.BASE_DIR)/"dataset"/"staging";staging.mkdir(parents=True,exist_ok=True);token=f"{key}-{uuid.uuid4().hex}.csv";(staging/token).write_text(text,encoding="utf-8")
+        return Response({"valid":True,"token":token,"dataset":key,"row_count":len(rows),"headers":headers,"extra_headers":extra,"errors":errors[:100]},status=201)
+    def put(self,request):
+        _require_capability(request,"datasets","change")
+        import os,shutil
+        from pathlib import Path
+        token=Path(str(request.data.get("token","")).strip()).name;key=request.data.get("dataset")
+        if key not in self.DATASETS or not token.startswith(f"{key}-"):return Response({"detail":"Invalid staged import"},status=400)
+        staged=Path(settings.BASE_DIR)/"dataset"/"staging"/token;target=Path(settings.BASE_DIR)/self.DATASETS[key]
+        if not staged.exists():return Response({"detail":"Staged file not found"},status=404)
+        backup=target.with_suffix(f".backup-{timezone.now().strftime('%Y%m%d%H%M%S')}.csv");shutil.copy2(target,backup);os.replace(staged,target)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,category="data",severity="warning",source="backend",action="dataset.import",message=f"Imported {key} dataset",object_type="Dataset",object_id=key,extra={"backup":str(backup.name)})
+        return Response({"message":"Dataset imported","dataset":key,"backup":backup.name})
+
+
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
     def get(self, request):

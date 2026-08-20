@@ -3,6 +3,10 @@ import axiosClient from "./axiosClient"
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
   globalSearch: (q) => axiosClient.get("/admin/search/", { params: { q } }),
+  getDatasets: (params) => axiosClient.get("/admin/datasets/", { params }),
+  validateDatasetUpload: (formData) => axiosClient.post("/admin/datasets/", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  confirmDatasetImport: (payload) => axiosClient.put("/admin/datasets/", payload),
+  downloadDataset: (dataset) => axiosClient.get("/admin/datasets/", { params: { dataset, download: true }, responseType: "blob" }),
   getMediaLibrary: (params) => axiosClient.get("/admin/media-library/", { params }),
   updateMediaLibrary: (payload) => axiosClient.patch("/admin/media-library/", payload),
   deleteMediaLibrary: (id) => axiosClient.delete("/admin/media-library/", { data: { id } }),
