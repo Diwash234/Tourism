@@ -98,91 +98,98 @@ class AdminStatsView(APIView):
 
 
 class AdminUsersView(APIView):
+    """Filterable user directory. Unparameterized requests retain the legacy list shape."""
     permission_classes = [IsAdminOrStaff]
+
+    @staticmethod
+    def _row(u):
+        return {
+            "id": u.id, "email": u.email, "first_name": u.first_name,
+            "last_name": u.last_name, "full_name": u.full_name, "bio": u.bio or "",
+            "role": u.role, "managed_district": u.managed_district or "",
+            "is_active": u.is_active, "is_verified": u.is_verified,
+            "phone_verified": u.phone_verified, "is_staff": u.is_staff,
+            "is_superuser": u.is_superuser, "city": u.city or "",
+            "country": u.country or "", "auth_provider": u.auth_provider,
+            "history_count": getattr(u, "history_count", 0),
+            "last_login": u.last_login, "date_joined": u.date_joined,
+        }
 
     def get(self, request):
         _require_capability(request, "users", "view")
-        users = User.objects.all().order_by("-date_joined")
-        data = []
-        for u in users:
-            visits = list(
-                u.history.select_related("destination")
-                .order_by("-viewed_at")[:10]
-                .values("destination__name", "destination__slug", "destination__city", "viewed_at")
-            )
-            active_sos = u.sos_alerts.filter(status=SOSAlert.Status.ACTIVE).exists()
-            data.append({
-                "id": u.id,
-                "email": u.email,
-                "first_name": u.first_name,
-                "last_name": u.last_name,
-                "full_name": u.full_name,
-                "bio": u.bio or "Travel enthusiast exploring Nepal's Himalayas & cultural heritage.",
-                "role": u.role,
-                "managed_district": u.managed_district or "",
-                "is_active": u.is_active,
-                "is_staff": u.is_staff,
-                "is_superuser": u.is_superuser,
-                "latitude": float(u.latitude) if u.latitude is not None else None,
-                "longitude": float(u.longitude) if u.longitude is not None else None,
-                "city": u.city or "",
-                "country": u.country or "Nepal",
-                "location_source": u.location_source or "GPS",
-                "history_count": u.history.count(),
-                "travel_history": visits,
-                "last_destination": visits[0]["destination__name"] if visits else None,
-                "has_emergency": active_sos,
-                "date_joined": u.date_joined,
-            })
-        return Response(data)
+        from django.core.paginator import Paginator
+        users = User.objects.annotate(history_count=Count("history", distinct=True))
+        q = request.query_params.get("q", "").strip()
+        if q:
+            users = users.filter(Q(email__icontains=q) | Q(first_name__icontains=q) |
+                                 Q(last_name__icontains=q) | Q(city__icontains=q) |
+                                 Q(managed_district__icontains=q))
+        role = request.query_params.get("role", "")
+        if role:
+            users = users.filter(role=role)
+        state = request.query_params.get("status", "")
+        if state in {"active", "inactive"}:
+            users = users.filter(is_active=(state == "active"))
+        verified = request.query_params.get("verified", "")
+        if verified in {"true", "false"}:
+            users = users.filter(is_verified=(verified == "true"))
+        ordering = request.query_params.get("ordering", "-date_joined")
+        allowed_ordering = {"date_joined", "-date_joined", "email", "-email", "last_login", "-last_login"}
+        users = users.order_by(ordering if ordering in allowed_ordering else "-date_joined")
+
+        # Backward compatibility for the existing dashboard bootstrap call.
+        if not request.query_params:
+            return Response([self._row(u) for u in users])
+        try:
+            page_size = min(100, max(10, int(request.query_params.get("page_size", 25))))
+        except (TypeError, ValueError):
+            page_size = 25
+        page = Paginator(users, page_size).get_page(request.query_params.get("page", 1))
+        return Response({"count": page.paginator.count, "page": page.number,
+                         "pages": page.paginator.num_pages,
+                         "results": [self._row(u) for u in page.object_list]})
 
     def post(self, request):
         _require_capability(request, "users", "add")
-        data = request.data
-        email = data.get("email", "").strip().lower()
-        password = data.get("password", "")
-        role = data.get("role", User.Role.TOURIST)
-        first_name = data.get("first_name", "")
-        last_name = data.get("last_name", "")
-        bio = data.get("bio", "")
-        managed_district = data.get("managed_district", "")
-
-        if not email or not password:
-            return Response(
-                {"detail": "Email and password are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+        email = request.data.get("email", "").strip().lower()
+        password = request.data.get("password", "")
+        role = request.data.get("role", User.Role.TOURIST)
+        if role not in User.Role.values:
+            return Response({"detail": "Invalid role."}, status=400)
+        if role in {User.Role.ADMIN, User.Role.SUPER_ADMIN, User.Role.TOURISM_ADMIN} and not request.user.is_superuser:
+            return Response({"detail": "Only a super administrator may create administrator accounts."}, status=403)
+        if not email or len(password) < 8:
+            return Response({"detail": "A valid email and password of at least 8 characters are required."}, status=400)
         if User.objects.filter(email=email).exists():
-            return Response(
-                {"detail": "A user with this email already exists."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "A user with this email already exists."}, status=400)
+        staff_roles = set(User.Role.values) - {User.Role.TOURIST, User.Role.GUIDE}
+        user = User.objects.create_user(email=email, password=password,
+            first_name=request.data.get("first_name", "").strip(),
+            last_name=request.data.get("last_name", "").strip(),
+            bio=request.data.get("bio", "").strip(), role=role,
+            managed_district=request.data.get("managed_district", "").strip(),
+            is_staff=role in staff_roles, is_active=True, is_verified=False)
+        _audit_user_change(request, user, "user.create", {}, {"role": role, "is_active": True})
+        return Response({"id": user.id, "email": user.email, "role": user.role,
+                         "message": "User created. Verification is still required."}, status=201)
 
-        is_staff = role in [
-            User.Role.ADMIN, User.Role.SUPER_ADMIN, User.Role.TOURISM_ADMIN,
-            User.Role.STAFF, User.Role.CONTENT_MODERATOR, User.Role.DISTRICT_MANAGER
-        ]
 
-        user = User.objects.create_user(
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            bio=bio,
-            role=role,
-            managed_district=managed_district,
-            is_staff=is_staff,
-            is_active=True,
-            is_verified=True,
-        )
+def _audit_user_change(request, target, action, before, after):
+    from audit.models import AuditLog
+    AuditLog.objects.create(user=request.user, user_email=request.user.email,
+        actor_role=request.user.role, category="security", severity="warning",
+        source="backend", action=action, message=f"{action}: {target.email}",
+        object_type="User", object_id=str(target.id), extra={"before": before, "after": after})
 
-        return Response({
-            "id": user.id,
-            "email": user.email,
-            "role": user.role,
-            "message": f"User {user.email} created successfully with role {user.role}."
-        }, status=status.HTTP_201_CREATED)
+
+def _can_manage_user(actor, target, requested_role=None):
+    if actor.pk == target.pk:
+        return False, "You cannot change your own role or access state here."
+    if target.is_superuser and not actor.is_superuser:
+        return False, "Only a super administrator may manage this account."
+    if requested_role in {User.Role.ADMIN, User.Role.SUPER_ADMIN, User.Role.TOURISM_ADMIN} and not actor.is_superuser:
+        return False, "Only a super administrator may assign administrator roles."
+    return True, ""
 
 
 class UpdateUserStatusView(APIView):
@@ -190,56 +197,45 @@ class UpdateUserStatusView(APIView):
 
     def put(self, request, id):
         _require_capability(request, "users", "change")
-        if any(field in request.data for field in ("role", "is_staff", "is_superuser")) and not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}):
-            return Response({"detail":"Only administrators can change roles."},status=403)
-        try:
-            user = User.objects.get(id=id)
-        except User.DoesNotExist:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        old_role, old_active = user.role, user.is_active
-        if "is_active" in request.data:
-            user.is_active = bool(request.data["is_active"])
-        if "role" in request.data:
-            user.role = request.data["role"]
-            if user.role in [User.Role.ADMIN, User.Role.SUPER_ADMIN, User.Role.STAFF, User.Role.CONTENT_MODERATOR]:
-                user.is_staff = True
-        if "managed_district" in request.data:
-            user.managed_district = request.data["managed_district"]
-        if "first_name" in request.data:
-            user.first_name = request.data["first_name"]
-        if "last_name" in request.data:
-            user.last_name = request.data["last_name"]
-        if "bio" in request.data:
-            user.bio = request.data["bio"]
-
+        user = User.objects.filter(id=id).first()
+        if not user:
+            return Response({"detail": "User not found."}, status=404)
+        role = request.data.get("role")
+        allowed, reason = _can_manage_user(request.user, user, role)
+        if not allowed:
+            return Response({"detail": reason}, status=403)
+        if role is not None and role not in User.Role.values:
+            return Response({"detail": "Invalid role."}, status=400)
+        before = {"role": user.role, "is_active": user.is_active, "is_verified": user.is_verified}
+        for field in ("is_active", "is_verified", "managed_district", "first_name", "last_name", "bio"):
+            if field in request.data:
+                setattr(user, field, request.data[field])
+        if role is not None:
+            user.role = role
+            user.is_staff = role not in {User.Role.TOURIST, User.Role.GUIDE}
         user.save()
-        if old_role != user.role or old_active != user.is_active:
-            from audit.models import AuditLog
-            AuditLog.objects.create(user=request.user, user_email=request.user.email, category="security", severity="warning", source="backend", action="user.role_status.change", message=f"Changed {user.email}: role {old_role} -> {user.role}; active {old_active} -> {user.is_active}", object_type="User", object_id=str(user.id), extra={"old_role":old_role,"new_role":user.role,"old_active":old_active,"new_active":user.is_active})
-        return Response({
-            "id": user.id,
-            "email": user.email,
-            "role": user.role,
-            "is_active": user.is_active,
-            "message": "User updated successfully."
-        })
+        after = {"role": user.role, "is_active": user.is_active, "is_verified": user.is_verified}
+        _audit_user_change(request, user, "user.access.change", before, after)
+        return Response({"id": user.id, "email": user.email, **after, "message": "User updated."})
 
-    def patch(self, request, id):
-        return self.put(request, id)
+    patch = put
 
     def delete(self, request, id):
+        """Retention-safe removal: deactivate and revoke access instead of hard deleting."""
         _require_capability(request, "users", "delete")
-        if not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}):
-            return Response({"detail":"Only administrators can delete users."},status=403)
-        if request.user.id == id:
-            return Response({"detail": "Cannot delete your own account."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            user = User.objects.get(id=id)
-            user.delete()
-            return Response({"message": "User deleted successfully."})
-        except User.DoesNotExist:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        user = User.objects.filter(id=id).first()
+        if not user:
+            return Response({"detail": "User not found."}, status=404)
+        allowed, reason = _can_manage_user(request.user, user)
+        if not allowed:
+            return Response({"detail": reason}, status=403)
+        before = {"is_active": user.is_active}
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+        OutstandingToken.objects.filter(user=user).delete()
+        _audit_user_change(request, user, "user.deactivate", before, {"is_active": False, "sessions_revoked": True})
+        return Response({"message": "User deactivated and access tokens revoked."})
 
 
 class AdminUserTrackingView(APIView):
@@ -789,54 +785,65 @@ class AdminAlertsView(APIView):
 # User details + verification / feedback
 # ---------------------------------------------------------------------------
 class AdminUsersDetailView(APIView):
-    """Full user details incl. verification, activity and feedback for admin."""
+    """Security-conscious user profile, activity summary and role history."""
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, id):
         _require_capability(request, "users", "view")
-        User = get_user_model()
         u = User.objects.filter(pk=id).first()
         if not u:
             return Response({"detail": "not found"}, status=404)
+        from audit.models import AuditLog
+        role_history = AuditLog.objects.filter(
+            object_type="User", object_id=str(u.id), action__startswith="user."
+        )[:20]
+        visits = u.history.select_related("destination").order_by("-viewed_at")[:10]
         return Response({
-            "id": u.id,
-            "email": u.email,
-            "first_name": u.first_name,
-            "last_name": u.last_name,
-            "phone_number": u.phone_number,
-            "role": u.role,
-            "is_verified": u.is_verified,
-            "phone_verified": getattr(u, "phone_verified", False),
-            "is_active": u.is_active,
-            "is_staff": u.is_staff,
-            "is_superuser": u.is_superuser,
-            "date_joined": u.date_joined,
-            "last_login": u.last_login,
-            "city": u.city,
-            "country": u.country,
-            "managed_district": u.managed_district,
-            "feedback_count": u.feedbacks.count(),
-            "feedbacks": [
-                {"id": f.id, "subject": f.subject, "status": f.status,
-                 "created_at": f.created_at}
-                for f in u.feedbacks.all()[:10]
-            ],
+            "id": u.id, "email": u.email, "full_name": u.full_name,
+            "first_name": u.first_name, "last_name": u.last_name, "bio": u.bio,
+            "phone_number": str(u.phone_number or ""), "role": u.role,
+            "is_verified": u.is_verified, "phone_verified": u.phone_verified,
+            "is_active": u.is_active, "is_staff": u.is_staff,
+            "is_superuser": u.is_superuser, "auth_provider": u.auth_provider,
+            "date_joined": u.date_joined, "last_login": u.last_login,
+            "city": u.city, "country": u.country, "managed_district": u.managed_district,
+            "activity": {"visits": u.history.count(), "favorites": u.favorites.count(),
+                         "reviews": u.reviews.count(), "feedback": u.feedbacks.count(),
+                         "emergencies": u.sos_alerts.count()},
+            "recent_visits": [{"destination": v.destination.name, "slug": v.destination.slug,
+                               "viewed_at": v.viewed_at} for v in visits],
+            "role_history": [{"action": x.action, "timestamp": x.timestamp,
+                              "actor": x.user_email, "changes": x.extra} for x in role_history],
         })
 
     def patch(self, request, id):
+        return UpdateUserStatusView().put(request, id)
+
+
+class AdminUserAccessActionView(APIView):
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request, id):
         _require_capability(request, "users", "change")
-        if any(field in request.data for field in ("role","is_staff","is_superuser")) and not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}):
-            return Response({"detail":"Only administrators can change roles."},status=403)
-        User = get_user_model()
         u = User.objects.filter(pk=id).first()
         if not u:
             return Response({"detail": "not found"}, status=404)
-        for field in ("is_verified", "is_active", "is_staff", "role",
-                      "managed_district", "first_name", "last_name"):
-            if field in request.data:
-                setattr(u, field, request.data[field])
-        u.save()
-        return Response({"message": "user updated", "id": u.id})
+        allowed, reason = _can_manage_user(request.user, u)
+        if not allowed:
+            return Response({"detail": reason}, status=403)
+        action = request.data.get("action")
+        if action == "revoke_sessions":
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+            count, _ = OutstandingToken.objects.filter(user=u).delete()
+            _audit_user_change(request, u, "user.sessions.revoke", {}, {"tokens_removed": count})
+            return Response({"message": "All recorded refresh sessions were revoked.", "tokens_removed": count})
+        if action in {"verify", "unverify"}:
+            before = {"is_verified": u.is_verified}
+            u.is_verified = action == "verify"
+            u.save(update_fields=["is_verified"])
+            _audit_user_change(request, u, f"user.{action}", before, {"is_verified": u.is_verified})
+            return Response({"message": "Verification updated.", "is_verified": u.is_verified})
+        return Response({"detail": "Unsupported action."}, status=400)
 
 
 class AdminSendVerificationView(APIView):
@@ -865,8 +872,6 @@ class AdminSendVerificationView(APIView):
             try:
                 send_mail(subject, message, djsettings.DEFAULT_FROM_EMAIL, [u.email],
                           fail_silently=False)
-                u.is_verified = True  # mark verified once a verification message is dispatched
-                u.save(update_fields=["is_verified"])
                 sent.append("email")
             except Exception as exc:  # noqa: BLE001
                 return Response({"detail": f"email failed: {exc}"}, status=502)

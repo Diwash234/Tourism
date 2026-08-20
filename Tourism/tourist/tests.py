@@ -1045,3 +1045,55 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(response.data["status"], "routing_unconfigured")
         self.assertIsNone(response.data["road_distance_km"])
         self.assertGreater(response.data["straight_line_km"], 0)
+
+
+class AdminUserManagementSecurityTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="user-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.target = User.objects.create_user(email="target@example.com", password="StrongPass123!", is_verified=False)
+        self.client.force_authenticate(self.admin)
+
+    def test_filterable_directory_is_paginated(self):
+        response = self.client.get(reverse("admin-users"), {"q": "target", "status": "active", "page_size": 10})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["email"], self.target.email)
+
+    def test_admin_cannot_change_own_access_state(self):
+        response = self.client.put(reverse("admin-update-user-status", kwargs={"id": self.admin.id}), {"is_active": False}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.is_active)
+
+    def test_staff_capability_cannot_escalate_user_to_admin(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="limited-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"users": ["view", "change"]})
+        self.client.force_authenticate(staff)
+        response = self.client.put(reverse("admin-update-user-status", kwargs={"id": self.target.id}), {"role": "admin"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.target.refresh_from_db()
+        self.assertEqual(self.target.role, User.Role.TOURIST)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_verification_reminder_does_not_verify_identity(self):
+        response = self.client.post(reverse("admin-send-verification", kwargs={"id": self.target.id}), {"channel": "email"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.target.refresh_from_db()
+        self.assertFalse(self.target.is_verified)
+
+    def test_delete_is_retention_safe_deactivation(self):
+        response = self.client.delete(reverse("admin-update-user-status", kwargs={"id": self.target.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.target.refresh_from_db()
+        self.assertFalse(self.target.is_active)
+        self.assertTrue(User.objects.filter(pk=self.target.pk).exists())
+
+    def test_detail_includes_activity_and_audit_history(self):
+        self.client.post(reverse("admin-user-access-action", kwargs={"id": self.target.id}), {"action": "verify"}, format="json")
+        response = self.client.get(reverse("admin-user-detail-full", kwargs={"id": self.target.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("activity", response.data)
+        self.assertTrue(response.data["role_history"])

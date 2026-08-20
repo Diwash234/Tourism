@@ -120,6 +120,7 @@ const adminApi = {
   getUserDetail: (id) => axiosClient.get(`/admin/users/${id}/`),
   updateUser: (id, payload) => axiosClient.patch(`/admin/users/${id}/`, payload),
   sendVerification: (id, payload) => axiosClient.post(`/admin/users/${id}/send-verification`, payload),
+  runUserAccessAction: (id, action) => axiosClient.post(`/admin/users/${id}/actions`, { action }),
   exploreData: (params) => axiosClient.get("/admin/data-explorer/", { params }),
   getCMS: (resource) => axiosClient.get("/admin/cms/", { params: { resource } }),
   getStaffCapabilities: () => axiosClient.get("/admin/staff-capabilities/"),

@@ -29,6 +29,7 @@ import MediaLibraryPanel from "../../components/admin/MediaLibraryPanel"
 import DatasetManagerPanel from "../../components/admin/DatasetManagerPanel"
 import FeedbackWorkspace from "../../components/admin/FeedbackWorkspace"
 import ReportsPanel from "../../components/admin/ReportsPanel"
+import UserManagement from "../../components/admin/UserManagement"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -1222,134 +1223,10 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
-        {/* TAB 2: USERS & RBAC (With Bio Description & Travel Activity) */}
+        {/* TAB 2: USERS & RBAC */}
         {activeTab === "users" && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative w-full sm:w-80">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" />
-                <input
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  placeholder="Search user, email, role, location..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900/80 border border-slate-600/60 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-400/20"
-              >
-                <FiPlus size={16} /> Create Sub-Admin / Staff
-              </button>
-            </div>
-
-            <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl overflow-hidden shadow-2xl backdrop-blur">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-800/60 text-slate-300 border-b border-slate-600/50 text-xs uppercase tracking-wider">
-                    <tr>
-                      <th className="px-5 py-3.5">User & Description</th>
-                      <th className="px-4 py-3.5">Role / Sub-Admin</th>
-                      <th className="px-4 py-3.5">Location</th>
-                      <th className="px-4 py-3.5">Travel Activity & Views</th>
-                      <th className="px-4 py-3.5">Status</th>
-                      <th className="px-4 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/40 text-slate-200">
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-5 py-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-pink-500 text-gray-950 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
-                              {u.first_name?.[0] || u.email[0].toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-white leading-snug">{u.full_name || "Traveler"}</p>
-                              <p className="text-xs text-slate-300">{u.email}</p>
-                              <p className="text-[11px] text-emerald-400 italic line-clamp-1 mt-0.5">
-                                {u.bio || "No profile description provided."}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                            className="bg-slate-800/80 border border-slate-600/50 rounded-lg px-2.5 py-1 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-400"
-                          >
-                            {ROLES.map((r) => (
-                              <option key={r.id} value={r.id} className="bg-slate-900 text-white">
-                                {r.label}
-                              </option>
-                            ))}
-                          </select>
-                          {u.managed_district && (
-                            <p className="text-[10px] text-amber-300/80 mt-0.5">District: {u.managed_district}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-xs">
-                          {u.latitude && u.longitude ? (
-                            <div>
-                              <span className="text-emerald-400 font-medium">📍 {u.city || "Nepal"}</span>
-                              <p className="text-[10px] text-slate-300">{u.latitude.toFixed(2)}, {u.longitude.toFixed(2)}</p>
-                            </div>
-                          ) : (
-                            <span className="text-emerald-400">Location inactive</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-xs">
-                          <button
-                            onClick={() => setSelectedUserHistory(u)}
-                            className="text-amber-300 hover:text-amber-200 font-bold underline flex items-center gap-1"
-                          >
-                            <FiEye size={12} /> {u.history_count} Places Visited
-                          </button>
-                          {u.last_destination && (
-                            <p className="text-[10px] text-slate-300 truncate max-w-[140px] mt-0.5">
-                              Last: {u.last_destination}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                              u.is_active
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
-                            }`}
-                          >
-                            {u.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-right space-x-2">
-                          <button
-                            onClick={() => handleToggleUserStatus(u.id, u.is_active)}
-                            title={u.is_active ? "Deactivate User" : "Activate User"}
-                            className="p-2 rounded-xl bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
-                          >
-                            {u.is_active ? <FiUserX size={15} /> : <FiUserCheck size={15} />}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u.id)}
-                            title="Remove User"
-                            className="p-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-sm shadow-rose-600/30"
-                          >
-                            <FiTrash2 size={15} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
+            <UserManagement />
           </motion.div>
         )}
 
