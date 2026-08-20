@@ -19,6 +19,22 @@ from .serializers import InfrastructureSubmissionSerializer
 User = get_user_model()
 
 
+def _has_capability(request, module, action="view"):
+    user = request.user
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+        return True
+    profile = getattr(user, "capability_profile", None)
+    return bool(profile and profile.allows(module, action))
+
+
+def _require_capability(request, module, action="view"):
+    if not _has_capability(request, module, action):
+        from rest_framework.exceptions import PermissionDenied
+        raise PermissionDenied(f"Missing {module}.{action} capability")
+
+
 def _sync_destination_json(destination):
     """Atomic JSON exchange snapshot for admin-edited destinations."""
     import json
@@ -851,6 +867,7 @@ class InfrastructureModerationView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, id=None):
+        _require_capability(request, "destinations", "view")
         qs = InfrastructureSubmission.objects.select_related("submitted_by", "destination", "reviewed_by")
         requested_status = request.query_params.get("status")
         if requested_status:
@@ -863,6 +880,7 @@ class InfrastructureModerationView(APIView):
         return Response(InfrastructureSubmissionSerializer(qs[:300], many=True, context={"request": request}).data)
 
     def post(self, request, id=None):
+        _require_capability(request, "destinations", "approve")
         item = InfrastructureSubmission.objects.filter(pk=id).first()
         if not item:
             return Response({"detail": "Submission not found."}, status=404)
@@ -890,6 +908,7 @@ class MLDataPipelineView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "datasets", "view")
         return Response([{
             "id": run.id, "model_type": run.model_type, "status": run.status,
             "version": run.version, "previous_version": run.previous_version,
@@ -899,6 +918,7 @@ class MLDataPipelineView(APIView):
         } for run in MLTrainingRun.objects.all()[:100]])
 
     def post(self, request):
+        _require_capability(request, "datasets", "train" if request.data.get("train") else "export")
         import subprocess
         import sys
         from pathlib import Path
@@ -1087,6 +1107,7 @@ class AdminCMSView(APIView):
         "navigation": {"location","label","route","icon","parent_id","allowed_roles","display_order","is_active"},
     }
     def get(self, request):
+        _require_capability(request, "content", "view")
         resource=request.query_params.get("resource","pages"); model=self.MODELS.get(resource)
         if not model:return Response({"detail":"Unknown CMS resource"},status=400)
         rows=[]
@@ -1099,6 +1120,7 @@ class AdminCMSView(APIView):
             rows.append(row)
         return Response({"resource":resource,"results":rows})
     def post(self, request):
+        _require_capability(request, "content", "add")
         resource=request.data.get("resource"); model=self.MODELS.get(resource)
         if not model:return Response({"detail":"Unknown CMS resource"},status=400)
         payload={k:v for k,v in request.data.items() if k in self.FIELDS[resource]}
@@ -1106,6 +1128,7 @@ class AdminCMSView(APIView):
         obj=model.objects.create(**payload)
         return Response({"id":obj.pk,"message":"Created"},status=201)
     def patch(self, request):
+        _require_capability(request, "content", "change")
         resource=request.data.get("resource"); model=self.MODELS.get(resource); obj=model.objects.filter(pk=request.data.get("id")).first() if model else None
         if not obj:return Response({"detail":"CMS record not found"},status=404)
         for key,value in request.data.items():
@@ -1117,6 +1140,7 @@ class FeedbackListView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "feedback", "view")
         qs = UserFeedback.objects.all().select_related("user")
         status = request.query_params.get("status")
         if status:
@@ -1145,6 +1169,7 @@ class FeedbackReplyView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request, id):
+        _require_capability(request, "feedback", "change")
         from django.utils import timezone
         f = UserFeedback.objects.filter(pk=id).first()
         if not f:
