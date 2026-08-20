@@ -101,6 +101,7 @@ class AdminUsersView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "users", "view")
         users = User.objects.all().order_by("-date_joined")
         data = []
         for u in users:
@@ -136,6 +137,7 @@ class AdminUsersView(APIView):
         return Response(data)
 
     def post(self, request):
+        _require_capability(request, "users", "add")
         data = request.data
         email = data.get("email", "").strip().lower()
         password = data.get("password", "")
@@ -287,6 +289,7 @@ class AdminPendingPlacesView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "destinations", "view")
         places = Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).select_related("category", "created_by")
         data = []
         for p in places:
