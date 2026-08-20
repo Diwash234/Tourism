@@ -1198,6 +1198,44 @@ class AdminNotificationManagementView(APIView):
         return Response({"message":"Broadcast created","recipient_count":len(rows)},status=201)
 
 
+class AdminMediaLibraryView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    def get(self, request):
+        _require_capability(request,"images","view")
+        qs=DestinationImage.objects.select_related("destination","uploaded_by").order_by("-created_at")
+        q=request.query_params.get("q","");status_filter=request.query_params.get("status");source=request.query_params.get("source")
+        if q: qs=qs.filter(Q(destination__name__icontains=q)|Q(caption__icontains=q)|Q(external_url__icontains=q))
+        if status_filter: qs=qs.filter(verification_status=status_filter)
+        if source: qs=qs.filter(source=source)
+        page=max(1,int(request.query_params.get("page",1)));size=30;count=qs.count();items=[]
+        for image in qs[(page-1)*size:page*size]:
+            url=image.external_url or (image.image.url if image.image else "")
+            items.append({"id":image.id,"destination_id":image.destination_id,"destination":image.destination.name,"url":url,"caption":image.caption,"source":image.source,"source_url":image.source_url,"license":image.license_type,"photographer":image.photographer,"status":image.verification_status,"is_cover":image.is_cover,"ordering":image.ordering,"created_at":image.created_at})
+        return Response({"count":count,"page":page,"total_pages":max(1,(count+size-1)//size),"results":items})
+    def patch(self, request):
+        _require_capability(request,"images","change")
+        ids=request.data.get("ids") or []
+        action=request.data.get("action")
+        if ids and action in {"approve","reject"}:
+            updated=DestinationImage.objects.filter(id__in=ids).update(verification_status="approved" if action=="approve" else "rejected",is_verified=action=="approve")
+            return Response({"message":f"Bulk {action} complete","updated":updated})
+        image=DestinationImage.objects.filter(pk=request.data.get("id")).first()
+        if not image:return Response({"detail":"Image not found"},status=404)
+        for field in ("caption","alt_text","ordering","verification_status","is_verified"):
+            if field in request.data:setattr(image,field,request.data[field])
+        image.save();return Response({"message":"Media updated","id":image.id})
+    def delete(self, request):
+        _require_capability(request,"images","delete")
+        image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()
+        if not image:return Response({"detail":"Image not found"},status=404)
+        destination=image.destination;was_cover=image.is_cover;image.delete()
+        if was_cover:
+            replacement=destination.gallery.exclude(verification_status="rejected").order_by("ordering","id").first()
+            if replacement:
+                replacement.is_cover=True;replacement.save(update_fields=["is_cover"])
+        return Response({"message":"Media deleted","replacement_cover_id":replacement.id if was_cover and replacement else None})
+
+
 class AdminGlobalSearchView(APIView):
     permission_classes = [IsAdminOrStaff]
     def get(self, request):

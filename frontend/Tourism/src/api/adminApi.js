@@ -3,6 +3,9 @@ import axiosClient from "./axiosClient"
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
   globalSearch: (q) => axiosClient.get("/admin/search/", { params: { q } }),
+  getMediaLibrary: (params) => axiosClient.get("/admin/media-library/", { params }),
+  updateMediaLibrary: (payload) => axiosClient.patch("/admin/media-library/", payload),
+  deleteMediaLibrary: (id) => axiosClient.delete("/admin/media-library/", { data: { id } }),
   getUsers: (params) => axiosClient.get("/admin/users", { params }),
   createUser: (payload) => axiosClient.post("/admin/users", payload),
   updateUser: (id, payload) => axiosClient.put(`/admin/users/${id}/`, payload),

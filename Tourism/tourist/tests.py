@@ -936,6 +936,18 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertTrue(any(item["type"]=="destination" for item in response.data["results"]))
         self.assertFalse(any(item["type"]=="user" for item in response.data["results"]))
 
+    def test_media_delete_replaces_destination_cover(self):
+        from .models import DestinationImage, StaffCapabilityProfile
+        staff=User.objects.create_user(email="media-delete@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"images":["view","delete"]})
+        cover=DestinationImage.objects.create(destination=self.trek,external_url="https://example.com/test-himalayan-trek-cover.jpg",is_cover=True,ordering=0)
+        replacement=DestinationImage.objects.create(destination=self.trek,external_url="https://example.com/test-himalayan-trek-second.jpg",is_cover=False,ordering=1)
+        self.client.force_authenticate(staff)
+        response=self.client.delete(reverse("admin-media-library"),{"id":cover.id},format="json")
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        replacement.refresh_from_db();self.assertTrue(replacement.is_cover)
+        self.assertEqual(response.data["replacement_cover_id"],replacement.id)
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

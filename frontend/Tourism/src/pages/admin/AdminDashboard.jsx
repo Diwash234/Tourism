@@ -25,6 +25,7 @@ import CategoryTranslationPanel from "../../components/admin/CategoryTranslation
 import HotelBookingPanel from "../../components/admin/HotelBookingPanel"
 import SafetyManagementPanel from "../../components/admin/SafetyManagementPanel"
 import NotificationSettingsPanel from "../../components/admin/NotificationSettingsPanel"
+import MediaLibraryPanel from "../../components/admin/MediaLibraryPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -554,6 +555,7 @@ const AdminDashboard = () => {
             { id: "destination_features", label: "🎯 Destination Features", count: null },
             { id: "category_translations", label: "🌐 Categories & Translations", count: null },
             { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
+            { id: "media_library", label: "🗂️ Central Media Library", count: null },
             { id: "image_pipeline", label: "🖼️ Multi-Source Image Pipeline (Wikimedia, Openverse, Unsplash, Pexels)", count: null },
             { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
             { id: "infrastructure", label: "🏥 Community Services & ML", count: null },
@@ -2029,6 +2031,7 @@ const AdminDashboard = () => {
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
         {activeTab === "safety_management" && <SafetyManagementPanel />}
         {activeTab === "notification_settings" && <NotificationSettingsPanel />}
+        {activeTab === "media_library" && <MediaLibraryPanel />}
 
         {/* TAB 7: EXPENSES */}
         {activeTab === "expenses" && (
