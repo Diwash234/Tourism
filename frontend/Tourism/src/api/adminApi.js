@@ -108,7 +108,8 @@ const adminApi = {
   getAdminDestination: (id) => axiosClient.get(`/admin/destinations/${id}`),
   updateAdminDestination: (id, payload) => axiosClient.put(`/admin/destinations/${id}`, payload),
   addAdminDestinationImage: (id, payload) => axiosClient.post(`/admin/destinations/${id}/images`, payload, payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined),
-  setAdminDestinationCover: (id, payload) => axiosClient.patch(`/admin/destinations/${id}/images`, payload),
+  setAdminDestinationCover: (id, payload) => axiosClient.patch(`/admin/destinations/${id}/images`, { ...payload, is_cover: true }),
+  updateAdminDestinationImage: (id, payload) => axiosClient.patch(`/admin/destinations/${id}/images`, payload),
   deleteAdminDestinationImage: (id, imageId) => axiosClient.delete(`/admin/destinations/${id}/images`, { data: { image_id: imageId } }),
 
   // Diagnostics / Audit / Health (new backend apps)

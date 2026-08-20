@@ -664,17 +664,21 @@ class AdminDestinationImageView(APIView):
             img = destination.gallery.filter(id=image_id).first()
             if not img:
                 return Response({"detail": "Image not found."}, status=404)
-            destination.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
-            img.is_cover = True
-            img.save(update_fields=["is_cover"])
+            editable = {"caption", "ordering", "verification_status", "is_verified", "alt_text"}
+            changed = []
+            for field in editable:
+                if field in request.data:
+                    setattr(img, field, request.data[field]); changed.append(field)
+            make_cover = str(request.data.get("is_cover", "")).lower() in {"1", "true", "yes"}
+            if make_cover:
+                destination.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
+                img.is_cover = True; changed.append("is_cover")
+            if changed: img.save(update_fields=list(set(changed)))
             cover = img.external_url or (img.image.url if img.image else "")
-            Destination.objects.filter(pk=destination.pk).update(cover_image=cover)
-            DestinationAuditLog.objects.create(
-                destination=destination, actor=request.user if request.user.is_authenticated else None,
-                action=DestinationAuditLog.Action.EDITED, note=f"Admin set cover image #{img.id}",
-            )
+            if make_cover: Destination.objects.filter(pk=destination.pk).update(cover_image=cover)
+            DestinationAuditLog.objects.create(destination=destination, actor=request.user if request.user.is_authenticated else None, action=DestinationAuditLog.Action.EDITED, note=f"Admin updated image #{img.id}: {', '.join(changed)}")
             _sync_destination_json(destination)
-            return Response({"message": "Cover updated", "cover_url": cover})
+            return Response({"message": "Image updated", "cover_url": cover, "changed": changed})
 
         # Directly change the cover URL
         image_url = (request.data.get("image_url") or "").strip()

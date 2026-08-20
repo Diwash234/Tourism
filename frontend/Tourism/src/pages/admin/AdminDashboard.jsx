@@ -1936,6 +1936,8 @@ const AdminDashboard = () => {
                             Set as cover
                           </button>
                         ) : null}
+                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,verification_status:img.verification_status==="rejected"?"approved":"rejected",is_verified:img.verification_status==="rejected"});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-slate-600 text-white text-[10px] font-bold">{img.verification_status==="rejected"?"Enable":"Disable"}</button>}
+                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,ordering:Math.max(0,idx-1)});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-blue-600 text-white text-[10px] font-bold">Move up</button>}
                         {img.id && (
                           <button
                             type="button"
