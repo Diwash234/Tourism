@@ -1483,3 +1483,102 @@ class NotificationDeliveryPreferenceTests(APITestCase):
         notification = Notification.objects.get(user=self.user, title="Offer")
         self.assertEqual(notification.delivery_status, "skipped")
         self.assertIn("preferences", notification.failure_reason)
+
+
+class TravelServicesManagementTests(APITestCase):
+    def setUp(self):
+        from .models import Restaurant, DestinationTransitRoute
+        self.admin = User.objects.create_superuser(email="travel-service-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN; self.admin.save(update_fields=["role"])
+        self.user = User.objects.create_user(email="planner@example.com", password="StrongPass123!")
+        self.other = User.objects.create_user(email="other-planner@example.com", password="StrongPass123!")
+        category = Category.objects.create(name="Travel Services Test")
+        self.destination = Destination.objects.create(name="Service Destination", category=category, description="Test", district="Kaski", status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin)
+        self.restaurant = Restaurant.objects.create(destination=self.destination, name="Pending Kitchen", status="pending")
+        self.route = DestinationTransitRoute.objects.create(destination=self.destination, origin="Kathmandu", transport_mode="Bus", approx_duration="5 hours")
+
+    def test_pending_restaurant_is_hidden_until_admin_publishes(self):
+        public = self.client.get(reverse("restaurant-list"), {"destination": self.destination.id})
+        self.assertEqual(public.data["count"], 0)
+        self.client.force_authenticate(self.admin)
+        published = self.client.patch(reverse("admin-travel-services"), {"resource": "restaurants", "id": self.restaurant.id, "action": "publish"}, format="json")
+        self.assertEqual(published.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(reverse("restaurant-list"), {"destination": self.destination.id}).data["count"], 1)
+
+    def test_restaurant_source_verification_is_explicit_and_audited(self):
+        from audit.models import AuditLog
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-travel-services"), {"resource": "restaurants", "id": self.restaurant.id, "action": "verify"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.restaurant.refresh_from_db(); self.assertTrue(self.restaurant.is_verified)
+        self.assertTrue(AuditLog.objects.filter(action="restaurants.verify", object_id=str(self.restaurant.id)).exists())
+
+    def test_transport_archive_hides_route_without_deleting(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-travel-services"), {"resource": "transportation", "id": self.route.id, "action": "archive"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.route.refresh_from_db(); self.assertFalse(self.route.is_active)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(reverse("transit-route-list"), {"destination": self.destination.id}).data["count"], 0)
+
+    def test_staff_requires_exact_restaurant_write_capability(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="restaurant-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"restaurants": ["view"]})
+        self.client.force_authenticate(staff)
+        denied = self.client.post(reverse("restaurant-list"), {"destination": self.destination.id, "name": "Denied Restaurant"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_travel_plans_are_private_to_owner(self):
+        self.client.force_authenticate(self.user)
+        created = self.client.post(reverse("travel-plan-list"), {"title": "My Nepal plan", "travelers": 2, "generation_source": "ml", "itinerary_data": {"days": []}}, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.other)
+        response = self.client.get(reverse("travel-plan-list"))
+        self.assertEqual(response.data["count"], 0)
+        denied = self.client.get(reverse("travel-plan-detail", kwargs={"pk": created.data["id"]}))
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_delete_archives_plan(self):
+        from .models import TravelPlan
+        plan = TravelPlan.objects.create(user=self.user, title="Withdraw plan")
+        self.client.force_authenticate(self.user)
+        response = self.client.delete(reverse("travel-plan-detail", kwargs={"pk": plan.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        plan.refresh_from_db(); self.assertEqual(plan.status, "archived")
+
+    def test_invalid_plan_date_range_is_rejected(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post(reverse("travel-plan-list"), {"title": "Bad dates", "start_date": "2026-10-10", "end_date": "2026-10-01"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_plan_stop_cannot_be_added_to_another_users_plan(self):
+        from .models import TravelPlan
+        plan = TravelPlan.objects.create(user=self.other, title="Other plan")
+        self.client.force_authenticate(self.user)
+        response = self.client.post(reverse("travel-plan-stop-list"), {"plan": plan.id, "destination": self.destination.id, "day_number": 1, "display_order": 0}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_restaurant_staff_workspace_is_capability_and_district_scoped(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="restaurant-manager@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"restaurants": ["view", "approve"]}, managed_districts=["Kaski"])
+        self.client.force_authenticate(staff)
+        queue = self.client.get(reverse("staff-workspace"), {"module": "restaurants"})
+        self.assertEqual(queue.status_code, status.HTTP_200_OK)
+        self.assertEqual(queue.data["results"][0]["id"], self.restaurant.id)
+        published = self.client.post(reverse("staff-workspace"), {"module": "restaurants", "id": self.restaurant.id, "action": "publish"}, format="json")
+        self.assertEqual(published.status_code, status.HTTP_200_OK)
+        self.restaurant.refresh_from_db(); self.assertEqual(self.restaurant.status, "published")
+
+    def test_travel_plan_view_capability_does_not_grant_edit(self):
+        from .models import StaffCapabilityProfile, TravelPlan
+        plan = TravelPlan.objects.create(user=self.user, title="Protected plan")
+        staff = User.objects.create_user(email="plan-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"travel_plans": ["view"]})
+        self.client.force_authenticate(staff)
+        visible = self.client.get(reverse("travel-plan-detail", kwargs={"pk": plan.id}))
+        self.assertEqual(visible.status_code, status.HTTP_200_OK)
+        denied = self.client.patch(reverse("travel-plan-detail", kwargs={"pk": plan.id}), {"title": "Changed"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)

@@ -118,7 +118,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class StaffCapabilityProfile(TimeStampedModel):
     """Granular module/action permissions layered on the existing User role."""
-    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "reviews", "safety", "feedback", "audit", "users", "settings"]
+    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings"]
     ACTIONS = ["view", "add", "change", "delete", "approve", "export", "train", "assign"]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_profile")
@@ -1609,10 +1609,40 @@ class DestinationAttraction(TimeStampedModel):
         return f"{self.name} ({self.destination.name})"
 
 
+class Restaurant(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="restaurants")
+    name = models.CharField(max_length=220)
+    cuisine_types = models.JSONField(default=list, blank=True)
+    description = models.TextField(blank=True)
+    address = models.CharField(max_length=300, blank=True)
+    phone = models.CharField(max_length=60, blank=True)
+    website = models.URLField(blank=True)
+    opening_hours = models.CharField(max_length=200, blank=True)
+    price_range = models.CharField(max_length=10, choices=[("budget", "Budget"), ("mid", "Mid-range"), ("premium", "Premium")], default="mid")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    vegetarian_friendly = models.BooleanField(default=False)
+    image_url = models.URLField(max_length=600, blank=True)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="restaurants_updated")
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [models.UniqueConstraint(fields=["destination", "name"], name="unique_restaurant_destination_name")]
+
+    def __str__(self): return f"{self.name} ({self.destination.name})"
+
+
 class DestinationTransitRoute(TimeStampedModel):
-    """
-    Available transportation options, routes, conditions, and fares.
-    """
+    """Available transportation options, routes, conditions, and fares."""
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="transit_routes")
     origin = models.CharField(max_length=150, help_text="e.g. Kathmandu (Kalanki) / Pokhara / Nearest Airport")
     transport_mode = models.CharField(max_length=100, default="Public Deluxe Bus")
@@ -1622,12 +1652,64 @@ class DestinationTransitRoute(TimeStampedModel):
     key_stops = models.TextField(blank=True, help_text="Major transit waypoints along the route")
     estimated_fare_npr = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     route_source = models.CharField(max_length=200, blank=True, default="Nepal Highway Authority & Local Transit")
+    operator_name = models.CharField(max_length=180, blank=True)
+    contact_phone = models.CharField(max_length=60, blank=True)
+    booking_url = models.URLField(max_length=600, blank=True)
+    departure_schedule = models.CharField(max_length=200, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="transit_routes_updated")
 
     class Meta:
         ordering = ["distance_km"]
 
     def __str__(self):
         return f"{self.origin} ➔ {self.destination.name} via {self.transport_mode}"
+
+
+class TravelPlan(TimeStampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        ACTIVE = "active", "Active"
+        COMPLETED = "completed", "Completed"
+        ARCHIVED = "archived", "Archived"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="travel_plans")
+    title = models.CharField(max_length=220)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    travelers = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(50)])
+    budget_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    interests = models.JSONField(default=list, blank=True)
+    itinerary_data = models.JSONField(default=dict, blank=True)
+    generation_source = models.CharField(max_length=20, choices=[("manual", "Manual"), ("ml", "ML assisted")], default="manual")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError("End date cannot be before start date")
+
+    def __str__(self): return f"{self.title} — {self.user.email}"
+
+
+class TravelPlanStop(TimeStampedModel):
+    plan = models.ForeignKey(TravelPlan, on_delete=models.CASCADE, related_name="stops")
+    destination = models.ForeignKey(Destination, on_delete=models.PROTECT, related_name="travel_plan_stops")
+    transit_route = models.ForeignKey(DestinationTransitRoute, on_delete=models.SET_NULL, null=True, blank=True, related_name="plan_stops")
+    day_number = models.PositiveSmallIntegerField(default=1)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    arrival_time = models.TimeField(null=True, blank=True)
+    departure_time = models.TimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["day_number", "display_order", "id"]
+        constraints = [models.UniqueConstraint(fields=["plan", "day_number", "display_order"], name="unique_plan_day_stop_order")]
 
 
 class DestinationNearbyPlace(TimeStampedModel):

@@ -230,6 +230,9 @@ function App() {
             <Route path="/staff/safety" element={<StaffDashboard module="safety" />} />
             <Route path="/staff/reviews" element={<StaffDashboard module="reviews" />} />
             <Route path="/staff/hotels" element={<StaffDashboard module="hotels" />} />
+            <Route path="/staff/restaurants" element={<StaffDashboard module="restaurants" />} />
+            <Route path="/staff/transportation" element={<StaffDashboard module="transportation" />} />
+            <Route path="/staff/travel-plans" element={<StaffDashboard module="travel_plans" />} />
             <Route path="/staff/content" element={<StaffDashboard module="content" />} />
             <Route path="/staff/feedback" element={<StaffDashboard module="feedback" />} />
           </Route>

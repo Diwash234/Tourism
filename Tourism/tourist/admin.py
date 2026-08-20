@@ -11,6 +11,7 @@ from .models import (
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
     SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
+    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop,
 )
 
 
@@ -366,6 +367,28 @@ class DestinationTranslationAdmin(admin.ModelAdmin):
     list_display = ["destination", "language", "is_auto_generated", "updated_at"]
     list_filter = ["language", "is_auto_generated"]
 
+
+@admin.register(Restaurant)
+class RestaurantAdmin(admin.ModelAdmin):
+    list_display = ["name", "destination", "price_range", "status", "is_verified", "updated_at"]
+    list_filter = ["status", "is_verified", "price_range"]
+    search_fields = ["name", "destination__name", "address"]
+
+@admin.register(DestinationTransitRoute)
+class DestinationTransitRouteAdmin(admin.ModelAdmin):
+    list_display = ["origin", "destination", "transport_mode", "estimated_fare_npr", "is_active", "is_verified"]
+    list_filter = ["transport_mode", "is_active", "is_verified"]
+    search_fields = ["origin", "destination__name", "operator_name"]
+
+class TravelPlanStopInline(admin.TabularInline):
+    model = TravelPlanStop; extra = 0
+
+@admin.register(TravelPlan)
+class TravelPlanAdmin(admin.ModelAdmin):
+    list_display = ["title", "user", "status", "travelers", "budget_npr", "generation_source", "updated_at"]
+    list_filter = ["status", "generation_source"]
+    search_fields = ["title", "user__email"]
+    inlines = [TravelPlanStopInline]
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):

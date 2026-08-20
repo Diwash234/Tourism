@@ -34,6 +34,9 @@ from .models import (
     DestinationActivity,
     DestinationAttraction,
     DestinationTransitRoute,
+    Restaurant,
+    TravelPlan,
+    TravelPlanStop,
     DestinationNearbyPlace,
     OSMEssentialService,
     OSMTourismPlace,
@@ -239,9 +242,54 @@ class DestinationTransitRouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = DestinationTransitRoute
         fields = [
-            "id", "origin", "transport_mode", "distance_km", "approx_duration",
-            "road_condition", "key_stops", "estimated_fare_npr", "route_source"
+            "id", "destination", "origin", "transport_mode", "distance_km", "approx_duration",
+            "road_condition", "key_stops", "estimated_fare_npr", "route_source", "operator_name",
+            "contact_phone", "booking_url", "departure_schedule", "is_active", "is_verified", "updated_at"
         ]
+        read_only_fields = ["is_verified", "updated_at"]
+
+
+class RestaurantSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+
+    class Meta:
+        model = Restaurant
+        fields = ["id", "destination", "destination_name", "name", "cuisine_types", "description", "address",
+                  "phone", "website", "opening_hours", "price_range", "latitude", "longitude",
+                  "vegetarian_friendly", "image_url", "source_name", "source_url", "is_verified", "status", "updated_at"]
+        read_only_fields = ["is_verified", "status", "updated_at"]
+
+
+class TravelPlanStopSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+
+    class Meta:
+        model = TravelPlanStop
+        fields = ["id", "plan", "destination", "destination_name", "transit_route", "day_number", "display_order", "arrival_time", "departure_time", "notes"]
+
+    def validate_plan(self, plan):
+        request = self.context.get("request")
+        if request and plan.user_id != request.user.id:
+            raise serializers.ValidationError("You may only edit your own travel plans")
+        return plan
+
+
+class TravelPlanSerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    stops = TravelPlanStopSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = TravelPlan
+        fields = ["id", "user", "user_email", "title", "start_date", "end_date", "travelers", "budget_npr",
+                  "interests", "itinerary_data", "generation_source", "status", "notes", "stops", "created_at", "updated_at"]
+        read_only_fields = ["user", "user_email", "status", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        start = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        end = attrs.get("end_date", getattr(self.instance, "end_date", None))
+        if start and end and end < start:
+            raise serializers.ValidationError("End date cannot be before start date")
+        return attrs
 
 
 class DestinationNearbyPlaceSerializer(serializers.ModelSerializer):
@@ -736,6 +784,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     hospitals = HospitalSerializer(many=True, read_only=True)
     police_stations = PoliceStationSerializer(many=True, read_only=True)
     hotels = HotelSerializer(many=True, read_only=True)
+    restaurants = serializers.SerializerMethodField()
     sources = DestinationSourceSerializer(many=True, read_only=True)
     activities = DestinationActivitySerializer(many=True, read_only=True)
     attractions = DestinationAttractionSerializer(many=True, read_only=True)
@@ -756,13 +805,17 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "average_rating", "ratings_count", "views_count", "created_by", "created_by_name",
             "created_by_email", "is_user_submitted", "status", "research_status", "review_note",
             "is_active", "created_at", "updated_at", "images", "gallery", "videos", "reviews", "translations",
-            "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels",
+            "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels", "restaurants",
             "sources", "activities", "attractions", "transit_routes", "nearby_places",
         ]
         read_only_fields = [
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
             "is_user_submitted", "status", "review_note", "created_at", "updated_at",
         ]
+
+    def get_restaurants(self, obj):
+        queryset = obj.restaurants.filter(status="published")
+        return RestaurantSerializer(queryset, many=True, context=self.context).data
 
     def get_reviews(self, obj):
         request = self.context.get("request")

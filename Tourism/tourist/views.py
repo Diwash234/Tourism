@@ -19,6 +19,7 @@ from .models import (
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
+    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -31,6 +32,7 @@ from .serializers import (
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
     InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer, DestinationFeatureProfileSerializer,
     RiskIncidentAdminSerializer, CurrentHazardAdminSerializer, RiskObservationAdminSerializer,
+    RestaurantSerializer, DestinationTransitRouteSerializer, TravelPlanSerializer, TravelPlanStopSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -463,7 +465,9 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         destination = self.get_object()
 
         hotels = HotelSerializer(destination.hotels.all(), many=True).data
-        restaurants = find_nearby_places(destination.latitude, destination.longitude, "restaurant")
+        database_restaurants = RestaurantSerializer(destination.restaurants.filter(status="published"), many=True).data
+        external_restaurants = find_nearby_places(destination.latitude, destination.longitude, "restaurant")
+        restaurants = database_restaurants or external_restaurants
         shops = find_nearby_places(destination.latitude, destination.longitude, "shop")
         weather = get_current_weather(destination.latitude, destination.longitude)
         disaster_info = get_disaster_helplines(destination)
@@ -471,6 +475,8 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         return Response({
             "hotels": hotels,
             "restaurants": restaurants,
+            "restaurant_source": "database" if database_restaurants else "external_live" if external_restaurants else "unavailable",
+            "external_restaurants": external_restaurants if database_restaurants else [],
             "shops": shops,
             "weather": weather,
             "active_alert": disaster_info["active_alert"],
@@ -589,6 +595,101 @@ class HotelViewSet(viewsets.ModelViewSet):
     filterset_fields = ["destination", "booking_status", "source"]
     ordering_fields = ["price_per_night", "rating"]
     search_fields = ["name", "address"]
+
+
+class RestaurantViewSet(viewsets.ModelViewSet):
+    serializer_class = RestaurantSerializer
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "restaurants"
+    filterset_fields = ["destination", "price_range", "vegetarian_friendly", "status", "is_verified"]
+    search_fields = ["name", "cuisine_types", "address"]
+
+    def get_queryset(self):
+        queryset = Restaurant.objects.select_related("destination")
+        user = self.request.user
+        if self.request.method in permissions.SAFE_METHODS and not (user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"})):
+            queryset = queryset.filter(status="published")
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user, status="pending", is_verified=False)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.status="archived";instance.updated_by=self.request.user;instance.save(update_fields=["status","updated_by","updated_at"])
+
+
+class TransitRouteViewSet(viewsets.ModelViewSet):
+    serializer_class = DestinationTransitRouteSerializer
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "transportation"
+    filterset_fields = ["destination", "transport_mode", "is_active", "is_verified"]
+    search_fields = ["origin", "transport_mode", "operator_name", "key_stops"]
+
+    def get_queryset(self):
+        queryset = DestinationTransitRoute.objects.select_related("destination")
+        if self.request.method in permissions.SAFE_METHODS:
+            queryset = queryset.filter(is_active=True)
+        return queryset
+
+    def perform_create(self, serializer): serializer.save(updated_by=self.request.user, is_verified=False)
+    def perform_update(self, serializer): serializer.save(updated_by=self.request.user)
+    def perform_destroy(self, instance):
+        instance.is_active=False;instance.updated_by=self.request.user;instance.save(update_fields=["is_active","updated_by","updated_at"])
+
+
+class TravelPlanViewSet(viewsets.ModelViewSet):
+    serializer_class = TravelPlanSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ["status", "generation_source"]
+    search_fields = ["title", "notes"]
+
+    def _allows(self, action="view"):
+        user=self.request.user
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}: return True
+        profile=getattr(user,"capability_profile",None)
+        return bool(profile and profile.allows("travel_plans", action))
+
+    def _can_manage(self): return self._allows("view")
+
+    def get_queryset(self):
+        queryset=TravelPlan.objects.select_related("user").prefetch_related("stops__destination")
+        return queryset if self._can_manage() else queryset.filter(user=self.request.user).exclude(status="archived")
+
+    def perform_create(self, serializer): serializer.save(user=self.request.user, status="draft")
+
+    def update(self, request, *args, **kwargs):
+        instance=self.get_object()
+        if instance.user_id != request.user.id and not self._allows("change"):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Missing travel_plans.change capability")
+        return super().update(request,*args,**kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance=self.get_object()
+        if instance.user_id != request.user.id and not self._allows("delete"):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Missing travel_plans.delete capability")
+        return super().destroy(request,*args,**kwargs)
+
+    def perform_destroy(self, instance):
+        instance.status="archived";instance.save(update_fields=["status","updated_at"])
+
+
+class TravelPlanStopViewSet(viewsets.ModelViewSet):
+    serializer_class = TravelPlanStopSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self): return TravelPlanStop.objects.filter(plan__user=self.request.user).select_related("destination", "transit_route")
+
+    def perform_create(self, serializer):
+        plan=serializer.validated_data["plan"]
+        if plan.user_id != self.request.user.id:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You may only edit your own travel plans")
+        serializer.save()
 
 
 class DestinationVideoViewSet(viewsets.ModelViewSet):

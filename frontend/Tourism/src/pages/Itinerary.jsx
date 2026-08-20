@@ -109,6 +109,16 @@ const Itinerary = () => {
 
   }
 
+  const savePlan = async () => {
+    try {
+      await itineraryApi.savePlan({ title: `${form.start_city} ${form.days}-day itinerary`, travelers: form.travelers,
+        budget_npr: plan?.total_estimated_npr || form.budget_npr || null, interests: form.interests,
+        itinerary_data: plan, generation_source: "ml", notes: `${form.travel_style} · ${form.travel_type}` })
+      showToast("Travel plan saved to your account", "success")
+    } catch (saveError) {
+      showToast(saveError.response?.status === 401 ? "Sign in to save this travel plan" : "Could not save travel plan", "error")
+    }
+  }
 
 
   useEffect(()=>{
@@ -823,7 +833,9 @@ const Itinerary = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
 
           >
-
+            <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
+              <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account</p>
+            </button>
 
             <div className="card-base p-4">
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, Outlet } from "react-router-dom"
-import { FiBriefcase, FiDollarSign, FiFileText, FiHome, FiImage, FiMenu, FiMessageSquare, FiShield, FiStar, FiX } from "react-icons/fi"
+import { FiBriefcase, FiCalendar, FiCoffee, FiDollarSign, FiFileText, FiHome, FiImage, FiMenu, FiMessageSquare, FiShield, FiStar, FiTruck, FiX } from "react-icons/fi"
 import userApi from "../../api/userApi"
 import useAuth from "../../hooks/useAuth"
 
@@ -12,6 +12,9 @@ const items = [
   { to: "/staff/safety", label: "Safety Reports", icon: FiShield, module: "safety" },
   { to: "/staff/reviews", label: "Review Queue", icon: FiStar, module: "reviews" },
   { to: "/staff/hotels", label: "Assigned Hotels", icon: FiHome, module: "hotels" },
+  { to: "/staff/restaurants", label: "Restaurant Queue", icon: FiCoffee, module: "restaurants" },
+  { to: "/staff/transportation", label: "Transport Routes", icon: FiTruck, module: "transportation" },
+  { to: "/staff/travel-plans", label: "Travel Plans", icon: FiCalendar, module: "travel_plans" },
   { to: "/staff/content", label: "Content Drafts", icon: FiFileText, module: "content" },
   { to: "/staff/feedback", label: "Feedback Queue", icon: FiMessageSquare, module: "feedback" },
 ]

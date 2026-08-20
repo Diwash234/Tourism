@@ -32,6 +32,7 @@ import ReportsPanel from "../../components/admin/ReportsPanel"
 import UserManagement from "../../components/admin/UserManagement"
 import ReviewModerationPanel from "../../components/admin/ReviewModerationPanel"
 import BrandingPanel from "../../components/admin/BrandingPanel"
+import TravelServicesPanel from "../../components/admin/TravelServicesPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -568,6 +569,7 @@ const AdminDashboard = () => {
             { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
             { id: "infrastructure", label: "🏥 Community Services & ML", count: null },
             { id: "hotel_bookings", label: "🏨 Hotels & Bookings", count: null },
+            { id: "travel_services", label: "🍽️ Restaurants, Transport & Plans", count: null },
             { id: "review_moderation", label: "⭐ Review Moderation", count: null },
             { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
             { id: "datasets", label: "🗃️ Dataset & CSV Manager", count: null },
@@ -1918,6 +1920,7 @@ const AdminDashboard = () => {
 
         {activeTab === "infrastructure" && <InfrastructureModerationPanel />}
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
+        {activeTab === "travel_services" && <TravelServicesPanel />}
         {activeTab === "review_moderation" && <ReviewModerationPanel />}
         {activeTab === "safety_management" && <SafetyManagementPanel />}
         {activeTab === "notification_settings" && <NotificationSettingsPanel />}

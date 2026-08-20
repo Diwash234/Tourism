@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from .models import (
-    Destination, Alert, DestinationImage, VisitHistory, Favorite, Review, Rating,
+    Destination, Alert, DestinationImage, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
@@ -1153,6 +1153,12 @@ class StaffWorkspaceView(APIView):
                 queue_counts["reviews"] = self._scope_destinations(Review.objects.filter(moderation_status="pending"), user, "destination__").count()
             if _has_capability(request, "safety", "view"):
                 queue_counts["safety"] = self._scope_destinations(CurrentHazard.objects.filter(is_active=True, verified=False), user, "destination__").count()
+            if _has_capability(request, "restaurants", "view"):
+                queue_counts["restaurants"] = self._scope_destinations(Restaurant.objects.filter(status="pending"), user, "destination__").count()
+            if _has_capability(request, "transportation", "view"):
+                queue_counts["transportation"] = self._scope_destinations(DestinationTransitRoute.objects.filter(is_active=True,is_verified=False), user, "destination__").count()
+            if _has_capability(request, "travel_plans", "view"):
+                queue_counts["travel_plans"] = TravelPlan.objects.exclude(status="archived").count()
             if _has_capability(request, "feedback", "view"):
                 queue_counts["feedback"] = UserFeedback.objects.filter(Q(assigned_to=user) | Q(assigned_to__isnull=True)).exclude(status__in=["resolved", "closed", "archived"]).count()
             base["queue_counts"] = queue_counts
@@ -1193,6 +1199,15 @@ class StaffWorkspaceView(APIView):
             queryset = Hotel.objects.filter(id__in=hotel_ids).select_related("destination") if not user.is_superuser else Hotel.objects.select_related("destination")
             rows = [{"id": x.id, "title": x.name, "subtitle": x.destination.name, "status": x.booking_status,
                      "description": x.address, "amount": x.price_per_night} for x in queryset[:100]]
+        elif module == "restaurants":
+            queryset = self._scope_destinations(Restaurant.objects.filter(status="pending").select_related("destination"), user, "destination__")
+            rows = [{"id":x.id,"title":x.name,"subtitle":x.destination.name,"status":x.status,"description":x.description,"created_at":x.created_at} for x in queryset[:100]]
+        elif module == "transportation":
+            queryset = self._scope_destinations(DestinationTransitRoute.objects.filter(is_active=True,is_verified=False).select_related("destination"), user, "destination__")
+            rows = [{"id":x.id,"title":f"{x.origin} → {x.destination.name}","subtitle":x.transport_mode,"status":"unverified","description":x.key_stops,"amount":x.estimated_fare_npr,"created_at":x.created_at} for x in queryset[:100]]
+        elif module == "travel_plans":
+            queryset = TravelPlan.objects.select_related("user").exclude(status="archived")
+            rows = [{"id":x.id,"title":x.title,"subtitle":x.user.email,"status":x.status,"description":x.notes,"amount":x.budget_npr,"created_at":x.created_at} for x in queryset[:100]]
         elif module == "content":
             queryset = ContentSection.objects.filter(status__in=["draft", "scheduled"]).select_related("page")
             rows = [{"id": x.id, "title": x.title or x.key, "subtitle": x.page.title, "status": x.status,
@@ -1217,7 +1232,7 @@ class StaffWorkspaceView(APIView):
             task.completed_at = timezone.now() if action == "completed" else None
             task.save(update_fields=["status", "completed_at", "updated_at"])
             return Response({"message": "Task status updated", "status": task.status})
-        required = "approve" if action in {"approve", "reject"} else "change"
+        required = "approve" if action in {"approve", "reject", "publish", "verify"} else "delete" if action == "archive" else "change"
         _require_capability(request, module, required)
         districts = self._districts(request.user)
         if module == "destinations":
@@ -1248,6 +1263,26 @@ class StaffWorkspaceView(APIView):
                 if not obj or (districts and obj.destination.district not in districts):
                     return Response({"detail": "Record is outside your assigned queue"}, status=404)
                 obj.moderation_status = "approved" if action == "approve" else "flagged"; obj.is_flagged = action != "approve"; obj.moderated_by = request.user; obj.moderated_at = timezone.now(); obj.save(update_fields=["moderation_status", "is_flagged", "moderated_by", "moderated_at", "updated_at"])
+        elif module == "restaurants":
+            obj=Restaurant.objects.select_related("destination").filter(pk=object_id).first()
+            if not obj or (districts and obj.destination.district not in districts):return Response({"detail":"Record is outside your assigned queue"},status=404)
+            if action=="publish":obj.status="published"
+            elif action=="archive":obj.status="archived"
+            elif action=="verify":obj.is_verified=True
+            else:return Response({"detail":"Unsupported workspace action"},status=400)
+            obj.updated_by=request.user;obj.save()
+        elif module == "transportation":
+            obj=DestinationTransitRoute.objects.select_related("destination").filter(pk=object_id).first()
+            if not obj or (districts and obj.destination.district not in districts):return Response({"detail":"Record is outside your assigned queue"},status=404)
+            if action=="verify":obj.is_verified=True
+            elif action=="archive":obj.is_active=False
+            else:return Response({"detail":"Unsupported workspace action"},status=400)
+            obj.updated_by=request.user;obj.save()
+        elif module == "travel_plans":
+            obj=TravelPlan.objects.filter(pk=object_id).first()
+            if not obj:return Response({"detail":"Record not found"},status=404)
+            if action not in {"activate","complete","archive"}:return Response({"detail":"Unsupported workspace action"},status=400)
+            obj.status={"activate":"active","complete":"completed","archive":"archived"}[action];obj.save(update_fields=["status","updated_at"])
         else:
             return Response({"detail": "Unsupported workspace action"}, status=400)
         from audit.models import AuditLog
@@ -1719,6 +1754,60 @@ class AdminNotificationManagementView(APIView):
             read=action=="mark_read";updated=queryset.update(is_read=read,read_at=timezone.now() if read else None)
         else:return Response({"detail":"Unsupported notification action"},status=400)
         return Response({"message":f"{updated} notification(s) updated","updated":updated})
+
+
+class AdminTravelServicesView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    RESOURCES = {"restaurants": (Restaurant, "restaurants"), "transportation": (DestinationTransitRoute, "transportation"), "travel_plans": (TravelPlan, "travel_plans")}
+
+    def get(self, request):
+        resource=request.query_params.get("resource","restaurants");config=self.RESOURCES.get(resource)
+        if not config:return Response({"detail":"Unknown travel service resource"},status=400)
+        model,module=config;_require_capability(request,module,"view")
+        q=(request.query_params.get("q") or "").strip();state=request.query_params.get("status")
+        if resource=="restaurants":
+            queryset=model.objects.select_related("destination").order_by("-updated_at")
+            if q:queryset=queryset.filter(Q(name__icontains=q)|Q(destination__name__icontains=q)|Q(address__icontains=q))
+            if state:queryset=queryset.filter(status=state)
+        elif resource=="transportation":
+            queryset=model.objects.select_related("destination").order_by("-updated_at")
+            if q:queryset=queryset.filter(Q(origin__icontains=q)|Q(destination__name__icontains=q)|Q(transport_mode__icontains=q)|Q(operator_name__icontains=q))
+            if state in {"active","inactive"}:queryset=queryset.filter(is_active=state=="active")
+        else:
+            queryset=model.objects.select_related("user").order_by("-updated_at")
+            if q:queryset=queryset.filter(Q(title__icontains=q)|Q(user__email__icontains=q)|Q(notes__icontains=q))
+            if state:queryset=queryset.filter(status=state)
+        try:page=max(1,int(request.query_params.get("page",1)));size=min(100,max(10,int(request.query_params.get("page_size",25))))
+        except ValueError:return Response({"detail":"Invalid pagination"},status=400)
+        count=queryset.count();rows=[]
+        for obj in queryset[(page-1)*size:page*size]:
+            if resource=="restaurants": rows.append({"id":obj.id,"name":obj.name,"destination":obj.destination.name,"destination_id":obj.destination_id,"status":obj.status,"is_verified":obj.is_verified,"subtitle":obj.address,"updated_at":obj.updated_at})
+            elif resource=="transportation": rows.append({"id":obj.id,"name":f"{obj.origin} → {obj.destination.name}","destination":obj.destination.name,"destination_id":obj.destination_id,"status":"active" if obj.is_active else "inactive","is_verified":obj.is_verified,"subtitle":obj.transport_mode,"fare":obj.estimated_fare_npr,"updated_at":obj.updated_at})
+            else: rows.append({"id":obj.id,"name":obj.title,"user":obj.user.email,"status":obj.status,"subtitle":f"{obj.travelers} traveler(s)","budget":obj.budget_npr,"source":obj.generation_source,"updated_at":obj.updated_at})
+        return Response({"resource":resource,"count":count,"page":page,"pages":max(1,(count+size-1)//size),"results":rows})
+
+    def patch(self, request):
+        resource=request.data.get("resource");config=self.RESOURCES.get(resource)
+        if not config:return Response({"detail":"Unknown travel service resource"},status=400)
+        model,module=config;action=request.data.get("action");required="approve" if action in {"publish","verify"} else "delete" if action=="archive" else "change";_require_capability(request,module,required)
+        obj=model.objects.filter(pk=request.data.get("id")).first()
+        if not obj:return Response({"detail":"Record not found"},status=404)
+        before={"status":getattr(obj,"status",None),"is_verified":getattr(obj,"is_verified",None),"is_active":getattr(obj,"is_active",None)}
+        if resource=="restaurants" and action in {"publish","archive","restore","verify"}:
+            if action=="publish":obj.status="published"
+            elif action=="archive":obj.status="archived"
+            elif action=="restore":obj.status="pending"
+            else:obj.is_verified=True
+        elif resource=="transportation" and action in {"activate","archive","verify"}:
+            if action=="activate":obj.is_active=True
+            elif action=="archive":obj.is_active=False
+            else:obj.is_verified=True
+        elif resource=="travel_plans" and action in {"activate","complete","archive","restore"}:
+            obj.status={"activate":"active","complete":"completed","archive":"archived","restore":"draft"}[action]
+        else:return Response({"detail":"Unsupported action"},status=400)
+        obj.save();from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="admin",severity="info",source="backend",action=f"{resource}.{action}",message=f"{action.title()} {resource} #{obj.id}",object_type=model.__name__,object_id=str(obj.id),extra={"before":before})
+        return Response({"message":f"{action.title()} complete","id":obj.id})
 
 
 class AdminReportsView(APIView):
