@@ -706,6 +706,7 @@ class DestinationImage(TimeStampedModel):
         default=False, help_text="Auto-set true once a community upload crosses the popularity threshold"
     )
     view_count = models.PositiveIntegerField(default=0)
+    crop_box = models.JSONField(default=dict, blank=True, help_text='Optional focal crop as {"x":0,"y":0,"w":100,"h":100} percentages.')
 
     class Meta:
         ordering = ["-is_cover", "ordering", "-is_promoted", "-view_count", "-created_at"]
@@ -2339,6 +2340,9 @@ class ManagedPage(TimeStampedModel):
     key = models.SlugField(max_length=100, unique=True)
     title = models.CharField(max_length=220)
     meta_description = models.CharField(max_length=320, blank=True)
+    seo_title = models.CharField(max_length=70, blank=True, help_text="Optional search-result title. Blank uses the page title.")
+    og_image_url = models.URLField(max_length=600, blank=True)
+    search_visible = models.BooleanField(default=True)
     is_enabled = models.BooleanField(default=True)
     status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
@@ -2358,10 +2362,19 @@ class ContentSection(TimeStampedModel):
     cta_text = models.CharField(max_length=100, blank=True)
     cta_url = models.CharField(max_length=240, blank=True)
     icon = models.CharField(max_length=50, blank=True)
+    section_type = models.CharField(
+        max_length=30,
+        choices=[
+            ("text", "Text"), ("heading", "Heading"), ("image", "Image"), ("gallery", "Gallery"),
+            ("cards", "Cards"), ("faq", "FAQ"), ("cta", "Call to action"), ("map", "Map"),
+        ],
+        default="text",
+    )
     layout_variant = models.CharField(max_length=30, choices=[("default","Default"),("compact","Compact"),("wide","Wide"),("cards","Cards")], default="default")
     config = models.JSONField(default=dict, blank=True)
     display_order = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
+    is_reusable = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)

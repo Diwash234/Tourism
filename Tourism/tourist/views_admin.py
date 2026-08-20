@@ -1440,14 +1440,50 @@ class AdminBrandingView(APIView):
             object_type="SiteSetting", object_id="branding", extra={"before": before, "after": after})
 
 
+PAGE_TEMPLATES = {
+    "blank": {"label": "Blank", "sections": []},
+    "destination": {"label": "Destination Page", "sections": [
+        ("hero", "heading", "Hero", "Start with a destination headline and cover image."),
+        ("overview", "text", "Overview", "Describe why travellers visit this place."),
+        ("gallery", "gallery", "Gallery", "Show verified photos of the destination."),
+        ("hotels", "cards", "Nearby hotels", "Feature lodges and hotels linked to this place."),
+        ("map", "map", "Map", "Show the location on the Nepal map."),
+        ("tips", "text", "Travel tips", "Share practical advice, seasons and safety notes."),
+        ("reviews", "cards", "Reviews", "Highlight approved traveller reviews."),
+    ]},
+    "hotel": {"label": "Hotel Page", "sections": [
+        ("hero", "heading", "Find your stay", "Introduce hotels and lodges."),
+        ("search", "text", "Hotel search", "Explain how travellers can filter stays."),
+        ("featured", "cards", "Featured hotels", "Show featured properties."),
+        ("reviews", "cards", "Guest reviews", "Display approved hotel reviews."),
+        ("booking", "cta", "Book a stay", "Send travellers to the booking flow."),
+    ]},
+    "travel_guide": {"label": "Travel Guide", "sections": [
+        ("hero", "heading", "Travel guide", "Introduce the guide."),
+        ("intro", "text", "Introduction", "Set context for the itinerary."),
+        ("itinerary", "text", "Suggested itinerary", "Outline day-by-day plans."),
+        ("tips", "faq", "Tips and FAQ", "Answer common traveller questions."),
+    ]},
+    "gallery": {"label": "Gallery Page", "sections": [
+        ("hero", "heading", "Visual gallery", "Introduce the photo collection."),
+        ("gallery", "gallery", "Photos", "Show destination photography."),
+    ]},
+    "information": {"label": "Information Page", "sections": [
+        ("hero", "heading", "Information", "Start with a clear title."),
+        ("body", "text", "Details", "Add the main information."),
+        ("cta", "cta", "Next step", "Link to a related traveller page."),
+    ]},
+}
+
+
 class AdminCMSView(APIView):
     """Versioned CMS workflow: draft, preview, schedule, publish and rollback."""
     permission_classes = [IsAdminOrStaff]
     MODELS = {"settings": SiteSetting, "pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem, "translations": CMSContentTranslation}
     FIELDS = {
         "settings": {"key", "value", "description", "is_public"},
-        "pages": {"route", "key", "title", "meta_description", "is_enabled", "status", "scheduled_publish_at", "published_at"},
-        "sections": {"page_id", "key", "title", "subtitle", "body", "image_url", "cta_text", "cta_url", "icon", "layout_variant", "config", "display_order", "is_visible", "status", "scheduled_publish_at", "published_at"},
+        "pages": {"route", "key", "title", "meta_description", "seo_title", "og_image_url", "search_visible", "is_enabled", "status", "scheduled_publish_at", "published_at"},
+        "sections": {"page_id", "key", "title", "subtitle", "body", "image_url", "cta_text", "cta_url", "icon", "section_type", "layout_variant", "config", "display_order", "is_visible", "is_reusable", "status", "scheduled_publish_at", "published_at"},
         "navigation": {"location", "label", "route", "icon", "parent_id", "allowed_roles", "display_order", "is_active"},
         "translations": {"target_resource", "object_id", "language_code", "content"},
     }
@@ -1458,6 +1494,11 @@ class AdminCMSView(APIView):
             raise ValueError("Only validated internal routes beginning with / are allowed")
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
             raise ValueError("CTA links must be validated internal routes beginning with /")
+        if resource == "sections" and "body" in payload:
+            payload["body"] = re.sub(r"(?is)<script.*?>.*?</script>", "", str(payload.get("body") or ""))
+            payload["body"] = re.sub(r"(?is)on\w+\s*=", "", payload["body"])
+        if resource == "pages" and payload.get("og_image_url") and not str(payload["og_image_url"]).startswith("https://") and not str(payload["og_image_url"]).startswith("/"):
+            raise ValueError("Social image must be an HTTPS URL or an internal path")
         if resource == "settings" and payload.get("key") == "branding":
             value = payload.get("value") or {}
             for field in ("primary_color", "secondary_color"):
@@ -1502,9 +1543,39 @@ class AdminCMSView(APIView):
             model.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
                 status="published", published_at=now, scheduled_publish_at=None)
 
+    @staticmethod
+    def _template_catalog():
+        catalog = {}
+        for key, template in PAGE_TEMPLATES.items():
+            catalog[key] = {
+                "key": key,
+                "label": template["label"],
+                "sections": [
+                    {"key": item[0], "section_type": item[1], "title": item[2], "body": item[3]}
+                    for item in template["sections"]
+                ],
+            }
+        return catalog
+
+    @staticmethod
+    def _unique_section_key(page, base):
+        from django.utils.text import slugify
+        key = slugify(base) or "section"
+        candidate = key
+        index = 2
+        while ContentSection.objects.filter(page=page, key=candidate).exists():
+            candidate = f"{key}-{index}"
+            index += 1
+        return candidate
+
     def get(self, request):
         _require_capability(request, "content", "view")
         self._publish_due()
+        if str(request.query_params.get("templates", "")).lower() in {"1", "true"}:
+            return Response({"templates": self._template_catalog()})
+        if str(request.query_params.get("reusable", "")).lower() in {"1", "true"}:
+            queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
+            return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
         model = self.MODELS.get(resource)
         if not model:
@@ -1557,8 +1628,64 @@ class AdminCMSView(APIView):
             obj.save()
         except ValidationError as exc:
             return Response({"detail": "; ".join(exc.messages)}, status=400)
+        template_key = request.data.get("template")
+        if resource == "pages" and template_key:
+            self._apply_template(obj, template_key, request.user)
         self._revision(resource, obj, request.user, "create")
         return Response({"id": obj.pk, "message": "Draft created" if resource in {"pages", "sections"} else "Created"}, status=201)
+
+    def _apply_template(self, page, template_key, user):
+        template = PAGE_TEMPLATES.get(template_key) or PAGE_TEMPLATES["blank"]
+        created = 0
+        for order, (key, section_type, title, body) in enumerate(template["sections"]):
+            _, was_created = ContentSection.objects.get_or_create(
+                page=page, key=key,
+                defaults={"title": title, "body": body, "section_type": section_type,
+                          "display_order": order * 10, "status": "draft", "is_visible": True, "updated_by": user},
+            )
+            created += int(was_created)
+        return created
+
+    def _clone_reusable_section(self, request, page):
+        from django.db.models import Max
+        source = ContentSection.objects.filter(pk=request.data.get("source_id"), is_reusable=True).first()
+        if not source:
+            return Response({"detail": "Reusable section not found"}, status=404)
+        if page is None:
+            page = ManagedPage.objects.filter(pk=request.data.get("page_id")).first()
+        if not page:
+            return Response({"detail": "Target page not found"}, status=404)
+        order = (page.sections.aggregate(value=Max("display_order"))["value"] or 0) + 10
+        clone = ContentSection.objects.create(
+            page=page, key=self._unique_section_key(page, source.key),
+            title=source.title, subtitle=source.subtitle, body=source.body,
+            image_url=source.image_url, cta_text=source.cta_text, cta_url=source.cta_url,
+            icon=source.icon, section_type=source.section_type, layout_variant=source.layout_variant,
+            config=source.config or {}, display_order=order, is_visible=True, is_reusable=False,
+            status="draft", updated_by=request.user,
+        )
+        self._revision("sections", clone, request.user, "create")
+        return Response({"id": clone.pk, "message": "Reusable section added", "record": self._row("sections", clone)}, status=201)
+
+    def _reorder_sections(self, request, page):
+        raw_ids = request.data.get("section_ids") or request.data.get("ids") or []
+        if not isinstance(raw_ids, list) or not raw_ids:
+            return Response({"detail": "Provide ordered section ids"}, status=400)
+        try:
+            ids = [int(value) for value in raw_ids]
+        except (TypeError, ValueError):
+            return Response({"detail": "Section ids must be integers"}, status=400)
+        if page is None:
+            return Response({"detail": "Reorder requires a page"}, status=400)
+        sections = {section.id: section for section in ContentSection.objects.filter(page=page, id__in=ids)}
+        if len(sections) != len(set(ids)):
+            return Response({"detail": "All section ids must belong to this page"}, status=400)
+        for index, section_id in enumerate(ids):
+            section = sections[section_id]
+            section.display_order = index * 10
+            section.updated_by = request.user
+            section.save(update_fields=["display_order", "updated_by", "updated_at"])
+        return Response({"id": page.pk, "message": "Section order updated", "section_ids": ids})
 
     def patch(self, request):
         _require_capability(request, "content", "change")
@@ -1568,6 +1695,17 @@ class AdminCMSView(APIView):
         if not obj:
             return Response({"detail": "CMS record not found"}, status=404)
         action = request.data.get("action", "update")
+        if action == "apply_template":
+            if resource != "pages":
+                return Response({"detail": "Templates apply to pages"}, status=400)
+            created = self._apply_template(obj, request.data.get("template"), request.user)
+            return Response({"id": obj.pk, "message": "Template sections added", "created": created, "record": self._row(resource, obj)})
+        if action == "clone_reusable":
+            page = obj if resource == "pages" else getattr(obj, "page", None)
+            return self._clone_reusable_section(request, page)
+        if action == "reorder":
+            page = obj if resource == "pages" else getattr(obj, "page", None)
+            return self._reorder_sections(request, page)
         # Seed a baseline for records that predate revision tracking, so the
         # first edit can always be safely undone.
         if not CMSRevision.objects.filter(resource=resource, object_id=obj.pk).exists():
@@ -1998,7 +2136,13 @@ class AdminMediaLibraryView(APIView):
         count=qs.count();items=[]
         for image in qs[(page-1)*size:page*size]:
             url=image.external_url or (image.image.url if image.image else "")
-            items.append({"id":image.id,"destination_id":image.destination_id,"destination":image.destination.name,"url":url,"caption":image.caption,"source":image.source,"source_url":image.source_url,"license":image.license_type,"photographer":image.photographer,"status":image.verification_status,"is_cover":image.is_cover,"ordering":image.ordering,"created_at":image.created_at})
+            used_on=[{"type":"destination","label":image.destination.name,"id":image.destination_id}]
+            if url:
+                for section in ContentSection.objects.filter(image_url=url).select_related("page")[:8]:
+                    used_on.append({"type":"page","label":f"{section.page.title} · {section.title or section.key}","id":section.page_id})
+                for page in ManagedPage.objects.filter(og_image_url=url)[:8]:
+                    used_on.append({"type":"page","label":f"{page.title} (social image)","id":page.id})
+            items.append({"id":image.id,"destination_id":image.destination_id,"destination":image.destination.name,"url":url,"caption":image.caption,"alt_text":image.alt_text,"source":image.source,"source_url":image.source_url,"license":image.license_type,"photographer":image.photographer,"status":image.verification_status,"is_cover":image.is_cover,"ordering":image.ordering,"crop_box":image.crop_box or {},"used_on":used_on,"created_at":image.created_at})
         return Response({"count":count,"page":page,"total_pages":max(1,(count+size-1)//size),"results":items})
     def patch(self, request):
         _require_capability(request,"images","change")
@@ -2023,7 +2167,19 @@ class AdminMediaLibraryView(APIView):
             return Response({"message":"Image order updated","id":image.id,"ordering":ordered[index].ordering if index is not None else image.ordering})
         for field in ("caption","alt_text","ordering","verification_status","is_verified"):
             if field in request.data:setattr(image,field,request.data[field])
-        image.save();return Response({"message":"Media updated","id":image.id})
+        if "crop_box" in request.data:
+            box = request.data.get("crop_box") or {}
+            if not isinstance(box, dict):
+                return Response({"detail": "crop_box must be an object"}, status=400)
+            def _pct(value, default):
+                try:
+                    number = float(value)
+                except (TypeError, ValueError):
+                    number = default
+                return max(0, min(100, number))
+            image.crop_box = {"x": _pct(box.get("x"), 0), "y": _pct(box.get("y"), 0),
+                              "w": _pct(box.get("w"), 100), "h": _pct(box.get("h"), 100)}
+        image.save();return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {}})
     def delete(self, request):
         _require_capability(request,"images","delete")
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()
@@ -2051,6 +2207,10 @@ class AdminGlobalSearchView(APIView):
         add("hotels","hotel",Hotel.objects.filter(Q(name__icontains=q)|Q(address__icontains=q)),lambda x:f"{x.name} · {x.address}")
         add("feedback","feedback",UserFeedback.objects.filter(Q(subject__icontains=q)|Q(message__icontains=q)|Q(email__icontains=q)),lambda x:f"{x.subject} · {x.status}")
         add("safety","alert",Alert.objects.filter(Q(title__icontains=q)|Q(description__icontains=q)|Q(city__icontains=q)),lambda x:f"{x.title} · {x.severity}")
+        add("content","page",ManagedPage.objects.filter(Q(title__icontains=q)|Q(route__icontains=q)|Q(key__icontains=q)|Q(meta_description__icontains=q)|Q(seo_title__icontains=q)),lambda x:f"{x.title} · {x.route}")
+        add("content","section",ContentSection.objects.filter(Q(title__icontains=q)|Q(body__icontains=q)|Q(key__icontains=q)|Q(subtitle__icontains=q)).select_related("page"),lambda x:f"{x.title or x.key} · {x.page.title}")
+        add("content","navigation",ManagedNavigationItem.objects.filter(Q(label__icontains=q)|Q(route__icontains=q)),lambda x:f"{x.label} · {x.route}")
+        add("images","image",DestinationImage.objects.filter(Q(caption__icontains=q)|Q(alt_text__icontains=q)|Q(destination__name__icontains=q)|Q(external_url__icontains=q)).select_related("destination"),lambda x:f"{x.destination.name} · {x.caption or 'image'}")
         return Response({"query":q,"count":len(results),"results":results})
 
 

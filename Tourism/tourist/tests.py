@@ -1792,3 +1792,89 @@ class AdminNavigationCMSAndMediaRegressionTests(APITestCase):
         self.client.force_authenticate(staff)
         response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"external_url":"https://example.com/denied.jpg"},format="multipart")
         self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
+
+
+class CMSStudioExtensionTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage, ContentSection, DestinationImage
+        self.admin = User.objects.create_superuser(email="cms-studio@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.category = Category.objects.create(name="CMS Studio")
+        self.destination = Destination.objects.create(
+            name="Studio Place", category=self.category, description="Test",
+            status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin,
+        )
+
+    def test_page_template_creates_sections(self):
+        from .models import ContentSection
+        created = self.client.post(reverse("admin-cms"), {
+            "resource": "pages", "route": "/guide-page", "key": "guide-page",
+            "title": "Guide", "status": "draft", "template": "travel_guide",
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertGreaterEqual(ContentSection.objects.filter(page_id=created.data["id"]).count(), 3)
+
+    def test_reusable_section_can_be_cloned(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/reusable-src", key="reusable-src", title="Source", status="draft")
+        target = ManagedPage.objects.create(route="/reusable-dst", key="reusable-dst", title="Target", status="draft")
+        source = ContentSection.objects.create(page=page, key="tips", title="Travel Tips", body="Pack light", is_reusable=True, status="published")
+        cloned = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": target.id, "action": "clone_reusable", "source_id": source.id, "page_id": target.id,
+        }, format="json")
+        self.assertEqual(cloned.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(ContentSection.objects.filter(page=target, title="Travel Tips").exists())
+
+    def test_global_search_includes_pages_and_images(self):
+        from .models import ManagedPage, DestinationImage
+        ManagedPage.objects.create(route="/searchable-page", key="searchable-page", title="UniqueSearchPage", status="published")
+        DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/unique-search-photo.jpg", caption="UniqueSearchPhoto")
+        response = self.client.get(reverse("admin-global-search"), {"q": "UniqueSearch"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        types = {item["type"] for item in response.data["results"]}
+        self.assertIn("page", types)
+        self.assertIn("image", types)
+
+    def test_media_library_reports_used_on_and_crop(self):
+        from .models import DestinationImage
+        image = DestinationImage.objects.create(
+            destination=self.destination, external_url="https://example.com/used-on.jpg",
+            caption="Used photo", verification_status="approved",
+        )
+        listed = self.client.get(reverse("admin-media-library"), {"q": "used-on"})
+        row = next(item for item in listed.data["results"] if item["id"] == image.id)
+        self.assertTrue(row["used_on"])
+        cropped = self.client.patch(reverse("admin-media-library"), {"id": image.id, "crop_box": {"x": 10, "y": 10, "w": 80, "h": 80}}, format="json")
+        self.assertEqual(cropped.status_code, status.HTTP_200_OK)
+        image.refresh_from_db()
+        self.assertEqual(image.crop_box["w"], 80)
+
+    def test_templates_and_reusable_catalogs(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/reusable-list", key="reusable-list", title="Reusable list", status="draft")
+        ContentSection.objects.create(page=page, key="pack", title="Packing list", body="Warm layers", is_reusable=True, status="published")
+        templates = self.client.get(reverse("admin-cms"), {"templates": "1"})
+        self.assertEqual(templates.status_code, status.HTTP_200_OK)
+        self.assertIn("travel_guide", templates.data["templates"])
+        reusable = self.client.get(reverse("admin-cms"), {"resource": "sections", "reusable": "true"})
+        self.assertEqual(reusable.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["title"] == "Packing list" for row in reusable.data["results"]))
+
+    def test_apply_template_and_reorder_sections(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/builder-page", key="builder-page", title="Builder", status="draft")
+        applied = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "apply_template", "template": "information",
+        }, format="json")
+        self.assertEqual(applied.status_code, status.HTTP_200_OK)
+        sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
+        self.assertGreaterEqual(len(sections), 3)
+        reversed_ids = [section.id for section in reversed(sections)]
+        reordered = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "reorder", "section_ids": reversed_ids,
+        }, format="json")
+        self.assertEqual(reordered.status_code, status.HTTP_200_OK)
+        ordered = list(ContentSection.objects.filter(page=page).order_by("display_order", "id").values_list("id", flat=True))
+        self.assertEqual(list(ordered), reversed_ids)

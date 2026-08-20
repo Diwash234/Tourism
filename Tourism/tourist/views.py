@@ -186,10 +186,13 @@ class PublicConfigView(APIView):
                     "title": translated.get("title", section.title), "subtitle": translated.get("subtitle", section.subtitle),
                     "body": translated.get("body", section.body), "image_url": section.image_url,
                     "cta_text": translated.get("cta_text", section.cta_text), "cta_url": section.cta_url,
-                    "icon": section.icon, "layout_variant": section.layout_variant, "config": section.config,
+                    "icon": section.icon, "section_type": section.section_type,
+                    "layout_variant": section.layout_variant, "config": section.config,
                     "display_order": section.display_order})
             page_rows.append({"id": page.id, "key": page.key, "route": page.route,
                 "title": page_translation.get("title", page.title),
+                "seo_title": page.seo_title, "og_image_url": page.og_image_url,
+                "search_visible": page.search_visible,
                 "meta_description": page_translation.get("meta_description", page.meta_description), "sections": sections})
         navigation = []
         for item in ManagedNavigationItem.objects.filter(is_active=True):

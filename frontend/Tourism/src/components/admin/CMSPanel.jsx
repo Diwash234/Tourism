@@ -2,12 +2,22 @@ import { useEffect, useRef, useState } from "react"
 import { FiClock, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
+import RichTextEditor from "./RichTextEditor"
 
 const resources = ["settings", "pages", "sections", "navigation", "translations"]
+const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map"]
+const fallbackTemplates = {
+  blank: { label: "Blank" },
+  destination: { label: "Destination Page" },
+  hotel: { label: "Hotel Page" },
+  travel_guide: { label: "Travel Guide" },
+  gallery: { label: "Gallery" },
+  information: { label: "Information Page" },
+}
 const templates = {
   settings: { key: "", value: {}, description: "", is_public: true },
-  pages: { route: "/", key: "new-page", title: "New page", meta_description: "", is_enabled: true, status: "draft" },
-  sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", layout_variant: "default", config: {}, display_order: 0, is_visible: true, status: "draft" },
+  pages: { route: "/", key: "new-page", title: "New page", meta_description: "", seo_title: "", og_image_url: "", search_visible: true, is_enabled: true, status: "draft" },
+  sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", section_type: "text", layout_variant: "default", config: {}, display_order: 0, is_visible: true, is_reusable: false, status: "draft" },
   navigation: { location: "navbar", label: "New link", route: "/", icon: "", parent_id: null, allowed_roles: [], display_order: 0, is_active: true },
   translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
 }
@@ -25,6 +35,12 @@ export default function CMSPanel() {
   const [preview, setPreview] = useState(null)
   const [scheduleAt, setScheduleAt] = useState("")
   const [busy, setBusy] = useState(false)
+  const [pageTemplate, setPageTemplate] = useState("blank")
+  const [previewMode, setPreviewMode] = useState("desktop")
+  const [reusable, setReusable] = useState([])
+  const [catalog, setCatalog] = useState(fallbackTemplates)
+  const [cloneSource, setCloneSource] = useState("")
+  const [builderTick, setBuilderTick] = useState(0)
   const dirty = Boolean(selected) && json !== savedJson
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
@@ -40,6 +56,14 @@ export default function CMSPanel() {
     setHistory([])
   }
 
+  const loadReusable = () => {
+    adminApi.getCMS("sections", { reusable: true }).then(({ data }) => {
+      const results = data.results || []
+      setReusable(results)
+      setCloneSource((current) => current || String(results[0]?.id || ""))
+    }).catch(() => setReusable([]))
+  }
+
   const load = async (keepId) => {
     try {
       const { data } = await adminApi.getCMS(resource)
@@ -48,6 +72,7 @@ export default function CMSPanel() {
         const current = (data.results || []).find(row => row.id === keepId)
         if (current) applyRow(current)
       }
+      if (resource === "sections" || resource === "pages") loadReusable()
     } catch (error) {
       showToast(error.response?.data?.detail || "Could not load CMS records", "error")
     }
@@ -61,6 +86,12 @@ export default function CMSPanel() {
     setJson("")
     load()
   }, [resource])
+
+  useEffect(() => {
+    adminApi.getCMS("pages", { templates: true }).then(({ data }) => {
+      if (data.templates) setCatalog(data.templates)
+    }).catch(() => setCatalog(fallbackTemplates))
+  }, [])
 
   useEffect(() => {
     const onBeforeUnload = (event) => {
@@ -101,8 +132,9 @@ export default function CMSPanel() {
       const response = await operation()
       showToast(response.data?.message || success, "success")
       dirtyRef.current = false
-      const id = response.data?.id || selected?.id
+      const id = resource === "pages" ? (selected?.id || response.data?.id) : (response.data?.id || selected?.id)
       await load(id)
+      setBuilderTick(value => value + 1)
       return response
     } catch (error) {
       showToast(error instanceof SyntaxError ? "Structured data is not valid JSON" : error.response?.data?.detail || "CMS action failed", "error")
@@ -112,7 +144,9 @@ export default function CMSPanel() {
   }
 
   const save = () => execute(
-    () => selected.id ? adminApi.updateCMS({ ...payload(), resource, id: selected.id }) : adminApi.createCMS({ ...payload(), resource }),
+    () => selected.id
+      ? adminApi.updateCMS({ ...payload(), resource, id: selected.id })
+      : adminApi.createCMS({ ...payload(), resource, template: resource === "pages" ? pageTemplate : undefined }),
     "Draft saved"
   )
   const workflow = (action, extra = {}) => execute(
@@ -189,7 +223,28 @@ export default function CMSPanel() {
                 {selected.id && <button onClick={showPreview} className="px-3 py-2 bg-sky-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiEye /> Preview</button>}
                 {selected.id && <button onClick={showHistory} className="px-3 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiClock /> History</button>}
               </div>
+              {resource === "pages" && (
+                <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[1fr_auto_auto]">
+                  <label className="text-xs font-semibold text-slate-600">Page template
+                    <select className="input-field mt-1" value={pageTemplate} onChange={event => setPageTemplate(event.target.value)}>
+                      {Object.entries(catalog).map(([key, item]) => <option key={key} value={key}>{item.label || key}</option>)}
+                    </select>
+                  </label>
+                  {selected.id && <button type="button" disabled={busy} onClick={() => workflow("apply_template", { template: pageTemplate })} className="self-end rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800">Add template sections</button>}
+                  {selected.id && reusable.length > 0 && (
+                    <div className="self-end flex gap-2">
+                      <select className="input-field" value={cloneSource} onChange={event => setCloneSource(event.target.value)}>
+                        {reusable.map(item => <option key={item.id} value={item.id}>{item.title || item.key}</option>)}
+                      </select>
+                      <button type="button" disabled={busy || !cloneSource} onClick={() => workflow("clone_reusable", { source_id: Number(cloneSource), page_id: selected.id })} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900">Add reusable</button>
+                    </div>
+                  )}
+                </div>
+              )}
               <CMSFriendlyEditor resource={resource} json={json} setJson={setJson} />
+              {resource === "pages" && selected.id && (
+                <PageSectionBuilder pageId={selected.id} refreshKey={builderTick} onToast={showToast} />
+              )}
               <details className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                 <summary className="cursor-pointer text-xs font-black text-emerald-800">Advanced</summary>
                 <textarea rows="8" spellCheck="false" value={json} onChange={event => setJson(event.target.value)} className="mt-3 w-full rounded-xl border border-emerald-200 bg-white text-emerald-900 font-mono text-xs p-3" />
@@ -211,24 +266,33 @@ export default function CMSPanel() {
 
       {preview && (
         <div className="fixed inset-0 z-[80] bg-black/75 grid place-items-center p-4">
-          <div className="bg-white text-slate-900 rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6">
-            <div className="flex justify-between border-b pb-3">
+          <div className={`bg-white text-slate-900 rounded-2xl w-full max-h-[85vh] overflow-y-auto p-6 ${previewMode === "mobile" ? "max-w-sm" : previewMode === "tablet" ? "max-w-2xl" : "max-w-4xl"}`}>
+            <div className="flex justify-between border-b pb-3 gap-3">
               <div>
-                <span className="text-[10px] uppercase font-black text-emerald-700">Draft preview</span>
-                <h2 className="text-3xl font-black">{displayName(preview)}</h2>
+                <span className="text-[10px] uppercase font-black text-emerald-700">Preview as traveller</span>
+                <h2 className="text-3xl font-black">{preview.seo_title || displayName(preview)}</h2>
               </div>
-              <button onClick={() => setPreview(null)}><FiX size={22} /></button>
+              <div className="flex gap-2 items-start">
+                {[["desktop", "Desktop"], ["tablet", "Tablet"], ["mobile", "Mobile"]].map(([id, label]) => (
+                  <button key={id} onClick={() => setPreviewMode(id)} className={`rounded-lg px-2 py-1 text-xs font-bold ${previewMode === id ? "bg-emerald-700 text-white" : "bg-emerald-50"}`}>{label}</button>
+                ))}
+                <button onClick={() => setPreview(null)}><FiX size={22} /></button>
+              </div>
             </div>
+            <p className="mt-2 text-xs text-slate-500">Logged-out traveller view. Search visibility: {preview.search_visible === false ? "hidden" : "allowed"}.</p>
             {preview.meta_description && <p className="text-slate-500 mt-2">{preview.meta_description}</p>}
+            {preview.og_image_url && <img src={preview.og_image_url} alt="" className="mt-4 max-h-48 w-full rounded-xl object-cover" />}
             {preview.sections?.map(section => (
               <article key={section.id} className="py-6 border-b">
+                <p className="text-[10px] uppercase tracking-widest text-emerald-700">{section.section_type || "text"}</p>
                 <h3 className="text-xl font-bold">{section.title}</h3>
                 <p className="text-slate-500">{section.subtitle}</p>
-                <p className="mt-3 whitespace-pre-wrap">{section.body}</p>
+                {section.image_url && <img src={section.image_url} alt="" className="mt-3 max-h-56 w-full rounded-xl object-cover" />}
+                <div className="mt-3 prose prose-sm" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
                 {section.cta_text && <span className="inline-block mt-3 bg-emerald-700 text-white px-4 py-2 rounded-lg">{section.cta_text}</span>}
               </article>
             ))}
-            {!preview.sections && <pre className="mt-5 text-xs bg-slate-100 p-4 rounded-xl overflow-auto">{JSON.stringify(preview, null, 2)}</pre>}
+            {!preview.sections && <div className="mt-5 prose prose-sm" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
           </div>
         </div>
       )}
@@ -257,6 +321,27 @@ export default function CMSPanel() {
   )
 }
 
+function SeoSuite({ value }) {
+  const title = value.seo_title || value.title || ""
+  const description = value.meta_description || ""
+  const checks = [
+    [title.length >= 30 && title.length <= 60, `Title ${title.length}/60 characters`],
+    [description.length >= 120 && description.length <= 160, `Description ${description.length}/160 characters`],
+    [Boolean(value.og_image_url), "Social image set"],
+    [value.search_visible !== false, "Visible to search engines"],
+  ]
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-white p-3">
+      <p className="text-xs font-black text-emerald-800">SEO checklist</p>
+      <ul className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+        {checks.map(([ok, label]) => (
+          <li key={label} className={ok ? "text-emerald-700" : "text-amber-700"}>{ok ? "Ready" : "Needs work"} · {label}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function CMSFriendlyEditor({ resource, json, setJson }) {
   let value = {}
   try { value = JSON.parse(json || "{}") } catch {
@@ -273,9 +358,126 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
           : <input type={type} className="input-field mt-1" value={value[key] ?? ""} onChange={e => set(key, type === "number" ? Number(e.target.value) : e.target.value)} />}
     </label>
   )
-  if (resource === "pages") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("title", "Page title")}{field("key", "Page key")}{field("route", "Page route")}{field("meta_description", "Search description", "textarea")}<label className="text-xs font-semibold text-slate-600">Publication status<select className="input-field mt-1" value={value.status || "draft"} onChange={e => set("status", e.target.value)}><option>draft</option><option>scheduled</option><option>published</option></select></label>{field("is_enabled", "Show this page", "checkbox")}</div>
-  if (resource === "sections") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("page_id", "Parent page ID", "number")}{field("key", "Section key")}{field("title", "Section title")}{field("subtitle", "Subtitle")}{field("body", "Body content", "textarea")}{field("image_url", "Image URL")}{field("cta_text", "Button text")}{field("cta_url", "Button route")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}{field("is_visible", "Visible", "checkbox")}</div>
+  if (resource === "pages") return (
+    <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">
+      {field("title", "Page title")}
+      {field("seo_title", "SEO title")}
+      {field("key", "Page key")}
+      {field("route", "Page route")}
+      {field("meta_description", "Search description", "textarea")}
+      {field("og_image_url", "Social image URL")}
+      <label className="text-xs font-semibold text-slate-600">Publication status
+        <select className="input-field mt-1" value={value.status || "draft"} onChange={e => set("status", e.target.value)}>
+          <option>draft</option><option>scheduled</option><option>published</option>
+        </select>
+      </label>
+      {field("is_enabled", "Show this page", "checkbox")}
+      {field("search_visible", "Allow search engines", "checkbox")}
+      <SeoSuite value={value} />
+    </div>
+  )
+  if (resource === "sections") return (
+    <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">
+      {field("page_id", "Parent page ID", "number")}
+      {field("key", "Section key")}
+      {field("title", "Section title")}
+      {field("subtitle", "Subtitle")}
+      <label className="sm:col-span-2 text-xs font-semibold text-slate-600">Body content
+        <RichTextEditor value={value.body || ""} onChange={html => set("body", html)} />
+      </label>
+      {field("image_url", "Image URL")}
+      {field("cta_text", "Button text")}
+      {field("cta_url", "Button route")}
+      {field("icon", "Icon")}
+      <label className="text-xs font-semibold text-slate-600">Section type
+        <select className="input-field mt-1" value={value.section_type || "text"} onChange={e => set("section_type", e.target.value)}>
+          {sectionTypes.map(type => <option key={type}>{type}</option>)}
+        </select>
+      </label>
+      {field("display_order", "Display order", "number")}
+      {field("is_visible", "Visible", "checkbox")}
+      {field("is_reusable", "Reusable section", "checkbox")}
+    </div>
+  )
   if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-600">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-600">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
   if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-600">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
   return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-600">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
+}
+
+function PageSectionBuilder({ pageId, refreshKey, onToast }) {
+  const [sections, setSections] = useState([])
+  const dragFrom = useRef(null)
+
+  const loadSections = async () => {
+    try {
+      const { data } = await adminApi.getCMS("sections", { page_id: pageId })
+      setSections((data.results || []).slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0) || a.id - b.id))
+    } catch {
+      onToast("Could not load page sections", "error")
+    }
+  }
+
+  useEffect(() => { loadSections() }, [pageId, refreshKey])
+
+  const persist = async (next) => {
+    setSections(next)
+    try {
+      await adminApi.runCMSAction({ resource: "pages", id: pageId, action: "reorder", section_ids: next.map(section => section.id) })
+    } catch (error) {
+      onToast(error.response?.data?.detail || "Could not save section order", "error")
+      loadSections()
+    }
+  }
+
+  const move = (index, direction) => {
+    const target = index + direction
+    if (target < 0 || target >= sections.length) return
+    const next = sections.slice()
+    const [item] = next.splice(index, 1)
+    next.splice(target, 0, item)
+    persist(next)
+  }
+
+  const onDrop = (index) => {
+    const from = dragFrom.current
+    dragFrom.current = null
+    if (from == null || from === index) return
+    const next = sections.slice()
+    const [item] = next.splice(from, 1)
+    next.splice(index, 0, item)
+    persist(next)
+  }
+
+  if (!sections.length) {
+    return <p className="rounded-xl border border-dashed border-emerald-200 p-4 text-xs text-slate-500">No sections yet. Choose a template or add a reusable block.</p>
+  }
+
+  return (
+    <div className="rounded-xl border border-emerald-200 bg-white p-3">
+      <div className="mb-2 flex justify-between">
+        <p className="text-xs font-black text-emerald-800">Section builder</p>
+        <p className="text-[10px] text-slate-500">Drag to reorder, or use the arrows.</p>
+      </div>
+      <div className="space-y-2">
+        {sections.map((section, index) => (
+          <div
+            key={section.id}
+            draggable
+            onDragStart={() => { dragFrom.current = index }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => onDrop(index)}
+            className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs cursor-grab"
+          >
+            <span className="font-black text-emerald-800">{index + 1}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold">{section.title || section.key}</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.section_type || "text"} · {section.status}{section.is_reusable ? " · reusable" : ""}</p>
+            </div>
+            <button type="button" onClick={() => move(index, -1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move up">↑</button>
+            <button type="button" onClick={() => move(index, 1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move down">↓</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
