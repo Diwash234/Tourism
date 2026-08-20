@@ -189,6 +189,9 @@ class UpdateUserStatusView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def put(self, request, id):
+        _require_capability(request, "users", "change")
+        if any(field in request.data for field in ("role", "is_staff", "is_superuser")) and not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}):
+            return Response({"detail":"Only administrators can change roles."},status=403)
         try:
             user = User.objects.get(id=id)
         except User.DoesNotExist:
@@ -222,6 +225,9 @@ class UpdateUserStatusView(APIView):
         return self.put(request, id)
 
     def delete(self, request, id):
+        _require_capability(request, "users", "delete")
+        if not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}):
+            return Response({"detail":"Only administrators can delete users."},status=403)
         if request.user.id == id:
             return Response({"detail": "Cannot delete your own account."}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -241,6 +247,8 @@ class AdminUserTrackingView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "users", "view")
+        _require_capability(request, "safety", "view")
         users = User.objects.all().select_related("preferred_language")
         tracking_data = []
 
@@ -776,6 +784,7 @@ class AdminUsersDetailView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request, id):
+        _require_capability(request, "users", "view")
         User = get_user_model()
         u = User.objects.filter(pk=id).first()
         if not u:
@@ -806,6 +815,9 @@ class AdminUsersDetailView(APIView):
         })
 
     def patch(self, request, id):
+        _require_capability(request, "users", "change")
+        if any(field in request.data for field in ("role","is_staff","is_superuser")) and not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"}):
+            return Response({"detail":"Only administrators can change roles."},status=403)
         User = get_user_model()
         u = User.objects.filter(pk=id).first()
         if not u:
@@ -819,14 +831,11 @@ class AdminUsersDetailView(APIView):
 
 
 class AdminSendVerificationView(APIView):
-    """
-    Send a verification reminder / feedback email to a user. Uses the
-    configured email backend (console by default in dev). Twilio SMS is used
-    when TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN are set and a phone exists.
-    """
+    """Send a verification reminder through configured channels."""
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request, id):
+        _require_capability(request, "users", "change")
         from django.core.mail import send_mail
         from django.conf import settings as djsettings
         User = get_user_model()

@@ -32,9 +32,10 @@ from .logging_services import log_error as record_error
 class IsAdminUserOrStaff(permissions.BasePermission):
     def has_permission(self, request, view):
         u = getattr(request, "user", None)
-        return bool(u and u.is_authenticated and (
-            u.is_staff or u.is_superuser or getattr(u, "role", None) == "admin"
-        ))
+        if not u or not u.is_authenticated: return False
+        if u.is_superuser or getattr(u,"role",None) in {"admin","super_admin","tourism_admin"}: return True
+        try: return u.capability_profile.allows("audit", "view")
+        except Exception: return False
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +126,8 @@ class ErrorEventViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="acknowledge")
     def acknowledge(self, request, pk=None):
+        if not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"} or getattr(request.user,"capability_profile",None) and request.user.capability_profile.allows("audit","change")):
+            return Response({"detail":"Missing audit.change capability"},status=403)
         err = self.get_object()
         ser = ErrorEventActionSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -137,6 +140,8 @@ class ErrorEventViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="bulk-resolve")
     def bulk_resolve(self, request):
+        if not (request.user.is_superuser or request.user.role in {"admin","super_admin","tourism_admin"} or getattr(request.user,"capability_profile",None) and request.user.capability_profile.allows("audit","change")):
+            return Response({"detail":"Missing audit.change capability"},status=403)
         ids = request.data.get("ids") or []
         note = request.data.get("resolution_note", "")
         n, _ = ErrorEvent.objects.filter(id__in=ids).update(
