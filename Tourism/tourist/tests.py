@@ -267,12 +267,14 @@ class MLIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
     @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
-    def test_best_route_returns_503_when_ml_service_down(self, _mock):
+    def test_best_route_uses_bundled_graph_when_ml_service_down(self, _mock):
         response = self.client.post(reverse("ml-best-route"), {
             "start_latitude": 28.21, "start_longitude": 83.96,
             "end_latitude": 28.23, "end_longitude": 83.99,
         })
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["routing_engine"], "bundled_nepal_graphml")
+        self.assertTrue(response.data["route"])
 
     def test_best_route_requires_end_point(self):
         response = self.client.post(reverse("ml-best-route"), {"start_latitude": 28.21, "start_longitude": 83.96})
@@ -465,7 +467,9 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.post("/api/v1/navigation/route", {
             "startLat": 28.15, "startLng": 84.05, "endLat": 28.17, "endLng": 84.07,
         })
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)  # ML service not running in tests
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["routing_engine"], "bundled_nepal_graphml")
+        self.assertTrue(response.data["route"])
 
     def test_navigation_route_compat_missing_fields(self):
         response = self.client.post("/api/v1/navigation/route", {"startLat": 28.15})
@@ -476,8 +480,9 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.post("/api/v1/navigation/route", {
             "start_latitude": 28.10, "start_longitude": 84.00, "destination_name": "Rupa",
         })
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)  # ML service not running
-        # (resolves the name fine -> only fails at the routing call itself, not a 400/404)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["routing_engine"], "bundled_nepal_graphml")
+        self.assertEqual(response.data["destination"]["id"], self.destination.id)
 
     def test_navigation_route_unknown_destination_name(self):
         response = self.client.post("/api/v1/navigation/route", {
