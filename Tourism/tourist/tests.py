@@ -877,6 +877,18 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertGreaterEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["id"], self.trek.id)
 
+    def test_staff_write_requires_exact_capability(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="limited-staff@example.com", password="StrongPass123!", role="staff", is_staff=True, is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"images": ["view"]})
+        self.client.force_authenticate(staff)
+        denied = self.client.post("/api/v1/categories/", {"name": "Denied Category", "slug": "denied-category"})
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities = {"destinations": ["view", "add"]}
+        staff.capability_profile.save()
+        allowed = self.client.post("/api/v1/categories/", {"name": "Allowed Category", "slug": "allowed-category"})
+        self.assertEqual(allowed.status_code, status.HTTP_201_CREATED)
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

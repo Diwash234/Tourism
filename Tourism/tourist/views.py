@@ -19,7 +19,7 @@ from .models import (
     CurrentHazard, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, DestinationFeatureProfile,
 )
-from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability
+from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
     LanguageSerializer, CategorySerializer, DestinationListSerializer,
     DestinationDetailSerializer, DestinationWriteSerializer, DestinationApprovalSerializer,
@@ -99,7 +99,8 @@ class LanguageViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "destinations"
     search_fields = ["name", "description"]
     ordering_fields = ["name"]
     lookup_field = "slug"
@@ -514,7 +515,8 @@ class DestinationSearchDiscoverView(APIView):
 class DestinationImageViewSet(viewsets.ModelViewSet):
     queryset = DestinationImage.objects.all()
     serializer_class = DestinationImageSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "images"
     filterset_fields = ["destination"]
 
 
@@ -527,7 +529,8 @@ class HotelViewSet(viewsets.ModelViewSet):
 
     queryset = Hotel.objects.select_related("destination")
     serializer_class = HotelSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "hotels"
     filterset_fields = ["destination", "booking_status", "source"]
     ordering_fields = ["price_per_night", "rating"]
     search_fields = ["name", "address"]
@@ -536,7 +539,8 @@ class HotelViewSet(viewsets.ModelViewSet):
 class DestinationVideoViewSet(viewsets.ModelViewSet):
     queryset = DestinationVideo.objects.all()
     serializer_class = DestinationVideoSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "images"
     filterset_fields = ["destination"]
 
 
@@ -613,7 +617,8 @@ class BudgetViewSet(viewsets.ModelViewSet):
 class AlertViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
     queryset = Alert.objects.filter(is_active=True)
     serializer_class = AlertSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "safety"
     filterset_class = AlertFilter
     search_fields = ["title", "description", "city"]
     ordering_fields = ["created_at", "severity"]
@@ -641,7 +646,8 @@ class AlertViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
 class EmergencyContactViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
     queryset = EmergencyContact.objects.all()
     serializer_class = EmergencyContactSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [HasCapabilityOrReadOnly]
+    capability_module = "safety"
     filterset_class = EmergencyContactFilter
     search_fields = ["name", "city", "address"]
 
