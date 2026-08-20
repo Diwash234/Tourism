@@ -10,7 +10,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
-    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage,
+    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
 )
 
 
@@ -435,8 +435,15 @@ class EmergencyContactAdmin(admin.ModelAdmin):
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ["user", "channel", "title", "is_read", "is_sent", "created_at"]
-    list_filter = ["channel", "is_read", "is_sent"]
+    list_display = ["user", "channel", "category", "title", "delivery_status", "delivery_attempts", "is_read", "created_at"]
+    list_filter = ["channel", "category", "delivery_status", "is_read"]
+    search_fields = ["user__email", "title", "message"]
+
+
+@admin.register(NotificationPreference)
+class NotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ["user", "in_app_enabled", "email_enabled", "sms_enabled", "push_enabled", "safety_alerts", "updated_at"]
+    search_fields = ["user__email"]
 
 
 admin.site.register(DeviceToken)

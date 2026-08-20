@@ -419,27 +419,15 @@ def send_push_notification(device_tokens, title, message):
 
 
 def notify_user(user, title, message, channel="in_app", related_alert=None):
-    """Creates a Notification record and dispatches it over the requested channel."""
-    from .models import Notification  # local import avoids circular import
-
-    notification = Notification.objects.create(
-        user=user, channel=channel, title=title, message=message, related_alert=related_alert
-    )
-
-    sent = False
-    if channel == "email":
-        sent = send_email_notification(user.email, title, message)
-    elif channel == "sms" and user.phone_number:
-        sent = send_sms_notification(user.phone_number, message)
-    elif channel == "push":
-        tokens = list(user.device_tokens.values_list("token", flat=True))
-        sent = send_push_notification(tokens, title, message)
-    else:
-        sent = True  # in-app notifications are considered "sent" once stored
-
-    notification.is_sent = sent
-    notification.save(update_fields=["is_sent"])
+    """Queue a preference-aware notification and honestly record provider delivery."""
+    from .notification_delivery import queue_notification, deliver_notification
+    notification = queue_notification(user, title, message, channel=channel,
+        category="safety" if related_alert else "general", related_alert=related_alert)
+    if channel != "in_app" and notification.delivery_status == "queued":
+        deliver_notification(notification.id)
+        notification.refresh_from_db()
     return notification
+
 
 
 # ---------------------------------------------------------------------------

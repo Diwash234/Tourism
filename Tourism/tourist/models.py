@@ -1112,6 +1112,22 @@ class CurrentHazard(TimeStampedModel):
 # ---------------------------------------------------------------------------
 # Notifications
 # ---------------------------------------------------------------------------
+class NotificationPreference(TimeStampedModel):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notification_preferences")
+    in_app_enabled = models.BooleanField(default=True)
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=False)
+    push_enabled = models.BooleanField(default=True)
+    safety_alerts = models.BooleanField(default=True)
+    booking_updates = models.BooleanField(default=True)
+    recommendations = models.BooleanField(default=True)
+    marketing = models.BooleanField(default=False)
+    quiet_hours_start = models.TimeField(null=True, blank=True)
+    quiet_hours_end = models.TimeField(null=True, blank=True)
+
+    def __str__(self): return f"Notification preferences for {self.user.email}"
+
+
 class Notification(TimeStampedModel):
     class Channel(models.TextChoices):
         EMAIL = "email", "Email"
@@ -1119,16 +1135,49 @@ class Notification(TimeStampedModel):
         PUSH = "push", "Push"
         IN_APP = "in_app", "In-App"
 
+    class DeliveryStatus(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    class Category(models.TextChoices):
+        GENERAL = "general", "General"
+        SAFETY = "safety", "Safety"
+        BOOKING = "booking", "Booking"
+        RECOMMENDATION = "recommendation", "Recommendation"
+        MARKETING = "marketing", "Marketing"
+        FEEDBACK = "feedback", "Feedback"
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    batch_id = models.UUIDField(null=True, blank=True, db_index=True)
     channel = models.CharField(max_length=10, choices=Channel.choices, default=Channel.IN_APP)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.GENERAL, db_index=True)
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
     is_sent = models.BooleanField(default=False)
+    delivery_status = models.CharField(max_length=12, choices=DeliveryStatus.choices, default=DeliveryStatus.QUEUED, db_index=True)
+    delivery_attempts = models.PositiveSmallIntegerField(default=0)
+    max_attempts = models.PositiveSmallIntegerField(default=3)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    next_retry_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.CharField(max_length=500, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
     related_alert = models.ForeignKey(Alert, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["delivery_status", "next_retry_at"]), models.Index(fields=["user", "is_read"])]
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.channel == self.Channel.IN_APP and self.delivery_status == self.DeliveryStatus.QUEUED:
+            self.delivery_status = self.DeliveryStatus.SENT
+            self.is_sent = True
+            self.sent_at = timezone.now()
+        super().save(*args, **kwargs)
 
 
 class TrustedContact(models.Model):

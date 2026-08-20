@@ -1,78 +1,19 @@
-import { useEffect, useMemo, useState } from "react"
-import { FiBell, FiRefreshCw, FiSearch, FiSend, FiSettings } from "react-icons/fi"
+import { useCallback, useEffect, useState } from "react"
+import { FiBell, FiChevronLeft, FiChevronRight, FiRefreshCw, FiSearch, FiSend } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 
-const ROLES = ["", "tourist", "guide", "staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"]
-const empty = { title: "", message: "", role: "" }
-
-export default function NotificationSettingsPanel() {
-  const { showToast } = useToast()
-  const [tab, setTab] = useState("broadcast")
-  const [form, setForm] = useState(empty)
-  const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [query, setQuery] = useState("")
-  const [channel, setChannel] = useState("all")
-  const [readFilter, setReadFilter] = useState("all")
-  const [result, setResult] = useState(null)
-  const [branding, setBranding] = useState({ site_title: "", tagline: "", primary_color: "#1f6b4d", secondary_color: "#c2603a", footer_text: "", contact_email: "", contact_phone: "" })
-  const [settingId, setSettingId] = useState(null)
-
-  const loadNotifications = async () => {
-    setLoading(true)
-    try { const { data } = await adminApi.getAdminNotifications(); setNotifications(data || []) }
-    catch (error) { showToast(error.response?.data?.detail || "Could not load notifications", "error") }
-    finally { setLoading(false) }
-  }
-  const loadSettings = async () => {
-    try {
-      const { data } = await adminApi.getCMS("settings")
-      const item = (data.results || []).find(row => row.key === "branding")
-      if (item) { setSettingId(item.id); setBranding(old => ({ ...old, ...(item.value || {}) })) }
-    } catch { /* capability/API errors are shown when saving */ }
-  }
-  useEffect(() => { loadNotifications(); loadSettings() }, [])
-
-  const send = async (event) => {
-    event.preventDefault()
-    if (!form.title.trim() || !form.message.trim()) return showToast("Title and message are required", "error")
-    setSending(true); setResult(null)
-    try {
-      const { data } = await adminApi.broadcastNotification({ ...form, role: form.role || null })
-      setResult(data); setForm(empty); showToast(`Broadcast created for ${data.recipient_count} users`, "success"); loadNotifications()
-    } catch (error) { showToast(error.response?.data?.detail || "Broadcast failed", "error") }
-    finally { setSending(false) }
-  }
-  const saveBranding = async () => {
-    try {
-      const payload = { resource: "settings", id: settingId, key: "branding", value: branding, description: "Public platform branding", is_public: true }
-      if (settingId) await adminApi.updateCMS(payload)
-      else { const { data } = await adminApi.createCMS(payload); setSettingId(data.id) }
-      showToast("Branding settings saved", "success")
-    } catch (error) { showToast(error.response?.data?.detail || "Settings save failed", "error") }
-  }
-  const filtered = useMemo(() => notifications.filter(item => {
-    const text = `${item.title} ${item.message} ${item.user}`.toLowerCase()
-    return (!query || text.includes(query.toLowerCase())) && (channel === "all" || item.channel === channel) && (readFilter === "all" || String(item.is_read) === readFilter)
-  }), [notifications, query, channel, readFilter])
-  const stats = useMemo(() => ({ total: notifications.length, unread: notifications.filter(x => !x.is_read).length, sent: notifications.filter(x => x.is_sent).length }), [notifications])
-
-  return <div className="space-y-5">
-    <div className="flex flex-wrap gap-2 border-b border-slate-700 pb-3">
-      {[['broadcast','Broadcast',FiSend],['history','History',FiBell],['settings','Branding & Contact',FiSettings]].map(([id,label,Icon]) => <button key={id} onClick={() => setTab(id)} className={`px-4 py-2 rounded-xl text-xs font-black flex gap-2 items-center ${tab===id?'bg-amber-400 text-slate-950':'bg-slate-900 text-slate-300'}`}><Icon/>{label}</button>)}
-    </div>
-    {tab === "broadcast" && <form onSubmit={send} className="max-w-3xl rounded-2xl bg-slate-950 border border-slate-700 p-6 space-y-4">
-      <h2 className="text-white text-xl font-black">Send Platform Notification</h2>
-      <p className="text-xs text-slate-400">Creates in-app notifications for active users. Role targeting is optional and every broadcast is audited.</p>
-      <label className="block text-xs text-slate-300">Title<input className="input-field mt-1" maxLength="200" value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label>
-      <label className="block text-xs text-slate-300">Message<textarea className="input-field mt-1" rows="5" value={form.message} onChange={e=>setForm({...form,message:e.target.value})}/></label>
-      <label className="block text-xs text-slate-300">Target role<select className="input-field mt-1" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}>{ROLES.map(role=><option key={role} value={role}>{role || "All active users"}</option>)}</select></label>
-      <div className="flex justify-between text-xs text-slate-500"><span>{form.message.length} characters</span>{result&&<span className="text-emerald-400">{result.recipient_count} recipients created</span>}</div>
-      <button disabled={sending} className="bg-emerald-600 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black">{sending?"Sending…":"Create Broadcast"}</button>
-    </form>}
-    {tab === "history" && <div className="space-y-4"><div className="grid grid-cols-3 gap-3">{Object.entries(stats).map(([key,value])=><div key={key} className="bg-slate-950 border border-slate-700 rounded-xl p-4"><p className="text-xs uppercase text-slate-500">{key}</p><b className="text-white text-2xl">{value}</b></div>)}</div><div className="flex flex-wrap gap-2"><div className="relative flex-1"><FiSearch className="absolute left-3 top-3 text-slate-500"/><input className="input-field pl-9" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search title, message or recipient…"/></div><select className="input-field w-36" value={channel} onChange={e=>setChannel(e.target.value)}><option value="all">All channels</option><option value="in_app">In app</option><option value="email">Email</option><option value="sms">SMS</option><option value="push">Push</option></select><select className="input-field w-32" value={readFilter} onChange={e=>setReadFilter(e.target.value)}><option value="all">All status</option><option value="true">Read</option><option value="false">Unread</option></select><button onClick={loadNotifications} className="p-3 rounded-xl bg-slate-800 text-white"><FiRefreshCw className={loading?'animate-spin':''}/></button></div><div className="space-y-2 max-h-[60vh] overflow-y-auto">{filtered.map(item=><article key={item.id} className="bg-slate-950 border border-slate-700 p-4 rounded-xl text-xs"><div className="flex justify-between"><b className="text-white">{item.title}</b><span className={item.is_read?'text-slate-500':'text-amber-400'}>{item.is_read?'Read':'Unread'}</span></div><p className="text-slate-300 mt-1">{item.message}</p><p className="text-slate-500 mt-2">{item.user} · {item.channel} · {new Date(item.created_at).toLocaleString()}</p></article>)}</div></div>}
-    {tab === "settings" && <div className="max-w-3xl rounded-2xl bg-slate-950 border border-slate-700 p-6"><h2 className="text-white font-black text-xl mb-4">Branding & Contact Settings</h2><div className="grid sm:grid-cols-2 gap-3">{[['site_title','Website title'],['tagline','Tagline'],['footer_text','Footer text'],['contact_email','Contact email'],['contact_phone','Contact phone']].map(([key,label])=><label key={key} className="text-xs text-slate-300">{label}<input className="input-field mt-1" value={branding[key]||''} onChange={e=>setBranding({...branding,[key]:e.target.value})}/></label>)}{[['primary_color','Primary color'],['secondary_color','Secondary color']].map(([key,label])=><label key={key} className="text-xs text-slate-300">{label}<div className="flex gap-2"><input type="color" value={branding[key]} onChange={e=>setBranding({...branding,[key]:e.target.value})}/><input className="input-field" value={branding[key]} onChange={e=>setBranding({...branding,[key]:e.target.value})}/></div></label>)}</div><button onClick={saveBranding} className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded-xl font-black">Save Published Settings</button></div>}
+const roles=["","tourist","guide","staff","content_moderator","district_manager","hotel_manager","tourist_police"]
+const channels=["in_app","email","sms","push"]
+const categories=["general","safety","booking","recommendation","marketing","feedback"]
+export default function NotificationSettingsPanel(){
+  const{showToast}=useToast();const[tab,setTab]=useState("broadcast");const[form,setForm]=useState({title:"",message:"",role:"",category:"general",channels:["in_app"]});const[rows,setRows]=useState([]);const[stats,setStats]=useState({});const[count,setCount]=useState(0);const[pages,setPages]=useState(1);const[page,setPage]=useState(1);const[q,setQ]=useState("");const[status,setStatus]=useState("");const[channel,setChannel]=useState("");const[selected,setSelected]=useState([]);const[busy,setBusy]=useState(false);const[result,setResult]=useState(null)
+  const load=useCallback(async()=>{setBusy(true);try{const{data}=await adminApi.getAdminNotifications({q,delivery_status:status,channel,page,page_size:25});setRows(data.results||[]);setStats(data.stats||{});setCount(data.count||0);setPages(data.pages||1);setSelected([])}catch(error){showToast(error.response?.data?.detail||"Could not load delivery history","error")}finally{setBusy(false)}},[q,status,channel,page]);useEffect(()=>{if(tab==="history"){const timer=setTimeout(load,200);return()=>clearTimeout(timer)}},[tab,load])
+  const toggleChannel=value=>setForm(old=>({...old,channels:old.channels.includes(value)?old.channels.filter(item=>item!==value):[...old.channels,value]}))
+  const send=async event=>{event.preventDefault();if(!form.channels.length)return showToast("Choose at least one channel","error");setBusy(true);try{const{data}=await adminApi.broadcastNotification({...form,role:form.role||null});setResult(data);setForm({...form,title:"",message:""});showToast(`Created ${data.delivery_count} honest delivery records`,`success`)}catch(error){showToast(error.response?.data?.detail||"Broadcast failed","error")}finally{setBusy(false)}}
+  const action=async type=>{if(!selected.length)return;try{const{data}=await adminApi.updateAdminNotifications({ids:selected,action:type});showToast(data.message,"success");load()}catch(error){showToast(error.response?.data?.detail||"Action failed","error")}}
+  return <div className="space-y-5 text-slate-100"><div className="flex gap-2 border-b border-slate-700 pb-3">{[["broadcast","Compose",FiSend],["history","Delivery history",FiBell]].map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} className={`px-4 py-2 rounded-xl text-xs font-black flex gap-2 ${tab===id?"bg-amber-400 text-slate-950":"bg-slate-900 text-slate-300"}`}><Icon/>{label}</button>)}</div>
+  {tab==="broadcast"&&<form onSubmit={send} className="max-w-3xl bg-slate-950 border border-slate-700 rounded-2xl p-6 space-y-4"><div><h2 className="text-xl font-black">Create notification broadcast</h2><p className="text-xs text-slate-400">In-app records are immediately sent. External channels enter the delivery queue and are never marked successful without provider confirmation.</p></div><label className="block text-xs text-slate-300">Title<input maxLength="200" required className="input-field mt-1" value={form.title} onChange={event=>setForm({...form,title:event.target.value})}/></label><label className="block text-xs text-slate-300">Message<textarea required rows="5" className="input-field mt-1" value={form.message} onChange={event=>setForm({...form,message:event.target.value})}/></label><div className="grid sm:grid-cols-2 gap-3"><label className="text-xs text-slate-300">Category<select className="input-field mt-1" value={form.category} onChange={event=>setForm({...form,category:event.target.value})}>{categories.map(item=><option key={item}>{item}</option>)}</select></label><label className="text-xs text-slate-300">Target role<select className="input-field mt-1" value={form.role} onChange={event=>setForm({...form,role:event.target.value})}>{roles.map(item=><option key={item} value={item}>{item||"All active users"}</option>)}</select></label></div><fieldset><legend className="text-xs text-slate-300 mb-2">Delivery channels</legend><div className="flex flex-wrap gap-2">{channels.map(item=><label key={item} className={`px-3 py-2 rounded-xl text-xs cursor-pointer ${form.channels.includes(item)?"bg-purple-700":"bg-slate-800"}`}><input type="checkbox" className="mr-2" checked={form.channels.includes(item)} onChange={()=>toggleChannel(item)}/>{item.replace("_"," ")}</label>)}</div></fieldset><button disabled={busy} className="bg-emerald-700 px-6 py-3 rounded-xl font-black">Queue broadcast</button>{result&&<div className="grid grid-cols-4 gap-2 text-center text-xs">{["delivery_count","sent","queued","skipped"].map(key=><div key={key} className="bg-slate-900 rounded-xl p-3"><b className="text-xl block">{result[key]||0}</b>{key.replace("_"," ")}</div>)}</div>}</form>}
+  {tab==="history"&&<div className="space-y-4"><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{Object.entries(stats).map(([key,value])=><div key={key} className="bg-slate-950 border border-slate-700 rounded-xl p-4"><p className="text-xs uppercase text-slate-500">{key}</p><b className="text-2xl">{value}</b></div>)}</div><div className="flex flex-wrap gap-2"><label className="relative flex-1"><FiSearch className="absolute left-3 top-3 text-slate-500"/><input value={q} onChange={event=>{setQ(event.target.value);setPage(1)}} className="input-field pl-9" placeholder="Recipient, title or message"/></label><select value={status} onChange={event=>{setStatus(event.target.value);setPage(1)}} className="input-field w-36"><option value="">All status</option>{["queued","sent","failed","skipped"].map(item=><option key={item}>{item}</option>)}</select><select value={channel} onChange={event=>{setChannel(event.target.value);setPage(1)}} className="input-field w-36"><option value="">All channels</option>{channels.map(item=><option key={item}>{item}</option>)}</select><button onClick={load} className="p-3 bg-slate-800 rounded-xl"><FiRefreshCw className={busy?"animate-spin":""}/></button></div><div className="flex gap-2 items-center text-xs"><span>{count} deliveries · {selected.length} selected</span><button disabled={!selected.length} onClick={()=>action("retry")} className="ml-auto px-3 py-2 bg-sky-700 disabled:opacity-30 rounded-lg">Retry failed</button><button disabled={!selected.length} onClick={()=>action("mark_read")} className="px-3 py-2 bg-slate-700 disabled:opacity-30 rounded-lg">Mark read</button><button disabled={!selected.length} onClick={()=>action("mark_unread")} className="px-3 py-2 bg-slate-700 disabled:opacity-30 rounded-lg">Mark unread</button></div><div className="space-y-2">{rows.map(item=><article key={item.id} className="bg-slate-950 border border-slate-700 rounded-xl p-4 text-xs flex gap-3"><input type="checkbox" checked={selected.includes(item.id)} onChange={()=>setSelected(old=>old.includes(item.id)?old.filter(id=>id!==item.id):[...old,item.id])}/><div className="flex-1"><div className="flex flex-wrap justify-between gap-2"><b className="text-white">{item.title}</b><span className={`px-2 py-0.5 rounded-full ${item.delivery_status==="sent"?"bg-emerald-500/20 text-emerald-300":item.delivery_status==="failed"?"bg-rose-500/20 text-rose-300":"bg-sky-500/20 text-sky-300"}`}>{item.channel} · {item.delivery_status}</span></div><p className="text-slate-300 mt-1">{item.message}</p><p className="text-slate-500 mt-2">{item.user} · {item.category} · attempts {item.delivery_attempts} · {new Date(item.created_at).toLocaleString()}</p>{item.failure_reason&&<p className="text-rose-300 mt-1">{item.failure_reason}</p>}</div></article>)}</div><div className="flex justify-end gap-3 items-center text-xs"><button disabled={page<=1} onClick={()=>setPage(value=>value-1)}><FiChevronLeft/></button><span>Page {page} of {pages}</span><button disabled={page>=pages} onClick={()=>setPage(value=>value+1)}><FiChevronRight/></button></div></div>}
   </div>
 }

@@ -1375,3 +1375,111 @@ class BrandingThemeTranslationTests(APITestCase):
         self.assertEqual(visible.status_code, status.HTTP_200_OK)
         denied = self.client.patch(reverse("admin-branding"), {"branding": {"theme_preset": "forest"}}, format="json")
         self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class NotificationDeliveryPreferenceTests(APITestCase):
+    def setUp(self):
+        from .models import NotificationPreference
+        self.admin = User.objects.create_superuser(email="notification-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.user = User.objects.create_user(email="notification-user@example.com", password="StrongPass123!", is_active=True)
+        self.preference = NotificationPreference.objects.create(user=self.user, in_app_enabled=True, email_enabled=False, sms_enabled=False, push_enabled=False, marketing=False)
+
+    def test_user_preferences_are_persisted_and_private(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.patch(reverse("notification-preferences"), {"email_enabled": True, "booking_updates": False}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.preference.refresh_from_db()
+        self.assertTrue(self.preference.email_enabled)
+        self.assertFalse(self.preference.booking_updates)
+
+    def test_broadcast_respects_channel_and_category_preferences(self):
+        from .models import Notification
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-notifications"), {"title": "Platform update", "message": "Test delivery", "role": "tourist", "category": "general", "channels": ["in_app", "email", "sms", "push"]}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        records = Notification.objects.filter(user=self.user)
+        self.assertEqual(records.count(), 4)
+        self.assertEqual(records.get(channel="in_app").delivery_status, "sent")
+        self.assertEqual(set(records.exclude(channel="in_app").values_list("delivery_status", flat=True)), {"skipped"})
+
+    def test_external_delivery_stays_queued_until_provider_confirms(self):
+        from .models import Notification
+        self.preference.email_enabled = True; self.preference.save(update_fields=["email_enabled"])
+        self.client.force_authenticate(self.admin)
+        self.client.post(reverse("admin-notifications"), {"title": "Email test", "message": "Queued", "role": "tourist", "channels": ["email"]}, format="json")
+        notification = Notification.objects.get(user=self.user, channel="email")
+        self.assertEqual(notification.delivery_status, "queued")
+        self.assertFalse(notification.is_sent)
+
+    @patch("tourist.notification_delivery.send_mail")
+    def test_provider_confirmation_marks_email_sent(self, mocked_send):
+        from .models import Notification
+        from .notification_delivery import deliver_notification
+        notification = Notification.objects.create(user=self.user, channel="email", title="Confirmed", message="Delivered")
+        result = deliver_notification(notification.id)
+        self.assertEqual(result, "sent")
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_sent)
+        self.assertEqual(notification.delivery_attempts, 1)
+        self.assertIsNotNone(notification.sent_at)
+        mocked_send.assert_called_once()
+
+    def test_provider_failure_records_reason_and_bounded_retry(self):
+        from .models import Notification
+        from .notification_delivery import deliver_notification
+        notification = Notification.objects.create(user=self.user, channel="sms", title="SMS", message="Unavailable", max_attempts=2)
+        self.assertEqual(deliver_notification(notification.id), "failed")
+        notification.refresh_from_db()
+        self.assertIn("phone", notification.failure_reason.lower())
+        self.assertIsNotNone(notification.next_retry_at)
+        self.assertEqual(deliver_notification(notification.id), "failed")
+        notification.refresh_from_db()
+        self.assertIsNone(notification.next_retry_at)
+        self.assertEqual(notification.delivery_attempts, 2)
+
+    def test_retry_action_does_not_reset_exhausted_deliveries(self):
+        from .models import Notification
+        failed = Notification.objects.create(user=self.user, channel="email", title="Retry", message="Retry", delivery_status="failed", delivery_attempts=1, max_attempts=3)
+        exhausted = Notification.objects.create(user=self.user, channel="email", title="Done", message="Done", delivery_status="failed", delivery_attempts=3, max_attempts=3)
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-notifications"), {"ids": [failed.id, exhausted.id], "action": "retry"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        failed.refresh_from_db(); exhausted.refresh_from_db()
+        self.assertEqual(failed.delivery_status, "queued")
+        self.assertEqual(exhausted.delivery_status, "failed")
+
+    def test_user_read_unread_and_delete_are_owner_scoped(self):
+        from .models import Notification
+        own = Notification.objects.create(user=self.user, title="Own", message="Message")
+        other = Notification.objects.create(user=self.admin, title="Other", message="Message")
+        self.client.force_authenticate(self.user)
+        read = self.client.put(reverse("notification-mark-read", kwargs={"pk": own.id}))
+        self.assertEqual(read.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(read.data["read_at"])
+        unread = self.client.put(reverse("notification-mark-unread", kwargs={"pk": own.id}))
+        self.assertFalse(unread.data["is_read"])
+        denied = self.client.delete(reverse("notification-detail", kwargs={"pk": other.id}))
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+        removed = self.client.delete(reverse("notification-detail", kwargs={"pk": own.id}))
+        self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
+
+    @patch("tourist.notification_delivery.send_mail")
+    def test_queue_management_command_processes_due_delivery(self, mocked_send):
+        from django.core.management import call_command
+        from .models import Notification
+        notification = Notification.objects.create(user=self.user, channel="email", title="Worker", message="Process me")
+        call_command("process_notification_queue", limit=10)
+        notification.refresh_from_db()
+        self.assertEqual(notification.delivery_status, "sent")
+        mocked_send.assert_called_once()
+
+    def test_disabled_marketing_category_is_skipped_even_for_in_app(self):
+        from .models import Notification
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-notifications"), {"title": "Offer", "message": "Marketing", "role": "tourist", "category": "marketing", "channels": ["in_app"]}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        notification = Notification.objects.get(user=self.user, title="Offer")
+        self.assertEqual(notification.delivery_status, "skipped")
+        self.assertIn("preferences", notification.failure_reason)

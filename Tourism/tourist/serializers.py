@@ -20,6 +20,7 @@ from .models import (
     Alert,
     EmergencyContact,
     Notification,
+    NotificationPreference,
     DeviceToken,
     MLInsight,
     Hotel,
@@ -1017,8 +1018,18 @@ class EmergencyContactSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ["id", "channel", "title", "message", "is_read", "is_sent", "related_alert", "created_at"]
-        read_only_fields = ["channel", "title", "message", "is_sent", "related_alert", "created_at"]
+        fields = ["id", "batch_id", "channel", "category", "title", "message", "is_read", "read_at",
+                  "is_sent", "delivery_status", "delivery_attempts", "sent_at", "failure_reason", "related_alert", "created_at"]
+        read_only_fields = ["batch_id", "channel", "category", "title", "message", "read_at", "is_sent",
+                            "delivery_status", "delivery_attempts", "sent_at", "failure_reason", "related_alert", "created_at"]
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreference
+        fields = ["in_app_enabled", "email_enabled", "sms_enabled", "push_enabled", "safety_alerts",
+                  "booking_updates", "recommendations", "marketing", "quiet_hours_start", "quiet_hours_end", "updated_at"]
+        read_only_fields = ["updated_at"]
 
 
 class DeviceTokenSerializer(serializers.ModelSerializer):

@@ -87,3 +87,13 @@ Admin health output includes database, storage, ML service, Overpass, Wikimedia,
 ### GraphHopper clarification
 
 GraphHopper is a valid routing option, but the Java GraphHopper server normally imports an OpenStreetMap `.osm.pbf` road network and builds its own graph. It does not directly consume the project's tourism GraphML as a production road graph. The application therefore uses the existing GraphML through NetworkX for immediate approximate routing, while retaining OSRM/GraphHopper/OpenRouteService as optional street-routing backends through a configured service URL/adapter.
+
+## Notification delivery worker
+
+External email, SMS, and push broadcasts are stored as queued deliveries and are only marked sent after provider confirmation. Run the bounded queue processor from cron or a scheduler (for example every minute):
+
+```bash
+python manage.py process_notification_queue --limit 200
+```
+
+Failed deliveries use exponential retry timestamps and stop after `max_attempts`. Configure `DEFAULT_FROM_EMAIL`, SMTP settings, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `FCM_SERVER_KEY` only through deployment secrets. If a provider is unavailable or unconfigured, the record remains failed with an honest failure reason; the application does not fabricate successful delivery.

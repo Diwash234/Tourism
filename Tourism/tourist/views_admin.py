@@ -11,7 +11,7 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification
+    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1658,20 +1658,67 @@ class AdminReviewModerationView(APIView):
 
 class AdminNotificationManagementView(APIView):
     permission_classes = [IsAdminOrStaff]
+
     def get(self, request):
         _require_capability(request, "settings", "view")
-        qs=Notification.objects.select_related("user").order_by("-created_at")[:200]
-        return Response([{"id":n.id,"user":n.user.email,"title":n.title,"message":n.message,"channel":n.channel,"is_read":n.is_read,"is_sent":n.is_sent,"created_at":n.created_at} for n in qs])
+        qs = Notification.objects.select_related("user").order_by("-created_at")
+        for field in ("channel", "category", "delivery_status"):
+            value = request.query_params.get(field)
+            if value: qs = qs.filter(**{field: value})
+        q = (request.query_params.get("q") or "").strip()
+        if q: qs = qs.filter(Q(title__icontains=q) | Q(message__icontains=q) | Q(user__email__icontains=q))
+        try: page=max(1,int(request.query_params.get("page",1)));size=min(100,max(10,int(request.query_params.get("page_size",25))))
+        except ValueError: return Response({"detail":"Invalid pagination"},status=400)
+        count=qs.count(); items=[]
+        for n in qs[(page-1)*size:page*size]:
+            items.append({"id":n.id,"batch_id":n.batch_id,"user":n.user.email,"title":n.title,"message":n.message,
+                "channel":n.channel,"category":n.category,"is_read":n.is_read,"delivery_status":n.delivery_status,
+                "delivery_attempts":n.delivery_attempts,"failure_reason":n.failure_reason,"next_retry_at":n.next_retry_at,
+                "sent_at":n.sent_at,"created_at":n.created_at})
+        stats={status:Notification.objects.filter(delivery_status=status).count() for status in Notification.DeliveryStatus.values}
+        return Response({"count":count,"page":page,"pages":max(1,(count+size-1)//size),"results":items,"stats":stats})
+
     def post(self, request):
         _require_capability(request, "settings", "add")
+        import uuid
         title=(request.data.get("title") or "").strip(); message=(request.data.get("message") or "").strip()
         if not title or not message:return Response({"detail":"title and message are required"},status=400)
-        role=request.data.get("role"); users=User.objects.filter(is_active=True); users=users.filter(role=role) if role else users
-        rows=[Notification(user=u,title=title[:200],message=message,channel="in_app") for u in users]
+        category=request.data.get("category","general");channels=request.data.get("channels") or ["in_app"]
+        if category not in Notification.Category.values or not isinstance(channels,list) or not channels or set(channels)-set(Notification.Channel.values):
+            return Response({"detail":"Valid category and delivery channels are required"},status=400)
+        role=request.data.get("role");users=User.objects.filter(is_active=True);users=users.filter(role=role) if role else users
+        # Ensure preference rows in one query, then build delivery records in batches.
+        existing=set(NotificationPreference.objects.filter(user__in=users).values_list("user_id",flat=True))
+        NotificationPreference.objects.bulk_create([NotificationPreference(user_id=user_id) for user_id in users.values_list("id",flat=True) if user_id not in existing],batch_size=500,ignore_conflicts=True)
+        batch_id=uuid.uuid4();rows=[];now=timezone.now();skipped=0;queued=0;sent=0
+        category_field={"safety":"safety_alerts","booking":"booking_updates","recommendation":"recommendations","marketing":"marketing"}.get(category)
+        channel_field={"in_app":"in_app_enabled","email":"email_enabled","sms":"sms_enabled","push":"push_enabled"}
+        for user in users.select_related("notification_preferences").iterator(chunk_size=500):
+            pref=user.notification_preferences
+            for channel in channels:
+                allowed=getattr(pref,channel_field[channel]) and (getattr(pref,category_field) if category_field else True)
+                in_app=allowed and channel=="in_app"
+                state="sent" if in_app else "queued" if allowed else "skipped"
+                rows.append(Notification(user=user,batch_id=batch_id,title=title[:200],message=message,channel=channel,
+                    category=category,delivery_status=state,is_sent=in_app,sent_at=now if in_app else None,
+                    failure_reason="" if allowed else "Disabled by user notification preferences"))
+                sent+=int(in_app);queued+=int(allowed and not in_app);skipped+=int(not allowed)
         Notification.objects.bulk_create(rows,batch_size=500)
         from audit.models import AuditLog
-        AuditLog.objects.create(user=request.user,user_email=request.user.email,category="admin",severity="info",source="backend",action="notification.broadcast",message=f"Broadcast '{title}' to {len(rows)} users",object_type="Notification",extra={"role":role,"recipient_count":len(rows)})
-        return Response({"message":"Broadcast created","recipient_count":len(rows)},status=201)
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="admin",severity="info",source="backend",action="notification.broadcast",message=f"Queued '{title}' for {len(rows)} deliveries",object_type="Notification",object_id=str(batch_id),extra={"role":role,"recipient_count":users.count(),"deliveries":len(rows),"channels":channels,"category":category,"queued":queued,"sent":sent,"skipped":skipped})
+        return Response({"message":"Broadcast queued","batch_id":batch_id,"recipient_count":users.count(),"delivery_count":len(rows),"queued":queued,"sent":sent,"skipped":skipped},status=201)
+
+    def patch(self, request):
+        _require_capability(request,"settings","change")
+        ids=list(dict.fromkeys(request.data.get("ids") or []))[:100];action=request.data.get("action")
+        queryset=Notification.objects.filter(id__in=ids)
+        if not ids:return Response({"detail":"Select one or more notifications"},status=400)
+        if action=="retry":
+            updated=queryset.filter(delivery_status="failed",delivery_attempts__lt=F("max_attempts")).update(delivery_status="queued",next_retry_at=None,failure_reason="")
+        elif action in {"mark_read","mark_unread"}:
+            read=action=="mark_read";updated=queryset.update(is_read=read,read_at=timezone.now() if read else None)
+        else:return Response({"detail":"Unsupported notification action"},status=400)
+        return Response({"message":f"{updated} notification(s) updated","updated":updated})
 
 
 class AdminReportsView(APIView):
@@ -1890,7 +1937,8 @@ class FeedbackReplyView(APIView):
         f.replied_at = timezone.now()
         f.save()
         if f.user and not request.data.get("is_internal",False):
-            Notification.objects.create(user=f.user,title=f"Reply: {f.subject}"[:200],message=reply,channel="in_app")
+            from .notification_delivery import queue_notification
+            queue_notification(f.user, f"Reply: {f.subject}"[:200], reply, channel="in_app", category="feedback")
         return Response({"message": "reply saved", "id": f.id})
 
 

@@ -41,13 +41,7 @@ const Settings = () => {
     getTranslationProvider()
   )
   const [currency, setCurrency] = useState(() => localStorage.getItem("tourism_currency") || "USD")
-  const [notifPrefs, setNotifPrefs] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("tourism_notifications") || '{"email": true, "push": true, "sms": false, "alerts": true}')
-    } catch {
-      return { email: true, push: true, sms: false, alerts: true }
-    }
-  })
+  const [notifPrefs, setNotifPrefs] = useState({ in_app_enabled: true, email_enabled: true, push_enabled: true, sms_enabled: false, safety_alerts: true, booking_updates: true, recommendations: true, marketing: false })
 
 
 
@@ -92,6 +86,8 @@ const Settings = () => {
 
 
 
+    userApi.getNotificationPreferences().then(({ data }) => setNotifPrefs(data)).catch(() => {})
+
     if(user?.preferred_language){
 
       reset({
@@ -115,7 +111,7 @@ const Settings = () => {
     setSaving(true)
     try {
       localStorage.setItem("tourism_currency", currency)
-      localStorage.setItem("tourism_notifications", JSON.stringify(notifPrefs))
+      await userApi.updateNotificationPreferences(notifPrefs)
       const selectedLanguage = languages.find((item) => String(item.code || item.language_code).toLowerCase() === String(data.preferred_language || "").toLowerCase())
       if (data.preferred_language) {
         // Sync the site-wide i18n store so the whole UI switches language
@@ -138,7 +134,6 @@ const Settings = () => {
         const { data: updated } = await userApi.updateSettings({
           preferred_language: selectedLanguage?.id || selectedLanguage?.language_id || null,
           currency,
-          ...notifPrefs,
         })
         setUser(updated)
       } catch (e) {
@@ -399,8 +394,8 @@ const Settings = () => {
               </div>
               <input
                 type="checkbox"
-                checked={notifPrefs.email}
-                onChange={(e) => setNotifPrefs({ ...notifPrefs, email: e.target.checked })}
+                checked={notifPrefs.email_enabled}
+                onChange={(e) => setNotifPrefs({ ...notifPrefs, email_enabled: e.target.checked })}
                 className="w-4 h-4 accent-purple-600 rounded"
               />
             </label>
@@ -412,8 +407,8 @@ const Settings = () => {
               </div>
               <input
                 type="checkbox"
-                checked={notifPrefs.push}
-                onChange={(e) => setNotifPrefs({ ...notifPrefs, push: e.target.checked })}
+                checked={notifPrefs.push_enabled}
+                onChange={(e) => setNotifPrefs({ ...notifPrefs, push_enabled: e.target.checked })}
                 className="w-4 h-4 accent-purple-600 rounded"
               />
             </label>
@@ -425,11 +420,14 @@ const Settings = () => {
               </div>
               <input
                 type="checkbox"
-                checked={notifPrefs.sms}
-                onChange={(e) => setNotifPrefs({ ...notifPrefs, sms: e.target.checked })}
+                checked={notifPrefs.sms_enabled}
+                onChange={(e) => setNotifPrefs({ ...notifPrefs, sms_enabled: e.target.checked })}
                 className="w-4 h-4 accent-purple-600 rounded"
               />
             </label>
+            <div className="border-t pt-3 grid sm:grid-cols-2 gap-2">
+              {[["safety_alerts","Safety alerts"],["booking_updates","Booking updates"],["recommendations","Travel recommendations"],["marketing","Marketing messages"]].map(([key,label]) => <label key={key} className="flex items-center justify-between text-sm p-2 rounded-xl bg-gray-50"><span>{label}</span><input type="checkbox" checked={Boolean(notifPrefs[key])} onChange={(e)=>setNotifPrefs({...notifPrefs,[key]:e.target.checked})} className="w-4 h-4 accent-purple-600"/></label>)}
+            </div>
           </div>
         </div>
 

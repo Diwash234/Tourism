@@ -66,16 +66,17 @@ const userApi = {
 
   // Backend now accepts both POST and PUT for this action, so this call
   // works as-is.
-  markNotificationRead: (id) =>
-    axiosClient.put(`/notifications/${id}/mark_read/`),
+  markNotificationRead: (id) => axiosClient.put(`/notifications/${id}/mark_read/`),
+  markNotificationUnread: (id) => axiosClient.put(`/notifications/${id}/mark_unread/`),
+  markAllNotificationsRead: () => axiosClient.post("/notifications/mark_all_read/"),
+  markAllNotificationsUnread: () => axiosClient.post("/notifications/mark_all_unread/"),
+  deleteNotification: (id) => axiosClient.delete(`/notifications/${id}/`),
+  getNotificationPreferences: () => axiosClient.get("/notification-preferences/"),
+  updateNotificationPreferences: (payload) => axiosClient.patch("/notification-preferences/", payload),
 
 
-  // NOTE: there is currently no backend model for these preferences
-  // (email/push/SMS notification toggles, currency). This call will
-  // succeed (200) because the profile serializer silently ignores unknown
-  // fields, but nothing is actually persisted. See Settings.jsx comment
-  // for details — this needs a real backend UserSettings model to work.
-  // NEW: needed for Settings.jsx's language dropdown — preferred_language
+  // Language options use database IDs when updating the profile.
+  // preferred_language
   // on the backend is a ForeignKey to Language (expects the language's
   // numeric id, not a code string like "en"), so the dropdown needs the
   // real list of Language records to build valid options.

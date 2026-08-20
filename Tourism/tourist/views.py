@@ -14,7 +14,7 @@ from .filters import DestinationFilter, AlertFilter, EmergencyContactFilter, Bud
 from .models import (
     Language, Category, Destination, DestinationImage, DestinationVideo,
     DestinationTranslation, Review, Rating, Favorite, VisitHistory, Budget,
-    Alert, EmergencyContact, Notification, DeviceToken, Hotel,
+    Alert, EmergencyContact, Notification, NotificationPreference, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
@@ -26,7 +26,7 @@ from .serializers import (
     DestinationDetailSerializer, DestinationWriteSerializer, DestinationApprovalSerializer,
     DestinationImageSerializer, DestinationVideoSerializer, DestinationTranslationSerializer,
     ReviewSerializer, RatingSerializer, FavoriteSerializer, VisitHistorySerializer, BudgetSerializer,
-    AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
+    AlertSerializer, EmergencyContactSerializer, NotificationSerializer, NotificationPreferenceSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
     InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer, DestinationFeatureProfileSerializer,
@@ -756,7 +756,7 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
                            mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ["channel", "is_read"]
+    filterset_fields = ["channel", "category", "is_read", "delivery_status"]
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -767,13 +767,40 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
     def mark_read(self, request, pk=None):
         notification = self.get_object()
         notification.is_read = True
-        notification.save(update_fields=["is_read"])
+        notification.read_at = timezone.now()
+        notification.save(update_fields=["is_read", "read_at"])
+        return Response(self.get_serializer(notification).data)
+
+    @action(detail=True, methods=["post", "put"])
+    def mark_unread(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = False; notification.read_at = None
+        notification.save(update_fields=["is_read", "read_at"])
         return Response(self.get_serializer(notification).data)
 
     @action(detail=False, methods=["post"])
     def mark_all_read(self, request):
-        self.get_queryset().update(is_read=True)
+        self.get_queryset().update(is_read=True, read_at=timezone.now())
         return Response({"message": "All notifications marked as read."})
+
+    @action(detail=False, methods=["post"])
+    def mark_all_unread(self, request):
+        self.get_queryset().update(is_read=False, read_at=None)
+        return Response({"message": "All notifications marked as unread."})
+
+
+class NotificationPreferenceView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        preference, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        return Response(NotificationPreferenceSerializer(preference).data)
+
+    def patch(self, request):
+        preference, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        serializer = NotificationPreferenceSerializer(preference, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True); serializer.save()
+        return Response(serializer.data)
 
 
 class DeviceTokenViewSet(viewsets.ModelViewSet):

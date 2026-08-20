@@ -164,7 +164,7 @@ class SOSAlertViewSet(viewsets.ModelViewSet):
 from django.contrib.auth import get_user_model  # noqa: E402
 from rest_framework.decorators import action as drf_action  # noqa: E402
 
-from .models import FamilyLink, Notification  # noqa: E402
+from .models import FamilyLink  # noqa: E402
 from .serializers_family_safety import (  # noqa: E402
     FamilyLinkSerializer, FamilyMemberSerializer,
 )
@@ -173,7 +173,8 @@ from .serializers_family_safety import (  # noqa: E402
 def _notify(user, title, message):
     """Best-effort in-app notification row."""
     try:
-        Notification.objects.create(user=user, title=title, message=message)
+        from .notification_delivery import queue_notification
+        queue_notification(user, title, message, category="safety")
     except Exception:
         pass
 

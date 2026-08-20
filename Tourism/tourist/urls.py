@@ -62,6 +62,7 @@ router.register("infrastructure-submissions", views.InfrastructureSubmissionView
 router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
 
 urlpatterns = [
+    path("notification-preferences/", views.NotificationPreferenceView.as_view(), name="notification-preferences"),
     # Auth endpoints
     path("auth/register/", views_auth.RegisterView.as_view(), name="auth-register"),
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="auth-login"),
