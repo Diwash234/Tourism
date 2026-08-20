@@ -97,3 +97,21 @@ python manage.py process_notification_queue --limit 200
 ```
 
 Failed deliveries use exponential retry timestamps and stop after `max_attempts`. Configure `DEFAULT_FROM_EMAIL`, SMTP settings, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `FCM_SERVER_KEY` only through deployment secrets. If a provider is unavailable or unconfigured, the record remains failed with an honest failure reason; the application does not fabricate successful delivery.
+
+## Data retention and protected deletion
+
+Preview retention eligibility before every purge:
+
+```bash
+python manage.py apply_retention_policy
+```
+
+Apply configured retention windows only after reviewing the dry-run counts:
+
+```bash
+python manage.py apply_retention_policy --apply
+```
+
+The database policy is managed from Admin Control Center → Retention & Protected Deletion. The operation only removes expired ephemeral personal records such as old read notifications, location pings, recommendation telemetry, resolved SOS records, and routine low-severity audit entries. It does not purge active SOS incidents, bookings, security/error audit evidence, or official risk records. Destination, hotel, restaurant, transport, review, feedback, and travel-plan deletion uses archival/deactivation.
+
+User anonymization is separate and irreversible. It removes direct identifiers, credentials, tokens, precise location, device registrations, notifications, favorites, and visit history while preserving booking/review relationships under an anonymized account identifier. Administrators must type the current email address to confirm it.

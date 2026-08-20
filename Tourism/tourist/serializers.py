@@ -576,7 +576,7 @@ class HotelSerializer(serializers.ModelSerializer):
             "rating",
             "booking_status",
             "booking_url",
-            "image_url", "source", "source_url", "is_verified", "verified_at", "updated_at",
+            "image_url", "source", "source_url", "is_verified", "verified_at", "is_active", "archived_at", "updated_at",
         ]
 
     def get_image_url(self, obj):

@@ -98,6 +98,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+    anonymized_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
     objects = UserManager()
@@ -814,6 +816,8 @@ class Hotel(TimeStampedModel):
     source_url = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-rating", "name"]
@@ -1079,6 +1083,8 @@ class RiskIncident(TimeStampedModel):
     municipality = models.CharField(max_length=160, blank=True)
     affected_area = models.CharField(max_length=240, blank=True)
     verified = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-event_date", "-created_at"]
@@ -1284,6 +1290,7 @@ class FamilyLink(models.Model):
         PENDING = "pending", "Pending"
         ACCEPTED = "accepted", "Accepted"
         DECLINED = "declined", "Declined"
+        REVOKED = "revoked", "Revoked"
 
     requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_links_sent")
     member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_links_received")
@@ -2167,6 +2174,8 @@ class RiskObservation(TimeStampedModel):
     observed_at = models.DateTimeField()
     published_at = models.DateTimeField(null=True, blank=True)
     verified = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-observed_at"]
@@ -2264,6 +2273,25 @@ class FeedbackEvidence(TimeStampedModel):
     file = models.FileField(upload_to="feedback/evidence/")
     caption = models.CharField(max_length=220, blank=True)
     is_verified = models.BooleanField(default=False)
+
+
+class DataRetentionPolicy(TimeStampedModel):
+    """Singleton operational retention windows for ephemeral personal data."""
+    name = models.CharField(max_length=80, unique=True, default="default")
+    read_notification_days = models.PositiveIntegerField(default=365, validators=[MinValueValidator(30), MaxValueValidator(3650)])
+    location_ping_days = models.PositiveIntegerField(default=30, validators=[MinValueValidator(1), MaxValueValidator(365)])
+    recommendation_event_days = models.PositiveIntegerField(default=365, validators=[MinValueValidator(30), MaxValueValidator(3650)])
+    resolved_sos_days = models.PositiveIntegerField(default=730, validators=[MinValueValidator(365), MaxValueValidator(3650)])
+    audit_log_days = models.PositiveIntegerField(default=2555, validators=[MinValueValidator(365), MaxValueValidator(7300)])
+    preserve_official_risk_records = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="retention_policies_updated")
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.preserve_official_risk_records:
+            raise ValidationError("Official risk records are safety-critical and must be preserved")
+
+    def __str__(self): return self.name
 
 
 class SiteSetting(TimeStampedModel):

@@ -10,7 +10,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
-    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
+    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop,
 )
 
@@ -323,8 +323,8 @@ class DestinationImageAdmin(admin.ModelAdmin):
 
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
-    list_display = ["name", "destination", "image_preview", "booking_status", "price_per_night", "currency", "rating", "source"]
-    list_filter = ["booking_status", "source", "currency"]
+    list_display = ["name", "destination", "image_preview", "booking_status", "is_active", "price_per_night", "currency", "rating", "source"]
+    list_filter = ["booking_status", "is_active", "source", "currency"]
     search_fields = ["name", "destination__name", "address"]
     readonly_fields = ["image_preview_large"]
     fields = [
@@ -568,6 +568,10 @@ class ContentSectionInline(admin.TabularInline):
 @admin.register(ManagedPage)
 class ManagedPageAdmin(admin.ModelAdmin):
     list_display=['title','route','is_enabled','status','scheduled_publish_at','published_at','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+
+@admin.register(DataRetentionPolicy)
+class DataRetentionPolicyAdmin(admin.ModelAdmin):
+    list_display = ["name", "read_notification_days", "location_ping_days", "recommendation_event_days", "resolved_sos_days", "preserve_official_risk_records", "updated_at"]
 
 @admin.register(BrandingAsset)
 class BrandingAssetAdmin(admin.ModelAdmin):

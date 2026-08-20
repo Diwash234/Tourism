@@ -142,6 +142,7 @@ urlpatterns = [
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
     path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
     path("admin/travel-services/", views_admin.AdminTravelServicesView.as_view(), name="admin-travel-services"),
+    path("admin/retention/", views_admin.AdminRetentionPolicyView.as_view(), name="admin-retention"),
     path("admin/reports/", views_admin.AdminReportsView.as_view(), name="admin-reports"),
     path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
     path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),

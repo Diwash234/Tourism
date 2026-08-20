@@ -3,6 +3,9 @@ import axiosClient from "./axiosClient"
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
   getReports: (params) => axiosClient.get("/admin/reports/", { params }),
+  getRetentionPolicy: () => axiosClient.get("/admin/retention/"),
+  updateRetentionPolicy: (payload) => axiosClient.patch("/admin/retention/", payload),
+  runRetentionPolicy: (dry_run = true) => axiosClient.post("/admin/retention/", { dry_run }),
   getTravelServices: (params) => axiosClient.get("/admin/travel-services/", { params }),
   updateTravelServiceStatus: (payload) => axiosClient.patch("/admin/travel-services/", payload),
   getRestaurants: (params) => axiosClient.get("/restaurants/", { params }),
@@ -133,7 +136,7 @@ const adminApi = {
   getUserDetail: (id) => axiosClient.get(`/admin/users/${id}/`),
   updateUser: (id, payload) => axiosClient.patch(`/admin/users/${id}/`, payload),
   sendVerification: (id, payload) => axiosClient.post(`/admin/users/${id}/send-verification`, payload),
-  runUserAccessAction: (id, action) => axiosClient.post(`/admin/users/${id}/actions`, { action }),
+  runUserAccessAction: (id, action, extra = {}) => axiosClient.post(`/admin/users/${id}/actions`, { action, ...extra }),
   exploreData: (params) => axiosClient.get("/admin/data-explorer/", { params }),
   getBranding: () => axiosClient.get("/admin/branding/"),
   updateBranding: (branding) => axiosClient.patch("/admin/branding/", { branding }),

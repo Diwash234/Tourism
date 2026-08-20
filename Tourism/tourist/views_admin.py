@@ -11,7 +11,7 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference
+    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -210,6 +210,8 @@ class UpdateUserStatusView(APIView):
         for field in ("is_active", "is_verified", "managed_district", "first_name", "last_name", "bio"):
             if field in request.data:
                 setattr(user, field, request.data[field])
+        if "is_active" in request.data:
+            user.deactivated_at = None if user.is_active else timezone.now()
         if role is not None:
             user.role = role
             user.is_staff = role not in {User.Role.TOURIST, User.Role.GUIDE}
@@ -231,7 +233,8 @@ class UpdateUserStatusView(APIView):
             return Response({"detail": reason}, status=403)
         before = {"is_active": user.is_active}
         user.is_active = False
-        user.save(update_fields=["is_active"])
+        user.deactivated_at = timezone.now()
+        user.save(update_fields=["is_active", "deactivated_at"])
         from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
         OutstandingToken.objects.filter(user=user).delete()
         _audit_user_change(request, user, "user.deactivate", before, {"is_active": False, "sessions_revoked": True})
@@ -630,8 +633,14 @@ class AdminDestinationDetailView(APIView):
         return Response({"message": "Destination updated successfully", "changed": changed})
 
     def delete(self, request, id):
-        Destination.objects.filter(id=id).delete()
-        return Response({"message": "Destination deleted successfully"})
+        _require_capability(request,"destinations","delete")
+        destination=Destination.objects.filter(id=id).first()
+        if not destination:return Response({"detail":"Destination not found"},status=404)
+        previous=destination.status;destination.status=Destination.SubmissionStatus.ARCHIVED;destination.is_active=False
+        destination.save(update_fields=["status","is_active","updated_at"])
+        DestinationAuditLog.objects.create(destination=destination,actor=request.user,action=DestinationAuditLog.Action.EDITED,
+            note="Destination archived; related bookings, reviews, routes and safety records retained",previous_status=previous,new_status=destination.status)
+        return Response({"message":"Destination archived; related records were retained","id":destination.id})
 
 
 class AdminDestinationImageView(APIView):
@@ -824,14 +833,21 @@ class AdminUserAccessActionView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request, id):
-        _require_capability(request, "users", "change")
+        action = request.data.get("action")
+        _require_capability(request, "users", "delete" if action == "anonymize" else "change")
         u = User.objects.filter(pk=id).first()
         if not u:
             return Response({"detail": "not found"}, status=404)
         allowed, reason = _can_manage_user(request.user, u)
         if not allowed:
             return Response({"detail": reason}, status=403)
-        action = request.data.get("action")
+        if action == "anonymize":
+            if request.data.get("confirmation") != u.email:
+                return Response({"detail":"Type the current email address to confirm irreversible anonymization"},status=400)
+            from .retention import anonymize_user
+            try: anonymize_user(u,request.user)
+            except ValueError as exc:return Response({"detail":str(exc)},status=400)
+            return Response({"message":"User personal data anonymized; protected relational records retained","id":u.id})
         if action == "revoke_sessions":
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
             count, _ = OutstandingToken.objects.filter(user=u).delete()
@@ -1808,6 +1824,42 @@ class AdminTravelServicesView(APIView):
         obj.save();from audit.models import AuditLog
         AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="admin",severity="info",source="backend",action=f"{resource}.{action}",message=f"{action.title()} {resource} #{obj.id}",object_type=model.__name__,object_id=str(obj.id),extra={"before":before})
         return Response({"message":f"{action.title()} complete","id":obj.id})
+
+
+class AdminRetentionPolicyView(APIView):
+    permission_classes=[IsAdminOrStaff]
+    FIELDS={"read_notification_days","location_ping_days","recommendation_event_days","resolved_sos_days","audit_log_days","preserve_official_risk_records"}
+
+    def get(self,request):
+        _require_capability(request,"settings","view")
+        from .retention import get_policy,retention_inventory
+        policy=get_policy();_,querysets=retention_inventory(policy)
+        return Response({"policy":{"id":policy.id,**{field:getattr(policy,field) for field in self.FIELDS}},
+            "eligible":{name:queryset.count() for name,queryset in querysets.items()},
+            "protected":{"official_risk_records":policy.preserve_official_risk_records,"security_audit_logs":True,"active_sos":True,"bookings":True}})
+
+    def patch(self,request):
+        _require_capability(request,"settings","change")
+        from .retention import get_policy
+        policy=get_policy();before={field:getattr(policy,field) for field in self.FIELDS}
+        for field in self.FIELDS:
+            if field in request.data:setattr(policy,field,request.data[field])
+        policy.updated_by=request.user
+        try:policy.full_clean();policy.save()
+        except Exception as exc:return Response({"detail":str(exc)},status=400)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="security",severity="warning",source="backend",action="retention.policy.update",message="Updated data retention policy",object_type="DataRetentionPolicy",object_id=str(policy.id),extra={"before":before,"after":{field:getattr(policy,field) for field in self.FIELDS}})
+        return Response({"message":"Retention policy updated"})
+
+    def post(self,request):
+        dry_run=bool(request.data.get("dry_run",True))
+        _require_capability(request,"settings","view" if dry_run else "delete")
+        from .retention import apply_retention_policy
+        result=apply_retention_policy(dry_run=dry_run)
+        if not dry_run:
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="security",severity="warning",source="backend",action="retention.apply",message=f"Applied retention policy to {result['total']} records",object_type="DataRetentionPolicy",extra=result)
+        return Response(result)
 
 
 class AdminReportsView(APIView):

@@ -35,6 +35,13 @@ class BookingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def perform_destroy(self, instance):
+        if instance.status == Booking.Status.COMPLETED:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Completed bookings are retained and cannot be deleted")
+        instance.status=Booking.Status.CANCELLED
+        instance.save(update_fields=["status","updated_at"])
+
     @action(detail=True, methods=["post"])
     def confirm(self, request, pk=None):
         booking = self.get_object()

@@ -57,6 +57,10 @@ class SharedTripViewSet(viewsets.ModelViewSet):
             f"{self.request.user.first_name or self.request.user.email} started sharing their live location ({trip.label or 'trip'}).",
         )
 
+    def perform_destroy(self, instance):
+        instance.is_active=False
+        instance.save(update_fields=["is_active"])
+
     @action(detail=True, methods=["post"])
     def ping(self, request, pk=None):
         """
@@ -117,6 +121,12 @@ class SOSAlertViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         alert = serializer.save(user=self.request.user)
         self._notify_trusted_contacts(alert)
+
+    def perform_destroy(self, instance):
+        if instance.status == SOSAlert.Status.ACTIVE:
+            instance.status=SOSAlert.Status.FALSE_ALARM
+        instance.resolved_at=instance.resolved_at or timezone.now()
+        instance.save(update_fields=["status","resolved_at"])
 
     def _notify_trusted_contacts(self, alert):
         """
@@ -269,8 +279,9 @@ class FamilyLinkViewSet(viewsets.ModelViewSet):
         return Response({"message": "Family link declined."})
 
     def perform_destroy(self, instance):
-        # either side can unlink
-        instance.delete()
+        # Retain the consent history while immediately revoking access.
+        instance.status=FamilyLink.Status.REVOKED
+        instance.save(update_fields=["status"])
 
 
 class FamilyMembersView(APIView):

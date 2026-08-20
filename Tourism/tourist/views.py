@@ -82,6 +82,9 @@ class RiskIncidentAdminViewSet(viewsets.ModelViewSet):
     filterset_fields = ["destination", "hazard_type", "severity", "source_type", "verified"]
     search_fields = ["destination__name", "title", "description", "affected_area", "source_name"]
 
+    def perform_destroy(self, instance):
+        instance.is_archived=True;instance.archived_at=timezone.now();instance.save(update_fields=["is_archived","archived_at","updated_at"])
+
 class CurrentHazardAdminViewSet(viewsets.ModelViewSet):
     queryset = CurrentHazard.objects.select_related("destination").all()
     serializer_class = CurrentHazardAdminSerializer
@@ -90,6 +93,9 @@ class CurrentHazardAdminViewSet(viewsets.ModelViewSet):
     filterset_fields = ["destination", "hazard_type", "severity", "source_type", "is_active", "verified"]
     search_fields = ["destination__name", "title", "description", "source_name", "station_name"]
 
+    def perform_destroy(self, instance):
+        instance.is_active=False;instance.expires_at=instance.expires_at or timezone.now();instance.save(update_fields=["is_active","expires_at","updated_at"])
+
 class RiskObservationAdminViewSet(viewsets.ModelViewSet):
     queryset = RiskObservation.objects.select_related("destination").all()
     serializer_class = RiskObservationAdminSerializer
@@ -97,6 +103,9 @@ class RiskObservationAdminViewSet(viewsets.ModelViewSet):
     capability_module = "safety"
     filterset_fields = ["destination", "observation_type", "trend", "source_type", "verified"]
     search_fields = ["destination__name", "station_name", "source_name"]
+
+    def perform_destroy(self, instance):
+        instance.is_archived=True;instance.archived_at=timezone.now();instance.save(update_fields=["is_archived","archived_at","updated_at"])
 
 class DestinationTranslationAdminViewSet(viewsets.ModelViewSet):
     queryset = DestinationTranslation.objects.select_related("destination", "language").all()
@@ -260,6 +269,14 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         if self.action == "approve":
             return DestinationApprovalSerializer
         return DestinationDetailSerializer
+
+    def perform_destroy(self, instance):
+        previous=instance.status
+        instance.status=Destination.SubmissionStatus.ARCHIVED;instance.is_active=False
+        instance.save(update_fields=["status","is_active","updated_at"])
+        DestinationAuditLog.objects.create(destination=instance,actor=self.request.user,
+            action=DestinationAuditLog.Action.EDITED,note="Destination archived through retention-safe deletion",
+            previous_status=previous,new_status=instance.status)
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -588,13 +605,23 @@ class HotelViewSet(viewsets.ModelViewSet):
     dataset, or by syncing from Google Places/Foursquare.
     """
 
-    queryset = Hotel.objects.select_related("destination")
     serializer_class = HotelSerializer
     permission_classes = [HasCapabilityOrReadOnly]
     capability_module = "hotels"
     filterset_fields = ["destination", "booking_status", "source"]
     ordering_fields = ["price_per_night", "rating"]
     search_fields = ["name", "address"]
+
+    def get_queryset(self):
+        queryset=Hotel.objects.select_related("destination")
+        user=self.request.user
+        if self.request.method in permissions.SAFE_METHODS and not (user.is_authenticated and (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"})):
+            queryset=queryset.filter(is_active=True)
+        return queryset
+
+    def perform_destroy(self, instance):
+        instance.is_active=False;instance.archived_at=timezone.now();instance.booking_status=Hotel.BookingStatus.UNAVAILABLE
+        instance.save(update_fields=["is_active","archived_at","booking_status","updated_at"])
 
 
 class RestaurantViewSet(viewsets.ModelViewSet):
@@ -793,6 +820,11 @@ class AlertViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
     filterset_class = AlertFilter
     search_fields = ["title", "description", "city"]
     ordering_fields = ["created_at", "severity"]
+
+    def perform_destroy(self, instance):
+        instance.is_active=False
+        if not instance.ends_at: instance.ends_at=timezone.now()
+        instance.save(update_fields=["is_active","ends_at","updated_at"])
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
     def nearby(self, request):

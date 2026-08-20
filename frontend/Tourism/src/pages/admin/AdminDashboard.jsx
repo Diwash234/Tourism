@@ -33,6 +33,7 @@ import UserManagement from "../../components/admin/UserManagement"
 import ReviewModerationPanel from "../../components/admin/ReviewModerationPanel"
 import BrandingPanel from "../../components/admin/BrandingPanel"
 import TravelServicesPanel from "../../components/admin/TravelServicesPanel"
+import RetentionPolicyPanel from "../../components/admin/RetentionPolicyPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -577,6 +578,7 @@ const AdminDashboard = () => {
             { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
             { id: "safety_management", label: "🚨 Alerts & Safety", count: null },
             { id: "notification_settings", label: "🔔 Notifications & Settings", count: null },
+            { id: "retention", label: "🗄️ Retention & Protected Deletion", count: null },
           ].map((tab) => (
             <motion.button
               key={tab.id}
@@ -1924,6 +1926,7 @@ const AdminDashboard = () => {
         {activeTab === "review_moderation" && <ReviewModerationPanel />}
         {activeTab === "safety_management" && <SafetyManagementPanel />}
         {activeTab === "notification_settings" && <NotificationSettingsPanel />}
+        {activeTab === "retention" && <RetentionPolicyPanel />}
         {activeTab === "media_library" && <MediaLibraryPanel />}
         {activeTab === "datasets" && <DatasetManagerPanel />}
         {activeTab === "feedback_workspace" && <FeedbackWorkspace />}

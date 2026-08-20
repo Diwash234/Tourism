@@ -1582,3 +1582,99 @@ class TravelServicesManagementTests(APITestCase):
         self.assertEqual(visible.status_code, status.HTTP_200_OK)
         denied = self.client.patch(reverse("travel-plan-detail", kwargs={"pk": plan.id}), {"title": "Changed"}, format="json")
         self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class RetentionAndAnonymizationTests(APITestCase):
+    def setUp(self):
+        from datetime import date, timedelta
+        from booking.models import Booking
+        self.admin = User.objects.create_superuser(email="retention-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN; self.admin.save(update_fields=["role"])
+        self.user = User.objects.create_user(email="retention-user@example.com", password="StrongPass123!", first_name="Private", last_name="Person", city="Kathmandu", bio="Personal biography")
+        category = Category.objects.create(name="Retention Test")
+        self.destination = Destination.objects.create(name="Retained Destination", category=category, description="Protected", status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin)
+        self.hotel = Hotel.objects.create(destination=self.destination, name="Retained Hotel", price_per_night=25)
+        self.booking = Booking.objects.create(user=self.user, hotel=self.hotel, check_in=date.today()+timedelta(days=2), check_out=date.today()+timedelta(days=4))
+
+    def test_destination_delete_archives_and_preserves_related_booking(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.delete(reverse("destination-detail", kwargs={"slug": self.destination.slug}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.destination.refresh_from_db(); self.assertEqual(self.destination.status, "archived"); self.assertFalse(self.destination.is_active)
+        self.assertTrue(type(self.booking).objects.filter(pk=self.booking.id).exists())
+
+    def test_hotel_delete_archives_and_preserves_booking(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.delete(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.hotel.refresh_from_db(); self.assertFalse(self.hotel.is_active); self.assertIsNotNone(self.hotel.archived_at)
+        self.assertTrue(type(self.booking).objects.filter(pk=self.booking.id).exists())
+
+    def test_booking_delete_cancels_and_completed_booking_is_protected(self):
+        from booking.models import Booking
+        self.client.force_authenticate(self.user)
+        cancelled = self.client.delete(reverse("booking-detail", kwargs={"pk": self.booking.id}))
+        self.assertEqual(cancelled.status_code, status.HTTP_204_NO_CONTENT)
+        self.booking.refresh_from_db(); self.assertEqual(self.booking.status, "cancelled")
+        self.booking.status = Booking.Status.COMPLETED; self.booking.save(update_fields=["status"])
+        protected = self.client.delete(reverse("booking-detail", kwargs={"pk": self.booking.id}))
+        self.assertEqual(protected.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(Booking.objects.filter(pk=self.booking.id).exists())
+
+    def test_official_risk_delete_archives_instead_of_destroying(self):
+        from datetime import date
+        from .models import RiskIncident
+        incident = RiskIncident.objects.create(destination=self.destination, hazard_type="landslide", event_date=date.today(), title="Official history", source_type="official", source_name="Authority", verified=True)
+        self.client.force_authenticate(self.admin)
+        response = self.client.delete(reverse("admin-risk-incidents-detail", kwargs={"pk": incident.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        incident.refresh_from_db(); self.assertTrue(incident.is_archived); self.assertIsNotNone(incident.archived_at)
+
+    def test_user_anonymization_is_irreversible_and_preserves_booking(self):
+        from .models import UserFeedback
+        feedback = UserFeedback.objects.create(user=self.user, name="Private Person", email=self.user.email, subject="Help", message="Message")
+        old_email = self.user.email
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-user-access-action", kwargs={"id": self.user.id}), {"action":"anonymize","confirmation":old_email}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db(); feedback.refresh_from_db()
+        self.assertTrue(self.user.email.endswith("@deleted.invalid")); self.assertFalse(self.user.is_active); self.assertIsNotNone(self.user.anonymized_at)
+        self.assertEqual(self.user.city, ""); self.assertEqual(feedback.email, ""); self.assertTrue(type(self.booking).objects.filter(pk=self.booking.id,user=self.user).exists())
+        self.assertFalse(self.user.has_usable_password())
+
+    def test_anonymization_requires_exact_email_confirmation(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-user-access-action", kwargs={"id": self.user.id}), {"action":"anonymize","confirmation":"wrong@example.com"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db(); self.assertIsNone(self.user.anonymized_at)
+
+    def test_retention_dry_run_and_apply_remove_only_expired_ephemeral_data(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import Notification, LocationPing, SharedTrip, RecommendationEvent
+        trip = SharedTrip.objects.create(user=self.user, expires_at=timezone.now()+timedelta(days=1))
+        ping = LocationPing.objects.create(trip=trip, latitude=28, longitude=84)
+        notification = Notification.objects.create(user=self.user, title="Old read", message="Old", is_read=True)
+        event = RecommendationEvent.objects.create(user=self.user, event_type="view", consented=True)
+        old = timezone.now()-timedelta(days=400)
+        Notification.objects.filter(pk=notification.pk).update(created_at=old)
+        LocationPing.objects.filter(pk=ping.pk).update(recorded_at=old)
+        RecommendationEvent.objects.filter(pk=event.pk).update(created_at=old)
+        self.client.force_authenticate(self.admin)
+        preview = self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json")
+        self.assertGreaterEqual(preview.data["total"], 3)
+        self.assertTrue(Notification.objects.filter(pk=notification.pk).exists())
+        applied = self.client.post(reverse("admin-retention"), {"dry_run":False}, format="json")
+        self.assertEqual(applied.status_code, status.HTTP_200_OK)
+        self.assertFalse(Notification.objects.filter(pk=notification.pk).exists())
+        self.assertFalse(LocationPing.objects.filter(pk=ping.pk).exists())
+        self.assertFalse(RecommendationEvent.objects.filter(pk=event.pk).exists())
+        self.assertTrue(type(self.booking).objects.filter(pk=self.booking.pk).exists())
+
+    def test_view_only_settings_staff_can_preview_but_not_apply_retention(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="retention-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"settings":["view"]})
+        self.client.force_authenticate(staff)
+        self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json").status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":False}, format="json").status_code, status.HTTP_403_FORBIDDEN)

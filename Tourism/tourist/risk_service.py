@@ -36,7 +36,7 @@ def _level(score):
 
 def build_destination_risk(destination):
     now = timezone.now()
-    incidents = list(destination.risk_incidents.all()[:100])
+    incidents = list(destination.risk_incidents.filter(is_archived=False)[:100])
     feedback_qs = TravelRiskFeedback.objects.filter(
         Q(destination=destination) | Q(destination__isnull=True, destination_name__iexact=destination.name)
     )
@@ -175,7 +175,7 @@ def build_destination_risk(destination):
         "source_name": item.source_name, "source_url": item.source_url,
         "observed_at": item.observed_at, "published_at": item.published_at,
         "verified": item.verified,
-    } for item in RiskObservation.objects.filter(destination=destination)[:20]]
+    } for item in RiskObservation.objects.filter(destination=destination, is_archived=False)[:20]]
     news = [{
         "id": item.id, "title": item.title, "summary": item.summary,
         "hazard_type": item.hazard_type, "source_name": item.source_name,
