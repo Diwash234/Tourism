@@ -70,6 +70,15 @@ class UserScopedQuerysetMixin:
         return base_queryset
 
 
+class DestinationTranslationAdminViewSet(viewsets.ModelViewSet):
+    queryset = DestinationTranslation.objects.select_related("destination", "language").all()
+    serializer_class = DestinationTranslationSerializer
+    permission_classes = [HasCapability]
+    capability_module = "content"
+    filterset_fields = ["destination", "language", "is_auto_generated"]
+    search_fields = ["destination__name", "name", "description"]
+
+
 class DestinationFeatureProfileViewSet(viewsets.ModelViewSet):
     queryset = DestinationFeatureProfile.objects.select_related("destination").all()
     serializer_class = DestinationFeatureProfileSerializer

@@ -54,6 +54,7 @@ router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, ba
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
 router.register("admin/destination-features", views.DestinationFeatureProfileViewSet, basename="admin-destination-features")
+router.register("admin/destination-translations", views.DestinationTranslationAdminViewSet, basename="admin-destination-translations")
 router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
 router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
 
