@@ -1106,6 +1106,158 @@ class AdminDataExplorerView(APIView):
         return Response({"resource": resource, "count": count, "page": page, "page_size": page_size, "total_pages": total_pages, "columns": preferred, "results": rows})
 
 
+class StaffWorkspaceView(APIView):
+    """Capability and assignment scoped operational queues for staff users."""
+    permission_classes = [IsAdminOrStaff]
+
+    def _districts(self, user):
+        profile = getattr(user, "capability_profile", None)
+        districts = list(profile.managed_districts or []) if profile else []
+        if user.managed_district and user.managed_district not in districts:
+            districts.append(user.managed_district)
+        return [value.strip() for value in districts if value and value.strip()]
+
+    def _scope_destinations(self, queryset, user, prefix=""):
+        districts = self._districts(user)
+        if districts:
+            return queryset.filter(**{f"{prefix}district__in": districts})
+        return queryset
+
+    def get(self, request):
+        module = request.query_params.get("module", "dashboard")
+        if module != "dashboard":
+            _require_capability(request, module, "view")
+        user = request.user
+        profile = getattr(user, "capability_profile", None)
+        capabilities = {key: value for key, value in (profile.capabilities if profile and profile.is_active else {}).items()}
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            capabilities = {key: ["*"] for key in StaffCapabilityProfile.MODULES}
+        from admin_panel.models import AdminTask, HotelAssignment
+        tasks = AdminTask.objects.filter(assigned_to=user).select_related("related_hotel").order_by("-priority", "due_date")
+        today = timezone.now().date()
+        task_rows = [{"id": row.id, "title": row.title, "description": row.description,
+            "status": row.status, "priority": row.priority, "due_date": row.due_date,
+            "hotel": row.related_hotel.name if row.related_hotel else None} for row in tasks[:50]]
+        base = {"module": module, "capabilities": capabilities, "managed_districts": self._districts(user),
+                "tasks": task_rows, "task_summary": {"pending": tasks.filter(status="pending").count(),
+                "in_progress": tasks.filter(status="in_progress").count(), "completed": tasks.filter(status="completed").count(),
+                "overdue": tasks.filter(due_date__lt=today).exclude(status__in=["completed", "cancelled"]).count()}}
+        rows = []
+        if module == "dashboard":
+            queue_counts = {}
+            if _has_capability(request, "destinations", "view"):
+                queue_counts["destinations"] = self._scope_destinations(Destination.objects.filter(status="pending"), user).count()
+            if _has_capability(request, "images", "view"):
+                queue_counts["images"] = self._scope_destinations(DestinationImage.objects.filter(verification_status="pending"), user, "destination__").count()
+            if _has_capability(request, "reviews", "view"):
+                queue_counts["reviews"] = self._scope_destinations(Review.objects.filter(moderation_status="pending"), user, "destination__").count()
+            if _has_capability(request, "safety", "view"):
+                queue_counts["safety"] = self._scope_destinations(CurrentHazard.objects.filter(is_active=True, verified=False), user, "destination__").count()
+            if _has_capability(request, "feedback", "view"):
+                queue_counts["feedback"] = UserFeedback.objects.filter(Q(assigned_to=user) | Q(assigned_to__isnull=True)).exclude(status__in=["resolved", "closed", "archived"]).count()
+            base["queue_counts"] = queue_counts
+        elif module == "destinations":
+            queryset = self._scope_destinations(Destination.objects.filter(status="pending").select_related("created_by"), user)
+            rows = [{"id": x.id, "title": x.name, "subtitle": x.district or x.city, "status": x.status,
+                     "description": x.short_description or x.description[:240], "created_at": x.created_at} for x in queryset[:100]]
+        elif module == "images":
+            queryset = self._scope_destinations(DestinationImage.objects.filter(verification_status="pending").select_related("destination"), user, "destination__")
+            rows = [{"id": x.id, "title": x.destination.name, "subtitle": x.caption or x.source,
+                     "status": x.verification_status, "image_url": x.external_url or (x.image.url if x.image else ""), "created_at": x.created_at} for x in queryset[:100]]
+        elif module == "budget":
+            queryset = self._scope_destinations(TravelExpenseFeedback.objects.select_related("destination", "user"), user, "destination__")
+            rows = [{"id": x.id, "title": x.destination_name, "subtitle": f"{x.num_days} days · {x.num_people} people",
+                     "status": "verified" if x.is_employee_verified else "submitted", "amount": x.total_cost, "created_at": x.created_at} for x in queryset[:100]]
+        elif module == "safety":
+            queryset = self._scope_destinations(CurrentHazard.objects.filter(is_active=True).select_related("destination"), user, "destination__")
+            rows = [{"id": x.id, "title": x.title, "subtitle": x.destination.name, "status": "verified" if x.verified else "unverified",
+                     "severity": x.severity, "description": x.description, "created_at": x.created_at} for x in queryset[:100]]
+        elif module == "reviews":
+            from booking.models import HotelReview
+            queryset = self._scope_destinations(Review.objects.filter(moderation_status="pending").select_related("destination", "user"), user, "destination__")
+            rows = [{"id": x.id, "type": "destination", "title": x.destination.name, "subtitle": x.user.email,
+                     "status": x.moderation_status, "description": x.comment, "created_at": x.created_at} for x in queryset[:100]]
+            hotel_reviews = HotelReview.objects.filter(moderation_status="pending").select_related("hotel__destination", "user")
+            assigned_hotel_ids = list(HotelAssignment.objects.filter(admin=user).values_list("hotel_id", flat=True))
+            if user.role == "hotel_manager" or assigned_hotel_ids:
+                hotel_reviews = hotel_reviews.filter(hotel_id__in=assigned_hotel_ids)
+            else:
+                hotel_reviews = self._scope_destinations(hotel_reviews, user, "hotel__destination__")
+            rows.extend({"id": x.id, "type": "hotel", "title": x.hotel.name, "subtitle": x.user.email,
+                         "status": x.moderation_status, "description": x.comment, "amount": x.rating,
+                         "created_at": x.created_at} for x in hotel_reviews[:100])
+            rows.sort(key=lambda row: row["created_at"], reverse=True)
+            rows = rows[:100]
+        elif module == "hotels":
+            hotel_ids = HotelAssignment.objects.filter(admin=user).values_list("hotel_id", flat=True)
+            queryset = Hotel.objects.filter(id__in=hotel_ids).select_related("destination") if not user.is_superuser else Hotel.objects.select_related("destination")
+            rows = [{"id": x.id, "title": x.name, "subtitle": x.destination.name, "status": x.booking_status,
+                     "description": x.address, "amount": x.price_per_night} for x in queryset[:100]]
+        elif module == "content":
+            queryset = ContentSection.objects.filter(status__in=["draft", "scheduled"]).select_related("page")
+            rows = [{"id": x.id, "title": x.title or x.key, "subtitle": x.page.title, "status": x.status,
+                     "description": x.body[:240], "created_at": x.created_at} for x in queryset[:100]]
+        elif module == "feedback":
+            queryset = UserFeedback.objects.filter(Q(assigned_to=user) | Q(assigned_to__isnull=True)).exclude(status__in=["archived"])
+            rows = [{"id": x.id, "title": x.subject, "subtitle": x.email, "status": x.status,
+                     "description": x.message[:240], "priority": x.priority, "created_at": x.created_at} for x in queryset[:100]]
+        base["results"] = rows
+        return Response(base)
+
+    def post(self, request):
+        module = request.data.get("module")
+        action = request.data.get("action")
+        object_id = request.data.get("id")
+        if module == "tasks":
+            from admin_panel.models import AdminTask
+            task = AdminTask.objects.filter(pk=object_id, assigned_to=request.user).first()
+            if not task or action not in {"in_progress", "completed"}:
+                return Response({"detail": "Invalid task action"}, status=400)
+            task.status = action
+            task.completed_at = timezone.now() if action == "completed" else None
+            task.save(update_fields=["status", "completed_at", "updated_at"])
+            return Response({"message": "Task status updated", "status": task.status})
+        required = "approve" if action in {"approve", "reject"} else "change"
+        _require_capability(request, module, required)
+        districts = self._districts(request.user)
+        if module == "destinations":
+            obj = Destination.objects.filter(pk=object_id, status="pending").first()
+            if not obj or (districts and obj.district not in districts):
+                return Response({"detail": "Record is outside your assigned queue"}, status=404)
+            obj.status = "approved" if action == "approve" else "rejected"; obj.is_active = action == "approve"; obj.save(update_fields=["status", "is_active", "updated_at"])
+        elif module == "images":
+            obj = DestinationImage.objects.select_related("destination").filter(pk=object_id).first()
+            if not obj or (districts and obj.destination.district not in districts):
+                return Response({"detail": "Record is outside your assigned queue"}, status=404)
+            obj.verification_status = "approved" if action == "approve" else "rejected"; obj.is_verified = action == "approve"; obj.save(update_fields=["verification_status", "is_verified"])
+        elif module == "reviews":
+            review_type = request.data.get("type", "destination")
+            if review_type == "hotel":
+                from booking.models import HotelReview
+                from admin_panel.models import HotelAssignment
+                obj = HotelReview.objects.select_related("hotel__destination").filter(pk=object_id).first()
+                assigned = obj and HotelAssignment.objects.filter(admin=request.user, hotel=obj.hotel).exists()
+                has_assignments = HotelAssignment.objects.filter(admin=request.user).exists()
+                in_district = obj and (not districts or obj.hotel.destination.district in districts)
+                allowed = assigned if request.user.role == "hotel_manager" or has_assignments else in_district
+                if not obj or not allowed:
+                    return Response({"detail": "Record is outside your assigned queue"}, status=404)
+                obj.moderation_status = "approved" if action == "approve" else "flagged"; obj.moderated_by = request.user; obj.moderated_at = timezone.now(); obj.save(update_fields=["moderation_status", "moderated_by", "moderated_at"])
+            else:
+                obj = Review.objects.select_related("destination").filter(pk=object_id).first()
+                if not obj or (districts and obj.destination.district not in districts):
+                    return Response({"detail": "Record is outside your assigned queue"}, status=404)
+                obj.moderation_status = "approved" if action == "approve" else "flagged"; obj.is_flagged = action != "approve"; obj.moderated_by = request.user; obj.moderated_at = timezone.now(); obj.save(update_fields=["moderation_status", "is_flagged", "moderated_by", "moderated_at", "updated_at"])
+        else:
+            return Response({"detail": "Unsupported workspace action"}, status=400)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=request.user.role,
+            category="moderation", severity="info", source="backend", action=f"staff.{module}.{action}",
+            message=f"Staff {action} on {module} #{object_id}", object_type=type(obj).__name__, object_id=str(object_id),
+            extra={"managed_districts": districts})
+        return Response({"message": f"{action.title()} complete"})
+
+
 class StaffCapabilityManagementView(APIView):
     permission_classes = [IsAdminOrStaff]
     def _admin(self, request):
@@ -1119,12 +1271,23 @@ class StaffCapabilityManagementView(APIView):
         user=User.objects.filter(pk=request.data.get("user_id")).first()
         if not user or user.role in {"admin","super_admin","tourism_admin"}: return Response({"detail":"Invalid staff user"},status=400)
         profile,_=StaffCapabilityProfile.objects.get_or_create(user=user)
+        old = {"capabilities": profile.capabilities, "managed_districts": profile.managed_districts, "is_active": profile.is_active}
         profile.capabilities=request.data.get("capabilities",{})
-        profile.managed_districts=request.data.get("managed_districts",[])
+        districts = request.data.get("managed_districts", [])
+        if not isinstance(districts, list) or any(not isinstance(value, str) or len(value.strip()) > 100 for value in districts):
+            return Response({"detail": "Managed districts must be a list of valid district names"}, status=400)
+        profile.managed_districts=list(dict.fromkeys(value.strip() for value in districts if value.strip()))
         profile.is_active=bool(request.data.get("is_active",True));profile.assigned_by=request.user
         try: profile.full_clean()
         except Exception as exc: return Response({"detail":str(exc)},status=400)
-        profile.save();return Response({"message":"Capabilities updated","user_id":user.id})
+        profile.save()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=request.user.role,
+            category="security", severity="warning", source="backend", action="staff.capabilities.update",
+            message=f"Updated staff workspace assignment for {user.email}", object_type="StaffCapabilityProfile",
+            object_id=str(profile.id), extra={"before": old, "after": {"capabilities": profile.capabilities,
+            "managed_districts": profile.managed_districts, "is_active": profile.is_active}})
+        return Response({"message":"Capabilities updated","user_id":user.id})
 
 
 class AdminCMSView(APIView):

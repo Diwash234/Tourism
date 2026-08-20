@@ -891,27 +891,60 @@ class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
         )
 
 
-class TravelExpenseFeedbackViewSet(viewsets.ModelViewSet):
-    """
-    Allows travelers and field employees to log real ground expenses
-    which feed into ML budget models.
-    """
+class ScopedFieldFeedbackMixin:
+    capability_module = None
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if not user.is_authenticated:
+            return queryset.none()
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return queryset
+        profile = getattr(user, "capability_profile", None)
+        if profile and profile.allows(self.capability_module, "view"):
+            districts = list(profile.managed_districts or [])
+            if user.managed_district and user.managed_district not in districts:
+                districts.append(user.managed_district)
+            return queryset.filter(destination__district__in=districts) if districts else queryset
+        return queryset.filter(user=user)
+
+    def _can_change(self, instance):
+        user = self.request.user
+        if instance.user_id == user.id or user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        profile = getattr(user, "capability_profile", None)
+        return bool(profile and profile.allows(self.capability_module, "change"))
+
+    def update(self, request, *args, **kwargs):
+        if not self._can_change(self.get_object()):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Missing change capability for this field record")
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not self._can_change(self.get_object()):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Missing change capability for this field record")
+        return super().destroy(request, *args, **kwargs)
+
+
+class TravelExpenseFeedbackViewSet(ScopedFieldFeedbackMixin, viewsets.ModelViewSet):
+    """Private expense submissions scoped to owner or assigned budget staff."""
     queryset = TravelExpenseFeedback.objects.select_related("user", "destination").all()
     serializer_class = TravelExpenseFeedbackSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
+    capability_module = "budget"
     filterset_fields = ["destination", "travel_mode", "is_employee_verified"]
     search_fields = ["destination_name", "notes", "route_details"]
 
 
-class TravelRiskFeedbackViewSet(viewsets.ModelViewSet):
-    """
-    Allows travelers and field employees to submit safety and risk feedback
-    (altitude sickness, hazards, local greeting/behavior, transportation)
-    to calculate real-time ML risk indices.
-    """
+class TravelRiskFeedbackViewSet(ScopedFieldFeedbackMixin, viewsets.ModelViewSet):
+    """Private safety submissions scoped to owner or assigned safety staff."""
     queryset = TravelRiskFeedback.objects.select_related("user", "destination").all()
     serializer_class = TravelRiskFeedbackSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
+    capability_module = "safety"
     filterset_fields = ["destination", "became_sick", "hazard_witnessed"]
     search_fields = ["destination_name", "comments", "sickness_type"]
 

@@ -1,122 +1,46 @@
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import {
-  FiBriefcase, FiMapPin, FiCheckCircle, FiDollarSign, FiPlus,
-  FiFileText, FiShield, FiTrendingUp, FiActivity, FiRefreshCw
-} from "react-icons/fi"
+import { useCallback, useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import { FiAlertCircle, FiBriefcase, FiCheck, FiCheckCircle, FiClock, FiRefreshCw, FiX } from "react-icons/fi"
 import adminApi from "../api/adminApi"
-import destinationApi from "../api/destinationApi"
 import useToast from "../hooks/useToast"
 import TravelExpenditureForm from "../components/forms/TravelExpenditureForm"
 import RiskAssessmentForm from "../components/forms/RiskAssessmentForm"
 
-export default function StaffDashboard() {
+const names = { destinations: "Destination Queue", images: "Image Review", budget: "Budget Surveys", safety: "Safety Reports", reviews: "Review Queue", hotels: "Assigned Hotels", content: "Content Drafts", feedback: "Feedback Queue" }
+const paths = Object.fromEntries(Object.keys(names).map(key => [key, `/staff/${key}`]))
+const permits = (caps, module, action) => caps?.[module]?.includes(action) || caps?.[module]?.includes("*")
+
+export default function StaffDashboard({ module = "dashboard" }) {
   const { showToast } = useToast()
-  const [activeTab, setActiveTab] = useState("feedbacks")
-  const [pendingPlaces, setPendingPlaces] = useState([])
-  const [pendingImages, setPendingImages] = useState([])
-  const [expenseReports, setExpenseReports] = useState([])
+  const [data, setData] = useState({ results: [], tasks: [], task_summary: {}, queue_counts: {}, capabilities: {} })
   const [loading, setLoading] = useState(false)
-
-  const loadStaffData = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
-    try {
-      const [pRes, iRes, eRes] = await Promise.allSettled([
-        adminApi.getPendingPlaces(),
-        adminApi.getPendingImages(),
-        adminApi.getExpenseFeedbacks(),
-      ])
-      if (pRes.status === "fulfilled") setPendingPlaces(pRes.value.data)
-      if (iRes.status === "fulfilled") setPendingImages(iRes.value.data)
-      if (eRes.status === "fulfilled") setExpenseReports(eRes.value.data.results || eRes.value.data || [])
-    } finally {
-      setLoading(false)
-    }
+    try { setData((await adminApi.getStaffWorkspace(module)).data) }
+    catch (error) { showToast(error.response?.data?.detail || "This workspace is not assigned to you", "error") }
+    finally { setLoading(false) }
+  }, [module])
+  useEffect(() => { load() }, [load])
+
+  const act = async (payload, confirmation) => {
+    if (confirmation && !window.confirm(confirmation)) return
+    try { const { data: result } = await adminApi.runStaffWorkspaceAction(payload); showToast(result.message, "success"); load() }
+    catch (error) { showToast(error.response?.data?.detail || "Action denied", "error") }
   }
+  const queueAction = (row, action) => act({ module, id: row.id, type: row.type, action }, `${action[0].toUpperCase()+action.slice(1)} ${row.title}?`)
 
-  useEffect(() => {
-    loadStaffData()
-  }, [])
+  return <div className="space-y-6">
+    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b pb-4"><div><span className="text-xs uppercase tracking-widest font-black text-purple-700">Capability-scoped operations</span><h1 className="text-3xl font-black text-slate-900 flex items-center gap-2"><FiBriefcase className="text-purple-700"/>{module === "dashboard" ? "Staff Operations Desk" : names[module]}</h1><p className="text-sm text-slate-500">Only records in your backend-assigned scope are shown. Hidden modules are also denied by the API.</p>{data.managed_districts?.length > 0 && <p className="text-xs text-amber-700 mt-1">Assigned districts: {data.managed_districts.join(", ")}</p>}</div><button onClick={load} className="px-4 py-2 bg-white border rounded-xl text-sm font-bold flex items-center justify-center gap-2"><FiRefreshCw className={loading ? "animate-spin" : ""}/> Refresh</button></header>
 
-  return (
-    <div className="container-app py-8 space-y-6 animate-fadeIn">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-        <div>
-          <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold uppercase tracking-wider">
-            Field Officer Portal
-          </span>
-          <h1 className="text-3xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
-            <FiBriefcase className="text-purple-700" /> Staff & Sub-Admin Operations Desk
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Ground data collection, place verification, field surveys, and ML dataset entry.
-          </p>
-        </div>
+    {module === "dashboard" ? <>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">{Object.entries(data.task_summary || {}).map(([key, value]) => <div key={key} className="bg-white border rounded-2xl p-4"><b className={`text-3xl ${key === "overdue" && value ? "text-rose-600" : "text-purple-800"}`}>{value || 0}</b><p className="text-xs text-slate-500 capitalize">{key.replaceAll("_", " ")} tasks</p></div>)}</div>
+      <section><h2 className="font-black text-slate-900 mb-3">Assigned module queues</h2><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">{Object.entries(data.queue_counts || {}).map(([key, value]) => <Link key={key} to={paths[key]} className="bg-slate-900 text-white rounded-2xl p-4 hover:bg-purple-900"><b className="text-3xl">{value}</b><p className="text-xs text-slate-300">{names[key] || key}</p></Link>)}{!Object.keys(data.queue_counts || {}).length && <p className="text-sm text-slate-500">No operational modules have been assigned. Contact an administrator.</p>}</div></section>
+    </> : <>
+      {(module === "budget" && permits(data.capabilities, module, "add")) && <details className="bg-white border rounded-2xl p-5"><summary className="font-black cursor-pointer">Add verified expenditure survey</summary><div className="mt-4 max-w-2xl"><TravelExpenditureForm onSuccess={load}/></div></details>}
+      {(module === "safety" && permits(data.capabilities, module, "add")) && <details className="bg-white border rounded-2xl p-5"><summary className="font-black cursor-pointer">Add field safety report</summary><div className="mt-4 max-w-2xl"><RiskAssessmentForm onSuccess={load}/></div></details>}
+      <section className="bg-white border rounded-2xl overflow-hidden"><div className="p-4 border-b flex justify-between"><b>{names[module]}</b><span className="text-xs text-slate-500">{data.results?.length || 0} records loaded</span></div><div className="divide-y">{data.results?.map(row => <article key={`${row.type || module}-${row.id}`} className="p-4 flex flex-col md:flex-row gap-3"><div className="min-w-0 flex-1">{row.image_url && <img src={row.image_url} alt="Review candidate" className="w-28 h-20 object-cover rounded-lg float-left mr-3"/>}<div className="flex gap-2 items-center"><h3 className="font-black text-slate-900">{row.title}</h3><span className="text-[10px] px-2 py-0.5 bg-slate-100 rounded-full">{row.status}</span></div><p className="text-xs text-purple-700">{row.subtitle}</p><p className="text-sm text-slate-600 mt-1 line-clamp-3">{row.description}</p>{row.amount != null && <p className="text-sm font-bold text-emerald-700 mt-1">NPR {Number(row.amount).toLocaleString()}</p>}</div>{["destinations", "images", "reviews"].includes(module) && permits(data.capabilities, module, "approve") && <div className="flex gap-2 self-start"><button onClick={() => queueAction(row, "approve")} className="p-2.5 bg-emerald-700 text-white rounded-xl" title="Approve"><FiCheck/></button><button onClick={() => queueAction(row, "reject")} className="p-2.5 bg-rose-700 text-white rounded-xl" title={module === "reviews" ? "Flag" : "Reject"}><FiX/></button></div>}</article>)}{!loading && !data.results?.length && <p className="p-12 text-center text-slate-500">Your assigned queue is empty.</p>}</div></section>
+    </>}
 
-        <button
-          onClick={loadStaffData}
-          className="px-4 py-2 rounded-xl bg-purple-50 text-purple-800 hover:bg-purple-100 text-xs font-bold flex items-center gap-1.5 border border-purple-200"
-        >
-          <FiRefreshCw className={loading ? "animate-spin" : ""} size={14} /> Refresh Tasks
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card-base p-5 shadow-md border border-purple-100 bg-purple-50/50">
-          <p className="text-xs font-semibold text-gray-500 uppercase">Pending Verification</p>
-          <p className="text-3xl font-black text-purple-950 mt-1">{pendingPlaces.length}</p>
-          <span className="text-xs text-purple-700 font-medium">Places awaiting review</span>
-        </div>
-
-        <div className="card-base p-5 shadow-md border border-purple-100 bg-amber-50/50">
-          <p className="text-xs font-semibold text-gray-500 uppercase">Photo Queue</p>
-          <p className="text-3xl font-black text-amber-950 mt-1">{pendingImages.length}</p>
-          <span className="text-xs text-amber-700 font-medium">Images awaiting verification</span>
-        </div>
-
-        <div className="card-base p-5 shadow-md border border-purple-100 bg-emerald-50/50">
-          <p className="text-xs font-semibold text-gray-500 uppercase">Surveys Recorded</p>
-          <p className="text-3xl font-black text-emerald-950 mt-1">{expenseReports.length}</p>
-          <span className="text-xs text-emerald-700 font-medium">ML Ground data entries</span>
-        </div>
-      </div>
-
-      <div className="flex gap-2 border-b pb-2">
-        <button
-          onClick={() => setActiveTab("feedbacks")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold ${
-            activeTab === "feedbacks" ? "bg-purple-700 text-white" : "bg-gray-100 text-gray-700"
-          }`}
-        >
-          💰 Log Field Expenditure (ML)
-        </button>
-        <button
-          onClick={() => setActiveTab("risk")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold ${
-            activeTab === "risk" ? "bg-purple-700 text-white" : "bg-gray-100 text-gray-700"
-          }`}
-        >
-          🛡️ Field Safety & Hazard Survey
-        </button>
-      </div>
-
-      {activeTab === "feedbacks" && (
-        <div className="card-base p-6 sm:p-8 max-w-2xl shadow-xl border border-purple-100 rounded-3xl bg-white">
-          <h3 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
-            <FiDollarSign className="text-emerald-600" /> Record Field Survey Expenditure
-          </h3>
-          <TravelExpenditureForm onSuccess={loadStaffData} />
-        </div>
-      )}
-
-      {activeTab === "risk" && (
-        <div className="card-base p-6 sm:p-8 max-w-2xl shadow-xl border border-purple-100 rounded-3xl bg-white">
-          <h3 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
-            <FiShield className="text-purple-600" /> Record Field Safety & Hazard Report
-          </h3>
-          <RiskAssessmentForm onSuccess={loadStaffData} />
-        </div>
-      )}
-    </div>
-  )
+    <section className="bg-white border rounded-2xl overflow-hidden"><div className="p-4 border-b"><h2 className="font-black text-slate-900">My assigned tasks</h2><p className="text-xs text-slate-500">Task completion is reported to the assigning administrator.</p></div><div className="divide-y">{data.tasks?.map(task => <div key={task.id} className="p-4 flex flex-col sm:flex-row gap-3"><div className="flex-1"><div className="flex gap-2"><b>{task.title}</b><span className={`text-[10px] px-2 py-0.5 rounded-full ${task.priority === "urgent" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>{task.priority}</span></div><p className="text-sm text-slate-600">{task.description}</p><p className="text-xs text-slate-400 mt-1"><FiClock className="inline"/> Due {task.due_date || "not set"}{task.hotel ? ` · ${task.hotel}` : ""}</p></div><div className="flex gap-2">{task.status === "pending" && <button onClick={() => act({ module: "tasks", id: task.id, action: "in_progress" })} className="px-3 py-2 bg-sky-700 text-white rounded-xl text-xs font-bold"><FiAlertCircle className="inline"/> Start</button>}{!["completed", "cancelled"].includes(task.status) && <button onClick={() => act({ module: "tasks", id: task.id, action: "completed" }, "Mark this task completed?")} className="px-3 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold"><FiCheckCircle className="inline"/> Complete</button>}</div></div>)}{!data.tasks?.length && <p className="p-8 text-center text-slate-500 text-sm">No tasks assigned.</p>}</div></section>
+  </div>
 }

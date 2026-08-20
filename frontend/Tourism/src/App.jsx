@@ -223,7 +223,15 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<StaffRoute />}>
           <Route element={<StaffLayout />}>
-            <Route path="/staff" element={<StaffDashboard />} />
+            <Route path="/staff" element={<StaffDashboard module="dashboard" />} />
+            <Route path="/staff/destinations" element={<StaffDashboard module="destinations" />} />
+            <Route path="/staff/images" element={<StaffDashboard module="images" />} />
+            <Route path="/staff/budget" element={<StaffDashboard module="budget" />} />
+            <Route path="/staff/safety" element={<StaffDashboard module="safety" />} />
+            <Route path="/staff/reviews" element={<StaffDashboard module="reviews" />} />
+            <Route path="/staff/hotels" element={<StaffDashboard module="hotels" />} />
+            <Route path="/staff/content" element={<StaffDashboard module="content" />} />
+            <Route path="/staff/feedback" element={<StaffDashboard module="feedback" />} />
           </Route>
         </Route>
       </Route>

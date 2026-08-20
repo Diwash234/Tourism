@@ -1230,3 +1230,77 @@ class ReviewModerationWorkflowTests(APITestCase):
         response = self.client.delete(reverse("hotel-review-detail", kwargs={"pk": self.hotel_review.id}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(type(self.hotel_review).objects.filter(pk=self.hotel_review.id).exists())
+
+
+class StaffWorkspaceScopeTests(APITestCase):
+    def setUp(self):
+        from .models import StaffCapabilityProfile
+        from admin_panel.models import AdminTask, HotelAssignment
+        self.superadmin = User.objects.create_superuser(email="workspace-admin@example.com", password="StrongPass123!")
+        self.staff = User.objects.create_user(email="kaski-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"dashboard": ["view"], "destinations": ["view", "approve"], "images": ["view", "approve"], "hotels": ["view"]}, managed_districts=["Kaski"])
+        category = Category.objects.create(name="Workspace Test")
+        self.kaski = Destination.objects.create(name="Kaski Queue", category=category, description="Test", district="Kaski", status="pending", latitude=28, longitude=84, created_by=self.superadmin)
+        self.mustang = Destination.objects.create(name="Mustang Queue", category=category, description="Test", district="Mustang", status="pending", latitude=29, longitude=84, created_by=self.superadmin)
+        self.kaski_hotel = Hotel.objects.create(destination=self.kaski, name="Assigned Kaski Hotel", price_per_night=30)
+        self.mustang_hotel = Hotel.objects.create(destination=self.mustang, name="Unassigned Mustang Hotel", price_per_night=40)
+        HotelAssignment.objects.create(hotel=self.kaski_hotel, admin=self.staff, assigned_by=self.superadmin)
+        self.task = AdminTask.objects.create(title="Verify Kaski queue", assigned_to=self.staff, assigned_by=self.superadmin)
+        self.client.force_authenticate(self.staff)
+
+    def test_destination_queue_is_limited_to_managed_districts(self):
+        response = self.client.get(reverse("staff-workspace"), {"module": "destinations"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([row["id"] for row in response.data["results"]], [self.kaski.id])
+
+    def test_staff_cannot_act_outside_district_scope(self):
+        denied = self.client.post(reverse("staff-workspace"), {"module": "destinations", "id": self.mustang.id, "action": "approve"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+        allowed = self.client.post(reverse("staff-workspace"), {"module": "destinations", "id": self.kaski.id, "action": "approve"}, format="json")
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.kaski.refresh_from_db()
+        self.assertEqual(self.kaski.status, "approved")
+
+    def test_unassigned_module_is_denied_by_backend(self):
+        response = self.client.get(reverse("staff-workspace"), {"module": "safety"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_hotel_workspace_only_returns_explicit_assignments(self):
+        response = self.client.get(reverse("staff-workspace"), {"module": "hotels"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([row["id"] for row in response.data["results"]], [self.kaski_hotel.id])
+
+    def test_staff_can_complete_only_own_tasks(self):
+        from admin_panel.models import AdminTask
+        other = AdminTask.objects.create(title="Other task", assigned_to=self.superadmin, assigned_by=self.superadmin)
+        denied = self.client.post(reverse("staff-workspace"), {"module": "tasks", "id": other.id, "action": "completed"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        allowed = self.client.post(reverse("staff-workspace"), {"module": "tasks", "id": self.task.id, "action": "completed"}, format="json")
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "completed")
+        self.assertIsNotNone(self.task.completed_at)
+
+    def test_staff_task_patch_cannot_reassign_or_edit_task(self):
+        response = self.client.patch(f"/api/v1/admin-panel/tasks/{self.task.id}/", {"assigned_to": self.superadmin.id, "title": "Escalated"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.assigned_to, self.staff)
+
+    def test_traveler_cannot_self_verify_expense_submission(self):
+        traveler = User.objects.create_user(email="expense-traveler@example.com", password="StrongPass123!")
+        self.client.force_authenticate(traveler)
+        response = self.client.post(reverse("expense-feedback-list"), {"destination": self.kaski.id, "destination_name": self.kaski.name, "num_people": 1, "num_days": 1, "is_employee_verified": True}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data["is_employee_verified"])
+
+    def test_field_feedback_lists_are_private_and_district_scoped(self):
+        from .models import TravelExpenseFeedback
+        own = TravelExpenseFeedback.objects.create(user=self.staff, destination=self.kaski, destination_name=self.kaski.name)
+        TravelExpenseFeedback.objects.create(user=self.superadmin, destination=self.mustang, destination_name=self.mustang.name)
+        # Add budget view while retaining the Kaski district scope.
+        self.staff.capability_profile.capabilities["budget"] = ["view"]
+        self.staff.capability_profile.save(update_fields=["capabilities"])
+        response = self.client.get(reverse("expense-feedback-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([row["id"] for row in response.data["results"]], [own.id])

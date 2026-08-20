@@ -469,12 +469,18 @@ class TravelExpenseFeedbackSerializer(serializers.ModelSerializer):
             "travel_cost", "entry_cost", "food_cost", "extra_cost",
             "total_cost", "route_details", "is_employee_verified", "notes", "created_at"
         ]
-        read_only_fields = ["user", "created_at"]
+        read_only_fields = ["user", "is_employee_verified", "created_at"]
 
     def create(self, validated_data):
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             validated_data["user"] = request.user
+            user = request.user
+            profile = getattr(user, "capability_profile", None)
+            validated_data["is_employee_verified"] = bool(
+                user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}
+                or (profile and profile.allows("budget", "add"))
+            )
         return super().create(validated_data)
 
 

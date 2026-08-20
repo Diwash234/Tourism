@@ -126,6 +126,8 @@ const adminApi = {
   exploreData: (params) => axiosClient.get("/admin/data-explorer/", { params }),
   getCMS: (resource, params = {}) => axiosClient.get("/admin/cms/", { params: { resource, ...params } }),
   runCMSAction: (payload) => axiosClient.patch("/admin/cms/", payload),
+  getStaffWorkspace: (module = "dashboard") => axiosClient.get("/admin/staff-workspace/", { params: { module } }),
+  runStaffWorkspaceAction: (payload) => axiosClient.post("/admin/staff-workspace/", payload),
   getStaffCapabilities: () => axiosClient.get("/admin/staff-capabilities/"),
   updateStaffCapabilities: (payload) => axiosClient.put("/admin/staff-capabilities/", payload),
   createCMS: (payload) => axiosClient.post("/admin/cms/", payload),
