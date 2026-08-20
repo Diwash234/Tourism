@@ -926,6 +926,16 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(updated.status_code,status.HTTP_200_OK)
         self.assertFalse(updated.data["is_active"])
 
+    def test_global_admin_search_filters_results_by_capability(self):
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="search-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"destinations":["view"]})
+        self.client.force_authenticate(staff)
+        response=self.client.get(reverse("admin-global-search"),{"q":"Test"})
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertTrue(any(item["type"]=="destination" for item in response.data["results"]))
+        self.assertFalse(any(item["type"]=="user" for item in response.data["results"]))
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

@@ -1198,6 +1198,24 @@ class AdminNotificationManagementView(APIView):
         return Response({"message":"Broadcast created","recipient_count":len(rows)},status=201)
 
 
+class AdminGlobalSearchView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    def get(self, request):
+        q=(request.query_params.get("q") or "").strip()
+        if len(q)<2:return Response({"detail":"Enter at least 2 characters"},status=400)
+        from django.db.models import Q
+        results=[]
+        def add(module,kind,queryset,label):
+            if not _has_capability(request,module,"view"):return
+            for obj in queryset[:8]:results.append({"type":kind,"id":obj.pk,"label":label(obj),"module":module})
+        add("destinations","destination",Destination.objects.filter(Q(name__icontains=q)|Q(city__icontains=q)|Q(district__icontains=q)),lambda x:f"{x.name} · {x.district or x.city or 'Nepal'}")
+        add("users","user",User.objects.filter(Q(email__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q)),lambda x:f"{x.full_name} · {x.email}")
+        add("hotels","hotel",Hotel.objects.filter(Q(name__icontains=q)|Q(address__icontains=q)),lambda x:f"{x.name} · {x.address}")
+        add("feedback","feedback",UserFeedback.objects.filter(Q(subject__icontains=q)|Q(message__icontains=q)|Q(email__icontains=q)),lambda x:f"{x.subject} · {x.status}")
+        add("safety","alert",Alert.objects.filter(Q(title__icontains=q)|Q(description__icontains=q)|Q(city__icontains=q)),lambda x:f"{x.title} · {x.severity}")
+        return Response({"query":q,"count":len(results),"results":results})
+
+
 class FeedbackListView(APIView):
     permission_classes = [IsAdminOrStaff]
 

@@ -2,6 +2,7 @@ import axiosClient from "./axiosClient"
 
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
+  globalSearch: (q) => axiosClient.get("/admin/search/", { params: { q } }),
   getUsers: (params) => axiosClient.get("/admin/users", { params }),
   createUser: (payload) => axiosClient.post("/admin/users", payload),
   updateUser: (id, payload) => axiosClient.put(`/admin/users/${id}/`, payload),
