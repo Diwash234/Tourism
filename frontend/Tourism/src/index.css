@@ -533,3 +533,17 @@ body.sidebar-open .sidebar-backdrop {
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee { animation: none; }
 }
+
+/* Shared Admin Control Center interaction primitives */
+.admin-icon-button { min-width: 2.5rem; min-height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .75rem; background: rgb(30 41 59); color: rgb(226 232 240); }
+.admin-icon-button:hover { background: rgb(51 65 85); }
+.admin-icon-button:disabled { opacity: .35; cursor: not-allowed; }
+.admin-primary-button, .admin-secondary-button, .admin-danger-button { min-height: 2.5rem; border-radius: .75rem; padding: .55rem 1rem; font-size: .8rem; font-weight: 800; }
+.admin-primary-button { background: rgb(4 120 87); color: white; }
+.admin-secondary-button { background: rgb(51 65 85); color: white; }
+.admin-danger-button { background: rgb(190 18 60); color: white; }
+.admin-skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 200; border-radius: .5rem; background: #fbbf24; color: #0f172a; padding: .75rem 1rem; font-weight: 800; transition: top .15s; }
+.admin-skip-link:focus { top: 1rem; }
+:focus-visible { outline: 3px solid #fbbf24 !important; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+@media (pointer: coarse) { .admin-icon-button, .admin-primary-button, .admin-secondary-button, .admin-danger-button { min-height: 2.75rem; } }
