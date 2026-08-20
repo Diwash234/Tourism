@@ -11,7 +11,7 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage, StaffCapabilityProfile
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage, StaffCapabilityProfile, Notification
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1131,6 +1131,17 @@ class AdminCMSView(APIView):
         "sections": {"page_id","key","title","subtitle","body","image_url","cta_text","cta_url","icon","layout_variant","config","display_order","is_visible","status"},
         "navigation": {"location","label","route","icon","parent_id","allowed_roles","display_order","is_active"},
     }
+    def _validate_payload(self, resource, payload):
+        import re
+        if resource in {"pages","navigation"} and payload.get("route") and not str(payload["route"]).startswith("/"):
+            raise ValueError("Only validated internal routes beginning with / are allowed")
+        if resource == "settings" and payload.get("key") == "branding":
+            value=payload.get("value") or {}
+            for field in ("primary_color","secondary_color"):
+                if value.get(field) and not re.fullmatch(r"#[0-9a-fA-F]{6}",str(value[field])):
+                    raise ValueError(f"{field} must be a six-digit hex color")
+        if resource == "navigation" and payload.get("icon") and not re.fullmatch(r"[A-Za-z0-9_-]{0,50}",str(payload["icon"])):
+            raise ValueError("Invalid icon identifier")
     def get(self, request):
         _require_capability(request, "content", "view")
         resource=request.query_params.get("resource","pages"); model=self.MODELS.get(resource)
@@ -1149,6 +1160,8 @@ class AdminCMSView(APIView):
         resource=request.data.get("resource"); model=self.MODELS.get(resource)
         if not model:return Response({"detail":"Unknown CMS resource"},status=400)
         payload={k:v for k,v in request.data.items() if k in self.FIELDS[resource]}
+        try:self._validate_payload(resource,payload)
+        except ValueError as exc:return Response({"detail":str(exc)},status=400)
         payload["updated_by"]=request.user
         obj=model.objects.create(**payload)
         return Response({"id":obj.pk,"message":"Created"},status=201)
@@ -1156,9 +1169,15 @@ class AdminCMSView(APIView):
         _require_capability(request, "content", "change")
         resource=request.data.get("resource"); model=self.MODELS.get(resource); obj=model.objects.filter(pk=request.data.get("id")).first() if model else None
         if not obj:return Response({"detail":"CMS record not found"},status=404)
-        for key,value in request.data.items():
-            if key in self.FIELDS[resource]:setattr(obj,key,value)
-        obj.updated_by=request.user;obj.save();return Response({"id":obj.pk,"message":"Updated"})
+        payload={k:v for k,v in request.data.items() if k in self.FIELDS[resource]}
+        try:self._validate_payload(resource,payload)
+        except ValueError as exc:return Response({"detail":str(exc)},status=400)
+        old_values={key:getattr(obj,key,None) for key in payload}
+        for key,value in payload.items():setattr(obj,key,value)
+        obj.updated_by=request.user;obj.save()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,category="admin",severity="info",source="backend",action=f"cms.{resource}.update",message=f"Updated {resource} #{obj.pk}",object_type=model.__name__,object_id=str(obj.pk),extra={"old":old_values,"new":payload})
+        return Response({"id":obj.pk,"message":"Updated"})
 
 
 class AdminNotificationManagementView(APIView):

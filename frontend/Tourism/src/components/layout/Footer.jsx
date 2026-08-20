@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 
 import { APP_NAME } from "../../utils/constants";
+import usePublicConfig from "../../hooks/usePublicConfig";
 
 import {
   FlagImg,
@@ -46,6 +47,11 @@ const NATIONAL_ITEMS = [
 
 
 const Footer = () => {
+  const { branding } = usePublicConfig()
+  const siteTitle = branding.site_title || APP_NAME
+  const footerText = branding.footer_text || "Discover destinations, plan budgets, and travel safely through Nepal."
+  const contactEmail = branding.contact_email || "support@tourists.app"
+  const contactPhone = branding.contact_phone || "+977-000-0000"
 
   return (
 
@@ -112,13 +118,12 @@ const Footer = () => {
         <div>
 
           <h3 className="text-white text-xl font-bold mb-3">
-            {APP_NAME}
+            {siteTitle}
           </h3>
 
 
           <p className="text-sm text-gray-400">
-            Discover destinations, plan budgets,
-            and travel safely through Nepal.
+            {footerText}
           </p>
 
         </div>
@@ -311,13 +316,13 @@ const Footer = () => {
 
             <li className="flex gap-2 items-center">
               <FiMail />
-              support@tourists.app
+              {contactEmail}
             </li>
 
 
             <li className="flex gap-2 items-center">
               <FiPhone />
-              +977-000-0000
+              {contactPhone}
             </li>
 
 
@@ -366,7 +371,7 @@ const Footer = () => {
 
       <div className="border-t border-gray-700 py-4 text-center text-xs text-gray-500">
 
-        © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+        © {new Date().getFullYear()} {siteTitle}. All rights reserved.
 
       </div>
 

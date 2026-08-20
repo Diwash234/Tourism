@@ -24,6 +24,7 @@ import DestinationFeaturesPanel from "../../components/admin/DestinationFeatures
 import CategoryTranslationPanel from "../../components/admin/CategoryTranslationPanel"
 import HotelBookingPanel from "../../components/admin/HotelBookingPanel"
 import SafetyManagementPanel from "../../components/admin/SafetyManagementPanel"
+import NotificationSettingsPanel from "../../components/admin/NotificationSettingsPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -560,6 +561,7 @@ const AdminDashboard = () => {
             { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
             { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
             { id: "safety_management", label: "🚨 Alerts & Safety", count: null },
+            { id: "notification_settings", label: "🔔 Notifications & Settings", count: null },
           ].map((tab) => (
             <motion.button
               key={tab.id}
@@ -2026,6 +2028,7 @@ const AdminDashboard = () => {
         {activeTab === "infrastructure" && <InfrastructureModerationPanel />}
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
         {activeTab === "safety_management" && <SafetyManagementPanel />}
+        {activeTab === "notification_settings" && <NotificationSettingsPanel />}
 
         {/* TAB 7: EXPENSES */}
         {activeTab === "expenses" && (

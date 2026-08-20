@@ -889,6 +889,27 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         allowed = self.client.post("/api/v1/categories/", {"name": "Allowed Category", "slug": "allowed-category"})
         self.assertEqual(allowed.status_code, status.HTTP_201_CREATED)
 
+    def test_cms_rejects_unsafe_routes_and_colors(self):
+        from .models import StaffCapabilityProfile
+        admin=User.objects.create_user(email="cms-admin@example.com",password="StrongPass123!",role="admin",is_staff=True,is_verified=True)
+        self.client.force_authenticate(admin)
+        route=self.client.post(reverse("admin-cms"),{"resource":"navigation","location":"navbar","label":"Bad","route":"javascript:alert(1)"})
+        self.assertEqual(route.status_code,status.HTTP_400_BAD_REQUEST)
+        color=self.client.post(reverse("admin-cms"),{"resource":"settings","key":"branding","value":{"primary_color":"red<script>"}})
+        self.assertEqual(color.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_notification_broadcast_requires_settings_capability(self):
+        from .models import StaffCapabilityProfile, Notification
+        staff=User.objects.create_user(email="notice-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"settings":["view"]})
+        self.client.force_authenticate(staff)
+        denied=self.client.post(reverse("admin-notifications"),{"title":"Test","message":"Denied"})
+        self.assertEqual(denied.status_code,status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities={"settings":["view","add"]};staff.capability_profile.save()
+        allowed=self.client.post(reverse("admin-notifications"),{"title":"Test","message":"Allowed","role":"staff"})
+        self.assertEqual(allowed.status_code,status.HTTP_201_CREATED)
+        self.assertTrue(Notification.objects.filter(user=staff,title="Test").exists())
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)
