@@ -46,6 +46,10 @@ const adminApi = {
   },
 
   getDestinations: (params) => axiosClient.get("/destinations/", { params }),
+  getDestinationFeatures: (params) => axiosClient.get("/admin/destination-features/", { params }),
+  createDestinationFeature: (payload) => axiosClient.post("/admin/destination-features/", payload),
+  updateDestinationFeature: (id, payload) => axiosClient.patch(`/admin/destination-features/${id}/`, payload),
+  deleteDestinationFeature: (id) => axiosClient.delete(`/admin/destination-features/${id}/`),
   createDestination: (payload) => axiosClient.post("/destinations/", payload),
   updateDestination: (id, payload) => axiosClient.put(`/destinations/${id}/`, payload),
   deleteDestination: (id) => axiosClient.delete(`/destinations/${id}/`),

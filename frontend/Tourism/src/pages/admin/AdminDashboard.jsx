@@ -20,6 +20,7 @@ import InfrastructureModerationPanel from "../../components/admin/Infrastructure
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 import CMSPanel from "../../components/admin/CMSPanel"
 import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
+import DestinationFeaturesPanel from "../../components/admin/DestinationFeaturesPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -546,6 +547,7 @@ const AdminDashboard = () => {
             { id: "staff_permissions", label: "🔐 Staff Permissions", count: null },
             { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
             { id: "places", label: "📝 Place Approvals", count: pendingPlaces.length, badge: pendingPlaces.length > 0 },
+            { id: "destination_features", label: "🎯 Destination Features", count: null },
             { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
             { id: "image_pipeline", label: "🖼️ Multi-Source Image Pipeline (Wikimedia, Openverse, Unsplash, Pexels)", count: null },
             { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
@@ -706,6 +708,7 @@ const AdminDashboard = () => {
         {activeTab === "data_explorer" && <DataExplorerPanel />}
         {activeTab === "cms" && <CMSPanel />}
         {activeTab === "staff_permissions" && <StaffPermissionsPanel />}
+        {activeTab === "destination_features" && <DestinationFeaturesPanel />}
 
         {/* TAB: AI DESTINATION DISCOVERY & RESEARCH */}
         {activeTab === "research" && (
