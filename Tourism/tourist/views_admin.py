@@ -197,6 +197,7 @@ class UpdateUserStatusView(APIView):
         except User.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        old_role, old_active = user.role, user.is_active
         if "is_active" in request.data:
             user.is_active = bool(request.data["is_active"])
         if "role" in request.data:
@@ -213,6 +214,9 @@ class UpdateUserStatusView(APIView):
             user.bio = request.data["bio"]
 
         user.save()
+        if old_role != user.role or old_active != user.is_active:
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, category="security", severity="warning", source="backend", action="user.role_status.change", message=f"Changed {user.email}: role {old_role} -> {user.role}; active {old_active} -> {user.is_active}", object_type="User", object_id=str(user.id), extra={"old_role":old_role,"new_role":user.role,"old_active":old_active,"new_active":user.is_active})
         return Response({
             "id": user.id,
             "email": user.email,
