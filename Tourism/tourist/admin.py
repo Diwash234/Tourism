@@ -10,7 +10,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage,
 )
 
 
@@ -536,7 +536,15 @@ class ContentSectionInline(admin.TabularInline):
 
 @admin.register(ManagedPage)
 class ManagedPageAdmin(admin.ModelAdmin):
-    list_display=['title','route','is_enabled','status','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+    list_display=['title','route','is_enabled','status','scheduled_publish_at','published_at','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+
+@admin.register(CMSRevision)
+class CMSRevisionAdmin(admin.ModelAdmin):
+    list_display=['resource','object_id','revision_number','action','created_by','created_at']
+    list_filter=['resource','action']; search_fields=['object_id','created_by__email']; readonly_fields=['resource','object_id','revision_number','snapshot','action','created_by','created_at']
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return False
 
 @admin.register(SiteSetting)
 class SiteSettingAdmin(admin.ModelAdmin):

@@ -2147,7 +2147,9 @@ class ManagedPage(TimeStampedModel):
     title = models.CharField(max_length=220)
     meta_description = models.CharField(max_length=320, blank=True)
     is_enabled = models.BooleanField(default=True)
-    status = models.CharField(max_length=20, choices=[("draft","Draft"),("published","Published")], default="published")
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    scheduled_publish_at = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_pages_updated")
 
     def __str__(self): return f"{self.title} ({self.route})"
@@ -2167,7 +2169,9 @@ class ContentSection(TimeStampedModel):
     config = models.JSONField(default=dict, blank=True)
     display_order = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
-    status = models.CharField(max_length=20, choices=[("draft","Draft"),("published","Published")], default="published")
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    scheduled_publish_at = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_sections_updated")
 
     class Meta:
@@ -2188,6 +2192,22 @@ class ManagedNavigationItem(TimeStampedModel):
 
     class Meta:
         ordering = ["location", "display_order", "id"]
+
+
+class CMSRevision(models.Model):
+    """Immutable snapshots for safe CMS preview, audit, and rollback."""
+    resource = models.CharField(max_length=20, choices=[("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"), ("settings", "Settings")])
+    object_id = models.PositiveBigIntegerField()
+    revision_number = models.PositiveIntegerField()
+    snapshot = models.JSONField(default=dict)
+    action = models.CharField(max_length=20, choices=[("create", "Create"), ("update", "Update"), ("publish", "Publish"), ("unpublish", "Unpublish"), ("schedule", "Schedule"), ("rollback", "Rollback")])
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cms_revisions")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-revision_number"]
+        constraints = [models.UniqueConstraint(fields=["resource", "object_id", "revision_number"], name="unique_cms_object_revision")]
+        indexes = [models.Index(fields=["resource", "object_id", "-revision_number"])]
 
 
 class FeedbackMessage(TimeStampedModel):

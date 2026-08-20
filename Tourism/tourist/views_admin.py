@@ -11,7 +11,7 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, FeedbackMessage, StaffCapabilityProfile, Notification
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1128,61 +1128,169 @@ class StaffCapabilityManagementView(APIView):
 
 
 class AdminCMSView(APIView):
+    """Versioned CMS workflow: draft, preview, schedule, publish and rollback."""
     permission_classes = [IsAdminOrStaff]
     MODELS = {"settings": SiteSetting, "pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem}
     FIELDS = {
-        "settings": {"key","value","description","is_public"},
-        "pages": {"route","key","title","meta_description","is_enabled","status"},
-        "sections": {"page_id","key","title","subtitle","body","image_url","cta_text","cta_url","icon","layout_variant","config","display_order","is_visible","status"},
-        "navigation": {"location","label","route","icon","parent_id","allowed_roles","display_order","is_active"},
+        "settings": {"key", "value", "description", "is_public"},
+        "pages": {"route", "key", "title", "meta_description", "is_enabled", "status", "scheduled_publish_at", "published_at"},
+        "sections": {"page_id", "key", "title", "subtitle", "body", "image_url", "cta_text", "cta_url", "icon", "layout_variant", "config", "display_order", "is_visible", "status", "scheduled_publish_at", "published_at"},
+        "navigation": {"location", "label", "route", "icon", "parent_id", "allowed_roles", "display_order", "is_active"},
     }
+
     def _validate_payload(self, resource, payload):
         import re
-        if resource in {"pages","navigation"} and payload.get("route") and not str(payload["route"]).startswith("/"):
+        if resource in {"pages", "navigation"} and payload.get("route") and not str(payload["route"]).startswith("/"):
             raise ValueError("Only validated internal routes beginning with / are allowed")
+        if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
+            raise ValueError("CTA links must be validated internal routes beginning with /")
         if resource == "settings" and payload.get("key") == "branding":
-            value=payload.get("value") or {}
-            for field in ("primary_color","secondary_color"):
-                if value.get(field) and not re.fullmatch(r"#[0-9a-fA-F]{6}",str(value[field])):
+            value = payload.get("value") or {}
+            for field in ("primary_color", "secondary_color"):
+                if value.get(field) and not re.fullmatch(r"#[0-9a-fA-F]{6}", str(value[field])):
                     raise ValueError(f"{field} must be a six-digit hex color")
-        if resource == "navigation" and payload.get("icon") and not re.fullmatch(r"[A-Za-z0-9_-]{0,50}",str(payload["icon"])):
+        if resource in {"navigation", "sections"} and payload.get("icon") and not re.fullmatch(r"[A-Za-z0-9_-]{0,50}", str(payload["icon"])):
             raise ValueError("Invalid icon identifier")
+
+    def _row(self, resource, obj):
+        row = {"id": obj.pk, "updated_at": getattr(obj, "updated_at", None)}
+        for field in self.FIELDS[resource]:
+            key = field[:-3] if field.endswith("_id") else field
+            row[field] = getattr(obj, field, getattr(obj, key, None))
+        return row
+
+    def _snapshot(self, resource, obj):
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        return json.loads(json.dumps(self._row(resource, obj), cls=DjangoJSONEncoder))
+
+    def _revision(self, resource, obj, user, action):
+        from django.db.models import Max
+        number = (CMSRevision.objects.filter(resource=resource, object_id=obj.pk).aggregate(n=Max("revision_number"))["n"] or 0) + 1
+        return CMSRevision.objects.create(resource=resource, object_id=obj.pk, revision_number=number,
+            snapshot=self._snapshot(resource, obj), action=action, created_by=user)
+
+    def _publish_due(self):
+        now = timezone.now()
+        for model in (ManagedPage, ContentSection):
+            model.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
+                status="published", published_at=now, scheduled_publish_at=None)
+
     def get(self, request):
         _require_capability(request, "content", "view")
-        resource=request.query_params.get("resource","pages"); model=self.MODELS.get(resource)
-        if not model:return Response({"detail":"Unknown CMS resource"},status=400)
-        rows=[]
-        for obj in model.objects.all()[:300]:
-            row={"id":obj.pk}
-            for field in self.FIELDS[resource]:
-                key=field[:-3] if field.endswith("_id") else field
-                value=getattr(obj,field,getattr(obj,key,None))
-                row[field]=value
-            rows.append(row)
-        return Response({"resource":resource,"results":rows})
+        self._publish_due()
+        resource = request.query_params.get("resource", "pages")
+        model = self.MODELS.get(resource)
+        if not model:
+            return Response({"detail": "Unknown CMS resource"}, status=400)
+        object_id = request.query_params.get("id")
+        if request.query_params.get("history") in {"1", "true"}:
+            revisions = CMSRevision.objects.filter(resource=resource, object_id=object_id).select_related("created_by")[:100]
+            return Response({"results": [{"id": r.id, "revision_number": r.revision_number,
+                "action": r.action, "created_at": r.created_at,
+                "created_by": r.created_by.email if r.created_by else None,
+                "snapshot": r.snapshot} for r in revisions]})
+        if request.query_params.get("preview") in {"1", "true"}:
+            obj = model.objects.filter(pk=object_id).first()
+            if not obj:
+                return Response({"detail": "CMS record not found"}, status=404)
+            data = self._row(resource, obj)
+            if resource == "pages":
+                data["sections"] = [self._row("sections", section) for section in obj.sections.all()]
+            return Response({"preview": data, "notice": "Administrative preview; draft content is not public."})
+        queryset = model.objects.all()
+        if resource == "sections" and request.query_params.get("page_id"):
+            queryset = queryset.filter(page_id=request.query_params["page_id"])
+        return Response({"resource": resource, "results": [self._row(resource, obj) for obj in queryset[:500]]})
+
     def post(self, request):
         _require_capability(request, "content", "add")
-        resource=request.data.get("resource"); model=self.MODELS.get(resource)
-        if not model:return Response({"detail":"Unknown CMS resource"},status=400)
-        payload={k:v for k,v in request.data.items() if k in self.FIELDS[resource]}
-        try:self._validate_payload(resource,payload)
-        except ValueError as exc:return Response({"detail":str(exc)},status=400)
-        payload["updated_by"]=request.user
-        obj=model.objects.create(**payload)
-        return Response({"id":obj.pk,"message":"Created"},status=201)
+        resource = request.data.get("resource")
+        model = self.MODELS.get(resource)
+        if not model:
+            return Response({"detail": "Unknown CMS resource"}, status=400)
+        payload = {k: v for k, v in request.data.items() if k in self.FIELDS[resource]}
+        if resource in {"pages", "sections"} and "status" not in payload:
+            payload["status"] = "draft"
+        try:
+            self._validate_payload(resource, payload)
+            if resource in {"pages", "sections"} and payload.get("status") not in {"draft", "scheduled", "published"}:
+                raise ValueError("Invalid publication status")
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        if hasattr(model, "updated_by"):
+            payload["updated_by"] = request.user
+        from django.core.exceptions import ValidationError
+        try:
+            obj = model(**payload)
+            obj.full_clean()
+            obj.save()
+        except ValidationError as exc:
+            return Response({"detail": "; ".join(exc.messages)}, status=400)
+        self._revision(resource, obj, request.user, "create")
+        return Response({"id": obj.pk, "message": "Draft created" if resource in {"pages", "sections"} else "Created"}, status=201)
+
     def patch(self, request):
         _require_capability(request, "content", "change")
-        resource=request.data.get("resource"); model=self.MODELS.get(resource); obj=model.objects.filter(pk=request.data.get("id")).first() if model else None
-        if not obj:return Response({"detail":"CMS record not found"},status=404)
-        payload={k:v for k,v in request.data.items() if k in self.FIELDS[resource]}
-        try:self._validate_payload(resource,payload)
-        except ValueError as exc:return Response({"detail":str(exc)},status=400)
-        old_values={key:getattr(obj,key,None) for key in payload}
-        for key,value in payload.items():setattr(obj,key,value)
-        obj.updated_by=request.user;obj.save()
+        resource = request.data.get("resource")
+        model = self.MODELS.get(resource)
+        obj = model.objects.filter(pk=request.data.get("id")).first() if model else None
+        if not obj:
+            return Response({"detail": "CMS record not found"}, status=404)
+        action = request.data.get("action", "update")
+        # Seed a baseline for records that predate revision tracking, so the
+        # first edit can always be safely undone.
+        if not CMSRevision.objects.filter(resource=resource, object_id=obj.pk).exists():
+            self._revision(resource, obj, request.user, "create")
+        if action == "rollback":
+            revision = CMSRevision.objects.filter(pk=request.data.get("revision_id"), resource=resource, object_id=obj.pk).first()
+            if not revision:
+                return Response({"detail": "Revision not found for this record"}, status=404)
+            payload = {k: v for k, v in revision.snapshot.items() if k in self.FIELDS[resource]}
+            payload.pop("published_at", None)
+            payload.pop("scheduled_publish_at", None)
+            action_name = "rollback"
+        elif action in {"publish", "unpublish", "schedule"}:
+            if resource not in {"pages", "sections"}:
+                return Response({"detail": "Publication workflow applies to pages and sections"}, status=400)
+            if action == "schedule":
+                from django.utils.dateparse import parse_datetime
+                scheduled = parse_datetime(str(request.data.get("scheduled_publish_at", "")))
+                if scheduled and timezone.is_naive(scheduled):
+                    scheduled = timezone.make_aware(scheduled)
+                if not scheduled or scheduled <= timezone.now():
+                    return Response({"detail": "Choose a valid future publication time"}, status=400)
+                payload = {"status": "scheduled", "scheduled_publish_at": scheduled, "published_at": None}
+            elif action == "publish":
+                payload = {"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None}
+            else:
+                payload = {"status": "draft", "scheduled_publish_at": None}
+            action_name = action
+        else:
+            payload = {k: v for k, v in request.data.items() if k in self.FIELDS[resource]}
+            action_name = "update"
+        try:
+            self._validate_payload(resource, payload)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        old_values = self._snapshot(resource, obj)
+        for key, value in payload.items():
+            setattr(obj, key, value)
+        if hasattr(obj, "updated_by"):
+            obj.updated_by = request.user
+        from django.core.exceptions import ValidationError
+        try:
+            obj.full_clean()
+            obj.save()
+        except ValidationError as exc:
+            return Response({"detail": "; ".join(exc.messages)}, status=400)
+        revision = self._revision(resource, obj, request.user, action_name)
         from audit.models import AuditLog
-        AuditLog.objects.create(user=request.user,user_email=request.user.email,category="admin",severity="info",source="backend",action=f"cms.{resource}.update",message=f"Updated {resource} #{obj.pk}",object_type=model.__name__,object_id=str(obj.pk),extra={"old":old_values,"new":payload})
-        return Response({"id":obj.pk,"message":"Updated"})
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, category="admin", severity="info",
+            source="backend", action=f"cms.{resource}.{action_name}", message=f"{action_name.title()} {resource} #{obj.pk}",
+            object_type=model.__name__, object_id=str(obj.pk), extra={"before": old_values, "revision": revision.revision_number})
+        return Response({"id": obj.pk, "message": action_name.title() + " complete", "revision_number": revision.revision_number,
+                         "record": self._row(resource, obj)})
 
 
 class AdminNotificationManagementView(APIView):

@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404,render
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, permissions, status, mixins, generics
 from rest_framework.decorators import action
@@ -152,6 +153,15 @@ class PublicConfigView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        # Publish due scheduled content atomically during reads as a safe fallback
+        # when a deployment has not configured a periodic task runner.
+        now = timezone.now()
+        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
+            status="published", published_at=now, scheduled_publish_at=None
+        )
+        ContentSection.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
+            status="published", published_at=now, scheduled_publish_at=None
+        )
         pages = ManagedPage.objects.filter(is_enabled=True, status="published").prefetch_related("sections")
         return Response({
             "mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN,

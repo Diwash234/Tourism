@@ -1097,3 +1097,67 @@ class AdminUserManagementSecurityTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("activity", response.data)
         self.assertTrue(response.data["role_history"])
+
+
+class CMSPublishingWorkflowTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage, ContentSection
+        self.admin = User.objects.create_superuser(email="cms-workflow@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.page = ManagedPage.objects.create(route="/workflow-test", key="workflow-test", title="Workflow test", status="draft", updated_by=self.admin)
+        self.section = ContentSection.objects.create(page=self.page, key="hero", title="Draft hero", body="Not public yet", status="draft", updated_by=self.admin)
+
+    def test_draft_is_previewable_but_not_public(self):
+        preview = self.client.get(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "preview": "true"})
+        self.assertEqual(preview.status_code, status.HTTP_200_OK)
+        self.assertEqual(preview.data["preview"]["sections"][0]["title"], "Draft hero")
+        public = self.client.get(reverse("public-config"))
+        self.assertNotIn("workflow-test", [page["key"] for page in public.data["pages"]])
+
+    def test_publish_actions_make_page_and_section_public(self):
+        for resource, object_id in (("pages", self.page.id), ("sections", self.section.id)):
+            response = self.client.patch(reverse("admin-cms"), {"resource": resource, "id": object_id, "action": "publish"}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+        public = self.client.get(reverse("public-config"))
+        page = next(item for item in public.data["pages"] if item["key"] == "workflow-test")
+        self.assertEqual(page["sections"][0]["body"], "Not public yet")
+
+    def test_updates_create_history_and_rollback_creates_new_revision(self):
+        from .models import CMSRevision
+        changed = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "title": "Changed title"}, format="json")
+        self.assertEqual(changed.status_code, status.HTTP_200_OK)
+        first = CMSRevision.objects.filter(resource="pages", object_id=self.page.id).order_by("revision_number").first()
+        restored = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "rollback", "revision_id": first.id}, format="json")
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.title, "Workflow test")
+        self.assertEqual(CMSRevision.objects.filter(resource="pages", object_id=self.page.id).count(), 3)
+
+    def test_future_schedule_and_due_publication(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        scheduled = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "schedule", "scheduled_publish_at": (timezone.now() + timedelta(hours=1)).isoformat()}, format="json")
+        self.assertEqual(scheduled.status_code, status.HTTP_200_OK)
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "scheduled")
+        self.page.scheduled_publish_at = timezone.now() - timedelta(minutes=1)
+        self.page.save(update_fields=["scheduled_publish_at"])
+        self.client.get(reverse("public-config"))
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "published")
+
+    def test_invalid_or_past_schedule_is_rejected(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "schedule", "scheduled_publish_at": (timezone.now() - timedelta(hours=1)).isoformat()}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_staff_without_change_capability_cannot_publish(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="cms-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"content": ["view"]})
+        self.client.force_authenticate(staff)
+        response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "publish"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
