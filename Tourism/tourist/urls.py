@@ -132,6 +132,7 @@ urlpatterns = [
     path("admin/search/", views_admin.AdminGlobalSearchView.as_view(), name="admin-global-search"),
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
     path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
+    path("admin/reports/", views_admin.AdminReportsView.as_view(), name="admin-reports"),
     path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
     path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),
     path("feedback", views_admin.PublicFeedbackCreateView.as_view(), name="public-feedback"),

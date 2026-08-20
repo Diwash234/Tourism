@@ -28,6 +28,7 @@ import NotificationSettingsPanel from "../../components/admin/NotificationSettin
 import MediaLibraryPanel from "../../components/admin/MediaLibraryPanel"
 import DatasetManagerPanel from "../../components/admin/DatasetManagerPanel"
 import FeedbackWorkspace from "../../components/admin/FeedbackWorkspace"
+import ReportsPanel from "../../components/admin/ReportsPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -547,6 +548,7 @@ const AdminDashboard = () => {
         <div className="flex overflow-x-auto gap-2 border-b border-slate-700/40 pb-3 no-scrollbar">
           {[
             { id: "overview", label: "📊 Overview & Stats", count: null },
+            { id: "reports", label: "📈 Reports & Analytics", count: null },
             { id: "data_explorer", label: "🗄️ Database & Records", count: null },
             { id: "cms", label: "📝 Website Content & Navigation", count: null },
             { id: "research", label: "🔬 AI Destination Discovery", count: null },
@@ -719,6 +721,7 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
+        {activeTab === "reports" && <ReportsPanel />}
         {activeTab === "data_explorer" && <DataExplorerPanel />}
         {activeTab === "cms" && <CMSPanel />}
         {activeTab === "staff_permissions" && <StaffPermissionsPanel />}

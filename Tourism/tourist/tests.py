@@ -987,6 +987,15 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(replied.status_code,status.HTTP_200_OK)
         self.assertTrue(Notification.objects.filter(user=user,title__icontains="Reply").exists())
 
+    def test_reports_require_audit_capability_and_return_trends(self):
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="reports-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"audit":["view"]})
+        self.client.force_authenticate(staff)
+        response=self.client.get(reverse("admin-reports"),{"from":"2026-01-01","to":"2026-12-31"})
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertIn("trends",response.data);self.assertIn("staff_activity",response.data)
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

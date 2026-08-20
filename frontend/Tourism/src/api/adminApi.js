@@ -2,6 +2,8 @@ import axiosClient from "./axiosClient"
 
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
+  getReports: (params) => axiosClient.get("/admin/reports/", { params }),
+  exportReports: (params) => axiosClient.get("/admin/reports/", { params: { ...params, format: "csv" }, responseType: "blob" }),
   globalSearch: (q) => axiosClient.get("/admin/search/", { params: { q } }),
   getDatasets: (params) => axiosClient.get("/admin/datasets/", { params }),
   validateDatasetUpload: (formData) => axiosClient.post("/admin/datasets/", formData, { headers: { "Content-Type": "multipart/form-data" } }),

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from .models import (
-    Destination, Alert, DestinationImage, VisitHistory,
+    Destination, Alert, DestinationImage, VisitHistory, Favorite, Review, Rating,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
@@ -1196,6 +1196,35 @@ class AdminNotificationManagementView(APIView):
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user,user_email=request.user.email,category="admin",severity="info",source="backend",action="notification.broadcast",message=f"Broadcast '{title}' to {len(rows)} users",object_type="Notification",extra={"role":role,"recipient_count":len(rows)})
         return Response({"message":"Broadcast created","recipient_count":len(rows)},status=201)
+
+
+class AdminReportsView(APIView):
+    permission_classes=[IsAdminOrStaff]
+    def get(self,request):
+        _require_capability(request,"audit","view")
+        from django.db.models import Count,Sum
+        from django.db.models.functions import TruncMonth
+        from django.utils.dateparse import parse_date
+        from booking.models import Booking,HotelReview
+        start=parse_date(request.query_params.get("from",""));end=parse_date(request.query_params.get("to",""))
+        bookings=Booking.objects.all();feedback=UserFeedback.objects.all();visits=VisitHistory.objects.all()
+        if start: bookings=bookings.filter(created_at__date__gte=start);feedback=feedback.filter(created_at__date__gte=start);visits=visits.filter(viewed_at__date__gte=start)
+        if end: bookings=bookings.filter(created_at__date__lte=end);feedback=feedback.filter(created_at__date__lte=end);visits=visits.filter(viewed_at__date__lte=end)
+        trend=lambda qs,field:list(qs.annotate(month=TruncMonth(field)).values("month").annotate(count=Count("id")).order_by("month"))
+        from audit.models import AuditLog
+        staff_activity=list(AuditLog.objects.exclude(user__isnull=True).values("user_email").annotate(actions=Count("id")).order_by("-actions")[:10])
+        payload={"range":{"from":start,"to":end},"staff_activity":staff_activity,"users":{"total":User.objects.count(),"active":User.objects.filter(is_active=True).count(),"inactive":User.objects.filter(is_active=False).count(),"staff":User.objects.filter(is_staff=True).count()},"destinations":{"total":Destination.objects.count(),"active":Destination.objects.filter(is_active=True).count(),"pending":Destination.objects.filter(status="pending").count(),"top_viewed":list(Destination.objects.order_by("-views_count").values("id","name","views_count")[:10])},"hotels":{"total":Hotel.objects.count(),"bookings":bookings.count(),"booking_value":bookings.aggregate(total=Sum("total_price"))["total"] or 0,"reviews":HotelReview.objects.count()},"content":{"images":DestinationImage.objects.count(),"feedback":feedback.count(),"open_feedback":feedback.exclude(status__in=["resolved","closed","archived"]).count(),"alerts":Alert.objects.filter(is_active=True).count()},"activity":{"visits":visits.count(),"favorites":Favorite.objects.count(),"reviews":Review.objects.count(),"ratings":Rating.objects.count()},"trends":{"bookings":trend(bookings,"created_at"),"feedback":trend(feedback,"created_at"),"visits":trend(visits,"viewed_at")}}
+        if request.query_params.get("format") == "csv":
+            import csv
+            from django.http import HttpResponse
+            response=HttpResponse(content_type="text/csv");response["Content-Disposition"]='attachment; filename="tourism-report.csv"'
+            writer=csv.writer(response);writer.writerow(["group","metric","value"])
+            for group,values in payload.items():
+                if isinstance(values,dict):
+                    for metric,value in values.items():
+                        if not isinstance(value,(list,dict)):writer.writerow([group,metric,value])
+            return response
+        return Response(payload)
 
 
 class AdminDatasetManagerView(APIView):
