@@ -420,6 +420,7 @@ class AdminPendingImagesView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "images", "view")
         images = DestinationImage.objects.filter(
             Q(verification_status="pending") | Q(is_verified=False)
         ).select_related("destination", "uploaded_by")
@@ -440,6 +441,7 @@ class AdminPendingImagesView(APIView):
         return Response(data)
 
     def post(self, request, id=None):
+        _require_capability(request, "images", "approve")
         if not id:
             id = request.data.get("id")
         action_type = request.data.get("action", "approve")
@@ -464,6 +466,7 @@ class AdminEmergenciesView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "safety", "view")
         alerts = SOSAlert.objects.all().select_related("user").order_by("-triggered_at")
         data = []
         for a in alerts:
@@ -483,6 +486,7 @@ class AdminEmergenciesView(APIView):
         return Response(data)
 
     def post(self, request, id=None):
+        _require_capability(request, "safety", "change")
         if not id:
             id = request.data.get("id")
         try:
