@@ -2086,7 +2086,11 @@ class UserFeedback(TimeStampedModel):
     class Status(models.TextChoices):
         NEW = "new", "New"
         READ = "read", "Read"
+        IN_PROGRESS = "in_progress", "In Progress"
+        WAITING_USER = "waiting_user", "Waiting for User"
         REPLIED = "replied", "Replied"
+        RESOLVED = "resolved", "Resolved"
+        CLOSED = "closed", "Closed"
         ARCHIVED = "archived", "Archived"
 
     user = models.ForeignKey(
@@ -2098,7 +2102,12 @@ class UserFeedback(TimeStampedModel):
     subject = models.CharField(max_length=200)
     message = models.TextField()
     category = models.CharField(max_length=50, default="general")
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
+    priority = models.CharField(max_length=10, choices=[("low","Low"),("normal","Normal"),("high","High"),("urgent","Urgent")], default="normal", db_index=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_feedback_threads")
+    last_user_read_at = models.DateTimeField(null=True, blank=True)
+    last_staff_read_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
     admin_reply = models.TextField(blank=True)
     replied_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

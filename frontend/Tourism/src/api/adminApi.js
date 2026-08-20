@@ -131,7 +131,8 @@ const adminApi = {
   getAdminNotifications: () => axiosClient.get("/admin/notifications/"),
   broadcastNotification: (payload) => axiosClient.post("/admin/notifications/", payload),
   getFeedback: (params) => axiosClient.get("/admin/feedback", { params }),
-  replyFeedback: (id, reply) => axiosClient.post(`/admin/feedback/${id}/reply`, { reply }),
+  replyFeedback: (id, reply, is_internal = false) => axiosClient.post(`/admin/feedback/${id}/reply`, { reply, is_internal }),
+  updateFeedbackThread: (id, payload) => axiosClient.patch(`/admin/feedback/${id}/reply`, payload),
   sendFeedback: (payload) => axiosClient.post("/feedback", payload, payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined),
 
   // Admin destination detail (data, gallery, edit history)

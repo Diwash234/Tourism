@@ -27,6 +27,7 @@ import SafetyManagementPanel from "../../components/admin/SafetyManagementPanel"
 import NotificationSettingsPanel from "../../components/admin/NotificationSettingsPanel"
 import MediaLibraryPanel from "../../components/admin/MediaLibraryPanel"
 import DatasetManagerPanel from "../../components/admin/DatasetManagerPanel"
+import FeedbackWorkspace from "../../components/admin/FeedbackWorkspace"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -563,6 +564,7 @@ const AdminDashboard = () => {
             { id: "hotel_bookings", label: "🏨 Hotels, Bookings & Reviews", count: null },
             { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
             { id: "datasets", label: "🗃️ Dataset & CSV Manager", count: null },
+            { id: "feedback_workspace", label: "💬 Feedback Workspace", count: null },
             { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
             { id: "safety_management", label: "🚨 Alerts & Safety", count: null },
             { id: "notification_settings", label: "🔔 Notifications & Settings", count: null },
@@ -2035,6 +2037,7 @@ const AdminDashboard = () => {
         {activeTab === "notification_settings" && <NotificationSettingsPanel />}
         {activeTab === "media_library" && <MediaLibraryPanel />}
         {activeTab === "datasets" && <DatasetManagerPanel />}
+        {activeTab === "feedback_workspace" && <FeedbackWorkspace />}
 
         {/* TAB 7: EXPENSES */}
         {activeTab === "expenses" && (

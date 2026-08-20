@@ -974,6 +974,19 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
                     self.assertTrue(list((root/"dataset").glob("risk.backup-*.csv")))
             finally: AdminDatasetManagerView.DATASETS=original
 
+    def test_feedback_thread_assignment_reply_and_notification(self):
+        from .models import StaffCapabilityProfile, UserFeedback, Notification
+        user=User.objects.create_user(email="feedback-user@example.com",password="StrongPass123!",is_verified=True)
+        staff=User.objects.create_user(email="feedback-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"feedback":["view","change"]})
+        thread=UserFeedback.objects.create(user=user,email=user.email,subject="Route correction",message="Wrong route",category="route")
+        self.client.force_authenticate(staff)
+        updated=self.client.patch(reverse("admin-feedback-reply",kwargs={"id":thread.id}),{"status":"in_progress","priority":"high","assigned_to":staff.id},format="json")
+        self.assertEqual(updated.status_code,status.HTTP_200_OK)
+        replied=self.client.post(reverse("admin-feedback-reply",kwargs={"id":thread.id}),{"reply":"We are checking this route.","is_internal":False},format="json")
+        self.assertEqual(replied.status_code,status.HTTP_200_OK)
+        self.assertTrue(Notification.objects.filter(user=user,title__icontains="Reply").exists())
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

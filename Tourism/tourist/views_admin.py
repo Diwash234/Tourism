@@ -1325,7 +1325,7 @@ class FeedbackListView(APIView):
 
     def get(self, request):
         _require_capability(request, "feedback", "view")
-        qs = UserFeedback.objects.all().select_related("user")
+        qs = UserFeedback.objects.all().select_related("user", "assigned_to")
         status = request.query_params.get("status")
         if status:
             qs = qs.filter(status=status)
@@ -1338,6 +1338,10 @@ class FeedbackListView(APIView):
             "message": f.message,
             "category": f.category,
             "status": f.status,
+            "priority": f.priority,
+            "assigned_to": f.assigned_to_id,
+            "assigned_to_email": f.assigned_to.email if f.assigned_to else None,
+            "closed_at": f.closed_at,
             "admin_reply": f.admin_reply,
             "messages": [{"id":m.id,"sender":m.sender.email if m.sender else "visitor","body":m.body,"is_internal":m.is_internal,"created_at":m.created_at} for m in f.messages.all()],
             "evidence": [{
@@ -1351,6 +1355,19 @@ class FeedbackListView(APIView):
 
 class FeedbackReplyView(APIView):
     permission_classes = [IsAdminOrStaff]
+
+    def patch(self, request, id):
+        _require_capability(request, "feedback", "change")
+        f=UserFeedback.objects.filter(pk=id).first()
+        if not f:return Response({"detail":"not found"},status=404)
+        if "status" in request.data:
+            allowed={choice[0] for choice in UserFeedback.Status.choices}
+            if request.data["status"] not in allowed:return Response({"detail":"Invalid status"},status=400)
+            f.status=request.data["status"]
+            if f.status in {"closed","resolved"}:f.closed_at=timezone.now()
+        if "priority" in request.data:f.priority=request.data["priority"]
+        if "assigned_to" in request.data:f.assigned_to_id=request.data["assigned_to"] or None
+        f.save();return Response({"message":"Thread updated","id":f.id,"status":f.status})
 
     def post(self, request, id):
         _require_capability(request, "feedback", "change")
@@ -1367,6 +1384,8 @@ class FeedbackReplyView(APIView):
         f.replied_by = request.user if request.user.is_authenticated else None
         f.replied_at = timezone.now()
         f.save()
+        if f.user and not request.data.get("is_internal",False):
+            Notification.objects.create(user=f.user,title=f"Reply: {f.subject}"[:200],message=reply,channel="in_app")
         return Response({"message": "reply saved", "id": f.id})
 
 
