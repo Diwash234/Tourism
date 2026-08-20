@@ -101,7 +101,11 @@ export default function Sidebar() {
   const managedByRoute = new Map(managedItems.filter(item=>String(item.route).startsWith("/")).map(item=>[item.route,item]))
   const visibleGroups = GROUPS.map((grp) => ({
     ...grp,
-    links: grp.links.map(link=>managedByRoute.has(link.to)?{...link,label:managedByRoute.get(link.to).label}:link).filter((link) => {
+    links: grp.links
+      .filter(link => managedItems.length === 0 || managedByRoute.has(link.to))
+      .map(link=>managedByRoute.has(link.to)?{...link,label:managedByRoute.get(link.to).label}:link)
+      .sort((a,b)=>(managedByRoute.get(a.to)?.display_order??999)-(managedByRoute.get(b.to)?.display_order??999))
+      .filter((link) => {
       if (link.roleCheck === "admin" && !isAdmin) return false
       if (link.roleCheck === "staff" && !isAdmin && user?.role !== "staff") return false
       if (link.roleCheck === "local" && !isLocal && !isAdmin) return false

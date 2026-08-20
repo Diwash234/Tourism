@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import {
   FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX,
   FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiEdit3,
@@ -51,7 +51,9 @@ const AdminDashboard = () => {
   const { user } = useAuth()
   const { showToast } = useToast()
 
-  const [activeTab, setActiveTab] = useState("overview")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get("section") || "overview"
+  const setActiveTab = (section) => setSearchParams(section === "overview" ? {} : { section })
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -507,7 +509,7 @@ const AdminDashboard = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2b1508] via-[#4a1f0a] to-[#7a3b12] text-white -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 text-slate-900 -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
       {/* Top Banner */}
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
@@ -549,67 +551,14 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-        {/* Navigation Tabs */}
-        <div className="flex overflow-x-auto gap-2 border-b border-slate-700/40 pb-3 no-scrollbar">
-          {[
-            { id: "overview", label: "📊 Overview & Stats", count: null },
-            { id: "reports", label: "📈 Reports & Analytics", count: null },
-            { id: "data_explorer", label: "🗄️ Database & Records", count: null },
-            { id: "branding", label: "🎨 Branding & Theme", count: null },
-            { id: "cms", label: "📝 Website Content & Navigation", count: null },
-            { id: "research", label: "🔬 AI Destination Discovery", count: null },
-            { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
-            { id: "staff_permissions", label: "🔐 Staff Permissions", count: null },
-            { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
-            { id: "places", label: "📝 Place Approvals", count: pendingPlaces.length, badge: pendingPlaces.length > 0 },
-            { id: "destination_features", label: "🎯 Destination Features", count: null },
-            { id: "category_translations", label: "🌐 Categories & Translations", count: null },
-            { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
-            { id: "media_library", label: "🗂️ Central Media Library", count: null },
-            { id: "image_pipeline", label: "🖼️ Multi-Source Image Pipeline (Wikimedia, Openverse, Unsplash, Pexels)", count: null },
-            { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
-            { id: "infrastructure", label: "🏥 Community Services & ML", count: null },
-            { id: "hotel_bookings", label: "🏨 Hotels & Bookings", count: null },
-            { id: "travel_services", label: "🍽️ Restaurants, Transport & Plans", count: null },
-            { id: "review_moderation", label: "⭐ Review Moderation", count: null },
-            { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
-            { id: "datasets", label: "🗃️ Dataset & CSV Manager", count: null },
-            { id: "feedback_workspace", label: "💬 Feedback Workspace", count: null },
-            { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
-            { id: "safety_management", label: "🚨 Alerts & Safety", count: null },
-            { id: "notification_settings", label: "🔔 Notifications & Settings", count: null },
-            { id: "retention", label: "🗄️ Retention & Protected Deletion", count: null },
-          ].map((tab) => (
-            <motion.button
-              key={tab.id}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap flex items-center gap-2 transition-all ${
-                activeTab === tab.id
-                  ? "bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 shadow-md shadow-amber-400/20"
-                  : "bg-slate-900/50 text-slate-300 hover:bg-slate-800/50 hover:text-white border border-slate-700/30"
-              }`}
-            >
-              {tab.label}
-              {tab.count !== null && (
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    tab.alert
-                      ? "bg-rose-600 text-white animate-pulse"
-                      : activeTab === tab.id
-                      ? "bg-gray-950 text-amber-300"
-                      : "bg-slate-700 text-slate-300"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </motion.button>
-          ))}
+        <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
+          <label className="text-xs font-black uppercase text-emerald-800">Admin section
+            <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
+              {[["overview","Overview & Stats"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>
         </div>
 
-        {/* TAB 1: OVERVIEW & STATS */}
         {activeTab === "overview" && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}

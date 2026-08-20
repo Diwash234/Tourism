@@ -24,7 +24,7 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-Result after the hotel-media regression pass: **172 tests passed**. No unapplied model changes and no Django runtime check failures.
+Result after the navigation, CMS catalog and media-management regression pass: **177 tests passed**. No unapplied model changes and no Django runtime check failures.
 
 The three legacy routing assertions that expected HTTP 503 when the external ML service was offline were corrected to verify the intended bundled GraphML fallback: HTTP 200, `bundled_nepal_graphml`, and real route points.
 
@@ -44,7 +44,7 @@ DRF schema generation still emits documentation-only type-inference warnings for
 npm run build
 ```
 
-Result after the hotel-media UI pass: production build passed with **757 modules**. Vite reports advisory bundle-size/code-splitting warnings; no compilation failure occurred.
+Result after the fixed navigation and media-management UI pass: production build passed with **758 modules**. Vite reports advisory bundle-size/code-splitting warnings; no compilation failure occurred.
 
 `npm run lint` could not execute because the repository does not install an ESLint binary in the current dependency lock. The production compiler successfully parsed all JSX modules.
 
@@ -98,3 +98,17 @@ Automated tests cannot replace deployment-specific review. Before launch, operat
 7. Real-device mobile testing and final visual approval.
 
 These are operational launch checks, not missing application modules.
+
+## Admin navigation, CMS catalog and media follow-up
+
+- Admin priority actions are now in a fixed top navigation; all 27 management sections are grouped in a fixed, collapsible sidebar instead of a horizontal overflow strip.
+- Admin, Staff and Traveller shells have distinct feature-specific navigation. Navbar and sidebars remain fixed while content scrolls.
+- Admin and Staff workspaces use white surfaces and Nepal-green accents.
+- The database-driven CMS catalog contains 28 pages, 35 sections and 53 navigation records. These are editable through friendly form controls, with advanced JSON retained only as an optional tool.
+- The Central Media Library exposes all 19,328 image records through server pagination. It now supports validated computer uploads, external HTTPS media, source/license metadata, working move-up/move-down ordering, cover selection and moderation.
+- Hotels & Bookings exposes all 1,552 active hotels through pagination and supports hotel cover uploads or verified external image URLs.
+- The React `/admin/login` route is no longer intercepted by the Django Admin development proxy; traditional Django Admin remains available through `/django-admin/` in the frontend proxy and `/admin/` on the backend.
+
+### Runtime UI smoke validation
+
+A headless Chromium smoke flow logged into the real React Admin portal, opened the CMS and Central Media Library, and scrolled the workspace. It confirmed 28 editable CMS pages, 19,328 paginated media records, fixed header positioning, and no React page exceptions. The reported `destroy is not defined`/`destroy is not a function` issue was traced to async loaders passed directly to `useEffect`, whose returned Promises were treated as cleanup functions in React Strict Mode. All affected effects now use non-returning wrappers.

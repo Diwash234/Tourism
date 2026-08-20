@@ -1734,3 +1734,61 @@ class HotelImageDeliveryTests(APITestCase):
         self.assertTrue(response.data["image_is_hotel_specific"])
         insecure = self.client.patch(reverse("hotel-detail", kwargs={"pk": self.hotel.id}), {"external_image_url":"http://example.com/insecure.jpg"}, format="json")
         self.assertEqual(insecure.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class AdminNavigationCMSAndMediaRegressionTests(APITestCase):
+    def setUp(self):
+        self.admin=User.objects.create_superuser(email="navigation-media-admin@example.com",password="StrongPass123!")
+        self.admin.role=User.Role.SUPER_ADMIN;self.admin.save(update_fields=["role"])
+        category=Category.objects.create(name="Admin Media Regression")
+        self.destination=Destination.objects.create(name="Media Ordering Place",category=category,description="Test",status="approved",is_active=True,latitude=28,longitude=84,created_by=self.admin)
+        self.client.force_authenticate(self.admin)
+
+    def test_seeded_cms_catalog_exposes_all_editable_pages_sections_and_navigation(self):
+        from .models import ManagedPage,ContentSection,ManagedNavigationItem
+        self.assertGreaterEqual(ManagedPage.objects.count(),25)
+        self.assertGreaterEqual(ContentSection.objects.count(),25)
+        self.assertGreaterEqual(ManagedNavigationItem.objects.count(),25)
+        pages=self.client.get(reverse("admin-cms"),{"resource":"pages"})
+        sections=self.client.get(reverse("admin-cms"),{"resource":"sections"})
+        navigation=self.client.get(reverse("admin-cms"),{"resource":"navigation"})
+        self.assertGreaterEqual(len(pages.data["results"]),25)
+        self.assertGreaterEqual(len(sections.data["results"]),25)
+        self.assertGreaterEqual(len(navigation.data["results"]),25)
+
+    def test_external_media_upload_enters_pending_queue(self):
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"external_url":"https://example.com/place.webp","caption":"External place","source_url":"https://example.com/source"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        from .models import DestinationImage
+        image=DestinationImage.objects.get(pk=response.data["id"])
+        self.assertEqual(image.verification_status,"pending");self.assertFalse(image.is_verified)
+
+    def test_computer_media_upload_validates_real_image(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        output=io.BytesIO();Image.new("RGB",(80,60),"green").save(output,format="JPEG")
+        upload=SimpleUploadedFile("place.jpg",output.getvalue(),content_type="image/jpeg")
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":upload,"caption":"Local upload"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        bad=SimpleUploadedFile("bad.jpg",b"not-an-image",content_type="image/jpeg")
+        rejected=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":bad},format="multipart")
+        self.assertEqual(rejected.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_move_up_normalizes_and_swaps_gallery_order(self):
+        from .models import DestinationImage
+        first=DestinationImage.objects.create(destination=self.destination,external_url="https://example.com/1.jpg",ordering=0)
+        second=DestinationImage.objects.create(destination=self.destination,external_url="https://example.com/2.jpg",ordering=0)
+        third=DestinationImage.objects.create(destination=self.destination,external_url="https://example.com/3.jpg",ordering=0)
+        response=self.client.patch(reverse("admin-media-library"),{"id":third.id,"action":"move_up"},format="json")
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        ordered=list(DestinationImage.objects.filter(destination=self.destination).order_by("ordering","id").values_list("id",flat=True))
+        self.assertEqual(ordered,[first.id,third.id,second.id])
+
+    def test_staff_without_image_add_capability_cannot_upload(self):
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="media-viewer@example.com",password="StrongPass123!",role="staff",is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"images":["view"]})
+        self.client.force_authenticate(staff)
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"external_url":"https://example.com/denied.jpg"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)

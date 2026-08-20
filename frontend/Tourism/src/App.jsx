@@ -249,16 +249,6 @@ function App() {
       </Route>
 
 
-      {/* Local Guide Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<LocalRoute />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/local/dashboard" element={<LocalDashboard />} />
-          </Route>
-        </Route>
-      </Route>
-
-
       {/* Admin Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminRoute />}>
@@ -267,7 +257,6 @@ function App() {
               path="/admin" 
               element={<AdminDashboard />} 
             />
-            {}
             <Route path="/admin/hotel-assignments" element={<HotelAssignments />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="/admin/diagnostics" element={<DiagnosticsCenter />} />

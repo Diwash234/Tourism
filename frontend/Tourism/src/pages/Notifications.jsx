@@ -8,7 +8,7 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const load = () => { setLoading(true); userApi.getNotifications().then(({data})=>setNotifications(data.results||data||[])).catch(()=>setNotifications([])).finally(()=>setLoading(false)) }
-  useEffect(load, [])
+  useEffect(()=>{load()}, [])
   const toggle = async item => { const { data } = item.is_read ? await userApi.markNotificationUnread(item.id) : await userApi.markNotificationRead(item.id); setNotifications(rows=>rows.map(row=>row.id===item.id?data:row)) }
   const remove = async id => { await userApi.deleteNotification(id); setNotifications(rows=>rows.filter(row=>row.id!==id)) }
   const all = async read => { if(read) await userApi.markAllNotificationsRead(); else await userApi.markAllNotificationsUnread(); setNotifications(rows=>rows.map(row=>({...row,is_read:read}))) }

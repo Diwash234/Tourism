@@ -12,7 +12,7 @@ export default function InfrastructureModerationPanel() {
   const [pipeline, setPipeline] = useState(false)
   const [trainingRuns, setTrainingRuns] = useState([])
   const load = () => { setLoading(true); Promise.allSettled([adminApi.getInfrastructureSubmissions({ status: "pending" }), adminApi.getMLStatus()]).then(([submissions, runs]) => { setItems(submissions.status === "fulfilled" ? submissions.value.data : []); setTrainingRuns(runs.status === "fulfilled" ? runs.value.data : []) }).finally(() => setLoading(false)) }
-  useEffect(load, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{load()}, []) // eslint-disable-line react-hooks/exhaustive-deps
   const action = async (id, type) => { try { await adminApi.reviewInfrastructureSubmission(id, { action: type }); showToast(type === "approve" ? "Approved, published to database, and synchronized to CSV." : "Submission rejected.", "success"); load() } catch (e) { showToast(e.response?.data?.detail || "Review failed", "error") } }
   const runPipeline = async (train) => { setPipeline(true); try { const {data}=await adminApi.runMLDataPipeline({ train, models:["budget","risk","route","hotel","recommendation"] }); showToast(train ? "ML pipeline finished. Review individual model results." : `CSV export complete: ${data.exported.budget} budget, ${data.exported.risk} risk rows.`, "success") } catch(e) { showToast(e.response?.data?.detail || "Pipeline failed", "error") } finally {setPipeline(false)} }
   return <div className="space-y-5">

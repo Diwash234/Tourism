@@ -1959,14 +1959,43 @@ class AdminDatasetManagerView(APIView):
 
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        _require_capability(request,"images","add")
+        from django.db.models import Max
+        destination=Destination.objects.filter(pk=request.data.get("destination_id")).first()
+        if not destination:return Response({"detail":"A valid destination is required"},status=400)
+        uploaded=request.FILES.get("file");external_url=(request.data.get("external_url") or "").strip()
+        if not uploaded and not external_url:return Response({"detail":"Choose an image file or provide an external HTTPS image URL"},status=400)
+        if uploaded and external_url:return Response({"detail":"Upload a file or external URL, not both"},status=400)
+        if external_url and not external_url.startswith("https://"):return Response({"detail":"External image URL must use HTTPS"},status=400)
+        if uploaded:
+            if uploaded.size>10*1024*1024:return Response({"detail":"Image must be 10 MB or smaller"},status=400)
+            try:
+                from PIL import Image
+                check=Image.open(uploaded);check.verify();uploaded.seek(0)
+                if check.format not in {"JPEG","PNG","WEBP"}:raise ValueError()
+            except Exception:return Response({"detail":"Upload a valid JPEG, PNG or WebP image"},status=400)
+        ordering=(destination.gallery.aggregate(value=Max("ordering"))["value"] or 0)+1
+        image=DestinationImage.objects.create(destination=destination,image=uploaded if uploaded else None,
+            external_url=external_url,caption=(request.data.get("caption") or "")[:200],alt_text=(request.data.get("alt_text") or "")[:255],
+            source=DestinationImage.Source.ADMIN,source_url=(request.data.get("source_url") or None),source_platform="Admin upload",
+            license_type=(request.data.get("license") or "Admin supplied")[:100],copyright_status="pending_review",
+            ordering=ordering,verification_status=DestinationImage.ImageStatus.PENDING,is_verified=False,uploaded_by=request.user)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="media",severity="info",source="backend",action="media.upload",message=f"Added media to {destination.name}",object_type="DestinationImage",object_id=str(image.id),extra={"destination_id":destination.id,"external":bool(external_url)})
+        return Response({"message":"Image added to the moderation queue","id":image.id},status=201)
+
     def get(self, request):
         _require_capability(request,"images","view")
-        qs=DestinationImage.objects.select_related("destination","uploaded_by").order_by("-created_at")
+        qs=DestinationImage.objects.select_related("destination","uploaded_by").order_by("destination__name","ordering","id")
         q=request.query_params.get("q","");status_filter=request.query_params.get("status");source=request.query_params.get("source")
         if q: qs=qs.filter(Q(destination__name__icontains=q)|Q(caption__icontains=q)|Q(external_url__icontains=q))
         if status_filter: qs=qs.filter(verification_status=status_filter)
         if source: qs=qs.filter(source=source)
-        page=max(1,int(request.query_params.get("page",1)));size=30;count=qs.count();items=[]
+        try:page=max(1,int(request.query_params.get("page",1)));size=min(100,max(12,int(request.query_params.get("page_size",30))))
+        except ValueError:return Response({"detail":"Invalid pagination"},status=400)
+        count=qs.count();items=[]
         for image in qs[(page-1)*size:page*size]:
             url=image.external_url or (image.image.url if image.image else "")
             items.append({"id":image.id,"destination_id":image.destination_id,"destination":image.destination.name,"url":url,"caption":image.caption,"source":image.source,"source_url":image.source_url,"license":image.license_type,"photographer":image.photographer,"status":image.verification_status,"is_cover":image.is_cover,"ordering":image.ordering,"created_at":image.created_at})
@@ -1978,8 +2007,20 @@ class AdminMediaLibraryView(APIView):
         if ids and action in {"approve","reject"}:
             updated=DestinationImage.objects.filter(id__in=ids).update(verification_status="approved" if action=="approve" else "rejected",is_verified=action=="approve")
             return Response({"message":f"Bulk {action} complete","updated":updated})
-        image=DestinationImage.objects.filter(pk=request.data.get("id")).first()
+        image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()
         if not image:return Response({"detail":"Image not found"},status=404)
+        if action in {"move_up","move_down"}:
+            from django.db import transaction
+            with transaction.atomic():
+                ordered=list(DestinationImage.objects.select_for_update().filter(destination=image.destination).order_by("ordering","id"))
+                for index,item in enumerate(ordered):item.ordering=index
+                DestinationImage.objects.bulk_update(ordered,["ordering"])
+                index=next((i for i,item in enumerate(ordered) if item.id==image.id),None)
+                target=index-1 if action=="move_up" else index+1
+                if index is not None and 0<=target<len(ordered):
+                    ordered[index].ordering,ordered[target].ordering=ordered[target].ordering,ordered[index].ordering
+                    DestinationImage.objects.bulk_update([ordered[index],ordered[target]],["ordering"])
+            return Response({"message":"Image order updated","id":image.id,"ordering":ordered[index].ordering if index is not None else image.ordering})
         for field in ("caption","alt_text","ordering","verification_status","is_verified"):
             if field in request.data:setattr(image,field,request.data[field])
         image.save();return Response({"message":"Media updated","id":image.id})

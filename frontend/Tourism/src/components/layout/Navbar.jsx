@@ -48,7 +48,7 @@ const Navbar = () => {
   }
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-gray-100 w-full min-w-0">
+    <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-emerald-100 shadow-sm w-full min-w-0">
       <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16">
 
         {/* Sidebar Toggle */}

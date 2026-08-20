@@ -585,6 +585,14 @@ class HotelSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Hotel image URL must use HTTPS")
         return value
 
+    def validate_cover_image(self, value):
+        if value and value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Hotel cover must be 5 MB or smaller")
+        content_type = getattr(value, "content_type", "")
+        if value and content_type and content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise serializers.ValidationError("Use JPEG, PNG or WebP hotel images")
+        return value
+
     def _hotel_specific_url(self, obj):
         if obj.cover_image:
             return resolve_image_url(obj.cover_image)

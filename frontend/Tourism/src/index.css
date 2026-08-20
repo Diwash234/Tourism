@@ -547,3 +547,31 @@ body.sidebar-open .sidebar-backdrop {
 :focus-visible { outline: 3px solid #fbbf24 !important; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 @media (pointer: coarse) { .admin-icon-button, .admin-primary-button, .admin-secondary-button, .admin-danger-button { min-height: 2.75rem; } }
+
+/* Unified admin palette: white surfaces and Nepal green accents. */
+.admin-green-theme .bg-slate-950,
+.admin-green-theme .bg-slate-950\/80,
+.admin-green-theme .bg-slate-950\/70 { background-color: #ffffff !important; color: #0f172a; }
+.admin-green-theme .bg-slate-900,
+.admin-green-theme .bg-slate-900\/80,
+.admin-green-theme .bg-slate-900\/70,
+.admin-green-theme .bg-slate-900\/60 { background-color: #f0fdf4 !important; color: #14532d; }
+.admin-green-theme .bg-slate-800,
+.admin-green-theme .bg-slate-800\/60,
+.admin-green-theme .bg-slate-800\/80 { background-color: #dcfce7 !important; color: #14532d; }
+.admin-green-theme .text-white,
+.admin-green-theme .text-slate-100,
+.admin-green-theme .text-slate-200 { color: #14532d !important; }
+.admin-green-theme header .text-white,
+.admin-green-theme button.bg-emerald-700,
+.admin-green-theme button.bg-rose-700,
+.admin-green-theme button.bg-rose-800,
+.admin-green-theme a.bg-emerald-700 { color: #fff !important; }
+.admin-green-theme .border-slate-700,
+.admin-green-theme .border-slate-800,
+.admin-green-theme .border-slate-600\/40,
+.admin-green-theme .border-slate-700\/40 { border-color: #bbf7d0 !important; }
+.admin-green-theme input,
+.admin-green-theme select,
+.admin-green-theme textarea { background-color: #fff; color: #0f172a; border-color: #86efac; }
+.admin-green-theme .card-base { background-color: #fff; border-color: #bbf7d0; }
