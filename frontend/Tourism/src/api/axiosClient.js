@@ -2,13 +2,25 @@ import axios from "axios"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1"
 
+export const isGuestPreview = () => {
+  try {
+    return new URLSearchParams(window.location.search).get("as") === "traveller"
+  } catch {
+    return false
+  }
+}
+
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
 })
 
-// Attach access token to every request
+// Attach access token to every request, except logged-out traveller preview.
 axiosClient.interceptors.request.use((config) => {
+  if (isGuestPreview()) {
+    if (config.headers) delete config.headers.Authorization
+    return config
+  }
   const token = localStorage.getItem("access")
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
@@ -29,7 +41,7 @@ axiosClient.interceptors.response.use(
     const originalRequest = error.config
     const status = error.response?.status
 
-    if (status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry && !isGuestPreview()) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           queue.push({ resolve, reject })

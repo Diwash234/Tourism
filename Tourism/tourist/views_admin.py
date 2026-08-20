@@ -2198,20 +2198,32 @@ class AdminGlobalSearchView(APIView):
         q=(request.query_params.get("q") or "").strip()
         if len(q)<2:return Response({"detail":"Enter at least 2 characters"},status=400)
         from django.db.models import Q
+        kind_filter=(request.query_params.get("type") or "").strip()
         results=[]
-        def add(module,kind,queryset,label):
+        def snippet(text):
+            value=" ".join(str(text or "").split())
+            if not value: return ""
+            index=value.lower().find(q.lower())
+            start=max(0, index-36) if index>=0 else 0
+            excerpt=value[start:start+140]
+            return ("…" if start else "") + excerpt
+        def add(module,kind,queryset,label,snippet_fn=None):
+            if kind_filter and kind_filter!=kind: return
             if not _has_capability(request,module,"view"):return
-            for obj in queryset[:8]:results.append({"type":kind,"id":obj.pk,"label":label(obj),"module":module})
-        add("destinations","destination",Destination.objects.filter(Q(name__icontains=q)|Q(city__icontains=q)|Q(district__icontains=q)),lambda x:f"{x.name} · {x.district or x.city or 'Nepal'}")
-        add("users","user",User.objects.filter(Q(email__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q)),lambda x:f"{x.full_name} · {x.email}")
-        add("hotels","hotel",Hotel.objects.filter(Q(name__icontains=q)|Q(address__icontains=q)),lambda x:f"{x.name} · {x.address}")
-        add("feedback","feedback",UserFeedback.objects.filter(Q(subject__icontains=q)|Q(message__icontains=q)|Q(email__icontains=q)),lambda x:f"{x.subject} · {x.status}")
-        add("safety","alert",Alert.objects.filter(Q(title__icontains=q)|Q(description__icontains=q)|Q(city__icontains=q)),lambda x:f"{x.title} · {x.severity}")
-        add("content","page",ManagedPage.objects.filter(Q(title__icontains=q)|Q(route__icontains=q)|Q(key__icontains=q)|Q(meta_description__icontains=q)|Q(seo_title__icontains=q)),lambda x:f"{x.title} · {x.route}")
-        add("content","section",ContentSection.objects.filter(Q(title__icontains=q)|Q(body__icontains=q)|Q(key__icontains=q)|Q(subtitle__icontains=q)).select_related("page"),lambda x:f"{x.title or x.key} · {x.page.title}")
-        add("content","navigation",ManagedNavigationItem.objects.filter(Q(label__icontains=q)|Q(route__icontains=q)),lambda x:f"{x.label} · {x.route}")
-        add("images","image",DestinationImage.objects.filter(Q(caption__icontains=q)|Q(alt_text__icontains=q)|Q(destination__name__icontains=q)|Q(external_url__icontains=q)).select_related("destination"),lambda x:f"{x.destination.name} · {x.caption or 'image'}")
-        return Response({"query":q,"count":len(results),"results":results})
+            for obj in queryset[:8]:
+                results.append({"type":kind,"id":obj.pk,"label":label(obj),"module":module,"snippet":snippet_fn(obj) if snippet_fn else ""})
+        add("destinations","destination",Destination.objects.filter(Q(name__icontains=q)|Q(city__icontains=q)|Q(district__icontains=q)),lambda x:f"{x.name} · {x.district or x.city or 'Nepal'}",lambda x:snippet(x.short_description or x.description))
+        add("users","user",User.objects.filter(Q(email__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q)),lambda x:f"{x.full_name} · {x.email}",lambda x:snippet(x.email))
+        add("hotels","hotel",Hotel.objects.filter(Q(name__icontains=q)|Q(address__icontains=q)),lambda x:f"{x.name} · {x.address}",lambda x:snippet(x.address))
+        add("feedback","feedback",UserFeedback.objects.filter(Q(subject__icontains=q)|Q(message__icontains=q)|Q(email__icontains=q)),lambda x:f"{x.subject} · {x.status}",lambda x:snippet(x.message))
+        add("safety","alert",Alert.objects.filter(Q(title__icontains=q)|Q(description__icontains=q)|Q(city__icontains=q)),lambda x:f"{x.title} · {x.severity}",lambda x:snippet(x.description))
+        add("content","page",ManagedPage.objects.filter(Q(title__icontains=q)|Q(route__icontains=q)|Q(key__icontains=q)|Q(meta_description__icontains=q)|Q(seo_title__icontains=q)),lambda x:f"{x.title} · {x.route}",lambda x:snippet(x.meta_description or x.seo_title))
+        add("content","section",ContentSection.objects.filter(Q(title__icontains=q)|Q(body__icontains=q)|Q(key__icontains=q)|Q(subtitle__icontains=q)).select_related("page"),lambda x:f"{x.title or x.key} · {x.page.title}",lambda x:snippet(x.body or x.subtitle))
+        add("content","navigation",ManagedNavigationItem.objects.filter(Q(label__icontains=q)|Q(route__icontains=q)),lambda x:f"{x.label} · {x.route}",lambda x:snippet(x.route))
+        add("images","image",DestinationImage.objects.filter(Q(caption__icontains=q)|Q(alt_text__icontains=q)|Q(destination__name__icontains=q)|Q(external_url__icontains=q)).select_related("destination"),lambda x:f"{x.destination.name} · {x.caption or 'image'}",lambda x:snippet(x.caption or x.alt_text))
+        add("restaurants","restaurant",Restaurant.objects.filter(Q(name__icontains=q)|Q(address__icontains=q)|Q(destination__name__icontains=q)).select_related("destination"),lambda x:f"{x.name} · {x.destination.name}",lambda x:snippet(x.address or x.description))
+        add("reviews","review",Review.objects.filter(Q(comment__icontains=q)|Q(destination__name__icontains=q)|Q(user__email__icontains=q)).select_related("destination","user"),lambda x:f"{x.destination.name} · {x.user.email}",lambda x:snippet(x.comment))
+        return Response({"query":q,"type":kind_filter,"count":len(results),"results":results})
 
 
 class FeedbackListView(APIView):

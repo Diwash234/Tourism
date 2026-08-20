@@ -1836,6 +1836,9 @@ class CMSStudioExtensionTests(APITestCase):
         types = {item["type"] for item in response.data["results"]}
         self.assertIn("page", types)
         self.assertIn("image", types)
+        filtered = self.client.get(reverse("admin-global-search"), {"q": "UniqueSearch", "type": "page"})
+        self.assertTrue(all(item["type"] == "page" for item in filtered.data["results"]))
+        self.assertTrue(any("snippet" in item for item in filtered.data["results"]))
 
     def test_media_library_reports_used_on_and_crop(self):
         from .models import DestinationImage

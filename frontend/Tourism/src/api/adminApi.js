@@ -18,7 +18,7 @@ const adminApi = {
   updateTransitRoute: (id, payload) => axiosClient.patch(`/transit-routes/${id}/`, payload),
   getTravelPlans: (params) => axiosClient.get("/travel-plans/", { params }),
   exportReports: (params) => axiosClient.get("/admin/reports/", { params: { ...params, format: "csv" }, responseType: "blob" }),
-  globalSearch: (q) => axiosClient.get("/admin/search/", { params: { q } }),
+  globalSearch: (q, params = {}) => axiosClient.get("/admin/search/", { params: { q, ...params } }),
   getDatasets: (params) => axiosClient.get("/admin/datasets/", { params }),
   validateDatasetUpload: (formData) => axiosClient.post("/admin/datasets/", formData, { headers: { "Content-Type": "multipart/form-data" } }),
   confirmDatasetImport: (payload) => axiosClient.put("/admin/datasets/", payload),

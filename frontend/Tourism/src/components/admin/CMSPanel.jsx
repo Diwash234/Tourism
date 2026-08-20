@@ -37,6 +37,7 @@ export default function CMSPanel() {
   const [busy, setBusy] = useState(false)
   const [pageTemplate, setPageTemplate] = useState("blank")
   const [previewMode, setPreviewMode] = useState("desktop")
+  const [previewKind, setPreviewKind] = useState("live")
   const [reusable, setReusable] = useState([])
   const [catalog, setCatalog] = useState(fallbackTemplates)
   const [cloneSource, setCloneSource] = useState("")
@@ -155,8 +156,22 @@ export default function CMSPanel() {
   )
   const showPreview = async () => {
     if (!selected?.id) return showToast("Save this draft before previewing it", "info")
-    try { setPreview((await adminApi.getCMS(resource, { id: selected.id, preview: true })).data.preview) }
+    try {
+      const data = (await adminApi.getCMS(resource, { id: selected.id, preview: true })).data.preview
+      setPreview(data)
+      setPreviewKind(data.route ? "live" : "draft")
+    }
     catch (error) { showToast(error.response?.data?.detail || "Preview failed", "error") }
+  }
+  const travellerPreviewSrc = () => {
+    const route = preview?.route || selected?.route || "/"
+    try {
+      const url = new URL(route, window.location.origin)
+      url.searchParams.set("as", "traveller")
+      return `${url.pathname}${url.search}`
+    } catch {
+      return "/?as=traveller"
+    }
   }
   const showHistory = async () => {
     if (!selected?.id) return
@@ -266,33 +281,44 @@ export default function CMSPanel() {
 
       {preview && (
         <div className="fixed inset-0 z-[80] bg-black/75 grid place-items-center p-4">
-          <div className={`bg-white text-slate-900 rounded-2xl w-full max-h-[85vh] overflow-y-auto p-6 ${previewMode === "mobile" ? "max-w-sm" : previewMode === "tablet" ? "max-w-2xl" : "max-w-4xl"}`}>
-            <div className="flex justify-between border-b pb-3 gap-3">
-              <div>
+          <div className="flex h-[90vh] w-full max-w-7xl flex-col rounded-2xl bg-slate-100 p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="mr-auto">
                 <span className="text-[10px] uppercase font-black text-emerald-700">Preview as traveller</span>
-                <h2 className="text-3xl font-black">{preview.seo_title || displayName(preview)}</h2>
+                <h2 className="text-xl font-black text-slate-900">{preview.seo_title || displayName(preview)}</h2>
               </div>
-              <div className="flex gap-2 items-start">
-                {[["desktop", "Desktop"], ["tablet", "Tablet"], ["mobile", "Mobile"]].map(([id, label]) => (
-                  <button key={id} onClick={() => setPreviewMode(id)} className={`rounded-lg px-2 py-1 text-xs font-bold ${previewMode === id ? "bg-emerald-700 text-white" : "bg-emerald-50"}`}>{label}</button>
-                ))}
-                <button onClick={() => setPreview(null)}><FiX size={22} /></button>
+              {[["live", "Live logged-out site"], ["draft", "Draft content"]].map(([id, label]) => (
+                <button key={id} onClick={() => setPreviewKind(id)} className={`rounded-lg px-3 py-1 text-xs font-bold ${previewKind === id ? "bg-emerald-700 text-white" : "bg-white"}`}>{label}</button>
+              ))}
+              {[["desktop", "Desktop"], ["tablet", "Tablet"], ["mobile", "Mobile"]].map(([id, label]) => (
+                <button key={id} onClick={() => setPreviewMode(id)} className={`rounded-lg px-2 py-1 text-xs font-bold ${previewMode === id ? "bg-slate-900 text-white" : "bg-white"}`}>{label}</button>
+              ))}
+              <button onClick={() => setPreview(null)}><FiX size={22} /></button>
+            </div>
+            <div className="flex min-h-0 flex-1 justify-center overflow-hidden">
+              <div className={`overflow-hidden rounded-[1.5rem] border-8 border-slate-900 bg-white shadow-2xl ${previewMode === "mobile" ? "h-full w-[390px]" : previewMode === "tablet" ? "h-full w-[768px]" : "h-full w-full"}`}>
+                {previewKind === "live" && preview.route ? (
+                  <iframe title="Logged-out traveller preview" src={travellerPreviewSrc()} className="h-full w-full bg-white" />
+                ) : (
+                  <div className="h-full overflow-y-auto p-6 text-slate-900">
+                    <p className="text-xs text-slate-500">Draft CMS content. Live site uses the published traveller page. Search visibility: {preview.search_visible === false ? "hidden" : "allowed"}.</p>
+                    {preview.meta_description && <p className="mt-2 text-slate-500">{preview.meta_description}</p>}
+                    {preview.og_image_url && <img src={preview.og_image_url} alt="" className="mt-4 max-h-48 w-full rounded-xl object-cover" />}
+                    {preview.sections?.map(section => (
+                      <article key={section.id} className="border-b py-6">
+                        <p className="text-[10px] uppercase tracking-widest text-emerald-700">{section.section_type || "text"}</p>
+                        <h3 className="text-xl font-bold">{section.title}</h3>
+                        <p className="text-slate-500">{section.subtitle}</p>
+                        {section.image_url && <img src={section.image_url} alt="" className="mt-3 max-h-56 w-full rounded-xl object-cover" />}
+                        <div className="prose prose-sm mt-3" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
+                        {section.cta_text && <span className="mt-3 inline-block rounded-lg bg-emerald-700 px-4 py-2 text-white">{section.cta_text}</span>}
+                      </article>
+                    ))}
+                    {!preview.sections && <div className="prose prose-sm mt-5" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
+                  </div>
+                )}
               </div>
             </div>
-            <p className="mt-2 text-xs text-slate-500">Logged-out traveller view. Search visibility: {preview.search_visible === false ? "hidden" : "allowed"}.</p>
-            {preview.meta_description && <p className="text-slate-500 mt-2">{preview.meta_description}</p>}
-            {preview.og_image_url && <img src={preview.og_image_url} alt="" className="mt-4 max-h-48 w-full rounded-xl object-cover" />}
-            {preview.sections?.map(section => (
-              <article key={section.id} className="py-6 border-b">
-                <p className="text-[10px] uppercase tracking-widest text-emerald-700">{section.section_type || "text"}</p>
-                <h3 className="text-xl font-bold">{section.title}</h3>
-                <p className="text-slate-500">{section.subtitle}</p>
-                {section.image_url && <img src={section.image_url} alt="" className="mt-3 max-h-56 w-full rounded-xl object-cover" />}
-                <div className="mt-3 prose prose-sm" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
-                {section.cta_text && <span className="inline-block mt-3 bg-emerald-700 text-white px-4 py-2 rounded-lg">{section.cta_text}</span>}
-              </article>
-            ))}
-            {!preview.sections && <div className="mt-5 prose prose-sm" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
           </div>
         </div>
       )}
