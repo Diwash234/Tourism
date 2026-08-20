@@ -1683,3 +1683,54 @@ class RetentionAndAnonymizationTests(APITestCase):
         self.client.force_authenticate(staff)
         self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json").status_code, status.HTTP_200_OK)
         self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":False}, format="json").status_code, status.HTTP_403_FORBIDDEN)
+
+
+class HotelImageDeliveryTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="hotel-image-admin@example.com", password="StrongPass123!")
+        category = Category.objects.create(name="Hotel Image Test")
+        self.destination = Destination.objects.create(name="Bandipur", category=category, description="Test", status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin)
+        self.hotel = Hotel.objects.create(destination=self.destination, name="Image Test Hotel", price_per_night=30)
+
+    def test_verified_destination_media_is_labelled_context_fallback(self):
+        from .models import DestinationImage
+        image = DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/bandipur.jpg", verification_status="approved", is_cover=False)
+        response = self.client.get(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["image_url"], image.external_url)
+        self.assertEqual(response.data["destination_context_image_url"], image.external_url)
+        self.assertFalse(response.data["image_is_hotel_specific"])
+        self.assertEqual(response.data["image_source"], "destination_context")
+
+    def test_hotel_specific_image_has_priority(self):
+        from .models import DestinationImage
+        DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/area.jpg", verification_status="approved", is_cover=True)
+        self.hotel.external_image_url = "https://example.com/hotel.jpg"; self.hotel.save(update_fields=["external_image_url"])
+        response = self.client.get(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertEqual(response.data["image_url"], "https://example.com/hotel.jpg")
+        self.assertTrue(response.data["image_is_hotel_specific"])
+        self.assertEqual(response.data["image_source"], "hotel_external")
+
+    def test_missing_media_is_explicitly_unavailable(self):
+        response = self.client.get(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertIsNone(response.data["image_url"])
+        self.assertEqual(response.data["image_source"], "unavailable")
+
+    def test_hotel_search_excludes_archived_and_returns_context_image(self):
+        from .models import DestinationImage
+        DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/context.jpg", verification_status="approved", is_cover=True)
+        archived = Hotel.objects.create(destination=self.destination, name="Archived Image Hotel", is_active=False)
+        response = self.client.get(reverse("hotel-search"), {"query":"Hotel"})
+        ids = [row["id"] for row in response.data["results"]]
+        self.assertIn(self.hotel.id, ids); self.assertNotIn(archived.id, ids)
+        row = next(row for row in response.data["results"] if row["id"] == self.hotel.id)
+        self.assertEqual(row["image_url"], "https://example.com/context.jpg")
+
+    def test_admin_can_assign_valid_hotel_specific_image_url(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("hotel-detail", kwargs={"pk": self.hotel.id}), {"external_image_url":"https://example.com/specific.webp"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["image_url"], "https://example.com/specific.webp")
+        self.assertTrue(response.data["image_is_hotel_specific"])
+        insecure = self.client.patch(reverse("hotel-detail", kwargs={"pk": self.hotel.id}), {"external_image_url":"http://example.com/insecure.jpg"}, format="json")
+        self.assertEqual(insecure.status_code, status.HTTP_400_BAD_REQUEST)

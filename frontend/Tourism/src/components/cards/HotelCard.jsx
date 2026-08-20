@@ -1,6 +1,5 @@
 import { FiMapPin, FiStar, FiWifi, FiWind, FiNavigation, FiImage, FiGlobe, FiPhoneCall } from "react-icons/fi"
-import PlaceholderImage from "../common/PlaceholderImage"
-import { getDestinationImageUrl, getHotelImageUrl } from "../../utils/imageUtils"
+import HotelMedia from "./HotelMedia"
 
 const STATUS_STYLE = {
   available: "badge-risk-low",
@@ -58,24 +57,7 @@ const HotelCard = ({ hotel, destinationName }) => {
   return (
     <div className="card-base overflow-hidden">
       <div className="relative h-40">
-        {gallery?.[0] || hotel.displayImage || hotel.image_url || hotel.image ? (
-          <img
-            src={gallery?.[0] || hotel.displayImage || hotel.image_url || hotel.image || getHotelImageUrl(hotel)}
-            alt={name}
-            onError={(e) => {
-              // unique per-hotel postcard fallback — never a shared generic photo
-              e.target.onerror = null;
-              e.target.src = getHotelImageUrl(hotel);
-            }}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <img
-            src={getHotelImageUrl(hotel)}
-            alt={name}
-            className="w-full h-full object-cover"
-          />
-        )}
+        <HotelMedia hotel={{ ...hotel, image_url: gallery?.[0] || hotel.displayImage || hotel.image_url }} className="w-full h-full" />
         {gallery && gallery.length > 1 && (
           <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
             <FiImage size={11} /> +{gallery.length - 1}

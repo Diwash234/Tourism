@@ -481,7 +481,7 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         """
         destination = self.get_object()
 
-        hotels = HotelSerializer(destination.hotels.all(), many=True).data
+        hotels = HotelSerializer(destination.hotels.filter(is_active=True).select_related("destination").prefetch_related("destination__gallery"), many=True, context={"request": request}).data
         database_restaurants = RestaurantSerializer(destination.restaurants.filter(status="published"), many=True).data
         external_restaurants = find_nearby_places(destination.latitude, destination.longitude, "restaurant")
         restaurants = database_restaurants or external_restaurants
@@ -613,7 +613,7 @@ class HotelViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "address"]
 
     def get_queryset(self):
-        queryset=Hotel.objects.select_related("destination")
+        queryset=Hotel.objects.select_related("destination").prefetch_related("destination__gallery")
         user=self.request.user
         if self.request.method in permissions.SAFE_METHODS and not (user.is_authenticated and (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"})):
             queryset=queryset.filter(is_active=True)
@@ -1273,13 +1273,13 @@ class HotelSearchView(generics.ListAPIView):
             return Hotel.objects.none()
 
         return (
-            Hotel.objects.filter(
+            Hotel.objects.filter(is_active=True).filter(
                 Q(name__icontains=query)
                 | Q(destination__name__icontains=query)
                 | Q(destination__city__icontains=query)
                 | Q(address__icontains=query)
             )
-            .select_related("destination")[:20]
+            .select_related("destination").prefetch_related("destination__gallery")[:20]
         )
 
 

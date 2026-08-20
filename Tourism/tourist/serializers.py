@@ -557,17 +557,17 @@ class TravelRiskFeedbackSerializer(serializers.ModelSerializer):
 
 class HotelSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
-    destination_name = serializers.CharField(
-        source="destination.name",
-        read_only=True,
-    )
+    image_is_hotel_specific = serializers.SerializerMethodField()
+    image_source = serializers.SerializerMethodField()
+    destination_context_image_url = serializers.SerializerMethodField()
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    destination_slug = serializers.CharField(source="destination.slug", read_only=True)
 
     class Meta:
         model = Hotel
         fields = [
             "id",
-            "name",
-            "destination_name",
+            "name", "destination", "destination_name", "destination_slug",
             "address",
             "latitude",
             "longitude",
@@ -575,25 +575,56 @@ class HotelSerializer(serializers.ModelSerializer):
             "currency",
             "rating",
             "booking_status",
-            "booking_url",
-            "image_url", "source", "source_url", "is_verified", "verified_at", "is_active", "archived_at", "updated_at",
+            "booking_url", "cover_image", "external_image_url",
+            "image_url", "image_is_hotel_specific", "image_source", "destination_context_image_url",
+            "source", "source_url", "is_verified", "verified_at", "is_active", "archived_at", "updated_at",
         ]
 
-    def get_image_url(self, obj):
-        # External URLs were historically stored in the ImageField column;
-        # resolve_image_url detects and returns them verbatim instead of
-        # mangling them into broken /media/https%3A/... links.
+    def validate_external_image_url(self, value):
+        if value and not value.startswith("https://"):
+            raise serializers.ValidationError("Hotel image URL must use HTTPS")
+        return value
+
+    def _hotel_specific_url(self, obj):
         if obj.cover_image:
             return resolve_image_url(obj.cover_image)
-        if obj.external_image_url:
-            return obj.external_image_url
-        if obj.destination and obj.destination.cover_image:
-            return resolve_image_url(obj.destination.cover_image)
+        return obj.external_image_url or None
+
+    def _destination_context_url(self, obj):
+        if hasattr(obj, "_destination_context_image_cache"):
+            return obj._destination_context_image_cache
+        result = None
         if obj.destination:
-            photo = obj.destination.gallery.filter(is_cover=True).first()
-            if photo:
-                return photo.external_url or resolve_image_url(photo.image)
-        return None
+            if obj.destination.cover_image:
+                result = resolve_image_url(obj.destination.cover_image)
+            else:
+                photos = list(obj.destination.gallery.all())
+                approved = [photo for photo in photos if photo.verification_status in {"approved", "verified"}]
+                candidates = approved or [photo for photo in photos if photo.verification_status != "rejected"]
+                candidates.sort(key=lambda photo: (not photo.is_cover, photo.ordering, photo.id))
+                if candidates:
+                    photo = candidates[0]
+                    result = photo.external_url or resolve_image_url(photo.image)
+        obj._destination_context_image_cache = result
+        return result
+
+    def get_image_url(self, obj):
+        # Compatibility display URL. `image_is_hotel_specific` tells clients
+        # whether this is actual hotel media or an honestly-labelled area photo.
+        return self._hotel_specific_url(obj) or self._destination_context_url(obj)
+
+    def get_image_is_hotel_specific(self, obj):
+        return bool(self._hotel_specific_url(obj))
+
+    def get_image_source(self, obj):
+        if obj.cover_image: return "hotel_upload"
+        if obj.external_image_url: return "hotel_external"
+        if self._destination_context_url(obj): return "destination_context"
+        return "unavailable"
+
+    def get_destination_context_image_url(self, obj):
+        return self._destination_context_url(obj)
+
 
 
 NEPAL_CURATED_PHOTOS = [

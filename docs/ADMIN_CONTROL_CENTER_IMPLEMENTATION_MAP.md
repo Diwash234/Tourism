@@ -80,14 +80,19 @@ Frontend hiding is never sufficient; every write API must enforce the same capab
 9. **Staff shell:** capability-filtered modules and existing task/assignment integration.
 10. **Regression/security:** existing Django suite, role/API matrix, frontend production build and route checks.
 
-## Current verified baseline
+## Current verified completion status (updated 2026-08-20)
 
-- Existing User Dashboard remains operational.
-- Traditional Django Admin is preserved.
-- React Admin has searchable database explorer, destination detail editing and local image upload.
-- React Staff portal has field budget/risk entry.
-- Backend permissions and route guards exist but are not yet granular enough for the requested capability matrix.
-- Current CMS gap: headings/navigation/sidebar remain primarily source-controlled; this is the next architectural phase.
+- Existing User Dashboard, authentication, destination, budget, risk, routing and ML contracts remain operational.
+- Traditional Django Admin is preserved alongside the React Admin Control Center.
+- Capability/action RBAC is backend-enforced for users, destinations, images, content, budget, datasets, hotels, restaurants, transportation, travel plans, reviews, safety, feedback, audit and settings.
+- District, assigned-hotel, assigned-task and owner object boundaries are tested.
+- Staff has capability-generated module workspaces and completion reporting.
+- CMS pages, sections, navigation hierarchy, translations, revisions, preview, scheduling, publishing and rollback are database-driven.
+- Branding assets, safe theme presets, notification delivery/preferences/retries, datasets, media, reports, retention, anonymization and protected archival are implemented.
+- Shared accessible Admin primitives, keyboard skip navigation, focus styles, reduced-motion support and responsive layouts are implemented.
+- Full automated acceptance completed with 172 Django tests, frontend production build, ML/routing smoke tests and deployment security checks.
+- `DestinationImage` remains the media source of truth rather than introducing the originally proposed duplicate `MediaAsset` table; the Central Media Library safely manages those existing records.
+- Deployment-specific provider, official-feed, legal, load, backup-restore and real-device checks remain operational launch responsibilities, as documented in `FINAL_ACCEPTANCE_REPORT.md`.
 
 ## Acceptance guardrails
 

@@ -24,7 +24,7 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-Result: **167 tests passed**. No unapplied model changes and no Django runtime check failures.
+Result after the hotel-media regression pass: **172 tests passed**. No unapplied model changes and no Django runtime check failures.
 
 The three legacy routing assertions that expected HTTP 503 when the external ML service was offline were corrected to verify the intended bundled GraphML fallback: HTTP 200, `bundled_nepal_graphml`, and real route points.
 
@@ -44,7 +44,7 @@ DRF schema generation still emits documentation-only type-inference warnings for
 npm run build
 ```
 
-Result: production build passed with **756 modules**. Vite reports advisory bundle-size/code-splitting warnings; no compilation failure occurred.
+Result after the hotel-media UI pass: production build passed with **757 modules**. Vite reports advisory bundle-size/code-splitting warnings; no compilation failure occurred.
 
 `npm run lint` could not execute because the repository does not install an ESLint binary in the current dependency lock. The production compiler successfully parsed all JSX modules.
 
@@ -72,6 +72,18 @@ The suite intentionally verifies graceful unavailable states for unconfigured/do
 - Missing official DHM/BIPAD feed URLs
 
 No official warning, provider delivery, road metric or safety record is fabricated when these integrations are unavailable.
+
+## Hotel media audit
+
+The active SQLite dataset contains 1,552 hotels. None currently has a verified hotel-specific cover (`cover_image` or `external_image_url`), but every hotel is linked to a destination with displayable destination media. The API and React UI now expose this distinction explicitly:
+
+- `image_is_hotel_specific=true` only for actual hotel media.
+- `image_source=destination_context` for the current 1,552 contextual fallbacks.
+- Context images are visibly labelled **Destination area photo**.
+- Broken remote images advance to a bundled destination-specific image and then to an explicit unavailable state; they no longer remain as broken image elements.
+- Admins can assign a verified HTTPS hotel image from Hotels & Bookings, and the hotel-specific image immediately takes priority everywhere.
+
+Audit result: **1,552/1,552 active hotels have a displayable, honestly labelled media response; 0 are falsely claimed as hotel-specific.** Real hotel-specific photos still require verified source collection or administrator uploads and are not fabricated.
 
 ## Manual checks still required before a real public launch
 
