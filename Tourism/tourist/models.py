@@ -2145,6 +2145,36 @@ class SiteSetting(TimeStampedModel):
     def __str__(self): return self.key
 
 
+class BrandingAsset(TimeStampedModel):
+    class Kind(models.TextChoices):
+        LOGO = "logo", "Logo"
+        FAVICON = "favicon", "Favicon"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, unique=True)
+    file = models.ImageField(upload_to="branding/")
+    alt_text = models.CharField(max_length=160, blank=True)
+    mime_type = models.CharField(max_length=80, blank=True)
+    file_size = models.PositiveIntegerField(default=0)
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="branding_assets_updated")
+
+    def __str__(self): return self.kind
+
+
+class CMSContentTranslation(TimeStampedModel):
+    target_resource = models.CharField(max_length=20, choices=[("pages", "Page"), ("sections", "Section"), ("navigation", "Navigation")])
+    object_id = models.PositiveBigIntegerField()
+    language_code = models.CharField(max_length=10)
+    content = models.JSONField(default=dict)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cms_translations_updated")
+
+    class Meta:
+        ordering = ["target_resource", "object_id", "language_code"]
+        constraints = [models.UniqueConstraint(fields=["target_resource", "object_id", "language_code"], name="unique_cms_content_translation")]
+        indexes = [models.Index(fields=["target_resource", "object_id", "language_code"])]
+
+
 class ManagedPage(TimeStampedModel):
     route = models.CharField(max_length=180, unique=True)
     key = models.SlugField(max_length=100, unique=True)
@@ -2200,7 +2230,7 @@ class ManagedNavigationItem(TimeStampedModel):
 
 class CMSRevision(models.Model):
     """Immutable snapshots for safe CMS preview, audit, and rollback."""
-    resource = models.CharField(max_length=20, choices=[("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"), ("settings", "Settings")])
+    resource = models.CharField(max_length=20, choices=[("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"), ("settings", "Settings"), ("translations", "Translations")])
     object_id = models.PositiveBigIntegerField()
     revision_number = models.PositiveIntegerField()
     snapshot = models.JSONField(default=dict)

@@ -1304,3 +1304,74 @@ class StaffWorkspaceScopeTests(APITestCase):
         response = self.client.get(reverse("expense-feedback-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([row["id"] for row in response.data["results"]], [own.id])
+
+
+class BrandingThemeTranslationTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage, ContentSection, ManagedNavigationItem
+        self.admin = User.objects.create_superuser(email="branding-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.page = ManagedPage.objects.create(route="/translated-page", key="translated-page", title="English page", status="published")
+        self.section = ContentSection.objects.create(page=self.page, key="hero", title="English hero", body="English body", status="published")
+        self.nav = ManagedNavigationItem.objects.create(location="navbar", label="English link", route="/translated-page")
+
+    def test_safe_theme_preset_is_published_without_arbitrary_css(self):
+        response = self.client.patch(reverse("admin-branding"), {"branding": {"site_title": "Tourism Nepal", "theme_preset": "forest", "facebook_url": "https://facebook.com/nepal"}}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["branding"]["primary_color"], "#166534")
+        denied = self.client.patch(reverse("admin-branding"), {"branding": {"custom_css": "body{display:none}"}}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_social_links_require_https(self):
+        response = self.client.patch(reverse("admin-branding"), {"branding": {"theme_preset": "himalayan", "facebook_url": "javascript:alert(1)"}}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_valid_logo_upload_and_invalid_favicon_dimensions(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        buffer = io.BytesIO(); Image.new("RGB", (120, 60), "blue").save(buffer, format="PNG")
+        logo = self.client.post(reverse("admin-branding"), {"kind": "logo", "file": SimpleUploadedFile("logo.png", buffer.getvalue(), content_type="image/png")}, format="multipart")
+        self.assertEqual(logo.status_code, status.HTTP_201_CREATED)
+        buffer = io.BytesIO(); Image.new("RGB", (64, 32), "red").save(buffer, format="PNG")
+        favicon = self.client.post(reverse("admin-branding"), {"kind": "favicon", "file": SimpleUploadedFile("favicon.png", buffer.getvalue(), content_type="image/png")}, format="multipart")
+        self.assertEqual(favicon.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cms_translation_overlays_only_requested_language(self):
+        for target, object_id, content in (("pages", self.page.id, {"title": "नेपाली पृष्ठ"}), ("sections", self.section.id, {"title": "नेपाली शीर्षक", "body": "नेपाली सामग्री"}), ("navigation", self.nav.id, {"label": "नेपाली लिङ्क"})):
+            response = self.client.post(reverse("admin-cms"), {"resource": "translations", "target_resource": target, "object_id": object_id, "language_code": "ne", "content": content}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        nepali = self.client.get(reverse("public-config"), {"lang": "ne"})
+        page = next(row for row in nepali.data["pages"] if row["id"] == self.page.id)
+        self.assertEqual(page["title"], "नेपाली पृष्ठ")
+        self.assertEqual(page["sections"][0]["body"], "नेपाली सामग्री")
+        self.assertEqual(next(row for row in nepali.data["navigation"] if row["id"] == self.nav.id)["label"], "नेपाली लिङ्क")
+        english = self.client.get(reverse("public-config"), {"lang": "en"})
+        self.assertEqual(next(row for row in english.data["pages"] if row["id"] == self.page.id)["title"], "English page")
+
+    def test_translation_rejects_unsupported_fields_and_missing_target(self):
+        bad_field = self.client.post(reverse("admin-cms"), {"resource": "translations", "target_resource": "pages", "object_id": self.page.id, "language_code": "ne", "content": {"script": "alert(1)"}}, format="json")
+        self.assertEqual(bad_field.status_code, status.HTTP_400_BAD_REQUEST)
+        missing = self.client.post(reverse("admin-cms"), {"resource": "translations", "target_resource": "pages", "object_id": 999999, "language_code": "ne", "content": {"title": "Missing"}}, format="json")
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_navigation_rejects_cross_location_parent_and_cycles(self):
+        from .models import ManagedNavigationItem
+        footer = ManagedNavigationItem.objects.create(location="footer", label="Footer", route="/about")
+        cross = self.client.post(reverse("admin-cms"), {"resource": "navigation", "location": "navbar", "label": "Bad child", "route": "/bad", "parent_id": footer.id}, format="json")
+        self.assertEqual(cross.status_code, status.HTTP_400_BAD_REQUEST)
+        child = ManagedNavigationItem.objects.create(location="navbar", label="Child", route="/child", parent=self.nav)
+        cycle = self.client.patch(reverse("admin-cms"), {"resource": "navigation", "id": self.nav.id, "parent_id": child.id}, format="json")
+        self.assertEqual(cycle.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_view_only_settings_staff_cannot_change_branding(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="branding-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"settings": ["view"]})
+        self.client.force_authenticate(staff)
+        visible = self.client.get(reverse("admin-branding"))
+        self.assertEqual(visible.status_code, status.HTTP_200_OK)
+        denied = self.client.patch(reverse("admin-branding"), {"branding": {"theme_preset": "forest"}}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)

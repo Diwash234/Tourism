@@ -10,7 +10,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, FamilyLink, RiskIncident, CurrentHazard,
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage,
+    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage,
 )
 
 
@@ -538,6 +538,16 @@ class ContentSectionInline(admin.TabularInline):
 @admin.register(ManagedPage)
 class ManagedPageAdmin(admin.ModelAdmin):
     list_display=['title','route','is_enabled','status','scheduled_publish_at','published_at','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+
+@admin.register(BrandingAsset)
+class BrandingAssetAdmin(admin.ModelAdmin):
+    list_display = ["kind", "width", "height", "file_size", "updated_by", "updated_at"]
+    readonly_fields = ["mime_type", "file_size", "width", "height", "updated_by"]
+
+@admin.register(CMSContentTranslation)
+class CMSContentTranslationAdmin(admin.ModelAdmin):
+    list_display = ["target_resource", "object_id", "language_code", "updated_by", "updated_at"]
+    list_filter = ["target_resource", "language_code"]
 
 @admin.register(CMSRevision)
 class CMSRevisionAdmin(admin.ModelAdmin):

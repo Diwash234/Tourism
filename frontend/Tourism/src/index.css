@@ -1,3 +1,14 @@
+:root {
+  --brand-primary: #0B3D91;
+  --brand-secondary: #F59E0B;
+  --brand-background: #F8FAFC;
+  --brand-surface: #FFFFFF;
+}
+
+body { background-color: var(--brand-background); }
+.btn-primary { background-color: var(--brand-primary) !important; }
+[data-density="compact"] .card-base { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -71,7 +82,7 @@
 
   color-scheme: light;
   color: var(--text);
-  background: var(--bg);
+  background: var(--brand-background, var(--bg));
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

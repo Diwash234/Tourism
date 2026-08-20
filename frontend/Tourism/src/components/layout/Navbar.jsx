@@ -9,7 +9,9 @@ import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import { useI18n } from "../../i18n"
-import configApi from "../../api/configApi"
+import usePublicConfig from "../../hooks/usePublicConfig"
+
+const NavChildren = ({ items, depth = 0 }) => items.map(child => <div key={child.path}><NavLink to={child.path} className="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1}/>}</div>)
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -18,13 +20,17 @@ const Navbar = () => {
   const { t } = useI18n()
   const navigate = useNavigate()
   const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
+  const { navigation } = usePublicConfig()
 
   useEffect(() => {
-    configApi.getPublicConfig().then(({data}) => {
-      const items=(data.navigation||[]).filter(item=>item.location==="navbar"&&!item.parent_id&&String(item.route).startsWith("/"))
-      if(items.length)setManagedLinks(items.map(item=>({path:item.route,label:item.label})))
-    }).catch(()=>{})
-  }, [])
+    const role = user?.role || "tourist"
+    const allowed = (navigation || []).filter(item => item.location === "navbar" && String(item.route).startsWith("/") && (!item.allowed_roles?.length || item.allowed_roles.includes(role)))
+    if (!allowed.length) return setManagedLinks(NAV_LINKS)
+    const nodes = new Map(allowed.map(item => [item.id, { path: item.route, label: item.label, children: [] }]))
+    const roots = []
+    allowed.forEach(item => { const node = nodes.get(item.id); const parent = nodes.get(item.parent_id); if (parent) parent.children.push(node); else roots.push(node) })
+    setManagedLinks(roots)
+  }, [navigation, user?.role])
 
   const handleLogout = async () => {
     await logout()
@@ -79,19 +85,10 @@ const Navbar = () => {
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-6 shrink-0">
           {managedLinks.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              className={({ isActive }) =>
-                `text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive
-                    ? "text-primary-600"
-                    : "text-gray-600 hover:text-dark"
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
+            <div key={link.path} className="relative group">
+              <NavLink to={link.path} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap ${isActive ? "text-primary-600" : "text-gray-600 hover:text-dark"}`}>{link.label}</NavLink>
+              {!!link.children?.length && <div className="absolute hidden group-hover:block group-focus-within:block top-full left-0 pt-3 min-w-52"><div className="bg-white border border-gray-100 shadow-xl rounded-xl p-2"><NavChildren items={link.children}/></div></div>}
+            </div>
           ))}
         </div>
 

@@ -18,7 +18,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, DestinationFeatureProfile,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -153,22 +153,42 @@ class PublicConfigView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        # Publish due scheduled content atomically during reads as a safe fallback
-        # when a deployment has not configured a periodic task runner.
+        import re
         now = timezone.now()
         ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None
-        )
+            status="published", published_at=now, scheduled_publish_at=None)
         ContentSection.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None
-        )
+            status="published", published_at=now, scheduled_publish_at=None)
+        language = request.query_params.get("lang", "en")
+        if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
+            language = "en"
+        translations = {(row.target_resource, row.object_id): row.content for row in
+            CMSContentTranslation.objects.filter(language_code=language)} if language != "en" else {}
         pages = ManagedPage.objects.filter(is_enabled=True, status="published").prefetch_related("sections")
-        return Response({
-            "mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN,
+        page_rows = []
+        for page in pages:
+            page_translation = translations.get(("pages", page.id), {})
+            sections = []
+            for section in page.sections.filter(is_visible=True, status="published"):
+                translated = translations.get(("sections", section.id), {})
+                sections.append({"id": section.id, "key": section.key,
+                    "title": translated.get("title", section.title), "subtitle": translated.get("subtitle", section.subtitle),
+                    "body": translated.get("body", section.body), "image_url": section.image_url,
+                    "cta_text": translated.get("cta_text", section.cta_text), "cta_url": section.cta_url,
+                    "icon": section.icon, "layout_variant": section.layout_variant, "config": section.config,
+                    "display_order": section.display_order})
+            page_rows.append({"id": page.id, "key": page.key, "route": page.route,
+                "title": page_translation.get("title", page.title),
+                "meta_description": page_translation.get("meta_description", page.meta_description), "sections": sections})
+        navigation = []
+        for item in ManagedNavigationItem.objects.filter(is_active=True):
+            translated = translations.get(("navigation", item.id), {})
+            navigation.append({"id": item.id, "location": item.location,
+                "label": translated.get("label", item.label), "route": item.route, "icon": item.icon,
+                "parent_id": item.parent_id, "allowed_roles": item.allowed_roles, "display_order": item.display_order})
+        return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
-            "pages": [{"key": page.key, "route": page.route, "title": page.title, "meta_description": page.meta_description, "sections": [{"key": section.key, "title": section.title, "subtitle": section.subtitle, "body": section.body, "image_url": section.image_url, "cta_text": section.cta_text, "cta_url": section.cta_url, "icon": section.icon, "layout_variant": section.layout_variant, "config": section.config, "display_order": section.display_order} for section in page.sections.filter(is_visible=True,status="published")]} for page in pages],
-            "navigation": [{"id": item.id, "location": item.location, "label": item.label, "route": item.route, "icon": item.icon, "parent_id": item.parent_id, "allowed_roles": item.allowed_roles, "display_order": item.display_order} for item in ManagedNavigationItem.objects.filter(is_active=True)],
-        })
+            "pages": page_rows, "navigation": navigation})
 
 
 class TranslateTextView(APIView):

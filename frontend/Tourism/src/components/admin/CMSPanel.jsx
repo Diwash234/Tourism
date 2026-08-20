@@ -3,12 +3,13 @@ import { FiClock, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, F
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 
-const resources = ["settings", "pages", "sections", "navigation"]
+const resources = ["settings", "pages", "sections", "navigation", "translations"]
 const templates = {
   settings: { key: "", value: {}, description: "", is_public: true },
   pages: { route: "/", key: "new-page", title: "New page", meta_description: "", is_enabled: true, status: "draft" },
   sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", layout_variant: "default", config: {}, display_order: 0, is_visible: true, status: "draft" },
   navigation: { location: "navbar", label: "New link", route: "/", icon: "", parent_id: null, allowed_roles: [], display_order: 0, is_active: true },
+  translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
 }
 const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
 const displayName = (row) => row.title || row.label || row.key || row.route || `Record #${row.id}`

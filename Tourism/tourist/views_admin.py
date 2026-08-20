@@ -11,7 +11,7 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification
+    SiteSetting, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1290,15 +1290,115 @@ class StaffCapabilityManagementView(APIView):
         return Response({"message":"Capabilities updated","user_id":user.id})
 
 
+class AdminBrandingView(APIView):
+    """Safe branding assets and allowlisted theme presets; never accepts CSS or scripts."""
+    permission_classes = [IsAdminOrStaff]
+    PRESETS = {
+        "himalayan": {"primary_color": "#0B3D91", "secondary_color": "#F59E0B", "background_color": "#F8FAFC", "surface_color": "#FFFFFF", "border_radius": "rounded", "density": "comfortable", "sidebar_style": "dark"},
+        "heritage": {"primary_color": "#8B1E3F", "secondary_color": "#D97706", "background_color": "#FFFBEB", "surface_color": "#FFFFFF", "border_radius": "soft", "density": "comfortable", "sidebar_style": "heritage"},
+        "forest": {"primary_color": "#166534", "secondary_color": "#C2410C", "background_color": "#F0FDF4", "surface_color": "#FFFFFF", "border_radius": "rounded", "density": "compact", "sidebar_style": "dark"},
+    }
+    TEXT_FIELDS = {"site_title", "tagline", "footer_text", "contact_email", "contact_phone"}
+    SOCIAL_FIELDS = {"facebook_url", "instagram_url", "twitter_url", "youtube_url"}
+
+    def _setting(self):
+        return SiteSetting.objects.get_or_create(key="branding", defaults={"value": {}, "description": "Public platform branding", "is_public": True})[0]
+
+    def get(self, request):
+        _require_capability(request, "settings", "view")
+        setting = self._setting()
+        assets = {asset.kind: {"id": asset.id, "url": asset.file.url, "alt_text": asset.alt_text,
+            "width": asset.width, "height": asset.height, "file_size": asset.file_size,
+            "updated_at": asset.updated_at} for asset in BrandingAsset.objects.all()}
+        return Response({"setting_id": setting.id, "branding": setting.value, "assets": assets, "presets": self.PRESETS})
+
+    def patch(self, request):
+        _require_capability(request, "settings", "change")
+        import re
+        setting = self._setting(); before = dict(setting.value or {})
+        data = request.data.get("branding") or {}
+        if not isinstance(data, dict):
+            return Response({"detail": "Branding must be structured data"}, status=400)
+        unknown = set(data) - self.TEXT_FIELDS - self.SOCIAL_FIELDS - {"theme_preset"}
+        if unknown:
+            return Response({"detail": f"Unsupported branding fields: {', '.join(sorted(unknown))}"}, status=400)
+        preset = data.get("theme_preset", before.get("theme_preset", "himalayan"))
+        if preset not in self.PRESETS:
+            return Response({"detail": "Unknown theme preset"}, status=400)
+        for field in self.SOCIAL_FIELDS:
+            value = str(data.get(field, "")).strip()
+            if value and not re.fullmatch(r"https://[^\s]{3,500}", value):
+                return Response({"detail": f"{field} must be a secure https URL"}, status=400)
+        for field in self.TEXT_FIELDS:
+            if field in data and len(str(data[field])) > (1000 if field == "footer_text" else 240):
+                return Response({"detail": f"{field} is too long"}, status=400)
+        value = {**before, **{key: str(val).strip() for key, val in data.items() if key != "theme_preset"},
+                 **self.PRESETS[preset], "theme_preset": preset}
+        setting.value = value; setting.is_public = True; setting.updated_by = request.user; setting.save()
+        self._audit(request, "branding.settings.update", before, value)
+        return Response({"message": "Branding published", "branding": value})
+
+    def post(self, request):
+        _require_capability(request, "settings", "change")
+        from PIL import Image
+        kind = request.data.get("kind"); uploaded = request.FILES.get("file")
+        if kind not in {"logo", "favicon"} or not uploaded:
+            return Response({"detail": "Logo or favicon image is required"}, status=400)
+        if uploaded.size > 2 * 1024 * 1024:
+            return Response({"detail": "Branding images must be 2 MB or smaller"}, status=400)
+        try:
+            image = Image.open(uploaded); image.verify(); uploaded.seek(0)
+            image = Image.open(uploaded); width, height = image.size; image_format = image.format
+        except Exception:
+            return Response({"detail": "File is not a valid image"}, status=400)
+        allowed = {"PNG": "image/png", "JPEG": "image/jpeg", "WEBP": "image/webp", "ICO": "image/x-icon"}
+        if image_format not in allowed or width < 16 or height < 16 or width > 4096 or height > 4096:
+            return Response({"detail": "Use PNG, JPEG, WebP or ICO between 16 and 4096 pixels"}, status=400)
+        if kind == "favicon" and (width != height or width > 512):
+            return Response({"detail": "Favicon must be square and no larger than 512 pixels"}, status=400)
+        uploaded.name = f"{kind}.{'jpg' if image_format == 'JPEG' else image_format.lower()}"
+        old = BrandingAsset.objects.filter(kind=kind).first()
+        if old and old.file:
+            old.file.delete(save=False)
+        asset, _ = BrandingAsset.objects.update_or_create(kind=kind, defaults={"file": uploaded,
+            "alt_text": str(request.data.get("alt_text", ""))[:160], "mime_type": allowed[image_format],
+            "file_size": uploaded.size, "width": width, "height": height, "updated_by": request.user})
+        setting = self._setting(); value = dict(setting.value or {}); value[f"{kind}_url"] = asset.file.url
+        if kind == "logo": value["logo_alt"] = asset.alt_text
+        setting.value = value; setting.updated_by = request.user; setting.save()
+        self._audit(request, f"branding.{kind}.upload", {}, {"asset_id": asset.id, "url": asset.file.url})
+        return Response({"message": f"{kind.title()} uploaded", "asset": {"id": asset.id, "url": asset.file.url,
+            "width": width, "height": height, "file_size": uploaded.size}}, status=201)
+
+    def delete(self, request):
+        _require_capability(request, "settings", "delete")
+        kind = request.data.get("kind"); asset = BrandingAsset.objects.filter(kind=kind).first()
+        if not asset:
+            return Response({"detail": "Branding asset not found"}, status=404)
+        if asset.file: asset.file.delete(save=False)
+        asset.delete(); setting = self._setting(); value = dict(setting.value or {}); value.pop(f"{kind}_url", None)
+        if kind == "logo": value.pop("logo_alt", None)
+        setting.value = value; setting.updated_by = request.user; setting.save()
+        self._audit(request, f"branding.{kind}.remove", {}, {})
+        return Response({"message": f"{kind.title()} removed"})
+
+    def _audit(self, request, action, before, after):
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=request.user.role,
+            category="admin", severity="info", source="backend", action=action, message=action.replace(".", " ").title(),
+            object_type="SiteSetting", object_id="branding", extra={"before": before, "after": after})
+
+
 class AdminCMSView(APIView):
     """Versioned CMS workflow: draft, preview, schedule, publish and rollback."""
     permission_classes = [IsAdminOrStaff]
-    MODELS = {"settings": SiteSetting, "pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem}
+    MODELS = {"settings": SiteSetting, "pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem, "translations": CMSContentTranslation}
     FIELDS = {
         "settings": {"key", "value", "description", "is_public"},
         "pages": {"route", "key", "title", "meta_description", "is_enabled", "status", "scheduled_publish_at", "published_at"},
         "sections": {"page_id", "key", "title", "subtitle", "body", "image_url", "cta_text", "cta_url", "icon", "layout_variant", "config", "display_order", "is_visible", "status", "scheduled_publish_at", "published_at"},
         "navigation": {"location", "label", "route", "icon", "parent_id", "allowed_roles", "display_order", "is_active"},
+        "translations": {"target_resource", "object_id", "language_code", "content"},
     }
 
     def _validate_payload(self, resource, payload):
@@ -1314,6 +1414,18 @@ class AdminCMSView(APIView):
                     raise ValueError(f"{field} must be a six-digit hex color")
         if resource in {"navigation", "sections"} and payload.get("icon") and not re.fullmatch(r"[A-Za-z0-9_-]{0,50}", str(payload["icon"])):
             raise ValueError("Invalid icon identifier")
+        if resource == "translations":
+            target = payload.get("target_resource")
+            language = str(payload.get("language_code", ""))
+            content = payload.get("content")
+            allowed = {"pages": {"title", "meta_description"}, "sections": {"title", "subtitle", "body", "cta_text"}, "navigation": {"label"}}
+            if target not in allowed or not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
+                raise ValueError("Translation target or language code is invalid")
+            if not isinstance(content, dict) or set(content) - allowed[target] or any(not isinstance(value, str) for value in content.values()):
+                raise ValueError("Translation contains unsupported fields")
+            model = {"pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem}[target]
+            if not model.objects.filter(pk=payload.get("object_id")).exists():
+                raise ValueError("Translation target does not exist")
 
     def _row(self, resource, obj):
         row = {"id": obj.pk, "updated_at": getattr(obj, "updated_at", None)}
@@ -1381,6 +1493,10 @@ class AdminCMSView(APIView):
                 raise ValueError("Invalid publication status")
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
+        if resource == "navigation" and payload.get("parent_id"):
+            parent = ManagedNavigationItem.objects.filter(pk=payload["parent_id"]).first()
+            if not parent or parent.location != payload.get("location"):
+                return Response({"detail": "Navigation parent must exist in the same location"}, status=400)
         if hasattr(model, "updated_by"):
             payload["updated_by"] = request.user
         from django.core.exceptions import ValidationError
@@ -1432,10 +1548,22 @@ class AdminCMSView(APIView):
         else:
             payload = {k: v for k, v in request.data.items() if k in self.FIELDS[resource]}
             action_name = "update"
+        validation_payload = payload
+        if resource == "translations":
+            validation_payload = {**self._snapshot(resource, obj), **payload}
         try:
-            self._validate_payload(resource, payload)
+            self._validate_payload(resource, validation_payload)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
+        if resource == "navigation" and "parent_id" in payload:
+            parent = ManagedNavigationItem.objects.filter(pk=payload.get("parent_id")).first() if payload.get("parent_id") else None
+            if parent and parent.location != payload.get("location", obj.location):
+                return Response({"detail": "Navigation parent must be in the same location"}, status=400)
+            cursor = parent
+            while cursor:
+                if cursor.pk == obj.pk:
+                    return Response({"detail": "Navigation hierarchy cannot contain cycles"}, status=400)
+                cursor = cursor.parent
         old_values = self._snapshot(resource, obj)
         for key, value in payload.items():
             setattr(obj, key, value)

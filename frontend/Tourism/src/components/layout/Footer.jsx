@@ -331,32 +331,9 @@ const Footer = () => {
 
 
           <div className="flex gap-4 mt-5 text-lg">
-
-
-            <button
-              type="button"
-              className="hover:text-white"
-            >
-              <FiFacebook />
-            </button>
-
-
-            <button
-              type="button"
-              className="hover:text-white"
-            >
-              <FiInstagram />
-            </button>
-
-
-            <button
-              type="button"
-              className="hover:text-white"
-            >
-              <FiTwitter />
-            </button>
-
-
+            {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Facebook"><FiFacebook /></a>}
+            {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Instagram"><FiInstagram /></a>}
+            {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="X or Twitter"><FiTwitter /></a>}
           </div>
 
 

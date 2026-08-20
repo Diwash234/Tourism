@@ -28,6 +28,9 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md" }) => {
 
   return (
     <Link to={to} className="flex items-center gap-2 sm:gap-2.5 select-none shrink-0 min-w-0">
+      {branding.logo_url ? (
+        <img src={branding.logo_url} alt={branding.logo_alt || `${siteTitle} logo`} width={dims.box} height={dims.box} className="object-contain shrink-0" />
+      ) : (
       <svg
         width={dims.box}
         height={dims.box}
@@ -145,6 +148,7 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md" }) => {
         {/* Circle outline on top for a crisp edge */}
         <circle cx="50" cy="50" r="42" fill="none" stroke="#0B3D91" strokeWidth="1" opacity="0.4" />
       </svg>
+      )}
 
       <div className="leading-tight hidden sm:block min-w-0">
         <h1 className={`${dims.text} font-heading font-extrabold whitespace-nowrap`} style={{color:primaryColor}}>{siteTitle}</h1>

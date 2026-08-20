@@ -31,6 +31,7 @@ import FeedbackWorkspace from "../../components/admin/FeedbackWorkspace"
 import ReportsPanel from "../../components/admin/ReportsPanel"
 import UserManagement from "../../components/admin/UserManagement"
 import ReviewModerationPanel from "../../components/admin/ReviewModerationPanel"
+import BrandingPanel from "../../components/admin/BrandingPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -552,6 +553,7 @@ const AdminDashboard = () => {
             { id: "overview", label: "📊 Overview & Stats", count: null },
             { id: "reports", label: "📈 Reports & Analytics", count: null },
             { id: "data_explorer", label: "🗄️ Database & Records", count: null },
+            { id: "branding", label: "🎨 Branding & Theme", count: null },
             { id: "cms", label: "📝 Website Content & Navigation", count: null },
             { id: "research", label: "🔬 AI Destination Discovery", count: null },
             { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
@@ -726,6 +728,7 @@ const AdminDashboard = () => {
 
         {activeTab === "reports" && <ReportsPanel />}
         {activeTab === "data_explorer" && <DataExplorerPanel />}
+        {activeTab === "branding" && <BrandingPanel />}
         {activeTab === "cms" && <CMSPanel />}
         {activeTab === "staff_permissions" && <StaffPermissionsPanel />}
         {activeTab === "destination_features" && <DestinationFeaturesPanel />}

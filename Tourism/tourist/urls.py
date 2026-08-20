@@ -123,6 +123,7 @@ urlpatterns = [
     path("admin/users/<int:id>/actions", views_admin.AdminUserAccessActionView.as_view(), name="admin-user-access-action"),
     path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
     path("admin/data-explorer/", views_admin.AdminDataExplorerView.as_view(), name="admin-data-explorer"),
+    path("admin/branding/", views_admin.AdminBrandingView.as_view(), name="admin-branding"),
     path("admin/cms/", views_admin.AdminCMSView.as_view(), name="admin-cms"),
     path("admin/staff-workspace/", views_admin.StaffWorkspaceView.as_view(), name="staff-workspace"),
     path("admin/staff-capabilities/", views_admin.StaffCapabilityManagementView.as_view(), name="admin-staff-capabilities"),
