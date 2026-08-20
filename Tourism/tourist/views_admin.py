@@ -1026,8 +1026,14 @@ class AdminDataExplorerView(APIView):
                 search |= Q(**{f"{field}__icontains": query})
             qs = qs.filter(search)
         count = qs.count()
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+            page_size = max(10, min(100, int(request.query_params.get("page_size", 25))))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid pagination."}, status=400)
+        start = (page - 1) * page_size
         rows = []
-        for obj in qs[:100]:
+        for obj in qs[start:start + page_size]:
             raw = model_to_dict(obj)
             row = {"id": obj.pk, "record": str(obj)}
             for key, value in raw.items():
@@ -1042,7 +1048,8 @@ class AdminDataExplorerView(APIView):
         preferred = ["id","record"]
         if rows:
             preferred += [key for key in rows[0].keys() if key not in preferred][:10]
-        return Response({"resource": resource, "count": count, "columns": preferred, "results": rows})
+        total_pages = max(1, (count + page_size - 1) // page_size)
+        return Response({"resource": resource, "count": count, "page": page, "page_size": page_size, "total_pages": total_pages, "columns": preferred, "results": rows})
 
 
 class StaffCapabilityManagementView(APIView):
