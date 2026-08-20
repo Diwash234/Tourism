@@ -129,6 +129,7 @@ urlpatterns = [
     path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
     path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),
     path("admin/ml/status/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-status"),
+    path("admin/review-moderation/", views_admin.AdminReviewModerationView.as_view(), name="admin-review-moderation"),
     path("admin/notifications/", views_admin.AdminNotificationManagementView.as_view(), name="admin-notifications"),
     path("admin/search/", views_admin.AdminGlobalSearchView.as_view(), name="admin-global-search"),
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),

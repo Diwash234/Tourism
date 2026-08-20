@@ -1,5 +1,6 @@
 from django.contrib.auth import password_validation
 from django.utils import timezone
+from django.db.models import Q
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
@@ -286,8 +287,8 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ["id", "destination", "user", "user_name", "comment", "is_flagged", "created_at", "updated_at"]
-        read_only_fields = ["user", "is_flagged", "created_at", "updated_at"]
+        fields = ["id", "destination", "user", "user_name", "comment", "is_flagged", "moderation_status", "created_at", "updated_at"]
+        read_only_fields = ["user", "is_flagged", "moderation_status", "created_at", "updated_at"]
 
     def validate_destination(self, destination):
         request = self.context.get("request")
@@ -718,7 +719,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
     gallery = serializers.SerializerMethodField()
     videos = DestinationVideoSerializer(many=True, read_only=True)
-    reviews = ReviewSerializer(many=True, read_only=True)
+    reviews = serializers.SerializerMethodField()
     translations = DestinationTranslationSerializer(many=True, read_only=True)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     created_by_email = serializers.CharField(source="created_by.email", read_only=True)
@@ -755,6 +756,15 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
             "is_user_submitted", "status", "review_note", "created_at", "updated_at",
         ]
+
+    def get_reviews(self, obj):
+        request = self.context.get("request")
+        queryset = obj.reviews.select_related("user").filter(moderation_status="approved")
+        if request and request.user.is_authenticated:
+            queryset = obj.reviews.select_related("user").filter(
+                Q(moderation_status="approved") | Q(user=request.user)
+            ).exclude(moderation_status="archived")
+        return ReviewSerializer(queryset, many=True, context=self.context).data
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_image_url(self, obj):

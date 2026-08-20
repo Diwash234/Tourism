@@ -1293,6 +1293,78 @@ class AdminCMSView(APIView):
                          "record": self._row(resource, obj)})
 
 
+class AdminReviewModerationView(APIView):
+    """Unified, retention-safe moderation queue for destination and hotel reviews."""
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "reviews", "view")
+        from booking.models import HotelReview
+        kind = request.query_params.get("type", "all")
+        state = request.query_params.get("status", "pending")
+        q = (request.query_params.get("q") or "").strip()
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+            size = min(100, max(10, int(request.query_params.get("page_size", 25))))
+        except ValueError:
+            return Response({"detail": "Invalid pagination"}, status=400)
+        destination = Review.objects.select_related("destination", "user")
+        hotels = HotelReview.objects.select_related("hotel", "user")
+        if state != "all":
+            destination = destination.filter(moderation_status=state)
+            hotels = hotels.filter(moderation_status=state)
+        if q:
+            destination = destination.filter(Q(comment__icontains=q) | Q(user__email__icontains=q) | Q(destination__name__icontains=q))
+            hotels = hotels.filter(Q(comment__icontains=q) | Q(user__email__icontains=q) | Q(hotel__name__icontains=q))
+        destination_count = destination.count() if kind in {"all", "destination"} else 0
+        hotel_count = hotels.count() if kind in {"all", "hotel"} else 0
+        end = page * size
+        rows = []
+        if kind in {"all", "destination"}:
+            rows.extend({"id": row.id, "type": "destination", "subject": row.destination.name,
+                "user": row.user.email, "rating": None, "comment": row.comment,
+                "status": row.moderation_status, "is_flagged": row.is_flagged,
+                "moderation_note": row.moderation_note, "created_at": row.created_at,
+                "moderated_at": row.moderated_at} for row in destination.order_by("-created_at")[:end])
+        if kind in {"all", "hotel"}:
+            rows.extend({"id": row.id, "type": "hotel", "subject": row.hotel.name,
+                "user": row.user.email, "rating": row.rating, "comment": row.comment,
+                "status": row.moderation_status, "is_flagged": row.moderation_status == "flagged",
+                "moderation_note": row.moderation_note, "created_at": row.created_at,
+                "moderated_at": row.moderated_at} for row in hotels.order_by("-created_at")[:end])
+        rows.sort(key=lambda row: row["created_at"], reverse=True)
+        count = destination_count + hotel_count
+        start = (page - 1) * size
+        return Response({"count": count, "page": page, "pages": max(1, (count + size - 1) // size),
+                         "results": rows[start:end], "counts": {"destination": destination_count, "hotel": hotel_count}})
+
+    def patch(self, request):
+        action = request.data.get("action")
+        capability = {"approve": "approve", "flag": "change", "restore": "change", "archive": "delete"}.get(action)
+        if not capability:
+            return Response({"detail": "Unsupported moderation action"}, status=400)
+        _require_capability(request, "reviews", capability)
+        kind = request.data.get("type")
+        ids = request.data.get("ids") or ([request.data.get("id")] if request.data.get("id") else [])
+        ids = list(dict.fromkeys(ids))[:100]
+        if kind not in {"destination", "hotel"} or not ids:
+            return Response({"detail": "Review type and one or more IDs are required"}, status=400)
+        from booking.models import HotelReview
+        model = Review if kind == "destination" else HotelReview
+        target_status = {"approve": "approved", "flag": "flagged", "archive": "archived", "restore": "pending"}[action]
+        updates = {"moderation_status": target_status, "moderation_note": (request.data.get("note") or "").strip(),
+                   "moderated_by": request.user, "moderated_at": timezone.now()}
+        if kind == "destination":
+            updates["is_flagged"] = action == "flag"
+        updated = model.objects.filter(id__in=ids).update(**updates)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=request.user.role,
+            category="moderation", severity="warning" if action in {"flag", "archive"} else "info", source="backend",
+            action=f"reviews.{action}", message=f"{action.title()} {updated} {kind} review(s)",
+            object_type=model.__name__, extra={"ids": ids, "note": updates["moderation_note"], "status": target_status})
+        return Response({"message": f"{updated} review(s) {action}d", "updated": updated, "status": target_status})
+
+
 class AdminNotificationManagementView(APIView):
     permission_classes = [IsAdminOrStaff]
     def get(self, request):

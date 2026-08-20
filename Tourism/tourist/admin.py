@@ -369,8 +369,9 @@ class DestinationTranslationAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ["destination", "user", "is_flagged", "created_at"]
-    list_filter = ["is_flagged"]
+    list_display = ["destination", "user", "moderation_status", "is_flagged", "moderated_by", "created_at"]
+    list_filter = ["moderation_status", "is_flagged"]
+    search_fields = ["destination__name", "user__email", "comment"]
 
 
 @admin.register(Rating)

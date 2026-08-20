@@ -1,10 +1,11 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Q
 
 from admin_panel.models import HotelAssignment
 from .models import Booking, HotelReview
-from .permissions import IsOwnerOrHotelAdminOrSuperAdmin
+from .permissions import IsOwnerOrHotelAdminOrSuperAdmin, IsHotelReviewOwnerOrReadOnly
 from .serializers import BookingSerializer, BookingStatusUpdateSerializer, HotelReviewSerializer
 
 
@@ -73,8 +74,24 @@ class BookingViewSet(viewsets.ModelViewSet):
 class HotelReviewViewSet(viewsets.ModelViewSet):
     queryset = HotelReview.objects.select_related("hotel", "user")
     serializer_class = HotelReviewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsHotelReviewOwnerOrReadOnly]
     filterset_fields = ["hotel", "user"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_authenticated:
+            return queryset.filter(Q(moderation_status="approved") | Q(user=self.request.user)).exclude(moderation_status="archived")
+        return queryset.filter(moderation_status="approved")
+
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user, moderation_status="pending")
+
+    def perform_update(self, serializer):
+        serializer.save(moderation_status="pending", moderation_note="", moderated_by=None, moderated_at=None)
+
+    def perform_destroy(self, instance):
+        from django.utils import timezone
+        instance.moderation_status = "archived"
+        instance.moderation_note = "Withdrawn by review owner"
+        instance.moderated_at = timezone.now()
+        instance.save(update_fields=["moderation_status", "moderation_note", "moderated_at"])

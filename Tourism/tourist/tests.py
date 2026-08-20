@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import User, Category, Destination, EmailVerificationToken
+from .models import User, Category, Destination, Hotel, Review, EmailVerificationToken
 
 
 class AuthTests(APITestCase):
@@ -1161,3 +1161,72 @@ class CMSPublishingWorkflowTests(APITestCase):
         self.client.force_authenticate(staff)
         response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "publish"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class ReviewModerationWorkflowTests(APITestCase):
+    def setUp(self):
+        from .models import StaffCapabilityProfile
+        from booking.models import HotelReview
+        self.admin = User.objects.create_user(email="review-admin@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.admin, capabilities={"reviews": ["view", "change", "approve", "delete"]})
+        self.author = User.objects.create_user(email="reviewer@example.com", password="StrongPass123!", is_verified=True)
+        category = Category.objects.create(name="Review Test")
+        self.destination = Destination.objects.create(name="Review Valley", category=category, description="Test", latitude=28, longitude=84, created_by=self.admin)
+        self.hotel = Hotel.objects.create(destination=self.destination, name="Review Lodge", price_per_night=20)
+        self.destination_review = Review.objects.create(destination=self.destination, user=self.author, comment="Destination comment", moderation_status="pending")
+        self.hotel_review = HotelReview.objects.create(hotel=self.hotel, user=self.author, rating=4, comment="Hotel comment", moderation_status="pending")
+
+    def test_pending_reviews_are_hidden_from_public_apis(self):
+        destination = self.client.get(reverse("review-list"), {"destination": self.destination.id})
+        hotel = self.client.get(reverse("hotel-review-list"), {"hotel": self.hotel.id})
+        self.assertEqual(destination.data["count"], 0)
+        self.assertEqual(hotel.data["count"], 0)
+
+    def test_author_can_see_own_pending_review(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.get(reverse("review-list"), {"destination": self.destination.id})
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["moderation_status"], "pending")
+
+    def test_approve_publishes_review_and_writes_audit(self):
+        from audit.models import AuditLog
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-review-moderation"), {"type": "destination", "ids": [self.destination_review.id], "action": "approve"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("review-list"), {"destination": self.destination.id})
+        self.assertEqual(public.data["count"], 1)
+        self.assertTrue(AuditLog.objects.filter(action="reviews.approve").exists())
+
+    def test_flag_requires_change_and_archive_requires_delete_capability(self):
+        from .models import StaffCapabilityProfile
+        limited = User.objects.create_user(email="review-limited@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=limited, capabilities={"reviews": ["view"]})
+        self.client.force_authenticate(limited)
+        denied = self.client.patch(reverse("admin-review-moderation"), {"type": "destination", "id": self.destination_review.id, "action": "flag", "note": "Needs review"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_archive_preserves_review_and_restore_returns_to_pending(self):
+        self.client.force_authenticate(self.admin)
+        archived = self.client.patch(reverse("admin-review-moderation"), {"type": "hotel", "id": self.hotel_review.id, "action": "archive", "note": "Policy violation"}, format="json")
+        self.assertEqual(archived.status_code, status.HTTP_200_OK)
+        from booking.models import HotelReview
+        self.assertTrue(HotelReview.objects.filter(pk=self.hotel_review.id, moderation_status="archived").exists())
+        restored = self.client.patch(reverse("admin-review-moderation"), {"type": "hotel", "id": self.hotel_review.id, "action": "restore"}, format="json")
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.hotel_review.refresh_from_db()
+        self.assertEqual(self.hotel_review.moderation_status, "pending")
+
+    def test_owner_delete_archives_instead_of_hard_deleting(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.delete(reverse("review-detail", kwargs={"pk": self.destination_review.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.destination_review.refresh_from_db()
+        self.assertEqual(self.destination_review.moderation_status, "archived")
+
+    def test_user_cannot_modify_another_users_hotel_review(self):
+        stranger = User.objects.create_user(email="review-stranger@example.com", password="StrongPass123!")
+        self.client.force_authenticate(stranger)
+        response = self.client.delete(reverse("hotel-review-detail", kwargs={"pk": self.hotel_review.id}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(type(self.hotel_review).objects.filter(pk=self.hotel_review.id).exists())

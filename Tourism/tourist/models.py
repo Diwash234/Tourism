@@ -728,6 +728,10 @@ class Review(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviews")
     comment = models.TextField()
     is_flagged = models.BooleanField(default=False)
+    moderation_status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("approved", "Approved"), ("flagged", "Flagged"), ("archived", "Archived")], default="approved", db_index=True)
+    moderation_note = models.TextField(blank=True)
+    moderated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="destination_reviews_moderated")
+    moderated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

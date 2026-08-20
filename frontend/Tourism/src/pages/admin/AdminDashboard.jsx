@@ -30,6 +30,7 @@ import DatasetManagerPanel from "../../components/admin/DatasetManagerPanel"
 import FeedbackWorkspace from "../../components/admin/FeedbackWorkspace"
 import ReportsPanel from "../../components/admin/ReportsPanel"
 import UserManagement from "../../components/admin/UserManagement"
+import ReviewModerationPanel from "../../components/admin/ReviewModerationPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -564,7 +565,8 @@ const AdminDashboard = () => {
             { id: "image_pipeline", label: "🖼️ Multi-Source Image Pipeline (Wikimedia, Openverse, Unsplash, Pexels)", count: null },
             { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
             { id: "infrastructure", label: "🏥 Community Services & ML", count: null },
-            { id: "hotel_bookings", label: "🏨 Hotels, Bookings & Reviews", count: null },
+            { id: "hotel_bookings", label: "🏨 Hotels & Bookings", count: null },
+            { id: "review_moderation", label: "⭐ Review Moderation", count: null },
             { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
             { id: "datasets", label: "🗃️ Dataset & CSV Manager", count: null },
             { id: "feedback_workspace", label: "💬 Feedback Workspace", count: null },
@@ -1913,6 +1915,7 @@ const AdminDashboard = () => {
 
         {activeTab === "infrastructure" && <InfrastructureModerationPanel />}
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
+        {activeTab === "review_moderation" && <ReviewModerationPanel />}
         {activeTab === "safety_management" && <SafetyManagementPanel />}
         {activeTab === "notification_settings" && <NotificationSettingsPanel />}
         {activeTab === "media_library" && <MediaLibraryPanel />}
