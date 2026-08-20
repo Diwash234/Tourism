@@ -17,9 +17,9 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RecommendationEvent, RiskNewsReport,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, DestinationFeatureProfile,
 )
-from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace
+from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability
 from .serializers import (
     LanguageSerializer, CategorySerializer, DestinationListSerializer,
     DestinationDetailSerializer, DestinationWriteSerializer, DestinationApprovalSerializer,
@@ -28,7 +28,7 @@ from .serializers import (
     AlertSerializer, EmergencyContactSerializer, NotificationSerializer, DeviceTokenSerializer,
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
-    InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer,
+    InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer, DestinationFeatureProfileSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -68,6 +68,15 @@ class UserScopedQuerysetMixin:
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return base_queryset.none()
         return base_queryset
+
+
+class DestinationFeatureProfileViewSet(viewsets.ModelViewSet):
+    queryset = DestinationFeatureProfile.objects.select_related("destination").all()
+    serializer_class = DestinationFeatureProfileSerializer
+    permission_classes = [HasCapability]
+    capability_module = "destinations"
+    filterset_fields = ["destination", "difficulty", "budget_level", "is_verified"]
+    search_fields = ["destination__name", "source_type"]
 
 
 class LanguageViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

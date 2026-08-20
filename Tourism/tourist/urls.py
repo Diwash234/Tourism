@@ -53,6 +53,7 @@ router.register("safety/sos", views_family_safety.SOSAlertViewSet, basename="sos
 router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, basename="family-link")
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
+router.register("admin/destination-features", views.DestinationFeatureProfileViewSet, basename="admin-destination-features")
 router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
 router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
 
