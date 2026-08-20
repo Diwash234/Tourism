@@ -16,7 +16,7 @@ from .models import (
     Alert, EmergencyContact, Notification, DeviceToken, Hotel,
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
-    CurrentHazard, RecommendationEvent, RiskNewsReport,
+    CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, DestinationFeatureProfile,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
@@ -29,6 +29,7 @@ from .serializers import (
     NearbyDestinationQuerySerializer, TranslateRequestSerializer, PhotoUploadSerializer, HotelSerializer, OSMEssentialServiceSerializer,
     OSMTourismPlaceSerializer, TravelExpenseFeedbackSerializer, TravelRiskFeedbackSerializer,
     InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer, DestinationFeatureProfileSerializer,
+    RiskIncidentAdminSerializer, CurrentHazardAdminSerializer, RiskObservationAdminSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -69,6 +70,30 @@ class UserScopedQuerysetMixin:
             return base_queryset.none()
         return base_queryset
 
+
+class RiskIncidentAdminViewSet(viewsets.ModelViewSet):
+    queryset = RiskIncident.objects.select_related("destination").all()
+    serializer_class = RiskIncidentAdminSerializer
+    permission_classes = [HasCapability]
+    capability_module = "safety"
+    filterset_fields = ["destination", "hazard_type", "severity", "source_type", "verified"]
+    search_fields = ["destination__name", "title", "description", "affected_area", "source_name"]
+
+class CurrentHazardAdminViewSet(viewsets.ModelViewSet):
+    queryset = CurrentHazard.objects.select_related("destination").all()
+    serializer_class = CurrentHazardAdminSerializer
+    permission_classes = [HasCapability]
+    capability_module = "safety"
+    filterset_fields = ["destination", "hazard_type", "severity", "source_type", "is_active", "verified"]
+    search_fields = ["destination__name", "title", "description", "source_name", "station_name"]
+
+class RiskObservationAdminViewSet(viewsets.ModelViewSet):
+    queryset = RiskObservation.objects.select_related("destination").all()
+    serializer_class = RiskObservationAdminSerializer
+    permission_classes = [HasCapability]
+    capability_module = "safety"
+    filterset_fields = ["destination", "observation_type", "trend", "source_type", "verified"]
+    search_fields = ["destination__name", "station_name", "source_name"]
 
 class DestinationTranslationAdminViewSet(viewsets.ModelViewSet):
     queryset = DestinationTranslation.objects.select_related("destination", "language").all()

@@ -71,6 +71,18 @@ const adminApi = {
   deleteDestination: (id) => axiosClient.delete(`/destinations/${id}/`),
 
   getAlerts: (params) => axiosClient.get("/alerts/", { params }),
+  getRiskIncidents: (params) => axiosClient.get("/admin/risk-incidents/", { params }),
+  createRiskIncident: (payload) => axiosClient.post("/admin/risk-incidents/", payload),
+  updateRiskIncident: (id, payload) => axiosClient.patch(`/admin/risk-incidents/${id}/`, payload),
+  deleteRiskIncident: (id) => axiosClient.delete(`/admin/risk-incidents/${id}/`),
+  getCurrentHazards: (params) => axiosClient.get("/admin/current-hazards/", { params }),
+  createCurrentHazard: (payload) => axiosClient.post("/admin/current-hazards/", payload),
+  updateCurrentHazard: (id, payload) => axiosClient.patch(`/admin/current-hazards/${id}/`, payload),
+  deleteCurrentHazard: (id) => axiosClient.delete(`/admin/current-hazards/${id}/`),
+  getRiskObservations: (params) => axiosClient.get("/admin/risk-observations/", { params }),
+  createRiskObservation: (payload) => axiosClient.post("/admin/risk-observations/", payload),
+  updateRiskObservation: (id, payload) => axiosClient.patch(`/admin/risk-observations/${id}/`, payload),
+  deleteRiskObservation: (id) => axiosClient.delete(`/admin/risk-observations/${id}/`),
   createAlert: (payload) => axiosClient.post("/alerts/", payload),
 
   // Place Intelligence & Mass Discovery API

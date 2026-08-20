@@ -910,6 +910,22 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         self.assertEqual(allowed.status_code,status.HTTP_201_CREATED)
         self.assertTrue(Notification.objects.filter(user=staff,title="Test").exists())
 
+    def test_safety_crud_requires_capabilities(self):
+        from django.utils import timezone
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="safety-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"safety":["view"]})
+        self.client.force_authenticate(staff)
+        payload={"destination":self.trek.id,"hazard_type":"heavy_rain","title":"Field rain watch","description":"test","severity":"moderate","source_type":"admin","source_name":"Field team","observed_at":timezone.now().isoformat(),"is_active":True,"verified":False}
+        denied=self.client.post("/api/v1/admin/current-hazards/",payload)
+        self.assertEqual(denied.status_code,status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities={"safety":["view","add","change"]};staff.capability_profile.save()
+        created=self.client.post("/api/v1/admin/current-hazards/",payload)
+        self.assertEqual(created.status_code,status.HTTP_201_CREATED)
+        updated=self.client.patch(f"/api/v1/admin/current-hazards/{created.data['id']}/",{"is_active":False})
+        self.assertEqual(updated.status_code,status.HTTP_200_OK)
+        self.assertFalse(updated.data["is_active"])
+
     def test_recommendation_events_require_consent(self):
         user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
         self.client.force_authenticate(user)

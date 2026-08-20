@@ -38,7 +38,7 @@ from .models import (
     DestinationAuditLog,
     InfrastructureSubmission,
     InfrastructureMedia,
-    RiskNewsReport, DestinationFeatureProfile,
+    RiskNewsReport, DestinationFeatureProfile, RiskIncident, CurrentHazard, RiskObservation,
 )
 from .image_server import image_server_url
 from .utils import (
@@ -1146,6 +1146,27 @@ class OSMTourismPlaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = OSMTourismPlace
         fields = ["id", "osm_id", "category", "name", "latitude", "longitude", "address"]
+
+class RiskIncidentAdminSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    class Meta:
+        model = RiskIncident
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
+
+class CurrentHazardAdminSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    class Meta:
+        model = CurrentHazard
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
+
+class RiskObservationAdminSerializer(serializers.ModelSerializer):
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    class Meta:
+        model = RiskObservation
+        fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
 
 class DestinationFeatureProfileSerializer(serializers.ModelSerializer):
     destination_name = serializers.CharField(source="destination.name", read_only=True)
