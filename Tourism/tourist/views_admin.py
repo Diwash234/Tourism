@@ -1161,6 +1161,24 @@ class AdminCMSView(APIView):
         obj.updated_by=request.user;obj.save();return Response({"id":obj.pk,"message":"Updated"})
 
 
+class AdminNotificationManagementView(APIView):
+    permission_classes = [IsAdminOrStaff]
+    def get(self, request):
+        _require_capability(request, "settings", "view")
+        qs=Notification.objects.select_related("user").order_by("-created_at")[:200]
+        return Response([{"id":n.id,"user":n.user.email,"title":n.title,"message":n.message,"channel":n.channel,"is_read":n.is_read,"is_sent":n.is_sent,"created_at":n.created_at} for n in qs])
+    def post(self, request):
+        _require_capability(request, "settings", "add")
+        title=(request.data.get("title") or "").strip(); message=(request.data.get("message") or "").strip()
+        if not title or not message:return Response({"detail":"title and message are required"},status=400)
+        role=request.data.get("role"); users=User.objects.filter(is_active=True); users=users.filter(role=role) if role else users
+        rows=[Notification(user=u,title=title[:200],message=message,channel="in_app") for u in users]
+        Notification.objects.bulk_create(rows,batch_size=500)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user,user_email=request.user.email,category="admin",severity="info",source="backend",action="notification.broadcast",message=f"Broadcast '{title}' to {len(rows)} users",object_type="Notification",extra={"role":role,"recipient_count":len(rows)})
+        return Response({"message":"Broadcast created","recipient_count":len(rows)},status=201)
+
+
 class FeedbackListView(APIView):
     permission_classes = [IsAdminOrStaff]
 

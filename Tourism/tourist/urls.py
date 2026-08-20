@@ -125,6 +125,7 @@ urlpatterns = [
     path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
     path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),
     path("admin/ml/status/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-status"),
+    path("admin/notifications/", views_admin.AdminNotificationManagementView.as_view(), name="admin-notifications"),
     path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
     path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),
     path("feedback", views_admin.PublicFeedbackCreateView.as_view(), name="public-feedback"),
