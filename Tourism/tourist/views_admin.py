@@ -11,7 +11,8 @@ from .models import (
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference
+    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
+    CurrentHazard,
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -688,8 +689,9 @@ class AdminDestinationImageView(APIView):
             is_verified=True,
         )
         display_url = img.external_url or (img.image.url if img.image else "")
-        if image_url and (is_cover or not destination.cover_image):
-            Destination.objects.filter(pk=destination.pk).update(cover_image=image_url)
+        if is_cover or not destination.cover_image:
+            if img.image:
+                Destination.objects.filter(pk=destination.pk).update(cover_image=img.image.name)
 
         DestinationAuditLog.objects.create(
             destination=destination, actor=request.user if request.user.is_authenticated else None,
@@ -1177,6 +1179,8 @@ class StaffWorkspaceView(APIView):
                 queue_counts["travel_plans"] = TravelPlan.objects.exclude(status="archived").count()
             if _has_capability(request, "feedback", "view"):
                 queue_counts["feedback"] = UserFeedback.objects.filter(Q(assigned_to=user) | Q(assigned_to__isnull=True)).exclude(status__in=["resolved", "closed", "archived"]).count()
+            if _has_capability(request, "content", "view"):
+                queue_counts["content"] = ContentSection.objects.exclude(status="published").count()
             base["queue_counts"] = queue_counts
         elif module == "destinations":
             queryset = self._scope_destinations(Destination.objects.filter(status="pending").select_related("created_by"), user)
@@ -1225,9 +1229,9 @@ class StaffWorkspaceView(APIView):
             queryset = TravelPlan.objects.select_related("user").exclude(status="archived")
             rows = [{"id":x.id,"title":x.title,"subtitle":x.user.email,"status":x.status,"description":x.notes,"amount":x.budget_npr,"created_at":x.created_at} for x in queryset[:100]]
         elif module == "content":
-            queryset = ContentSection.objects.filter(status__in=["draft", "scheduled"]).select_related("page")
-            rows = [{"id": x.id, "title": x.title or x.key, "subtitle": x.page.title, "status": x.status,
-                     "description": x.body[:240], "created_at": x.created_at} for x in queryset[:100]]
+            queryset = ContentSection.objects.select_related("page").order_by("page__title", "display_order", "id")
+            rows = [{"id": x.id, "title": x.title or x.key, "subtitle": f"{x.page.title} · {x.key}", "status": x.status,
+                     "description": (x.body or "")[:240], "created_at": x.created_at} for x in queryset[:200]]
         elif module == "feedback":
             queryset = UserFeedback.objects.filter(Q(assigned_to=user) | Q(assigned_to__isnull=True)).exclude(status__in=["archived"])
             rows = [{"id": x.id, "title": x.subject, "subtitle": x.email, "status": x.status,
@@ -1299,6 +1303,21 @@ class StaffWorkspaceView(APIView):
             if not obj:return Response({"detail":"Record not found"},status=404)
             if action not in {"activate","complete","archive"}:return Response({"detail":"Unsupported workspace action"},status=400)
             obj.status={"activate":"active","complete":"completed","archive":"archived"}[action];obj.save(update_fields=["status","updated_at"])
+        elif module == "content":
+            obj = ContentSection.objects.filter(pk=object_id).first()
+            if not obj:
+                return Response({"detail": "Record not found"}, status=404)
+            if action == "publish":
+                obj.status = "published"
+                obj.published_at = timezone.now()
+                obj.scheduled_publish_at = None
+            elif action == "unpublish":
+                obj.status = "draft"
+                obj.scheduled_publish_at = None
+            else:
+                return Response({"detail": "Unsupported workspace action"}, status=400)
+            obj.updated_by = request.user
+            obj.save()
         else:
             return Response({"detail": "Unsupported workspace action"}, status=400)
         from audit.models import AuditLog
@@ -1524,6 +1543,11 @@ class AdminCMSView(APIView):
         for field in self.FIELDS[resource]:
             key = field[:-3] if field.endswith("_id") else field
             row[field] = getattr(obj, field, getattr(obj, key, None))
+        if resource == "sections":
+            page = getattr(obj, "page", None)
+            row["page_title"] = getattr(page, "title", None)
+            row["page_key"] = getattr(page, "key", None)
+            row["page_route"] = getattr(page, "route", None)
         return row
 
     def _snapshot(self, resource, obj):
@@ -1598,7 +1622,9 @@ class AdminCMSView(APIView):
         queryset = model.objects.all()
         if resource == "sections" and request.query_params.get("page_id"):
             queryset = queryset.filter(page_id=request.query_params["page_id"])
-        return Response({"resource": resource, "results": [self._row(resource, obj) for obj in queryset[:500]]})
+        if resource == "sections":
+            queryset = queryset.select_related("page").order_by("page__title", "display_order", "id")
+        return Response({"resource": resource, "results": [self._row(resource, obj) for obj in queryset[:2000]]})
 
     def post(self, request):
         _require_capability(request, "content", "add")
@@ -2095,6 +2121,46 @@ class AdminDatasetManagerView(APIView):
         return Response({"message":"Dataset imported","dataset":key,"backup":backup.name})
 
 
+def _write_cropped_image(image):
+    """Rewrite the stored image as a JPEG cropped to crop_box percentages."""
+    from io import BytesIO
+    from pathlib import Path
+
+    from django.core.files.base import ContentFile
+    from PIL import Image as PILImage
+
+    box = image.crop_box or {}
+    try:
+        x = float(box.get("x", 0))
+        y = float(box.get("y", 0))
+        w = float(box.get("w", 100))
+        h = float(box.get("h", 100))
+    except (TypeError, ValueError):
+        return
+    if w <= 0 or h <= 0 or (x <= 0 and y <= 0 and w >= 100 and h >= 100):
+        return
+    if not image.image:
+        return
+    image.image.open("rb")
+    try:
+        source = PILImage.open(image.image)
+        source.load()
+    finally:
+        image.image.close()
+    source = source.convert("RGB")
+    width, height = source.size
+    left = int(round(width * max(0.0, min(100.0, x)) / 100.0))
+    top = int(round(height * max(0.0, min(100.0, y)) / 100.0))
+    right = int(round(width * max(0.0, min(100.0, x + w)) / 100.0))
+    bottom = int(round(height * max(0.0, min(100.0, y + h)) / 100.0))
+    if right - left < 2 or bottom - top < 2:
+        return
+    buffer = BytesIO()
+    source.crop((left, top, right, bottom)).save(buffer, format="JPEG", quality=90)
+    name = f"{Path(image.image.name).stem}.jpg"
+    image.image.save(name, ContentFile(buffer.getvalue()), save=False)
+
+
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
 
@@ -2179,7 +2245,11 @@ class AdminMediaLibraryView(APIView):
                 return max(0, min(100, number))
             image.crop_box = {"x": _pct(box.get("x"), 0), "y": _pct(box.get("y"), 0),
                               "w": _pct(box.get("w"), 100), "h": _pct(box.get("h"), 100)}
-        image.save();return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {}})
+            try:
+                _write_cropped_image(image)
+            except Exception:
+                pass
+        image.save();return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {},"url":image.external_url or (image.image.url if image.image else "")})
     def delete(self, request):
         _require_capability(request,"images","delete")
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()

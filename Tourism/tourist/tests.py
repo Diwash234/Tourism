@@ -1854,6 +1854,28 @@ class CMSStudioExtensionTests(APITestCase):
         image.refresh_from_db()
         self.assertEqual(image.crop_box["w"], 80)
 
+    def test_crop_rewrites_jpeg_file(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationImage
+        output = io.BytesIO()
+        Image.new("RGB", (100, 80), "blue").save(output, format="JPEG")
+        upload = SimpleUploadedFile("place.jpg", output.getvalue(), content_type="image/jpeg")
+        image = DestinationImage.objects.create(destination=self.destination, image=upload, caption="Crop me")
+        cropped = self.client.patch(
+            reverse("admin-media-library"),
+            {"id": image.id, "crop_box": {"x": 10, "y": 10, "w": 50, "h": 50}},
+            format="json",
+        )
+        self.assertEqual(cropped.status_code, status.HTTP_200_OK)
+        image.refresh_from_db()
+        image.image.open()
+        rewritten = Image.open(image.image)
+        self.assertEqual(rewritten.format, "JPEG")
+        self.assertLess(rewritten.size[0], 100)
+        self.assertLess(rewritten.size[1], 80)
+
     def test_templates_and_reusable_catalogs(self):
         from .models import ManagedPage, ContentSection
         page = ManagedPage.objects.create(route="/reusable-list", key="reusable-list", title="Reusable list", status="draft")
@@ -1881,3 +1903,28 @@ class CMSStudioExtensionTests(APITestCase):
         self.assertEqual(reordered.status_code, status.HTTP_200_OK)
         ordered = list(ContentSection.objects.filter(page=page).order_by("display_order", "id").values_list("id", flat=True))
         self.assertEqual(list(ordered), reversed_ids)
+
+    def test_all_page_sections_are_listed_for_builder(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/dashboard-builder", key="dashboard-builder", title="Dashboard builder", status="published")
+        for index, key in enumerate(["hero", "alerts", "hotels", "safety"]):
+            ContentSection.objects.create(page=page, key=key, title=key, display_order=index * 10, status="published")
+        listed = self.client.get(reverse("admin-cms"), {"resource": "sections", "page_id": page.id})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertEqual({row["key"] for row in listed.data["results"]}, {"hero", "alerts", "hotels", "safety"})
+        self.assertTrue(all(row.get("page_title") == "Dashboard builder" for row in listed.data["results"]))
+
+    def test_staff_can_publish_content_section(self):
+        from .models import StaffCapabilityProfile, ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/staff-cms", key="staff-cms", title="Staff CMS", status="draft")
+        section = ContentSection.objects.create(page=page, key="hero", title="Draft hero", status="draft")
+        staff = User.objects.create_user(email="content-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"content": ["view", "approve", "change"]})
+        self.client.force_authenticate(staff)
+        listed = self.client.get(reverse("staff-workspace"), {"module": "content"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == section.id for row in listed.data["results"]))
+        published = self.client.post(reverse("staff-workspace"), {"module": "content", "id": section.id, "action": "publish"}, format="json")
+        self.assertEqual(published.status_code, status.HTTP_200_OK)
+        section.refresh_from_db()
+        self.assertEqual(section.status, "published")

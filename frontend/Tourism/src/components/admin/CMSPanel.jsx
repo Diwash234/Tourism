@@ -22,7 +22,11 @@ const templates = {
   translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
 }
 const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
-const displayName = (row) => row.title || row.label || row.key || row.route || `Record #${row.id}`
+const displayName = (row) => {
+  const name = row.title || row.label || row.key || row.route || `Record #${row.id}`
+  if (row.page_title) return `${name} · ${row.page_title}`
+  return name
+}
 
 export default function CMSPanel() {
   const { showToast } = useToast()
@@ -432,6 +436,9 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
 
 function PageSectionBuilder({ pageId, refreshKey, onToast }) {
   const [sections, setSections] = useState([])
+  const [openId, setOpenId] = useState(null)
+  const [draft, setDraft] = useState(null)
+  const [previewId, setPreviewId] = useState(null)
   const dragFrom = useRef(null)
 
   const loadSections = async () => {
@@ -474,33 +481,88 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
     persist(next)
   }
 
-  if (!sections.length) {
-    return <p className="rounded-xl border border-dashed border-emerald-200 p-4 text-xs text-slate-500">No sections yet. Choose a template or add a reusable block.</p>
+  const saveSection = async () => {
+    if (!draft?.id) return
+    try {
+      await adminApi.updateCMS({ resource: "sections", id: draft.id, ...draft })
+      onToast("Section saved", "success")
+      setOpenId(null)
+      setDraft(null)
+      loadSections()
+    } catch (error) {
+      onToast(error.response?.data?.detail || "Could not save section", "error")
+    }
+  }
+
+  const addSection = async () => {
+    try {
+      await adminApi.createCMS({
+        resource: "sections", page_id: pageId, key: `block-${Date.now()}`,
+        title: "New section", body: "Edit this block.", section_type: "text",
+        display_order: (sections[sections.length - 1]?.display_order || 0) + 10,
+        is_visible: true, status: "published",
+      })
+      onToast("Section added", "success")
+      loadSections()
+    } catch (error) {
+      onToast(error.response?.data?.detail || "Could not add section", "error")
+    }
   }
 
   return (
     <div className="rounded-xl border border-emerald-200 bg-white p-3">
-      <div className="mb-2 flex justify-between">
-        <p className="text-xs font-black text-emerald-800">Section builder</p>
-        <p className="text-[10px] text-slate-500">Drag to reorder, or use the arrows.</p>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-black text-emerald-800">All sections on this page ({sections.length})</p>
+        <div className="flex gap-2">
+          <button type="button" onClick={addSection} className="rounded-lg bg-emerald-700 px-3 py-1 text-xs font-bold text-white">Add section</button>
+          <p className="self-center text-[10px] text-slate-500">Edit, preview, drag or use arrows.</p>
+        </div>
       </div>
+      {!sections.length && <p className="rounded-xl border border-dashed border-emerald-200 p-4 text-xs text-slate-500">No sections yet. Choose a template, add a reusable block, or add a section.</p>}
       <div className="space-y-2">
         {sections.map((section, index) => (
-          <div
-            key={section.id}
-            draggable
-            onDragStart={() => { dragFrom.current = index }}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => onDrop(index)}
-            className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs cursor-grab"
-          >
-            <span className="font-black text-emerald-800">{index + 1}</span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-bold">{section.title || section.key}</p>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.section_type || "text"} · {section.status}{section.is_reusable ? " · reusable" : ""}</p>
+          <div key={section.id} className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs">
+            <div
+              draggable
+              onDragStart={() => { dragFrom.current = index }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => onDrop(index)}
+              className="flex cursor-grab items-center gap-3"
+            >
+              <span className="font-black text-emerald-800">{index + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-bold">{section.title || section.key}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status}{section.is_visible === false ? " · hidden" : ""}</p>
+              </div>
+              <button type="button" onClick={() => setPreviewId(previewId === section.id ? null : section.id)} className="rounded bg-white px-2 py-1 font-bold">Preview</button>
+              <button type="button" onClick={() => { setOpenId(openId === section.id ? null : section.id); setDraft({ ...section }) }} className="rounded bg-white px-2 py-1 font-bold">Edit</button>
+              <button type="button" onClick={() => move(index, -1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move up">↑</button>
+              <button type="button" onClick={() => move(index, 1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move down">↓</button>
             </div>
-            <button type="button" onClick={() => move(index, -1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move up">↑</button>
-            <button type="button" onClick={() => move(index, 1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move down">↓</button>
+            {previewId === section.id && (
+              <article className="mt-3 rounded-lg bg-white p-3">
+                <h4 className="text-base font-black">{section.title}</h4>
+                <p className="text-slate-500">{section.subtitle}</p>
+                {section.image_url && <img src={section.image_url} alt="" className="mt-2 max-h-40 w-full rounded-lg object-cover" />}
+                <div className="prose prose-sm mt-2" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
+              </article>
+            )}
+            {openId === section.id && draft && (
+              <div className="mt-3 grid gap-2 rounded-lg bg-white p-3 sm:grid-cols-2">
+                <label className="font-semibold">Title<input className="input-field mt-1" value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
+                <label className="font-semibold">Key<input className="input-field mt-1" value={draft.key || ""} onChange={(e) => setDraft({ ...draft, key: e.target.value })} /></label>
+                <label className="font-semibold">Subtitle<input className="input-field mt-1" value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></label>
+                <label className="font-semibold">Image URL<input className="input-field mt-1" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
+                <label className="sm:col-span-2 font-semibold">Body
+                  <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
+                </label>
+                <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
+                <div className="flex gap-2 self-end">
+                  <button type="button" onClick={saveSection} className="rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">Save section</button>
+                  <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-200 px-3 py-2 font-bold">Cancel</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

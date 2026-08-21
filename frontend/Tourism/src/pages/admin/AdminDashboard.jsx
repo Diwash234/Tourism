@@ -112,31 +112,35 @@ const AdminDashboard = () => {
   const [pipelineDestSlug, setPipelineDestSlug] = useState("phewa-lake-tal-barahi")
   const [pipelineImages, setPipelineImages] = useState([])
   const [pipelineLoading, setPipelineLoading] = useState(false)
-  const [pipelineDestId, setPipelineDestId] = useState(5900)
+  const [pipelineDestId, setPipelineDestId] = useState(null)
   const [newImageUrl, setNewImageUrl] = useState("")
   const [newImageCaption, setNewImageCaption] = useState("")
   const [newImageFile, setNewImageFile] = useState(null)
 
   const handleUploadAdminImage = async () => {
-    if (!newImageFile || !pipelineDestId) return
+    if (!newImageFile) return
+    const destId = await resolvePipelineDestination()
+    if (!destId) return showToast("Select a destination first.", "error")
     const form = new FormData()
     form.append("image", newImageFile)
     form.append("caption", newImageCaption || newImageFile.name)
     form.append("is_cover", "true")
     try {
-      await adminApi.addAdminDestinationImage(pipelineDestId, form)
+      await adminApi.addAdminDestinationImage(destId, form)
       showToast("Local image uploaded and set as cover.", "success")
       setNewImageFile(null); setNewImageCaption("")
-      loadPipelineImages()
+      await loadPipelineImages(null, destId)
     } catch (error) {
       showToast(error?.response?.data?.detail || "Local image upload failed.", "error")
     }
   }
 
   const handleAddAdminImage = async () => {
-    if (!newImageUrl.trim() || !pipelineDestId) return
+    if (!newImageUrl.trim()) return
+    const destId = await resolvePipelineDestination()
+    if (!destId) return showToast("Select a destination first.", "error")
     try {
-      await adminApi.addAdminDestinationImage(pipelineDestId, {
+      await adminApi.addAdminDestinationImage(destId, {
         image_url: newImageUrl.trim(),
         caption: newImageCaption || undefined,
         is_cover: true,
@@ -146,7 +150,7 @@ const AdminDashboard = () => {
       })
       showToast("Image added and set as cover.", "success")
       setNewImageUrl(""); setNewImageCaption("")
-      loadPipelineImages()
+      await loadPipelineImages(null, destId)
     } catch {
       showToast("Could not add image. Check the URL and permissions.", "error")
     }
@@ -163,16 +167,59 @@ const AdminDashboard = () => {
     }
   }
 
-  const loadPipelineImages = async (slugToLoad = null) => {
+  const galleryRows = (gallery = []) => gallery.map((img) => ({
+    id: img.id,
+    url: img.url || img.external_url || img.image_url || img.display_url,
+    caption: img.caption,
+    author: img.photographer || img.author || "Administrator",
+    source: img.source || img.source_platform || "admin",
+    license: img.license || img.license_type || "",
+    sourceUrl: img.source_url || img.sourceUrl,
+    isAiGenerated: String(img.source || "").includes("ai") || img.isAiGenerated,
+    is_cover: img.is_cover,
+    verification_status: img.verification_status || img.status,
+  }))
+
+  const resolvePipelineDestination = async (slugToLoad = null, destId = null) => {
+    if (destId) {
+      setPipelineDestId(destId)
+      return destId
+    }
+    const s = slugToLoad || pipelineDestSlug
+    try {
+      const { data } = await destinationApi.getById(s)
+      if (data?.id) {
+        setPipelineDestId(data.id)
+        if (data.slug) setPipelineDestSlug(data.slug)
+        return data.id
+      }
+    } catch { /* fall through to search */ }
+    try {
+      const { data } = await destinationApi.getAll({ search: s, page_size: 8 })
+      const list = data.results || []
+      const found = list.find((row) => row.slug === s || String(row.id) === String(s)) || list[0]
+      if (found?.id) {
+        setPipelineDestId(found.id)
+        if (found.slug) setPipelineDestSlug(found.slug)
+        return found.id
+      }
+    } catch { /* ignore */ }
+    return pipelineDestId || null
+  }
+
+  const loadPipelineImages = async (slugToLoad = null, destId = null) => {
     const s = slugToLoad || pipelineDestSlug
     setPipelineLoading(true)
     try {
-      // Resolve a numeric destination id (needed for the admin image API)
-      const { data: dest } = await adminApi.getDestinations({ search: s, page_size: 1 })
-      const found = (dest?.results || dest?.items || [])[0]
-      if (found?.id) setPipelineDestId(found.id)
-      const { data } = await adminApi.getDestinationImages(s)
-      setPipelineImages(data.images || [])
+      const id = await resolvePipelineDestination(s, destId)
+      if (id) {
+        const { data } = await adminApi.getAdminDestination(id)
+        setPipelineImages(galleryRows(data.gallery || []))
+        if (data.slug) setPipelineDestSlug(data.slug)
+      } else {
+        const { data } = await adminApi.getDestinationImages(s)
+        setPipelineImages(galleryRows(data.images || []))
+      }
     } catch (e) {
       setPipelineImages([])
     } finally {
@@ -1535,7 +1582,7 @@ const AdminDashboard = () => {
                     {destSearchResults.map((d) => (
                       <button
                         key={d.id}
-                        onClick={() => { setPipelineDestSlug(d.slug || String(d.id)); setDestSearchResults([]); loadPipelineImages(d.slug || String(d.id)) }}
+                        onClick={() => { setPipelineDestSlug(d.slug || String(d.id)); setPipelineDestId(d.id); setDestSearchResults([]); loadPipelineImages(d.slug || String(d.id), d.id) }}
                         className="px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-amber-400 hover:text-gray-950 text-slate-200 text-xs font-semibold border border-slate-600/50"
                       >
                         {d.name} <span className="opacity-60">({d.district || d.province || "—"})</span>
@@ -1562,6 +1609,7 @@ const AdminDashboard = () => {
                     key={idx}
                     onClick={() => {
                       setPipelineDestSlug(p.slug)
+                      setPipelineDestId(null)
                       loadPipelineImages(p.slug)
                     }}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -1621,6 +1669,17 @@ const AdminDashboard = () => {
                   <input type="file" accept="image/*" onChange={(e)=>setNewImageFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
                   <button type="button" disabled={!newImageFile} onClick={handleUploadAdminImage} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold">Browse PC & Upload Cover</button>
                 </div>
+                {(newImageUrl.trim() || newImageFile) && (
+                  <div className="flex items-center gap-3 pt-2">
+                    <img
+                      src={newImageFile ? URL.createObjectURL(newImageFile) : newImageUrl.trim()}
+                      alt="Selected image preview"
+                      className="h-24 w-36 rounded-lg object-cover border border-amber-400/50 bg-black"
+                      onError={(e) => { e.currentTarget.style.opacity = "0.3" }}
+                    />
+                    <p className="text-[11px] text-slate-300">Preview of the image that will be saved as the current cover. After upload the gallery below refreshes from the database.</p>
+                  </div>
+                )}
                 <p className="text-[10px] text-slate-300">URL and local-disk uploads save directly to the database and show on the site immediately.</p>
               </div>
             </div>

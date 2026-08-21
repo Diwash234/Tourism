@@ -78,7 +78,7 @@ export default function ImageCropper({ image, onSave, onClose }) {
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-black text-emerald-950">Crop image</h3>
-            <p className="text-xs text-slate-500">Drag on the photo to draw a crop. Move or resize the box, then save. Used on: {(image.used_on || []).map(item => item.label).join(" · ") || image.destination}</p>
+            <p className="text-xs text-slate-500">Drag on the photo to draw a crop. Save rewrites a JPEG file for uploaded images. Used on: {(image.used_on || []).map(item => item.label).join(" · ") || image.destination}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close cropper"><FiX size={22} /></button>
         </div>

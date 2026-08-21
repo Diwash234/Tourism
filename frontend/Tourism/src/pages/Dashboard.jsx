@@ -12,6 +12,7 @@ import {
 
 import useAuth from "../hooks/useAuth";
 import useGeolocation from "../hooks/useGeolocation";
+import usePublicConfig from "../hooks/usePublicConfig";
 import weatherApi from "../api/weatherApi";
 import recommendationApi from "../api/recommendationApi";
 import alertApi from "../api/alertApi";
@@ -54,6 +55,12 @@ function scoreFromAlerts(alerts = []) {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { pages, section } = usePublicConfig();
+  const dashboardPage = pages?.find((page) => page.key === "dashboard");
+  const managed = Boolean(dashboardPage?.sections?.length);
+  const block = (key) => section("dashboard", key);
+  const showBlock = (key) => !managed || Boolean(block(key));
+  const copy = (key, field, fallback) => block(key)?.[field] || fallback;
   const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false);
   const { position } = useGeolocation();
   const navigate = useNavigate();
@@ -201,7 +208,7 @@ const Dashboard = () => {
       {/* NEW: National Symbols — placed first per the brief, so the
           dashboard "isn't empty" and leads with Nepal's identity before
           anything else */}
-      <NationalSymbols />
+      {showBlock("national-symbols") && <NationalSymbols />}
 
       {/* NEW: phone verification prompt. Only shown if a phone number
           exists and hasn't been verified THIS session — see
@@ -223,15 +230,14 @@ const Dashboard = () => {
       {/* ===========================
           HERO SECTION
       ============================ */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-himalaya-500 via-himalaya-600 to-forest-600 text-white p-8 md:p-12">
+      {showBlock("hero") && <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-himalaya-500 via-himalaya-600 to-forest-600 text-white p-8 md:p-12">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_35%)]" />
         <div className="relative">
           <h1 className="text-2xl md:text-3xl font-bold">
-            Namaste, {user?.name || "Traveler"} 👋
+            {copy("hero", "title", `Namaste, ${user?.name || "Traveler"} 👋`)}
           </h1>
           <p className="text-white/80 mt-2 max-w-xl">
-            Here's what's happening with your Nepal trip today — weather, safety,
-            budget, and AI picks made just for you.
+            {copy("hero", "subtitle", copy("hero", "body", "Here's what's happening with your Nepal trip today — weather, safety, budget, and AI picks made just for you."))}
           </p>
 
           {/* AI SEARCH */}
@@ -248,12 +254,12 @@ const Dashboard = () => {
             </button>
           </form>
         </div>
-      </section>
+      </section>}
 
       {/* ===========================
           WEATHER + BUDGET SNAPSHOT
       ============================ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {showBlock("weather-budget") && <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <WeatherCard
           location={weather?.location || "Current location"}
           temp_c={weather?.temperature_c ?? weather?.temperature}
@@ -264,13 +270,13 @@ const Dashboard = () => {
         />
         <BudgetCard label="Total Budget" amount={budget?.total} />
         <BudgetCard label="Spent" amount={budget?.spent} accent="forest" />
-      </div>
+      </div>}
 
       {/* Latest Alerts — kept next to the weather/budget snapshot since
           they're all "right now" info at a glance */}
-      {alerts.length > 0 && (
+      {showBlock("alerts") && alerts.length > 0 && (
         <section>
-          <h2 className="font-semibold text-lg mb-4">Latest Alerts</h2>
+          <h2 className="font-semibold text-lg mb-4">{copy("alerts", "title", "Latest Alerts")}</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {alerts.map((alert) => (
               <AlertCard key={alert.id} alert={alert} />
@@ -282,10 +288,10 @@ const Dashboard = () => {
       {/* ===========================
           RECOMMENDED PLACES (AI)
       ============================ */}
-      <section>
+      {showBlock("recommendations") && <section>
         <div className="flex items-center gap-2 mb-4">
           <FiTrendingUp className="text-himalaya-500" />
-          <h2 className="font-semibold text-lg">Recommended For You</h2>
+          <h2 className="font-semibold text-lg">{copy("recommendations", "title", "Recommended For You")}</h2>
         </div>
         {recommendations.length ? (
           <div className="grid md:grid-cols-2 gap-4">
@@ -296,13 +302,13 @@ const Dashboard = () => {
         ) : (
           <EmptyState title="No recommendations" subtitle="Explore destinations to receive personalized recommendations." />
         )}
-      </section>
+      </section>}
 
       {/* ===========================
           TRENDING NEPAL DESTINATIONS
       ============================ */}
-      <section>
-        <h2 className="font-semibold text-lg mb-4">Trending Nepal Destinations</h2>
+      {showBlock("trending") && <section>
+        <h2 className="font-semibold text-lg mb-4">{copy("trending", "title", "Trending Nepal Destinations")}</h2>
         {destinations.length ? (
           <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
             {destinations.map((destination) => (
@@ -312,13 +318,13 @@ const Dashboard = () => {
         ) : (
           <EmptyState title="No destinations yet" subtitle="Check back soon, or add some via the admin panel." />
         )}
-      </section>
+      </section>}
 
       {/* Favorite Places */}
-      <section>
+      {showBlock("favorites") && <section>
         <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
           <FiHeart />
-          Favorite Places
+          {copy("favorites", "title", "Favorite Places")}
         </h2>
         {favorites.length ? (
           <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
@@ -329,15 +335,15 @@ const Dashboard = () => {
         ) : (
           <EmptyState title="No favorite destinations" subtitle="Save destinations you love and they'll appear here." />
         )}
-      </section>
+      </section>}
 
       {/* ===========================
           RECOMMENDED HOTELS (new)
       ============================ */}
-      {hotels.length > 0 && (
+      {showBlock("hotels") && hotels.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Recommended Hotels & Stays</h2>
+            <h2 className="font-semibold text-lg">{copy("hotels", "title", "Recommended Hotels & Stays")}</h2>
             <Link to="/hotels" className="text-sm text-himalaya-500 hover:underline">
               View all
             </Link>
@@ -353,18 +359,18 @@ const Dashboard = () => {
       {/* ===========================
           NEPAL CULTURE & LOCAL EXPERIENCES (new)
       ============================ */}
-      <NepalExperienceSection />
+      {showBlock("culture") && <NepalExperienceSection />}
 
       {/* NEW: same "Why Visit Nepal" content shown on the public Landing
           page — included here too since a user who registered directly
           (without visiting Landing first) would otherwise never see it. */}
-      <NepalHighlights bare />
+      {showBlock("highlights") && <NepalHighlights bare />}
 
       {/* ===========================
           SAFETY STATUS
       ============================ */}
-      <section>
-        <h2 className="font-semibold text-lg mb-4">Safety Status</h2>
+      {showBlock("safety") && <section>
+        <h2 className="font-semibold text-lg mb-4">{copy("safety", "title", "Safety Status")}</h2>
         <SafetyOverview
           score={scoreFromAlerts(alerts)}
           weatherStatus={weather?.condition || "Good"}
@@ -373,15 +379,15 @@ const Dashboard = () => {
           policeNearby="—"
         />
         <p className="text-xs text-gray-400 mt-2">
-          Full facility counts and live disaster data live on the Risk Analysis page.
+          {copy("safety", "body", "Full facility counts and live disaster data live on the Risk Analysis page.")}
         </p>
-      </section>
+      </section>}
 
       {/* ===========================
           BUDGET SUMMARY
       ============================ */}
-      <section>
-        <h2 className="font-semibold text-lg mb-4">Budget Summary</h2>
+      {showBlock("budget-summary") && <section>
+        <h2 className="font-semibold text-lg mb-4">{copy("budget-summary", "title", "Budget Summary")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <BudgetCard label="Total Budget" amount={budget?.total} />
           <BudgetCard label="Spent So Far" amount={budget?.spent} accent="forest" />
@@ -394,16 +400,16 @@ const Dashboard = () => {
             <p className="text-xl font-bold text-dark mt-1">{budget?.byCategory?.length ?? 0}</p>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ===========================
           COMMUNITY PHOTO CONTRIBUTION
       ============================ */}
-      <section id="community-search" className="space-y-6">
+      {showBlock("community-photos") && <section id="community-search" className="space-y-6">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <FiImage />
-            Community Photos
+            {copy("community-photos", "title", "Community Photos")}
           </h2>
           <p className="text-gray-500 mt-2">
             Help fellow travelers by uploading your own destination photos. Popular community photos are
@@ -526,7 +532,7 @@ const Dashboard = () => {
             )}
           </div>
         )}
-      </section>
+      </section>}
     </div>
   );
 };
