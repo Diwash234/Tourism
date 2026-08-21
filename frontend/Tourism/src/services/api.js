@@ -192,6 +192,9 @@ export const photoApi = {
   get: (slug) => api.get(`/destinations/${slug}/photos/`),
   upload: (slug, formData) =>
     api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  getVideos: (slug) => api.get(`/destinations/${slug}/videos/`),
+  uploadVideo: (slug, formData) =>
+    api.post(`/destinations/${slug}/videos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
 };
 
 export const hotelApi = {

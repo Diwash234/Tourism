@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from .models import (
-    Destination, Alert, DestinationImage, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
+    Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
@@ -583,9 +583,22 @@ class AdminDestinationDetailView(APIView):
                     "photographer": g.photographer,
                     "license": g.license_type,
                     "source_url": g.source_url,
+                    "verification_status": g.verification_status,
                     "created_at": g.created_at,
                 }
                 for g in destination.gallery.all()[:50]
+            ],
+            "videos": [
+                {
+                    "id": v.id,
+                    "url": (request.build_absolute_uri(v.video_file.url) if v.video_file else "") or v.video_url,
+                    "title": v.title,
+                    "caption": v.caption,
+                    "verification_status": v.verification_status,
+                    "uploaded_by": v.uploaded_by.email if v.uploaded_by else None,
+                    "created_at": v.created_at,
+                }
+                for v in destination.videos.all()[:50]
             ],
             "history": [
                 {
@@ -755,6 +768,88 @@ class AdminDestinationImageView(APIView):
                 next_img.save(update_fields=["is_cover"])
             Destination.objects.filter(pk=destination.pk).update(cover_image=new_cover)
         return Response({"message": "Image removed"})
+
+
+class AdminDestinationVideoView(APIView):
+    """Admin add / review / remove destination videos (25 MB file cap)."""
+    permission_classes = [IsAdminOrStaff]
+
+    def _dest(self, id):
+        return Destination.objects.filter(id=id).first()
+
+    def _url(self, video, request):
+        if video.video_file:
+            try:
+                return request.build_absolute_uri(video.video_file.url)
+            except (ValueError, AttributeError):
+                pass
+        return video.video_url or ""
+
+    def get(self, request, id):
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        return Response({"videos": [{
+            "id": video.id, "url": self._url(video, request), "title": video.title,
+            "caption": video.caption, "verification_status": video.verification_status,
+            "uploaded_by": video.uploaded_by.email if video.uploaded_by else None,
+            "created_at": video.created_at,
+        } for video in destination.videos.all()]})
+
+    def post(self, request, id):
+        _require_capability(request, "images", "add")
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        uploaded = request.FILES.get("video") or request.FILES.get("video_file") or request.FILES.get("file")
+        video_url = (request.data.get("video_url") or request.data.get("url") or "").strip()
+        if not uploaded and not video_url:
+            return Response({"detail": "video file or video_url is required."}, status=400)
+        if uploaded and uploaded.size > 25 * 1024 * 1024:
+            return Response({"detail": "Videos must be 25 MB or smaller."}, status=400)
+        if video_url and not (video_url.startswith("https://") or video_url.startswith("/")):
+            return Response({"detail": "Video URL must be HTTPS or an internal path."}, status=400)
+        video = DestinationVideo.objects.create(
+            destination=destination, video_file=uploaded, video_url=video_url if not uploaded else "",
+            title=(request.data.get("title") or destination.name)[:200],
+            caption=(request.data.get("caption") or "")[:200],
+            uploaded_by=request.user if request.user.is_authenticated else None,
+            verification_status="approved",
+        )
+        DestinationAuditLog.objects.create(
+            destination=destination, actor=request.user if request.user.is_authenticated else None,
+            action=DestinationAuditLog.Action.EDITED, note=f"Admin added video {video.id}",
+        )
+        return Response({"message": "Video added", "video_id": video.id, "url": self._url(video, request)}, status=201)
+
+    def patch(self, request, id):
+        _require_capability(request, "images", "change")
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        video = destination.videos.filter(id=request.data.get("video_id")).first()
+        if not video:
+            return Response({"detail": "Video not found."}, status=404)
+        changed = []
+        for field in ("title", "caption", "verification_status", "video_url"):
+            if field in request.data:
+                setattr(video, field, request.data[field])
+                changed.append(field)
+        if changed:
+            video.save(update_fields=list(set(changed)))
+        return Response({"message": "Video updated", "changed": changed, "url": self._url(video, request)})
+
+    def delete(self, request, id):
+        _require_capability(request, "images", "delete")
+        destination = self._dest(id)
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        video_id = request.data.get("video_id") or request.query_params.get("video_id")
+        video = destination.videos.filter(id=video_id).first()
+        if not video:
+            return Response({"detail": "Video not found."}, status=404)
+        video.delete()
+        return Response({"message": "Video removed"})
 
 
 def _cover_of(destination):
@@ -1141,6 +1236,15 @@ class StaffWorkspaceView(APIView):
             return queryset.filter(**{f"{prefix}district__in": districts})
         return queryset
 
+    @staticmethod
+    def _media_url(field, request):
+        if not field:
+            return ""
+        try:
+            return request.build_absolute_uri(field.url)
+        except (ValueError, AttributeError):
+            return ""
+
     def get(self, request):
         module = request.query_params.get("module", "dashboard")
         if module != "dashboard":
@@ -1166,7 +1270,10 @@ class StaffWorkspaceView(APIView):
             if _has_capability(request, "destinations", "view"):
                 queue_counts["destinations"] = self._scope_destinations(Destination.objects.filter(status="pending"), user).count()
             if _has_capability(request, "images", "view"):
-                queue_counts["images"] = self._scope_destinations(DestinationImage.objects.filter(verification_status="pending"), user, "destination__").count()
+                queue_counts["images"] = (
+                    self._scope_destinations(DestinationImage.objects.filter(verification_status="pending"), user, "destination__").count()
+                    + self._scope_destinations(DestinationVideo.objects.filter(verification_status="pending"), user, "destination__").count()
+                )
             if _has_capability(request, "reviews", "view"):
                 queue_counts["reviews"] = self._scope_destinations(Review.objects.filter(moderation_status="pending"), user, "destination__").count()
             if _has_capability(request, "safety", "view"):
@@ -1188,8 +1295,12 @@ class StaffWorkspaceView(APIView):
                      "description": x.short_description or x.description[:240], "created_at": x.created_at} for x in queryset[:100]]
         elif module == "images":
             queryset = self._scope_destinations(DestinationImage.objects.filter(verification_status="pending").select_related("destination"), user, "destination__")
-            rows = [{"id": x.id, "title": x.destination.name, "subtitle": x.caption or x.source,
+            rows = [{"id": x.id, "type": "image", "title": x.destination.name, "subtitle": x.caption or x.source,
                      "status": x.verification_status, "image_url": x.external_url or (x.image.url if x.image else ""), "created_at": x.created_at} for x in queryset[:100]]
+            videos = self._scope_destinations(DestinationVideo.objects.filter(verification_status="pending").select_related("destination"), user, "destination__")
+            rows.extend({"id": x.id, "type": "video", "title": x.destination.name, "subtitle": x.title or x.caption or "Community video",
+                         "status": x.verification_status, "video_url": self._media_url(x.video_file, request) or x.video_url,
+                         "created_at": x.created_at} for x in videos[:50])
         elif module == "budget":
             queryset = self._scope_destinations(TravelExpenseFeedback.objects.select_related("destination", "user"), user, "destination__")
             rows = [{"id": x.id, "title": x.destination_name, "subtitle": f"{x.num_days} days · {x.num_people} people",
@@ -1261,10 +1372,19 @@ class StaffWorkspaceView(APIView):
                 return Response({"detail": "Record is outside your assigned queue"}, status=404)
             obj.status = "approved" if action == "approve" else "rejected"; obj.is_active = action == "approve"; obj.save(update_fields=["status", "is_active", "updated_at"])
         elif module == "images":
-            obj = DestinationImage.objects.select_related("destination").filter(pk=object_id).first()
-            if not obj or (districts and obj.destination.district not in districts):
-                return Response({"detail": "Record is outside your assigned queue"}, status=404)
-            obj.verification_status = "approved" if action == "approve" else "rejected"; obj.is_verified = action == "approve"; obj.save(update_fields=["verification_status", "is_verified"])
+            if request.data.get("type") == "video":
+                obj = DestinationVideo.objects.select_related("destination").filter(pk=object_id).first()
+                if not obj or (districts and obj.destination.district not in districts):
+                    return Response({"detail": "Record is outside your assigned queue"}, status=404)
+                if action not in {"approve", "reject"}:
+                    return Response({"detail": "Unsupported workspace action"}, status=400)
+                obj.verification_status = "approved" if action == "approve" else "rejected"
+                obj.save(update_fields=["verification_status"])
+            else:
+                obj = DestinationImage.objects.select_related("destination").filter(pk=object_id).first()
+                if not obj or (districts and obj.destination.district not in districts):
+                    return Response({"detail": "Record is outside your assigned queue"}, status=404)
+                obj.verification_status = "approved" if action == "approve" else "rejected"; obj.is_verified = action == "approve"; obj.save(update_fields=["verification_status", "is_verified"])
         elif module == "reviews":
             review_type = request.data.get("type", "destination")
             if review_type == "hotel":
@@ -1492,6 +1612,23 @@ PAGE_TEMPLATES = {
         ("body", "text", "Details", "Add the main information."),
         ("cta", "cta", "Next step", "Link to a related traveller page."),
     ]},
+    "landing": {"label": "Landing Page", "sections": [
+        ("hero", "heading", "Explore Nepal", "Discover destinations across all 7 provinces."),
+        ("features", "cards", "Why travel with Nepal Portal", "Verified places, budgets, safety and navigation."),
+        ("featured", "cards", "Featured Nepal destinations", "Handpicked wonders from the live catalogue."),
+        ("provinces", "cards", "Explore by province", "Regional attractions from east to west."),
+        ("marquee", "marquee", "Seven provinces of Nepal", "Koshi · Madhesh · Bagmati · Gandaki · Lumbini · Karnali · Sudurpashchim"),
+        ("faq", "faq", "Frequently asked questions", "Practical answers before you travel."),
+        ("cta", "cta", "Start planning", "Open destinations or estimate a budget."),
+    ]},
+    "footer": {"label": "Site Footer", "sections": [
+        ("symbols", "cards", "National symbols", "Discover Nepal — Beyond Everest"),
+        ("explore", "text", "Explore", "Destinations, recommendations, budget and alerts."),
+        ("provinces", "cards", "Provinces", "Jump to a province city."),
+        ("company", "text", "Company", "About, contact and emergency."),
+        ("contact", "text", "Contact", "Pokhara, Nepal"),
+        ("tagline", "text", "Footer note", "Discover destinations, plan budgets, and travel safely through Nepal."),
+    ]},
 }
 
 
@@ -1513,6 +1650,19 @@ class AdminCMSView(APIView):
             raise ValueError("Only validated internal routes beginning with / are allowed")
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
             raise ValueError("CTA links must be validated internal routes beginning with /")
+        if resource == "sections" and payload.get("section_type"):
+            allowed_types = {"text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media"}
+            if payload["section_type"] not in allowed_types:
+                raise ValueError("Unknown section type")
+        if resource == "sections" and payload.get("layout_variant"):
+            if payload["layout_variant"] not in {"default", "compact", "wide", "cards", "hero", "split"}:
+                raise ValueError("Unknown layout variant")
+        if resource == "sections" and isinstance(payload.get("config"), dict):
+            payload["config"] = self._safe_section_config(payload["config"])
+        if resource == "sections" and payload.get("image_url"):
+            image_url = str(payload["image_url"]).strip()
+            if image_url and not (image_url.startswith("https://") or image_url.startswith("/")):
+                raise ValueError("Media URLs must be HTTPS or an internal path")
         if resource == "sections" and "body" in payload:
             payload["body"] = re.sub(r"(?is)<script.*?>.*?</script>", "", str(payload.get("body") or ""))
             payload["body"] = re.sub(r"(?is)on\w+\s*=", "", payload["body"])
@@ -1693,6 +1843,82 @@ class AdminCMSView(APIView):
         self._revision("sections", clone, request.user, "create")
         return Response({"id": clone.pk, "message": "Reusable section added", "record": self._row("sections", clone)}, status=201)
 
+    @staticmethod
+    def _safe_section_config(config):
+        import re
+        allowed_effects = {"none", "marquee", "fade", "slide"}
+        allowed_placement = {"main", "hero", "sidebar", "footer"}
+        safe = {}
+        media_url = str(config.get("media_url") or "").strip()
+        if media_url:
+            if not (media_url.startswith("https://") or media_url.startswith("/")):
+                raise ValueError("Media URLs must be HTTPS or an internal path")
+            safe["media_url"] = media_url[:600]
+        kind = str(config.get("media_kind") or "").strip().lower()
+        if kind in {"video", "audio", "image"}:
+            safe["media_kind"] = kind
+        effect = str(config.get("effect") or "none").strip().lower()
+        safe["effect"] = effect if effect in allowed_effects else "none"
+        placement = str(config.get("placement") or "main").strip().lower()
+        safe["placement"] = placement if placement in allowed_placement else "main"
+        if isinstance(config.get("items"), list):
+            items = []
+            for item in config["items"][:20]:
+                if isinstance(item, str):
+                    items.append(re.sub(r"(?is)<script.*?>.*?</script>", "", item)[:240])
+                elif isinstance(item, dict) and isinstance(item.get("label"), str):
+                    items.append({"label": item["label"][:120]})
+            safe["items"] = items
+        return safe
+
+    def _import_layout(self, request, page):
+        import json
+        from urllib.request import Request, urlopen
+        if page is None:
+            return Response({"detail": "Import requires a page"}, status=400)
+        payload = request.data.get("layout") or request.data.get("sections")
+        source_url = str(request.data.get("source_url") or "").strip()
+        if source_url:
+            if not source_url.startswith("https://"):
+                return Response({"detail": "Layout packs must be loaded from HTTPS JSON URLs"}, status=400)
+            try:
+                with urlopen(Request(source_url, headers={"User-Agent": "NepalTourismCMS/1.0"}), timeout=8) as response:
+                    raw = response.read(200000)
+                payload = json.loads(raw.decode("utf-8"))
+            except Exception:
+                return Response({"detail": "Could not load a valid JSON layout pack from that URL"}, status=400)
+        if isinstance(payload, dict):
+            payload = payload.get("sections") or payload.get("layout")
+        if not isinstance(payload, list) or not payload:
+            return Response({"detail": "Provide a JSON list of sections or a layout.sections array"}, status=400)
+        created = 0
+        for order, item in enumerate(payload[:40]):
+            if not isinstance(item, dict):
+                continue
+            key = self._unique_section_key(page, item.get("key") or item.get("title") or f"block-{order + 1}")
+            section_type = item.get("section_type") or "text"
+            image_url = str(item.get("image_url") or "")[:600]
+            try:
+                config = self._safe_section_config(item.get("config") or {})
+                self._validate_payload("sections", {
+                    "section_type": section_type, "layout_variant": item.get("layout_variant") or "default",
+                    "cta_url": item.get("cta_url", ""), "body": item.get("body", ""), "image_url": image_url,
+                })
+            except ValueError as exc:
+                return Response({"detail": str(exc)}, status=400)
+            ContentSection.objects.create(
+                page=page, key=key, title=str(item.get("title") or key)[:240],
+                subtitle=str(item.get("subtitle") or "")[:320], body=str(item.get("body") or ""),
+                image_url=image_url,
+                cta_text=str(item.get("cta_text") or "")[:100],
+                cta_url=str(item.get("cta_url") or "")[:240],
+                section_type=section_type, layout_variant=item.get("layout_variant") or "default",
+                config=config, display_order=order * 10, is_visible=True, status="draft",
+                updated_by=request.user,
+            )
+            created += 1
+        return Response({"id": page.pk, "message": "Layout imported as draft sections", "created": created})
+
     def _reorder_sections(self, request, page):
         raw_ids = request.data.get("section_ids") or request.data.get("ids") or []
         if not isinstance(raw_ids, list) or not raw_ids:
@@ -1729,6 +1955,9 @@ class AdminCMSView(APIView):
         if action == "clone_reusable":
             page = obj if resource == "pages" else getattr(obj, "page", None)
             return self._clone_reusable_section(request, page)
+        if action == "import_layout":
+            page = obj if resource == "pages" else getattr(obj, "page", None)
+            return self._import_layout(request, page)
         if action == "reorder":
             page = obj if resource == "pages" else getattr(obj, "page", None)
             return self._reorder_sections(request, page)

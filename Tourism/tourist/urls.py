@@ -161,6 +161,7 @@ urlpatterns = [
     path("admin/destinations", views_admin.AdminDestinationsView.as_view(), name="admin-destinations"),
     path("admin/destinations/<int:id>", views_admin.AdminDestinationDetailView.as_view(), name="admin-destination-detail"),
     path("admin/destinations/<int:id>/images", views_admin.AdminDestinationImageView.as_view(), name="admin-destination-images"),
+    path("admin/destinations/<int:id>/videos", views_admin.AdminDestinationVideoView.as_view(), name="admin-destination-videos"),
     path("admin/alerts", views_admin.AdminAlertsView.as_view(), name="admin-alerts"),
 
     # Additional endpoints

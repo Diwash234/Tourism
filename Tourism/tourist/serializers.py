@@ -317,10 +317,47 @@ class PhotoUploadSerializer(serializers.ModelSerializer):
 
 
 class DestinationVideoSerializer(serializers.ModelSerializer):
+    display_url = serializers.SerializerMethodField()
+    uploaded_by_name = serializers.CharField(source="uploaded_by.full_name", read_only=True)
+
     class Meta:
         model = DestinationVideo
-        fields = ["id", "destination", "video_url", "title", "thumbnail", "created_at"]
-        read_only_fields = ["created_at"]
+        fields = [
+            "id", "destination", "video_url", "video_file", "display_url", "title", "caption",
+            "thumbnail", "uploaded_by", "uploaded_by_name", "verification_status", "created_at",
+        ]
+        read_only_fields = ["uploaded_by", "verification_status", "created_at"]
+
+    def get_display_url(self, obj):
+        request = self.context.get("request")
+        if obj.video_file:
+            try:
+                return request.build_absolute_uri(obj.video_file.url) if request else obj.video_file.url
+            except (ValueError, AttributeError):
+                return None
+        return obj.video_url or None
+
+    def validate(self, attrs):
+        uploaded = attrs.get("video_file")
+        url = (attrs.get("video_url") or getattr(self.instance, "video_url", "") or "").strip()
+        existing_file = getattr(self.instance, "video_file", None) if self.instance else None
+        if not uploaded and not url and not existing_file:
+            raise serializers.ValidationError("Upload a video file (max 25 MB) or provide a video URL.")
+        if uploaded and uploaded.size > 25 * 1024 * 1024:
+            raise serializers.ValidationError("Videos must be 25 MB or smaller.")
+        content_type = (getattr(uploaded, "content_type", "") or "").lower()
+        if uploaded and content_type and not content_type.startswith("video/") and content_type not in {"application/octet-stream"}:
+            raise serializers.ValidationError("Upload a video file.")
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated:
+            validated_data["uploaded_by"] = user
+            staff = user.is_staff or user.role in {"admin", "super_admin", "tourism_admin"}
+            validated_data["verification_status"] = "approved" if staff else "pending"
+        return super().create(validated_data)
 
 
 class DestinationTranslationSerializer(serializers.ModelSerializer):
@@ -812,7 +849,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     cover_image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     gallery = serializers.SerializerMethodField()
-    videos = DestinationVideoSerializer(many=True, read_only=True)
+    videos = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
     translations = DestinationTranslationSerializer(many=True, read_only=True)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
@@ -864,6 +901,16 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
                 Q(moderation_status="approved") | Q(user=request.user)
             ).exclude(moderation_status="archived")
         return ReviewSerializer(queryset, many=True, context=self.context).data
+
+    def get_videos(self, obj):
+        request = self.context.get("request")
+        queryset = obj.videos.filter(verification_status="approved")
+        user = getattr(request, "user", None) if request else None
+        if user and user.is_authenticated:
+            queryset = obj.videos.filter(
+                Q(verification_status="approved") | Q(uploaded_by=user)
+            ).exclude(verification_status="rejected")
+        return DestinationVideoSerializer(queryset, many=True, context=self.context).data
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_cover_image_url(self, obj):

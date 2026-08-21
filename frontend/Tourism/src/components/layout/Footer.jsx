@@ -10,6 +10,7 @@ import {
 
 import { APP_NAME } from "../../utils/constants";
 import usePublicConfig from "../../hooks/usePublicConfig";
+import { CMSExtras } from "../cms/CMSBlock";
 
 import {
   FlagImg,
@@ -47,9 +48,11 @@ const NATIONAL_ITEMS = [
 
 
 const Footer = () => {
-  const { branding } = usePublicConfig()
+  const { branding, navigation, pageCMS } = usePublicConfig()
+  const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "tagline"])
+  const footerNav = (navigation || []).filter(item => item.location === "footer" && String(item.route || "").startsWith("/"))
   const siteTitle = branding.site_title || APP_NAME
-  const footerText = branding.footer_text || "Discover destinations, plan budgets, and travel safely through Nepal."
+  const footerText = copy("tagline", "body", branding.footer_text || "Discover destinations, plan budgets, and travel safely through Nepal.")
   const contactEmail = branding.contact_email || "support@tourists.app"
   const contactPhone = branding.contact_phone || "+977-000-0000"
 
@@ -60,9 +63,7 @@ const Footer = () => {
       <div className="h-1 bg-gradient-to-r from-nepalred-500 via-saffron-500 to-forest-500" />
 
 
-      {/* National Symbols */}
-
-      <div className="container-app py-8 border-b border-gray-700">
+      {showBlock("symbols") && <div className="container-app py-8 border-b border-gray-700">
 
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-5">
@@ -101,250 +102,89 @@ const Footer = () => {
 
 
         <p className="mt-6 text-right text-sm italic text-saffron-400">
-          Discover Nepal — Beyond Everest
+          {copy("symbols", "body", "Discover Nepal — Beyond Everest")}
         </p>
-
-
-      </div>
-
+      </div>}
 
 
 
-      {/* Footer Links */}
 
       <div className="container-app py-12 grid grid-cols-1 md:grid-cols-5 gap-8">
-
-
         <div>
-
-          <h3 className="text-white text-xl font-bold mb-3">
-            {siteTitle}
-          </h3>
-
-
-          <p className="text-sm text-gray-400">
-            {footerText}
-          </p>
-
+          <h3 className="text-white text-xl font-bold mb-3">{siteTitle}</h3>
+          <p className="text-sm text-gray-400">{footerText}</p>
         </div>
 
-
-
-
-        <div>
-
-          <h4 className="text-white font-semibold mb-3">
-            Explore
-          </h4>
-
-
-          <ul className="space-y-2 text-sm">
-
-            <li>
-              <Link
-                to="/destinations"
-                className="hover:text-white"
-              >
-                Destinations
-              </Link>
-            </li>
-
-
-            <li>
-              <Link
-                to="/recommendation"
-                className="hover:text-white"
-              >
-                Recommendations
-              </Link>
-            </li>
-
-
-            <li>
-              <Link
-                to="/budget-estimator"
-                className="hover:text-white"
-              >
-                Budget Estimator
-              </Link>
-            </li>
-
-
-            <li>
-              <Link
-                to="/risk-alerts"
-                className="hover:text-white"
-              >
-                Risk Alerts
-              </Link>
-            </li>
-
-          </ul>
-
-        </div>
-
-
-
-
-
-        <div>
-
-          <h4 className="text-white font-semibold mb-3">
-            Provinces
-          </h4>
-
-
-          <ul className="space-y-2 text-sm">
-
-            {PROVINCE_CITY_LINKS.map((province)=>(
-
-              <li key={province.name}>
-
-                <Link
-                  to={`/destinations?q=${encodeURIComponent(province.city)}`}
-                  className="hover:text-white"
-                >
-                  {province.name}
-                </Link>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-
-        </div>
-
-
-
-
-
-        <div>
-
-          <h4 className="text-white font-semibold mb-3">
-            Company
-          </h4>
-
-
-          <ul className="space-y-2 text-sm">
-
-            <li>
-              <Link
-                to="/about"
-                className="hover:text-white"
-              >
-                About Us
-              </Link>
-            </li>
-
-
-            <li>
-              <Link
-                to="/contact"
-                className="hover:text-white"
-              >
-                Contact
-              </Link>
-            </li>
-
-
-            <li>
-              <Link
-                to="/emergency"
-                className="hover:text-white"
-              >
-                Emergency
-              </Link>
-            </li>
-
-
-          </ul>
-
-
-
-          <div className="mt-4 text-xs space-y-1 text-gray-400">
-
-            <p>
-              🚓 Police:
-              <a href="tel:100" className="text-white ml-1">
-                100
-              </a>
-            </p>
-
-
-            <p>
-              🚑 Ambulance:
-              <a href="tel:102" className="text-white ml-1">
-                102
-              </a>
-            </p>
-
-
-            <p>
-              🔥 Fire:
-              <a href="tel:101" className="text-white ml-1">
-                101
-              </a>
-            </p>
-
+        {showBlock("explore") && (
+          <div>
+            <h4 className="text-white font-semibold mb-3">{copy("explore", "title", "Explore")}</h4>
+            <ul className="space-y-2 text-sm">
+              {(footerNav.length
+                ? footerNav.filter((item) => ["/destinations", "/recommendation", "/budget-estimator", "/risk-alerts"].includes(item.route))
+                : [
+                    { label: "Destinations", route: "/destinations" },
+                    { label: "Recommendations", route: "/recommendation" },
+                    { label: "Budget Estimator", route: "/budget-estimator" },
+                    { label: "Risk Alerts", route: "/risk-alerts" },
+                  ]
+              ).map((item) => (
+                <li key={item.route}><Link to={item.route} className="hover:text-white">{item.label}</Link></li>
+              ))}
+            </ul>
           </div>
+        )}
 
-
-        </div>
-
-
-
-
-
-
-        <div>
-
-          <h4 className="text-white font-semibold mb-3">
-            Contact
-          </h4>
-
-
-          <ul className="space-y-3 text-sm">
-
-
-            <li className="flex gap-2 items-center">
-              <FiMapPin />
-              Pokhara, Nepal
-            </li>
-
-
-            <li className="flex gap-2 items-center">
-              <FiMail />
-              {contactEmail}
-            </li>
-
-
-            <li className="flex gap-2 items-center">
-              <FiPhone />
-              {contactPhone}
-            </li>
-
-
-          </ul>
-
-
-
-          <div className="flex gap-4 mt-5 text-lg">
-            {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Facebook"><FiFacebook /></a>}
-            {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Instagram"><FiInstagram /></a>}
-            {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="X or Twitter"><FiTwitter /></a>}
+        {showBlock("provinces") && (
+          <div>
+            <h4 className="text-white font-semibold mb-3">{copy("provinces", "title", "Provinces")}</h4>
+            <ul className="space-y-2 text-sm">
+              {PROVINCE_CITY_LINKS.map((province) => (
+                <li key={province.name}>
+                  <Link to={`/destinations?q=${encodeURIComponent(province.city)}`} className="hover:text-white">{province.name}</Link>
+                </li>
+              ))}
+            </ul>
           </div>
+        )}
 
+        {showBlock("company") && (
+          <div>
+            <h4 className="text-white font-semibold mb-3">{copy("company", "title", "Company")}</h4>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/about" className="hover:text-white">About Us</Link></li>
+              <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
+              <li><Link to="/emergency" className="hover:text-white">Emergency</Link></li>
+            </ul>
+            <div className="mt-4 text-xs space-y-1 text-gray-400">
+              <p>🚓 Police:<a href="tel:100" className="text-white ml-1">100</a></p>
+              <p>🚑 Ambulance:<a href="tel:102" className="text-white ml-1">102</a></p>
+              <p>🔥 Fire:<a href="tel:101" className="text-white ml-1">101</a></p>
+            </div>
+          </div>
+        )}
 
-        </div>
-
-
+        {showBlock("contact") && (
+          <div>
+            <h4 className="text-white font-semibold mb-3">{copy("contact", "title", "Contact")}</h4>
+            <ul className="space-y-3 text-sm">
+              <li className="flex gap-2 items-center"><FiMapPin /> Pokhara, Nepal</li>
+              <li className="flex gap-2 items-center"><FiMail /> {contactEmail}</li>
+              <li className="flex gap-2 items-center"><FiPhone /> {contactPhone}</li>
+            </ul>
+            <div className="flex gap-4 mt-5 text-lg">
+              {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Facebook"><FiFacebook /></a>}
+              {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="Instagram"><FiInstagram /></a>}
+              {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white" aria-label="X or Twitter"><FiTwitter /></a>}
+            </div>
+          </div>
+        )}
       </div>
 
 
 
 
+
+      {extras?.length > 0 && <div className="container-app pb-8 text-white"><CMSExtras sections={extras} /></div>}
 
       <div className="border-t border-gray-700 py-4 text-center text-xs text-gray-500">
 

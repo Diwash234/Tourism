@@ -457,6 +457,27 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
             "photos": DestinationImageSerializer(photos, many=True, context={"request": request}).data,
         })
 
+    @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
+    def videos(self, request, slug=None):
+        destination = self.get_object()
+        if request.method == "POST":
+            if not request.user.is_authenticated:
+                return Response({"detail": "Login required to submit a video."}, status=status.HTTP_401_UNAUTHORIZED)
+            payload = {key: request.data.get(key) for key in request.data}
+            payload["destination"] = destination.id
+            serializer = DestinationVideoSerializer(data=payload, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            video = serializer.save()
+            return Response(DestinationVideoSerializer(video, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        queryset = destination.videos.filter(verification_status="approved")
+        if request.user.is_authenticated:
+            queryset = destination.videos.filter(
+                Q(verification_status="approved") | Q(uploaded_by=request.user)
+            ).exclude(verification_status="rejected")
+        return Response({
+            "videos": DestinationVideoSerializer(queryset, many=True, context={"request": request}).data,
+        })
+
     @action(detail=True, methods=["get"], permission_classes=[permissions.AllowAny])
     def weather(self, request, slug=None):
         """Current weather at this destination's coordinates, via OpenWeatherMap."""
@@ -728,6 +749,15 @@ class DestinationVideoViewSet(viewsets.ModelViewSet):
     permission_classes = [HasCapabilityOrReadOnly]
     capability_module = "images"
     filterset_fields = ["destination"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.role in {"admin", "super_admin", "tourism_admin"}):
+            return queryset
+        if user.is_authenticated:
+            return queryset.filter(Q(verification_status="approved") | Q(uploaded_by=user)).exclude(verification_status="rejected")
+        return queryset.filter(verification_status="approved")
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

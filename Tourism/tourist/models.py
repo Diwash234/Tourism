@@ -720,10 +720,21 @@ class DestinationImage(TimeStampedModel):
 
 
 class DestinationVideo(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="videos")
-    video_url = models.URLField(help_text="YouTube/Vimeo link or hosted video URL")
+    video_url = models.URLField(blank=True, help_text="YouTube/Vimeo link or hosted video URL")
+    video_file = models.FileField(upload_to="destinations/videos/", blank=True, null=True)
     title = models.CharField(max_length=200, blank=True)
+    caption = models.CharField(max_length=200, blank=True)
     thumbnail = models.ImageField(upload_to="destinations/video_thumbnails/", blank=True, null=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="uploaded_videos"
+    )
+    verification_status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
 
 
 class Review(TimeStampedModel):
@@ -2367,10 +2378,19 @@ class ContentSection(TimeStampedModel):
         choices=[
             ("text", "Text"), ("heading", "Heading"), ("image", "Image"), ("gallery", "Gallery"),
             ("cards", "Cards"), ("faq", "FAQ"), ("cta", "Call to action"), ("map", "Map"),
+            ("video", "Video"), ("audio", "Audio"), ("marquee", "Marquee"),
+            ("animation", "Animation"), ("media", "Media"),
         ],
         default="text",
     )
-    layout_variant = models.CharField(max_length=30, choices=[("default","Default"),("compact","Compact"),("wide","Wide"),("cards","Cards")], default="default")
+    layout_variant = models.CharField(
+        max_length=30,
+        choices=[
+            ("default", "Default"), ("compact", "Compact"), ("wide", "Wide"),
+            ("cards", "Cards"), ("hero", "Hero"), ("split", "Split"),
+        ],
+        default="default",
+    )
     config = models.JSONField(default=dict, blank=True)
     display_order = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)

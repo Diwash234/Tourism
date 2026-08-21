@@ -5,7 +5,7 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 
 const resources = ["settings", "pages", "sections", "navigation", "translations"]
-const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map"]
+const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
   destination: { label: "Destination Page" },
@@ -13,6 +13,8 @@ const fallbackTemplates = {
   travel_guide: { label: "Travel Guide" },
   gallery: { label: "Gallery" },
   information: { label: "Information Page" },
+  landing: { label: "Landing Page" },
+  footer: { label: "Site Footer" },
 }
 const templates = {
   settings: { key: "", value: {}, description: "", is_public: true },
@@ -46,6 +48,7 @@ export default function CMSPanel() {
   const [catalog, setCatalog] = useState(fallbackTemplates)
   const [cloneSource, setCloneSource] = useState("")
   const [builderTick, setBuilderTick] = useState(0)
+  const [layoutUrl, setLayoutUrl] = useState("")
   const dirty = Boolean(selected) && json !== savedJson
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
@@ -258,6 +261,14 @@ export default function CMSPanel() {
                       <button type="button" disabled={busy || !cloneSource} onClick={() => workflow("clone_reusable", { source_id: Number(cloneSource), page_id: selected.id })} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900">Add reusable</button>
                     </div>
                   )}
+                  {selected.id && (
+                    <label className="sm:col-span-3 text-xs font-semibold text-slate-600">Import layout JSON (HTTPS pack)
+                      <div className="mt-1 flex gap-2">
+                        <input className="input-field" value={layoutUrl} onChange={(e) => setLayoutUrl(e.target.value)} placeholder="https://example.com/layout.json" />
+                        <button type="button" disabled={busy || !layoutUrl.startsWith("https://")} onClick={() => workflow("import_layout", { source_url: layoutUrl })} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">Import</button>
+                      </div>
+                    </label>
+                  )}
                 </div>
               )}
               <CMSFriendlyEditor resource={resource} json={json} setJson={setJson} />
@@ -416,12 +427,30 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         <RichTextEditor value={value.body || ""} onChange={html => set("body", html)} />
       </label>
       {field("image_url", "Image URL")}
+      <label className="text-xs font-semibold text-slate-600">Media URL (HTTPS or /)
+        <input className="input-field mt-1" value={value.config?.media_url || ""} onChange={e => set("config", { ...(value.config || {}), media_url: e.target.value })} />
+      </label>
+      <label className="text-xs font-semibold text-slate-600">Animation
+        <select className="input-field mt-1" value={value.config?.effect || "none"} onChange={e => set("config", { ...(value.config || {}), effect: e.target.value })}>
+          {["none", "marquee", "fade", "slide"].map(item => <option key={item}>{item}</option>)}
+        </select>
+      </label>
+      <label className="text-xs font-semibold text-slate-600">Placement
+        <select className="input-field mt-1" value={value.config?.placement || "main"} onChange={e => set("config", { ...(value.config || {}), placement: e.target.value })}>
+          {["main", "hero", "sidebar", "footer"].map(item => <option key={item}>{item}</option>)}
+        </select>
+      </label>
       {field("cta_text", "Button text")}
       {field("cta_url", "Button route")}
       {field("icon", "Icon")}
       <label className="text-xs font-semibold text-slate-600">Section type
         <select className="input-field mt-1" value={value.section_type || "text"} onChange={e => set("section_type", e.target.value)}>
           {sectionTypes.map(type => <option key={type}>{type}</option>)}
+        </select>
+      </label>
+      <label className="text-xs font-semibold text-slate-600">Layout
+        <select className="input-field mt-1" value={value.layout_variant || "default"} onChange={e => set("layout_variant", e.target.value)}>
+          {["default", "compact", "wide", "cards", "hero", "split"].map(item => <option key={item}>{item}</option>)}
         </select>
       </label>
       {field("display_order", "Display order", "number")}
@@ -552,7 +581,17 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <label className="font-semibold">Title<input className="input-field mt-1" value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
                 <label className="font-semibold">Key<input className="input-field mt-1" value={draft.key || ""} onChange={(e) => setDraft({ ...draft, key: e.target.value })} /></label>
                 <label className="font-semibold">Subtitle<input className="input-field mt-1" value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></label>
-                <label className="font-semibold">Image URL<input className="input-field mt-1" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
+                <label className="font-semibold">Image / media URL<input className="input-field mt-1" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
+                <label className="font-semibold">Section type
+                  <select className="input-field mt-1" value={draft.section_type || "text"} onChange={(e) => setDraft({ ...draft, section_type: e.target.value })}>
+                    {sectionTypes.map((type) => <option key={type}>{type}</option>)}
+                  </select>
+                </label>
+                <label className="font-semibold">Layout
+                  <select className="input-field mt-1" value={draft.layout_variant || "default"} onChange={(e) => setDraft({ ...draft, layout_variant: e.target.value })}>
+                    {["default", "compact", "wide", "cards", "hero", "split"].map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                </label>
                 <label className="sm:col-span-2 font-semibold">Body
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>

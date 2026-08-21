@@ -15,6 +15,8 @@ import Breadcrumbs from "../../components/common/Breadcrumbs"
 import useGeolocation from "../../hooks/useGeolocation"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import usePublicConfig from "../../hooks/usePublicConfig"
+import { CMSExtras } from "../../components/cms/CMSBlock"
 
 // Nepal palette
 const GREEN = "#1f6b4d"
@@ -88,6 +90,7 @@ function chipToQuery(chip) {
 export default function DestinationList() {
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
+  const { showBlock, copy, extras } = usePublicConfig().pageCMS("destinations", ["intro", "search", "featured"])
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -275,11 +278,10 @@ export default function DestinationList() {
           </span>
           <h1 className="text-3xl md:text-4xl font-extrabold mt-1 flex items-center gap-2"
               style={{ color: INK, fontFamily: 'ui-serif, Georgia, "Noto Serif Devanagari", serif' }}>
-            <FiMapPin style={{ color: TERRACOTTA }} /> Explore Nepal
+            <FiMapPin style={{ color: TERRACOTTA }} /> {copy("intro", "title", "Explore Nepal")}
           </h1>
           <p className="text-gray-600 text-sm mt-1 max-w-xl">
-            Discover real temples, stupas, caves, lakes, Himalayan viewpoints, national parks and
-            heritage sites across Nepal's 7 provinces.
+            {copy("intro", "body", "Discover real temples, stupas, caves, lakes, Himalayan viewpoints, national parks and heritage sites across Nepal's 7 provinces.")}
           </p>
         </div>
 
@@ -463,6 +465,7 @@ export default function DestinationList() {
           </button>
         </div>
       )}
+      {extras?.length > 0 && <CMSExtras sections={extras} />}
     </div>
   )
 }

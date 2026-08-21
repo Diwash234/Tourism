@@ -116,6 +116,8 @@ const AdminDashboard = () => {
   const [newImageUrl, setNewImageUrl] = useState("")
   const [newImageCaption, setNewImageCaption] = useState("")
   const [newImageFile, setNewImageFile] = useState(null)
+  const [pipelineVideos, setPipelineVideos] = useState([])
+  const [newVideoFile, setNewVideoFile] = useState(null)
 
   const handleUploadAdminImage = async () => {
     if (!newImageFile) return
@@ -215,6 +217,7 @@ const AdminDashboard = () => {
       if (id) {
         const { data } = await adminApi.getAdminDestination(id)
         setPipelineImages(galleryRows(data.gallery || []))
+        setPipelineVideos(data.videos || [])
         if (data.slug) setPipelineDestSlug(data.slug)
       } else {
         const { data } = await adminApi.getDestinationImages(s)
@@ -1681,6 +1684,43 @@ const AdminDashboard = () => {
                   </div>
                 )}
                 <p className="text-[10px] text-slate-300">URL and local-disk uploads save directly to the database and show on the site immediately.</p>
+                <div className="pt-3 border-t border-slate-700/60 space-y-2">
+                  <p className="text-[11px] font-bold text-sky-300">Admin: destination videos (25 MB max)</p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input type="file" accept="video/*" onChange={(e)=>setNewVideoFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
+                    <button type="button" disabled={!newVideoFile} onClick={async () => {
+                      if (!newVideoFile) return
+                      if (newVideoFile.size > 25 * 1024 * 1024) return showToast("Videos must be 25 MB or smaller.", "error")
+                      const destId = await resolvePipelineDestination()
+                      if (!destId) return showToast("Select a destination first.", "error")
+                      const form = new FormData()
+                      form.append("video_file", newVideoFile)
+                      form.append("title", newVideoFile.name)
+                      try {
+                        await adminApi.addAdminDestinationVideo(destId, form)
+                        showToast("Video added.", "success")
+                        setNewVideoFile(null)
+                        await loadPipelineImages(null, destId)
+                      } catch (error) {
+                        showToast(error?.response?.data?.detail || "Video upload failed.", "error")
+                      }
+                    }} className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-40 text-white text-xs font-bold">Upload video</button>
+                  </div>
+                  {pipelineVideos.length > 0 && (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {pipelineVideos.map((video) => (
+                        <div key={video.id} className="rounded-lg bg-slate-800/80 p-2 text-[11px] text-slate-200">
+                          <p className="font-bold truncate">{video.title || video.caption || "Video"} · {video.verification_status}</p>
+                          {video.url && <video src={video.url} controls className="mt-1 w-full max-h-32 rounded" />}
+                          <div className="mt-1 flex gap-1">
+                            <button type="button" onClick={async () => { await adminApi.updateAdminDestinationVideo(pipelineDestId, { video_id: video.id, verification_status: video.verification_status === "approved" ? "pending" : "approved" }); loadPipelineImages() }} className="rounded bg-emerald-700 px-2 py-1 text-white font-bold">{video.verification_status === "approved" ? "Unpublish" : "Approve"}</button>
+                            <button type="button" onClick={async () => { if (!window.confirm("Remove this video?")) return; await adminApi.deleteAdminDestinationVideo(pipelineDestId, video.id); loadPipelineImages() }} className="rounded bg-rose-700 px-2 py-1 text-white font-bold">Remove</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -1928,3 +1928,59 @@ class CMSStudioExtensionTests(APITestCase):
         self.assertEqual(published.status_code, status.HTTP_200_OK)
         section.refresh_from_db()
         self.assertEqual(section.status, "published")
+
+    def test_import_layout_json_creates_draft_sections(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/layout-import", key="layout-import", title="Layout import", status="draft")
+        imported = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "import_layout",
+            "layout": [
+                {"key": "hero", "section_type": "heading", "title": "Imported hero", "body": "Hello"},
+                {"key": "video", "section_type": "video", "title": "Clip", "config": {"media_url": "https://example.com/clip.mp4", "media_kind": "video"}},
+            ],
+        }, format="json")
+        self.assertEqual(imported.status_code, status.HTTP_200_OK)
+        self.assertEqual(imported.data["created"], 2)
+        self.assertTrue(ContentSection.objects.filter(page=page, key="hero", status="draft").exists())
+        insecure = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "import_layout",
+            "source_url": "http://example.com/layout.json",
+        }, format="json")
+        self.assertEqual(insecure.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_community_video_is_capped_at_25mb_and_stays_pending(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationVideo
+        tourist = User.objects.create_user(email="clip@example.com", password="StrongPass123!", is_verified=True)
+        self.client.force_authenticate(tourist)
+        too_big = SimpleUploadedFile("huge.mp4", b"0" * (25 * 1024 * 1024 + 1), content_type="video/mp4")
+        denied = self.client.post(reverse("destination-videos", kwargs={"slug": self.destination.slug}), {"video_file": too_big, "title": "Too big"}, format="multipart")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        clip = SimpleUploadedFile("place.mp4", b"fake-video-bytes", content_type="video/mp4")
+        created = self.client.post(reverse("destination-videos", kwargs={"slug": self.destination.slug}), {"video_file": clip, "title": "Trail clip"}, format="multipart")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        video = DestinationVideo.objects.get(pk=created.data["id"])
+        self.assertEqual(video.verification_status, "pending")
+        self.assertEqual(video.uploaded_by, tourist)
+
+    def test_staff_can_approve_pending_community_video(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationVideo, StaffCapabilityProfile
+        tourist = User.objects.create_user(email="clipper@example.com", password="StrongPass123!", is_verified=True)
+        video = DestinationVideo.objects.create(
+            destination=self.destination, title="Trail clip",
+            video_file=SimpleUploadedFile("place.mp4", b"fake-video-bytes", content_type="video/mp4"),
+            uploaded_by=tourist, verification_status="pending",
+        )
+        staff = User.objects.create_user(email="media-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"images": ["view", "approve", "change"]})
+        self.client.force_authenticate(staff)
+        listed = self.client.get(reverse("staff-workspace"), {"module": "images"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == video.id and row.get("type") == "video" for row in listed.data["results"]))
+        approved = self.client.post(reverse("staff-workspace"), {
+            "module": "images", "id": video.id, "type": "video", "action": "approve",
+        }, format="json")
+        self.assertEqual(approved.status_code, status.HTTP_200_OK)
+        video.refresh_from_db()
+        self.assertEqual(video.verification_status, "approved")

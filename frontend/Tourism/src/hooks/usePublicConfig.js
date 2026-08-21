@@ -38,6 +38,16 @@ export default function usePublicConfig() {
   }, [lang])
   const branding = data.settings?.branding || {}
   useEffect(() => applyBranding(branding), [branding])
-  const section = (page, key) => data.pages?.find(item => item.key === page)?.sections?.find(item => item.key === key)
-  return { ...data, branding, section }
+  const pageOf = (key) => data.pages?.find(item => item.key === key)
+  const section = (page, key) => pageOf(page)?.sections?.find(item => item.key === key)
+  const pageCMS = (pageKey, knownKeys = []) => {
+    const page = pageOf(pageKey)
+    const managed = Boolean(page?.sections?.length)
+    const block = (key) => section(pageKey, key)
+    const showBlock = (key) => !managed || Boolean(block(key))
+    const copy = (key, field, fallback) => block(key)?.[field] || fallback
+    const extras = (page?.sections || []).filter(item => !knownKeys.includes(item.key))
+    return { page, managed, block, showBlock, copy, extras }
+  }
+  return { ...data, branding, section, pageOf, pageCMS }
 }

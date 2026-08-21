@@ -12,6 +12,9 @@ import {
 import destinationApi from "../../api/destinationApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
+import { photoApi } from "../../services/api"
+import usePublicConfig from "../../hooks/usePublicConfig"
+import { CMSExtras } from "../../components/cms/CMSBlock"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
@@ -34,6 +37,9 @@ export default function DestinationDetails() {
 
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
+  const { extras } = usePublicConfig().pageCMS("destination-detail", ["hero", "about", "gallery", "video", "map"])
+  const [videoFile, setVideoFile] = useState(null)
+  const [videoBusy, setVideoBusy] = useState(false)
 
   const [destination, setDestination] = useState(null)
   const [budget, setBudget] = useState(null)
@@ -275,6 +281,44 @@ export default function DestinationDetails() {
           </button>
         </div>
 
+      </div>
+
+      <div className="card-base p-5 rounded-3xl border border-emerald-100 space-y-3">
+        <h3 className="font-black text-gray-900">Community videos (25 MB max)</h3>
+        <p className="text-xs text-gray-500">Logged-in travellers can submit a short clip of this place. Admin reviews it before it is public.</p>
+        {(destination.videos || []).length > 0 && (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {destination.videos.map((clip) => (
+              <div key={clip.id} className="rounded-xl bg-slate-50 p-3 text-xs">
+                <p className="font-bold">{clip.title || clip.caption || "Traveller video"} {clip.verification_status === "pending" && <span className="text-amber-700">pending review</span>}</p>
+                {clip.display_url && <video src={clip.display_url} controls className="mt-2 w-full rounded-lg max-h-48" />}
+              </div>
+            ))}
+          </div>
+        )}
+        {isAuthenticated && (
+          <form className="flex flex-col sm:flex-row gap-2" onSubmit={async (e) => {
+            e.preventDefault()
+            if (!videoFile) return
+            if (videoFile.size > 25 * 1024 * 1024) return showToast("Videos must be 25 MB or smaller.", "error")
+            const form = new FormData()
+            form.append("video_file", videoFile)
+            form.append("title", videoFile.name)
+            setVideoBusy(true)
+            try {
+              await photoApi.uploadVideo(destination.slug, form)
+              showToast("Video submitted for review.", "success")
+              setVideoFile(null)
+              const { data } = await destinationApi.getById(destination.slug)
+              setDestination(data)
+            } catch (error) {
+              showToast(error.response?.data?.detail || "Video upload failed.", "error")
+            } finally { setVideoBusy(false) }
+          }}>
+            <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} className="text-xs" />
+            <button type="submit" disabled={!videoFile || videoBusy} className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{videoBusy ? "Uploading…" : "Upload video"}</button>
+          </form>
+        )}
       </div>
 
       {/* Quick Geographic Distances & Transit Metrics Box */}
@@ -647,6 +691,8 @@ export default function DestinationDetails() {
           </button>
         </div>
       </div>
+
+      {extras?.length > 0 && <CMSExtras sections={extras} />}
 
       {/* OFFLINE TRAVEL KIT MODAL */}
       <AnimatePresence>

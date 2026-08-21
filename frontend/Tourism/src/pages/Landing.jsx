@@ -16,7 +16,8 @@ import NepalExperienceSection from "../components/dashboard/NepalExperienceSecti
 import NationalSymbols from "../components/dashboard/NationalSymbols"
 import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
-import configApi from "../api/configApi"
+import usePublicConfig from "../hooks/usePublicConfig"
+import { CMSExtras } from "../components/cms/CMSBlock"
 import {
   FadeIn, SlideUp, Stagger, StaggerItem, HoverCard,
   BurnGlowBadge, InteractiveHeroCanvas
@@ -86,19 +87,15 @@ const FAQ_ITEMS = [
   }
 ]
 
+const HOME_KEYS = ["hero", "features", "featured", "case-studies", "highlights", "symbols", "culture", "provinces", "marquee", "testimonials", "faq", "cta"]
+
 export default function Landing() {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const { showBlock, copy, extras } = usePublicConfig().pageCMS("home", HOME_KEYS)
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
-  const [cmsHero, setCmsHero] = useState(null)
-
-  useEffect(() => {
-    configApi.getPublicConfig().then(({data}) => {
-      const home=data.pages?.find(page=>page.key==="home")
-      setCmsHero(home?.sections?.find(section=>section.key==="hero")||null)
-    }).catch(()=>{})
-  }, [])
+  const cmsHero = { title: copy("hero", "title"), subtitle: copy("hero", "subtitle", copy("hero", "body")) }
 
   // Search-as-you-type suggestions + did-you-mean autocorrect from the API
   const fetchSuggestions = useCallback(async (q, signal) => {
@@ -122,8 +119,7 @@ export default function Landing() {
 
   return (
     <div className="relative overflow-x-hidden bg-white text-gray-900">
-      {/* 1. HERO SECTION (Above the fold conversion engine) */}
-      <section className="relative bg-gradient-to-br from-[#0f1f1a] via-[#163026] to-[#1f4a38] text-white overflow-hidden py-24 sm:py-32">
+      {showBlock("hero") && <section className="relative bg-gradient-to-br from-[#0f1f1a] via-[#163026] to-[#1f4a38] text-white overflow-hidden py-24 sm:py-32">
         <HeroEffects />
         <InteractiveHeroCanvas />
 
@@ -222,20 +218,19 @@ export default function Landing() {
             </div>
           </FadeIn>
         </div>
-      </section>
+      </section>}
 
-      {/* 2. CORE FEATURES (REFERO & STITCH GRADE POLISH) */}
-      <section className="container-app py-20 relative z-10">
+      {showBlock("features") && <section className="container-app py-20 relative z-10">
         <SlideUp>
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
               Engineered for Himalayan Explorers
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-              Why Travel with Nepal Portal
+              {copy("features", "title", "Why Travel with Nepal Portal")}
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Everything you need for an unforgettable, safe, and cost-effective expedition.
+              {copy("features", "body", "Everything you need for an unforgettable, safe, and cost-effective expedition.")}
             </p>
           </div>
         </SlideUp>
@@ -261,17 +256,16 @@ export default function Landing() {
             </HoverCard>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {/* 3. FEATURED TOP DESTINATIONS */}
-      <section className="container-app py-16">
+      {showBlock("featured") && <section className="container-app py-16">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
               Handpicked Wonders
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-              Featured Nepal Destinations
+              {copy("featured", "title", "Featured Nepal Destinations")}
             </h2>
           </div>
           <Link
@@ -295,21 +289,16 @@ export default function Landing() {
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
-      {/* 4. EXPEDITION BLUEPRINTS & CASE STUDIES */}
-      <CaseStudiesSection />
+      {showBlock("case-studies") && <CaseStudiesSection />}
+      {showBlock("highlights") && <NepalHighlights />}
+      {(showBlock("symbols") || showBlock("culture")) && <section className="container-app py-10">
+        {showBlock("symbols") && <NationalSymbols />}
+        {showBlock("culture") && <NepalExperienceSection />}
+      </section>}
 
-      {/* 5. NEPAL HIGHLIGHTS & CULTURAL EXPERIENCES */}
-      <NepalHighlights />
-
-      <section className="container-app py-10">
-        <NationalSymbols />
-        <NepalExperienceSection />
-      </section>
-
-      {/* 6. PROVINCES DIRECTORY */}
-      <section className="container-app py-16">
+      {showBlock("provinces") && <section className="container-app py-16">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Explore Destinations by Province
@@ -331,32 +320,27 @@ export default function Landing() {
             </Link>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {/* 6b. PROVINCE MARQUEE */}
-        <ProvinceMarquee />
+      {showBlock("marquee") && <ProvinceMarquee />}
+      {showBlock("testimonials") && <TestimonialsSection />}
 
-      {/* 7. REAL TESTIMONIALS */}
-      <TestimonialsSection />
-
-      {/* 8. FAQ SECTION */}
-      <section className="container-app py-16">
+      {showBlock("faq") && <section className="container-app py-16">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Frequently Asked Questions
+            {copy("faq", "title", "Frequently Asked Questions")}
           </h2>
           <p className="text-gray-500 text-sm mt-1">
-            Everything travelers ask before embarking on their journey in Nepal.
+            {copy("faq", "body", "Everything travelers ask before embarking on their journey in Nepal.")}
           </p>
         </div>
-
         <div className="max-w-3xl mx-auto">
           <FAQAccordion items={FAQ_ITEMS} />
         </div>
-      </section>
+      </section>}
 
-      {/* 9. STICKY CONVERSION CTA */}
-      <StickyCTA />
+      {showBlock("cta") && <StickyCTA />}
+      {extras?.length > 0 && <section className="container-app py-12"><CMSExtras sections={extras} /></section>}
     </div>
   )
 }
