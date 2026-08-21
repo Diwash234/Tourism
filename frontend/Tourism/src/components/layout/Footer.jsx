@@ -184,12 +184,11 @@ const Footer = () => {
 
 
 
-      {extras?.length > 0 && <div className="container-app pb-8 text-white"><CMSExtras sections={extras} /></div>}
+      {extras?.length > 0 && <div className="container-app pb-8 text-stone-100"><CMSExtras sections={extras} /></div>}
 
-      <div className="border-t border-gray-700 py-4 text-center text-xs text-gray-500">
-
+      <div className="border-t border-stone-700 py-4 text-center text-xs text-stone-300">
         © {new Date().getFullYear()} {siteTitle}. All rights reserved.
-
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="ml-4 font-bold text-white hover:underline">Back to top</button>
       </div>
 
 

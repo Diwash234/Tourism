@@ -20,7 +20,7 @@ export default function AdminLayout() {
   return (
     <div className="admin-green-theme min-h-screen bg-emerald-50 text-slate-900">
       <a href="#admin-main" className="admin-skip-link">Skip to admin content</a>
-      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 border-b border-emerald-800 bg-emerald-950 px-3 text-white shadow-sm sm:px-5">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 overflow-visible border-b border-emerald-800 bg-emerald-950 px-3 text-white shadow-sm sm:px-5">
         <button
           onClick={() => setOpen((value) => !value)}
           className="admin-icon-button !bg-emerald-800 !text-white"
@@ -102,11 +102,12 @@ export default function AdminLayout() {
                         <Icon aria-hidden="true" className="text-base shrink-0" />
                         {label}
                       </Link>
-                      {activeSection === section && children?.length > 0 && (
+                      {children?.length > 0 && (activeSection === section || children.some((child) => (child.query?.section || section) === activeSection)) && (
                         <div className="ml-8 mt-1 mb-2 space-y-1 text-xs text-emerald-100">
                           {children.map((child) => {
                             const href = adminSectionHref(section, child.query)
-                            const current = location.search.includes(Object.entries(child.query)[0].join("="))
+                            const targetSection = child.query?.section || section
+                            const current = targetSection === activeSection && Object.entries(child.query || {}).filter(([key]) => key !== "section").every(([key, value]) => new URLSearchParams(location.search).get(key) === String(value))
                             return (
                               <Link key={child.label} to={href} onClick={closeMobile} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${current ? "bg-emerald-800 text-white" : "hover:bg-emerald-900"}`}>
                                 <span className={`inline-block h-3 w-3 rounded border ${current ? "border-white bg-amber-400" : "border-emerald-400"}`} />

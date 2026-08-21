@@ -109,7 +109,7 @@ export default function AdminGlobalSearch() {
         </button>
       )}
       {open && (
-        <div className="absolute left-0 right-0 z-[80] mt-2 max-h-[28rem] overflow-y-auto rounded-2xl border border-emerald-200 bg-white p-2 text-slate-900 shadow-2xl">
+        <div className="admin-search-results absolute left-0 right-0 z-[80] mt-2 max-h-[28rem] overflow-y-auto rounded-2xl border border-emerald-200 bg-white p-2 text-slate-900 shadow-2xl">
           <div className="mb-2 flex flex-wrap gap-1 px-2">
             {FILTERS.map((item) => (
               <button

@@ -1,7 +1,8 @@
 import {
-  BsActivity, BsBarChart, BsBell, BsBriefcase, BsChatDots, BsDatabase, BsExclamationTriangle,
-  BsFileEarmarkText, BsGear, BsGeoAlt, BsHouseDoor, BsImage, BsLayers, BsPalette, BsPeople,
-  BsPinMap, BsSearch, BsShieldLock, BsStar, BsTools, BsTranslate, BsTruck,
+  BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
+  BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
+  BsHouseDoor, BsImage, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
+  BsTools, BsTranslate, BsTruck,
 } from "react-icons/bs"
 
 export const ADMIN_NAV_GROUPS = [
@@ -19,10 +20,13 @@ export const ADMIN_NAV_GROUPS = [
       { label: "Inactive", query: { status: "inactive" } },
     ]],
     ["staff_permissions", "Staff", BsShieldLock, [
-      { label: "Staff accounts", query: { role: "staff" } },
-      { label: "Moderators", query: { role: "content_moderator" } },
-      { label: "District managers", query: { role: "district_manager" } },
-      { label: "Hotel managers", query: { role: "hotel_manager" } },
+      { label: "Pending verification", query: { section: "users", role: "staff", verified: "false" } },
+      { label: "Verified staff", query: { section: "users", role: "staff", verified: "true" } },
+      { label: "Active staff", query: { section: "users", role: "staff", status: "active" } },
+      { label: "Staff accounts", query: { section: "users", role: "staff" } },
+      { label: "Moderators", query: { section: "users", role: "content_moderator" } },
+      { label: "District managers", query: { section: "users", role: "district_manager" } },
+      { label: "Hotel managers", query: { section: "users", role: "hotel_manager" } },
     ]],
     ["tracking", "Live Tracking & SOS", BsActivity],
     ["feedback_workspace", "Feedback", BsChatDots],
@@ -38,10 +42,10 @@ export const ADMIN_NAV_GROUPS = [
     ["category_translations", "Categories & Translations", BsTranslate],
     ["images", "Image Verification", BsImage, [
       { label: "Pending", query: { status: "pending" } },
-      { label: "Approved", query: { status: "approved" } },
-      { label: "Rejected", query: { status: "rejected" } },
+      { label: "Approved", query: { section: "media_library", status: "approved" } },
+      { label: "Rejected", query: { section: "media_library", status: "rejected" } },
     ]],
-    ["media_library", "Central Media Library", BsLayers, [
+    ["media_library", "Central Media Library", BsCollection, [
       { label: "Pending", query: { status: "pending" } },
       { label: "Approved", query: { status: "approved" } },
       { label: "Rejected", query: { status: "rejected" } },
@@ -54,14 +58,14 @@ export const ADMIN_NAV_GROUPS = [
     ["datasets", "Dataset & CSV Manager", BsDatabase],
   ]},
   { label: "Travel Services", items: [
-    ["hotel_bookings", "Hotels & Bookings", BsBriefcase],
+    ["hotel_bookings", "Hotels & Bookings", BsBuilding],
     ["travel_services", "Restaurants, Transport & Plans", BsTruck],
     ["review_moderation", "Review Moderation", BsStar],
     ["expenses", "Expense ML Data", BsBarChart],
   ]},
   { label: "Safety & Emergency", items: [
     ["emergencies", "Medical SOS", BsExclamationTriangle],
-    ["infrastructure", "Community Services, Photos & ML", BsLayers],
+    ["infrastructure", "Community Services, Photos & ML", BsHospital],
     ["risks", "Safety & Hazard ML", BsShieldLock],
     ["safety_management", "Alerts & Safety", BsGeoAlt],
   ]},
@@ -69,7 +73,10 @@ export const ADMIN_NAV_GROUPS = [
 
 export const ADMIN_PRIMARY_NAV = ["overview", "reports", "users", "places", "media_library", "safety_management"]
 export const adminSectionHref = (section, extra = {}) => {
-  const params = new URLSearchParams({ ...(section === "overview" ? {} : { section }), ...extra })
+  const target = extra.section || section
+  const rest = { ...extra }
+  delete rest.section
+  const params = new URLSearchParams({ ...(target === "overview" ? {} : { section: target }), ...rest })
   const query = params.toString()
   return query ? `/admin?${query}` : "/admin"
 }

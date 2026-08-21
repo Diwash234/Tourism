@@ -39,6 +39,11 @@ export default function UserManagement() {
   }, [q, role, status, verified, page])
 
   useEffect(() => { const timer = setTimeout(load, 250); return () => clearTimeout(timer) }, [load])
+  useEffect(() => {
+    setRole(params.get("role") || "")
+    setStatus(params.get("status") || "")
+    setVerified(params.get("verified") || "")
+  }, [params])
   useEffect(() => setPage(1), [q, role, status, verified])
 
   const openDetail = async (id) => {
