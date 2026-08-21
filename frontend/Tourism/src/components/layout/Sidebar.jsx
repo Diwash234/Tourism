@@ -181,7 +181,7 @@ export default function Sidebar() {
                 aria-expanded={expanded[grp.label] !== false}
               >
                 {grp.tk ? t(grp.tk) : grp.label}
-                {expanded[grp.label] !== false ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+                {expanded[grp.label] !== false ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
               </button>
               {expanded[grp.label] !== false && (
                 <div className="space-y-0.5 border-l-2 border-emerald-100 ml-3 pl-1">
