@@ -44,6 +44,7 @@ function FacilityCard({ facility }) {
         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${meta.color}`}>{meta.icon} {meta.label}</span>
         {facility.distance_km != null && <span className="text-xs font-black text-purple-700">{facility.distance_km} km · ~{facility.estimated_travel_time_min} min</span>}
       </div>
+      {facility.image_url && <img src={facility.image_url} alt={facility.name} className="h-32 w-full rounded-xl object-cover" />}
       <div>
         <h3 className="font-extrabold text-sm text-gray-900">{facility.name}</h3>
         <p className="text-xs text-gray-500 mt-1 flex gap-1"><FiMapPin className="shrink-0 mt-0.5" />{facility.address || facility.district || "Nepal"}</p>

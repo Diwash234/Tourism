@@ -2379,7 +2379,9 @@ class ContentSection(TimeStampedModel):
             ("text", "Text"), ("heading", "Heading"), ("image", "Image"), ("gallery", "Gallery"),
             ("cards", "Cards"), ("faq", "FAQ"), ("cta", "Call to action"), ("map", "Map"),
             ("video", "Video"), ("audio", "Audio"), ("marquee", "Marquee"),
-            ("animation", "Animation"), ("media", "Media"),
+            ("animation", "Animation"), ("media", "Media"), ("form", "Form"),
+            ("table", "Table"), ("figure", "Figure"), ("testimonials", "Testimonials"),
+            ("contact", "Contact"), ("breadcrumbs", "Breadcrumbs"), ("search", "Search"),
         ],
         default="text",
     )

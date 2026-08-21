@@ -17,6 +17,7 @@ import BarChartCard from "../../components/charts/BarChartCard"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
+import ServicePhotosPanel from "../../components/admin/ServicePhotosPanel"
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 import CMSPanel from "../../components/admin/CMSPanel"
 import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
@@ -1968,7 +1969,12 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
-        {activeTab === "infrastructure" && <InfrastructureModerationPanel />}
+        {activeTab === "infrastructure" && (
+          <div className="space-y-6">
+            <ServicePhotosPanel />
+            <InfrastructureModerationPanel />
+          </div>
+        )}
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
         {activeTab === "travel_services" && <TravelServicesPanel />}
         {activeTab === "review_moderation" && <ReviewModerationPanel />}

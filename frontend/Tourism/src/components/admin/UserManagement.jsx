@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { FiCheckCircle, FiChevronLeft, FiChevronRight, FiKey, FiPlus, FiRefreshCw, FiSearch, FiShield, FiUserCheck, FiUserX, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -10,14 +11,15 @@ const date = (value) => value ? new Date(value).toLocaleString() : "Never"
 
 export default function UserManagement() {
   const { showToast } = useToast()
+  const [params] = useSearchParams()
   const [rows, setRows] = useState([])
   const [count, setCount] = useState(0)
   const [pages, setPages] = useState(1)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState("")
-  const [role, setRole] = useState("")
-  const [status, setStatus] = useState("")
-  const [verified, setVerified] = useState("")
+  const [role, setRole] = useState(params.get("role") || "")
+  const [status, setStatus] = useState(params.get("status") || "")
+  const [verified, setVerified] = useState(params.get("verified") || "")
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -74,7 +76,7 @@ export default function UserManagement() {
     await mutate(selected.id, () => adminApi.runUserAccessAction(selected.id, "anonymize", { confirmation }), "Permanently anonymize this user's personal data?")
   }
 
-  return <div className="space-y-5 text-slate-100">
+  return <div className="space-y-5 text-slate-900">
     <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
       <div><h2 className="text-2xl font-black flex items-center gap-2"><FiShield className="text-amber-400"/> User access management</h2><p className="text-xs text-slate-400 mt-1">Search, verify, deactivate, revoke sessions, and review security history. Deletion is retention-safe deactivation.</p></div>
       <button onClick={() => setCreating(true)} className="px-4 py-2.5 rounded-xl bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2"><FiPlus/> Create account</button>

@@ -548,30 +548,60 @@ body.sidebar-open .sidebar-backdrop {
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 @media (pointer: coarse) { .admin-icon-button, .admin-primary-button, .admin-secondary-button, .admin-danger-button { min-height: 2.75rem; } }
 
-/* Unified admin palette: white surfaces and Nepal green accents. */
-.admin-green-theme .bg-slate-950,
-.admin-green-theme .bg-slate-950\/80,
-.admin-green-theme .bg-slate-950\/70 { background-color: #ffffff !important; color: #0f172a; }
-.admin-green-theme .bg-slate-900,
-.admin-green-theme .bg-slate-900\/80,
-.admin-green-theme .bg-slate-900\/70,
-.admin-green-theme .bg-slate-900\/60 { background-color: #f0fdf4 !important; color: #14532d; }
-.admin-green-theme .bg-slate-800,
-.admin-green-theme .bg-slate-800\/60,
-.admin-green-theme .bg-slate-800\/80 { background-color: #dcfce7 !important; color: #14532d; }
-.admin-green-theme .text-white,
-.admin-green-theme .text-slate-100,
-.admin-green-theme .text-slate-200 { color: #14532d !important; }
-.admin-green-theme header .text-white,
-.admin-green-theme button.bg-emerald-700,
-.admin-green-theme button.bg-rose-700,
-.admin-green-theme button.bg-rose-800,
-.admin-green-theme a.bg-emerald-700 { color: #fff !important; }
-.admin-green-theme .border-slate-700,
-.admin-green-theme .border-slate-800,
-.admin-green-theme .border-slate-600\/40,
-.admin-green-theme .border-slate-700\/40 { border-color: #bbf7d0 !important; }
-.admin-green-theme input,
-.admin-green-theme select,
-.admin-green-theme textarea { background-color: #fff; color: #0f172a; border-color: #86efac; }
-.admin-green-theme .card-base { background-color: #fff; border-color: #bbf7d0; }
+/* Admin chrome stays dark; main workspace is light with dark readable text. */
+.admin-green-theme header input,
+.admin-green-theme header select,
+.admin-green-theme header textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #a7f3d0 !important;
+}
+.admin-green-theme header input::placeholder { color: #64748b !important; }
+.admin-green-theme main .bg-slate-950,
+.admin-green-theme main .bg-slate-950\/80,
+.admin-green-theme main .bg-slate-950\/70,
+.admin-green-theme main .bg-slate-900,
+.admin-green-theme main .bg-slate-900\/80,
+.admin-green-theme main .bg-slate-900\/70,
+.admin-green-theme main .bg-slate-900\/60,
+.admin-green-theme main .bg-slate-800,
+.admin-green-theme main .bg-slate-800\/80,
+.admin-green-theme main .bg-slate-800\/60 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+.admin-green-theme main .text-white,
+.admin-green-theme main .text-slate-100,
+.admin-green-theme main .text-slate-200,
+.admin-green-theme main .text-slate-300,
+.admin-green-theme main .text-slate-400,
+.admin-green-theme main .text-emerald-200,
+.admin-green-theme main .text-amber-200,
+.admin-green-theme main .text-amber-300,
+.admin-green-theme main .text-rose-200,
+.admin-green-theme main .text-pink-300 {
+  color: #14532d !important;
+}
+.admin-green-theme main button.bg-emerald-700,
+.admin-green-theme main button.bg-emerald-600,
+.admin-green-theme main button.bg-rose-700,
+.admin-green-theme main button.bg-rose-600,
+.admin-green-theme main button.bg-sky-700,
+.admin-green-theme main button.bg-amber-400,
+.admin-green-theme main a.bg-emerald-700,
+.admin-green-theme main a.bg-rose-600 {
+  color: #fff !important;
+}
+.admin-green-theme main button.bg-amber-400 { color: #0f172a !important; }
+.admin-green-theme main .border-slate-700,
+.admin-green-theme main .border-slate-800,
+.admin-green-theme main .border-slate-600\/40,
+.admin-green-theme main .border-slate-700\/40 { border-color: #bbf7d0 !important; }
+.admin-green-theme main input,
+.admin-green-theme main select,
+.admin-green-theme main textarea {
+  background-color: #fff !important;
+  color: #0f172a !important;
+  border-color: #86efac !important;
+}
+.admin-green-theme main .card-base { background-color: #fff; border-color: #bbf7d0; color: #0f172a; }

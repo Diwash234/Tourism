@@ -58,18 +58,18 @@ export default function AuthShell({
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/70 to-black/80" />
         <div className="relative z-10 h-full flex flex-col justify-between p-12 text-white">
           <div className="flex items-center gap-3">
             <TourismLogo size="sm" />
-            <span className="font-bold tracking-wide">Digital Nepal Tourism</span>
+            <span className="font-bold tracking-wide text-white drop-shadow">Digital Nepal Tourism</span>
           </div>
           <div>
-            <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full border ${t.badge}`}>
+            <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-white/80 bg-black/50 text-white">
               {t.name}
             </span>
-            <h2 className="mt-4 text-4xl font-black leading-tight">{t.tagline}</h2>
-            <p className="mt-3 text-white/80 max-w-md">{t.note}</p>
+            <h2 className="mt-4 text-4xl font-black leading-tight text-white drop-shadow-lg">{t.tagline}</h2>
+            <p className="mt-3 text-white max-w-md drop-shadow">{t.note}</p>
           </div>
         </div>
       </div>

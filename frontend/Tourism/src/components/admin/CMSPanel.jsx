@@ -5,7 +5,7 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 
 const resources = ["settings", "pages", "sections", "navigation", "translations"]
-const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media"]
+const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
   destination: { label: "Destination Page" },
@@ -362,6 +362,57 @@ export default function CMSPanel() {
   )
 }
 
+function SectionConfigFields({ value, set }) {
+  const config = value.config || {}
+  const setConfig = (next) => set("config", { ...config, ...next })
+  const type = value.section_type
+  if (type === "form") {
+    const fields = Array.isArray(config.fields) ? config.fields : []
+    const updateField = (index, patch) => setConfig({ fields: fields.map((field, i) => i === index ? { ...field, ...patch } : field) })
+    return (
+      <div className="sm:col-span-2 space-y-2 rounded-xl border border-emerald-200 bg-white p-3">
+        <p className="text-xs font-black text-emerald-800">Form fields (no code). Allowed: text, email, tel, textarea, select, checkbox.</p>
+        {fields.map((field, index) => (
+          <div key={index} className="grid gap-2 rounded-lg bg-emerald-50 p-2 sm:grid-cols-5">
+            <input className="input-field" value={field.label || ""} onChange={(e) => updateField(index, { label: e.target.value })} placeholder="Label" />
+            <input className="input-field" value={field.name || ""} onChange={(e) => updateField(index, { name: e.target.value })} placeholder="name" />
+            <select className="input-field" value={field.field_type || "text"} onChange={(e) => updateField(index, { field_type: e.target.value })}>
+              {["text", "email", "tel", "textarea", "select", "checkbox"].map((item) => <option key={item}>{item}</option>)}
+            </select>
+            <label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={Boolean(field.required)} onChange={(e) => updateField(index, { required: e.target.checked })} /> Required</label>
+            <button type="button" onClick={() => setConfig({ fields: fields.filter((_, i) => i !== index) })} className="rounded-lg bg-rose-100 text-xs font-bold text-rose-800">Remove</button>
+            {field.field_type === "select" && (
+              <input className="input-field sm:col-span-5" value={(field.options || []).join(", ")} onChange={(e) => updateField(index, { options: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Select options, comma separated" />
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={() => setConfig({ fields: [...fields, { name: `field_${fields.length + 1}`, label: "New field", field_type: "text", required: false }] })} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Add text field</button>
+      </div>
+    )
+  }
+  if (type === "table") {
+    return (
+      <div className="sm:col-span-2 grid gap-2 rounded-xl border border-emerald-200 bg-white p-3">
+        <label className="text-xs font-semibold">Table headers (comma separated)
+          <input className="input-field mt-1" value={(config.headers || []).join(", ")} onChange={(e) => setConfig({ headers: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} />
+        </label>
+        <label className="text-xs font-semibold">Rows (one per line, cells separated by |)
+          <textarea rows="4" className="input-field mt-1" value={(config.rows || []).map((row) => (Array.isArray(row) ? row : [row]).join(" | ")).join("\n")} onChange={(e) => setConfig({ rows: e.target.value.split("\n").map((line) => line.split("|").map((cell) => cell.trim())).filter((row) => row.some(Boolean)) })} />
+        </label>
+      </div>
+    )
+  }
+  if (type === "breadcrumbs" || type === "testimonials") {
+    const items = Array.isArray(config.items) ? config.items : []
+    return (
+      <label className="sm:col-span-2 text-xs font-semibold">{type === "breadcrumbs" ? "Breadcrumb labels (one per line)" : "Testimonial lines (one per line)"}
+        <textarea rows="3" className="input-field mt-1" value={items.map((item) => item.label || item).join("\n")} onChange={(e) => setConfig({ items: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean).map((label) => ({ label })) })} />
+      </label>
+    )
+  }
+  return null
+}
+
 function SeoSuite({ value }) {
   const title = value.seo_title || value.title || ""
   const description = value.meta_description || ""
@@ -443,6 +494,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
       {field("cta_text", "Button text")}
       {field("cta_url", "Button route")}
       {field("icon", "Icon")}
+      <SectionConfigFields value={value} set={set} />
       <label className="text-xs font-semibold text-slate-600">Section type
         <select className="input-field mt-1" value={value.section_type || "text"} onChange={e => set("section_type", e.target.value)}>
           {sectionTypes.map(type => <option key={type}>{type}</option>)}

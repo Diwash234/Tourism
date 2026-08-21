@@ -9,7 +9,7 @@ from rest_framework import status, permissions
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
-    Hospital, PoliceStation, TravelExpenseFeedback, TravelRiskFeedback,
+    Hospital, PoliceStation, OSMEssentialService, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
     CurrentHazard,
@@ -1651,7 +1651,7 @@ class AdminCMSView(APIView):
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
             raise ValueError("CTA links must be validated internal routes beginning with /")
         if resource == "sections" and payload.get("section_type"):
-            allowed_types = {"text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media"}
+            allowed_types = {"text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"}
             if payload["section_type"] not in allowed_types:
                 raise ValueError("Unknown section type")
         if resource == "sections" and payload.get("layout_variant"):
@@ -1869,6 +1869,31 @@ class AdminCMSView(APIView):
                 elif isinstance(item, dict) and isinstance(item.get("label"), str):
                     items.append({"label": item["label"][:120]})
             safe["items"] = items
+        if isinstance(config.get("headers"), list):
+            safe["headers"] = [str(header)[:80] for header in config["headers"][:12]]
+        if isinstance(config.get("rows"), list):
+            rows = []
+            for row in config["rows"][:30]:
+                if isinstance(row, list):
+                    rows.append([str(cell)[:120] for cell in row[:12]])
+                elif isinstance(row, str):
+                    rows.append([row[:120]])
+            safe["rows"] = rows
+        allowed_field_types = {"text", "email", "tel", "textarea", "select", "checkbox"}
+        if isinstance(config.get("fields"), list):
+            fields = []
+            for item in config["fields"][:12]:
+                if not isinstance(item, dict):
+                    continue
+                kind = str(item.get("field_type") or "text").lower()
+                if kind not in allowed_field_types:
+                    continue
+                name = re.sub(r"[^a-z0-9_]", "", str(item.get("name") or "field").lower())[:40] or "field"
+                field = {"name": name, "label": str(item.get("label") or "Field")[:80], "field_type": kind, "required": bool(item.get("required"))}
+                if kind == "select" and isinstance(item.get("options"), list):
+                    field["options"] = [str(option)[:80] for option in item["options"][:12]]
+                fields.append(field)
+            safe["fields"] = fields
         return safe
 
     def _import_layout(self, request, page):
@@ -2788,3 +2813,128 @@ class DownloadAIImagesView(APIView):
                 Destination.objects.filter(pk=dest.pk).update(cover_image=img["file_path"])
             saved += 1
         return Response({"destination": dest.name, "downloaded": len(images), "saved": saved})
+
+
+class AdminServiceMediaView(APIView):
+    """Admin photos for hospitals, police stations, fire stations and banks."""
+    permission_classes = [IsAdminOrStaff]
+    KINDS = {
+        "hospital": Hospital,
+        "police": PoliceStation,
+        "essential": OSMEssentialService,
+    }
+
+    def _image_url(self, obj, request):
+        if not getattr(obj, "image", None):
+            return ""
+        try:
+            url = obj.image.url
+            return request.build_absolute_uri(url) if request else url
+        except (ValueError, AttributeError):
+            return ""
+
+    def _row(self, kind, obj, request):
+        dest = getattr(obj, "destination", None)
+        return {
+            "kind": kind,
+            "id": obj.id,
+            "name": obj.name,
+            "category": getattr(obj, "category", kind) or kind,
+            "address": getattr(obj, "address", "") or "",
+            "phone": getattr(obj, "phone", "") or "",
+            "destination": dest.name if dest else "",
+            "image_url": self._image_url(obj, request),
+            "has_image": bool(getattr(obj, "image", None)),
+        }
+
+    def _get_object(self, kind, object_id):
+        model = self.KINDS.get(kind)
+        if not model:
+            return None, Response({"detail": "kind must be hospital, police or essential"}, status=400)
+        try:
+            object_id = int(object_id)
+        except (TypeError, ValueError):
+            return None, Response({"detail": "A valid service id is required"}, status=400)
+        obj = model.objects.filter(pk=object_id).first()
+        if not obj:
+            return None, Response({"detail": "Service not found"}, status=404)
+        return obj, None
+
+    def get(self, request):
+        _require_capability(request, "images", "view")
+        kind = (request.query_params.get("kind") or "").strip()
+        q = (request.query_params.get("q") or "").strip()
+        has_image = request.query_params.get("has_image")
+        kinds = [kind] if kind in self.KINDS else list(self.KINDS)
+        results = []
+        for current in kinds:
+            model = self.KINDS[current]
+            qs = model.objects.all()
+            if current == "essential":
+                category = (request.query_params.get("category") or "").strip()
+                if category:
+                    qs = qs.filter(category=category)
+                else:
+                    qs = qs.filter(category__in=[
+                        "hospital", "clinic", "police", "fire_station", "bank", "blood_bank", "ambulance",
+                    ])
+            if q:
+                search = Q(name__icontains=q) | Q(address__icontains=q)
+                if current != "essential":
+                    search |= Q(destination__name__icontains=q)
+                qs = qs.filter(search)
+            empty_image = Q(image="") | Q(image__isnull=True)
+            if has_image == "true":
+                qs = qs.exclude(empty_image)
+            elif has_image == "false":
+                qs = qs.filter(empty_image)
+            if current != "essential":
+                qs = qs.select_related("destination")
+            for obj in qs.order_by("name")[:150]:
+                results.append(self._row(current, obj, request))
+        return Response({"count": len(results), "results": results})
+
+    def _validate_upload(self, uploaded):
+        if not uploaded:
+            return Response({"detail": "Choose an image file"}, status=400)
+        if uploaded.size > 5 * 1024 * 1024:
+            return Response({"detail": "Image must be 5 MB or smaller"}, status=400)
+        try:
+            from PIL import Image
+            check = Image.open(uploaded)
+            check.verify()
+            uploaded.seek(0)
+            if check.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError()
+        except Exception:
+            return Response({"detail": "Upload a valid JPEG, PNG or WebP image"}, status=400)
+        return None
+
+    def post(self, request):
+        _require_capability(request, "images", "add")
+        kind = (request.data.get("kind") or "").strip()
+        obj, error = self._get_object(kind, request.data.get("id"))
+        if error:
+            return error
+        uploaded = request.FILES.get("file") or request.FILES.get("image")
+        invalid = self._validate_upload(uploaded)
+        if invalid:
+            return invalid
+        if obj.image:
+            obj.image.delete(save=False)
+        obj.image = uploaded
+        obj.save()
+        return Response({"message": "Photo saved", **self._row(kind, obj, request)}, status=201)
+
+    def delete(self, request):
+        _require_capability(request, "images", "delete")
+        kind = (request.data.get("kind") or request.query_params.get("kind") or "").strip()
+        object_id = request.data.get("id") or request.query_params.get("id")
+        obj, error = self._get_object(kind, object_id)
+        if error:
+            return error
+        if obj.image:
+            obj.image.delete(save=False)
+            obj.image = None
+            obj.save()
+        return Response({"message": "Photo removed", **self._row(kind, obj, request)})

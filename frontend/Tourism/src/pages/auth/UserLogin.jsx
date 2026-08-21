@@ -35,6 +35,9 @@ export default function UserLogin() {
         <LightRays color="#1f6b4d" accent="#b8862f" intensity={0.22} speed={24} />
       </div>
 
+      <p className="relative z-10 mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+        Traveller portal only. Demo: tourist@nepaltourism.com / Tourist@12345. Google or GitHub opens the accounts already signed in on this device.
+      </p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
         <div className="relative">
           <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />

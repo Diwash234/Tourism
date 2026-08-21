@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink } from "react-router-dom"
 import {
-  FiHome, FiUser, FiMapPin, FiHeart, FiClock, FiBell, FiSettings,
-  FiDollarSign, FiCalendar, FiAlertTriangle, FiNavigation,
-  FiGlobe, FiMessageCircle, FiBookOpen, FiShield, FiKey, FiBriefcase,
-  FiPlusCircle, FiCheckSquare, FiCompass, FiX, FiLogIn, FiUserPlus, FiTrendingUp, FiImage,
-  FiActivity, FiChevronDown, FiChevronRight,
-} from "react-icons/fi"
+  BsHouseDoor, BsPerson, BsGeoAlt, BsHeart, BsClockHistory, BsBell, BsGear,
+  BsCurrencyDollar, BsCalendar3, BsExclamationTriangle, BsCompass,
+  BsTranslate, BsChatDots, BsJournalBookmark, BsShieldLock, BsKey, BsBriefcase,
+  BsPlusCircle, BsCheck2Square, BsX, BsBoxArrowInRight, BsPersonPlus, BsGraphUp, BsImage,
+  BsActivity, BsChevronDown, BsChevronRight, BsSignpost,
+} from "react-icons/bs"
 
 import useAuth from "../../hooks/useAuth"
 import { closeSidebar } from "../../hooks/useSidebarState"
@@ -17,67 +17,67 @@ const GROUPS = [
   {
     label: "Explore", tk: "sidebar.explore",
     links: [
-      { to: "/destinations", label: "Destinations", tk: "sidebar.destinations", icon: FiMapPin, color: "forest" },
-      { to: "/recommendation", label: "Recommended", tk: "sidebar.recommendations", icon: FiHeart, color: "emerald" },
-      { to: "/gallery", label: "Gallery", tk: "sidebar.gallery", icon: FiImage, color: "pink" },
-      { to: "/compare", label: "Compare Places", tk: "sidebar.compare", icon: FiTrendingUp, color: "orange" },
-      { to: "/nearby-places", label: "Nearby", icon: FiCompass, color: "forest" },
-      { to: "/explore-map", label: "Explore by Province", tk: "sidebar.explore_map", icon: FiCompass, color: "forest" },
-      { to: "/discover-nepal", label: "Discover Nepal", tk: "sidebar.discover", icon: FiBookOpen, color: "himalaya" },
-      { to: "/packages", label: "Travel Packages", tk: "sidebar.packages", icon: FiBriefcase, color: "orange" },
+      { to: "/destinations", label: "Destinations", tk: "sidebar.destinations", icon: BsGeoAlt, color: "forest" },
+      { to: "/recommendation", label: "Recommended", tk: "sidebar.recommendations", icon: BsHeart, color: "emerald" },
+      { to: "/gallery", label: "Gallery", tk: "sidebar.gallery", icon: BsImage, color: "pink" },
+      { to: "/compare", label: "Compare Places", tk: "sidebar.compare", icon: BsGraphUp, color: "orange" },
+      { to: "/nearby-places", label: "Nearby", icon: BsCompass, color: "forest" },
+      { to: "/explore-map", label: "Explore by Province", tk: "sidebar.explore_map", icon: BsCompass, color: "forest" },
+      { to: "/discover-nepal", label: "Discover Nepal", tk: "sidebar.discover", icon: BsJournalBookmark, color: "himalaya" },
+      { to: "/packages", label: "Travel Packages", tk: "sidebar.packages", icon: BsBriefcase, color: "orange" },
     ],
   },
   {
     label: "My Trips", tk: "sidebar.planning",
     links: [
-      { to: "/trip-planner", label: "Trip Planner", tk: "sidebar.trip_planner", icon: FiCalendar, color: "emerald" },
-      { to: "/itinerary", label: "Itineraries", tk: "sidebar.itinerary", icon: FiCalendar, color: "himalaya" },
-      { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: FiDollarSign, color: "emerald" },
-      { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: FiDollarSign, color: "orange" },
-      { to: "/favorites", label: "Saved Trips", tk: "sidebar.favorites", icon: FiHeart, color: "pink" },
-      { to: "/my-bookings", label: "Bookings", tk: "sidebar.bookings", icon: FiBookOpen, color: "emerald" },
+      { to: "/trip-planner", label: "Trip Planner", tk: "sidebar.trip_planner", icon: BsCalendar3, color: "emerald" },
+      { to: "/itinerary", label: "Itineraries", tk: "sidebar.itinerary", icon: BsCalendar3, color: "himalaya" },
+      { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: BsCurrencyDollar, color: "emerald" },
+      { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: BsCurrencyDollar, color: "orange" },
+      { to: "/favorites", label: "Saved Trips", tk: "sidebar.favorites", icon: BsHeart, color: "pink" },
+      { to: "/my-bookings", label: "Bookings", tk: "sidebar.bookings", icon: BsJournalBookmark, color: "emerald" },
     ],
   },
   {
     label: "Hotels", tk: "sidebar.hotels",
     links: [
-      { to: "/hotels/search", label: "Find Hotels", icon: FiKey, color: "saffron" },
-      { to: "/hotels", label: "Saved Hotels", icon: FiHeart, color: "saffron" },
+      { to: "/hotels/search", label: "Find Hotels", icon: BsKey, color: "saffron" },
+      { to: "/hotels", label: "Saved Hotels", icon: BsHeart, color: "saffron" },
     ],
   },
   {
     label: "Safety", tk: "sidebar.safety",
     links: [
-      { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: FiAlertTriangle, color: "red" },
-      { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: FiAlertTriangle, color: "nepalred" },
-      { to: "/family-safety", label: "Family Safety", icon: FiShield, color: "emerald" },
-      { to: "/navigation", label: "Navigation", tk: "sidebar.navigation", icon: FiNavigation, color: "sky" },
-      { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: FiGlobe, color: "emerald" },
-      { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: FiGlobe, color: "cyan" },
-      { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: FiMessageCircle, color: "terracotta" },
+      { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: BsExclamationTriangle, color: "red" },
+      { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: BsExclamationTriangle, color: "nepalred" },
+      { to: "/family-safety", label: "Family Safety", icon: BsShieldLock, color: "emerald" },
+      { to: "/navigation", label: "Navigation", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
+      { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: BsTranslate, color: "emerald" },
+      { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: BsTranslate, color: "cyan" },
+      { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: BsChatDots, color: "terracotta" },
     ],
   },
   {
     label: "Account", tk: "sidebar.account",
     links: [
-      { to: "/dashboard", label: "My Dashboard", tk: "sidebar.dashboard", icon: FiHome, color: "himalaya" },
-      { to: "/profile", label: "Profile", tk: "sidebar.profile", icon: FiUser, color: "himalaya" },
-      { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: FiUser, color: "himalaya" },
-      { to: "/notifications", label: "Notifications", icon: FiBell, color: "saffron" },
-      { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: FiCheckSquare, color: "saffron" },
-      { to: "/history", label: "Visit History", tk: "sidebar.history", icon: FiClock, color: "stone" },
-      { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: FiPlusCircle, color: "saffron" },
-      { to: "/submit-service", label: "Submit a Service", icon: FiPlusCircle, color: "emerald" },
-      { to: "/settings", label: "Settings", tk: "sidebar.settings", icon: FiSettings, color: "stone" },
+      { to: "/dashboard", label: "My Dashboard", tk: "sidebar.dashboard", icon: BsHouseDoor, color: "himalaya" },
+      { to: "/profile", label: "Profile", tk: "sidebar.profile", icon: BsPerson, color: "himalaya" },
+      { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: BsPerson, color: "himalaya" },
+      { to: "/notifications", label: "Notifications", icon: BsBell, color: "saffron" },
+      { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: BsCheck2Square, color: "saffron" },
+      { to: "/history", label: "Visit History", tk: "sidebar.history", icon: BsClockHistory, color: "stone" },
+      { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: BsPlusCircle, color: "saffron" },
+      { to: "/submit-service", label: "Submit a Service", icon: BsPlusCircle, color: "emerald" },
+      { to: "/settings", label: "Settings", tk: "sidebar.settings", icon: BsGear, color: "stone" },
     ],
   },
   {
     label: "Workspace portals", tk: "sidebar.portals",
     links: [
-      { to: "/admin", label: "Admin Central", tk: "sidebar.admin", icon: FiShield, color: "nepalred", roleCheck: "admin" },
-      { to: "/admin/diagnostics", label: "Diagnostics Center", tk: "sidebar.diagnostics", icon: FiActivity, color: "terracotta", roleCheck: "admin" },
-      { to: "/staff", label: "Staff Operations", tk: "sidebar.staff", icon: FiBriefcase, color: "saffron", roleCheck: "staff" },
-      { to: "/local/dashboard", label: "Local Guide Portal", tk: "sidebar.local", icon: FiHome, color: "emerald", roleCheck: "local" },
+      { to: "/admin", label: "Admin Central", tk: "sidebar.admin", icon: BsShieldLock, color: "nepalred", roleCheck: "admin" },
+      { to: "/admin/diagnostics", label: "Diagnostics Center", tk: "sidebar.diagnostics", icon: BsActivity, color: "terracotta", roleCheck: "admin" },
+      { to: "/staff", label: "Staff Operations", tk: "sidebar.staff", icon: BsBriefcase, color: "saffron", roleCheck: "staff" },
+      { to: "/local/dashboard", label: "Local Guide Portal", tk: "sidebar.local", icon: BsHouseDoor, color: "emerald", roleCheck: "local" },
     ],
   },
 ]
@@ -143,7 +143,7 @@ export default function Sidebar() {
           <div className="flex items-center justify-between lg:hidden">
             <span className="text-sm font-bold text-gray-900">Traveller menu</span>
             <button onClick={closeSidebar} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600" aria-label="Close menu">
-              <FiX size={18} />
+              <BsX size={18} />
             </button>
           </div>
 
@@ -162,10 +162,10 @@ export default function Sidebar() {
           ) : (
             <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2">
               <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800">
-                <FiLogIn size={13} /> Login
+                <BsBoxArrowInRight size={13} /> Login
               </Link>
               <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-50">
-                <FiUserPlus size={13} /> Sign up
+                <BsPersonPlus size={13} /> Sign up
               </Link>
             </div>
           )}

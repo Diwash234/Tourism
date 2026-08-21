@@ -87,21 +87,36 @@ export default function AdminLayout() {
               </button>
               {expanded[group.label] && (
                 <div className="space-y-1 border-l-2 border-emerald-800 pl-2">
-                  {group.items.map(([section, label, Icon]) => (
-                    <Link
-                      key={section}
-                      to={adminSectionHref(section)}
-                      onClick={closeMobile}
-                      aria-current={activeSection === section ? "page" : undefined}
-                      className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-                        activeSection === section
-                          ? "bg-white font-black text-emerald-950 shadow-sm"
-                          : "text-emerald-100 hover:bg-emerald-900 hover:text-white"
-                      }`}
-                    >
-                      <Icon aria-hidden="true" />
-                      {label}
-                    </Link>
+                  {group.items.map(([section, label, Icon, children]) => (
+                    <div key={section}>
+                      <Link
+                        to={adminSectionHref(section)}
+                        onClick={closeMobile}
+                        aria-current={activeSection === section ? "page" : undefined}
+                        className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm ${
+                          activeSection === section
+                            ? "bg-white font-black text-emerald-950 shadow-sm"
+                            : "text-emerald-100 hover:bg-emerald-900 hover:text-white"
+                        }`}
+                      >
+                        <Icon aria-hidden="true" className="text-base shrink-0" />
+                        {label}
+                      </Link>
+                      {activeSection === section && children?.length > 0 && (
+                        <div className="ml-8 mt-1 mb-2 space-y-1 text-xs text-emerald-100">
+                          {children.map((child) => {
+                            const href = adminSectionHref(section, child.query)
+                            const current = location.search.includes(Object.entries(child.query)[0].join("="))
+                            return (
+                              <Link key={child.label} to={href} onClick={closeMobile} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${current ? "bg-emerald-800 text-white" : "hover:bg-emerald-900"}`}>
+                                <span className={`inline-block h-3 w-3 rounded border ${current ? "border-white bg-amber-400" : "border-emerald-400"}`} />
+                                {child.label}
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}

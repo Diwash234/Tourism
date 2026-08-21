@@ -93,13 +93,13 @@ export default function AdminGlobalSearch() {
 
   return (
     <div ref={box} className="relative max-w-xl flex-1">
-      <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+      <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-800" />
       <input
         value={q}
         onFocus={() => rows.length && setOpen(true)}
         onChange={(event) => setQ(event.target.value)}
         onKeyDown={onKeyDown}
-        className="w-full rounded-xl border border-slate-700 bg-slate-900 py-2 pl-10 pr-10 text-sm text-white"
+        className="w-full rounded-xl border border-emerald-200 bg-white py-2 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-500"
         placeholder="Search destinations, pages, images, hotels, users…"
         aria-label="Admin global search"
       />
@@ -109,34 +109,34 @@ export default function AdminGlobalSearch() {
         </button>
       )}
       {open && (
-        <div className="absolute left-0 right-0 z-[80] mt-2 max-h-[28rem] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950 p-2 shadow-2xl">
+        <div className="absolute left-0 right-0 z-[80] mt-2 max-h-[28rem] overflow-y-auto rounded-2xl border border-emerald-200 bg-white p-2 text-slate-900 shadow-2xl">
           <div className="mb-2 flex flex-wrap gap-1 px-2">
             {FILTERS.map((item) => (
               <button
                 key={item || "all"}
                 onClick={() => setType(item)}
-                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${type === item ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"}`}
+                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${type === item ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
               >
                 {item || "all"}
               </button>
             ))}
           </div>
-          {loading && <p className="p-4 text-sm text-slate-400">Searching permitted modules…</p>}
-          {error && <p className="p-4 text-sm text-rose-400">{error}</p>}
-          {!loading && !error && !rows.length && <p className="p-4 text-sm text-slate-500">No permitted records found.</p>}
+          {loading && <p className="p-4 text-sm text-slate-600">Searching permitted modules…</p>}
+          {error && <p className="p-4 text-sm text-rose-700">{error}</p>}
+          {!loading && !error && !rows.length && <p className="p-4 text-sm text-slate-600">No permitted records found.</p>}
           {Object.entries(grouped).map(([group, items]) => (
             <section key={group}>
-              <h3 className="px-3 pb-1 pt-3 text-[10px] font-black uppercase tracking-widest text-amber-400">{group}</h3>
+              <h3 className="px-3 pb-1 pt-3 text-[10px] font-black uppercase tracking-widest text-emerald-800">{group}</h3>
               {items.map((row) => {
                 const index = rows.indexOf(row)
                 return (
                   <button
                     key={`${group}-${row.id}`}
                     onClick={() => choose(row)}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-sm ${index === active ? "bg-slate-800 text-white" : "text-slate-200 hover:bg-slate-800"}`}
+                    className={`w-full rounded-lg px-3 py-2 text-left text-sm ${index === active ? "bg-emerald-100 text-emerald-950" : "text-slate-800 hover:bg-emerald-50"}`}
                   >
-                    <span className="block truncate">{row.label}</span>
-                    {row.snippet && <span className="block truncate text-[11px] text-slate-400">{row.snippet}</span>}
+                    <span className="block truncate font-semibold">{row.label}</span>
+                    {row.snippet && <span className="block truncate text-[11px] text-slate-600">{row.snippet}</span>}
                     <span className="text-[10px] uppercase text-slate-500">{row.module} · #{row.id}</span>
                   </button>
                 )

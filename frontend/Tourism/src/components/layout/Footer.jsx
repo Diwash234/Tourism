@@ -58,12 +58,12 @@ const Footer = () => {
 
   return (
 
-    <footer className="bg-dark text-gray-300 mt-16">
+    <footer className="bg-stone-950 text-stone-200 mt-16">
 
       <div className="h-1 bg-gradient-to-r from-nepalred-500 via-saffron-500 to-forest-500" />
 
 
-      {showBlock("symbols") && <div className="container-app py-8 border-b border-gray-700">
+      {showBlock("symbols") && <div className="container-app py-8 border-b border-stone-700">
 
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-5">
@@ -90,7 +90,7 @@ const Footer = () => {
               />
 
 
-              <span className="text-xs mt-2">
+              <span className="text-xs mt-2 text-stone-200">
                 {item.title}
               </span>
 
@@ -112,7 +112,7 @@ const Footer = () => {
       <div className="container-app py-12 grid grid-cols-1 md:grid-cols-5 gap-8">
         <div>
           <h3 className="text-white text-xl font-bold mb-3">{siteTitle}</h3>
-          <p className="text-sm text-gray-400">{footerText}</p>
+          <p className="text-sm text-stone-300">{footerText}</p>
         </div>
 
         {showBlock("explore") && (
@@ -128,7 +128,7 @@ const Footer = () => {
                     { label: "Risk Alerts", route: "/risk-alerts" },
                   ]
               ).map((item) => (
-                <li key={item.route}><Link to={item.route} className="hover:text-white">{item.label}</Link></li>
+                <li key={item.route}><Link to={item.route} className="text-stone-200 hover:text-white">{item.label}</Link></li>
               ))}
             </ul>
           </div>
@@ -140,7 +140,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               {PROVINCE_CITY_LINKS.map((province) => (
                 <li key={province.name}>
-                  <Link to={`/destinations?q=${encodeURIComponent(province.city)}`} className="hover:text-white">{province.name}</Link>
+                  <Link to={`/destinations?q=${encodeURIComponent(province.city)}`} className="text-stone-200 hover:text-white">{province.name}</Link>
                 </li>
               ))}
             </ul>
@@ -151,11 +151,11 @@ const Footer = () => {
           <div>
             <h4 className="text-white font-semibold mb-3">{copy("company", "title", "Company")}</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/about" className="hover:text-white">About Us</Link></li>
-              <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
-              <li><Link to="/emergency" className="hover:text-white">Emergency</Link></li>
+              <li><Link to="/about" className="text-stone-200 hover:text-white">About Us</Link></li>
+              <li><Link to="/contact" className="text-stone-200 hover:text-white">Contact</Link></li>
+              <li><Link to="/emergency" className="text-stone-200 hover:text-white">Emergency</Link></li>
             </ul>
-            <div className="mt-4 text-xs space-y-1 text-gray-400">
+            <div className="mt-4 text-xs space-y-1 text-stone-300">
               <p>🚓 Police:<a href="tel:100" className="text-white ml-1">100</a></p>
               <p>🚑 Ambulance:<a href="tel:102" className="text-white ml-1">102</a></p>
               <p>🔥 Fire:<a href="tel:101" className="text-white ml-1">101</a></p>

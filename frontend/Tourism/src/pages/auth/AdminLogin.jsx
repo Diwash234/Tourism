@@ -5,6 +5,7 @@ import { FiMail, FiLock, FiShield, FiAlertTriangle } from "react-icons/fi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import AuthShell from "../../components/auth/AuthShell"
+import SocialLoginButtons from "./SocialLoginButtons"
 
 export default function AdminLogin() {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -42,7 +43,7 @@ export default function AdminLogin() {
         <span>
           Restricted area. Super-admin accounts are created on the server with{" "}
           <code className="text-nepalred-300">python manage.py createsuperuser</code>.
-          All logins are recorded.
+          All logins are recorded. Demo: admin@tourism.gov.np / Admin@12345
         </span>
       </div>
 
@@ -78,6 +79,7 @@ export default function AdminLogin() {
         </button>
       </form>
 
+      <div className="mt-5"><SocialLoginButtons /></div>
       <div className="mt-6 pt-4 border-t border-gray-100 text-center text-xs text-gray-400 space-x-4">
         <Link to="/login" className="hover:text-teal-600">Traveller login</Link>
         <Link to="/staff/login" className="hover:text-amber-600">Staff login</Link>

@@ -5,6 +5,7 @@ import { FiMail, FiLock, FiAlertCircle } from "react-icons/fi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import AuthShell from "../../components/auth/AuthShell"
+import SocialLoginButtons from "./SocialLoginButtons"
 
 export default function StaffLogin() {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -80,6 +81,7 @@ export default function StaffLogin() {
         </button>
       </form>
 
+      <div className="mt-5"><SocialLoginButtons /></div>
       <div className="mt-6 pt-4 border-t border-gray-100 text-center text-xs text-gray-400 space-x-4">
         <Link to="/login" className="hover:text-teal-600">Traveller login</Link>
         <Link to="/admin/login" className="hover:text-slate-700">Admin login</Link>

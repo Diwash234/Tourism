@@ -1984,3 +1984,54 @@ class CMSStudioExtensionTests(APITestCase):
         self.assertEqual(approved.status_code, status.HTTP_200_OK)
         video.refresh_from_db()
         self.assertEqual(video.verification_status, "approved")
+
+
+class CMSFormAndServiceMediaTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage
+        self.admin = User.objects.create_superuser(email="form-media-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.page = ManagedPage.objects.create(route="/form-test", key="form-test", title="Form test", status="draft")
+
+    def test_form_fields_are_sanitised(self):
+        from .models import ContentSection
+        from .views_admin import AdminCMSView
+        safe = AdminCMSView._safe_section_config({
+            "fields": [
+                {"name": "Email!!", "label": "Email", "field_type": "email", "required": True},
+                {"name": "bad", "label": "Hack", "field_type": "javascript", "required": True},
+                {"name": "notes", "label": "Notes", "field_type": "textarea"},
+            ]
+        })
+        self.assertEqual([field["name"] for field in safe["fields"]], ["email", "notes"])
+        self.assertEqual([field["field_type"] for field in safe["fields"]], ["email", "textarea"])
+        created = self.client.post(reverse("admin-cms"), {
+            "resource": "sections", "page_id": self.page.id, "key": "contact-form",
+            "title": "Contact", "section_type": "form", "status": "draft",
+            "config": {"fields": [
+                {"name": "visitor_email", "label": "Email", "field_type": "email"},
+                {"name": "hack", "label": "Hack", "field_type": "file"},
+            ]},
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        section = ContentSection.objects.get(page=self.page, key="contact-form")
+        self.assertEqual([field["field_type"] for field in section.config.get("fields", [])], ["email"])
+
+    def test_service_media_requires_file(self):
+        from .models import Hospital
+        dest = Destination.objects.create(
+            name="Photo Place", category=Category.objects.create(name="Service Media"),
+            description="Test", latitude=28, longitude=84, created_by=self.admin,
+            status="approved", is_active=True,
+        )
+        hospital = Hospital.objects.create(
+            destination=dest, name="Photo Hospital", address="Kaski", phone="061123456",
+            latitude=28.4, longitude=84.0, district="Kaski",
+        )
+        missing = self.client.post(reverse("admin-service-media"), {"kind": "hospital", "id": hospital.id})
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
+        listed = self.client.get(reverse("admin-service-media"), {"kind": "hospital"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == hospital.id for row in listed.data["results"]))

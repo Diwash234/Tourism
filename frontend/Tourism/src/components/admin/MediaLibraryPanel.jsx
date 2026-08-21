@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { FiArrowDown, FiArrowUp, FiPlus, FiUpload, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import PlaceholderImage from "../common/PlaceholderImage"
@@ -10,8 +11,9 @@ const emptyUpload = { destination_id: "", caption: "", alt_text: "", external_ur
 export default function MediaLibraryPanel() {
   const { showToast } = useToast()
   const [data, setData] = useState({ results: [], page: 1, total_pages: 1, count: 0 })
+  const [params] = useSearchParams()
   const [q, setQ] = useState("")
-  const [status, setStatus] = useState("")
+  const [status, setStatus] = useState(params.get("status") || "")
   const [active, setActive] = useState(null)
   const [cropping, setCropping] = useState(null)
   const [selected, setSelected] = useState([])
@@ -27,7 +29,8 @@ export default function MediaLibraryPanel() {
     finally { setBusy(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { setStatus(params.get("status") || "") }, [params])
+  useEffect(() => { load() }, [status])
 
   const update = async (image, patch) => {
     try {
@@ -123,14 +126,14 @@ export default function MediaLibraryPanel() {
               <p className="truncate">{image.caption || "No caption"}</p>
               {image.used_on?.length > 0 && <p className="mt-1 text-[10px] text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" · ")}</p>}
               <p>{image.source} · {image.status} · position {image.ordering + 1}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button onClick={() => update(image, { verification_status: "approved", is_verified: true })} className="font-bold text-emerald-700">Approve</button>
-                <button onClick={() => update(image, { verification_status: "rejected", is_verified: false })} className="font-bold text-rose-600">Reject</button>
-                <button onClick={() => update(image, { action: "move_up" })} className="rounded bg-emerald-50 p-1.5 text-emerald-800" title="Move up"><FiArrowUp /></button>
-                <button onClick={() => update(image, { action: "move_down" })} className="rounded bg-emerald-50 p-1.5 text-emerald-800" title="Move down"><FiArrowDown /></button>
-                <button onClick={async () => { await adminApi.setAdminDestinationCover(image.destination_id, { image_id: image.id }); load(data.page) }} className="font-bold text-amber-700">Set cover</button>
-                <button onClick={() => remove(image)} className="font-bold text-rose-700">Delete</button>
-                <button onClick={() => setCropping(image)} className="font-bold text-sky-700">Crop</button>
+              <div className="mt-3 grid grid-cols-2 gap-1.5">
+                <button onClick={() => update(image, { verification_status: "approved", is_verified: true })} className="rounded-lg bg-emerald-700 px-2 py-1.5 font-bold text-white">Approve</button>
+                <button onClick={() => update(image, { verification_status: "rejected", is_verified: false })} className="rounded-lg bg-rose-600 px-2 py-1.5 font-bold text-white">Reject</button>
+                <button onClick={() => update(image, { action: "move_up" })} className="rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-900" title="Move up"><FiArrowUp className="inline" /> Up</button>
+                <button onClick={() => update(image, { action: "move_down" })} className="rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-900" title="Move down"><FiArrowDown className="inline" /> Down</button>
+                <button onClick={async () => { await adminApi.setAdminDestinationCover(image.destination_id, { image_id: image.id }); load(data.page) }} className="rounded-lg bg-amber-400 px-2 py-1.5 font-bold text-slate-950">Cover</button>
+                <button onClick={() => setCropping(image)} className="rounded-lg bg-sky-700 px-2 py-1.5 font-bold text-white">Crop</button>
+                <button onClick={() => remove(image)} className="col-span-2 rounded-lg bg-rose-100 px-2 py-1.5 font-bold text-rose-800">Remove</button>
               </div>
             </div>
           </article>
