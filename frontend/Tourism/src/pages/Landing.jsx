@@ -17,6 +17,7 @@ import NationalSymbols from "../components/dashboard/NationalSymbols"
 import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
 import usePublicConfig from "../hooks/usePublicConfig"
+import VisitorNoticeBanner from "../components/common/VisitorNoticeBanner"
 import { CMSExtras } from "../components/cms/CMSBlock"
 import {
   FadeIn, SlideUp, Stagger, StaggerItem, HoverCard,
@@ -257,6 +258,8 @@ export default function Landing() {
           ))}
         </div>
       </section>}
+
+      {notices.length > 0 && <section className="container-app pt-10"><VisitorNoticeBanner notices={notices} /></section>}
 
       {showBlock("featured") && <section className="container-app py-16">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">

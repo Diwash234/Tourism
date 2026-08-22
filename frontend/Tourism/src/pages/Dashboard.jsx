@@ -34,6 +34,7 @@ import HotelCard from "../components/cards/HotelCard";
 import NepalExperienceSection from "../components/dashboard/NepalExperienceSection";
 import NepalHighlights from "../components/dashboard/NepalHighlights";
 import NationalSymbols from "../components/dashboard/NationalSymbols";
+import VisitorNoticeBanner from "../components/common/VisitorNoticeBanner";
 import hotelService from "../services/hotelService";
 
 // Small helper: every one of our paginated/ML endpoints returns
@@ -55,7 +56,7 @@ function scoreFromAlerts(alerts = []) {
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { pages, section } = usePublicConfig();
+  const { pages, section, notices = [] } = usePublicConfig();
   const dashboardPage = pages?.find((page) => page.key === "dashboard");
   const managed = Boolean(dashboardPage?.sections?.length);
   const block = (key) => section("dashboard", key);
@@ -271,6 +272,8 @@ const Dashboard = () => {
         <BudgetCard label="Total Budget" amount={budget?.total} />
         <BudgetCard label="Spent" amount={budget?.spent} accent="forest" />
       </div>}
+
+      {notices.length > 0 && <VisitorNoticeBanner notices={notices} />}
 
       {/* Latest Alerts — kept next to the weather/budget snapshot since
           they're all "right now" info at a glance */}

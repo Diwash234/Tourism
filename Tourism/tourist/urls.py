@@ -141,6 +141,7 @@ urlpatterns = [
     path("admin/search/", views_admin.AdminGlobalSearchView.as_view(), name="admin-global-search"),
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
     path("admin/service-media/", views_admin.AdminServiceMediaView.as_view(), name="admin-service-media"),
+    path("admin/visitor-desk/", views_admin.AdminVisitorDeskView.as_view(), name="admin-visitor-desk"),
     path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
     path("admin/travel-services/", views_admin.AdminTravelServicesView.as_view(), name="admin-travel-services"),
     path("admin/retention/", views_admin.AdminRetentionPolicyView.as_view(), name="admin-retention"),

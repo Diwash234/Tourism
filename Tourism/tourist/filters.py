@@ -60,10 +60,13 @@ class DestinationFilter(df.FilterSet):
                   "letter", "starts_with"]
 
     def filter_featured(self, queryset, name, value):
-        """?featured=true -> highly-rated destinations, for homepage widgets."""
-        if value:
-            return queryset.filter(average_rating__gte=4.0).order_by("-average_rating")
-        return queryset
+        """?featured=true -> owner-pinned places first; otherwise highly-rated fallback."""
+        if not value:
+            return queryset
+        pinned = queryset.filter(is_featured=True)
+        if pinned.exists():
+            return pinned.order_by("-average_rating", "-views_count", "name")
+        return queryset.filter(average_rating__gte=4.0).order_by("-average_rating")
 
     def filter_type(self, queryset, name, value):
         from django.db.models import Q

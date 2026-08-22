@@ -562,6 +562,11 @@ class Destination(TimeStampedModel):
         default=True
     )
 
+    is_featured = models.BooleanField(
+        default=False,
+        help_text="Pinned by an administrator for the homepage and traveller dashboard.",
+    )
+
 
     class Meta:
         ordering = ["-created_at"]
@@ -570,6 +575,7 @@ class Destination(TimeStampedModel):
             models.Index(fields=["latitude", "longitude"]),
             models.Index(fields=["city", "country"]),
             models.Index(fields=["status"]),
+            models.Index(fields=["is_featured", "is_active"]),
         ]
 
 
@@ -2444,3 +2450,42 @@ class FeedbackMessage(TimeStampedModel):
     body = models.TextField()
     is_internal = models.BooleanField(default=False)
     attachment = models.FileField(upload_to="feedback/messages/", blank=True, null=True)
+
+
+class VisitorNotice(TimeStampedModel):
+    """Organisation-published visitor bulletin: festivals, closures, permits, seasonal notes."""
+
+    class Kind(models.TextChoices):
+        FESTIVAL = "festival", "Festival"
+        CLOSURE = "closure", "Closure"
+        PERMIT = "permit", "Permit"
+        SEASONAL = "seasonal", "Seasonal"
+        CROWD = "crowd", "Crowd"
+        TRANSPORT = "transport", "Transport"
+        INFO = "info", "Information"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.INFO, db_index=True)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    district = models.CharField(max_length=100, blank=True)
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True, related_name="visitor_notices",
+    )
+    starts_at = models.DateTimeField(default=timezone.now)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    is_published = models.BooleanField(default=True, db_index=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="visitor_notices_updated",
+    )
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["is_published", "starts_at", "ends_at"]),
+            models.Index(fields=["kind", "is_published"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.title}"

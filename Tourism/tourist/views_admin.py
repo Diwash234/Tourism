@@ -12,7 +12,7 @@ from .models import (
     Hospital, PoliceStation, OSMEssentialService, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
-    CurrentHazard,
+    CurrentHazard, VisitorNotice,
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -2938,3 +2938,171 @@ class AdminServiceMediaView(APIView):
             obj.image = None
             obj.save()
         return Response({"message": "Photo removed", **self._row(kind, obj, request)})
+
+
+def _require_owner_desk(request, action="view"):
+    if _has_capability(request, "content", action) or _has_capability(request, "destinations", action):
+        return
+    from rest_framework.exceptions import PermissionDenied
+    raise PermissionDenied(f"Missing content.{action} or destinations.{action} capability")
+
+
+def _parse_notice_datetime(value):
+    if not value:
+        return None
+    from django.utils.dateparse import parse_datetime
+    parsed = parse_datetime(str(value))
+    if parsed is None:
+        raise ValueError("Use an ISO datetime for starts_at / ends_at")
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed)
+    return parsed
+
+
+def _visitor_notice_row(notice):
+    destination = notice.destination
+    return {
+        "id": notice.id,
+        "kind": notice.kind,
+        "title": notice.title,
+        "body": notice.body or "",
+        "city": notice.city or "",
+        "district": notice.district or "",
+        "destination_id": notice.destination_id,
+        "destination_name": destination.name if destination else "",
+        "destination_slug": destination.slug if destination else "",
+        "starts_at": notice.starts_at,
+        "ends_at": notice.ends_at,
+        "is_published": notice.is_published,
+        "updated_at": notice.updated_at,
+        "updated_by": notice.updated_by.email if notice.updated_by else None,
+    }
+
+
+def _featured_destination_row(destination):
+    return {
+        "id": destination.id,
+        "name": destination.name,
+        "slug": destination.slug,
+        "city": destination.city or "",
+        "district": destination.district or "",
+        "province": destination.province or "",
+        "average_rating": float(destination.average_rating or 0),
+        "views_count": destination.views_count,
+        "is_featured": destination.is_featured,
+        "status": destination.status,
+        "is_active": destination.is_active,
+    }
+
+
+class AdminVisitorDeskView(APIView):
+    """Owner desk: visitor notices (festivals, closures, permits) and featured-place pinning."""
+    permission_classes = [IsAdminOrStaff]
+    NOTICE_FIELDS = {"kind", "title", "body", "city", "district", "destination_id", "starts_at", "ends_at", "is_published"}
+
+    def _apply_notice(self, notice, data, user):
+        title = str(data.get("title", notice.title if notice else "")).strip()
+        if not title:
+            raise ValueError("title is required")
+        kind = str(data.get("kind", notice.kind if notice else VisitorNotice.Kind.INFO)).strip().lower()
+        if kind not in VisitorNotice.Kind.values:
+            raise ValueError("kind must be festival, closure, permit, seasonal, crowd, transport or info")
+        destination = None
+        if "destination_id" in data:
+            dest_id = data.get("destination_id")
+            if dest_id not in (None, "", 0, "0"):
+                destination = Destination.objects.filter(pk=dest_id).first()
+                if not destination:
+                    raise ValueError("destination not found")
+        elif notice:
+            destination = notice.destination
+        starts_at = notice.starts_at if notice else timezone.now()
+        ends_at = notice.ends_at if notice else None
+        if "starts_at" in data:
+            starts_at = _parse_notice_datetime(data.get("starts_at")) or timezone.now()
+        if "ends_at" in data:
+            ends_at = _parse_notice_datetime(data.get("ends_at"))
+        if ends_at and starts_at and ends_at < starts_at:
+            raise ValueError("ends_at cannot be before starts_at")
+        payload = {
+            "kind": kind,
+            "title": title[:200],
+            "body": str(data.get("body", notice.body if notice else "") or "")[:4000],
+            "city": str(data.get("city", notice.city if notice else "") or "")[:100],
+            "district": str(data.get("district", notice.district if notice else "") or "")[:100],
+            "destination": destination,
+            "starts_at": starts_at,
+            "ends_at": ends_at,
+            "is_published": bool(data.get("is_published", True if notice is None else notice.is_published)),
+            "updated_by": user,
+        }
+        if notice:
+            for key, value in payload.items():
+                setattr(notice, key, value)
+            notice.save()
+            return notice
+        return VisitorNotice.objects.create(**payload)
+
+    def get(self, request):
+        _require_owner_desk(request, "view")
+        query = (request.query_params.get("q") or "").strip()
+        destinations = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        if query:
+            destinations = destinations.filter(
+                Q(name__icontains=query) | Q(city__icontains=query) | Q(district__icontains=query) | Q(slug__icontains=query)
+            )
+        featured = Destination.objects.filter(is_featured=True).order_by("-average_rating", "name")
+        notices = VisitorNotice.objects.select_related("destination", "updated_by").order_by("-updated_at")[:200]
+        return Response({
+            "queue": {
+                "pending_places": Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).count(),
+                "pending_images": DestinationImage.objects.filter(Q(verification_status="pending") | Q(is_verified=False)).count(),
+                "active_sos": SOSAlert.objects.filter(status=SOSAlert.Status.ACTIVE).count(),
+                "open_feedback": UserFeedback.objects.exclude(status__in=["resolved", "closed", "archived"]).count(),
+                "published_notices": VisitorNotice.objects.filter(is_published=True).count(),
+                "featured_places": featured.count(),
+            },
+            "notices": [_visitor_notice_row(notice) for notice in notices],
+            "featured": [_featured_destination_row(destination) for destination in featured[:50]],
+            "destinations": [_featured_destination_row(destination) for destination in destinations.order_by("-is_featured", "name")[:40]],
+        })
+
+    def post(self, request):
+        if request.data.get("action") == "feature":
+            _require_owner_desk(request, "change")
+            destination = Destination.objects.filter(pk=request.data.get("destination_id")).first()
+            if not destination:
+                return Response({"detail": "destination not found"}, status=404)
+            destination.is_featured = bool(request.data.get("is_featured", True))
+            destination.save(update_fields=["is_featured", "updated_at"])
+            return Response({
+                "message": f"{destination.name} {'pinned' if destination.is_featured else 'unpinned'} for travellers",
+                "destination": _featured_destination_row(destination),
+            })
+        _require_owner_desk(request, "add")
+        try:
+            notice = self._apply_notice(None, request.data, request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"id": notice.id, "message": "Notice published" if notice.is_published else "Draft notice saved",
+                         "notice": _visitor_notice_row(notice)}, status=201)
+
+    def patch(self, request):
+        _require_owner_desk(request, "change")
+        notice = VisitorNotice.objects.filter(pk=request.data.get("id")).first()
+        if not notice:
+            return Response({"detail": "Notice not found"}, status=404)
+        try:
+            notice = self._apply_notice(notice, request.data, request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        return Response({"id": notice.id, "message": "Notice updated", "notice": _visitor_notice_row(notice)})
+
+    def delete(self, request):
+        _require_owner_desk(request, "delete")
+        notice_id = request.data.get("id") or request.query_params.get("id")
+        notice = VisitorNotice.objects.filter(pk=notice_id).first()
+        if not notice:
+            return Response({"detail": "Notice not found"}, status=404)
+        notice.delete()
+        return Response({"message": "Notice removed"})

@@ -2035,3 +2035,63 @@ class CMSFormAndServiceMediaTests(APITestCase):
         listed = self.client.get(reverse("admin-service-media"), {"kind": "hospital"})
         self.assertEqual(listed.status_code, status.HTTP_200_OK)
         self.assertTrue(any(row["id"] == hospital.id for row in listed.data["results"]))
+
+
+class OwnerDeskTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="owner-desk@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.category = Category.objects.create(name="Owner Desk")
+        self.destination = Destination.objects.create(
+            name="Desk Lake", category=self.category, description="Pinned lake",
+            latitude=28.2, longitude=83.9, city="Pokhara", district="Kaski",
+            status="approved", is_active=True, created_by=self.admin, average_rating=3.2,
+        )
+
+    def test_notice_requires_title(self):
+        response = self.client.post(reverse("admin-visitor-desk"), {"kind": "festival", "body": "Dashain crowds"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unpublished_notice_is_hidden_from_public_config(self):
+        from .models import VisitorNotice
+        VisitorNotice.objects.create(title="Draft closure", kind="closure", body="Hidden", is_published=False)
+        VisitorNotice.objects.create(title="Live festival", kind="festival", body="Dashain in Bhaktapur", is_published=True)
+        public = self.client.get(reverse("public-config"))
+        self.assertEqual(public.status_code, status.HTTP_200_OK)
+        titles = [row["title"] for row in public.data["notices"]]
+        self.assertIn("Live festival", titles)
+        self.assertNotIn("Draft closure", titles)
+
+    def test_expired_notice_is_hidden_from_public_config(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import VisitorNotice
+        VisitorNotice.objects.create(
+            title="Old permit", kind="permit", body="Expired", is_published=True,
+            starts_at=timezone.now() - timedelta(days=10),
+            ends_at=timezone.now() - timedelta(days=1),
+        )
+        public = self.client.get(reverse("public-config"))
+        self.assertFalse(any(row["title"] == "Old permit" for row in public.data["notices"]))
+
+    def test_feature_toggle_prefers_pinned_places(self):
+        other = Destination.objects.create(
+            name="High Rated Ridge", category=self.category, description="Rated",
+            latitude=28.3, longitude=84.0, status="approved", is_active=True,
+            created_by=self.admin, average_rating=4.8,
+        )
+        featured = self.client.get("/api/v1/destinations/", {"featured": "true"})
+        names = [row["name"] for row in featured.data["results"]]
+        self.assertIn("High Rated Ridge", names)
+        pinned = self.client.post(reverse("admin-visitor-desk"), {
+            "action": "feature", "destination_id": self.destination.id, "is_featured": True,
+        }, format="json")
+        self.assertEqual(pinned.status_code, status.HTTP_200_OK)
+        self.destination.refresh_from_db()
+        self.assertTrue(self.destination.is_featured)
+        featured = self.client.get("/api/v1/destinations/", {"featured": "true"})
+        names = [row["name"] for row in featured.data["results"]]
+        self.assertEqual(names, ["Desk Lake"])
+        self.assertNotIn("High Rated Ridge", names)

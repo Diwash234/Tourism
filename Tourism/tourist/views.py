@@ -19,7 +19,7 @@ from .models import (
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
-    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop,
+    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, VisitorNotice,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -200,9 +200,21 @@ class PublicConfigView(APIView):
             navigation.append({"id": item.id, "location": item.location,
                 "label": translated.get("label", item.label), "route": item.route, "icon": item.icon,
                 "parent_id": item.parent_id, "allowed_roles": item.allowed_roles, "display_order": item.display_order})
+        notices = []
+        for notice in VisitorNotice.objects.filter(is_published=True).filter(
+            Q(starts_at__isnull=True) | Q(starts_at__lte=now)
+        ).filter(Q(ends_at__isnull=True) | Q(ends_at__gte=now)).select_related("destination").order_by("-updated_at")[:20]:
+            notices.append({
+                "id": notice.id, "kind": notice.kind, "title": notice.title, "body": notice.body,
+                "city": notice.city or "", "district": notice.district or "",
+                "destination_id": notice.destination_id,
+                "destination_name": notice.destination.name if notice.destination else "",
+                "destination_slug": notice.destination.slug if notice.destination else "",
+                "starts_at": notice.starts_at, "ends_at": notice.ends_at,
+            })
         return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
-            "pages": page_rows, "navigation": navigation})
+            "pages": page_rows, "navigation": navigation, "notices": notices})
 
 
 class TranslateTextView(APIView):

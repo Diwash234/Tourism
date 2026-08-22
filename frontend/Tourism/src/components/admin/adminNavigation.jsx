@@ -1,7 +1,7 @@
 import {
   BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
   BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
-  BsHouseDoor, BsImage, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
+  BsHouseDoor, BsImage, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
   BsTools, BsTranslate, BsTruck,
 } from "react-icons/bs"
 
@@ -53,6 +53,7 @@ export const ADMIN_NAV_GROUPS = [
     ["image_pipeline", "Image Acquisition Pipeline", BsTools],
   ]},
   { label: "Content & CMS", items: [
+    ["visitor_desk", "Visitor notices & featured", BsMegaphone],
     ["cms", "Pages, Sections & Navigation", BsFileEarmarkText],
     ["branding", "Branding & Theme", BsPalette],
     ["datasets", "Dataset & CSV Manager", BsDatabase],
