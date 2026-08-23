@@ -15,6 +15,7 @@ from .services.ai_images import api as ai_images_api
 from . import views_ml
 from . import views_oauth
 from . import views_osm
+from . import views_marketplace
 from .serializers import UserProfileSerializer
 
 
@@ -142,6 +143,11 @@ urlpatterns = [
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
     path("admin/service-media/", views_admin.AdminServiceMediaView.as_view(), name="admin-service-media"),
     path("admin/visitor-desk/", views_admin.AdminVisitorDeskView.as_view(), name="admin-visitor-desk"),
+    path("admin/marketplace/", views_marketplace.AdminMarketplaceView.as_view(), name="admin-marketplace"),
+    path("marketplace/listings/", views_marketplace.PublicMarketplaceView.as_view(), name="marketplace-listings"),
+    path("marketplace/listings/<slug:slug>/", views_marketplace.PublicMarketplaceView.as_view(), name="marketplace-listing-detail"),
+    path("marketplace/partners/apply/", views_marketplace.PublicPartnerApplyView.as_view(), name="marketplace-partner-apply"),
+    path("marketplace/checkout/", views_marketplace.MarketplaceCheckoutView.as_view(), name="marketplace-checkout"),
     path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
     path("admin/travel-services/", views_admin.AdminTravelServicesView.as_view(), name="admin-travel-services"),
     path("admin/retention/", views_admin.AdminRetentionPolicyView.as_view(), name="admin-retention"),

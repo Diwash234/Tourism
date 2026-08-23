@@ -536,6 +536,9 @@ body.sidebar-open .sidebar-backdrop {
   border-color: #a7f3d0 !important;
 }
 .admin-green-theme header input::placeholder { color: #64748b !important; }
+.admin-green-theme header .admin-search-results,
+.admin-green-theme header .admin-search-results * { color: #0f172a !important; }
+.admin-green-theme header .admin-search-results { background: #fff !important; border: 1px solid #a7f3d0 !important; }
 .admin-green-theme main .bg-slate-950,
 .admin-green-theme main .bg-slate-950\/80,
 .admin-green-theme main .bg-slate-950\/70,

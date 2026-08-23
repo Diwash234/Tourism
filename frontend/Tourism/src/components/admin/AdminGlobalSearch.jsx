@@ -15,8 +15,10 @@ const ROUTES = {
   image: () => "/admin?section=media_library",
   restaurant: () => "/admin?section=travel_services",
   review: () => "/admin?section=review_moderation",
+  listing: () => "/admin?section=marketplace",
+  partner: () => "/admin?section=marketplace",
 }
-const FILTERS = ["", "destination", "page", "section", "image", "hotel", "user", "alert", "feedback", "navigation", "restaurant", "review"]
+const FILTERS = ["", "destination", "page", "section", "image", "hotel", "user", "alert", "feedback", "navigation", "restaurant", "review", "listing", "partner"]
 
 export default function AdminGlobalSearch() {
   const navigate = useNavigate()

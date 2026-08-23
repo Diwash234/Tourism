@@ -44,3 +44,23 @@ class ChatbotTests(APITestCase):
     def test_history_requires_auth(self):
         response = self.client.get(reverse("chatbot-history"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_package_question_uses_published_marketplace(self):
+        from tourist.models import MarketplaceListing, MarketplacePartner
+        partner = MarketplacePartner.objects.create(
+            name="Lakeside Lodge", kind="hotel", email="lodge@example.com", status="approved",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Phewa Weekend Stay", kind="package",
+            summary="Two nights", price_npr="12000.00", status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Hidden Draft", price_npr="1.00", status="draft",
+        )
+        response = self.client.post(reverse("chatbot-message"), {"message": "What travel packages can I add to a trip?"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Phewa Weekend Stay", response.data["reply"])
+        self.assertNotIn("Hidden Draft", response.data["reply"])
+        titles = [row["title"] for row in response.data.get("package_cards", [])]
+        self.assertIn("Phewa Weekend Stay", titles)
+        self.assertNotIn("Hidden Draft", titles)

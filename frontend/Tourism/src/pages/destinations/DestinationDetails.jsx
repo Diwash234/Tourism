@@ -724,6 +724,23 @@ export default function DestinationDetails() {
         </div>
       </div>
 
+          {destination.marketplace_listings?.length > 0 && (
+            <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+              <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
+              <p className="text-sm text-gray-600">Published by the admin desk and approved hotels or operators. Add them to a trip — we never collect card numbers here.</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {destination.marketplace_listings.map((offer) => (
+                  <Link key={offer.id} to={`/packages/${offer.slug}`} className="rounded-2xl border border-emerald-100 p-4 hover:bg-emerald-50">
+                    <p className="text-[10px] font-black uppercase text-emerald-800">{offer.kind}</p>
+                    <p className="font-bold text-slate-900">{offer.title}</p>
+                    <p className="text-xs text-slate-500">{offer.partner_name}</p>
+                    <p className="text-sm font-black mt-1">NPR {Number(offer.price_npr).toLocaleString()}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
       {extras?.length > 0 && <CMSExtras sections={extras} />}
 
       {/* OFFLINE TRAVEL KIT MODAL */}

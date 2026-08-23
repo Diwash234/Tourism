@@ -86,16 +86,26 @@ const userApi = {
   updateSettings: (payload) =>
     axiosClient.put("/auth/profile/", payload),
 
-  // Packages Booking (with client-side fallback)
+  getMarketplaceListings: (params) => axiosClient.get("/marketplace/listings/", { params }),
+  getMarketplaceListing: (slug) => axiosClient.get(`/marketplace/listings/${slug}/`),
+  applyMarketplacePartner: (payload) => axiosClient.post("/marketplace/partners/apply/", payload),
+  checkoutMarketplace: (payload) => axiosClient.post("/marketplace/checkout/", payload),
+
+  // Trip request — live marketplace only. Never send or store card numbers.
   bookPackage: async (payload) => {
-    try {
-      return await axiosClient.post("/packages/book/", payload)
-    } catch {
-      const existing = JSON.parse(localStorage.getItem("tourism_booked_packages") || "[]")
-      const booked = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString(), status: "Confirmed" }
-      localStorage.setItem("tourism_booked_packages", JSON.stringify([booked, ...existing]))
-      return { data: booked }
+    if (payload?.items || payload?.listing_id) {
+      return axiosClient.post("/marketplace/checkout/", payload.items ? payload : {
+        guest_name: payload.guest_name,
+        guest_email: payload.guest_email,
+        guest_phone: payload.guest_phone,
+        travelers: payload.travelers || 1,
+        start_date: payload.start_date,
+        notes: payload.notes,
+        payment_method: payload.payment_method || "request",
+        items: [{ listing_id: payload.listing_id, quantity: payload.quantity || 1, travel_date: payload.travel_date }],
+      })
     }
+    throw new Error("Choose a published package from the marketplace")
   },
 
   // Personal Details Management (with client-side fallback)

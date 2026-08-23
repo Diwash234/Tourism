@@ -12,7 +12,7 @@ from .models import (
     Hospital, PoliceStation, OSMEssentialService, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
-    CurrentHazard, VisitorNotice,
+    CurrentHazard, VisitorNotice, MarketplaceListing, MarketplacePartner,
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer
@@ -1168,6 +1168,9 @@ class AdminDataExplorerView(APIView):
         "feedback_evidence": ("tourist.FeedbackEvidence", ["feedback__subject","caption","media_type"]),
         "audit_logs": ("audit.AuditLog", ["action","message","object_type","user_email","endpoint"]),
         "error_events": ("audit.ErrorEvent", ["error_type","error_message","endpoint","component"]),
+        "marketplace_listings": ("tourist.MarketplaceListing", ["title","city","kind","status","partner__name"]),
+        "marketplace_partners": ("tourist.MarketplacePartner", ["name","email","city","status"]),
+        "marketplace_orders": ("tourist.MarketplaceOrder", ["reference","guest_email","guest_name","status"]),
     }
 
     def get(self, request):
@@ -1175,7 +1178,7 @@ class AdminDataExplorerView(APIView):
         from django.db.models import Q
         from django.forms.models import model_to_dict
         resource = request.query_params.get("resource", "destinations")
-        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit"}
+        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit","marketplace_listings":"marketplace","marketplace_partners":"marketplace","marketplace_orders":"marketplace"}
         user = request.user
         if not (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"}):
             profile = getattr(user, "capability_profile", None)
@@ -1611,6 +1614,12 @@ PAGE_TEMPLATES = {
         ("hero", "heading", "Information", "Start with a clear title."),
         ("body", "text", "Details", "Add the main information."),
         ("cta", "cta", "Next step", "Link to a related traveller page."),
+    ]},
+    "marketplace": {"label": "Packages & marketplace", "sections": [
+        ("hero", "heading", "Travel packages", "Introduce admin-managed tours, stays and partner offers."),
+        ("offers", "cards", "Featured offers", "Show published packages travellers can add to a trip."),
+        ("collaborate", "cta", "Hotel or operator?", "Invite partners to apply from /collaborate."),
+        ("checkout", "text", "How booking works", "Request to book or continue on the partner HTTPS site. Card numbers are never stored here."),
     ]},
     "landing": {"label": "Landing Page", "sections": [
         ("hero", "heading", "Explore Nepal", "Discover destinations across all 7 provinces."),
@@ -2547,6 +2556,8 @@ class AdminGlobalSearchView(APIView):
         add("images","image",DestinationImage.objects.filter(Q(caption__icontains=q)|Q(alt_text__icontains=q)|Q(destination__name__icontains=q)|Q(external_url__icontains=q)).select_related("destination"),lambda x:f"{x.destination.name} · {x.caption or 'image'}",lambda x:snippet(x.caption or x.alt_text))
         add("restaurants","restaurant",Restaurant.objects.filter(Q(name__icontains=q)|Q(address__icontains=q)|Q(destination__name__icontains=q)).select_related("destination"),lambda x:f"{x.name} · {x.destination.name}",lambda x:snippet(x.address or x.description))
         add("reviews","review",Review.objects.filter(Q(comment__icontains=q)|Q(destination__name__icontains=q)|Q(user__email__icontains=q)).select_related("destination","user"),lambda x:f"{x.destination.name} · {x.user.email}",lambda x:snippet(x.comment))
+        add("marketplace","listing",MarketplaceListing.objects.filter(Q(title__icontains=q)|Q(summary__icontains=q)|Q(city__icontains=q)|Q(partner__name__icontains=q)).select_related("partner"),lambda x:f"{x.title} · {x.partner.name}",lambda x:snippet(x.summary or x.city))
+        add("marketplace","partner",MarketplacePartner.objects.filter(Q(name__icontains=q)|Q(email__icontains=q)|Q(city__icontains=q)),lambda x:f"{x.name} · {x.status}",lambda x:snippet(x.description or x.email))
         return Response({"query":q,"type":kind_filter,"count":len(results),"results":results})
 
 
@@ -3111,3 +3122,4 @@ class AdminVisitorDeskView(APIView):
             return Response({"detail": "Notice not found"}, status=404)
         notice.delete()
         return Response({"message": "Notice removed"})
+

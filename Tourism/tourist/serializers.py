@@ -44,6 +44,7 @@ from .models import (
     InfrastructureSubmission,
     InfrastructureMedia,
     RiskNewsReport, DestinationFeatureProfile, RiskIncident, CurrentHazard, RiskObservation,
+    MarketplaceListing,
 )
 from .image_server import image_server_url
 from .utils import (
@@ -867,6 +868,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     transit_routes = DestinationTransitRouteSerializer(many=True, read_only=True)
     nearby_places = DestinationNearbyPlaceSerializer(many=True, read_only=True)
     notices = serializers.SerializerMethodField()
+    marketplace_listings = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
@@ -884,6 +886,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "is_active", "is_featured", "created_at", "updated_at", "images", "gallery", "videos", "reviews", "translations",
             "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels", "restaurants",
             "sources", "activities", "attractions", "transit_routes", "nearby_places", "notices",
+            "marketplace_listings",
         ]
         read_only_fields = [
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
@@ -893,6 +896,17 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     def get_notices(self, obj):
         from .notices import notices_for_destination, serialize_notice
         return [serialize_notice(notice) for notice in notices_for_destination(obj)[:12]]
+
+    def get_marketplace_listings(self, obj):
+        listings = obj.marketplace_listings.filter(
+            status=MarketplaceListing.Status.PUBLISHED, partner__status="approved",
+        ).select_related("partner")[:8]
+        return [{
+            "id": item.id, "slug": item.slug, "kind": item.kind, "title": item.title,
+            "summary": item.summary, "price_npr": str(item.price_npr), "currency": item.currency,
+            "image_url": item.image_url, "duration_days": item.duration_days,
+            "partner_name": item.partner.name, "is_featured": item.is_featured,
+        } for item in listings]
 
     def get_restaurants(self, obj):
         queryset = obj.restaurants.filter(status="published")

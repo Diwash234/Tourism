@@ -60,6 +60,7 @@ export const ADMIN_NAV_GROUPS = [
   ]},
   { label: "Travel Services", items: [
     ["hotel_bookings", "Hotels & Bookings", BsBuilding],
+    ["marketplace", "Packages & partners", BsBriefcase],
     ["travel_services", "Restaurants, Transport & Plans", BsTruck],
     ["review_moderation", "Review Moderation", BsStar],
     ["expenses", "Expense ML Data", BsBarChart],

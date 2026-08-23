@@ -120,7 +120,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class StaffCapabilityProfile(TimeStampedModel):
     """Granular module/action permissions layered on the existing User role."""
-    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings"]
+    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings", "marketplace"]
     ACTIONS = ["view", "add", "change", "delete", "approve", "export", "train", "assign"]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_profile")
@@ -2489,3 +2489,169 @@ class VisitorNotice(TimeStampedModel):
 
     def __str__(self):
         return f"{self.get_kind_display()}: {self.title}"
+
+
+class MarketplacePartner(TimeStampedModel):
+    """Hotel, operator, restaurant or agency that wants to sell through this platform."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        SUSPENDED = "suspended", "Suspended"
+        REJECTED = "rejected", "Rejected"
+
+    class Kind(models.TextChoices):
+        HOTEL = "hotel", "Hotel / stay"
+        OPERATOR = "operator", "Tour operator"
+        GUIDE = "guide", "Local guide"
+        RESTAURANT = "restaurant", "Restaurant"
+        TRANSPORT = "transport", "Transport"
+        ACTIVITY = "activity", "Activity provider"
+        AGENCY = "agency", "Travel agency"
+
+    name = models.CharField(max_length=200)
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.OPERATOR)
+    contact_name = models.CharField(max_length=160, blank=True)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
+    website = models.URLField(blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    district = models.CharField(max_length=120, blank=True)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    commission_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_partners",
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_partners_reviewed",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} ({self.status})"
+
+
+class MarketplaceListing(TimeStampedModel):
+    """Admin- or partner-managed package, stay, tour, transfer or sponsored offer."""
+
+    class Kind(models.TextChoices):
+        PACKAGE = "package", "Travel package"
+        HOTEL = "hotel", "Hotel / stay"
+        TOUR = "tour", "Tour / sightseeing"
+        ACTIVITY = "activity", "Activity"
+        TRANSFER = "transfer", "Transfer / transport"
+        RESTAURANT = "restaurant", "Food experience"
+        GUIDE = "guide", "Guide"
+        AD = "ad", "Sponsored offer"
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PENDING = "pending", "Pending review"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+
+    partner = models.ForeignKey(MarketplacePartner, on_delete=models.CASCADE, related_name="listings")
+    destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_listings")
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.PACKAGE, db_index=True)
+    title = models.CharField(max_length=220)
+    slug = models.SlugField(max_length=240, unique=True, blank=True)
+    summary = models.CharField(max_length=320, blank=True)
+    description = models.TextField(blank=True)
+    includes = models.TextField(blank=True)
+    excludes = models.TextField(blank=True)
+    duration_days = models.PositiveSmallIntegerField(default=1)
+    price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=8, default="NPR")
+    image_url = models.URLField(max_length=600, blank=True)
+    external_url = models.URLField(max_length=600, blank=True, help_text="Partner booking page. Must be HTTPS.")
+    city = models.CharField(max_length=120, blank=True)
+    district = models.CharField(max_length=120, blank=True)
+    cancellation_policy = models.CharField(max_length=320, blank=True)
+    capacity = models.PositiveIntegerField(default=10)
+    is_featured = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_listings_updated",
+    )
+
+    class Meta:
+        ordering = ["-is_featured", "-updated_at"]
+        indexes = [models.Index(fields=["status", "kind"]), models.Index(fields=["is_featured", "status"])]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title) or "offer"
+            slug = base
+            n = 2
+            while MarketplaceListing.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class MarketplaceOrder(TimeStampedModel):
+    """Trip basket / checkout. Never stores card numbers."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Trip basket"
+        REQUESTED = "requested", "Booking requested"
+        CONFIRMED = "confirmed", "Confirmed"
+        CANCELLED = "cancelled", "Cancelled"
+        EXTERNAL = "external", "Sent to partner site"
+
+    class PayMethod(models.TextChoices):
+        REQUEST = "request", "Request to book (pay later / with operator)"
+        EXTERNAL = "external", "Continue on partner website"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_orders",
+    )
+    reference = models.CharField(max_length=20, unique=True, blank=True)
+    guest_name = models.CharField(max_length=160, blank=True)
+    guest_email = models.EmailField(blank=True)
+    guest_phone = models.CharField(max_length=40, blank=True)
+    travelers = models.PositiveSmallIntegerField(default=1)
+    start_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    payment_method = models.CharField(max_length=20, choices=PayMethod.choices, default=PayMethod.REQUEST)
+    subtotal_npr = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_npr = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    currency = models.CharField(max_length=8, default="NPR")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = f"NP{timezone.now().strftime('%y%m%d')}{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def recompute(self):
+        total = sum((item.line_total_npr or 0) for item in self.items.all())
+        self.subtotal_npr = total
+        self.total_npr = total
+        self.save(update_fields=["subtotal_npr", "total_npr", "updated_at"])
+
+
+class MarketplaceOrderItem(TimeStampedModel):
+    order = models.ForeignKey(MarketplaceOrder, on_delete=models.CASCADE, related_name="items")
+    listing = models.ForeignKey(MarketplaceListing, on_delete=models.PROTECT, related_name="order_items")
+    title = models.CharField(max_length=220)
+    quantity = models.PositiveSmallIntegerField(default=1)
+    unit_price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    line_total_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    travel_date = models.DateField(null=True, blank=True)
+    external_url = models.URLField(max_length=600, blank=True)
+
+    def __str__(self):
+        return f"{self.title} × {self.quantity}"

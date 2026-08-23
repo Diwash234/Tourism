@@ -36,6 +36,7 @@ import BrandingPanel from "../../components/admin/BrandingPanel"
 import TravelServicesPanel from "../../components/admin/TravelServicesPanel"
 import RetentionPolicyPanel from "../../components/admin/RetentionPolicyPanel"
 import OwnerDeskPanel from "../../components/admin/OwnerDeskPanel"
+import MarketplacePanel from "../../components/admin/MarketplacePanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -606,7 +607,7 @@ const AdminDashboard = () => {
         <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
           <label className="text-xs font-black uppercase text-emerald-800">Admin section
             <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
-              {[["overview","Overview & Stats"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
+              {[["overview","Overview & Stats"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
             </select>
           </label>
         </div>
@@ -1978,6 +1979,7 @@ const AdminDashboard = () => {
           </div>
         )}
         {activeTab === "hotel_bookings" && <HotelBookingPanel />}
+        {activeTab === "marketplace" && <MarketplacePanel />}
         {activeTab === "travel_services" && <TravelServicesPanel />}
         {activeTab === "review_moderation" && <ReviewModerationPanel />}
         {activeTab === "safety_management" && <SafetyManagementPanel />}

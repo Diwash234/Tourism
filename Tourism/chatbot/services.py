@@ -14,7 +14,8 @@ from typing import Dict, List, Optional, Tuple, Any
 from .ai_service import ask_ai
 from tourist.models import (
     Destination, DestinationImage, DestinationTransitRoute,
-    Hospital, PoliceStation, BudgetEstimation, RiskAnalysis, Category
+    Hospital, PoliceStation, BudgetEstimation, RiskAnalysis, Category,
+    MarketplaceListing,
 )
 from tourist.discovery_pipeline import haversine_distance_km
 
@@ -203,6 +204,7 @@ def get_chatbot_reply(
             "itinerary_cards": None,
             "distance_cards": None,
             "emergency_cards": [],
+            "package_cards": [],
         }
 
     last_user_msg = history[-1]["content"] if history else ""
@@ -215,12 +217,33 @@ def get_chatbot_reply(
     is_itinerary_intent = any(w in msg_lower for w in ["itinerary", "plan", "days trip", "day trip", "schedule", "build my trip", "tour plan", "day 1", "day-by-day"])
     is_emergency_intent = any(w in msg_lower for w in ["emergency", "hospital", "police", "ambulance", "doctor", "rescue", "sos", "danger", "helpline", "1144"])
     is_budget_intent = any(w in msg_lower for w in ["budget", "cost", "price", "how much", "npr", "dollar", "expenses", "cheap"])
+    is_package_intent = any(w in msg_lower for w in [
+        "package", "packages", "marketplace", "book a tour", "travel package",
+        "add to trip", "trip basket", "collaborate",
+    ])
 
     destination_cards = []
     image_cards = []
     itinerary_card = None
     distance_card = None
     emergency_cards = []
+    package_cards = []
+
+    if is_package_intent:
+        listings = MarketplaceListing.objects.filter(
+            status="published", partner__status="approved",
+        ).select_related("partner", "destination").order_by("-is_featured", "-updated_at")[:6]
+        for listing in listings:
+            package_cards.append({
+                "id": listing.id,
+                "slug": listing.slug,
+                "title": listing.title,
+                "kind": listing.kind,
+                "price_npr": str(listing.price_npr),
+                "city": listing.city or (listing.destination.city if listing.destination else "Nepal"),
+                "partner_name": listing.partner.name,
+                "summary": listing.summary,
+            })
 
     # Match relevant destinations in DB
     matched_destinations = find_matching_destinations(msg_clean, limit=4)
@@ -294,11 +317,13 @@ def get_chatbot_reply(
             })
 
     # 1. Attempt calling configured AI providers (OpenRouter, Gemini, Grok, Groq, Hugging Face, OpenAI)
+    # Package questions stay on the live marketplace so travellers see published offers.
     ai_text_reply = None
-    try:
-        ai_text_reply = ask_ai(msg_clean, context=f"Coordinates: lat={latitude}, lng={longitude}", history=history)
-    except Exception as e:
-        logger.warning(f"AI Provider execution failed: {e}")
+    if not is_package_intent:
+        try:
+            ai_text_reply = ask_ai(msg_clean, context=f"Coordinates: lat={latitude}, lng={longitude}", history=history)
+        except Exception as e:
+            logger.warning(f"AI Provider execution failed: {e}")
 
     # 2. Autonomous Local Engine Fallback if AI providers unavailable or hit free rate limit
     if not ai_text_reply:
@@ -344,6 +369,25 @@ def get_chatbot_reply(
                 "• **TUTH Teaching Hospital:** `+977-1-4412404` (Maharajgunj, Kathmandu)\n"
                 "• **CIWEC Travel Hospital:** `+977-1-4424111` (Lazimpat, Kathmandu & Pokhara)"
             )
+        elif is_package_intent:
+            if package_cards:
+                lines = [
+                    "🎒 **Live packages from the admin desk and approved partners**",
+                    "Request to book or continue on the partner HTTPS site. Card numbers are never stored here.",
+                    "",
+                ]
+                for offer in package_cards:
+                    lines.append(
+                        f"• **{offer['title']}** ({offer['kind']}) — NPR {offer['price_npr']} · {offer['partner_name']}"
+                    )
+                lines.append("")
+                lines.append("Open /packages to add offers to a trip basket, or /collaborate if you run a hotel or tour.")
+                ai_text_reply = "\n".join(lines)
+            else:
+                ai_text_reply = (
+                    "No published packages are live yet. An administrator can add them from "
+                    "Admin → Packages & partners, or a hotel can apply at /collaborate."
+                )
         elif is_budget_intent:
             ai_text_reply = (
                 "💰 **Nepal Travel Budget Tiers (Per Person / Day)**:\n\n"
@@ -387,4 +431,5 @@ def get_chatbot_reply(
         "itinerary_cards": itinerary_card,
         "distance_cards": distance_card,
         "emergency_cards": emergency_cards,
+        "package_cards": package_cards,
     }

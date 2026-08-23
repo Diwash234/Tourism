@@ -16,6 +16,7 @@ const QUICK_COMMANDS = [
   { label: "💰 5-Day Annapurna Cost", prompt: "Estimate budget for 5 days in Annapurna and Pokhara" },
   { label: "🖼️ View Everest Photos", prompt: "Show me beautiful photos of Everest Base Camp" },
   { label: "🚨 24/7 Emergency Helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
+  { label: "🎒 Live travel packages", prompt: "What travel packages can I add to a trip?" },
 ]
 
 export default function ChatBot() {
@@ -336,6 +337,19 @@ export default function ChatBot() {
                           </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+
+                {message.package_cards && message.package_cards.length > 0 && (
+                  <div className="max-w-[85%] mt-3 w-full space-y-2">
+                    <p className="text-[11px] font-bold text-amber-900">Live packages (request to book — no card numbers here):</p>
+                    {message.package_cards.map((offer) => (
+                      <Link key={offer.id || offer.slug} to={`/packages/${offer.slug}`} className="block rounded-xl border border-amber-200 bg-white p-3 hover:bg-amber-50">
+                        <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind}</p>
+                        <p className="font-bold text-slate-900 text-sm">{offer.title}</p>
+                        <p className="text-xs text-slate-500">{offer.partner_name} · NPR {Number(offer.price_npr).toLocaleString()}</p>
+                      </Link>
                     ))}
                   </div>
                 )}

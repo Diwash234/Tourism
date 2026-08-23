@@ -5,7 +5,7 @@ import useToast from "../../hooks/useToast"
 
 const GROUPS = [
   ["Core", [["destinations","Destinations"],["destination_features","Destination Features"],["destination_images","Destination Images"],["destination_translations","Translations"],["categories","Categories"],["languages","Languages"]]],
-  ["Hotels & Bookings", [["hotels","Hotels"],["bookings","Bookings"],["hotel_reviews","Hotel Reviews"]]],
+  ["Hotels & Bookings", [["hotels","Hotels"],["bookings","Bookings"],["hotel_reviews","Hotel Reviews"],["marketplace_listings","Marketplace offers"],["marketplace_partners","Marketplace partners"],["marketplace_orders","Trip requests"]]],
   ["Users", [["reviews","Destination Reviews"],["ratings","Ratings"],["favorites","Favorites"],["visit_history","Visit History"],["family_links","Family Links"],["email_tokens","Email Tokens"]]],
   ["Safety & Services", [["alerts","Alerts"],["current_hazards","Current Hazards"],["emergency_contacts","Emergency Contacts"],["osm_services","OSM Essential Services"],["osm_places","OSM Tourism Places"]]],
   ["Finance & Feedback", [["budgets","Budgets"],["feedback","User Feedback"],["feedback_evidence","Feedback Evidence"]]],

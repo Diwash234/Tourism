@@ -2148,3 +2148,117 @@ class OwnerDeskTests(APITestCase):
         self.client.patch(reverse("admin-visitor-desk"), {"id": notice_id, "is_published": False}, format="json")
         republished = self.client.patch(reverse("admin-visitor-desk"), {"id": notice_id, "is_published": True}, format="json")
         self.assertEqual(republished.data["notified"], 0)
+
+
+class MarketplaceTests(APITestCase):
+    def setUp(self):
+        from .models import MarketplaceListing, MarketplacePartner
+        self.admin = User.objects.create_superuser(email="market-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.category = Category.objects.create(name="Marketplace")
+        self.destination = Destination.objects.create(
+            name="Phewa Shore", category=self.category, description="Lakeside",
+            latitude=28.2, longitude=83.9, city="Pokhara", district="Kaski",
+            status="approved", is_active=True, created_by=self.admin,
+        )
+        self.partner = MarketplacePartner.objects.create(
+            name="Pokhara Lodge Co", kind="hotel", email="lodge@example.com",
+            status="approved", website="https://lodge.example.com",
+        )
+        self.listing = MarketplaceListing.objects.create(
+            partner=self.partner, destination=self.destination, title="Phewa Lake Weekend",
+            kind="package", summary="Two nights by the lake", description="Boat and stay",
+            includes="Breakfast", excludes="Flights", price_npr="15000.00",
+            status="published", city="Pokhara",
+        )
+        self.draft = MarketplaceListing.objects.create(
+            partner=self.partner, title="Hidden draft stay", price_npr="1.00", status="draft",
+        )
+
+    def test_unpublished_listing_is_hidden(self):
+        listed = self.client.get(reverse("marketplace-listings"))
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        slugs = [row["slug"] for row in listed.data["results"]]
+        self.assertIn(self.listing.slug, slugs)
+        self.assertNotIn(self.draft.slug, slugs)
+        missing = self.client.get(reverse("marketplace-listing-detail", kwargs={"slug": self.draft.slug}))
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_card_number_is_rejected_and_no_order_created(self):
+        from .models import MarketplaceOrder
+        response = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Ada Traveller", "guest_email": "ada@example.com",
+            "card_number": "4111111111111111",
+            "items": [{"listing_id": self.listing.id}],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(MarketplaceOrder.objects.exists())
+
+    def test_partner_apply_requires_https_website(self):
+        bad = self.client.post(reverse("marketplace-partner-apply"), {
+            "name": "Insecure Lodge", "email": "bad@example.com", "website": "http://insecure.example.com",
+        }, format="json")
+        self.assertEqual(bad.status_code, status.HTTP_400_BAD_REQUEST)
+        ok = self.client.post(reverse("marketplace-partner-apply"), {
+            "name": "Himalayan Guides", "email": "guides@example.com", "kind": "operator",
+            "website": "https://guides.example.com",
+        }, format="json")
+        self.assertEqual(ok.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ok.data["status"], "pending")
+
+    def test_admin_approve_publish_and_request_checkout(self):
+        from .models import MarketplaceListing, MarketplaceOrder
+        applied = self.client.post(reverse("marketplace-partner-apply"), {
+            "name": "Annapurna Hotel", "email": "annapurna@example.com", "kind": "hotel",
+        }, format="json")
+        self.assertEqual(applied.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.admin)
+        approved = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "partners", "id": applied.data["id"], "action": "approve",
+        }, format="json")
+        self.assertEqual(approved.status_code, status.HTTP_200_OK)
+        created = self.client.post(reverse("admin-marketplace"), {
+            "resource": "listings", "partner_id": applied.data["id"], "destination_id": self.destination.id,
+            "title": "ABC Lodge Night", "kind": "hotel", "price_npr": "8000", "status": "published",
+            "summary": "Room with mountain view",
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        listing = MarketplaceListing.objects.get(pk=created.data["id"])
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("marketplace-listing-detail", kwargs={"slug": listing.slug}))
+        self.assertEqual(public.status_code, status.HTTP_200_OK)
+        checkout = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Sita", "guest_email": "sita@example.com", "payment_method": "request",
+            "travelers": 2, "items": [{"listing_id": listing.id, "quantity": 1}],
+        }, format="json")
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        order = MarketplaceOrder.objects.get(reference=checkout.data["order"]["reference"])
+        self.assertEqual(order.status, "requested")
+        self.assertEqual(str(order.total_npr), "8000.00")
+        self.assertFalse(hasattr(order, "card_number"))
+
+    def test_destination_detail_includes_published_listings(self):
+        page = self.client.get(reverse("destination-detail", kwargs={"slug": self.destination.slug}))
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        titles = [row["title"] for row in page.data["marketplace_listings"]]
+        self.assertIn("Phewa Lake Weekend", titles)
+        self.assertNotIn("Hidden draft stay", titles)
+
+    def test_staff_needs_marketplace_capability(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="market-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"hotels": ["view"]})
+        self.client.force_authenticate(staff)
+        denied = self.client.get(reverse("admin-marketplace"))
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities = {"marketplace": ["view"]}
+        staff.capability_profile.save()
+        allowed = self.client.get(reverse("admin-marketplace"))
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+
+    def test_admin_search_finds_listings(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.get(reverse("admin-global-search"), {"q": "Phewa Lake"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(item["type"] == "listing" for item in response.data["results"]))
