@@ -141,6 +141,7 @@ const SearchBar = ({
           }}
           onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(31,107,77,0.25)")}
           placeholder={placeholder || t("nav.search")}
+          data-testid="destination-search"
           className="w-full pl-11 pr-10 py-3 sm:py-3.5 bg-white border rounded-2xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 transition-all shadow-lg"
           style={{
             borderColor: "rgba(31,107,77,0.25)",

@@ -47,7 +47,7 @@ export default function Collaborate() {
   }
 
   return (
-    <div className="container-app py-10">
+    <div className="container-app py-10" data-testid="collaborate-page">
       <PageHeader
         title="Partner with Nepal Tourism"
         subtitle="Submit your hotel or tour business for review. After approval you can add packages from the partner desk — an administrator still publishes each offer."
@@ -55,7 +55,7 @@ export default function Collaborate() {
         theme="forest"
       />
       {done ? (
-        <div className="card-base p-8 max-w-xl space-y-3">
+        <div className="card-base p-8 max-w-xl space-y-3" data-testid="collaborate-success">
           <h2 className="text-xl font-black">Application submitted successfully</h2>
           <p className="text-slate-600">Our team will review your application and contact you.</p>
           <div className="flex flex-wrap gap-2">
@@ -64,13 +64,13 @@ export default function Collaborate() {
           </div>
         </div>
       ) : (
-        <form onSubmit={submit} className="card-base p-6 max-w-xl space-y-3">
-          <input className="input-field" required placeholder="Business / hotel name" value={form.name} onChange={set("name")} />
+        <form onSubmit={submit} className="card-base p-6 max-w-xl space-y-3" data-testid="collaborate-form">
+          <input className="input-field" required name="name" data-testid="partner-name" placeholder="Business / hotel name" value={form.name} onChange={set("name")} />
           <select className="input-field" value={form.kind} onChange={set("kind")}>
             {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
           </select>
           <input className="input-field" placeholder="Contact person" value={form.contact_name} onChange={set("contact_name")} />
-          <input className="input-field" required type="email" placeholder="Email" value={form.email} onChange={set("email")} />
+          <input className="input-field" required type="email" name="email" data-testid="partner-email" placeholder="Email" value={form.email} onChange={set("email")} />
           <input className="input-field" placeholder="Phone" value={form.phone} onChange={set("phone")} />
           <div className="grid grid-cols-2 gap-2">
             <input className="input-field" placeholder="Location / city" value={form.city} onChange={set("city")} />

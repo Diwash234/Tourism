@@ -4,6 +4,7 @@ import { useState } from "react"
 import { FiMail, FiLock, FiAlertCircle } from "react-icons/fi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import safeNextPath from "../../utils/safeNextPath"
 import AuthShell from "../../components/auth/AuthShell"
 import SocialLoginButtons from "./SocialLoginButtons"
 
@@ -31,7 +32,8 @@ export default function StaffLogin() {
         return
       }
       showToast(`Welcome, ${userData?.first_name || userData?.email}`, "success")
-      navigate(location.state?.from?.pathname || "/staff")
+      const next = safeNextPath(new URLSearchParams(location.search).get("next"))
+      navigate(location.state?.from?.pathname || next || "/staff")
     } catch (err) {
       showToast(err?.response?.data?.detail || "Invalid staff credentials", "error")
     } finally {
@@ -55,6 +57,7 @@ export default function StaffLogin() {
           <input
             type="email"
             placeholder="Staff email"
+            data-testid="login-email"
             className="input-field pl-11"
             {...register("email", { required: true })}
           />
@@ -66,6 +69,7 @@ export default function StaffLogin() {
           <input
             type="password"
             placeholder="Password"
+            data-testid="login-password"
             className="input-field pl-11"
             {...register("password", { required: true })}
           />
@@ -75,6 +79,7 @@ export default function StaffLogin() {
         <button
           type="submit"
           disabled={loading}
+          data-testid="login-submit"
           className="btn-primary w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl"
         >
           {loading ? "Signing in..." : "Sign In to Staff Desk"}

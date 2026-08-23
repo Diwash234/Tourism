@@ -50,7 +50,7 @@ export default function Checkout() {
   const days = result?.order?.duration_days
 
   return (
-    <div className="container-app py-10">
+    <div className="container-app py-10" data-testid="checkout-page">
       <PageHeader
         title="Review & Request Booking"
         subtitle="No payment is being processed on Nepal Tourism at this stage. Card numbers are never accepted here."
@@ -59,8 +59,8 @@ export default function Checkout() {
       />
 
       {result ? (
-        <div className="card-base p-6 max-w-2xl space-y-3">
-          <h2 className="text-xl font-black">Your trip request {result.order?.reference}</h2>
+        <div className="card-base p-6 max-w-2xl space-y-3" data-testid="checkout-result">
+          <h2 className="text-xl font-black" data-testid="checkout-reference">Your trip request {result.order?.reference}</h2>
           <p className="text-slate-600">{titles}{days ? ` — ${days} days` : ""}</p>
           <p className="font-bold">Status: {result.order?.status_label || result.order?.status}</p>
           <p className="text-slate-600">{result.message}</p>
@@ -99,15 +99,15 @@ export default function Checkout() {
             ))}
             <p className="text-xl font-black">Total NPR {total.toLocaleString()}</p>
           </section>
-          <form onSubmit={submit} className="card-base p-5 space-y-3">
+          <form onSubmit={submit} className="card-base p-5 space-y-3" data-testid="checkout-form">
             {!isAuthenticated && (
               <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 You can request as a guest, or <Link to="/login?next=/checkout" className="font-bold underline">log in</Link> so we can attach the request to your account.
               </p>
             )}
-            <input className="input-field" required placeholder="Traveller name" value={form.guest_name} onChange={(e) => setForm({ ...form, guest_name: e.target.value })} />
-            <input className="input-field" required type="email" placeholder="Email" value={form.guest_email} onChange={(e) => setForm({ ...form, guest_email: e.target.value })} />
-            <input className="input-field" placeholder="Phone" value={form.guest_phone} onChange={(e) => setForm({ ...form, guest_phone: e.target.value })} />
+            <input className="input-field" required name="guest_name" data-testid="checkout-name" placeholder="Traveller name" value={form.guest_name} onChange={(e) => setForm({ ...form, guest_name: e.target.value })} />
+            <input className="input-field" required type="email" name="guest_email" data-testid="checkout-email" placeholder="Email" value={form.guest_email} onChange={(e) => setForm({ ...form, guest_email: e.target.value })} />
+            <input className="input-field" name="guest_phone" data-testid="checkout-phone" placeholder="Phone" value={form.guest_phone} onChange={(e) => setForm({ ...form, guest_phone: e.target.value })} />
             <div className="grid grid-cols-2 gap-2">
               <input className="input-field" type="number" min="1" max="20" value={form.travelers} onChange={(e) => setForm({ ...form, travelers: e.target.value })} />
               <input className="input-field" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
@@ -125,7 +125,7 @@ export default function Checkout() {
               </label>
             </fieldset>
             <p className="text-xs text-slate-500">Do not enter card numbers, CVV or PAN here. Those fields are rejected on purpose.</p>
-            <button type="submit" disabled={busy || !items.length} className="btn-primary w-full">{busy ? "Sending…" : "Request booking"}</button>
+            <button type="submit" disabled={busy || !items.length} data-testid="checkout-submit" className="btn-primary w-full">{busy ? "Sending…" : "Request booking"}</button>
           </form>
         </div>
       )}

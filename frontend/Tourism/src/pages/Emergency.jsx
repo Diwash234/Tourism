@@ -151,7 +151,7 @@ export default function Emergency() {
   const risk = directory?.risk?.overall
 
   return (
-    <div className="container-app py-8 space-y-7 animate-fadeIn">
+    <div className="container-app py-8 space-y-7 animate-fadeIn" data-testid="emergency-page">
       <Breadcrumbs items={[{ label: "Emergency Services", to: "/emergency" }]} />
 
       <section className="rounded-3xl bg-gradient-to-r from-rose-900 via-rose-800 to-purple-950 text-white p-6 sm:p-8 shadow-2xl">
@@ -163,7 +163,7 @@ export default function Emergency() {
 
       <section className="rounded-3xl bg-white border shadow-sm p-5 space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); loadDestination(query) }} className="relative flex gap-2">
-          <div className="relative flex-1"><FiSearch className="absolute left-4 top-3.5 text-gray-400" /><input className="input-field pl-11" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Rara Lake, Mardi Himal, Janakpur…" />
+          <div className="relative flex-1"><FiSearch className="absolute left-4 top-3.5 text-gray-400" /><input className="input-field pl-11" data-testid="emergency-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Rara Lake, Mardi Himal, Janakpur…" />
             {suggestions.length > 0 && <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white border rounded-xl shadow-2xl overflow-hidden">{suggestions.slice(0, 7).map((item) => <button type="button" key={item.id} onClick={() => loadDestination(item.slug)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b last:border-0"><b>{item.name}</b><span className="ml-2 text-xs text-gray-400">{item.district}, {item.province}</span></button>)}</div>}
           </div>
           <button className="rounded-xl bg-purple-700 text-white px-6 font-black text-sm">Find help</button>
@@ -176,7 +176,7 @@ export default function Emergency() {
 
         <section className="space-y-3"><h2 className="font-extrabold text-lg flex items-center gap-2"><FiPhoneCall className="text-rose-600" /> Verified national hotlines</h2><div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">{directory.national_hotlines.map((item) => <a key={item.type} href={phoneHref(item.phone_number)} className={`rounded-2xl p-4 text-white bg-gradient-to-br ${HOTLINE_COLORS[item.type]} shadow`}><span className="text-[10px] font-black uppercase opacity-80">{item.name}</span><b className="block text-2xl">{item.phone_number}</b><p className="text-[10px] opacity-75">{item.description}</p></a>)}</div></section>
 
-        <section className="rounded-3xl border bg-white p-5 space-y-4"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-black text-xl">Nearest emergency facilities</h2><p className="text-xs text-gray-500">Database coverage: {directory.counts.database_hospitals} hospitals · {directory.counts.database_police_stations} police stations</p></div><div className="flex flex-wrap gap-2">{[["all", "All"], ["hospital", `Hospitals (${directory.counts.hospitals_within_radius})`], ["police", `Police (${directory.counts.police_within_radius})`], ["pharmacy", `Pharmacy (${directory.counts.pharmacy_within_radius || 0})`], ["fire", `Fire (${directory.counts.fire_within_radius || 0})`], ["specialized", "Ambulance & other"]].map(([key, label]) => <button key={key} onClick={() => setActiveTab(key)} className={`rounded-xl px-3 py-2 text-xs font-bold ${activeTab === key ? "bg-purple-700 text-white" : "bg-gray-100"}`}>{label}</button>)}</div></div>
+        <section className="rounded-3xl border bg-white p-5 space-y-4"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-black text-xl">Nearest emergency facilities</h2><p className="text-xs text-gray-500">Database coverage: {directory.counts.database_hospitals} hospitals · {directory.counts.database_police_stations} police stations</p></div><div className="flex flex-wrap gap-2">{[["all", "All"], ["hospital", `Hospitals (${directory.counts.hospitals_within_radius})`], ["police", `Police (${directory.counts.police_within_radius})`], ["pharmacy", `Pharmacy (${directory.counts.pharmacy_within_radius || 0})`], ["fire", `Fire (${directory.counts.fire_within_radius || 0})`], ["specialized", "Ambulance & other"]].map(([key, label]) => <button key={key} type="button" data-testid={`emergency-tab-${key}`} onClick={() => setActiveTab(key)} className={`rounded-xl px-3 py-2 text-xs font-bold ${activeTab === key ? "bg-purple-700 text-white" : "bg-gray-100"}`}>{label}</button>)}</div></div>
           {facilities.length ? <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{facilities.map((facility) => <FacilityCard key={facility.id} facility={facility} />)}</div> : <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 text-sm text-amber-900 space-y-2"><p><FiActivity className="inline mr-2" />{activeTab === "pharmacy" ? "No verified pharmacy is currently listed for this area. This platform does not invent pharmacies. You can submit a pharmacy for admin verification." : "No local specialized record is available. Use national Ambulance 102 or Fire 101."}</p><Link to="/submit-service" className="inline-block font-black underline">Submit a facility</Link></div>}
         </section>
 

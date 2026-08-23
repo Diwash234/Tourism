@@ -71,7 +71,7 @@ export default function EmergencyDirectoryPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="emergency-directory-panel">
       <div className="rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>

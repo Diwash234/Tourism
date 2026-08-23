@@ -414,7 +414,7 @@ export default function Navigation() {
   const TurnIcon = TURN_ICONS[currentStep.turn] || FiArrowUp
 
   return (
-    <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn">
+    <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn" data-testid="navigation-page">
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

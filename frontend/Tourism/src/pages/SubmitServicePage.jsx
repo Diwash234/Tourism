@@ -44,7 +44,7 @@ export default function SubmitServicePage() {
     finally { setSaving(false) }
   }
 
-  return <div className="container-app py-8 space-y-6">
+  return <div className="container-app py-8 space-y-6" data-testid="submit-service-page">
     <Breadcrumbs items={[{ label: "Submit Local Service", to: "/submit-service" }]} />
     <div className="rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-800 text-white p-7"><h1 className="text-3xl font-black">Help Map Local Nepal</h1><p className="text-sm text-emerald-100 mt-2">Send a hospital, hotel, police station, bank, emergency service or destination with GPS and evidence. Admin approval is required before database and CSV publication.</p></div>
     <form onSubmit={submit} className="rounded-3xl bg-white border shadow-sm p-6 space-y-6">

@@ -9,7 +9,7 @@ import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
 import useGeolocation from "./hooks/useGeolocation"
 import useToast from "./hooks/useToast"
-import { addToTripBasket } from "./utils/tripBasket"
+import HimalPackageCards from "./components/chat/HimalPackageCards"
 
 const QUICK_COMMANDS = [
   { label: "🏔️ Top Places & Photos", prompt: "Show top places to visit in Nepal with pictures" },
@@ -107,6 +107,7 @@ export default function ChatBot() {
           itinerary_cards: data.itinerary_cards || null,
           distance_cards: data.distance_cards || null,
           emergency_cards: data.emergency_cards || [],
+          package_cards: data.package_cards || [],
         },
       ])
     } catch (error) {
@@ -137,7 +138,7 @@ export default function ChatBot() {
   }
 
   return (
-    <div className="container-app py-8 animate-fadeIn">
+    <div className="container-app py-8 animate-fadeIn" data-testid="himal-page">
       <div className="max-w-4xl mx-auto space-y-5">
         <div className="text-center">
           <span className="px-3.5 py-1 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase tracking-wider">
@@ -156,6 +157,8 @@ export default function ChatBot() {
           {QUICK_COMMANDS.map((qp, idx) => (
             <button
               key={idx}
+              type="button"
+              data-testid={qp.prompt.includes("under $500") ? "himal-quick-budget" : `himal-quick-${idx}`}
               onClick={() => handleSend(qp.prompt)}
               disabled={sending}
               className="text-xs font-bold bg-white text-primary-900 hover:bg-primary-50 border border-primary-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 transition-all shadow-sm hover:border-primary-400"
@@ -345,28 +348,10 @@ export default function ChatBot() {
                   </div>
                 )}
 
-                {message.package_cards && message.package_cards.length > 0 && (
-                  <div className="max-w-[85%] mt-3 w-full space-y-2">
-                    <p className="text-[11px] font-bold text-amber-900">Live packages (request to book — no card numbers here):</p>
-                    {message.package_cards.map((offer) => (
-                      <div key={offer.id || offer.slug} className="rounded-xl border border-amber-200 bg-white p-3 space-y-2">
-                        <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind} · {offer.duration_days || 1} day(s)</p>
-                        <p className="font-bold text-slate-900 text-sm">{offer.title}</p>
-                        <p className="text-xs text-slate-500">{offer.partner_name} · NPR {Number(offer.price_npr).toLocaleString()}</p>
-                        <div className="flex gap-2">
-                          <Link to={`/packages/${offer.slug}`} className="flex-1 text-center text-[11px] font-black rounded-lg bg-amber-400 text-gray-950 py-1.5">View</Link>
-                          <button
-                            type="button"
-                            onClick={() => { addToTripBasket(offer); showToast("Added to trip basket", "success") }}
-                            className="flex-1 text-[11px] font-black rounded-lg bg-emerald-700 text-white py-1.5"
-                          >
-                            Add to trip
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <HimalPackageCards
+                  offers={message.package_cards}
+                  onAdd={() => showToast("Added to trip basket", "success")}
+                />
 
                 {/* 5. Emergency Helplines Cards */}
                 {message.emergency_cards && message.emergency_cards.length > 0 && (
@@ -423,6 +408,7 @@ export default function ChatBot() {
             <button
               type="submit"
               disabled={sending || !input.trim()}
+              data-testid="himal-send"
               className="btn-primary px-6 flex items-center justify-center bg-primary-600 hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               <FiSend size={18} />

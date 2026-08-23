@@ -151,6 +151,7 @@ function App() {
         <Route path="/trip/:reference?" element={<TripStatus />} />
         <Route path="/trip" element={<TripStatus />} />
         <Route path="/trip-planner" element={<TripPlanner />} />
+        <Route path="/chatbot" element={<Chatbot />} />
 
         {/* Public Emergency */}
         <Route path="/emergency" element={<Emergency />} />
@@ -210,8 +211,6 @@ function App() {
           <Route path="/history" element={<History />} />
           <Route path="/expenditure" element={<Expenditure />} />
           <Route path="/my-submissions" element={<MySubmissions />} />
-
-          <Route path="/chatbot" element={<Chatbot />} />
 
           <Route
             path="/hotels/:hotelId/book"

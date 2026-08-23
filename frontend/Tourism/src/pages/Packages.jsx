@@ -47,7 +47,7 @@ const Packages = () => {
   }
 
   return (
-    <div className="container-app py-10">
+    <div className="container-app py-10" data-testid="packages-page">
       <PageHeader
         title="Travel Packages"
         subtitle="Live offers from the admin desk and approved hotels, operators and guides. Add what you need to a trip, then request to book — we never take card numbers here."
@@ -100,7 +100,7 @@ const Packages = () => {
 
 function OfferCard({ listing, onAdd, featured }) {
   return (
-    <article className="card-base overflow-hidden flex flex-col">
+    <article className="card-base overflow-hidden flex flex-col" data-testid="package-card" data-package-slug={listing.slug}>
       <div className="h-40 bg-emerald-900 relative">
         {listing.image_url ? (
           <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
@@ -121,7 +121,7 @@ function OfferCard({ listing, onAdd, featured }) {
         <p className="mt-4 text-2xl font-black text-slate-900">NPR {Number(listing.price_npr).toLocaleString()}</p>
         <div className="mt-4 flex gap-2">
           <Link to={`/packages/${listing.slug}`} className="flex-1 btn-outline text-center">Details</Link>
-          <button type="button" onClick={() => onAdd(listing)} className="flex-1 btn-primary">Add to trip</button>
+          <button type="button" data-testid="add-to-trip" onClick={() => onAdd(listing)} className="flex-1 btn-primary">Add to trip</button>
         </div>
       </div>
     </article>

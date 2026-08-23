@@ -5,6 +5,7 @@ import { FiMail, FiLock, FiUser, FiLogIn } from "react-icons/fi"
 import { motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import safeNextPath from "../../utils/safeNextPath"
 import AuthShell from "../../components/auth/AuthShell"
 import SocialLoginButtons from "./SocialLoginButtons"
 import CrazyButton from "../../components/ui/CrazyButton"
@@ -23,7 +24,8 @@ export default function UserLogin() {
     try {
       const userData = await login(data)
       showToast(`Welcome back, ${userData?.first_name || userData?.email || "traveller"}!`, "success")
-      navigate(location.state?.from?.pathname || "/dashboard")
+      const next = safeNextPath(new URLSearchParams(location.search).get("next"))
+      navigate(location.state?.from?.pathname || next || "/dashboard")
     } catch (err) {
       showToast(err?.response?.data?.detail || "Invalid email or password", "error")
     } finally { setLoading(false) }
@@ -45,6 +47,7 @@ export default function UserLogin() {
             type="email"
             placeholder="Email address"
             autoComplete="email"
+            data-testid="login-email"
             className="input-field pl-11"
             {...register("email", { required: "Email is required" })}
           />
@@ -57,6 +60,7 @@ export default function UserLogin() {
             type="password"
             placeholder="Password"
             autoComplete="current-password"
+            data-testid="login-password"
             className="input-field pl-11"
             {...register("password", { required: "Password is required" })}
           />
@@ -71,7 +75,7 @@ export default function UserLogin() {
         </div>
 
         <motion.div whileTap={{ scale: 0.98 }}>
-          <CrazyButton type="submit" disabled={loading} className="w-full py-3 text-base">
+          <CrazyButton type="submit" disabled={loading} data-testid="login-submit" className="w-full py-3 text-base">
             {loading ? "Signing in..." : "Sign In"}
             {!loading && <FiLogIn />}
           </CrazyButton>

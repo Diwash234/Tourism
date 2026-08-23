@@ -114,7 +114,7 @@ export default function MarketplacePanel() {
   const approvedPartners = partners.filter((row) => row.status === "approved")
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="marketplace-panel">
       <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
@@ -134,7 +134,7 @@ export default function MarketplacePanel() {
         </div>
         <div className="flex flex-wrap gap-2 mt-4">
           {TABS.map(([id, label]) => (
-            <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-1.5 rounded-full text-xs font-black uppercase ${tab === id ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}>
+            <button key={id} type="button" data-testid={`marketplace-tab-${id}`} onClick={() => setTab(id)} className={`px-3 py-1.5 rounded-full text-xs font-black uppercase ${tab === id ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}>
               {label}
             </button>
           ))}

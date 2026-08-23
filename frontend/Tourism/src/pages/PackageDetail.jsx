@@ -72,7 +72,7 @@ export default function PackageDetail() {
         <aside className="card-base p-6 h-fit space-y-3">
           <p className="text-3xl font-black">NPR {Number(listing.price_npr).toLocaleString()}</p>
           <p className="text-sm text-slate-600">{listing.duration_days} day{listing.duration_days === 1 ? "" : "s"} · up to {listing.capacity} travellers</p>
-          <button type="button" onClick={add} className="btn-primary w-full">Add to trip & continue</button>
+          <button type="button" data-testid="add-to-trip" onClick={add} className="btn-primary w-full">Add to trip & continue</button>
           {listing.external_url && (
             <a href={listing.external_url} target="_blank" rel="noreferrer" className="btn-outline w-full text-center">Partner site (HTTPS)</a>
           )}

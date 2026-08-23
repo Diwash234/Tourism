@@ -104,6 +104,11 @@ export const NAV_LINKS = [
   },
 
   {
+    label: "Himal AI",
+    path: "/chatbot"
+  },
+
+  {
     label: "Trip Planner",
     path: "/trip-planner"
   },

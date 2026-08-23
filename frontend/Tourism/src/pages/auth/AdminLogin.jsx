@@ -4,6 +4,7 @@ import { useState } from "react"
 import { FiMail, FiLock, FiShield, FiAlertTriangle } from "react-icons/fi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import safeNextPath from "../../utils/safeNextPath"
 import AuthShell from "../../components/auth/AuthShell"
 import SocialLoginButtons from "./SocialLoginButtons"
 
@@ -28,7 +29,8 @@ export default function AdminLogin() {
         return
       }
       showToast(`Welcome, ${userData?.first_name || userData?.email}`, "success")
-      navigate(location.state?.from?.pathname || "/admin")
+      const next = safeNextPath(new URLSearchParams(location.search).get("next"))
+      navigate(location.state?.from?.pathname || next || "/admin")
     } catch (err) {
       showToast(err?.response?.data?.detail || "Invalid administrator credentials", "error")
     } finally {
@@ -53,6 +55,7 @@ export default function AdminLogin() {
           <input
             type="email"
             placeholder="Administrator email"
+            data-testid="login-email"
             className="input-field pl-11"
             {...register("email", { required: true })}
           />
@@ -73,6 +76,7 @@ export default function AdminLogin() {
         <button
           type="submit"
           disabled={loading}
+          data-testid="login-submit"
           className="btn-primary w-full py-3 bg-gradient-to-r from-slate-800 to-nepalred-600 hover:from-slate-900 hover:to-nepalred-700 text-white font-bold rounded-xl"
         >
           {loading ? "Authenticating..." : "Enter Admin Console"}
