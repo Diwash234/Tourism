@@ -254,6 +254,37 @@ export default function DestinationDetails() {
         </div>
       </div>
 
+      {destination.notices?.length > 0 && <VisitorNoticeBanner notices={destination.notices} />}
+
+      {(destination.opening_hours || destination.contact_phone || destination.website || Number(destination.entry_fee) > 0) && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {destination.opening_hours && (
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm">
+              <p className="text-[10px] font-black uppercase text-emerald-800 flex items-center gap-1"><FiClock /> Hours</p>
+              <p className="font-semibold text-slate-900 mt-1">{destination.opening_hours}</p>
+            </div>
+          )}
+          {Number(destination.entry_fee) > 0 && (
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm">
+              <p className="text-[10px] font-black uppercase text-emerald-800 flex items-center gap-1"><FiDollarSign /> Entry</p>
+              <p className="font-semibold text-slate-900 mt-1">NPR {destination.entry_fee}</p>
+            </div>
+          )}
+          {destination.contact_phone && (
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm">
+              <p className="text-[10px] font-black uppercase text-emerald-800 flex items-center gap-1"><FiPhoneCall /> Contact</p>
+              <a href={`tel:${destination.contact_phone}`} className="font-semibold text-slate-900 mt-1 block">{String(destination.contact_phone)}</a>
+            </div>
+          )}
+          {destination.website && (
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-sm">
+              <p className="text-[10px] font-black uppercase text-emerald-800 flex items-center gap-1"><FiGlobe /> Website</p>
+              <a href={destination.website} target="_blank" rel="noreferrer" className="font-semibold text-emerald-800 mt-1 block truncate">{destination.website.replace(/^https?:\/\//, "")}</a>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* CIRCULAR 3D PHOTO GALLERY + copyright pill */}
       <div className="space-y-4">
         <CircularGallery
