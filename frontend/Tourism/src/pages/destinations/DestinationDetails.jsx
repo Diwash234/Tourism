@@ -30,6 +30,7 @@ import { RISK_LEVELS } from "../../utils/constants"
 import { formatCurrencyUSD, formatCurrencyNPR } from "../../utils/formatters"
 import { FadeIn, HoverCard } from "../../components/common/MotionSystem"
 import CircularGallery from "../../components/ui/CircularGallery"
+import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
 export default function DestinationDetails() {
   const { slug } = useParams()
@@ -733,6 +734,15 @@ export default function DestinationDetails() {
                     <div><b>Best Months:</b> {destination.best_time_to_visit || "October to April"}</div>
                   </div>
                 </div>
+
+                {destination.notices?.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 space-y-2">
+                    <h4 className="font-bold text-sm text-amber-950">Desk notices for this place</h4>
+                    {destination.notices.map((notice) => (
+                      <p key={notice.id} className="text-xs"><b className="uppercase">{notice.kind}:</b> {notice.title}{notice.body ? ` — ${notice.body}` : ""}</p>
+                    ))}
+                  </div>
+                )}
 
                 {/* 2. 24/7 Emergency Helplines */}
                 <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-2">

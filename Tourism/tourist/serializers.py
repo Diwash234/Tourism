@@ -866,6 +866,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     attractions = DestinationAttractionSerializer(many=True, read_only=True)
     transit_routes = DestinationTransitRouteSerializer(many=True, read_only=True)
     nearby_places = DestinationNearbyPlaceSerializer(many=True, read_only=True)
+    notices = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
@@ -880,14 +881,18 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "country", "opening_hours", "entry_fee", "contact_phone", "contact_email", "website",
             "average_rating", "ratings_count", "views_count", "created_by", "created_by_name",
             "created_by_email", "is_user_submitted", "status", "research_status", "review_note",
-            "is_active", "created_at", "updated_at", "images", "gallery", "videos", "reviews", "translations",
+            "is_active", "is_featured", "created_at", "updated_at", "images", "gallery", "videos", "reviews", "translations",
             "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels", "restaurants",
-            "sources", "activities", "attractions", "transit_routes", "nearby_places",
+            "sources", "activities", "attractions", "transit_routes", "nearby_places", "notices",
         ]
         read_only_fields = [
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
             "is_user_submitted", "status", "review_note", "created_at", "updated_at",
         ]
+
+    def get_notices(self, obj):
+        from .notices import notices_for_destination, serialize_notice
+        return [serialize_notice(notice) for notice in notices_for_destination(obj)[:12]]
 
     def get_restaurants(self, obj):
         queryset = obj.restaurants.filter(status="published")

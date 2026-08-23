@@ -3084,19 +3084,24 @@ class AdminVisitorDeskView(APIView):
             notice = self._apply_notice(None, request.data, request.user)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
+        from .notices import notify_watchers
+        notified = notify_watchers(notice) if notice.is_published else 0
         return Response({"id": notice.id, "message": "Notice published" if notice.is_published else "Draft notice saved",
-                         "notice": _visitor_notice_row(notice)}, status=201)
+                         "notice": _visitor_notice_row(notice), "notified": notified}, status=201)
 
     def patch(self, request):
         _require_owner_desk(request, "change")
         notice = VisitorNotice.objects.filter(pk=request.data.get("id")).first()
         if not notice:
             return Response({"detail": "Notice not found"}, status=404)
+        was_published = notice.is_published
         try:
             notice = self._apply_notice(notice, request.data, request.user)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        return Response({"id": notice.id, "message": "Notice updated", "notice": _visitor_notice_row(notice)})
+        from .notices import notify_watchers
+        notified = notify_watchers(notice) if notice.is_published and not was_published else 0
+        return Response({"id": notice.id, "message": "Notice updated", "notice": _visitor_notice_row(notice), "notified": notified})
 
     def delete(self, request):
         _require_owner_desk(request, "delete")

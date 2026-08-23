@@ -2095,3 +2095,56 @@ class OwnerDeskTests(APITestCase):
         names = [row["name"] for row in featured.data["results"]]
         self.assertEqual(names, ["Desk Lake"])
         self.assertNotIn("High Rated Ridge", names)
+
+    def test_destination_page_shows_place_and_district_notices(self):
+        from .models import VisitorNotice
+        VisitorNotice.objects.create(
+            title="TIMS required", kind="permit", body="Buy a TIMS card first",
+            destination=self.destination, is_published=True,
+        )
+        VisitorNotice.objects.create(
+            title="Kaski festival week", kind="festival", body="Local jatra",
+            district="Kaski", is_published=True,
+        )
+        VisitorNotice.objects.create(
+            title="Nationwide advisory", kind="info", body="General", is_published=True,
+        )
+        other = Destination.objects.create(
+            name="Other Valley", category=self.category, description="Elsewhere",
+            latitude=27.7, longitude=85.3, city="Kathmandu", district="Kathmandu",
+            status="approved", is_active=True, created_by=self.admin,
+        )
+        VisitorNotice.objects.create(
+            title="Kathmandu only", kind="closure", body="Road work",
+            destination=other, is_published=True,
+        )
+        page = self.client.get(reverse("destination-detail", kwargs={"slug": self.destination.slug}))
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        titles = [row["title"] for row in page.data["notices"]]
+        self.assertIn("TIMS required", titles)
+        self.assertIn("Kaski festival week", titles)
+        self.assertNotIn("Nationwide advisory", titles)
+        self.assertNotIn("Kathmandu only", titles)
+
+    def test_published_notice_notifies_favorite_watchers_once(self):
+        from .models import Favorite, Notification
+        tourist = User.objects.create_user(email="watcher@example.com", password="StrongPass123!", is_verified=True)
+        Favorite.objects.create(user=tourist, destination=self.destination)
+        created = self.client.post(reverse("admin-visitor-desk"), {
+            "title": "Trail closed after rain", "kind": "closure",
+            "body": "Use the lower path", "destination_id": self.destination.id, "is_published": True,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(created.data["notified"], 1)
+        self.assertTrue(Notification.objects.filter(user=tourist, title__icontains="Trail closed").exists())
+        again = self.client.post(reverse("admin-visitor-desk"), {
+            "title": "Trail closed after rain", "kind": "closure",
+            "body": "Use the lower path", "destination_id": self.destination.id, "is_published": True,
+        }, format="json")
+        self.assertEqual(again.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Notification.objects.filter(user=tourist, title__icontains="Trail closed").count(), 2)
+        # republish of the same notice id should not duplicate
+        notice_id = created.data["id"]
+        self.client.patch(reverse("admin-visitor-desk"), {"id": notice_id, "is_published": False}, format="json")
+        republished = self.client.patch(reverse("admin-visitor-desk"), {"id": notice_id, "is_published": True}, format="json")
+        self.assertEqual(republished.data["notified"], 0)
