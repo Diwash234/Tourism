@@ -202,9 +202,101 @@ class PublicConfigView(APIView):
                 "parent_id": item.parent_id, "allowed_roles": item.allowed_roles, "display_order": item.display_order})
         from .notices import active_notices_qs, serialize_notice
         notices = [serialize_notice(notice) for notice in active_notices_qs(now)[:20]]
+        public_dests = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        )
+        catalog = {
+            "destination_count": public_dests.count(),
+            "featured_count": public_dests.filter(is_featured=True).count(),
+            "province_count": 7,
+            "note": "Counts are live recorded destinations. Visitor totals are not stored.",
+        }
         return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
-            "pages": page_rows, "navigation": navigation, "notices": notices})
+            "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog})
+
+
+class DiscoverNepalView(APIView):
+    """Recorded destinations and published notices for the Discover Nepal page."""
+
+    permission_classes = [permissions.AllowAny]
+    PENDING = "Not recorded — we will update soon"
+
+    def _group(self, queryset, limit=12):
+        items = list(queryset[:limit])
+        return {
+            "items": DestinationListSerializer(items, many=True, context={"request": self.request}).data,
+            "count": queryset.count(),
+            "pending": not items,
+            "message": None if items else self.PENDING,
+        }
+
+    def get(self, request):
+        from .models import VisitorNotice
+        from .notices import serialize_notice
+
+        qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        ).select_related("category").prefetch_related("gallery")
+        wildlife = qs.filter(
+            Q(name__icontains="national park") | Q(name__icontains="conservation")
+            | Q(name__icontains="wildlife") | Q(name__icontains="reserve")
+            | Q(type__icontains="wildlife") | Q(category__slug__icontains="wildlife")
+            | Q(category__name__icontains="wildlife")
+        )
+        heritage = qs.filter(
+            Q(name__icontains="durbar") | Q(name__icontains="unesco")
+            | Q(name__icontains="heritage") | Q(name__icontains="stupa")
+            | Q(type__icontains="heritage") | Q(category__slug__icontains="heritage")
+            | Q(category__name__icontains="heritage")
+        )
+        mountains = qs.filter(
+            Q(name__icontains="base camp") | Q(name__icontains="himal")
+            | Q(name__icontains="peak") | Q(type__icontains="mountain")
+            | Q(category__slug__icontains="mountain") | Q(category__name__icontains="mountain")
+        )
+        culture = qs.exclude(Q(cultural_significance__isnull=True) | Q(cultural_significance=""))
+        cuisine = qs.exclude(Q(food_cuisine_info__isnull=True) | Q(food_cuisine_info=""))
+        featured = qs.filter(is_featured=True).order_by("-average_rating", "name")
+        if not featured.exists():
+            featured = qs.order_by("-average_rating", "-views_count", "name")
+
+        notices = VisitorNotice.objects.filter(is_published=True, kind=VisitorNotice.Kind.FESTIVAL).order_by("-starts_at")[:12]
+        festival_items = [serialize_notice(notice) for notice in notices]
+
+        provinces = []
+        for name in ("Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"):
+            province_qs = qs.filter(province__icontains=name)
+            sample = province_qs.order_by("-is_featured", "-average_rating", "name").first()
+            from .location_sync import display_city
+            provinces.append({
+                "name": name,
+                "destination_count": province_qs.count(),
+                "sample_name": sample.name if sample else None,
+                "sample_slug": sample.slug if sample else None,
+                "sample_city": (sample and (display_city(sample) or sample.district)) or None,
+            })
+
+        return Response({
+            "pending_label": self.PENDING,
+            "catalog": {
+                "destination_count": qs.count(),
+                "featured_count": qs.filter(is_featured=True).count(),
+            },
+            "featured": self._group(featured, 12),
+            "wildlife": self._group(wildlife.order_by("-average_rating", "name"), 12),
+            "heritage": self._group(heritage.order_by("-average_rating", "name"), 16),
+            "mountains": self._group(mountains.order_by("-average_rating", "name"), 16),
+            "culture": self._group(culture.order_by("-average_rating", "name"), 12),
+            "cuisine": self._group(cuisine.order_by("-average_rating", "name"), 8),
+            "festivals": {
+                "items": festival_items,
+                "count": len(festival_items),
+                "pending": not festival_items,
+                "message": None if festival_items else self.PENDING,
+            },
+            "provinces": provinces,
+        })
 
 
 class TranslateTextView(APIView):

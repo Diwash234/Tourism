@@ -292,7 +292,7 @@ const DestinationCard = ({
 
           <FiMapPin size={14}/>
 
-          {placeLocationLabel({ city, district: destination.district, municipality: destination.municipality, province: destination.province, country })}
+          {placeLocationLabel({ display_city: destination.display_city, city, district: destination.district, municipality: destination.municipality, province: destination.province })}
 
           {
           distance_km != null &&

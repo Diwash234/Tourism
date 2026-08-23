@@ -89,6 +89,7 @@ const destinationApi = {
 
   getFeaturedGallery: () => axiosClient.get("/gallery/featured/"),
   getDistrictGallery: () => axiosClient.get("/gallery/districts/"),
+  discoverNepal: () => axiosClient.get("/discover-nepal/"),
 
 }
 

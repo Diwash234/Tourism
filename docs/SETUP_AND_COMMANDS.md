@@ -57,13 +57,35 @@ cd frontend/Tourism && npm ci && cd ../..
 
 ## Database
 
+`Tourism/db.sqlite3` is a local runtime file. Do not commit it. A fresh clone gets destinations from:
+
+1. `python manage.py migrate`
+2. `python manage.py import_osm_destinations` (CSV in `ml_service/processed_data/`)
+3. `python manage.py fill_missing_place_coords` (applies committed `Tourism/dataset/destination_locations.json`, then fills remaining city/coords only from other recorded destinations)
+4. `python manage.py seed_e2e_features` (demo logins and published packages)
+
+Or run the whole path:
+
 ```bash
 cd Tourism
 ../.venv/bin/python manage.py check
+../.venv/bin/python manage.py setup_system
+cd ..
+```
+
+Manual equivalent:
+
+```bash
+cd Tourism
 ../.venv/bin/python manage.py migrate
+../.venv/bin/python manage.py import_osm_destinations
+../.venv/bin/python manage.py fill_missing_place_coords
+../.venv/bin/python manage.py seed_e2e_features
 ../.venv/bin/python manage.py createsuperuser
 cd ..
 ```
+
+City and coordinate fills live in `Tourism/dataset/destination_locations.json` so Git clones receive them without the SQLite file. Admin destination edits write both SQLite and that JSON. Missing fields stay empty (`Not recorded` in the UI). Do not run `update_city` — it reverse-geocodes and invents descriptions.
 
 ## Run
 

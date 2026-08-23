@@ -138,8 +138,11 @@ export default function CompareDestinations() {
   const handlePreset = async (preset) => {
     setPresetError("")
     setLoading(true)
-    const rows = await loadBySlugs(preset.ids)
-    if (!rows.length) setPresetError("Those preset slugs are not in the live catalogue.")
+    const fromList = availablePlaces.filter((place) =>
+      preset.ids.some((token) => (place.slug || "").includes(token) || (place.name || "").toLowerCase().includes(token.replace(/-/g, " ")))
+    ).slice(0, 4)
+    const rows = fromList.length ? fromList.map(formatComparePlace).filter(Boolean) : await loadBySlugs(preset.ids)
+    if (!rows.length) setPresetError("Those recorded places are not in the live catalogue.")
     setSelectedDestinations(rows.slice(0, 4))
     setLoading(false)
   }

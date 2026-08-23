@@ -3,7 +3,7 @@
 Does not invent coordinates. Uses:
   1. another destination with the same name that already has coords
   2. the mean of recorded destinations in the same district/city
-  3. city from municipality / district / nearest recorded neighbour
+  3. city from municipality / recorded neighbour (never a district name)
 Also writes Tourism/dataset/destination_locations.json so clones can
 re-apply the same recorded fields without committing db.sqlite3.
 """

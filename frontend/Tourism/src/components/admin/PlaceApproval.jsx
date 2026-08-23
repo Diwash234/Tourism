@@ -115,7 +115,7 @@ export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-orange-950/80 border border-orange-700/50 text-xs">
                 <div>
                   <span className="text-orange-300">Province</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Gandaki"}</p>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Not recorded"}</p>
                 </div>
                 <div>
                   <span className="text-orange-300">District</span>

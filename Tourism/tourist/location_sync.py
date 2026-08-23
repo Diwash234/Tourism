@@ -34,6 +34,9 @@ REGION_TOKENS = {name.lower() for name in NEPAL_PROVINCES}
 for _districts in NEPAL_DISTRICTS.values():
     REGION_TOKENS.update(name.lower() for name in _districts)
 REGION_TOKENS.update({"other expenses (usd)", "other expenses"})
+# Official municipalities that share a district name. These are real cities,
+# not district-as-city fallbacks.
+MUNICIPAL_CITIES = {"kathmandu", "lalitpur", "bhaktapur"}
 NEIGHBOUR_KM = 25
 # ~111 km per degree of latitude; longitude is similar across Nepal.
 NEIGHBOUR_DEG = NEIGHBOUR_KM / 111.0
@@ -79,13 +82,38 @@ def _is_region_token(token):
     return _clean_place(token).lower() in REGION_TOKENS
 
 
+def _is_display_city(token):
+    """True when token is a locality, not a district/province stand-in."""
+    cleaned = _clean_place(token)
+    if not cleaned:
+        return False
+    lowered = cleaned.lower()
+    if lowered in MUNICIPAL_CITIES:
+        return True
+    return lowered not in REGION_TOKENS
+
+
 def _city_is_own_region(dest):
     city = _clean_place(dest.city).lower()
-    if not city:
+    if not city or city in MUNICIPAL_CITIES:
         return False
     district = _clean_place(dest.district).lower()
     province = _clean_place(dest.province).lower()
     return city == district or city == province or city in {name.lower() for name in NEPAL_PROVINCES}
+
+
+def display_city(dest):
+    """City shown to travellers: recorded locality only, never a district name."""
+    for candidate in (getattr(dest, "city", None), getattr(dest, "municipality", None),
+                      getattr(dest, "city_english", None), getattr(dest, "city_nepali", None)):
+        token = _clean_place(candidate)
+        if token and _is_display_city(token):
+            return token
+    return ""
+
+
+def has_map_pin(dest):
+    return dest.latitude is not None and dest.longitude is not None and _in_nepal(dest.latitude, dest.longitude)
 
 
 def _neighbour_city(dest, require_non_region=True):
@@ -126,24 +154,24 @@ def _neighbour_city(dest, require_non_region=True):
 
 
 def fill_city_from_records(dest, upgrade=False):
-    """Set dest.city from municipality / recorded neighbour / district."""
-    if _has_city(dest) and not (upgrade and _city_is_own_region(dest)):
+    """Set dest.city from municipality / recorded neighbour. Never copy district."""
+    if _has_city(dest) and _is_display_city(dest.city) and not (upgrade and _city_is_own_region(dest)):
         return False
     previous = dest.city or ""
     for candidate in (dest.municipality, dest.city_english, dest.city_nepali):
         token = _clean_place(candidate)
-        if token and not _is_region_token(token):
+        if token and _is_display_city(token):
             dest.city = token
             return dest.city != previous
     neighbour = _neighbour_city(dest, require_non_region=True)
-    if neighbour:
+    if neighbour and _is_display_city(neighbour):
         dest.city = neighbour
         return dest.city != previous
-    if not _has_city(dest):
-        token = _clean_place(dest.district)
-        if token:
-            dest.city = token
-            return True
+    # District/province names are not cities. Clear a fake city so the UI
+    # can show "Not recorded" instead of a district stand-in.
+    if _has_city(dest) and not _is_display_city(dest.city):
+        dest.city = ""
+        return True
     return False
 
 
@@ -273,8 +301,10 @@ def apply_destination_locations():
             continue
         changed = []
         json_city = _clean_place(row.get("city"))
-        if json_city:
-            if not _has_city(dest) or (_city_is_own_region(dest) and not _is_region_token(json_city)):
+        if json_city and _is_display_city(json_city):
+            if not _has_city(dest) or not _is_display_city(dest.city) or (
+                _city_is_own_region(dest) and _is_display_city(json_city)
+            ):
                 if dest.city != json_city:
                     dest.city = json_city[:100]
                     changed.append("city")

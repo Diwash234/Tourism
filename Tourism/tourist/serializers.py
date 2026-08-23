@@ -744,12 +744,16 @@ class DestinationListSerializer(serializers.ModelSerializer):
     risk_level = serializers.SerializerMethodField()
     recommended_season = serializers.SerializerMethodField()
     gallery_preview = serializers.SerializerMethodField()
+    display_city = serializers.SerializerMethodField()
+    has_map_pin = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
         fields = [
             "id", "name", "slug", "category", "category_name", "short_description",
-            "latitude", "longitude", "city", "country", "district", "province", "municipality", "ward_number", "type",
+            "latitude", "longitude", "city", "display_city", "has_map_pin", "country",
+            "district", "province", "municipality", "ward_number", "type",
+            "altitude", "recommended_days", "best_time_to_visit",
             "average_rating", "ratings_count", "views_count", "entry_fee", "source",
             "cover_image_url", "distance_km", "status", "is_user_submitted", "is_active",
             "budget_estimate", "risk_level", "recommended_season", "gallery_preview", "created_at", "updated_at",
@@ -787,6 +791,16 @@ class DestinationListSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_recommended_season(self, obj):
         return obj.best_time_to_visit or None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_display_city(self, obj):
+        from .location_sync import display_city
+        return display_city(obj) or None
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_map_pin(self, obj):
+        from .location_sync import has_map_pin
+        return has_map_pin(obj)
 
     def get_gallery_preview(self, obj):
         request = self.context.get("request")
@@ -856,6 +870,8 @@ class DestinationListSerializer(serializers.ModelSerializer):
 
 class DestinationDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
+    display_city = serializers.SerializerMethodField()
+    has_map_pin = serializers.SerializerMethodField()
     cover_image_url = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     gallery = serializers.SerializerMethodField()
@@ -889,6 +905,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "distance_from_nearest_airport_km", "nearest_airport_name", "approx_travel_time", "recommended_days",
             "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info", "district", "municipality",
             "ward_number", "province", "cover_image_url", "latitude", "longitude", "address", "city",
+            "display_city", "has_map_pin",
             "country", "opening_hours", "entry_fee", "contact_phone", "contact_email", "website",
             "average_rating", "ratings_count", "views_count", "created_by", "created_by_name",
             "created_by_email", "is_user_submitted", "status", "research_status", "review_note",
@@ -905,6 +922,14 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     def get_notices(self, obj):
         from .notices import notices_for_destination, serialize_notice
         return [serialize_notice(notice) for notice in notices_for_destination(obj)[:12]]
+
+    def get_display_city(self, obj):
+        from .location_sync import display_city
+        return display_city(obj) or None
+
+    def get_has_map_pin(self, obj):
+        from .location_sync import has_map_pin
+        return has_map_pin(obj)
 
     def get_marketplace_listings(self, obj):
         listings = obj.marketplace_listings.filter(

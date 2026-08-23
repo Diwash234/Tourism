@@ -573,6 +573,8 @@ class PublicConfigTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("mapillary_access_token", response.data)
         self.assertTrue(response.data["mapillary_access_token"])
+        self.assertIn("catalog", response.data)
+        self.assertIn("destination_count", response.data["catalog"])
 
 
 class DestinationEssentialsTests(APITestCase):
@@ -2839,3 +2841,122 @@ class RecordedPlaceHonestyTests(APITestCase):
         self.assertIsNone(response.data.get("total_estimated_usd"))
         self.assertNotIn("4655", str(response.data))
         self.assertNotIn(4655, [response.data.get("total_estimated_npr"), response.data.get("per_person_npr")])
+
+    def test_fill_city_does_not_copy_district_name(self):
+        from django.core.management import call_command
+        isolated = Destination.objects.create(
+            name="Honesty Isolated Ridge",
+            category=self.category,
+            description="Only a district is stored",
+            latitude=26.45,
+            longitude=87.27,
+            city="",
+            district="Jhapa",
+            municipality="",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        isolated.refresh_from_db()
+        self.assertEqual(isolated.city or "", "")
+        from .location_sync import display_city
+        self.assertEqual(display_city(isolated), "")
+
+    def test_kathmandu_city_is_kept_when_it_matches_district(self):
+        from django.core.management import call_command
+        ktm = Destination.objects.create(
+            name="Honesty Kathmandu Square",
+            category=self.category,
+            description="City and district are both Kathmandu",
+            latitude=27.7172,
+            longitude=85.3240,
+            city="Kathmandu",
+            district="Kathmandu",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        ktm.refresh_from_db()
+        self.assertEqual(ktm.city, "Kathmandu")
+        from .serializers import DestinationListSerializer
+        data = DestinationListSerializer(ktm).data
+        self.assertEqual(data["display_city"], "Kathmandu")
+
+    def test_display_city_hides_district_token(self):
+        from .serializers import DestinationListSerializer
+        dest = Destination.objects.create(
+            name="Honesty Kaski Viewpoint",
+            category=self.category,
+            description="City stored as district",
+            latitude=28.21,
+            longitude=83.99,
+            city="Kaski",
+            district="Kaski",
+            created_by=self.user,
+        )
+        data = DestinationListSerializer(dest).data
+        self.assertIsNone(data["display_city"])
+        self.assertTrue(data["has_map_pin"])
+
+    def test_unlocated_destination_has_no_map_pin(self):
+        from .serializers import DestinationDetailSerializer
+        dest = Destination.objects.create(
+            name="Honesty Unmapped Trail",
+            category=self.category,
+            description="No honest coordinates",
+            created_by=self.user,
+        )
+        data = DestinationDetailSerializer(dest).data
+        self.assertFalse(data["has_map_pin"])
+        self.assertIsNone(data["display_city"])
+
+    def test_admin_can_edit_empty_city_and_coords(self):
+        admin = User.objects.create_superuser(email="honesty-edit@example.com", password="AdminPass123!")
+        dest = Destination.objects.create(
+            name="Honesty Admin Edit Peak",
+            category=self.category,
+            description="Empty fields for admin",
+            created_by=admin,
+        )
+        self.client.force_authenticate(admin)
+        response = self.client.put(
+            reverse("admin-destination-detail", kwargs={"id": dest.id}),
+            {
+                "city": "Pokhara",
+                "latitude": 28.2096,
+                "longitude": 83.9856,
+                "altitude": "822m",
+                "best_time_to_visit": "Oct-Nov",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        dest.refresh_from_db()
+        self.assertEqual(dest.city, "Pokhara")
+        self.assertAlmostEqual(float(dest.latitude), 28.2096, places=3)
+        self.assertEqual(dest.altitude, "822m")
+        rejected = self.client.put(
+            reverse("admin-destination-detail", kwargs={"id": dest.id}),
+            {"latitude": 12.0, "longitude": 77.0},
+            format="json",
+        )
+        self.assertEqual(rejected.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_discover_nepal_uses_recorded_destinations(self):
+        Destination.objects.create(
+            name="Honesty National Park",
+            category=self.category,
+            description="Wildlife",
+            latitude=27.5,
+            longitude=84.3,
+            city="Sauraha",
+            created_by=self.user,
+            is_active=True,
+            status=Destination.SubmissionStatus.APPROVED,
+        )
+        response = self.client.get(reverse("discover-nepal"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Not recorded", response.data["pending_label"])
+        names = [row["name"] for row in response.data["wildlife"]["items"]]
+        self.assertIn("Honesty National Park", names)
+        self.assertGreaterEqual(response.data["catalog"]["destination_count"], 1)
+        self.assertTrue(response.data["festivals"]["pending"] or response.data["festivals"]["items"])
+

@@ -256,9 +256,11 @@ async function run() {
     const emergency = slug
       ? await request(`${API}/destinations/${encodeURIComponent(slug)}/emergency/?radius_km=80&limit=4`)
       : { res: { ok: false }, data: {} }
-    const phones = JSON.stringify(emergency.data || {})
-    if (emergency.res.ok && !phones.includes("4412404") && Array.isArray(emergency.data?.hospitals)) {
-      ok("destination emergency uses recorded hospitals, not TUTH 4412404")
+    const inventedFallback = (emergency.data?.hospitals || []).some((row) =>
+      row.phone_is_national_fallback && String(row.phone_number || "").includes("4412404")
+    )
+    if (emergency.res.ok && !inventedFallback && Array.isArray(emergency.data?.hospitals)) {
+      ok("destination emergency does not invent TUTH 4412404 as a fallback")
     } else fail("destination emergency honesty", `status=${emergency.res?.status}`)
   }
 
@@ -284,6 +286,32 @@ async function run() {
     else fail("admin marketplace", `status ${market.res.status}`)
     if (directory.res.ok) ok("admin emergency directory API")
     else fail("admin emergency directory", `status ${directory.res.status}`)
+  }
+
+  {
+    const config = await request(`${API}/config/public/`)
+    if (config.res.ok && Number.isFinite(config.data?.catalog?.destination_count)) {
+      ok("public config exposes live destination count")
+    } else fail("public catalog count", `status=${config.res.status}`)
+  }
+
+  {
+    const discover = await request(`${API}/discover-nepal/`)
+    const pending = String(discover.data?.pending_label || "")
+    const wildlife = discover.data?.wildlife?.items || []
+    if (discover.res.ok && pending.includes("Not recorded") && Array.isArray(wildlife)) {
+      ok("discover nepal returns recorded groups and pending label")
+    } else fail("discover nepal", `status=${discover.res.status}`)
+  }
+
+  {
+    const listed = await request(`${API}/destinations/?limit=5`)
+    const rows = listed.data?.results || []
+    const hasPinField = rows.every((row) => typeof row.has_map_pin === "boolean")
+    const noDistrictAsCity = rows.every((row) => !row.display_city || row.display_city.toLowerCase() !== "kaski")
+    if (listed.res.ok && rows.length && hasPinField && noDistrictAsCity) {
+      ok("destination list exposes has_map_pin and does not display Kaski as a city")
+    } else fail("destination list display_city", `count=${rows.length}`)
   }
 
   console.log(`\n${results.length - failed} passed, ${failed} failed`)

@@ -299,7 +299,7 @@ class AdminPendingPlacesView(APIView):
                 "slug": p.slug,
                 "category_id": p.category_id,
                 "category_name": p.category.name if p.category else "Uncategorized",
-                "province": p.province or "Gandaki",
+                "province": p.province or "",
                 "district": p.district or "",
                 "municipality": p.municipality or "",
                 "ward_number": p.ward_number,
@@ -542,17 +542,39 @@ class AdminDestinationDetailView(APIView):
         except Destination.DoesNotExist:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        from .location_sync import display_city, has_map_pin
         return Response({
             "id": destination.id,
             "name": destination.name,
             "slug": destination.slug,
             "description": destination.description,
             "short_description": destination.short_description,
+            "history": destination.history,
+            "cultural_significance": destination.cultural_significance,
+            "religious_significance": destination.religious_significance,
+            "food_cuisine_info": destination.food_cuisine_info,
+            "travel_safety_tips": destination.travel_safety_tips,
+            "best_time_to_visit": destination.best_time_to_visit,
+            "altitude": destination.altitude,
+            "opening_hours": destination.opening_hours,
+            "entry_fee": float(destination.entry_fee) if destination.entry_fee is not None else None,
+            "recommended_days": destination.recommended_days,
+            "address": destination.address,
+            "aliases": destination.aliases,
             "category": getattr(destination.category, "name", None),
             "city": destination.city,
+            "display_city": display_city(destination) or "",
+            "has_map_pin": has_map_pin(destination),
+            "city_english": destination.city_english,
+            "city_nepali": destination.city_nepali,
             "district": destination.district,
             "province": destination.province,
             "municipality": destination.municipality,
+            "nearest_major_city": destination.nearest_major_city,
+            "nearest_hospital_info": destination.nearest_hospital_info,
+            "nearest_hotel_info": destination.nearest_hotel_info,
+            "nearest_police_info": destination.nearest_police_info,
+            "pending_label": "Not recorded — we will update soon",
             "latitude": float(destination.latitude) if destination.latitude is not None else None,
             "longitude": float(destination.longitude) if destination.longitude is not None else None,
             "cover_image": _cover_of(destination),
@@ -608,13 +630,49 @@ class AdminDestinationDetailView(APIView):
         except Destination.DoesNotExist:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        from decimal import Decimal, InvalidOperation
+        from .location_sync import _in_nepal
+
         editable = {
-            "name", "description", "short_description", "city", "district",
-            "province", "latitude", "longitude", "entry_fee", "opening_hours",
-            "best_time_to_visit", "history", "cultural_significance", "website",
+            "name", "description", "short_description", "city", "city_english", "city_nepali",
+            "district", "province", "municipality", "address", "aliases",
+            "latitude", "longitude", "entry_fee", "opening_hours", "altitude",
+            "best_time_to_visit", "history", "cultural_significance", "religious_significance",
+            "food_cuisine_info", "travel_safety_tips", "website",
+            "nearest_major_city", "nearest_hospital_info", "nearest_hotel_info",
+            "nearest_police_info", "recommended_days",
         }
+        payload = dict(request.data)
+        lat_in = payload.get("latitude", destination.latitude)
+        lng_in = payload.get("longitude", destination.longitude)
+
+        def _parse_optional_number(raw):
+            if raw in ("", None):
+                return None
+            try:
+                return Decimal(str(raw))
+            except (InvalidOperation, TypeError, ValueError):
+                raise ValueError("invalid number")
+
+        try:
+            if "latitude" in payload:
+                payload["latitude"] = _parse_optional_number(payload.get("latitude"))
+            if "longitude" in payload:
+                payload["longitude"] = _parse_optional_number(payload.get("longitude"))
+            if "entry_fee" in payload:
+                payload["entry_fee"] = _parse_optional_number(payload.get("entry_fee"))
+            if "recommended_days" in payload and payload.get("recommended_days") not in ("", None):
+                payload["recommended_days"] = int(payload["recommended_days"])
+        except (TypeError, ValueError):
+            return Response({"detail": "Latitude, longitude, entry fee and recommended days must be numbers."}, status=400)
+
+        next_lat = payload.get("latitude", destination.latitude)
+        next_lng = payload.get("longitude", destination.longitude)
+        if next_lat is not None and next_lng is not None and not _in_nepal(next_lat, next_lng):
+            return Response({"detail": "Coordinates must fall inside Nepal (lat 26–31, lng 80–89)."}, status=400)
+
         changed = []
-        for key, value in request.data.items():
+        for key, value in payload.items():
             if key in editable and hasattr(destination, key):
                 if getattr(destination, key) != value:
                     changed.append(key)

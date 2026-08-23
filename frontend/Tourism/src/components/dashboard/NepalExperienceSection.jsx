@@ -50,6 +50,7 @@ const AUTHENTIC_FOODS = [
 
 const NepalExperienceSection = () => {
   const [recordedTreks, setRecordedTreks] = useState([])
+  const [recordedFoods, setRecordedFoods] = useState([])
   const [activeTrek, setActiveTrek] = useState(null)
   const [activeTab, setActiveTab] = useState("trekking")
   const selectedTrek = recordedTreks.find((t) => t.slug === activeTrek) || recordedTreks[0]
@@ -73,6 +74,9 @@ const NepalExperienceSection = () => {
           })
       })
       .catch(() => setRecordedTreks([]))
+    destinationApi.discoverNepal()
+      .then(({ data }) => setRecordedFoods(data.cuisine?.items || []))
+      .catch(() => setRecordedFoods([]))
   }, [])
 
   return (
@@ -176,36 +180,33 @@ const NepalExperienceSection = () => {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {AUTHENTIC_FOODS.map((food, idx) => (
-            <BorderBeamCard key={idx} className="bg-white">
+          {recordedFoods.length ? recordedFoods.map((food) => (
+            <BorderBeamCard key={food.id} className="bg-white">
               <div className="space-y-2.5">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase">
-                      {food.region}
+                      {food.display_city || food.district || "Not recorded"}
                     </span>
                     <h3 className="text-xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
-                      {food.name} <span className="text-sm font-normal text-purple-700 font-devanagari font-bold">({food.nepali})</span>
+                      {food.name}
                     </h3>
                   </div>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
-                    {food.tagline}
-                  </span>
                 </div>
-
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  {food.desc}
+                  {food.short_description || "Not recorded — we will update soon"}
                 </p>
-
                 <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100 text-[11px] text-purple-950 flex items-center justify-between">
-                  <span>📍 <b>Where to experience:</b> {food.whereToTaste}</span>
-                  <Link to="/destinations" className="text-purple-700 font-bold hover:underline shrink-0 ml-2">
-                    Find Spots ➔
+                  <span>📍 Recorded food notes for this place</span>
+                  <Link to={`/destinations/${food.slug}`} className="text-purple-700 font-bold hover:underline shrink-0 ml-2">
+                    Open destination ➔
                   </Link>
                 </div>
               </div>
             </BorderBeamCard>
-          ))}
+          )) : (
+            <p className="text-sm text-slate-600 col-span-2">Not recorded — we will update soon. An administrator can add food notes on a destination record.</p>
+          )}
         </motion.div>
       )}
     </section>

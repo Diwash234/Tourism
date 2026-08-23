@@ -181,7 +181,7 @@ export default function Recommendation() {
                   <h3 className="absolute bottom-4 left-4 right-4 text-white text-xl font-black">{item.name}</h3>
                 </div>
                 <div className="p-5 flex-1 space-y-4">
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiMapPin /> {item.city || item.district || "Not recorded"}{item.province ? `, ${item.province}` : ""}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiMapPin /> {item.display_city || item.district || "Not recorded"}{item.province ? `, ${item.province}` : ""}</p>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.difficulty || "Not recorded"}</b><span className="text-[10px] text-gray-400">ranking</span></div>
                     <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.budget_level || "Not recorded"}</b><span className="text-[10px] text-gray-400">rank tag</span></div>

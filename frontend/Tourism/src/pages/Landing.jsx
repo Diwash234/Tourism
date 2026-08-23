@@ -42,46 +42,46 @@ const PROVINCES = [
 const FEATURES = [
   {
     icon: FiMapPin,
-    title: "5,800+ Verified Destinations",
-    desc: "Curated cultural landmarks, hidden waterfalls, alpine passes, and local homestays across all 7 provinces.",
+    title: "Recorded destinations",
+    desc: "Browse places stored in the Nepal catalogue. Missing city, season, or budget fields stay Not recorded until an administrator adds them.",
   },
   {
     icon: FiDollarSign,
-    title: "ML Travel Cost Estimator",
-    desc: "Predict accommodation, food, transit, and entry fees calibrated by actual traveler expenditure records.",
+    title: "Recorded travel costs",
+    desc: "Budgets appear only when a destination or published package has a stored NPR amount. Empty costs are never invented.",
   },
   {
     icon: FiShield,
-    title: "24/7 Mountain Risk Sentinel",
-    desc: "Live altitude sickness advisories, weather warnings, and direct emergency police/hospital connectivity.",
+    title: "Emergency directory",
+    desc: "Nearest hospitals and police from the recorded directory, plus official national numbers 1144, 100 and 102.",
   },
   {
     icon: FiNavigation,
-    title: "GTA Tactical Navigation HUD",
-    desc: "Turn-by-turn road and trail navigation with speedometer, compass bearing, and nearby checkpoints.",
+    title: "Navigation for mapped places",
+    desc: "Routes open only for destinations that have recorded Nepal coordinates. Unmapped places stay off the map.",
   },
 ]
 
 const FAQ_ITEMS = [
   {
     question: "Why use this Nepal Tourism portal over generic search engines?",
-    answer: "Generic searches give fragmented data. This platform integrates verified municipal geocoding, ML budget estimation, live natural hazard alerts, 1,000+ emergency hospitals/police stations, and turn-by-turn navigation in a single portal."
+    answer: "This portal lists destinations, emergency contacts, and published packages that are stored in the database. If a field is empty it shows Not recorded instead of inventing a value."
   },
   {
     question: "How accurate are the travel budget estimates?",
-    answer: "The ML budget engine is calibrated using real traveler feedback and field officer survey data, breaking costs into accommodation, transit, meals, and national park permits."
+    answer: "Only recorded NPR amounts from destination entry fees, budget rows, or published packages are shown. Missing costs stay Not recorded until an administrator updates them."
   },
   {
     question: "What should I do during high-altitude or medical emergencies?",
-    answer: "Tap the 24/7 red Emergency button to view nearest hospitals and police stations on the live GPS map, or dial Tourist Police Nepal directly at 1144."
+    answer: "Open Emergency to see recorded nearby hospitals and police. For immediate dispatch use official national numbers: Tourist Police 1144, Police 100, Ambulance 102."
   },
   {
     question: "Can community travelers submit new hidden gems?",
-    answer: "Yes! Travelers can submit new spots with photos, municipality, and ward details. All submissions pass through the Admin Verification Sentinel before publishing live."
+    answer: "Yes. Travelers can submit a place with photos and location. Submissions stay pending until an administrator reviews and publishes them."
   },
   {
     question: "Does the navigation work for remote Himalayan trekking routes?",
-    answer: "Yes! The system integrates topological road graph routes and trekking trail corridors with altitude tracking and maneuver guidance."
+    answer: "Navigation uses recorded destination coordinates. If a place has no stored latitude and longitude, the map pin is Not recorded."
   }
 ]
 
@@ -93,6 +93,8 @@ export default function Landing() {
   const publicConfig = usePublicConfig()
   const { showBlock, copy, extras } = publicConfig.pageCMS("home", HOME_KEYS)
   const notices = publicConfig.notices || []
+  const destCount = publicConfig.catalog?.destination_count
+  const destCountLabel = destCount != null ? destCount.toLocaleString() : null
   const [destinations, setDestinations] = useState([])
   const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(true)
@@ -203,13 +205,13 @@ export default function Landing() {
               <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
                 ✓
               </div>
-              <span className="text-xs text-amber-200 font-medium">5,800+ Verified Places</span>
+              <span className="text-xs text-amber-200 font-medium">{destCountLabel ? `${destCountLabel} recorded places` : "Recorded places"}</span>
             </div>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
                 ★
               </div>
-              <span className="text-xs text-amber-200 font-medium">10,000+ Real Hikers</span>
+              <span className="text-xs text-amber-200 font-medium">Visitor totals not recorded</span>
             </div>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
@@ -301,7 +303,7 @@ export default function Landing() {
             to="/destinations"
             className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 shrink-0"
           >
-            View All 5,800+ Destinations <FiArrowRight size={14} />
+            {destCountLabel ? `View all ${destCountLabel} destinations` : "View all destinations"} <FiArrowRight size={14} />
           </Link>
         </div>
 

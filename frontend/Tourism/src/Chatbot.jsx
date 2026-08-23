@@ -7,17 +7,15 @@ import {
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
+import destinationApi from "./api/destinationApi"
 import useGeolocation from "./hooks/useGeolocation"
 import useToast from "./hooks/useToast"
 import HimalPackageCards from "./components/chat/HimalPackageCards"
+import { NOT_RECORDED, recordedCity } from "./utils/placeUtils"
 
 const QUICK_COMMANDS = [
-  { label: "🏔️ Top Places & Photos", prompt: "Show top places to visit in Nepal with pictures" },
-  { label: "📏 KTM to Pokhara Distance", prompt: "How far is Pokhara from Kathmandu and what are the bus and drive times?" },
-  { label: "🗓️ 7-Day Mustang Trip", prompt: "Plan an 7-day itinerary for Mustang with budget NPR 60,000" },
-  { label: "💰 5-Day Annapurna Cost", prompt: "Estimate budget for 5 days in Annapurna and Pokhara" },
-  { label: "🖼️ View Everest Photos", prompt: "Show me beautiful photos of Everest Base Camp" },
-  { label: "🚨 24/7 Emergency Helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
+  { label: "🏔️ Recorded destinations", prompt: "Show recorded destinations in Nepal" },
+  { label: "🚨 Emergency helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
   { label: "🎒 Live travel packages", prompt: "What travel packages can I add to a trip?" },
   { label: "💵 5-day trip under $500", prompt: "I want a 5-day trip to Nepal under $500" },
 ]
@@ -28,29 +26,8 @@ export default function ChatBot() {
       role: "assistant",
       content:
         "Namaste! 🙏 I am **Himal AI**, your personal Nepal Travel Companion & Intelligent Visual Guide.\n\n" +
-        "I can calculate real highway distances, design day-by-day itineraries, estimate travel costs in NPR/USD, and show verified photos from all 77 districts.",
-      destination_cards: [
-        {
-          name: "Pokhara & Phewa Lake",
-          city: "Kaski, Gandaki",
-          image: "/images/destinations/pokhara/fewatal.jpg",
-          slug: "phewa-lake-tal-barahi",
-          rating: "4.9",
-          budget: "NPR 4,500/day",
-          altitude: "822m",
-          category: "Lakes & Adventure",
-        },
-        {
-          name: "Everest Base Camp (5,364m)",
-          city: "Solukhumbu, Koshi",
-          image: "/images/destinations/everest/base-camp.jpg",
-          slug: "everest-base-camp-ebc",
-          rating: "5.0",
-          budget: "NPR 7,000/day",
-          altitude: "5,364m",
-          category: "High Mountain Trek",
-        }
-      ],
+        "I answer from recorded destinations, published packages, and the emergency directory. Missing fields stay Not recorded.",
+      destination_cards: [],
       image_cards: [],
       itinerary_cards: null,
       distance_cards: null,
@@ -71,6 +48,29 @@ export default function ChatBot() {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight
     }
   }, [messages, sending])
+
+  useEffect(() => {
+    destinationApi.getDestinations({ featured: true, page_size: 4, limit: 4 })
+      .then(({ data }) => {
+        const dests = data.results || data || []
+        const cards = (Array.isArray(dests) ? dests : []).filter((row) => row?.name).slice(0, 2).map((dest) => ({
+          name: dest.name,
+          city: recordedCity(dest) || dest.district || NOT_RECORDED,
+          image: dest.cover_image_url || "",
+          slug: dest.slug,
+          rating: dest.average_rating != null ? dest.average_rating : NOT_RECORDED,
+          budget: dest.entry_fee ? `NPR ${dest.entry_fee}` : NOT_RECORDED,
+          altitude: dest.altitude || NOT_RECORDED,
+          category: dest.category_name || dest.type || "Destination",
+        }))
+        if (!cards.length) return
+        setMessages((prev) => {
+          if (!prev.length || prev[0].role !== "assistant") return prev
+          return [{ ...prev[0], destination_cards: cards }, ...prev.slice(1)]
+        })
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSend = async (textToSend = null) => {
     const query = typeof textToSend === "string" ? textToSend : input.trim()
@@ -148,7 +148,7 @@ export default function ChatBot() {
             🏔️ Himal AI Assistant & Visual Guide
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Grok & Gemini Intelligence • 77 Districts • Photo Galleries • Highway Distances & Itineraries
+            Recorded destinations, published packages, and official emergency numbers
           </p>
         </div>
 
@@ -258,7 +258,7 @@ export default function ChatBot() {
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
                         <p className="text-[10px] text-gray-500">
-                          Total Budget: <b>NPR {message.itinerary_cards.total_estimated_npr?.toLocaleString()}</b> (~${message.itinerary_cards.total_estimated_usd} USD)
+                          Total Budget: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Not recorded"}</b>
                         </p>
                       </div>
                       <Link

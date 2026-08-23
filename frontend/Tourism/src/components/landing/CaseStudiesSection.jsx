@@ -34,7 +34,7 @@ export default function CaseStudiesSection() {
             setItems((Array.isArray(dests) ? dests : []).slice(0, 3).map((dest) => ({
               key: dest.id,
               title: dest.name,
-              subtitle: dest.city || dest.district || "Not recorded",
+              subtitle: dest.display_city || dest.district || "Not recorded",
               desc: dest.short_description || "",
               days: dest.recommended_days,
               cost: dest.entry_fee ? `NPR ${dest.entry_fee}` : "Not recorded",

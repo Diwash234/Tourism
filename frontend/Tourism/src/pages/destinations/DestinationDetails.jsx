@@ -372,7 +372,7 @@ export default function DestinationDetails() {
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Major City</span>
-          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || destination.district || "Not recorded"}</p>
+          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || "Not recorded"}</p>
           <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : "Distance not recorded"}</span>
         </div>
         <div>
@@ -397,7 +397,7 @@ export default function DestinationDetails() {
               <FiCompass className="text-primary-700" /> About {destination.name}
             </h2>
             <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-              {destination.description || "Comprehensive destination profile available."}
+              {destination.description || "Not recorded — we will update soon"}
             </p>
 
             {destination.tourism_importance && (
@@ -632,55 +632,28 @@ export default function DestinationDetails() {
 
         {/* Right 1 Column: Strategic Sidebar */}
         <div className="space-y-6">
-          {/* Multi-Tier Budget Breakdown (Low, Mid, Comfortable) */}
-          <div className="card-base p-ow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
+          {/* Recorded budget only */}
+          <div className="card-base p-6 border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <FiDollarSign className="text-emerald-600" /> Estimated Budget Ranges
+                <FiDollarSign className="text-emerald-600" /> Recorded budget
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercasean className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
-                ML Calibrated
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
+                Stored amounts only
               </span>
             </div>
-
-            <div className="space-y-3">
-              <div className="p-3 rounded-2xl bg-white border border-primary-100">
-                <span className="text-[10px] text-gray-400 uppercase font-bold">🎒 Low Budget (Backpacker)</span>
-                <p className="text-lg font-black text-stone-900">${Math.round((budgetEst?.estimated_daily_budget || 45) * 0.65)} <span className="text-xs font-semibold text-gray-500">USD/day</span></p>
-                <p className="text-[10px] text-primary-700 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 0.65 * 134).toLocaleString()}</p>
+            {budgetEst ? (
+              <div className="space-y-2 text-sm text-gray-700">
+                <div className="flex justify-between"><span>Daily</span><b>{budgetEst.estimated_daily_budget != null ? `NPR ${budgetEst.estimated_daily_budget}` : "Not recorded"}</b></div>
+                <div className="flex justify-between"><span>Trip</span><b>{budgetEst.estimated_trip_budget != null ? `NPR ${budgetEst.estimated_trip_budget}` : "Not recorded"}</b></div>
+                <div className="flex justify-between"><span>Stay / night</span><b>{budgetEst.accommodation_per_night != null ? `NPR ${budgetEst.accommodation_per_night}` : "Not recorded"}</b></div>
+                <div className="flex justify-between"><span>Meals / day</span><b>{budgetEst.food_cost_per_day != null ? `NPR ${budgetEst.food_cost_per_day}` : "Not recorded"}</b></div>
+                <div className="flex justify-between"><span>Transit</span><b>{budgetEst.transport_cost != null ? `NPR ${budgetEst.transport_cost}` : "Not recorded"}</b></div>
+                <div className="flex justify-between"><span>Entry fee</span><b>{destination.entry_fee ? `NPR ${destination.entry_fee}` : "Not recorded"}</b></div>
               </div>
-
-              <div className="p-3 rounded-2xl bg-primary-50/70 border border-primary-300">
-                <span className="text-[10px] text-primary-900 uppercase font-bold">🏨 Medium Budget (Comfort)</span>
-                <p className="text-xl font-black text-stone-900">${budgetEst?.estimated_daily_budget || 45} <span className="text-xs font-semibold text-gray-600">USD/day</span></p>
-                <p className="text-[10px] text-primary-800 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 134).toLocaleString()}</p>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white border border-primary-100">
-                <span className="text-[10px] text-gray-400 uppercase font-bold">👑 Comfortable / Deluxe</span>
-                <p className="text-lg font-black text-stone-900">${Math.round((budgetEst?.estimated_daily_budget || 45) * 2.2)} <span className="text-xs font-semibold text-gray-500">USD/day</span></p>
-                <p className="text-[10px] text-primary-700 font-bold">Approx. NPR {Math.round((budgetEst?.estimated_daily_budget || 45) * 2.2 * 134).toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-white border border-primary-100 text-xs space-y-1.5 text-gray-700">
-              <div className="flex justify-between">
-                <span>🏨 Stay / Night:</span>
-                <b>${budgetEst?.accommodation_per_night || 20}</b>
-              </div>
-              <div className="flex justify-between">
-                <span>🍛 Meals / Day:</span>
-                <b>${budgetEst?.food_cost_per_day || 15}</b>
-              </div>
-              <div className="flex justify-between">
-                <span>🚗 Transit:</span>
-                <b>${budgetEst?.transport_cost || 10}</b>
-              </div>
-              <div className="flex justify-between">
-                <span>🎟️ Entry Fee:</span>
-                <b>NPR {destination.entry_fee || 0}</b>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-slate-600">Not recorded — we will update soon. An administrator can add a budget row from the destination editor.</p>
+            )}
           </div>
 
           {/* Safety & Risk Status */}
@@ -796,8 +769,8 @@ export default function DestinationDetails() {
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <div><b>GPS:</b> {formatCoords(destination.latitude, destination.longitude) || "Not recorded"}</div>
-                    <div><b>Altitude:</b> {destination.altitude || "1,400m"}</div>
-                    <div><b>Best Months:</b> {destination.best_time_to_visit || "October to April"}</div>
+                    <div><b>Altitude:</b> {destination.altitude || "Not recorded"}</div>
+                    <div><b>Best Months:</b> {destination.best_time_to_visit || "Not recorded"}</div>
                   </div>
                 </div>
 
@@ -829,8 +802,8 @@ export default function DestinationDetails() {
                       <b className="text-rose-700 text-sm">102</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
-                      <span className="text-[10px] text-gray-500 block">Mountain Rescue</span>
-                      <b className="text-rose-700 text-sm">+977-1-4440292</b>
+                      <span className="text-[10px] text-gray-500 block">Local rescue</span>
+                      <b className="text-rose-700 text-sm">{destination.nearest_hospital_info || "Not recorded"}</b>
                     </div>
                   </div>
                 </div>
