@@ -1826,7 +1826,7 @@ class MoodRecommendationsView(generics.ListAPIView):
             item["match_breakdown"] = breakdown
             item["difficulty"] = inferred_difficulty
             item["budget_level"] = inferred_budget
-            item["estimated_daily_cost"] = round(estimated_daily, 2)
+            item["budget_level_is_ranking_tag"] = True
             item["recommended_days"] = destination.recommended_days or 2
             item["risk_summary"] = {"level": risk_level, "label": "Historical/model indicator"}
             if destination.latitude is not None and destination.longitude is not None:

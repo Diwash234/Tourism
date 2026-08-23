@@ -568,8 +568,6 @@ class ItineraryView(APIView):
                 dest_list = list(qs[: days * 3])
 
             itinerary_days = []
-            USD_TO_NPR = 133.0
-            daily_npr = round(35.0 * USD_TO_NPR * travelers)
 
             for day_idx in range(1, days + 1):
                 day_destinations = []
@@ -597,10 +595,9 @@ class ItineraryView(APIView):
                     "city": start_city,
                     "theme": "Cultural & Scenic Exploration",
                     "destinations": day_destinations,
-                    "daily_budget_npr": daily_npr,
+                    "daily_budget_npr": None,
                 })
 
-            total_npr = daily_npr * days
             fallback_payload = {
                 "source": "internal_db_engine",
                 "days": days,
@@ -610,11 +607,12 @@ class ItineraryView(APIView):
                 "travel_type": data.get("travel_type", "solo"),
                 "interests": interests,
                 "start_city": start_city,
-                "total_estimated_npr": total_npr,
-                "total_estimated_usd": round(total_npr / USD_TO_NPR, 2),
-                "per_person_npr": round(total_npr / travelers),
+                "total_estimated_npr": None,
+                "total_estimated_usd": None,
+                "per_person_npr": None,
                 "budget_npr": data.get("budget_npr"),
-                "fits_budget": (total_npr <= float(data.get("budget_npr"))) if data.get("budget_npr") else None,
+                "fits_budget": None,
+                "budget_note": "No recorded daily budget is stored for this fallback itinerary.",
                 "itinerary": itinerary_days,
             }
             return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)

@@ -16,12 +16,24 @@ from django.conf import settings
 from django.db.models import Avg, Q
 from django.utils import timezone
 
+from .location.administrative_boundaries import NEPAL_DISTRICTS, NEPAL_PROVINCES
 from .models import Destination
 from .utils import haversine_distance
 
 KTM = (27.7172, 85.3240)
 LOCATIONS_RELATIVE = Path("dataset") / "destination_locations.json"
 SKIP_CITY_TOKENS = {"", "nepal", "province", "nan", "none", "null", "undefined"}
+ADMIN_SUFFIXES = (
+    " metropolitan city",
+    " sub-metropolitan city",
+    " municipality",
+    " rural municipality",
+    " gaunpalika",
+)
+REGION_TOKENS = {name.lower() for name in NEPAL_PROVINCES}
+for _districts in NEPAL_DISTRICTS.values():
+    REGION_TOKENS.update(name.lower() for name in _districts)
+REGION_TOKENS.update({"other expenses (usd)", "other expenses"})
 NEIGHBOUR_KM = 25
 # ~111 km per degree of latitude; longitude is similar across Nepal.
 NEIGHBOUR_DEG = NEIGHBOUR_KM / 111.0
@@ -48,7 +60,13 @@ def _clean_place(value):
     if not text:
         return ""
     token = text.replace(",", "/").split("/")[0].strip()
-    if token.lower() in SKIP_CITY_TOKENS or len(token) > 80:
+    lowered = token.lower()
+    for suffix in ADMIN_SUFFIXES:
+        if lowered.endswith(suffix):
+            token = token[: len(token) - len(suffix)].strip()
+            lowered = token.lower()
+            break
+    if lowered in SKIP_CITY_TOKENS or len(token) > 80:
         return ""
     return token[:100]
 
@@ -57,22 +75,27 @@ def _has_city(dest):
     return bool(str(dest.city or "").strip())
 
 
-def fill_city_from_records(dest):
-    """Set dest.city from municipality / district / nearest recorded neighbour."""
-    if _has_city(dest):
+def _is_region_token(token):
+    return _clean_place(token).lower() in REGION_TOKENS
+
+
+def _city_is_own_region(dest):
+    city = _clean_place(dest.city).lower()
+    if not city:
         return False
-    for candidate in (dest.municipality, dest.city_english, dest.city_nepali, dest.district):
-        token = _clean_place(candidate)
-        if token:
-            dest.city = token
-            return True
+    district = _clean_place(dest.district).lower()
+    province = _clean_place(dest.province).lower()
+    return city == district or city == province or city in {name.lower() for name in NEPAL_PROVINCES}
+
+
+def _neighbour_city(dest, require_non_region=True):
     if dest.latitude is None or dest.longitude is None:
-        return False
+        return ""
     try:
         lat = float(dest.latitude)
         lng = float(dest.longitude)
     except (TypeError, ValueError):
-        return False
+        return ""
     neighbours = Destination.objects.filter(
         is_active=True,
         latitude__isnull=False,
@@ -84,7 +107,7 @@ def fill_city_from_records(dest):
     ).exclude(pk=dest.pk).exclude(Q(city__isnull=True) | Q(city="")).only(
         "city", "latitude", "longitude",
     )
-    best = None
+    best = ""
     best_km = NEIGHBOUR_KM
     for other in neighbours.iterator(chunk_size=500):
         km = haversine_distance(lat, lng, other.latitude, other.longitude)
@@ -93,14 +116,35 @@ def fill_city_from_records(dest):
         token = _clean_place(other.city)
         if not token:
             continue
+        if require_non_region and _is_region_token(token):
+            continue
         best = token
         best_km = km
         if km < 1:
             break
-    if not best:
+    return best
+
+
+def fill_city_from_records(dest, upgrade=False):
+    """Set dest.city from municipality / recorded neighbour / district."""
+    if _has_city(dest) and not (upgrade and _city_is_own_region(dest)):
         return False
-    dest.city = best
-    return True
+    previous = dest.city or ""
+    for candidate in (dest.municipality, dest.city_english, dest.city_nepali):
+        token = _clean_place(candidate)
+        if token and not _is_region_token(token):
+            dest.city = token
+            return dest.city != previous
+    neighbour = _neighbour_city(dest, require_non_region=True)
+    if neighbour:
+        dest.city = neighbour
+        return dest.city != previous
+    if not _has_city(dest):
+        token = _clean_place(dest.district)
+        if token:
+            dest.city = token
+            return True
+    return False
 
 
 def fill_coords_from_records(dest):
@@ -228,9 +272,12 @@ def apply_destination_locations():
         if dest is None:
             continue
         changed = []
-        if not _has_city(dest) and row.get("city"):
-            dest.city = str(row["city"])[:100]
-            changed.append("city")
+        json_city = _clean_place(row.get("city"))
+        if json_city:
+            if not _has_city(dest) or (_city_is_own_region(dest) and not _is_region_token(json_city)):
+                if dest.city != json_city:
+                    dest.city = json_city[:100]
+                    changed.append("city")
         if not dest.city_english and row.get("city_english"):
             dest.city_english = str(row["city_english"])[:200]
             changed.append("city_english")

@@ -47,6 +47,12 @@ class Command(BaseCommand):
                 dest.save(update_fields=["city", "updated_at"])
                 filled_city += 1
 
+        refined_city = 0
+        for dest in qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True):
+            if fill_city_from_records(dest, upgrade=True):
+                dest.save(update_fields=["city", "updated_at"])
+                refined_city += 1
+
         for dest in qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True):
             if fill_ktm_distance(dest):
                 dest.save(update_fields=["distance_from_kathmandu_km", "updated_at"])
@@ -66,6 +72,6 @@ class Command(BaseCommand):
         ).count()
         self.stdout.write(self.style.SUCCESS(
             f"Applied JSON={applied}, filled coords={filled_coords}, city={filled_city}, "
-            f"ktm_distance={filled_distance}, exported={exported}. "
+            f"refined_city={refined_city}, ktm_distance={filled_distance}, exported={exported}. "
             f"Still missing coords={remaining_coords}, city={remaining_city}."
         ))

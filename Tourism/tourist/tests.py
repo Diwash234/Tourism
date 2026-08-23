@@ -2802,3 +2802,40 @@ class RecordedPlaceHonestyTests(APITestCase):
                 path, count = export_destination_locations()
                 self.assertTrue(path.exists())
                 self.assertGreaterEqual(count, 1)
+
+    def test_refine_district_city_from_recorded_neighbour(self):
+        from django.core.management import call_command
+        labelled = Destination.objects.create(
+            name="Honesty District Label Peak",
+            category=self.category,
+            description="City is the district name",
+            latitude=28.1515,
+            longitude=84.0515,
+            city="Kaski",
+            district="Kaski",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        labelled.refresh_from_db()
+        self.assertEqual(labelled.city, "Pokhara")
+
+    def test_mood_ranking_does_not_publish_invented_daily_cost(self):
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "scenic", "days": 3, "limit": 3,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["results"])
+        for row in response.data["results"]:
+            self.assertNotIn("estimated_daily_cost", row)
+            self.assertTrue(row.get("budget_level_is_ranking_tag"))
+
+    @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
+    def test_itinerary_fallback_does_not_invent_thirty_five_dollar_budget(self, _mock):
+        response = self.client.post(reverse("ml-itinerary"), {
+            "days": 3, "travelers": 2, "start_city": "Pokhara",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data.get("total_estimated_npr"))
+        self.assertIsNone(response.data.get("total_estimated_usd"))
+        self.assertNotIn("4655", str(response.data))
+        self.assertNotIn(4655, [response.data.get("total_estimated_npr"), response.data.get("per_person_npr")])
