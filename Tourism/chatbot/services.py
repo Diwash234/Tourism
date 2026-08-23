@@ -99,7 +99,14 @@ def is_budget_trip_intent(message: str, days=None, budget_npr=None) -> bool:
     return bool((days and budget_npr) or (trip_words and budget_npr) or (days and under and trip_words))
 
 
-def package_card(listing: MarketplaceListing) -> dict:
+KNOWN_PLACE_WORDS = set(CITY_COORDS.keys()) | {
+    "annapurna", "mustang", "chitwan", "lumbini", "everest", "langtang",
+    "bandipur", "nagarkot", "bhaktapur", "patan", "ilam", "rara",
+    "janakpur", "kathmandu", "pokhara", "lukla", "jomsom", "phewa",
+}
+
+
+def package_card(listing: MarketplaceListing, is_alternative: bool = False) -> dict:
     return {
         "id": listing.id,
         "slug": listing.slug,
@@ -111,42 +118,58 @@ def package_card(listing: MarketplaceListing) -> dict:
         "partner_name": listing.partner.name,
         "summary": listing.summary,
         "image_url": listing.image_url,
+        "is_alternative": bool(is_alternative),
     }
 
 
+def _listing_haystack(listing: MarketplaceListing) -> str:
+    hay = f"{listing.title} {listing.summary} {listing.city} {listing.district} {listing.partner.name}".lower()
+    if listing.destination_id:
+        dest = listing.destination
+        hay += f" {dest.name} {dest.city or ''} {dest.district or ''}"
+    return hay
+
+
 def match_published_packages(query: str, days=None, budget_npr=None, limit: int = 6):
-    """Rank published marketplace offers. Draft / pending / unpublished never appear."""
+    """Return published, in-budget packages. Exact duration is primary; ±1 day is alternative."""
     listings = list(
         MarketplaceListing.objects.filter(
             status="published", partner__status="approved",
         ).select_related("partner", "destination")
     )
     words = [w for w in re.split(r"\W+", (query or "").lower()) if len(w) > 2]
-    skip = {"want", "with", "from", "that", "this", "nepal", "trip", "days", "day", "under", "below", "less", "than", "package", "packages"}
-    words = [w for w in words if w not in skip]
-    scored = []
+    skip = {
+        "want", "with", "from", "that", "this", "nepal", "trip", "days", "day",
+        "under", "below", "less", "than", "package", "packages", "travel",
+        "holiday", "vacation", "tour", "tours", "add", "the",
+    }
+    dest_words = [w for w in words if w not in skip and w in KNOWN_PLACE_WORDS]
+    primaries, alternatives = [], []
     for listing in listings:
         price = float(listing.price_npr)
         if budget_npr is not None and price > float(budget_npr):
             continue
-        score = 2 if listing.is_featured else 0
+        hay = _listing_haystack(listing)
+        if dest_words and not any(word in hay for word in dest_words):
+            continue
+        duration = listing.duration_days or 1
         if days:
-            diff = abs((listing.duration_days or 1) - days)
-            if diff <= 1:
-                score += 5
-            elif diff <= 2:
-                score += 3
-            elif (listing.duration_days or 1) <= days + 1:
-                score += 1
-            else:
-                score -= 1
-        hay = f"{listing.title} {listing.summary} {listing.city} {listing.district} {listing.partner.name}".lower()
-        if listing.destination_id:
-            hay += f" {listing.destination.name} {listing.destination.city or ''}"
-        score += sum(1 for word in words if word in hay)
-        scored.append((score, listing))
-    scored.sort(key=lambda row: -row[0])
-    return [listing for _, listing in scored[:limit]]
+            if duration == days:
+                primaries.append(listing)
+            elif abs(duration - days) == 1:
+                alternatives.append(listing)
+        else:
+            primaries.append(listing)
+
+    def score(listing):
+        points = 2 if listing.is_featured else 0
+        hay = _listing_haystack(listing)
+        points += sum(1 for word in dest_words if word in hay)
+        return points
+
+    primaries.sort(key=score, reverse=True)
+    alternatives.sort(key=score, reverse=True)
+    return primaries[:limit], alternatives[:limit]
 
 
 def get_destination_image_url(dest: Destination) -> str:
@@ -309,10 +332,11 @@ def get_chatbot_reply(
     package_cards = []
 
     if is_package_intent:
-        matched = match_published_packages(
+        matched, alternatives = match_published_packages(
             msg_clean, days=requested_days, budget_npr=requested_budget, limit=6,
         )
-        package_cards = [package_card(listing) for listing in matched]
+        package_cards = [package_card(listing, is_alternative=False) for listing in matched]
+        package_cards.extend(package_card(listing, is_alternative=True) for listing in alternatives)
 
     # Match relevant destinations in DB
     matched_destinations = find_matching_destinations(msg_clean, limit=4)
@@ -370,19 +394,23 @@ def get_chatbot_reply(
 
     # Pack Emergency Cards
     if is_emergency_intent:
-        for h in Hospital.objects.all()[:3]:
+        for h in Hospital.objects.exclude(is_archived=True)[:3]:
+            phone = str(h.phone or "").strip()
             emergency_cards.append({
                 "name": h.name,
                 "type": "Emergency Hospital",
-                "phone": h.phone or "+977-1-4412404",
-                "district": h.district or "Kathmandu",
+                "phone": phone or "102",
+                "phone_is_national_fallback": not phone,
+                "district": h.district or "",
             })
-        for p in PoliceStation.objects.all()[:2]:
+        for p in PoliceStation.objects.exclude(is_archived=True)[:2]:
+            phone = str(p.phone or "").strip()
             emergency_cards.append({
                 "name": p.name,
                 "type": "Tourist & Civil Police",
-                "phone": p.phone or "1144",
-                "district": "Nationwide / Tourist Police",
+                "phone": phone or "100",
+                "phone_is_national_fallback": not phone,
+                "district": p.destination.district if p.destination_id else "",
             })
 
     # 1. Attempt calling configured AI providers (OpenRouter, Gemini, Grok, Groq, Hugging Face, OpenAI)
@@ -428,18 +456,20 @@ def get_chatbot_reply(
             ai_text_reply += "💡 *Permits & Logistics:* Ensure you have valid TIMS and conservation park permits before departure!"
         elif is_emergency_intent:
             ai_text_reply = (
-                "🚨 **NEPAL 24/7 EMERGENCY SENTINEL & HOTLINES**\n\n"
-                "• **Tourist Police Nepal:** `1144` or `+977-1-4247041` (Nationwide Tourist Protection)\n"
-                "• **Nepal Police Hotline:** `100`\n"
-                "• **Ambulance Emergency:** `102`\n"
-                "• **Fire Brigade Service:** `101`\n"
-                "• **Traffic Police:** `103`\n"
-                "• **Himalayan Rescue Association (HRA):** `+977-1-4440292` (Helicopter evacuation & AMS)\n"
-                "• **TUTH Teaching Hospital:** `+977-1-4412404` (Maharajgunj, Kathmandu)\n"
-                "• **CIWEC Travel Hospital:** `+977-1-4424111` (Lazimpat, Kathmandu & Pokhara)"
+                "🚨 **Nepal national emergency hotlines**\n\n"
+                "• **Tourist Police Nepal:** `1144`\n"
+                "• **Nepal Police:** `100`\n"
+                "• **Ambulance:** `102`\n"
+                "• **Fire Brigade:** `101`\n"
+                "• **Traffic Police:** `103`\n\n"
+                "Facility cards below use stored directory phones only. "
+                "If a local number is missing, the national 102 / 100 line is shown instead. "
+                "This assistant does not invent hospital or pharmacy numbers."
             )
         elif is_package_intent:
-            if package_cards:
+            primaries = [offer for offer in package_cards if not offer.get("is_alternative")]
+            alt_offers = [offer for offer in package_cards if offer.get("is_alternative")]
+            if primaries:
                 constraint = []
                 if requested_days:
                     constraint.append(f"{requested_days}-day")
@@ -451,17 +481,23 @@ def get_chatbot_reply(
                     "These are live offers from approved partners. Use View or Add to trip. No payment is processed here.",
                     "",
                 ]
-                for offer in package_cards:
+                for offer in primaries:
                     lines.append(
                         f"• **{offer['title']}** ({offer['duration_days']} day(s)) — NPR {offer['price_npr']} · {offer['partner_name']}"
                     )
+                if alt_offers:
+                    lines.append("")
+                    lines.append("Nearby-duration published alternatives (not an exact match):")
+                    for offer in alt_offers:
+                        lines.append(
+                            f"• **{offer['title']}** ({offer['duration_days']} day(s), alternative) — NPR {offer['price_npr']}"
+                        )
                 lines.append("")
                 lines.append("Open /packages to add offers to a trip basket, or /collaborate if you run a hotel or tour.")
                 ai_text_reply = "\n".join(lines)
             elif requested_budget or requested_days:
                 ai_text_reply = (
-                    "No published package currently matches that length and budget. "
-                    "Browse /packages for live offers, or ask an administrator to publish one."
+                    "I couldn't find a published package matching those requirements right now."
                 )
             else:
                 ai_text_reply = (

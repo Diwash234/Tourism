@@ -2316,6 +2316,7 @@ class MarketplaceTests(APITestCase):
 
     def test_admin_emergency_add_writes_db_and_csv(self):
         from .models import Hospital
+        self.addCleanup(self._strip_emergency_test_csv_rows)
         self.client.force_authenticate(self.admin)
         payload = {
             "kind": "hospital",
@@ -2336,5 +2337,280 @@ class MarketplaceTests(APITestCase):
         self.assertEqual(listed.status_code, status.HTTP_200_OK)
         self.assertTrue(any(row["name"] == "Arena Dadeldhura Test Clinic" for row in listed.data["results"]))
         again = self.client.post(reverse("admin-emergency-directory"), payload, format="json")
-        self.assertEqual(again.status_code, status.HTTP_201_CREATED)
-        self.assertFalse(again.data["csv_written"].get("hospital"))
+        self.assertEqual(again.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(Hospital.objects.filter(name="Arena Dadeldhura Test Clinic").count(), 1)
+
+    def _strip_emergency_test_csv_rows(self):
+        from pathlib import Path
+        from .community_data_service import ROOT
+        markers = ("arena dadeldhura", "arena gap audit", "pending community clinic")
+        relatives = [
+            "Tourism/dataset/hospital_cleaned.csv",
+            "ml_service/data/emergency/hospital_cleaned.csv",
+            "Tourism/dataset/community_services.csv",
+            "ml_service/data/emergency/community_services.csv",
+            "Tourism/dataset/police_station_cleaned.csv",
+        ]
+        for relative in relatives:
+            path = ROOT / relative
+            if not path.exists():
+                continue
+            lines = path.read_text(encoding="utf-8-sig").splitlines(True)
+            if not lines:
+                continue
+            kept = [lines[0]] + [
+                line for line in lines[1:]
+                if not any(marker in line.lower() for marker in markers)
+            ]
+            if len(kept) != len(lines):
+                path.write_text("".join(kept), encoding="utf-8")
+
+    def test_partner_desk_cannot_archive_or_feature(self):
+        from .models import MarketplaceListing, MarketplacePartner
+        hotel_user = User.objects.create_user(
+            email="noarchive@example.com", password="StrongPass123!", is_verified=True,
+        )
+        MarketplacePartner.objects.create(
+            name="No Archive Hotel", kind="hotel", email=hotel_user.email, status="approved", user=hotel_user,
+        )
+        self.client.force_authenticate(hotel_user)
+        created = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Stay pending archive", "price_npr": "7000", "duration_days": 2,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        listing_id = created.data["id"]
+        denied_archive = self.client.patch(reverse("marketplace-partner-desk"), {
+            "id": listing_id, "action": "archive",
+        }, format="json")
+        self.assertEqual(denied_archive.status_code, status.HTTP_400_BAD_REQUEST)
+        denied_feature = self.client.patch(reverse("marketplace-partner-desk"), {
+            "id": listing_id, "is_featured": True,
+        }, format="json")
+        self.assertEqual(denied_feature.status_code, status.HTTP_400_BAD_REQUEST)
+        listing = MarketplaceListing.objects.get(pk=listing_id)
+        self.assertEqual(listing.status, "pending")
+        self.assertFalse(listing.is_featured)
+
+    def test_unapproved_and_suspended_partner_cannot_create(self):
+        from .models import MarketplacePartner
+        pending_user = User.objects.create_user(
+            email="pendingdesk@example.com", password="StrongPass123!", is_verified=True,
+        )
+        MarketplacePartner.objects.create(
+            name="Pending Co", kind="hotel", email=pending_user.email, status="pending", user=pending_user,
+        )
+        self.client.force_authenticate(pending_user)
+        denied = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Too soon", "price_npr": "1000",
+        }, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        suspended_user = User.objects.create_user(
+            email="suspendeddesk@example.com", password="StrongPass123!", is_verified=True,
+        )
+        MarketplacePartner.objects.create(
+            name="Suspended Co", kind="operator", email=suspended_user.email, status="suspended", user=suspended_user,
+        )
+        self.client.force_authenticate(suspended_user)
+        blocked = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Blocked stay", "price_npr": "1000",
+        }, format="json")
+        self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_without_approve_cannot_publish(self):
+        from .models import MarketplaceListing, MarketplacePartner, StaffCapabilityProfile
+        staff = User.objects.create_user(
+            email="market-change@example.com", password="StrongPass123!", role="staff", is_staff=True,
+        )
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"marketplace": ["view", "add", "change"]})
+        partner = MarketplacePartner.objects.create(
+            name="Needs Approve", kind="hotel", email="needs@example.com", status="approved",
+        )
+        listing = MarketplaceListing.objects.create(
+            partner=partner, title="Waiting to go live", price_npr="4000.00", status="pending",
+        )
+        self.client.force_authenticate(staff)
+        denied = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "listings", "id": listing.id, "action": "publish",
+        }, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, "pending")
+
+    def test_expiry_fields_are_rejected_at_checkout(self):
+        from .models import MarketplaceOrder
+        response = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Ada Traveller", "guest_email": "ada-exp@example.com",
+            "expiry_date": "12/29", "exp_month": 12, "exp_year": 2029,
+            "items": [{"listing_id": self.listing.id}],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(MarketplaceOrder.objects.exists())
+
+    def test_requested_cannot_jump_to_confirmed(self):
+        from .models import MarketplaceOrder
+        checkout = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Maya", "guest_email": "maya@example.com", "payment_method": "request",
+            "items": [{"listing_id": self.listing.id, "quantity": 1}],
+        }, format="json")
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.admin)
+        jumped = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": checkout.data["order"]["id"], "action": "confirm",
+        }, format="json")
+        self.assertEqual(jumped.status_code, status.HTTP_400_BAD_REQUEST)
+        order = MarketplaceOrder.objects.get(pk=checkout.data["order"]["id"])
+        self.assertEqual(order.status, "requested")
+        reviewed = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": order.id, "action": "review",
+        }, format="json")
+        self.assertEqual(reviewed.status_code, status.HTTP_200_OK)
+        confirmed = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": order.id, "action": "confirm",
+        }, format="json")
+        self.assertEqual(confirmed.status_code, status.HTTP_200_OK)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "confirmed")
+
+
+class EmergencyDirectoryWorkflowTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="emerg-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.category = Category.objects.create(name="Emergency Flow")
+        self.destination = Destination.objects.create(
+            name="Amargadhi Gate", category=self.category, description="Far west",
+            latitude=29.3, longitude=80.58, city="Amargadhi", district="Dadeldhura",
+            status="approved", is_active=True, created_by=self.admin,
+        )
+        self.addCleanup(self._strip_csv)
+
+    def _strip_csv(self):
+        from .community_data_service import ROOT
+        markers = ("arena gap audit", "pending community clinic", "arena dadeldhura")
+        for relative in [
+            "Tourism/dataset/hospital_cleaned.csv",
+            "ml_service/data/emergency/hospital_cleaned.csv",
+            "Tourism/dataset/community_services.csv",
+            "ml_service/data/emergency/community_services.csv",
+            "Tourism/dataset/police_station_cleaned.csv",
+        ]:
+            path = ROOT / relative
+            if not path.exists():
+                continue
+            lines = path.read_text(encoding="utf-8-sig").splitlines(True)
+            if not lines:
+                continue
+            kept = [lines[0]] + [
+                line for line in lines[1:]
+                if not any(marker in line.lower() for marker in markers)
+            ]
+            if len(kept) != len(lines):
+                path.write_text("".join(kept), encoding="utf-8")
+
+    def test_duplicate_name_formatting_returns_409(self):
+        from .models import Hospital
+        self.client.force_authenticate(self.admin)
+        first = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "name": "Arena Gap Audit Hospital",
+            "phone": "096420111", "address": "Amargadhi", "district": "Dadeldhura",
+            "latitude": 29.298001, "longitude": 80.580001, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        second = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "name": "Arena  Gap Audit Hospital",
+            "phone": "096420111", "address": "Amargadhi", "district": "Dadeldhura",
+            "latitude": 29.298200, "longitude": 80.580200, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(second.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(Hospital.objects.filter(name__icontains="Arena Gap Audit Hospital").count(), 1)
+
+    def test_invalid_coords_rejected(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "police", "name": "Arena Gap Audit Police",
+            "latitude": 200, "longitude": 80.5, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_user_submission_stays_pending_until_admin_approves(self):
+        from .models import Hospital, InfrastructureSubmission
+        tourist = User.objects.create_user(
+            email="submitter@example.com", password="StrongPass123!", is_verified=True,
+        )
+        self.client.force_authenticate(tourist)
+        created = self.client.post(reverse("infrastructure-submission-list"), {
+            "place_type": "hospital", "name": "Pending Community Clinic",
+            "phone": "096420222", "address": "Ward 2", "district": "Dadeldhura",
+            "province": "Sudurpashchim", "latitude": 29.310001, "longitude": 80.590001,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        submission = InfrastructureSubmission.objects.get(pk=created.data["id"])
+        self.assertEqual(submission.status, "pending")
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.310001, "longitude": 80.590001, "radius_km": 20,
+        })
+        names = [row["name"] for row in public.data["hospitals"]]
+        self.assertNotIn("Pending Community Clinic", names)
+        self.client.force_authenticate(self.admin)
+        approved = self.client.post(
+            reverse("admin-infrastructure-submission-action", kwargs={"id": submission.id}),
+            {"action": "approve"}, format="json",
+        )
+        self.assertEqual(approved.status_code, status.HTTP_200_OK)
+        self.assertTrue(Hospital.objects.filter(name="Pending Community Clinic", is_verified=True).exists())
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.310001, "longitude": 80.590001, "radius_km": 20,
+        })
+        names = [row["name"] for row in public.data["hospitals"]]
+        self.assertIn("Pending Community Clinic", names)
+
+    def test_archive_hides_from_public_directory(self):
+        from .models import Hospital
+        self.client.force_authenticate(self.admin)
+        created = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "name": "Arena Gap Audit Clinic",
+            "phone": "096420333", "address": "Amargadhi", "district": "Dadeldhura",
+            "latitude": 29.305001, "longitude": 80.585001, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        hospital_id = created.data["id"]
+        archived = self.client.patch(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "id": hospital_id, "action": "archive",
+        }, format="json")
+        self.assertEqual(archived.status_code, status.HTTP_200_OK)
+        self.assertTrue(Hospital.objects.get(pk=hospital_id).is_archived)
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.305001, "longitude": 80.585001, "radius_km": 20,
+        })
+        names = [row["name"] for row in public.data["hospitals"]]
+        self.assertNotIn("Arena Gap Audit Clinic", names)
+
+    def test_no_fake_pharmacy_is_invented(self):
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.3, "longitude": 80.58, "radius_km": 10,
+        })
+        self.assertEqual(public.status_code, status.HTTP_200_OK)
+        pharmacies = [row for row in public.data["specialized_contacts"] if row["type"] == "pharmacy"]
+        self.assertEqual(pharmacies, [])
+        self.assertEqual(public.data["counts"]["pharmacy_within_radius"], 0)
+
+    def test_admin_can_add_all_emergency_types(self):
+        from .models import OSMEssentialService, PoliceStation
+        self.client.force_authenticate(self.admin)
+        for kind, name, lat in (
+            ("police", "Arena Gap Audit Police", 29.306001),
+            ("pharmacy", "Arena Gap Audit Pharmacy", 29.307001),
+            ("fire_station", "Arena Gap Audit Fire", 29.308001),
+        ):
+            created = self.client.post(reverse("admin-emergency-directory"), {
+                "kind": kind, "name": name, "phone": "101",
+                "latitude": lat, "longitude": 80.586001, "destination_id": self.destination.id,
+            }, format="json")
+            self.assertEqual(created.status_code, status.HTTP_201_CREATED, created.data)
+        self.assertTrue(PoliceStation.objects.filter(name="Arena Gap Audit Police").exists())
+        self.assertTrue(OSMEssentialService.objects.filter(name="Arena Gap Audit Pharmacy", category="pharmacy").exists())
+        self.assertTrue(OSMEssentialService.objects.filter(name="Arena Gap Audit Fire", category="fire_station").exists())

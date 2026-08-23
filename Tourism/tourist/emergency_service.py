@@ -94,8 +94,12 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "source_url": row.source_url or "https://nepalpolice.gov.np/",
         }
 
-    hospitals = _nearest_rows(Hospital.objects.all(), latitude, longitude, limit, radius_km, hospital_item)
-    police = _nearest_rows(PoliceStation.objects.all(), latitude, longitude, limit, radius_km, police_item)
+    hospitals = _nearest_rows(
+        Hospital.objects.exclude(is_archived=True), latitude, longitude, limit, radius_km, hospital_item,
+    )
+    police = _nearest_rows(
+        PoliceStation.objects.exclude(is_archived=True), latitude, longitude, limit, radius_km, police_item,
+    )
 
     local_contacts = []
     contacts = EmergencyContact.objects.all()
@@ -123,7 +127,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     # tourism-office records share the same accurate distance calculation.
     existing_ids = {item["id"] for item in specialized}
     osm_ranked = []
-    for service in OSMEssentialService.objects.exclude(category__in=["hospital", "police"]):
+    for service in OSMEssentialService.objects.exclude(is_archived=True).exclude(category__in=["hospital", "police"]):
         distance = haversine_distance(latitude, longitude, float(service.latitude), float(service.longitude))
         osm_ranked.append((distance, service))
     osm_ranked.sort(key=lambda pair: pair[0])
@@ -156,8 +160,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
         "specialized_contacts_within_radius": sum(1 for item in specialized if not item["outside_requested_radius"]),
         "pharmacy_within_radius": sum(1 for item in specialized if item["type"] == "pharmacy" and not item["outside_requested_radius"]),
         "fire_within_radius": sum(1 for item in specialized if item["type"] == "fire_station" and not item["outside_requested_radius"]),
-        "database_hospitals": Hospital.objects.count(),
-        "database_police_stations": PoliceStation.objects.count(),
+        "database_hospitals": Hospital.objects.exclude(is_archived=True).count(),
+        "database_police_stations": PoliceStation.objects.exclude(is_archived=True).count(),
     }
     coverage_gap = (
         facility_counts["hospitals_within_radius"] == 0
@@ -169,8 +173,9 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     )
     if coverage_gap:
         notice += (
-            f" There are few or no verified local hospital or police records near {place_label}. "
-            "National hotlines still work. An administrator can add accurate hospitals, police, pharmacies or fire stations with coordinates."
+            f" There is no verified local hospital or police record near {place_label} in this directory. "
+            "National hotlines still work. An administrator can add an accurate hospital, police station, pharmacy or fire station with coordinates, "
+            "or you can submit a facility for review at /submit-service."
         )
     location = {
         "latitude": latitude, "longitude": longitude,

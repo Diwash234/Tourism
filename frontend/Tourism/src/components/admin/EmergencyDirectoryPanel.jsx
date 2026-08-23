@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { FiPlus, FiRefreshCw } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -21,6 +22,7 @@ export default function EmergencyDirectoryPanel() {
   const { showToast } = useToast()
   const [form, setForm] = useState(empty)
   const [rows, setRows] = useState([])
+  const [pending, setPending] = useState([])
   const [coverage, setCoverage] = useState({})
   const [query, setQuery] = useState("")
   const [kind, setKind] = useState("")
@@ -31,6 +33,7 @@ export default function EmergencyDirectoryPanel() {
     try {
       const { data } = await adminApi.getEmergencyDirectory({ q: query, kind })
       setRows(data.results || [])
+      setPending(data.pending_submissions || [])
       setCoverage(data.coverage || {})
     } catch (error) {
       showToast(error.response?.data?.detail || "Could not load emergency directory", "error")
@@ -49,7 +52,21 @@ export default function EmergencyDirectoryPanel() {
       setForm(empty)
       load()
     } catch (error) {
-      showToast(error.response?.data?.detail || "Could not save record", "error")
+      if (error.response?.status === 409) {
+        showToast(error.response.data.detail || "This facility is already in the directory", "error")
+      } else {
+        showToast(error.response?.data?.detail || "Could not save record", "error")
+      }
+    }
+  }
+
+  const act = async (row, action) => {
+    try {
+      const { data } = await adminApi.updateEmergencyDirectory({ kind: row.kind, id: row.id, action })
+      showToast(data.message || "Updated", "success")
+      load()
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Could not update record", "error")
     }
   }
 
@@ -86,6 +103,22 @@ export default function EmergencyDirectoryPanel() {
         </form>
       </div>
 
+      {pending.length > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="font-black text-slate-900 mb-2">Pending community submissions</h3>
+          <p className="text-xs text-slate-600 mb-3">These stay hidden until an administrator verifies them. Approve from Infrastructure, or add the verified row here.</p>
+          <div className="space-y-2">
+            {pending.map((row) => (
+              <div key={row.id} className="rounded-xl border border-amber-200 bg-white p-3">
+                <p className="font-bold text-slate-900">{row.name}</p>
+                <p className="text-xs text-slate-500">{row.kind} · {row.district || "Nepal"} · {row.status} · {row.phone || "no phone"}</p>
+              </div>
+            ))}
+          </div>
+          <Link to="/submit-service" className="inline-block mt-3 text-xs font-black text-rose-800 underline">Open public submit form</Link>
+        </section>
+      )}
+
       <div className="grid xl:grid-cols-[360px_1fr] gap-5">
         <form onSubmit={save} className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
           <h3 className="font-black text-slate-900">Add a verified local service</h3>
@@ -115,8 +148,13 @@ export default function EmergencyDirectoryPanel() {
             {rows.map((row) => (
               <div key={`${row.kind}-${row.id}`} className="rounded-xl border border-slate-200 p-3">
                 <p className="font-bold text-slate-900">{row.name}</p>
-                <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}</p>
+                <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
                 <p className="text-xs text-slate-600">{row.latitude}, {row.longitude}</p>
+                <div className="flex gap-2 mt-2">
+                  {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}
+                  {!row.is_archived && <button type="button" onClick={() => act(row, "archive")} className="text-xs font-bold text-rose-700">Archive</button>}
+                  {row.is_archived && <button type="button" onClick={() => act(row, "restore")} className="text-xs font-bold text-slate-700">Restore</button>}
+                </div>
               </div>
             ))}
           </div>

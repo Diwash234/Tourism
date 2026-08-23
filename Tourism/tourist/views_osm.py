@@ -52,7 +52,7 @@ class OSMEssentialServiceNearbyView(APIView):
         radius_km = float(request.query_params.get("radius_km", 10))
         category = request.query_params.get("category")
 
-        qs = OSMEssentialService.objects.all()
+        qs = OSMEssentialService.objects.exclude(is_archived=True)
         if category:
             qs = qs.filter(category=category)
 

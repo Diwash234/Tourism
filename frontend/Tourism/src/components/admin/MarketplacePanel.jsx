@@ -260,8 +260,8 @@ export default function MarketplacePanel() {
                     <p className="text-xs text-slate-500">{row.guest_name} · {row.guest_email} · {row.status} · {row.payment_method}</p>
                   </div>
                   <div className="flex gap-2">
-                    {row.status === "requested" && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "review" }, "Under review")} className="text-xs font-bold text-slate-700">Under review</button>}
-                    {["requested", "under_review", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "confirm" }, "Confirmed")} className="text-xs font-bold text-emerald-700">Confirm</button>}
+                    {["requested", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "review" }, "Under review")} className="text-xs font-bold text-slate-700">Under review</button>}
+                    {["under_review", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "confirm" }, "Confirmed")} className="text-xs font-bold text-emerald-700">Confirm</button>}
                     {["requested", "under_review", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "cancel" }, "Cancelled")} className="text-xs font-bold text-rose-700">Cancel</button>}
                   </div>
                 </div>

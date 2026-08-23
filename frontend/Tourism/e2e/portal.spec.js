@@ -31,7 +31,7 @@ test.describe("Nepal Tourism Information Portal E2E Suite", () => {
 
   test("5. Emergency Sentinel displays 24/7 hotlines and searchable hospitals", async ({ page }) => {
     await page.goto("/emergency")
-    await expect(page.locator("text=Emergency Hub")).toBeVisible()
+    await expect(page.locator("text=Nearest Help for Every Destination")).toBeVisible()
     await expect(page.locator("text=1144")).toBeVisible()
   })
 

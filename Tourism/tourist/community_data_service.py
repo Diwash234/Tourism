@@ -1,8 +1,10 @@
 """Moderation, publication and CSV synchronization for community data."""
 import csv
+import re
 from pathlib import Path
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -14,6 +16,117 @@ from .models import (
 from .utils import haversine_distance
 
 ROOT = Path(settings.BASE_DIR).parent
+
+DUPLICATE_DISTANCE_KM = 0.35
+PHONE_MATCH_DISTANCE_KM = 1.0
+
+
+class DuplicateEmergency(ValueError):
+    """Raised when an official emergency row already exists in the DB or CSV."""
+
+    def __init__(self, message, existing=None, kind="", csv_hit=False):
+        super().__init__(message)
+        self.existing = existing
+        self.kind = kind
+        self.csv_hit = csv_hit
+
+
+def normalize_name(value):
+    text = str(value or "").casefold()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def phone_digits(value):
+    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
+    if digits.startswith("977") and len(digits) > 7:
+        digits = digits[3:]
+    return digits.lstrip("0")
+
+
+def names_match(left, right):
+    first, second = normalize_name(left), normalize_name(right)
+    if not first or not second:
+        return False
+    if first == second:
+        return True
+    shorter, longer = (first, second) if len(first) <= len(second) else (second, first)
+    return len(shorter) >= 8 and shorter in longer
+
+
+def _emergency_queryset(kind):
+    if kind == "hospital":
+        return Hospital.objects.all()
+    if kind == "police":
+        return PoliceStation.objects.all()
+    return OSMEssentialService.objects.filter(category=kind)
+
+
+def find_duplicate_emergency(kind, name, latitude, longitude, phone="", address=""):
+    """Match an existing DB row by normalized name + type + nearby coords or phone."""
+    target_phone = phone_digits(phone)
+    for obj in _emergency_queryset(kind):
+        distance = haversine_distance(latitude, longitude, obj.latitude, obj.longitude)
+        distance = 9999 if distance is None else distance
+        same_name = names_match(name, obj.name)
+        obj_phone = phone_digits(getattr(obj, "phone", ""))
+        same_phone = bool(target_phone and obj_phone and len(target_phone) >= 7 and target_phone == obj_phone)
+        same_address = bool(address and names_match(address, getattr(obj, "address", "")))
+        if same_name and distance <= DUPLICATE_DISTANCE_KM:
+            return obj
+        if same_name and same_phone:
+            return obj
+        if same_phone and distance <= PHONE_MATCH_DISTANCE_KM:
+            return obj
+        if same_name and same_address and distance <= 2.0:
+            return obj
+    return None
+
+
+def _csv_rows(path):
+    if not path.exists() or path.stat().st_size == 0:
+        return []
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        try:
+            return list(csv.DictReader(handle))
+        except csv.Error:
+            return []
+
+
+def find_csv_duplicate(kind, name, latitude, longitude, phone=""):
+    """Prevent a second official CSV row for the same facility."""
+    target_phone = phone_digits(phone)
+    checks = []
+    if kind == "hospital":
+        checks.extend([
+            (ROOT / "Tourism" / "dataset" / "hospital_cleaned.csv", "hospital_name", None),
+            (ROOT / "ml_service" / "data" / "emergency" / "hospital_cleaned.csv", "hospital_name", None),
+        ])
+    elif kind == "police":
+        checks.append((ROOT / "Tourism" / "dataset" / "police_station_cleaned.csv", "police_station", None))
+    checks.extend([
+        (ROOT / "Tourism" / "dataset" / "community_services.csv", "name", kind),
+        (ROOT / "ml_service" / "data" / "emergency" / "community_services.csv", "name", kind),
+    ])
+    for path, name_field, expected_type in checks:
+        for row in _csv_rows(path):
+            if expected_type:
+                row_kind = str(row.get("place_type") or "").strip().lower()
+                if row_kind and row_kind != expected_type:
+                    continue
+            try:
+                row_lat = float(row.get("latitude"))
+                row_lng = float(row.get("longitude"))
+            except (TypeError, ValueError):
+                continue
+            distance = haversine_distance(latitude, longitude, row_lat, row_lng)
+            distance = 9999 if distance is None else distance
+            same_name = names_match(name, row.get(name_field) or "")
+            row_phone = phone_digits(row.get("phone"))
+            same_phone = bool(target_phone and row_phone and len(target_phone) >= 7 and target_phone == row_phone)
+            if (same_name and distance <= DUPLICATE_DISTANCE_KM) or (same_name and same_phone) or (same_phone and distance <= PHONE_MATCH_DISTANCE_KM):
+                return row
+    return None
 
 
 def _nearest_destination(submission):
@@ -334,6 +447,7 @@ def serialize_emergency_record(kind, obj):
         "longitude": float(obj.longitude),
         "source_url": getattr(obj, "source_url", "") or "",
         "verified": bool(getattr(obj, "is_verified", False)),
+        "is_archived": bool(getattr(obj, "is_archived", False)),
         "destination_id": getattr(obj, "destination_id", None),
         "destination_name": dest.name if dest else "",
         "updated_at": getattr(obj, "updated_at", None),
@@ -376,15 +490,25 @@ def publish_official_emergency(data, reviewer=None):
     if kind in {"hospital", "police"} and destination is None:
         raise ValueError("Link an approved destination or create one for this district first so the record can be mapped.")
     now = timezone.now()
+    existing = find_duplicate_emergency(kind, name, latitude, longitude, phone=phone, address=address)
+    csv_existing = find_csv_duplicate(kind, name, latitude, longitude, phone=phone)
+    if existing or csv_existing:
+        raise DuplicateEmergency(
+            "An emergency record with this name and location already exists.",
+            existing=existing,
+            kind=kind,
+            csv_hit=bool(csv_existing),
+        )
     csv_written = {}
     if kind == "hospital":
-        obj = Hospital.objects.create(
-            destination=destination, name=name[:200], address=address or district or "Nepal",
-            phone=phone or "102", latitude=latitude, longitude=longitude,
-            district=district or (destination.district or ""),
-            opening_hours=opening_hours, source_name="Admin verified directory",
-            source_url=source_url, is_verified=True, verified_at=now,
-        )
+        with transaction.atomic():
+            obj = Hospital.objects.create(
+                destination=destination, name=name[:200], address=address or district or "Nepal",
+                phone=phone or "102", latitude=latitude, longitude=longitude,
+                district=district or (destination.district or ""),
+                opening_hours=opening_hours, source_name="Admin verified directory",
+                source_url=source_url, is_verified=True, verified_at=now, is_archived=False,
+            )
         hospital_fields = [
             "hospital_name", "address", "phone", "latitude", "longitude",
             "district", "destination", "province", "data_quality_score",
@@ -401,12 +525,13 @@ def publish_official_emergency(data, reviewer=None):
         ]:
             csv_written["hospital"] = _append_unique(path, hospital_fields, hospital_row, ["hospital_name", "latitude", "longitude"])
     elif kind == "police":
-        obj = PoliceStation.objects.create(
-            destination=destination, name=name[:200], address=address or district or "Nepal",
-            phone=phone or "100", latitude=latitude, longitude=longitude,
-            opening_hours=opening_hours, source_name="Admin verified directory",
-            source_url=source_url, is_verified=True, verified_at=now,
-        )
+        with transaction.atomic():
+            obj = PoliceStation.objects.create(
+                destination=destination, name=name[:200], address=address or district or "Nepal",
+                phone=phone or "100", latitude=latitude, longitude=longitude,
+                opening_hours=opening_hours, source_name="Admin verified directory",
+                source_url=source_url, is_verified=True, verified_at=now, is_archived=False,
+            )
         police_path = ROOT / "Tourism" / "dataset" / "police_station_cleaned.csv"
         police_fields = [
             "id", "police_station", "destination", "address", "phone",
@@ -423,14 +548,15 @@ def publish_official_emergency(data, reviewer=None):
             police_path, police_fields, police_row, ["police_station", "latitude", "longitude"],
         )
     else:
-        obj = OSMEssentialService.objects.create(
-            osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
-            phone=phone, latitude=latitude, longitude=longitude, address=address,
-            source_name="Admin verified directory", source_url=source_url,
-            is_verified=True, verified_at=now, opening_hours=opening_hours,
-            emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
-            raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
-        )
+        with transaction.atomic():
+            obj = OSMEssentialService.objects.create(
+                osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
+                phone=phone, latitude=latitude, longitude=longitude, address=address,
+                source_name="Admin verified directory", source_url=source_url,
+                is_verified=True, verified_at=now, opening_hours=opening_hours, is_archived=False,
+                emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
+                raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
+            )
 
     service_fields = [
         "submission_id", "place_type", "name", "phone", "website", "address",

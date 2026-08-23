@@ -159,6 +159,7 @@ const adminApi = {
   updateMarketplace: (payload) => axiosClient.patch("/admin/marketplace/", payload),
   getEmergencyDirectory: (params) => axiosClient.get("/admin/emergency-directory/", { params }),
   createEmergencyDirectory: (payload) => axiosClient.post("/admin/emergency-directory/", payload),
+  updateEmergencyDirectory: (payload) => axiosClient.patch("/admin/emergency-directory/", payload),
   getVisitorDesk: (params) => axiosClient.get("/admin/visitor-desk/", { params }),
   createVisitorNotice: (payload) => axiosClient.post("/admin/visitor-desk/", payload),
   updateVisitorNotice: (payload) => axiosClient.patch("/admin/visitor-desk/", payload),

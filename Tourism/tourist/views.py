@@ -1024,7 +1024,7 @@ class OSMEssentialServiceViewSet(viewsets.ReadOnlyModelViewSet):
     Returns emergency and essential services imported from OpenStreetMap.
     """
 
-    queryset = OSMEssentialService.objects.all()
+    queryset = OSMEssentialService.objects.exclude(is_archived=True)
     serializer_class = OSMEssentialServiceSerializer
     permission_classes = [permissions.AllowAny]
 

@@ -869,6 +869,7 @@ class Hospital(models.Model):
     source_url = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -896,6 +897,7 @@ class PoliceStation(models.Model):
     source_url = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
 class BudgetEstimation(models.Model):
@@ -1395,6 +1397,7 @@ class OSMEssentialService(TimeStampedModel):
     source_url = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
     opening_hours = models.CharField(max_length=160, blank=True)
     emergency_available = models.BooleanField(default=False)
     raw_tags = models.JSONField(default=dict, blank=True)
