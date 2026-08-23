@@ -64,3 +64,32 @@ class ChatbotTests(APITestCase):
         titles = [row["title"] for row in response.data.get("package_cards", [])]
         self.assertIn("Phewa Weekend Stay", titles)
         self.assertNotIn("Hidden Draft", titles)
+
+    def test_budget_trip_matches_published_listing(self):
+        from tourist.models import MarketplaceListing, MarketplacePartner
+        partner = MarketplacePartner.objects.create(
+            name="Budget Treks", kind="operator", email="budget@example.com", status="approved",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Five Day Nepal Circuit", kind="package",
+            summary="Kathmandu and Pokhara", price_npr="50000.00", duration_days=5, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Luxury Over Budget", kind="package",
+            summary="Too expensive", price_npr="200000.00", duration_days=5, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Unpublished Bargain", kind="package",
+            summary="Hidden", price_npr="10000.00", duration_days=5, status="pending",
+        )
+        response = self.client.post(reverse("chatbot-message"), {
+            "message": "I want a 5-day trip to Nepal under $500",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Five Day Nepal Circuit", response.data["reply"])
+        self.assertNotIn("Luxury Over Budget", response.data["reply"])
+        self.assertNotIn("Unpublished Bargain", response.data["reply"])
+        titles = [row["title"] for row in response.data.get("package_cards", [])]
+        self.assertIn("Five Day Nepal Circuit", titles)
+        self.assertNotIn("Luxury Over Budget", titles)
+        self.assertNotIn("Unpublished Bargain", titles)

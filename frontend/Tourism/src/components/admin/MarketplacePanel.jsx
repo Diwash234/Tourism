@@ -11,8 +11,10 @@ const TABS = [
 ]
 
 const PARTNER_KINDS = [
-  ["hotel", "Hotel / stay"],
+  ["hotel", "Hotel"],
   ["operator", "Tour operator"],
+  ["homestay", "Homestay"],
+  ["other", "Other"],
   ["guide", "Local guide"],
   ["restaurant", "Restaurant"],
   ["transport", "Transport"],
@@ -180,19 +182,20 @@ export default function MarketplacePanel() {
           </form>
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
             <h3 className="font-black text-slate-900 mb-3">All offers</h3>
+            <p className="text-xs text-slate-500 mb-2">Pending partner packages wait here. Featured / Normal / Archived are admin-only.</p>
             <div className="space-y-2 max-h-[80vh] overflow-y-auto">
               {rows.length === 0 && <p className="text-sm text-slate-500">No packages yet. Publish one and it appears on /packages immediately.</p>}
               {rows.map((row) => (
-                <div key={row.id} className="rounded-xl border border-slate-200 p-3 flex justify-between gap-3">
+                <div key={row.id} className={`rounded-xl border p-3 flex justify-between gap-3 ${row.status === "pending" ? "border-amber-300 bg-amber-50/60" : "border-slate-200"}`}>
                   <div>
                     <p className="font-bold text-slate-900">{row.title}</p>
-                    <p className="text-xs text-slate-500">{row.kind} · {row.partner_name} · NPR {row.price_npr} · {row.status}</p>
+                    <p className="text-xs text-slate-500">{row.kind} · {row.partner_name} · NPR {row.price_npr} · {row.status}{row.is_featured ? " · featured" : " · normal"}</p>
                     <p className="text-xs text-slate-600 mt-1 line-clamp-2">{row.summary}</p>
                   </div>
                   <div className="shrink-0 flex flex-col gap-1">
                     {row.status !== "published" && <button type="button" onClick={() => act({ resource: "listings", id: row.id, action: "publish" }, "Published")} className="text-xs font-bold text-emerald-700">Publish</button>}
                     {row.status === "published" && <button type="button" onClick={() => act({ resource: "listings", id: row.id, action: "archive" }, "Archived")} className="text-xs font-bold text-rose-700">Archive</button>}
-                    <button type="button" onClick={() => act({ resource: "listings", id: row.id, is_featured: !row.is_featured }, "Updated")} className="text-xs font-bold text-amber-700">{row.is_featured ? "Unpin" : "Feature"}</button>
+                    <button type="button" onClick={() => act({ resource: "listings", id: row.id, is_featured: !row.is_featured }, "Updated")} className="text-xs font-bold text-amber-700">{row.is_featured ? "Normal" : "Featured"}</button>
                   </div>
                 </div>
               ))}
@@ -231,8 +234,9 @@ export default function MarketplacePanel() {
                     <p className="text-xs text-slate-600 mt-1">{[row.city, row.district].filter(Boolean).join(" · ")}</p>
                   </div>
                   <div className="shrink-0 flex flex-col gap-1">
+                    {["pending", "rejected", "suspended"].includes(row.status) && <button type="button" onClick={() => act({ resource: "partners", id: row.id, action: "review" }, "Under review")} className="text-xs font-bold text-slate-700">Under review</button>}
                     {row.status !== "approved" && <button type="button" onClick={() => act({ resource: "partners", id: row.id, action: "approve" }, "Approved")} className="text-xs font-bold text-emerald-700 flex items-center gap-1"><FiCheck /> Approve</button>}
-                    {row.status === "pending" && <button type="button" onClick={() => act({ resource: "partners", id: row.id, action: "reject" }, "Rejected")} className="text-xs font-bold text-rose-700 flex items-center gap-1"><FiX /> Reject</button>}
+                    {["pending", "under_review"].includes(row.status) && <button type="button" onClick={() => act({ resource: "partners", id: row.id, action: "reject" }, "Rejected")} className="text-xs font-bold text-rose-700 flex items-center gap-1"><FiX /> Reject</button>}
                     {row.status === "approved" && <button type="button" onClick={() => act({ resource: "partners", id: row.id, action: "suspend" }, "Suspended")} className="text-xs font-bold text-amber-700">Suspend</button>}
                   </div>
                 </div>
@@ -256,8 +260,9 @@ export default function MarketplacePanel() {
                     <p className="text-xs text-slate-500">{row.guest_name} · {row.guest_email} · {row.status} · {row.payment_method}</p>
                   </div>
                   <div className="flex gap-2">
-                    {row.status === "requested" && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "confirm" }, "Confirmed")} className="text-xs font-bold text-emerald-700">Confirm</button>}
-                    {["requested", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "cancel" }, "Cancelled")} className="text-xs font-bold text-rose-700">Cancel</button>}
+                    {row.status === "requested" && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "review" }, "Under review")} className="text-xs font-bold text-slate-700">Under review</button>}
+                    {["requested", "under_review", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "confirm" }, "Confirmed")} className="text-xs font-bold text-emerald-700">Confirm</button>}
+                    {["requested", "under_review", "external"].includes(row.status) && <button type="button" onClick={() => act({ resource: "orders", id: row.id, action: "cancel" }, "Cancelled")} className="text-xs font-bold text-rose-700">Cancel</button>}
                   </div>
                 </div>
                 <ul className="mt-2 text-xs text-slate-600 space-y-1">

@@ -7,8 +7,9 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, MarketplaceListing, MarketplaceOrder, MarketplaceOrderItem, MarketplacePartner
+from .models import Destination, MarketplaceListing, MarketplaceOrder, MarketplaceOrderItem, MarketplacePartner, User
 from .permissions import IsAdminOrStaff
+from .notification_delivery import queue_notification
 from .views_admin import _has_capability, _require_capability
 
 
@@ -77,28 +78,104 @@ def _partner_row(partner):
         "id": partner.id, "name": partner.name, "kind": partner.kind,
         "contact_name": partner.contact_name, "email": partner.email, "phone": partner.phone,
         "website": partner.website, "city": partner.city, "district": partner.district,
-        "description": partner.description, "status": partner.status,
-        "commission_percent": str(partner.commission_percent),
+        "description": partner.description, "services": partner.services,
+        "license_info": partner.license_info, "logo_url": partner.logo_url,
+        "status": partner.status, "commission_percent": str(partner.commission_percent),
         "listing_count": partner.listings.count(),
         "admin_note": partner.admin_note, "created_at": partner.created_at,
+        "user_id": partner.user_id,
     }
 
 
+def _notify_user(user, title, message, category="booking", metadata=None):
+    if not user:
+        return
+    queue_notification(user, title, message, channel="in_app", category=category, metadata=metadata or {})
+
+
+def _notify_marketplace_admins(title, message, metadata=None):
+    admins = User.objects.filter(is_active=True).filter(
+        Q(is_superuser=True) | Q(role__in=["admin", "super_admin", "tourism_admin"])
+    )[:20]
+    for admin in admins:
+        _notify_user(admin, title, message, metadata=metadata)
+
+
+def _link_partner_user(partner):
+    if partner.user_id:
+        return partner
+    user = User.objects.filter(email__iexact=partner.email, is_active=True).first()
+    if user:
+        partner.user = user
+        partner.save(update_fields=["user", "updated_at"])
+    return partner
+
+
+def _partner_for_user(user):
+    if not user or not user.is_authenticated:
+        return None
+    return MarketplacePartner.objects.filter(Q(user=user) | Q(email__iexact=user.email)).order_by("-updated_at").first()
+
+
 def _order_row(order):
+    titles = [item.title for item in order.items.all()]
+    days = max((item.listing.duration_days or 1) for item in order.items.all()) if order.items.exists() else 1
     return {
         "id": order.id, "reference": order.reference, "status": order.status,
+        "status_label": order.get_status_display(),
         "payment_method": order.payment_method, "guest_name": order.guest_name,
         "guest_email": order.guest_email, "guest_phone": order.guest_phone,
         "travelers": order.travelers, "start_date": order.start_date, "notes": order.notes,
         "subtotal_npr": str(order.subtotal_npr), "total_npr": str(order.total_npr),
         "currency": order.currency, "created_at": order.created_at,
+        "headline": " · ".join(titles[:3]) or "Trip request",
+        "duration_days": days,
         "items": [{
             "id": item.id, "listing_id": item.listing_id, "title": item.title,
             "quantity": item.quantity, "unit_price_npr": str(item.unit_price_npr),
             "line_total_npr": str(item.line_total_npr), "travel_date": item.travel_date,
             "external_url": item.external_url, "slug": item.listing.slug,
+            "duration_days": item.listing.duration_days,
         } for item in order.items.select_related("listing")],
     }
+
+
+def _listing_from_payload(data, partner, user, force_status=None, allow_featured=True, default_status=None):
+    title = str(data.get("title") or "").strip()
+    if not title:
+        raise ValueError("title is required")
+    image_url = _https_or_blank(data.get("image_url"))
+    external_url = _https_or_blank(data.get("external_url"))
+    price = _money(data.get("price_npr"))
+    duration_days = _int(data.get("duration_days"), 1, 1, 60)
+    capacity = _int(data.get("capacity"), 10, 1, 200)
+    dest = Destination.objects.filter(pk=data.get("destination_id")).first() if data.get("destination_id") else None
+    status_value = force_status or data.get("status") or default_status or MarketplaceListing.Status.DRAFT
+    if status_value not in MarketplaceListing.Status.values:
+        raise ValueError("Unknown listing status")
+    if status_value == MarketplaceListing.Status.PUBLISHED and partner.status != MarketplacePartner.Status.APPROVED:
+        raise ValueError("Approve the partner before publishing this offer")
+    kind = data.get("kind")
+    if kind not in MarketplaceListing.Kind.values:
+        kind = MarketplaceListing.Kind.HOTEL if partner.kind in {
+            MarketplacePartner.Kind.HOTEL, MarketplacePartner.Kind.HOMESTAY,
+        } else MarketplaceListing.Kind.PACKAGE
+    listing = MarketplaceListing.objects.create(
+        partner=partner, destination=dest, kind=kind,
+        title=title[:220], summary=str(data.get("summary") or "")[:320],
+        description=str(data.get("description") or "")[:8000],
+        includes=str(data.get("includes") or "")[:4000],
+        excludes=str(data.get("excludes") or "")[:4000],
+        duration_days=duration_days, price_npr=price,
+        image_url=image_url, external_url=external_url,
+        city=str(data.get("city") or "")[:120],
+        district=str(data.get("district") or "")[:120],
+        cancellation_policy=str(data.get("cancellation_policy") or "")[:320],
+        capacity=capacity,
+        is_featured=bool(data.get("is_featured")) if allow_featured else False,
+        status=status_value, updated_by=user,
+    )
+    return listing
 
 
 class PublicMarketplaceView(APIView):
@@ -140,6 +217,7 @@ class PublicPartnerApplyView(APIView):
             return Response({"detail": "Unknown partner type"}, status=400)
         try:
             website = _https_or_blank(request.data.get("website"))
+            logo_url = _https_or_blank(request.data.get("logo_url"))
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
         partner = MarketplacePartner.objects.create(
@@ -149,10 +227,22 @@ class PublicPartnerApplyView(APIView):
             website=website, city=str(request.data.get("city") or "")[:120],
             district=str(request.data.get("district") or "")[:120],
             description=str(request.data.get("description") or "")[:4000],
+            services=str(request.data.get("services") or "")[:4000],
+            license_info=str(request.data.get("license_info") or "")[:240],
+            logo_url=logo_url,
             status=MarketplacePartner.Status.PENDING,
             user=request.user if request.user.is_authenticated else None,
         )
-        return Response({"id": partner.id, "message": "Application received. An administrator will review it.", "status": partner.status}, status=201)
+        _notify_marketplace_admins(
+            f"Partner application: {partner.name}",
+            f"{partner.name} ({partner.kind}) applied from {partner.email}. Review it in Packages & partners.",
+            metadata={"partner_id": partner.id},
+        )
+        return Response({
+            "id": partner.id,
+            "message": "Application submitted successfully. Our team will review your application and contact you.",
+            "status": partner.status,
+        }, status=201)
 
 
 class MarketplaceCheckoutView(APIView):
@@ -217,15 +307,25 @@ class MarketplaceCheckoutView(APIView):
             if listing.external_url:
                 external_links.append({"title": listing.title, "url": listing.external_url})
         order.recompute()
-        if request.user.is_authenticated:
-            from .notification_delivery import queue_notification
-            queue_notification(
-                request.user, f"Trip request {order.reference}",
-                f"We received your request for {order.items.count()} offer(s). Total NPR {order.total_npr}.",
-                channel="in_app", category="booking", metadata={"order_id": order.id, "reference": order.reference},
+        traveller = request.user if request.user.is_authenticated else User.objects.filter(email__iexact=guest_email).first()
+        _notify_user(
+            traveller, f"Trip request {order.reference}",
+            f"Your booking request {order.reference} was received. Status: {order.get_status_display()}. No payment is processed on Nepal Tourism.",
+            metadata={"order_id": order.id, "reference": order.reference},
+        )
+        partner_users = {
+            item.listing.partner.user
+            for item in order.items.select_related("listing__partner")
+            if item.listing.partner.user_id
+        }
+        for partner_user in partner_users:
+            _notify_user(
+                partner_user, f"New trip request {order.reference}",
+                f"{order.guest_name} requested {order.items.count()} offer(s). Open the partner desk to follow up.",
+                metadata={"order_id": order.id, "reference": order.reference},
             )
         return Response({
-            "message": "Trip request saved. Pay with the operator or continue on their site — we never store card numbers.",
+            "message": "Booking request saved. No payment is processed on Nepal Tourism. Pay later with the operator or continue on their HTTPS site.",
             "order": _order_row(order),
             "external_links": external_links,
         }, status=201)
@@ -272,6 +372,10 @@ class AdminMarketplaceView(APIView):
                 website = _https_or_blank(request.data.get("website"))
             except ValueError as exc:
                 return Response({"detail": str(exc)}, status=400)
+            try:
+                logo_url = _https_or_blank(request.data.get("logo_url"))
+            except ValueError as exc:
+                return Response({"detail": str(exc)}, status=400)
             partner = MarketplacePartner.objects.create(
                 name=name[:200], kind=request.data.get("kind") or "operator",
                 email=email, contact_name=str(request.data.get("contact_name") or "")[:160],
@@ -279,6 +383,9 @@ class AdminMarketplaceView(APIView):
                 city=str(request.data.get("city") or "")[:120],
                 district=str(request.data.get("district") or "")[:120],
                 description=str(request.data.get("description") or "")[:4000],
+                services=str(request.data.get("services") or "")[:4000],
+                license_info=str(request.data.get("license_info") or "")[:240],
+                logo_url=logo_url,
                 status=request.data.get("status") or "approved",
             )
             return Response({"id": partner.id, "message": "Partner saved", "record": _partner_row(partner)}, status=201)
@@ -286,34 +393,13 @@ class AdminMarketplaceView(APIView):
         partner = MarketplacePartner.objects.filter(pk=request.data.get("partner_id"), status="approved").first()
         if not partner:
             return Response({"detail": "Choose an approved partner"}, status=400)
-        title = str(request.data.get("title") or "").strip()
-        if not title:
-            return Response({"detail": "title is required"}, status=400)
         try:
-            image_url = _https_or_blank(request.data.get("image_url"))
-            external_url = _https_or_blank(request.data.get("external_url"))
-            price = _money(request.data.get("price_npr"))
-            duration_days = _int(request.data.get("duration_days"), 1, 1, 60)
-            capacity = _int(request.data.get("capacity"), 10, 1, 200)
+            listing = _listing_from_payload(
+                request.data, partner, request.user,
+                default_status=MarketplaceListing.Status.PUBLISHED,
+            )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        dest = Destination.objects.filter(pk=request.data.get("destination_id")).first() if request.data.get("destination_id") else None
-        listing = MarketplaceListing.objects.create(
-            partner=partner, destination=dest, kind=request.data.get("kind") or "package",
-            title=title[:220], summary=str(request.data.get("summary") or "")[:320],
-            description=str(request.data.get("description") or "")[:8000],
-            includes=str(request.data.get("includes") or "")[:4000],
-            excludes=str(request.data.get("excludes") or "")[:4000],
-            duration_days=duration_days,
-            price_npr=price, image_url=image_url, external_url=external_url,
-            city=str(request.data.get("city") or "")[:120],
-            district=str(request.data.get("district") or "")[:120],
-            cancellation_policy=str(request.data.get("cancellation_policy") or "")[:320],
-            capacity=capacity,
-            is_featured=bool(request.data.get("is_featured")),
-            status=request.data.get("status") or "published",
-            updated_by=request.user,
-        )
         return Response({"id": listing.id, "message": "Offer saved", "record": _listing_row(listing)}, status=201)
 
     def patch(self, request):
@@ -324,9 +410,14 @@ class AdminMarketplaceView(APIView):
             if not partner:
                 return Response({"detail": "Partner not found"}, status=404)
             action = request.data.get("action")
-            if action in {"approve", "reject", "suspend"}:
+            if action in {"approve", "reject", "suspend", "review"}:
                 _require_capability(request, "marketplace", "approve")
-                partner.status = {"approve": "approved", "reject": "rejected", "suspend": "suspended"}[action]
+                partner.status = {
+                    "approve": MarketplacePartner.Status.APPROVED,
+                    "reject": MarketplacePartner.Status.REJECTED,
+                    "suspend": MarketplacePartner.Status.SUSPENDED,
+                    "review": MarketplacePartner.Status.UNDER_REVIEW,
+                }[action]
                 partner.reviewed_by = request.user
                 partner.reviewed_at = timezone.now()
             for field in ("name", "kind", "email", "phone", "city", "district", "description", "admin_note", "contact_name"):
@@ -339,30 +430,58 @@ class AdminMarketplaceView(APIView):
                     return Response({"detail": str(exc)}, status=400)
             if "commission_percent" in request.data:
                 partner.commission_percent = _money(request.data.get("commission_percent"), "10")
+            if "logo_url" in request.data:
+                try:
+                    partner.logo_url = _https_or_blank(request.data.get("logo_url"))
+                except ValueError as exc:
+                    return Response({"detail": str(exc)}, status=400)
             partner.save()
+            _link_partner_user(partner)
+            if action == "approve":
+                _notify_user(
+                    partner.user, "Your application has been approved",
+                    f"{partner.name} can now add packages from the partner desk. An administrator still reviews each offer before it is public.",
+                    metadata={"partner_id": partner.id},
+                )
+            elif action == "reject":
+                _notify_user(
+                    partner.user, "Your application was not approved",
+                    f"{partner.name} was not approved. Check the note from the tourism desk or apply again with updated details.",
+                    metadata={"partner_id": partner.id},
+                )
             return Response({"message": "Partner updated", "record": _partner_row(partner)})
         if resource == "orders":
             order = MarketplaceOrder.objects.filter(pk=request.data.get("id")).first()
             if not order:
                 return Response({"detail": "Order not found"}, status=404)
             action = request.data.get("action")
-            if action == "confirm":
-                order.status = MarketplaceOrder.Status.CONFIRMED
-            elif action == "cancel":
-                order.status = MarketplaceOrder.Status.CANCELLED
-            else:
-                return Response({"detail": "action must be confirm or cancel"}, status=400)
+            allowed = {
+                "confirm": MarketplaceOrder.Status.CONFIRMED,
+                "review": MarketplaceOrder.Status.UNDER_REVIEW,
+                "cancel": MarketplaceOrder.Status.CANCELLED,
+            }
+            if action not in allowed:
+                return Response({"detail": "action must be review, confirm or cancel"}, status=400)
+            order.status = allowed[action]
             order.save(update_fields=["status", "updated_at"])
+            traveller = order.user or User.objects.filter(email__iexact=order.guest_email).first()
+            _notify_user(
+                traveller, f"Trip request {order.reference}",
+                f"Your request {order.reference} is now {order.get_status_display()}.",
+                metadata={"order_id": order.id, "reference": order.reference, "status": order.status},
+            )
             return Response({"message": f"Order {action}ed", "record": _order_row(order)})
         listing = MarketplaceListing.objects.filter(pk=request.data.get("id")).first()
         if not listing:
             return Response({"detail": "Listing not found"}, status=404)
+        published_now = False
         if request.data.get("action") == "publish":
             if listing.partner.status != MarketplacePartner.Status.APPROVED:
                 return Response({"detail": "Approve the partner before publishing this offer"}, status=400)
-            listing.status = "published"
+            listing.status = MarketplaceListing.Status.PUBLISHED
+            published_now = True
         elif request.data.get("action") == "archive":
-            listing.status = "archived"
+            listing.status = MarketplaceListing.Status.ARCHIVED
         for field in ("title", "summary", "description", "includes", "excludes", "kind", "city", "district", "cancellation_policy", "status"):
             if field in request.data:
                 setattr(listing, field, request.data[field])
@@ -382,4 +501,135 @@ class AdminMarketplaceView(APIView):
             listing.external_url = _https_or_blank(request.data.get("external_url"))
         listing.updated_by = request.user
         listing.save()
+        if published_now:
+            _notify_user(
+                listing.partner.user, "Your package is live",
+                f"“{listing.title}” is now published on Nepal Tourism packages.",
+                metadata={"listing_id": listing.id, "slug": listing.slug},
+            )
         return Response({"message": "Offer updated", "record": _listing_row(listing)})
+
+
+class PartnerDeskView(APIView):
+    """Approved partners add/edit packages. They cannot publish themselves."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        partner = _partner_for_user(request.user)
+        if not partner:
+            return Response({
+                "detail": "No partner application is linked to this account. Apply at /collaborate.",
+                "partner": None,
+            }, status=404)
+        listings = [
+            _listing_row(row)
+            for row in partner.listings.select_related("destination").order_by("-updated_at")[:100]
+        ]
+        orders = []
+        if partner.status == MarketplacePartner.Status.APPROVED:
+            orders = [
+                _order_row(order)
+                for order in MarketplaceOrder.objects.filter(items__listing__partner=partner)
+                .exclude(status=MarketplaceOrder.Status.DRAFT)
+                .distinct()
+                .prefetch_related("items__listing")[:50]
+            ]
+        return Response({
+            "partner": _partner_row(partner),
+            "can_manage_listings": partner.status == MarketplacePartner.Status.APPROVED,
+            "listings": listings,
+            "orders": orders,
+            "message": (
+                None if partner.status == MarketplacePartner.Status.APPROVED
+                else f"Your application is {partner.get_status_display().lower()}. You can add packages after approval."
+            ),
+        })
+
+    def post(self, request):
+        partner = _partner_for_user(request.user)
+        if not partner:
+            return Response({"detail": "Apply to collaborate first"}, status=404)
+        if partner.status != MarketplacePartner.Status.APPROVED:
+            return Response({"detail": "Your business must be approved before you can add packages"}, status=403)
+        try:
+            listing = _listing_from_payload(
+                request.data, partner, request.user,
+                force_status=MarketplaceListing.Status.PENDING, allow_featured=False,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        _notify_marketplace_admins(
+            f"New package pending: {listing.title}",
+            f"{partner.name} submitted “{listing.title}”. Review it in Packages & partners before it is public.",
+            metadata={"listing_id": listing.id, "partner_id": partner.id},
+        )
+        return Response({
+            "id": listing.id,
+            "message": "Package submitted for review. An administrator must publish it before travellers can see it.",
+            "record": _listing_row(listing),
+        }, status=201)
+
+    def patch(self, request):
+        partner = _partner_for_user(request.user)
+        if not partner or partner.status != MarketplacePartner.Status.APPROVED:
+            return Response({"detail": "Approved partner desk only"}, status=403)
+        listing = partner.listings.filter(pk=request.data.get("id")).first()
+        if not listing:
+            return Response({"detail": "Listing not found"}, status=404)
+        if request.data.get("action") == "publish" or request.data.get("status") == MarketplaceListing.Status.PUBLISHED:
+            return Response({"detail": "An administrator must publish this offer"}, status=400)
+        try:
+            for field in ("title", "summary", "description", "includes", "excludes", "kind", "city", "district", "cancellation_policy"):
+                if field in request.data:
+                    setattr(listing, field, request.data[field])
+            if "price_npr" in request.data:
+                listing.price_npr = _money(request.data.get("price_npr"))
+            if "duration_days" in request.data:
+                listing.duration_days = _int(request.data["duration_days"], 1, 1, 60)
+            if "capacity" in request.data:
+                listing.capacity = _int(request.data["capacity"], 10, 1, 200)
+            if "image_url" in request.data:
+                listing.image_url = _https_or_blank(request.data.get("image_url"))
+            if "external_url" in request.data:
+                listing.external_url = _https_or_blank(request.data.get("external_url"))
+            if "destination_id" in request.data:
+                listing.destination = Destination.objects.filter(pk=request.data.get("destination_id")).first()
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        listing.is_featured = False
+        if listing.status == MarketplaceListing.Status.PUBLISHED:
+            listing.status = MarketplaceListing.Status.PENDING
+            _notify_marketplace_admins(
+                f"Package update pending: {listing.title}",
+                f"{partner.name} edited a live offer. Review it before it stays public.",
+                metadata={"listing_id": listing.id, "partner_id": partner.id},
+            )
+        elif request.data.get("action") == "archive":
+            listing.status = MarketplaceListing.Status.ARCHIVED
+        listing.updated_by = request.user
+        listing.save()
+        return Response({"message": "Offer updated", "record": _listing_row(listing)})
+
+
+class MarketplaceOrderLookupView(APIView):
+    """Travellers look up a request by reference + email, or list their own."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        reference = str(request.query_params.get("reference") or "").strip()
+        email = str(request.query_params.get("email") or "").strip()
+        if request.user.is_authenticated and not reference:
+            orders = MarketplaceOrder.objects.filter(
+                Q(user=request.user) | Q(guest_email__iexact=request.user.email)
+            ).exclude(status=MarketplaceOrder.Status.DRAFT).prefetch_related("items__listing")[:50]
+            return Response({"results": [_order_row(order) for order in orders]})
+        if not reference or not email:
+            return Response({"detail": "reference and email are required"}, status=400)
+        order = MarketplaceOrder.objects.filter(
+            reference__iexact=reference, guest_email__iexact=email,
+        ).exclude(status=MarketplaceOrder.Status.DRAFT).prefetch_related("items__listing").first()
+        if not order:
+            return Response({"detail": "No booking request matches that reference and email"}, status=404)
+        return Response({"order": _order_row(order)})

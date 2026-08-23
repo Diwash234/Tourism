@@ -16,6 +16,7 @@ import NepalExperienceSection from "../components/dashboard/NepalExperienceSecti
 import NationalSymbols from "../components/dashboard/NationalSymbols"
 import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
+import userApi from "../api/userApi"
 import usePublicConfig from "../hooks/usePublicConfig"
 import VisitorNoticeBanner from "../components/common/VisitorNoticeBanner"
 import { CMSExtras } from "../components/cms/CMSBlock"
@@ -93,8 +94,11 @@ const HOME_KEYS = ["hero", "features", "featured", "case-studies", "highlights",
 export default function Landing() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { showBlock, copy, extras } = usePublicConfig().pageCMS("home", HOME_KEYS)
+  const publicConfig = usePublicConfig()
+  const { showBlock, copy, extras } = publicConfig.pageCMS("home", HOME_KEYS)
+  const notices = publicConfig.notices || []
   const [destinations, setDestinations] = useState([])
+  const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(true)
   const cmsHero = { title: copy("hero", "title"), subtitle: copy("hero", "subtitle", copy("hero", "body")) }
 
@@ -116,6 +120,9 @@ export default function Landing() {
       })
       .catch(() => setDestinations([]))
       .finally(() => setLoading(false))
+    userApi.getMarketplaceListings({ featured: true })
+      .then(({ data }) => setPackages(data.results || []))
+      .catch(() => setPackages([]))
   }, [])
 
   return (
@@ -260,6 +267,26 @@ export default function Landing() {
       </section>}
 
       {notices.length > 0 && <section className="container-app pt-10"><VisitorNoticeBanner notices={notices} /></section>}
+
+      {packages.length > 0 && <section className="container-app py-12">
+        <div className="flex items-end justify-between gap-4 mb-6">
+          <div>
+            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">Live catalogue</span>
+            <h2 className="text-3xl font-extrabold text-gray-900 mt-2 tracking-tight">Featured packages</h2>
+          </div>
+          <Link to="/packages" className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">All packages <FiArrowRight size={14} /></Link>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {packages.slice(0, 3).map((offer) => (
+            <Link key={offer.id} to={`/packages/${offer.slug}`} className="card-base p-5 hover:shadow-lg transition">
+              <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind} · {offer.duration_days} days</p>
+              <h3 className="font-black text-slate-900 mt-1">{offer.title}</h3>
+              <p className="text-sm text-slate-600 mt-1 line-clamp-2">{offer.summary}</p>
+              <p className="mt-3 font-black">NPR {Number(offer.price_npr).toLocaleString()}</p>
+            </Link>
+          ))}
+        </div>
+      </section>}
 
       {showBlock("featured") && <section className="container-app py-16">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">

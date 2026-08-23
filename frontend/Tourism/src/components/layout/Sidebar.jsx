@@ -27,6 +27,7 @@ const GROUPS = [
       { to: "/explore-map", label: "Explore by Province", tk: "sidebar.explore_map", icon: BsMap, color: "forest" },
       { to: "/discover-nepal", label: "Discover Nepal", tk: "sidebar.discover", icon: BsBook, color: "himalaya" },
       { to: "/packages", label: "Travel Packages", tk: "sidebar.packages", icon: BsBriefcase, color: "orange" },
+      { to: "/collaborate", label: "Partner with us", icon: BsBriefcase, color: "emerald" },
     ],
   },
   {
@@ -38,6 +39,8 @@ const GROUPS = [
       { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: BsCalculator, color: "orange" },
       { to: "/favorites", label: "Saved Trips", tk: "sidebar.favorites", icon: BsHeart, color: "pink" },
       { to: "/my-bookings", label: "Bookings", tk: "sidebar.bookings", icon: BsTicketPerforated, color: "emerald" },
+      { to: "/trip", label: "Trip requests", icon: BsTicketPerforated, color: "orange" },
+      { to: "/partner", label: "Partner desk", icon: BsBriefcase, color: "saffron" },
     ],
   },
   {

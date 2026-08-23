@@ -90,6 +90,11 @@ const userApi = {
   getMarketplaceListing: (slug) => axiosClient.get(`/marketplace/listings/${slug}/`),
   applyMarketplacePartner: (payload) => axiosClient.post("/marketplace/partners/apply/", payload),
   checkoutMarketplace: (payload) => axiosClient.post("/marketplace/checkout/", payload),
+  getPartnerDesk: () => axiosClient.get("/marketplace/partner/desk/"),
+  createPartnerListing: (payload) => axiosClient.post("/marketplace/partner/desk/", payload),
+  updatePartnerListing: (payload) => axiosClient.patch("/marketplace/partner/desk/", payload),
+  lookupMarketplaceOrder: (reference, email) => axiosClient.get("/marketplace/orders/", { params: { reference, email } }),
+  listMarketplaceOrders: () => axiosClient.get("/marketplace/orders/"),
 
   // Trip request — live marketplace only. Never send or store card numbers.
   bookPackage: async (payload) => {

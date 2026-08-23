@@ -3,6 +3,7 @@ import csv
 from pathlib import Path
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 
 from .models import (
@@ -274,6 +275,189 @@ def _merge_verified_risk_features(path, records):
             row[category_col] = "HIGH" if indicator >= 65 else "MODERATE" if indicator >= 35 else "LOW"
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames); writer.writeheader(); writer.writerows(rows)
+
+
+def _next_numeric_id(path, field="id"):
+    highest = 0
+    if not path.exists() or path.stat().st_size == 0:
+        return 1
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        try:
+            for row in csv.DictReader(handle):
+                try:
+                    highest = max(highest, int(float(row.get(field) or 0)))
+                except (TypeError, ValueError):
+                    continue
+        except csv.Error:
+            pass
+    return highest + 1
+
+
+def resolve_service_destination(latitude, longitude, destination_id=None, district="", city=""):
+    if destination_id:
+        destination = Destination.objects.filter(pk=destination_id).first()
+        if destination:
+            return destination
+    qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+    if city:
+        destination = qs.filter(Q(name__iexact=city) | Q(city__iexact=city) | Q(slug__iexact=city)).first()
+        if destination:
+            return destination
+    if district:
+        destination = qs.filter(district__iexact=district).order_by("-is_featured", "name").first()
+        if destination:
+            return destination
+
+    class _Point:
+        destination_id = None
+        destination = None
+
+        def __init__(self, lat, lng):
+            self.latitude = lat
+            self.longitude = lng
+
+    return _nearest_destination(_Point(latitude, longitude))
+
+
+def serialize_emergency_record(kind, obj):
+    dest = getattr(obj, "destination", None)
+    tags = getattr(obj, "raw_tags", None) or {}
+    return {
+        "kind": kind,
+        "id": obj.id,
+        "name": obj.name,
+        "phone": getattr(obj, "phone", "") or "",
+        "address": getattr(obj, "address", "") or "",
+        "district": getattr(obj, "district", "") or (dest.district if dest else "") or tags.get("district", ""),
+        "province": (dest.province if dest else "") or tags.get("province", ""),
+        "latitude": float(obj.latitude),
+        "longitude": float(obj.longitude),
+        "source_url": getattr(obj, "source_url", "") or "",
+        "verified": bool(getattr(obj, "is_verified", False)),
+        "destination_id": getattr(obj, "destination_id", None),
+        "destination_name": dest.name if dest else "",
+        "updated_at": getattr(obj, "updated_at", None),
+        "opening_hours": getattr(obj, "opening_hours", "") or "",
+    }
+
+
+def publish_official_emergency(data, reviewer=None):
+    """Admin-entered hospital / police / pharmacy / fire row — DB + official CSVs."""
+    import uuid
+
+    kind = str(data.get("kind") or "").strip().lower()
+    if kind == "fire":
+        kind = "fire_station"
+    allowed = {"hospital", "police", "pharmacy", "fire_station", "ambulance", "blood_bank", "clinic"}
+    if kind not in allowed:
+        raise ValueError("kind must be hospital, police, pharmacy, fire_station, ambulance, blood_bank or clinic")
+    name = str(data.get("name") or "").strip()
+    if not name:
+        raise ValueError("name is required")
+    try:
+        latitude = float(data.get("latitude"))
+        longitude = float(data.get("longitude"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("latitude and longitude are required numbers") from exc
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        raise ValueError("latitude/longitude out of range")
+    phone = str(data.get("phone") or "").strip()[:50]
+    address = str(data.get("address") or "").strip()[:300]
+    district = str(data.get("district") or "").strip()[:100]
+    province = str(data.get("province") or "").strip()[:120]
+    city = str(data.get("city") or data.get("destination") or "").strip()[:120]
+    source_url = str(data.get("source_url") or "").strip()
+    if source_url and not source_url.startswith("https://"):
+        raise ValueError("source_url must use HTTPS")
+    opening_hours = str(data.get("opening_hours") or "")[:160]
+    destination = resolve_service_destination(
+        latitude, longitude, data.get("destination_id"), district, city or name,
+    )
+    if kind in {"hospital", "police"} and destination is None:
+        raise ValueError("Link an approved destination or create one for this district first so the record can be mapped.")
+    now = timezone.now()
+    csv_written = {}
+    if kind == "hospital":
+        obj = Hospital.objects.create(
+            destination=destination, name=name[:200], address=address or district or "Nepal",
+            phone=phone or "102", latitude=latitude, longitude=longitude,
+            district=district or (destination.district or ""),
+            opening_hours=opening_hours, source_name="Admin verified directory",
+            source_url=source_url, is_verified=True, verified_at=now,
+        )
+        hospital_fields = [
+            "hospital_name", "address", "phone", "latitude", "longitude",
+            "district", "destination", "province", "data_quality_score",
+        ]
+        hospital_row = {
+            "hospital_name": name, "address": address, "phone": phone,
+            "latitude": latitude, "longitude": longitude, "district": district,
+            "destination": destination.name if destination else city,
+            "province": province, "data_quality_score": 100,
+        }
+        for path in [
+            ROOT / "Tourism" / "dataset" / "hospital_cleaned.csv",
+            ROOT / "ml_service" / "data" / "emergency" / "hospital_cleaned.csv",
+        ]:
+            csv_written["hospital"] = _append_unique(path, hospital_fields, hospital_row, ["hospital_name", "latitude", "longitude"])
+    elif kind == "police":
+        obj = PoliceStation.objects.create(
+            destination=destination, name=name[:200], address=address or district or "Nepal",
+            phone=phone or "100", latitude=latitude, longitude=longitude,
+            opening_hours=opening_hours, source_name="Admin verified directory",
+            source_url=source_url, is_verified=True, verified_at=now,
+        )
+        police_path = ROOT / "Tourism" / "dataset" / "police_station_cleaned.csv"
+        police_fields = [
+            "id", "police_station", "destination", "address", "phone",
+            "latitude", "longitude", "district", "province", "data_quality_score",
+        ]
+        police_row = {
+            "id": _next_numeric_id(police_path), "police_station": name,
+            "destination": destination.name if destination else city,
+            "address": address, "phone": phone, "latitude": latitude, "longitude": longitude,
+            "district": district or (destination.district if destination else ""),
+            "province": province, "data_quality_score": 100,
+        }
+        csv_written["police"] = _append_unique(
+            police_path, police_fields, police_row, ["police_station", "latitude", "longitude"],
+        )
+    else:
+        obj = OSMEssentialService.objects.create(
+            osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
+            phone=phone, latitude=latitude, longitude=longitude, address=address,
+            source_name="Admin verified directory", source_url=source_url,
+            is_verified=True, verified_at=now, opening_hours=opening_hours,
+            emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
+            raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
+        )
+
+    service_fields = [
+        "submission_id", "place_type", "name", "phone", "website", "address",
+        "city", "municipality", "municipality_type", "ward_number", "district",
+        "province", "latitude", "longitude", "destination", "transport_mode",
+        "route_origin", "travel_time_minutes", "distance_km", "road_condition",
+        "price_npr", "opening_hours", "image", "video", "approved_at",
+    ]
+    community_row = {
+        "submission_id": f"admin-{kind}-{obj.id}", "place_type": kind, "name": name,
+        "phone": phone, "website": source_url, "address": address, "city": city,
+        "municipality": "", "municipality_type": "", "ward_number": "",
+        "district": district, "province": province, "latitude": latitude, "longitude": longitude,
+        "destination": destination.name if destination else city,
+        "transport_mode": "", "route_origin": "", "travel_time_minutes": "",
+        "distance_km": "", "road_condition": "", "price_npr": "",
+        "opening_hours": opening_hours, "image": "", "video": "",
+        "approved_at": now.isoformat(),
+    }
+    for path in [
+        ROOT / "Tourism" / "dataset" / "community_services.csv",
+        ROOT / "ml_service" / "data" / "emergency" / "community_services.csv",
+    ]:
+        csv_written["community"] = _append_unique(
+            path, service_fields, community_row, ["submission_id"],
+        )
+    return obj, csv_written
 
 
 def export_verified_ml_feedback():

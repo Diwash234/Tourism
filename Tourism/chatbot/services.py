@@ -75,6 +75,80 @@ def find_matching_destinations(query: str, limit: int = 4) -> List[Destination]:
     return matches[:limit]
 
 
+def parse_trip_constraints(message: str):
+    """Extract requested days and a budget in NPR from a traveller question."""
+    text = (message or "").lower()
+    days = None
+    days_match = re.search(r"(\d+)\s*[- ]?\s*days?", text)
+    if days_match:
+        days = max(1, min(60, int(days_match.group(1))))
+    budget_npr = None
+    usd_match = re.search(r"\$\s*([\d,]+)", text)
+    npr_match = re.search(r"(?:npr|rs\.?)\s*([\d,]+)", text)
+    if usd_match:
+        budget_npr = float(usd_match.group(1).replace(",", "")) * USD_TO_NPR
+    elif npr_match:
+        budget_npr = float(npr_match.group(1).replace(",", ""))
+    return days, budget_npr
+
+
+def is_budget_trip_intent(message: str, days=None, budget_npr=None) -> bool:
+    text = (message or "").lower()
+    trip_words = any(word in text for word in ("trip", "package", "tour", "holiday", "vacation"))
+    under = any(word in text for word in ("under", "below", "less than", "budget", "cheap"))
+    return bool((days and budget_npr) or (trip_words and budget_npr) or (days and under and trip_words))
+
+
+def package_card(listing: MarketplaceListing) -> dict:
+    return {
+        "id": listing.id,
+        "slug": listing.slug,
+        "title": listing.title,
+        "kind": listing.kind,
+        "price_npr": str(listing.price_npr),
+        "duration_days": listing.duration_days,
+        "city": listing.city or (listing.destination.city if listing.destination else "Nepal"),
+        "partner_name": listing.partner.name,
+        "summary": listing.summary,
+        "image_url": listing.image_url,
+    }
+
+
+def match_published_packages(query: str, days=None, budget_npr=None, limit: int = 6):
+    """Rank published marketplace offers. Draft / pending / unpublished never appear."""
+    listings = list(
+        MarketplaceListing.objects.filter(
+            status="published", partner__status="approved",
+        ).select_related("partner", "destination")
+    )
+    words = [w for w in re.split(r"\W+", (query or "").lower()) if len(w) > 2]
+    skip = {"want", "with", "from", "that", "this", "nepal", "trip", "days", "day", "under", "below", "less", "than", "package", "packages"}
+    words = [w for w in words if w not in skip]
+    scored = []
+    for listing in listings:
+        price = float(listing.price_npr)
+        if budget_npr is not None and price > float(budget_npr):
+            continue
+        score = 2 if listing.is_featured else 0
+        if days:
+            diff = abs((listing.duration_days or 1) - days)
+            if diff <= 1:
+                score += 5
+            elif diff <= 2:
+                score += 3
+            elif (listing.duration_days or 1) <= days + 1:
+                score += 1
+            else:
+                score -= 1
+        hay = f"{listing.title} {listing.summary} {listing.city} {listing.district} {listing.partner.name}".lower()
+        if listing.destination_id:
+            hay += f" {listing.destination.name} {listing.destination.city or ''}"
+        score += sum(1 for word in words if word in hay)
+        scored.append((score, listing))
+    scored.sort(key=lambda row: -row[0])
+    return [listing for _, listing in scored[:limit]]
+
+
 def get_destination_image_url(dest: Destination) -> str:
     """Returns the cover or first high-res image URL for a destination."""
     img = dest.gallery.filter(is_cover=True).first() or dest.gallery.first()
@@ -217,10 +291,15 @@ def get_chatbot_reply(
     is_itinerary_intent = any(w in msg_lower for w in ["itinerary", "plan", "days trip", "day trip", "schedule", "build my trip", "tour plan", "day 1", "day-by-day"])
     is_emergency_intent = any(w in msg_lower for w in ["emergency", "hospital", "police", "ambulance", "doctor", "rescue", "sos", "danger", "helpline", "1144"])
     is_budget_intent = any(w in msg_lower for w in ["budget", "cost", "price", "how much", "npr", "dollar", "expenses", "cheap"])
+    requested_days, requested_budget = parse_trip_constraints(msg_lower)
     is_package_intent = any(w in msg_lower for w in [
         "package", "packages", "marketplace", "book a tour", "travel package",
         "add to trip", "trip basket", "collaborate",
     ])
+    is_budget_trip = is_budget_trip_intent(msg_lower, requested_days, requested_budget)
+    if is_budget_trip:
+        is_package_intent = True
+        is_itinerary_intent = False
 
     destination_cards = []
     image_cards = []
@@ -230,20 +309,10 @@ def get_chatbot_reply(
     package_cards = []
 
     if is_package_intent:
-        listings = MarketplaceListing.objects.filter(
-            status="published", partner__status="approved",
-        ).select_related("partner", "destination").order_by("-is_featured", "-updated_at")[:6]
-        for listing in listings:
-            package_cards.append({
-                "id": listing.id,
-                "slug": listing.slug,
-                "title": listing.title,
-                "kind": listing.kind,
-                "price_npr": str(listing.price_npr),
-                "city": listing.city or (listing.destination.city if listing.destination else "Nepal"),
-                "partner_name": listing.partner.name,
-                "summary": listing.summary,
-            })
+        matched = match_published_packages(
+            msg_clean, days=requested_days, budget_npr=requested_budget, limit=6,
+        )
+        package_cards = [package_card(listing) for listing in matched]
 
     # Match relevant destinations in DB
     matched_destinations = find_matching_destinations(msg_clean, limit=4)
@@ -371,18 +440,29 @@ def get_chatbot_reply(
             )
         elif is_package_intent:
             if package_cards:
+                constraint = []
+                if requested_days:
+                    constraint.append(f"{requested_days}-day")
+                if requested_budget:
+                    constraint.append(f"under NPR {int(requested_budget):,}")
+                heading = " and ".join(constraint) or "live"
                 lines = [
-                    "🎒 **Live packages from the admin desk and approved partners**",
-                    "Request to book or continue on the partner HTTPS site. Card numbers are never stored here.",
+                    f"🎒 **Published packages matching your {heading} request**",
+                    "These are live offers from approved partners. Use View or Add to trip. No payment is processed here.",
                     "",
                 ]
                 for offer in package_cards:
                     lines.append(
-                        f"• **{offer['title']}** ({offer['kind']}) — NPR {offer['price_npr']} · {offer['partner_name']}"
+                        f"• **{offer['title']}** ({offer['duration_days']} day(s)) — NPR {offer['price_npr']} · {offer['partner_name']}"
                     )
                 lines.append("")
                 lines.append("Open /packages to add offers to a trip basket, or /collaborate if you run a hotel or tour.")
                 ai_text_reply = "\n".join(lines)
+            elif requested_budget or requested_days:
+                ai_text_reply = (
+                    "No published package currently matches that length and budget. "
+                    "Browse /packages for live offers, or ask an administrator to publish one."
+                )
             else:
                 ai_text_reply = (
                     "No published packages are live yet. An administrator can add them from "

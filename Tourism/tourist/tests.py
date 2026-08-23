@@ -2262,3 +2262,79 @@ class MarketplaceTests(APITestCase):
         response = self.client.get(reverse("admin-global-search"), {"q": "Phewa Lake"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(any(item["type"] == "listing" for item in response.data["results"]))
+
+    def test_partner_desk_cannot_publish_and_listing_stays_pending(self):
+        from .models import MarketplaceListing, MarketplacePartner
+        hotel_user = User.objects.create_user(
+            email="hoteldesk@example.com", password="StrongPass123!", is_verified=True,
+        )
+        partner = MarketplacePartner.objects.create(
+            name="Desk Hotel", kind="hotel", email=hotel_user.email, status="approved", user=hotel_user,
+        )
+        self.client.force_authenticate(hotel_user)
+        created = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Partner-only stay", "price_npr": "9000", "duration_days": 3,
+            "status": "published", "is_featured": True,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        listing = MarketplaceListing.objects.get(pk=created.data["id"])
+        self.assertEqual(listing.status, "pending")
+        self.assertFalse(listing.is_featured)
+        denied = self.client.patch(reverse("marketplace-partner-desk"), {
+            "id": listing.id, "action": "publish",
+        }, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, "pending")
+        public = self.client.get(reverse("marketplace-listings"))
+        slugs = [row["slug"] for row in public.data["results"]]
+        self.assertNotIn(listing.slug, slugs)
+
+    def test_order_lookup_and_under_review_status(self):
+        from .models import MarketplaceOrder
+        checkout = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Hari", "guest_email": "hari@example.com", "payment_method": "request",
+            "items": [{"listing_id": self.listing.id, "quantity": 1}],
+        }, format="json")
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        reference = checkout.data["order"]["reference"]
+        missing = self.client.get(reverse("marketplace-orders"), {"reference": reference, "email": "wrong@example.com"})
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
+        found = self.client.get(reverse("marketplace-orders"), {"reference": reference, "email": "hari@example.com"})
+        self.assertEqual(found.status_code, status.HTTP_200_OK)
+        self.assertEqual(found.data["order"]["status"], "requested")
+        self.client.force_authenticate(self.admin)
+        reviewed = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": checkout.data["order"]["id"], "action": "review",
+        }, format="json")
+        self.assertEqual(reviewed.status_code, status.HTTP_200_OK)
+        order = MarketplaceOrder.objects.get(reference=reference)
+        self.assertEqual(order.status, "under_review")
+        self.client.force_authenticate(None)
+        again = self.client.get(reverse("marketplace-orders"), {"reference": reference, "email": "hari@example.com"})
+        self.assertEqual(again.data["order"]["status"], "under_review")
+
+    def test_admin_emergency_add_writes_db_and_csv(self):
+        from .models import Hospital
+        self.client.force_authenticate(self.admin)
+        payload = {
+            "kind": "hospital",
+            "name": "Arena Dadeldhura Test Clinic",
+            "phone": "096420999",
+            "address": "Amargadhi",
+            "district": "Dadeldhura",
+            "province": "Sudurpashchim",
+            "latitude": 29.301234,
+            "longitude": 80.581234,
+            "destination_id": self.destination.id,
+        }
+        created = self.client.post(reverse("admin-emergency-directory"), payload, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Hospital.objects.filter(name="Arena Dadeldhura Test Clinic").exists())
+        self.assertTrue(created.data["csv_written"].get("hospital") or created.data["csv_written"].get("community"))
+        listed = self.client.get(reverse("admin-emergency-directory"), {"q": "Arena Dadeldhura"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["name"] == "Arena Dadeldhura Test Clinic" for row in listed.data["results"]))
+        again = self.client.post(reverse("admin-emergency-directory"), payload, format="json")
+        self.assertEqual(again.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(again.data["csv_written"].get("hospital"))

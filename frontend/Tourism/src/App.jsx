@@ -75,6 +75,8 @@ import Packages from "./pages/Packages"
 import PackageDetail from "./pages/PackageDetail"
 import Collaborate from "./pages/Collaborate"
 import Checkout from "./pages/Checkout"
+import PartnerDesk from "./pages/PartnerDesk"
+import TripStatus from "./pages/TripStatus"
 import TripPlanner from "./pages/TripPlanner"
 import PersonalDetails from "./pages/PersonalDetails"
 import LocalDashboard from "./pages/local/LocalDashboard"
@@ -146,6 +148,8 @@ function App() {
         <Route path="/packages/:slug" element={<PackageDetail />} />
         <Route path="/collaborate" element={<Collaborate />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/trip/:reference?" element={<TripStatus />} />
+        <Route path="/trip" element={<TripStatus />} />
         <Route path="/trip-planner" element={<TripPlanner />} />
 
         {/* Public Emergency */}
@@ -218,6 +222,7 @@ function App() {
             path="/my-bookings"
             element={<MyBooking />}
           />
+          <Route path="/partner" element={<PartnerDesk />} />
 
           <Route
             path="/notifications"

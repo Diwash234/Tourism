@@ -2495,19 +2495,22 @@ class MarketplacePartner(TimeStampedModel):
     """Hotel, operator, restaurant or agency that wants to sell through this platform."""
 
     class Status(models.TextChoices):
-        PENDING = "pending", "Pending review"
+        PENDING = "pending", "Pending"
+        UNDER_REVIEW = "under_review", "Under review"
         APPROVED = "approved", "Approved"
-        SUSPENDED = "suspended", "Suspended"
         REJECTED = "rejected", "Rejected"
+        SUSPENDED = "suspended", "Suspended"
 
     class Kind(models.TextChoices):
         HOTEL = "hotel", "Hotel / stay"
+        HOMESTAY = "homestay", "Homestay"
         OPERATOR = "operator", "Tour operator"
         GUIDE = "guide", "Local guide"
         RESTAURANT = "restaurant", "Restaurant"
         TRANSPORT = "transport", "Transport"
         ACTIVITY = "activity", "Activity provider"
         AGENCY = "agency", "Travel agency"
+        OTHER = "other", "Other"
 
     name = models.CharField(max_length=200)
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.OPERATOR)
@@ -2518,6 +2521,9 @@ class MarketplacePartner(TimeStampedModel):
     city = models.CharField(max_length=120, blank=True)
     district = models.CharField(max_length=120, blank=True)
     description = models.TextField(blank=True)
+    services = models.TextField(blank=True, help_text="Packages or services the partner wants to list.")
+    license_info = models.CharField(max_length=240, blank=True)
+    logo_url = models.URLField(max_length=600, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     commission_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10)
     user = models.ForeignKey(
@@ -2603,7 +2609,8 @@ class MarketplaceOrder(TimeStampedModel):
 
     class Status(models.TextChoices):
         DRAFT = "draft", "Trip basket"
-        REQUESTED = "requested", "Booking requested"
+        REQUESTED = "requested", "Requested"
+        UNDER_REVIEW = "under_review", "Under review"
         CONFIRMED = "confirmed", "Confirmed"
         CANCELLED = "cancelled", "Cancelled"
         EXTERNAL = "external", "Sent to partner site"

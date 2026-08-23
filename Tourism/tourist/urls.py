@@ -16,6 +16,7 @@ from . import views_ml
 from . import views_oauth
 from . import views_osm
 from . import views_marketplace
+from . import views_emergency_admin
 from .serializers import UserProfileSerializer
 
 
@@ -148,6 +149,9 @@ urlpatterns = [
     path("marketplace/listings/<slug:slug>/", views_marketplace.PublicMarketplaceView.as_view(), name="marketplace-listing-detail"),
     path("marketplace/partners/apply/", views_marketplace.PublicPartnerApplyView.as_view(), name="marketplace-partner-apply"),
     path("marketplace/checkout/", views_marketplace.MarketplaceCheckoutView.as_view(), name="marketplace-checkout"),
+    path("marketplace/partner/desk/", views_marketplace.PartnerDeskView.as_view(), name="marketplace-partner-desk"),
+    path("marketplace/orders/", views_marketplace.MarketplaceOrderLookupView.as_view(), name="marketplace-orders"),
+    path("admin/emergency-directory/", views_emergency_admin.AdminEmergencyDirectoryView.as_view(), name="admin-emergency-directory"),
     path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
     path("admin/travel-services/", views_admin.AdminTravelServicesView.as_view(), name="admin-travel-services"),
     path("admin/retention/", views_admin.AdminRetentionPolicyView.as_view(), name="admin-retention"),

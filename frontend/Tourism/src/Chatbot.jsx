@@ -8,6 +8,8 @@ import {
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
 import useGeolocation from "./hooks/useGeolocation"
+import useToast from "./hooks/useToast"
+import { addToTripBasket } from "./utils/tripBasket"
 
 const QUICK_COMMANDS = [
   { label: "🏔️ Top Places & Photos", prompt: "Show top places to visit in Nepal with pictures" },
@@ -17,6 +19,7 @@ const QUICK_COMMANDS = [
   { label: "🖼️ View Everest Photos", prompt: "Show me beautiful photos of Everest Base Camp" },
   { label: "🚨 24/7 Emergency Helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
   { label: "🎒 Live travel packages", prompt: "What travel packages can I add to a trip?" },
+  { label: "💵 5-day trip under $500", prompt: "I want a 5-day trip to Nepal under $500" },
 ]
 
 export default function ChatBot() {
@@ -55,6 +58,7 @@ export default function ChatBot() {
     },
   ])
 
+  const { showToast } = useToast()
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState(null)
@@ -345,11 +349,21 @@ export default function ChatBot() {
                   <div className="max-w-[85%] mt-3 w-full space-y-2">
                     <p className="text-[11px] font-bold text-amber-900">Live packages (request to book — no card numbers here):</p>
                     {message.package_cards.map((offer) => (
-                      <Link key={offer.id || offer.slug} to={`/packages/${offer.slug}`} className="block rounded-xl border border-amber-200 bg-white p-3 hover:bg-amber-50">
-                        <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind}</p>
+                      <div key={offer.id || offer.slug} className="rounded-xl border border-amber-200 bg-white p-3 space-y-2">
+                        <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind} · {offer.duration_days || 1} day(s)</p>
                         <p className="font-bold text-slate-900 text-sm">{offer.title}</p>
                         <p className="text-xs text-slate-500">{offer.partner_name} · NPR {Number(offer.price_npr).toLocaleString()}</p>
-                      </Link>
+                        <div className="flex gap-2">
+                          <Link to={`/packages/${offer.slug}`} className="flex-1 text-center text-[11px] font-black rounded-lg bg-amber-400 text-gray-950 py-1.5">View</Link>
+                          <button
+                            type="button"
+                            onClick={() => { addToTripBasket(offer); showToast("Added to trip basket", "success") }}
+                            className="flex-1 text-[11px] font-black rounded-lg bg-emerald-700 text-white py-1.5"
+                          >
+                            Add to trip
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}

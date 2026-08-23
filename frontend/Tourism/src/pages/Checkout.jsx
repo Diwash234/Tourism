@@ -24,7 +24,6 @@ export default function Checkout() {
   })
 
   const total = useMemo(() => basketTotal(items), [items])
-
   const remove = (id) => setItems(removeFromTripBasket(id))
 
   const submit = async (event) => {
@@ -38,7 +37,7 @@ export default function Checkout() {
       })
       setResult(data)
       setItems(clearTripBasket())
-      showToast(data.message || "Trip request saved", "success")
+      showToast(data.message || "Booking request saved", "success")
     } catch (error) {
       showToast(error.response?.data?.detail || "Could not submit trip request", "error")
     } finally {
@@ -46,20 +45,29 @@ export default function Checkout() {
     }
   }
 
+  const reference = result?.order?.reference
+  const titles = (result?.order?.items || []).map((item) => item.title).join(" & ")
+  const days = result?.order?.duration_days
+
   return (
     <div className="container-app py-10">
       <PageHeader
-        title="Trip checkout"
-        subtitle="Review your basket, then request to book with the operator or continue on their HTTPS site. Card numbers are never accepted here."
+        title="Review & Request Booking"
+        subtitle="No payment is being processed on Nepal Tourism at this stage. Card numbers are never accepted here."
         icon={FiShoppingBag}
         theme="gold"
       />
 
       {result ? (
         <div className="card-base p-6 max-w-2xl space-y-3">
-          <h2 className="text-xl font-black">Request {result.order?.reference} saved</h2>
+          <h2 className="text-xl font-black">Your trip request {result.order?.reference}</h2>
+          <p className="text-slate-600">{titles}{days ? ` — ${days} days` : ""}</p>
+          <p className="font-bold">Status: {result.order?.status_label || result.order?.status}</p>
           <p className="text-slate-600">{result.message}</p>
           <p className="font-bold">Total NPR {result.order?.total_npr}</p>
+          {form.payment_method === "external" && (
+            <p className="text-sm text-slate-600">Payment will be completed securely through the partner.</p>
+          )}
           {(result.external_links || []).length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-bold">Continue on partner sites:</p>
@@ -68,7 +76,10 @@ export default function Checkout() {
               ))}
             </div>
           )}
-          <Link to="/packages" className="btn-primary inline-flex">Add more offers</Link>
+          <div className="flex flex-wrap gap-2">
+            {reference && <Link to={`/trip/${reference}`} className="btn-primary inline-flex">Track this request</Link>}
+            <Link to="/packages" className="btn-outline inline-flex">Add more offers</Link>
+          </div>
         </div>
       ) : (
         <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">
@@ -106,15 +117,15 @@ export default function Checkout() {
               <legend className="font-bold text-slate-900">How do you want to proceed?</legend>
               <label className="flex gap-2 items-start">
                 <input type="radio" name="pay" checked={form.payment_method === "request"} onChange={() => setForm({ ...form, payment_method: "request" })} />
-                <span>Request to book — pay later with the operator. No card details on this site.</span>
+                <span>Request to book — pay later with the operator. No payment is being processed on Nepal Tourism at this stage.</span>
               </label>
               <label className="flex gap-2 items-start">
                 <input type="radio" name="pay" checked={form.payment_method === "external"} onChange={() => setForm({ ...form, payment_method: "external" })} />
-                <span>Continue on the partner HTTPS website if they provided one.</span>
+                <span>Payment will be completed securely through the partner (HTTPS site only).</span>
               </label>
             </fieldset>
             <p className="text-xs text-slate-500">Do not enter card numbers, CVV or PAN here. Those fields are rejected on purpose.</p>
-            <button type="submit" disabled={busy || !items.length} className="btn-primary w-full">{busy ? "Sending…" : "Submit trip request"}</button>
+            <button type="submit" disabled={busy || !items.length} className="btn-primary w-full">{busy ? "Sending…" : "Request booking"}</button>
           </form>
         </div>
       )}

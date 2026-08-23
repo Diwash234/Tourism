@@ -67,6 +67,7 @@ export const ADMIN_NAV_GROUPS = [
   ]},
   { label: "Safety & Emergency", items: [
     ["emergencies", "Medical SOS", BsExclamationTriangle],
+    ["emergency_directory", "Emergency directory", BsHospital],
     ["infrastructure", "Community Services, Photos & ML", BsHospital],
     ["risks", "Safety & Hazard ML", BsShieldLock],
     ["safety_management", "Alerts & Safety", BsGeoAlt],
