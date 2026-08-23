@@ -348,7 +348,7 @@ const DestinationCard = ({
           {
           budget_estimate != null
           ?
-          `$${budget_estimate}`
+          `Recorded NPR ${budget_estimate}`
           :
           entry_fee
           ?

@@ -12,8 +12,6 @@ import adminApi from "../../api/adminApi"
 import adminPanelApi from "../../api/adminPanelApi"
 import destinationApi from "../../api/destinationApi"
 import Loader from "../../components/common/Loader"
-import LineChartCard from "../../components/charts/LineChartCard"
-import BarChartCard from "../../components/charts/BarChartCard"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
@@ -113,7 +111,8 @@ const AdminDashboard = () => {
   const [isRunningBatch, setIsRunningBatch] = useState(false)
 
   // Multi-Source Image Acquisition Pipeline state
-  const [pipelineDestSlug, setPipelineDestSlug] = useState("phewa-lake-tal-barahi")
+  const [pipelineDestSlug, setPipelineDestSlug] = useState("")
+  const [pipelineDests, setPipelineDests] = useState([])
   const [pipelineImages, setPipelineImages] = useState([])
   const [pipelineLoading, setPipelineLoading] = useState(false)
   const [pipelineDestId, setPipelineDestId] = useState(null)
@@ -427,9 +426,24 @@ const AdminDashboard = () => {
   }, [])
 
   useEffect(() => {
-    if (activeTab === "image_pipeline") {
-      loadPipelineImages()
-    }
+    if (activeTab !== "image_pipeline") return
+    destinationApi.getDestinations({ featured: true, page_size: 8, limit: 8 })
+      .then(({ data }) => {
+        const list = data.results || data || []
+        const dests = Array.isArray(list) ? list.filter((row) => row?.name) : []
+        setPipelineDests(dests)
+        if (!pipelineDestSlug && dests[0]?.slug) {
+          setPipelineDestSlug(dests[0].slug)
+          setPipelineDestId(dests[0].id || null)
+          loadPipelineImages(dests[0].slug, dests[0].id)
+        } else {
+          loadPipelineImages()
+        }
+      })
+      .catch(() => {
+        setPipelineDests([])
+        loadPipelineImages()
+      })
   }, [activeTab])
 
   // User Actions
@@ -654,9 +668,9 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <p className="text-xs text-slate-300 uppercase font-medium">Total Data Views</p>
-                  <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? 7145}</p>
+                  <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? "—"}</p>
                   <span className="text-[11px] text-slate-300 font-medium">
-                    {stats?.totalVisitsLogged ?? 128} Visits Tracked
+                    {stats?.totalVisitsLogged != null ? `${stats.totalVisitsLogged} visits tracked` : "Visits not recorded"}
                   </span>
                 </div>
               </div>
@@ -713,21 +727,11 @@ const AdminDashboard = () => {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-2xl shadow-xl">
-                <LineChartCard
-                  title="Monthly Nepal Visitors & Views"
-                  labels={["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"]}
-                  data={[420, 890, 1150, 780, 620, 940]}
-                  label="Travelers"
-                />
+              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-2xl shadow-xl text-slate-300 text-sm">
+                Monthly visitor charts are not stored in this database. Open Reports for recorded counts.
               </div>
-              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-2xl shadow-xl">
-                <BarChartCard
-                  title="Destinations by Province / Category"
-                  labels={["Kathmandu", "Gandaki", "Koshi", "Lumbini", "Karnali", "Madhesh"]}
-                  data={[18, 14, 9, 8, 5, 4]}
-                  label="Destinations"
-                />
+              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-2xl shadow-xl text-slate-300 text-sm">
+                Province destination totals are not pre-invented here. Use Database Explorer or Reports for live records.
               </div>
             </div>
           </motion.div>
@@ -858,11 +862,11 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <span className="text-slate-300 font-bold">Elevation (m)</span>
-                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "1,400m"}</p>
+                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "Not recorded"}</p>
                       </div>
                       <div>
                         <span className="text-slate-300 font-bold">Distance from KTM</span>
-                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km || 204.5} km</p>
+                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km != null ? `${researchResult.destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
                       </div>
                     </div>
 
@@ -937,7 +941,7 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
                   <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Production Places</p>
-                  <p className="text-2xl font-black text-white mt-1">{discoveryStats?.total_destinations?.toLocaleString() || "6,414"}</p>
+                  <p className="text-2xl font-black text-white mt-1">{discoveryStats?.total_destinations != null ? discoveryStats.total_destinations.toLocaleString() : "—"}</p>
                   <p className="text-[10px] text-emerald-400 mt-0.5">✓ 100% Live in Catalog</p>
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
@@ -947,7 +951,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
                   <p className="text-[11px] font-bold text-rose-300 uppercase tracking-wider">Duplicates Caught</p>
-                  <p className="text-2xl font-black text-rose-400 mt-1">{discoveryStats?.duplicates_caught?.toLocaleString() || "2,381"}</p>
+                  <p className="text-2xl font-black text-rose-400 mt-1">{discoveryStats?.duplicates_caught != null ? discoveryStats.duplicates_caught.toLocaleString() : "—"}</p>
                   <p className="text-[10px] text-slate-300 mt-0.5">Spatial & phonetic match</p>
                 </div>
                 <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
@@ -1603,22 +1607,13 @@ const AdminDashboard = () => {
               {/* Destination Selector Pills */}
               <div className="pt-2 border-t border-slate-800/60 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold text-amber-300">Target Destination:</span>
-                {[
-                  { label: "Pokhara & Phewa Lake", slug: "phewa-lake-tal-barahi" },
-                  { label: "Everest Base Camp", slug: "everest-base-camp-ebc" },
-                  { label: "Ruru Kshetra / Ridi", slug: "ruru" },
-                  { label: "Tinjure Rhododendron", slug: "tinjure" },
-                  { label: "Myanglung Village", slug: "myanglung" },
-                  { label: "Milke Danda Ridge", slug: "milke" },
-                  { label: "Devi's Fall Pokhara", slug: "devis" },
-                  { label: "Nagarkot Sunrise", slug: "nagarkot-himalayan-sunrise-viewpoint" },
-                ].map((p, idx) => (
+                {pipelineDests.map((p) => (
                   <button
-                    key={idx}
+                    key={p.slug || p.id}
                     onClick={() => {
                       setPipelineDestSlug(p.slug)
-                      setPipelineDestId(null)
-                      loadPipelineImages(p.slug)
+                      setPipelineDestId(p.id || null)
+                      loadPipelineImages(p.slug, p.id)
                     }}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       pipelineDestSlug === p.slug
@@ -1626,7 +1621,7 @@ const AdminDashboard = () => {
                         : "bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-slate-600/50"
                     }`}
                   >
-                    {p.label}
+                    {p.name}
                   </button>
                 ))}
               </div>
@@ -1831,7 +1826,7 @@ const AdminDashboard = () => {
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.onerror = null
-                          e.target.src = "/images/destinations/patan/durbar-square.jpg"
+                          e.target.removeAttribute("src")
                         }}
                       />
                       <div className="absolute top-2 left-2">
@@ -2139,7 +2134,7 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-900/80 border border-slate-600/50 text-xs">
                 <div>
                   <span className="text-slate-300">Province</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Gandaki"}</p>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Not recorded"}</p>
                 </div>
                 <div>
                   <span className="text-slate-300">District / City</span>
@@ -2502,6 +2497,21 @@ const AdminDashboard = () => {
                   <button
                     type="submit"
                     className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                  >
+                    Feed into ML Engine
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+export default AdminDashboard
+ hover:bg-amber-500 text-gray-950 text-xs font-bold shadow-lg shadow-amber-400/20"
                   >
                     Feed into ML Engine
                   </button>

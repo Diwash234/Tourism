@@ -39,10 +39,6 @@ const PROVINCES = [
   { name: "Sudurpashchim", city: "Dhangadhi / Khaptad", code: "sudurpashchim" },
 ]
 
-const QUICK_SEARCH_PILLS = [
-  "Pokhara", "Everest Base Camp", "Annapurna Sanctuary", "Chitwan Safari", "Lumbini", "Mustang", "Rara Lake", "Nagarkot"
-]
-
 const FEATURES = [
   {
     icon: FiMapPin,
@@ -114,7 +110,7 @@ export default function Landing() {
 
   useEffect(() => {
     destinationApi
-      .getAll({ limit: 6, featured: true })
+      .getAll({ limit: 8, featured: true })
       .then(({ data }) => {
         setDestinations(data.results || data || [])
       })
@@ -169,15 +165,18 @@ export default function Landing() {
             {/* Quick search pills */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
               <span className="text-[11px] font-bold text-amber-200">{t("home.popular")}</span>
-              {QUICK_SEARCH_PILLS.map((pill, i) => (
+              {destinations.slice(0, 8).map((dest) => (
                 <button
-                  key={i}
-                  onClick={() => navigate(`/destinations?q=${encodeURIComponent(pill)}`)}
+                  key={dest.slug || dest.id}
+                  onClick={() => navigate(dest.slug ? `/destinations/${dest.slug}` : `/destinations?q=${encodeURIComponent(dest.name)}`)}
                   className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur transition-all border border-white/10"
                 >
-                  {pill}
+                  {dest.name}
                 </button>
               ))}
+              {!destinations.length && !loading && (
+                <span className="text-[11px] text-amber-100/80">No recorded featured destinations yet.</span>
+              )}
             </div>
           </FadeIn>
 

@@ -11,56 +11,7 @@ import LocalExperienceCard from "../cards/LocalExperienceCard"
 import ShimmerBadge from "../ui/ShimmerBadge"
 import BorderBeamCard from "../ui/BorderBeamCard"
 
-const TREK_PROFILES = [
-  {
-    id: "ebc",
-    name: "Everest Base Camp Trek",
-    maxAlt: "5,545m (Kala Patthar)",
-    days: "12-14 Days",
-    difficulty: "Challenging",
-    route: [
-      { stop: "Lukla", alt: 2800 },
-      { stop: "Phakding", alt: 2610 },
-      { stop: "Namche Bazaar (Acclimatize)", alt: 3440, highlight: "Sherpa Capital" },
-      { stop: "Tengboche", alt: 3860, highlight: "Famous Gompa" },
-      { stop: "Dingboche (Acclimatize)", alt: 4410 },
-      { stop: "Lobuche", alt: 4940 },
-      { stop: "Gorak Shep / EBC", alt: 5364, highlight: "Base Camp" },
-      { stop: "Kala Patthar", alt: 5545, highlight: "Summit View" },
-    ]
-  },
-  {
-    id: "abc",
-    name: "Annapurna Sanctuary (ABC)",
-    maxAlt: "4,130m (Annapurna Base Camp)",
-    days: "7-10 Days",
-    difficulty: "Moderate",
-    route: [
-      { stop: "Nayapul", alt: 1070 },
-      { stop: "Tikhedhunga", alt: 1540 },
-      { stop: "Ghorepani (Poon Hill)", alt: 2860, highlight: "Sunrise View" },
-      { stop: "Chhomrong", alt: 2170 },
-      { stop: "Dovan", alt: 2600 },
-      { stop: "Deurali", alt: 3200 },
-      { stop: "Machhapuchhre BC", alt: 3700 },
-      { stop: "Annapurna Base Camp", alt: 4130, highlight: "360° Amphitheater" },
-    ]
-  },
-  {
-    id: "langtang",
-    name: "Langtang Valley & Kyanjin",
-    maxAlt: "4,773m (Kyanjin Ri)",
-    days: "6-8 Days",
-    difficulty: "Moderate",
-    route: [
-      { stop: "Syabrubesi", alt: 1460 },
-      { stop: "Lama Hotel", alt: 2470 },
-      { stop: "Langtang Village", alt: 3430 },
-      { stop: "Kyanjin Gompa", alt: 3870, highlight: "Yak Cheese Factory" },
-      { stop: "Kyanjin Ri Summit", alt: 4773, highlight: "Glacial Vistas" },
-    ]
-  }
-]
+
 
 const AUTHENTIC_FOODS = [
   {
@@ -98,9 +49,31 @@ const AUTHENTIC_FOODS = [
 ]
 
 const NepalExperienceSection = () => {
-  const [activeTrek, setActiveTrek] = useState("ebc")
-  const [activeTab, setActiveTab] = useState("trekking") // 'trekking' | 'cuisine'
-  const selectedTrek = TREK_PROFILES.find((t) => t.id === activeTrek) || TREK_PROFILES[0]
+  const [recordedTreks, setRecordedTreks] = useState([])
+  const [activeTrek, setActiveTrek] = useState(null)
+  const [activeTab, setActiveTab] = useState("trekking")
+  const selectedTrek = recordedTreks.find((t) => t.slug === activeTrek) || recordedTreks[0]
+
+  useEffect(() => {
+    destinationApi.moodRecommendations({ mood: "trekking", days: 10, limit: 6 })
+      .then(({ data }) => {
+        const rows = data.results || []
+        const list = (Array.isArray(rows) ? rows : []).filter((row) => row?.name)
+        if (list.length) {
+          setRecordedTreks(list)
+          setActiveTrek(list[0].slug)
+          return
+        }
+        return destinationApi.getDestinations({ featured: true, page_size: 6, limit: 6 })
+          .then(({ data: fallback }) => {
+            const dests = fallback.results || fallback || []
+            const recorded = (Array.isArray(dests) ? dests : []).filter((row) => row?.name)
+            setRecordedTreks(recorded)
+            if (recorded[0]?.slug) setActiveTrek(recorded[0].slug)
+          })
+      })
+      .catch(() => setRecordedTreks([]))
+  }, [])
 
   return (
     <section className="space-y-8">
@@ -148,12 +121,12 @@ const NepalExperienceSection = () => {
         >
           {/* Trek Selector Buttons */}
           <div className="flex flex-wrap gap-2">
-            {TREK_PROFILES.map((t) => (
+            {recordedTreks.map((t) => (
               <button
-                key={t.id}
-                onClick={() => setActiveTrek(t.id)}
+                key={t.slug || t.id}
+                onClick={() => setActiveTrek(t.slug)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTrek === t.id
+                  activeTrek === t.slug
                     ? "bg-amber-400 text-gray-950 shadow-md font-black"
                     : "bg-slate-50 text-gray-700 hover:bg-purple-50 border border-slate-200"
                 }`}
@@ -161,76 +134,38 @@ const NepalExperienceSection = () => {
                 {t.name}
               </button>
             ))}
+            {!recordedTreks.length && (
+              <p className="text-xs text-slate-500">No recorded trek destinations are available yet.</p>
+            )}
           </div>
 
-          {/* Selected Trek Elevation Bar Visualization */}
+          {selectedTrek && (
           <div className="bg-gradient-to-br from-purple-950 via-slate-900 to-purple-900 text-white p-6 rounded-3xl space-y-6 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-800/60 pb-3">
               <div>
                 <h3 className="font-extrabold text-xl text-amber-300">{selectedTrek.name}</h3>
                 <p className="text-xs text-purple-200">
-                  Duration: <b>{selectedTrek.days}</b> · Difficulty: <b>{selectedTrek.difficulty}</b> · Peak: <b>{selectedTrek.maxAlt}</b>
+                  Duration: <b>{selectedTrek.recommended_days ? `${selectedTrek.recommended_days} days` : "Not recorded"}</b>
+                  {" · "}Difficulty: <b>{selectedTrek.difficulty || "Not recorded"}</b>
+                  {" · "}Altitude: <b>{selectedTrek.altitude || "Not recorded"}</b>
                 </p>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-rose-500/30 border border-rose-400 text-rose-200 text-xs font-bold flex items-center gap-1">
-                <FiShield size={12} /> High Altitude Care (&gt;3,500m)
-              </span>
-            </div>
-
-            {/* Interactive Elevation Bar Chart */}
-            <div className="space-y-3">
-              <p className="text-[11px] font-bold text-purple-300 uppercase tracking-wider">
-                Elevation Progression by Waypoint (Meters Above Sea Level)
-              </p>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 pt-2">
-                {selectedTrek.route.map((r, i) => {
-                  const heightPct = Math.min(100, Math.max(20, (r.alt / 5600) * 100))
-                  const isHighAlt = r.alt >= 3500
-                  return (
-                    <div key={i} className="flex flex-col items-center justify-end text-center space-y-2">
-                      <span className="text-[11px] font-mono font-bold text-amber-300">
-                        {r.alt.toLocaleString()}m
-                      </span>
-
-                      {/* Bar */}
-                      <div className="w-full bg-purple-900/60 rounded-xl h-36 flex items-end p-1 relative group">
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${heightPct}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.05 }}
-                          className={`w-full rounded-lg ${
-                            isHighAlt
-                              ? "bg-gradient-to-t from-amber-500 to-rose-500 shadow-md shadow-rose-500/30"
-                              : "bg-gradient-to-t from-emerald-500 to-cyan-400"
-                          }`}
-                        />
-                        {r.highlight && (
-                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-bold text-amber-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                            {r.highlight}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="min-h-[32px]">
-                        <p className="font-bold text-[11px] text-white leading-tight">{r.stop}</p>
-                      </div>
-                    </div>
-                  )
-                })}
+                <p className="text-xs text-purple-300 mt-1">{selectedTrek.city || selectedTrek.district || "City not recorded"}{selectedTrek.province ? `, ${selectedTrek.province}` : ""}</p>
               </div>
             </div>
-
+            <p className="text-sm text-purple-100">{selectedTrek.short_description || selectedTrek.why_recommended?.[0] || "Recorded destination. Turn-by-turn elevation waypoints are not stored."}</p>
             <div className="flex flex-col sm:flex-row justify-between items-center text-xs text-purple-200 border-t border-purple-800/40 pt-3 gap-2">
-              <p>💡 <i>Acclimatization Rule:</i> Rest every 1,000m gained above 3,000m and drink 4+ liters of water daily.</p>
-              <Link
-                to="/compare"
-                className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs inline-flex items-center gap-1 shadow"
-              >
-                Compare with Other Treks ➔
-              </Link>
+              <p>Only recorded altitude and trip length are shown. Invented waypoint charts were removed.</p>
+              {selectedTrek.slug && (
+                <Link
+                  to={`/destinations/${selectedTrek.slug}`}
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs inline-flex items-center gap-1 shadow"
+                >
+                  Open destination ➔
+                </Link>
+              )}
             </div>
           </div>
+          )}
         </motion.div>
       )}
 

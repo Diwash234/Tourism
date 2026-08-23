@@ -199,7 +199,7 @@ export default function Recommendation() {
                     <span>👮 {item.safety_context?.nearest_police ? `${item.safety_context.nearest_police.distance_km} km` : "Unavailable"}</span>
                     <span className="col-span-2">🛣️ {item.safety_context?.route_condition || "No verified route condition"}</span>
                   </div>
-                  <p className="text-[10px] text-gray-400">Source: {item.data_source || "Database"} · Best: {item.recommended_season}</p>
+                  <p className="text-[10px] text-gray-400">Source: {item.data_source || "Database"} · Best: {item.recommended_season || "Not recorded"}</p>
                 </div>
                 <div className="p-5 pt-0 grid grid-cols-2 gap-2">
                   <Link to={`/destinations/${item.slug}`} onClick={() => trackSelection(item)} className="rounded-xl py-2.5 text-center text-white text-xs font-bold" style={{ background: GREEN }}>Explore <FiArrowRight className="inline" /></Link>
