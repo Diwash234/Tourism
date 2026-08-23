@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import MapView from "../components/map/MapView"
 import MapillaryImages from "../components/map/MapillaryImages"
@@ -10,7 +11,10 @@ import {
   FiLayers, FiVolume2, FiAlertCircle
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
+import emergencyApi from "../api/emergencyApi"
+import nearbyApi from "../api/nearbyApi"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
+import { formatCoords, hasValidCoords } from "../utils/placeUtils"
 
 const ROUTE_TYPES = [
   { id: "fastest", label: "⚡ Fastest Highway", icon: FiZap, available: true },
@@ -37,87 +41,11 @@ const QUICK_LOCAL_DESTINATIONS = [
   { label: "📍 ➔ Patale Chhango (Devi's Fall)", dest: "Devi's Fall, Pokhara", coords: { lat: 28.1900, lng: 83.9580 } },
 ]
 
-// ---------------------------------------------------------------------------
-// NATIONWIDE AMENITIES DIRECTORY — all 7 provinces (hospitals, police,
-// stores, ATMs) so navigation works outside Pokhara/Kathmandu too
-// (Karnali, Sudurpashchim, Koshi, Madhesh, Lumbini, Gandaki, Bagmati).
-// Real facilities with coordinates; nearest ones to the user's GPS are
-// picked and shown with distance + compass bearing.
-// ---------------------------------------------------------------------------
-const NATIONAL_AMENITIES = [
-  // --- Koshi ---
-  { name: "Koshi Hospital", address: "Biratnagar, Morang", type: "hospitals", phone: "+977-21-522644", lat: 26.455, lng: 87.279 },
-  { name: "BP Koirala Institute of Health Sciences", address: "Dharan, Sunsari", type: "hospitals", phone: "+977-25-525555", lat: 26.822, lng: 87.282 },
-  { name: "Mechi Zonal Hospital", address: "Bhadrapur, Jhapa", type: "hospitals", phone: "+977-23-520133", lat: 26.542, lng: 88.094 },
-  { name: "Birtamod Municipal Hospital", address: "Birtamod, Jhapa", type: "hospitals", phone: "+977-23-540199", lat: 26.629, lng: 87.993 },
-  { name: "Ilam District Hospital", address: "Ilam Bazaar", type: "hospitals", phone: "+977-27-520133", lat: 26.911, lng: 87.928 },
-  { name: "Taplejung District Hospital", address: "Phungling", type: "hospitals", phone: "+977-24-460044", lat: 27.352, lng: 87.669 },
-  { name: "Koshi Police HQ", address: "Biratnagar", type: "police", phone: "100", lat: 26.455, lng: 87.279 },
-  { name: "Dharan Police Station", address: "Dharan-15", type: "police", phone: "100", lat: 26.822, lng: 87.282 },
-  { name: "Ilam Bazaar Market", address: "Ilam Bazaar", type: "stores", phone: "", lat: 26.911, lng: 87.928 },
-  { name: "Biratnagar Chowk Bazaar", address: "Biratnagar", type: "stores", phone: "", lat: 26.455, lng: 87.279 },
-  { name: "Nabil Bank Biratnagar", address: "Biratnagar", type: "atms", phone: "", lat: 26.455, lng: 87.279 },
-  { name: "Nepal Bank Dharan Branch", address: "Dharan", type: "atms", phone: "", lat: 26.822, lng: 87.282 },
-  // --- Madhesh ---
-  { name: "Narayani Hospital", address: "Birgunj, Parsa", type: "hospitals", phone: "+977-51-522133", lat: 27.010, lng: 84.869 },
-  { name: "Janakpur Zonal Hospital", address: "Janakpur, Dhanusha", type: "hospitals", phone: "+977-41-520133", lat: 26.728, lng: 85.925 },
-  { name: "Gajendra Narayan Singh Hospital", address: "Rajbiraj, Saptari", type: "hospitals", phone: "+977-31-520133", lat: 26.539, lng: 86.748 },
-  { name: "Malangwa Hospital", address: "Malangwa, Sarlahi", type: "hospitals", phone: "+977-46-520133", lat: 26.857, lng: 85.560 },
-  { name: "Madhesh Police HQ", address: "Janakpur", type: "police", phone: "100", lat: 26.728, lng: 85.925 },
-  { name: "Birgunj Police Station", address: "Birgunj", type: "police", phone: "100", lat: 27.010, lng: 84.869 },
-  { name: "Janakpur Bazaar", address: "Janakpur", type: "stores", phone: "", lat: 26.728, lng: 85.925 },
-  { name: "Global IME Bank Birgunj", address: "Birgunj", type: "atms", phone: "", lat: 27.010, lng: 84.869 },
-  // --- Bagmati ---
-  { name: "Bir Hospital", address: "Kanti Path, Kathmandu", type: "hospitals", phone: "+977-1-4221988", lat: 27.704, lng: 85.317 },
-  { name: "Tribhuvan University Teaching Hospital", address: "Maharajgunj, Kathmandu", type: "hospitals", phone: "+977-1-4412303", lat: 27.722, lng: 85.320 },
-  { name: "Patan Hospital", address: "Lagankhel, Lalitpur", type: "hospitals", phone: "+977-1-5522295", lat: 27.663, lng: 85.325 },
-  { name: "Kathmandu Medical College", address: "Sinamangal, Kathmandu", type: "hospitals", phone: "+977-1-4469064", lat: 27.697, lng: 85.353 },
-  { name: "Hetauda Hospital", address: "Hetauda, Makwanpur", type: "hospitals", phone: "+977-57-520133", lat: 27.428, lng: 85.032 },
-  { name: "Dhulikhel Hospital", address: "Dhulikhel, Kavre", type: "hospitals", phone: "+977-11-490497", lat: 27.622, lng: 85.547 },
-  { name: "Nepal Police HQ", address: "Naxal, Kathmandu", type: "police", phone: "100", lat: 27.716, lng: 85.325 },
-  { name: "Tourist Police Kathmandu", address: "Bhrikutimandap", type: "police", phone: "1144", lat: 27.700, lng: 85.319 },
-  { name: "Asan Bazaar", address: "Kathmandu", type: "stores", phone: "", lat: 27.706, lng: 85.310 },
-  { name: "Nepal Bank Head Office", address: "Dharmapath, Kathmandu", type: "atms", phone: "", lat: 27.705, lng: 85.316 },
-  // --- Gandaki ---
-  { name: "Gandaki Medical College", address: "Prithivi Chowk, Pokhara", type: "hospitals", phone: "+977-61-540566", lat: 28.202, lng: 83.973 },
-  { name: "Manipal Teaching Hospital", address: "Phulbari, Pokhara", type: "hospitals", phone: "+977-61-526416", lat: 28.222, lng: 83.986 },
-  { name: "Western Regional Hospital", address: "Ramghat, Pokhara", type: "hospitals", phone: "+977-61-520067", lat: 28.197, lng: 83.973 },
-  { name: "Dhaulagiri Zonal Hospital", address: "Baglung Bazaar", type: "hospitals", phone: "+977-68-520133", lat: 28.267, lng: 83.590 },
-  { name: "Gandaki Police HQ", address: "Pokhara", type: "police", phone: "100", lat: 28.210, lng: 83.985 },
-  { name: "Tourist Police Lakeside", address: "Baidam, Pokhara", type: "police", phone: "1144", lat: 28.210, lng: 83.955 },
-  { name: "Lakeside Market", address: "Baidam, Pokhara", type: "stores", phone: "", lat: 28.209, lng: 83.958 },
-  { name: "Mahendrapul Bazaar", address: "Pokhara", type: "stores", phone: "", lat: 28.215, lng: 83.972 },
-  { name: "Nabil Bank Lakeside", address: "Pokhara", type: "atms", phone: "", lat: 28.209, lng: 83.958 },
-  // --- Lumbini ---
-  { name: "Lumbini Provincial Hospital", address: "Butwal, Rupandehi", type: "hospitals", phone: "+977-71-540188", lat: 27.705, lng: 83.460 },
-  { name: "Bheri Zonal Hospital", address: "Nepalgunj, Banke", type: "hospitals", phone: "+977-81-520133", lat: 28.053, lng: 81.616 },
-  { name: "Bharatpur Hospital", address: "Bharatpur, Chitwan", type: "hospitals", phone: "+977-56-520111", lat: 27.680, lng: 84.433 },
-  { name: "Lumbini Police HQ", address: "Butwal", type: "police", phone: "100", lat: 27.705, lng: 83.460 },
-  { name: "Nepalgunj Bazaar", address: "Nepalgunj", type: "stores", phone: "", lat: 28.053, lng: 81.616 },
-  { name: "Lumbini Peace Market", address: "Lumbini", type: "stores", phone: "", lat: 27.484, lng: 83.276 },
-  { name: "Siddhartha Bank Butwal", address: "Butwal", type: "atms", phone: "", lat: 27.705, lng: 83.460 },
-  // --- Karnali ---
-  { name: "Karnali Provincial Hospital", address: "Birendranagar, Surkhet", type: "hospitals", phone: "+977-83-520200", lat: 28.600, lng: 81.633 },
-  { name: "Jumla District Hospital", address: "Jumla Bazaar", type: "hospitals", phone: "+977-87-520133", lat: 29.275, lng: 82.183 },
-  { name: "Mugu District Hospital", address: "Gamgadhi, Mugu", type: "hospitals", phone: "+977-87-540133", lat: 29.614, lng: 82.145 },
-  { name: "Humla District Hospital", address: "Simikot, Humla", type: "hospitals", phone: "+977-87-680133", lat: 29.971, lng: 81.819 },
-  { name: "Dolpa District Hospital", address: "Dunai, Dolpa", type: "hospitals", phone: "+977-87-720133", lat: 28.950, lng: 82.900 },
-  { name: "Karnali Police HQ", address: "Birendranagar, Surkhet", type: "police", phone: "100", lat: 28.600, lng: 81.633 },
-  { name: "Jumla Police Station", address: "Jumla Bazaar", type: "police", phone: "100", lat: 29.275, lng: 82.183 },
-  { name: "Birendranagar Market", address: "Surkhet", type: "stores", phone: "", lat: 28.600, lng: 81.633 },
-  { name: "Nepal Bank Jumla", address: "Jumla Bazaar", type: "atms", phone: "", lat: 29.275, lng: 82.183 },
-  // --- Sudurpashchim ---
-  { name: "Seti Provincial Hospital", address: "Dhangadhi, Kailali", type: "hospitals", phone: "+977-91-520133", lat: 28.700, lng: 80.590 },
-  { name: "Mahakali Zonal Hospital", address: "Mahendranagar, Kanchanpur", type: "hospitals", phone: "+977-99-520133", lat: 28.970, lng: 80.177 },
-  { name: "Doti District Hospital", address: "Dipayal Silgadhi", type: "hospitals", phone: "+977-94-520133", lat: 29.261, lng: 80.940 },
-  { name: "Baitadi District Hospital", address: "Dasharathchand", type: "hospitals", phone: "+977-95-520133", lat: 29.517, lng: 80.433 },
-  { name: "Achham District Hospital", address: "Mangalsen", type: "hospitals", phone: "+977-97-520133", lat: 29.140, lng: 81.230 },
-  { name: "Bajura District Hospital", address: "Martadi", type: "hospitals", phone: "+977-97-540133", lat: 29.450, lng: 81.480 },
-  { name: "Sudurpashchim Police HQ", address: "Godawari, Kailali", type: "police", phone: "100", lat: 28.900, lng: 80.583 },
-  { name: "Mahendranagar Police", address: "Bhimdatta, Kanchanpur", type: "police", phone: "100", lat: 28.970, lng: 80.177 },
-  { name: "Dhangadhi Bazaar", address: "Kailali", type: "stores", phone: "", lat: 28.700, lng: 80.590 },
-  { name: "Mahendranagar Market", address: "Bhimdatta", type: "stores", phone: "", lat: 28.970, lng: 80.177 },
-  { name: "Nepal Bank Dhangadhi", address: "Dhangadhi", type: "atms", phone: "", lat: 28.700, lng: 80.590 },
+const AMENITY_TABS = [
+  { id: "hospitals", label: "Hospitals / Medical" },
+  { id: "police", label: "Police" },
+  { id: "stores", label: "Recorded services" },
+  { id: "atms", label: "Banks & ATMs" },
 ]
 
 // Haversine distance (km) between two coordinates.
@@ -149,24 +77,22 @@ const compassArrow = (dir) => {
   return "➔"
 }
 
-const getNearbyAmenities = (lat, lng, type) => {
-  const pool = NATIONAL_AMENITIES.filter((a) => a.type === type)
-  const scored = pool
-    .map((a) => {
-      const km = haversineKm(lat, lng, a.lat, a.lng)
-      return { ...a, km, bearing: compassBearing(lat, lng, a.lat, a.lng) }
-    })
-    .sort((a, b) => a.km - b.km)
-    .slice(0, 4)
-  return scored.map((a) => ({
-    id: `${type}-${a.name.replace(/\s+/g, "-").toLowerCase()}`,
-    name: a.name,
-    address: a.address,
-    distance: a.km < 0.1 ? "Here" : `${a.km.toFixed(1)} km`,
-    bearing: `${a.bearing} ${compassArrow(a.bearing)}`,
-    coords: { lat: a.lat, lng: a.lng },
-    phone: a.phone,
-  }))
+const toAmenityCard = (row, origin) => {
+  const lat = Number(row.latitude)
+  const lng = Number(row.longitude)
+  const km = hasValidCoords(origin?.lat, origin?.lng) && hasValidCoords(lat, lng)
+    ? haversineKm(origin.lat, origin.lng, lat, lng)
+    : null
+  const bearing = km != null ? compassBearing(origin.lat, origin.lng, lat, lng) : ""
+  return {
+    id: row.id || `${row.type}-${row.name}`,
+    name: row.name,
+    address: row.address || row.district || "Address not recorded",
+    distance: km == null ? "Distance unknown" : km < 0.1 ? "Here" : `${km.toFixed(1)} km`,
+    bearing: bearing ? `${bearing} ${compassArrow(bearing)}` : "Not recorded",
+    coords: hasValidCoords(lat, lng) ? { lat, lng } : null,
+    phone: row.phone_number || row.phone || "",
+  }
 }
 
 const TURN_ICONS = {
@@ -181,26 +107,27 @@ const TURN_ICONS = {
 
 export default function Navigation() {
   const { position } = useGeolocation()
+  const [searchParams] = useSearchParams()
+  const requestedDest = searchParams.get("dest") || searchParams.get("destination") || ""
 
-  const [destinationQuery, setDestinationQuery] = useState("Pokhara")
+  const [destinationQuery, setDestinationQuery] = useState(requestedDest || "")
   const [destination, setDestination] = useState(null)
   const [route, setRoute] = useState([])
   const [routeType, setRouteType] = useState("fastest")
-  const [distance, setDistance] = useState(204.5)
-  const [durationMin, setDurationMin] = useState(330)
+  const [distance, setDistance] = useState(null)
+  const [durationMin, setDurationMin] = useState(null)
   const [steps, setSteps] = useState([])
   const [note, setNote] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [emergencyDir, setEmergencyDir] = useState(null)
+  const [nearbyDests, setNearbyDests] = useState([])
 
   // Game HUD state
   const [gameMode, setGameMode] = useState(true)
-  const [speedKmh, setSpeedKmh] = useState(58)
-  const [compassBearing, setCompassBearing] = useState("285° WNW")
-  const [altitudeM, setAltitudeM] = useState(1400)
   const [currentStepIdx, setCurrentStepIdx] = useState(0)
   const [satelliteView, setSatelliteView] = useState(false)
-  const [amenityTab, setAmenityTab] = useState("hotels")
+  const [amenityTab, setAmenityTab] = useState("hospitals")
 
   // Dynamic place-specific navigation generator
   const getDynamicNepalSteps = (name, userLat, userLng) => {
@@ -360,55 +287,80 @@ export default function Navigation() {
     setLoading(true)
     setError("")
 
-    const userLat = position?.lat || 27.7172
-    const userLng = position?.lng || 85.3240
+    if (!position?.lat || !position?.lng) {
+      setError("Enable GPS so the route can start from your recorded location.")
+      setLoading(false)
+      return
+    }
 
     try {
       const payload = {
-        start_latitude: userLat,
-        start_longitude: userLng,
+        start_latitude: position.lat,
+        start_longitude: position.lng,
         destination_name: destName,
         route_type: routeType,
       }
 
       const response = await navigationApi.getRoute(payload)
       const dest = response.data.destination || null
+      const recordedSteps = Array.isArray(response.data.steps) ? response.data.steps : []
 
       setDestination(dest)
       setRoute(response.data.route || [])
-      const dynamicSteps = getDynamicNepalSteps(destName, userLat, userLng)
-      setSteps(response.data.steps && response.data.steps.length > 2 ? response.data.steps : dynamicSteps)
-      setDurationMin(response.data.duration_min || Math.round((response.data.distance_km || 150) * 1.6))
-      setDistance(response.data.distance_km || 150)
-      setNote(response.data.note || null)
+      setSteps(recordedSteps)
+      setDurationMin(response.data.duration_min ?? null)
+      setDistance(response.data.distance_km ?? null)
+      setNote(response.data.note || (recordedSteps.length ? null : "Turn-by-turn steps are not recorded for this route. The map uses stored destination coordinates."))
       setCurrentStepIdx(0)
     } catch (err) {
-      console.warn("Using smart fallback route:", err)
-      const dynamicSteps = getDynamicNepalSteps(destName, userLat, userLng)
-      const totalKm = dynamicSteps.reduce((sum, s) => sum + s.distance_km, 0)
-      setDistance(totalKm)
-      setDurationMin(Math.round(totalKm * 1.8))
-      setSteps(dynamicSteps)
-      setDestination({
-        name: destName,
-        latitude: userLat + 0.5,
-        longitude: userLng - 0.8,
-        city: destName,
-      })
+      setRoute([])
+      setSteps([])
+      setDistance(null)
+      setDurationMin(null)
+      setDestination(null)
+      setError(err.response?.data?.detail || "Route unavailable for this recorded place.")
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    handleGetRoute("Pokhara")
-  }, [])
+    if (requestedDest && position?.lat && position?.lng) handleGetRoute(requestedDest)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedDest, position?.lat, position?.lng])
+
+  useEffect(() => {
+    if (!position?.lat || !position?.lng) return
+    emergencyApi.nearby(position.lat, position.lng, { radius_km: 50, limit: 8 })
+      .then(({ data }) => setEmergencyDir(data))
+      .catch(() => setEmergencyDir(null))
+    nearbyApi.getNearbyPlaces({ lat: position.lat, lng: position.lng, radius: 30000 })
+      .then(({ data }) => {
+        const list = data.items || data.results || data || []
+        setNearbyDests(Array.isArray(list) ? list.filter((row) => row.type === "destination" || row.slug) : [])
+      })
+      .catch(() => setNearbyDests([]))
+  }, [position])
+
+  const amenityItems = (() => {
+    if (amenityTab === "hospitals") return (emergencyDir?.hospitals || []).slice(0, 4).map((row) => toAmenityCard(row, position))
+    if (amenityTab === "police") return (emergencyDir?.police || []).slice(0, 4).map((row) => toAmenityCard(row, position))
+    if (amenityTab === "atms") {
+      return (emergencyDir?.specialized_contacts || [])
+        .filter((row) => ["atm", "bank"].includes(row.type))
+        .slice(0, 4)
+        .map((row) => toAmenityCard(row, position))
+    }
+    const services = (emergencyDir?.specialized_contacts || []).filter((row) => !["hospital", "police"].includes(row.type))
+    const destCards = nearbyDests.slice(0, 4).map((row) => toAmenityCard({ ...row, type: "destination" }, position))
+    return (services.length ? services.slice(0, 4).map((row) => toAmenityCard(row, position)) : destCards)
+  })()
 
   const currentStep = steps[currentStepIdx] || steps[0] || {
     turn: "straight",
-    instruction: `Head towards ${destinationQuery}`,
-    distance_km: distance || 10,
-    distance_m: 10000,
+    instruction: error || (destinationQuery ? `Search a recorded destination to start a route toward ${destinationQuery}` : "Search a recorded destination to start a route"),
+    distance_km: distance,
+    distance_m: null,
   }
 
   const TurnIcon = TURN_ICONS[currentStep.turn] || FiArrowUp
@@ -527,12 +479,7 @@ export default function Navigation() {
             </p>
           </div>
           <div className="flex overflow-x-auto gap-1.5 no-scrollbar">
-            {[
-              { id: "hotels", label: "🏨 Hotels & Lodges" },
-              { id: "hospitals", label: "🏥 Hospitals / Medical" },
-              { id: "stores", label: "💊 Stores & Pharmacies" },
-              { id: "atms", label: "🏧 Banks & ATMs" },
-            ].map((tab) => (
+            {AMENITY_TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setAmenityTab(tab.id)}
@@ -548,8 +495,14 @@ export default function Navigation() {
           </div>
         </div>
 
+        {!position && (
+          <p className="text-xs text-amber-800">Enable GPS to list recorded hospitals, police and services near you. Pharmacies are only shown when they exist in the directory.</p>
+        )}
+        {position && !amenityItems.length && (
+          <p className="text-xs text-slate-600">No recorded facilities of this type are stored near your GPS location.</p>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {getNearbyAmenities(position?.lat || 28.2096, position?.lng || 83.9856, amenityTab).map((item) => (
+          {amenityItems.map((item) => (
             <div
               key={item.id}
               className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
@@ -615,7 +568,7 @@ export default function Navigation() {
                 {destinationQuery}
               </p>
               <p className="text-[11px] text-purple-200">
-                Remaining: <b className="text-white">{formatDistance(distance)}</b> · {formatDuration(durationMin)}
+                Remaining: <b className="text-white">{distance != null ? formatDistance(distance) : "Not recorded"}</b> · {durationMin != null ? formatDuration(durationMin) : "duration not recorded"}
               </p>
             </div>
           </div>
@@ -623,18 +576,18 @@ export default function Navigation() {
           {/* HUD Instrumentation Row (Speed, Compass, Altitude, Zone Status) */}
           <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 my-5">
             <div className="bg-black/40 border border-purple-800/60 p-3 rounded-2xl text-center">
-              <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Estimated Speed</p>
-              <p className="text-2xl font-black text-emerald-400 mt-0.5">{speedKmh} <span className="text-xs text-white">KM/H</span></p>
+              <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Recorded distance</p>
+              <p className="text-2xl font-black text-emerald-400 mt-0.5">{distance != null ? formatDistance(distance) : "—"}</p>
             </div>
 
             <div className="bg-black/40 border border-purple-800/60 p-3 rounded-2xl text-center">
-              <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Compass Bearing</p>
-              <p className="text-2xl font-black text-amber-300 mt-0.5">{compassBearing}</p>
+              <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Destination GPS</p>
+              <p className="text-sm font-black text-amber-300 mt-0.5">{formatCoords(destination?.latitude, destination?.longitude) || "Not recorded"}</p>
             </div>
 
             <div className="bg-black/40 border border-purple-800/60 p-3 rounded-2xl text-center">
-              <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Current Altitude</p>
-              <p className="text-2xl font-black text-cyan-300 mt-0.5">{altitudeM} <span className="text-xs text-white">M</span></p>
+              <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Recorded altitude</p>
+              <p className="text-2xl font-black text-cyan-300 mt-0.5">{destination?.altitude || "—"}</p>
             </div>
 
             <div className="bg-black/40 border border-purple-800/60 p-3 rounded-2xl text-center">
@@ -674,7 +627,7 @@ export default function Navigation() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
           <MapView
-            userLocation={position || { lat: 27.7172, lng: 85.3240 }}
+            userLocation={position}
             destination={destination}
             route={route}
             height="520px"

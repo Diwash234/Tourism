@@ -2614,3 +2614,107 @@ class EmergencyDirectoryWorkflowTests(APITestCase):
         self.assertTrue(PoliceStation.objects.filter(name="Arena Gap Audit Police").exists())
         self.assertTrue(OSMEssentialService.objects.filter(name="Arena Gap Audit Pharmacy", category="pharmacy").exists())
         self.assertTrue(OSMEssentialService.objects.filter(name="Arena Gap Audit Fire", category="fire_station").exists())
+
+
+class RecordedPlaceHonestyTests(APITestCase):
+    """List/nearby/serializer payloads must not invent budget, season, phones or images."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="honesty@example.com", password="StrongPass123!", is_verified=True,
+        )
+        self.category = Category.objects.create(name="Honesty Lakes")
+        self.destination = Destination.objects.create(
+            name="Honesty Lake",
+            category=self.category,
+            description="Recorded lake",
+            latitude=28.15,
+            longitude=84.05,
+            city="Pokhara",
+            district="Kaski",
+            country="Nepal",
+            created_by=self.user,
+            best_time_to_visit="",
+            entry_fee=0,
+        )
+
+    def test_list_serializer_does_not_invent_budget_season_or_risk(self):
+        from .serializers import DestinationListSerializer
+        data = DestinationListSerializer(self.destination).data
+        self.assertIsNone(data["budget_estimate"])
+        self.assertIsNone(data["recommended_season"])
+        self.assertIsNone(data["risk_level"])
+
+    def test_hospital_serializer_does_not_invent_image(self):
+        from .models import Hospital
+        from .serializers import HospitalSerializer
+        hospital = Hospital.objects.create(
+            destination=self.destination,
+            name="Honesty Clinic",
+            address="Kaski",
+            phone="",
+            latitude=28.151,
+            longitude=84.051,
+            district="Kaski",
+        )
+        data = HospitalSerializer(hospital).data
+        self.assertIsNone(data["image_url"])
+
+    def test_nearby_hospital_uses_national_102_not_tuth_number(self):
+        from .models import Hospital
+        Hospital.objects.create(
+            destination=self.destination,
+            name="Honesty District Hospital",
+            address="Kaski",
+            phone="",
+            latitude=28.151,
+            longitude=84.051,
+            district="Kaski",
+        )
+        response = self.client.get("/api/v1/nearby/hospitals", {"lat": 28.15, "lng": 84.05})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+        self.assertNotIn("4412404", str(response.data))
+        self.assertNotIn("unsplash.com", str(response.data).lower())
+        self.assertEqual(response.data[0]["phone_number"], "102")
+        self.assertTrue(response.data[0]["phone_is_national_fallback"])
+        self.assertIsNone(response.data[0]["image_url"])
+
+    def test_nearby_places_include_destination_slug(self):
+        response = self.client.get("/api/v1/nearby/places", {"lat": 28.15, "lng": 84.05, "radius": 20000})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        row = next(item for item in response.data if item["name"] == "Honesty Lake")
+        self.assertEqual(row["slug"], self.destination.slug)
+        self.assertIn("latitude", row)
+        self.assertIn("longitude", row)
+
+    def test_fill_missing_coords_uses_district_mean(self):
+        from django.core.management import call_command
+        missing = Destination.objects.create(
+            name="Honesty Missing Peak",
+            category=self.category,
+            description="No coords yet",
+            district="Kaski",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords")
+        missing.refresh_from_db()
+        self.assertIsNotNone(missing.latitude)
+        self.assertIsNotNone(missing.longitude)
+        self.assertAlmostEqual(float(missing.latitude), 28.15, places=1)
+        self.assertAlmostEqual(float(missing.longitude), 84.05, places=1)
+        self.assertIsNotNone(missing.distance_from_kathmandu_km)
+
+    def test_navigation_route_requires_recorded_destination_coords(self):
+        Destination.objects.create(
+            name="Honesty Unlocated Cave",
+            category=self.category,
+            description="No pin",
+            created_by=self.user,
+        )
+        response = self.client.post("/api/v1/navigation/route", {
+            "start_latitude": 28.10,
+            "start_longitude": 84.00,
+            "destination_name": "Honesty Unlocated Cave",
+        })
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

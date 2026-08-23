@@ -11,7 +11,7 @@ from audit.logging_services import log_action
 from .models import Destination, MarketplaceListing, MarketplaceOrder, MarketplaceOrderItem, MarketplacePartner, User
 from .permissions import IsAdminOrStaff
 from .notification_delivery import queue_notification
-from .views_admin import _has_capability, _require_capability
+from .views_admin import _require_capability
 
 ORDER_TRANSITIONS = {
     MarketplaceOrder.Status.REQUESTED: {"review", "cancel"},

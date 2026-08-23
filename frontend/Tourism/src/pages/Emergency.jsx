@@ -60,7 +60,7 @@ function FacilityCard({ facility }) {
         {facility.opening_hours && <span>· {facility.opening_hours}</span>}
         {facility.updated_at && <span>· Updated {new Date(facility.updated_at).toLocaleDateString()}</span>}
       </div>
-      <a href={facility.source_url || "https://mohp.gov.np/"} target="_blank" rel="noreferrer" className="block text-[10px] text-gray-400 hover:underline">Source: {facility.source_name || "Emergency directory"} <FiExternalLink className="inline" /></a>
+      {facility.source_url ? <a href={facility.source_url} target="_blank" rel="noreferrer" className="block text-[10px] text-gray-400 hover:underline">Source: {facility.source_name || "Emergency directory"} <FiExternalLink className="inline" /></a> : facility.source_name ? <p className="text-[10px] text-gray-400">Source: {facility.source_name}</p> : null}
     </article>
   )
 }
@@ -105,7 +105,10 @@ export default function Emergency() {
     const selected = params.get("destination")
     if (selected && !loadedInitial) loadDestination(selected)
     else if (position && !loadedInitial) loadCoordinates(position.lat, position.lng)
-    else if (!selected && !position && !loadedInitial) loadCoordinates(27.7172, 85.3240)
+    else if (!selected && !position && !loadedInitial) {
+      setLoading(false)
+      setLoadedInitial(true)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position])
 
@@ -171,7 +174,11 @@ export default function Emergency() {
         <div className="flex flex-wrap items-center gap-3 text-xs"><button onClick={() => position && loadCoordinates(position.lat, position.lng)} className="rounded-lg border px-3 py-2 font-bold"><FiMapPin className="inline" /> Use my GPS</button><label className="font-bold text-gray-600">Radius <select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="ml-1 rounded-lg border p-2"><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option><option value="100">100 km</option><option value="200">200 km</option></select></label><button onClick={refreshRadius} className="text-purple-700 font-black">Apply radius</button></div>
       </section>
 
-      {loading ? <Loader /> : directory && <>
+      {loading ? <Loader /> : !directory ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+          Search an approved destination or enable GPS to load the recorded emergency directory. This page does not invent a default city.
+        </div>
+      ) : <>
         <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase text-gray-400">Emergency coverage around</p><h2 className="text-2xl font-black">{locationTitle}</h2><p className="text-xs text-gray-500">{directory.location.district} {directory.location.province && `· ${directory.location.province}`} · {directory.radius_km} km radius</p>{directory.location.coordinate_note && <p className="text-[10px] text-gray-400">Location basis: {directory.location.coordinate_note}</p>}{(directory.coverage_gap || (directory.counts?.hospitals_within_radius === 0 && directory.counts?.police_within_radius === 0)) && <p className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">There is no verified local hospital or police record for this place in the directory. National hotlines still work. An administrator can add an accurate facility with coordinates, or you can <Link to="/submit-service" className="font-black underline">submit a facility</Link> for review.</p>}</div>{risk && <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"><p className="text-[10px] font-black uppercase text-amber-800">Risk model indicator</p><b className="text-xl uppercase text-amber-900">{risk.level} · {risk.score}</b><p className="text-[10px] text-amber-700">Not an official warning</p></div>}</div>
 
         <section className="space-y-3"><h2 className="font-extrabold text-lg flex items-center gap-2"><FiPhoneCall className="text-rose-600" /> Verified national hotlines</h2><div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">{directory.national_hotlines.map((item) => <a key={item.type} href={phoneHref(item.phone_number)} className={`rounded-2xl p-4 text-white bg-gradient-to-br ${HOTLINE_COLORS[item.type]} shadow`}><span className="text-[10px] font-black uppercase opacity-80">{item.name}</span><b className="block text-2xl">{item.phone_number}</b><p className="text-[10px] opacity-75">{item.description}</p></a>)}</div></section>

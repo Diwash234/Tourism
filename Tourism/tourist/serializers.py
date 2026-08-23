@@ -441,19 +441,13 @@ class HospitalSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
 
     def get_image_url(self, obj):
-        if obj.image:
-            request = self.context.get("request")
-            try:
-                return request.build_absolute_uri(obj.image.url) if request else obj.image.url
-            except (ValueError, AttributeError):
-                pass
-        medical = [
-            "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&q=80",
-            "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1200&q=80",
-            "https://images.unsplash.com/photo-1551076805-e1869033e561?w=1200&q=80",
-            "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=1200&q=80",
-        ]
-        return medical[(obj.id or 0) % len(medical)]
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        try:
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        except (ValueError, AttributeError):
+            return None
 
 
 class PoliceStationSerializer(serializers.ModelSerializer):
@@ -763,21 +757,36 @@ class DestinationListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_budget_estimate(self, obj):
-        if hasattr(obj, "budget_estimation") and obj.budget_estimation:
-            return float(obj.budget_estimation.estimated_daily_budget or obj.budget_estimation.estimated_trip_budget or 45)
-        if obj.entry_fee:
-            return float(obj.entry_fee)
-        return 35.0
+        try:
+            budget = obj.budget_estimation
+        except Exception:
+            budget = None
+        if budget:
+            value = budget.estimated_daily_budget or budget.estimated_trip_budget
+            if value is not None:
+                return float(value)
+        if obj.entry_fee not in (None, ""):
+            try:
+                fee = float(obj.entry_fee)
+            except (TypeError, ValueError):
+                fee = None
+            if fee:
+                return fee
+        return None
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_risk_level(self, obj):
-        if hasattr(obj, "risk_analysis") and obj.risk_analysis:
-            return (obj.risk_analysis.risk_category or "low").lower()
-        return "low"
+        try:
+            risk = obj.risk_analysis
+        except Exception:
+            risk = None
+        if risk and risk.risk_category:
+            return str(risk.risk_category).lower()
+        return None
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_recommended_season(self, obj):
-        return obj.best_time_to_visit or "Sep - Nov / Mar - May"
+        return obj.best_time_to_visit or None
 
     def get_gallery_preview(self, obj):
         request = self.context.get("request")

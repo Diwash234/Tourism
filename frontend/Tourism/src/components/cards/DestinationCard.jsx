@@ -9,6 +9,7 @@ import {
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
+import { formatCoords, placeLocationLabel } from "../../utils/placeUtils"
 
 const RISK_STYLES = {
   low: {
@@ -88,21 +89,21 @@ const DestinationCard = ({
     city = "",
     country = "Nepal",
     cover_image_url = "",
-    average_rating = 4.5,
-    entry_fee = 0,
+    average_rating = null,
+    entry_fee = null,
     distance_km = null,
     category = null,
     category_name = "",
     weather = null,
     budget_estimate = null,
-    risk_level = "low",
+    risk_level = null,
     recommended_season = "",
   } = destination || {}
 
 
   const risk =
     RISK_STYLES[risk_level] ||
-    RISK_STYLES.low
+    { label: "Risk not recorded", dot: "bg-gray-400", className: "text-gray-500" }
 
 
   const categoryKey =
@@ -218,7 +219,7 @@ const DestinationCard = ({
             "
           />
 
-          {average_rating || "0"}
+          {average_rating != null ? average_rating : "—"}
 
         </div>
 
@@ -274,6 +275,9 @@ const DestinationCard = ({
           {name}
 
         </h3>
+        {formatCoords(destination.latitude, destination.longitude) && (
+          <p className="text-[11px] font-mono text-emerald-800 mt-1">{formatCoords(destination.latitude, destination.longitude)}</p>
+        )}
 
 
 
@@ -288,13 +292,7 @@ const DestinationCard = ({
 
           <FiMapPin size={14}/>
 
-          {city}
-
-          {
-          country &&
-          `, ${country}`
-          }
-
+          {placeLocationLabel({ city, district: destination.district, municipality: destination.municipality, province: destination.province, country })}
 
           {
           distance_km != null &&
@@ -348,11 +346,15 @@ const DestinationCard = ({
           <FiDollarSign/>
 
           {
-          budget_estimate
+          budget_estimate != null
           ?
           `$${budget_estimate}`
           :
-          `NPR ${entry_fee || 0}`
+          entry_fee
+          ?
+          `NPR ${entry_fee}`
+          :
+          "Not recorded"
           }
 
 

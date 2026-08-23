@@ -10,8 +10,10 @@ import {
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
+import emergencyApi from "../../api/emergencyApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
+import { formatCoords, hasValidCoords, placeLocationLabel } from "../../utils/placeUtils"
 import { photoApi } from "../../services/api"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { CMSExtras } from "../../components/cms/CMSBlock"
@@ -45,6 +47,7 @@ export default function DestinationDetails() {
   const [destination, setDestination] = useState(null)
   const [budget, setBudget] = useState(null)
   const [essentials, setEssentials] = useState(null)
+  const [emergency, setEmergency] = useState(null)
 
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteRecordId, setFavoriteRecordId] = useState(null)
@@ -70,17 +73,21 @@ export default function DestinationDetails() {
     Promise.allSettled([
       destinationApi.getById(slug, params),
       destinationApi.getEssentials(slug, params),
+      emergencyApi.forDestination(slug, { radius_km: 80, limit: 6 }),
       budgetApi.estimate({ destination: slug, travelers: 1, days: 3 }),
-    ]).then(([destRes, essentialsRes, budgetRes]) => {
+    ]).then(([destRes, essentialsRes, emergencyRes, budgetRes]) => {
       if (destRes.status === "fulfilled") {
         setDestination(destRes.value.data)
       }
       if (essentialsRes?.status === "fulfilled") {
         setEssentials(essentialsRes.value.data)
       }
+      if (emergencyRes?.status === "fulfilled") {
+        setEmergency(emergencyRes.value.data)
+      }
       if (budgetRes.status === "fulfilled") {
         setBudget({
-          total: budgetRes.value.data.total_budget_usd ?? budgetRes.value.data.total ?? 45,
+          total: budgetRes.value.data.total_budget_usd ?? budgetRes.value.data.total ?? null,
         })
       }
     }).finally(() => setLoading(false))
@@ -146,9 +153,9 @@ export default function DestinationDetails() {
       url: heroUrl,
       caption: destination.name,
       category: "hero",
-      photographer: "Verified Heritage Archive",
-      platform: "Official Tourism Database",
-      license: "Creative Commons CC BY-SA 4.0",
+      photographer: destination.gallery?.[0]?.photographer || "Not recorded",
+      platform: destination.gallery?.[0]?.source_platform || destination.gallery?.[0]?.source || "Recorded destination media",
+      license: destination.gallery?.[0]?.license_type || "Not recorded",
     })
   }
 
@@ -159,10 +166,10 @@ export default function DestinationDetails() {
         allImages.push({
           url,
           caption: g.caption || `${destination.name} - View ${idx + 1}`,
-          category: g.image_category || (idx % 2 === 0 ? "landscape" : "culture"),
-          photographer: g.photographer || g.attribution || "Public Heritage Archive",
-          platform: g.source_platform || g.source || "Wikimedia Commons",
-          license: g.license_type || "Creative Commons CC BY-SA / Unsplash",
+          category: g.image_category || "recorded",
+          photographer: g.photographer || g.attribution || "Not recorded",
+          platform: g.source_platform || g.source || "Not recorded",
+          license: g.license_type || "Not recorded",
         })
       }
     })
@@ -186,8 +193,8 @@ export default function DestinationDetails() {
   const activeAlert = essentials?.active_alert
   const riskAnalysis = destination.risk_analysis
   const budgetEst = destination.budget_estimation
-  const riskCategory = (riskAnalysis?.risk_category || activeAlert?.severity || "LOW").toUpperCase()
-  const level = RISK_LEVELS[riskCategory] || RISK_LEVELS.LOW
+  const riskCategory = (riskAnalysis?.risk_category || activeAlert?.severity || "").toUpperCase()
+  const level = RISK_LEVELS[riskCategory] || { label: "Not recorded", color: "bg-gray-100 text-gray-700" }
 
   return (
     <div className="container-app py-8 space-y-8 animate-fadeIn">
@@ -202,7 +209,7 @@ export default function DestinationDetails() {
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-primary-800">
             <span className="bg-primary-50 px-3 py-1 rounded-full">{destination.category_name || "Destination"}</span>
             <span>•</span>
-            <span className="text-gray-600">{destination.municipality || destination.district}, {destination.province}</span>
+            <span className="text-gray-600">{placeLocationLabel({ municipality: destination.municipality, district: destination.district, province: destination.province })}</span>
             {destination.altitude && <span>• 🏔️ {destination.altitude}</span>}
           </div>
 
@@ -218,8 +225,11 @@ export default function DestinationDetails() {
 
           <p className="text-gray-500 text-sm flex items-center gap-1.5 mt-1">
             <FiMapPin className="text-primary-600" />
-            {destination.address || destination.city}, {destination.district}, {destination.province || "Nepal"}
+            {placeLocationLabel(destination)}
           </p>
+          {formatCoords(destination.latitude, destination.longitude) && (
+            <p className="text-[11px] font-mono text-emerald-800 mt-1">{formatCoords(destination.latitude, destination.longitude)}</p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -357,23 +367,23 @@ export default function DestinationDetails() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-3xl bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white shadow-xl">
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
-          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km || 204.5} km</p>
-          <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || "4-6 hrs by highway"}</span>
+          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
+          <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || "Travel time not recorded"}</span>
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Major City</span>
-          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || destination.district}</p>
-          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km || 35} km away</span>
+          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || destination.district || "Not recorded"}</p>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : "Distance not recorded"}</span>
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Airport</span>
-          <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || "Regional Airport"}</p>
-          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km || 40} km</span>
+          <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || "Not recorded"}</p>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km != null ? `${destination.distance_from_nearest_airport_km} km` : "Distance not recorded"}</span>
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Recommended Stay</span>
-          <p className="text-xl font-black mt-0.5">{destination.recommended_days || 2} Days</p>
-          <span className="text-[11px] text-emerald-300 font-bold">Ideal Duration</span>
+          <p className="text-xl font-black mt-0.5">{destination.recommended_days ? `${destination.recommended_days} Days` : "Not recorded"}</p>
+          <span className="text-[11px] text-emerald-300 font-bold">{destination.best_time_to_visit || "Season not recorded"}</span>
         </div>
       </div>
 
@@ -440,23 +450,21 @@ export default function DestinationDetails() {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {(destination.activities?.length > 0 ? destination.activities : [
-                { name: "Scenic Hiking & Ridge Exploration", description: "Walk along pine-scented mountain ridges with Himalayan vistas.", estimated_duration: "2-4 hours", difficulty_level: "Easy" },
-                { name: "Temple Darshan & Evening Aarti", description: "Participate in ancient Vedic rituals, spiritual chanting, and pujas.", estimated_duration: "1-2 hours", difficulty_level: "Easy" },
-                { name: "Local Photography & Golden Hour", description: "Capture breathtaking sunrise and sunset illumination over snow peaks.", estimated_duration: "1 hour", difficulty_level: "Easy" },
-                { name: "Village Homestay & Organic Food", description: "Taste fresh local produce, organic tea, and experience mountain hospitality.", estimated_duration: "Overnight", difficulty_level: "Easy" },
-              ]).map((act, i) => (
+              {(destination.activities?.length > 0 ? destination.activities : []).map((act, i) => (
                 <div key={i} className="p-4 rounded-2xl bg-primary-50/60 border border-primary-100 space-y-1.5 shadow-sm">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs sm:text-sm text-gray-900">{act.name}</h4>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-secondary-200 text-primary-900">
-                      {act.difficulty_level || "Easy"}
+                      {act.difficulty_level || "Not recorded"}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{act.description}</p>
-                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || "2 hours"}</p>
+                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || "Duration not recorded"}</p>
                 </div>
               ))}
+              {!(destination.activities?.length) && (
+                <p className="text-sm text-slate-600 col-span-2">No recorded activities for this place yet. An administrator can add them from Destination Features.</p>
+              )}
             </div>
           </div>
 
@@ -537,6 +545,7 @@ export default function DestinationDetails() {
                 <FiNavigation /> Open Tactical GTA Navigation ➔
               </button>
             </div>
+            {hasValidCoords(destination.latitude, destination.longitude) ? (
             <div className="rounded-2xl overflow-hidden border border-gray-200">
               <MapView
                 center={{ lat: Number(destination.latitude), lng: Number(destination.longitude) }}
@@ -544,9 +553,14 @@ export default function DestinationDetails() {
                 height="400px"
               />
             </div>
+            ) : (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                This record has no stored latitude/longitude, so a map pin cannot be shown honestly.
+              </div>
+            )}
 
             {/* Street-level Mapillary imagery (Google-Street-View style) */}
-            {destination.latitude && destination.longitude && (
+            {hasValidCoords(destination.latitude, destination.longitude) && (
               <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">
                 <MapillaryImages
                   latitude={Number(destination.latitude)}
@@ -557,6 +571,23 @@ export default function DestinationDetails() {
               </div>
             )}
           </div>
+
+          {destination.marketplace_listings?.length > 0 && (
+            <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+              <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
+              <p className="text-sm text-gray-600">Published by the admin desk and approved hotels or operators. Add them to a trip — we never collect card numbers here.</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {destination.marketplace_listings.map((offer) => (
+                  <Link key={offer.id} to={`/packages/${offer.slug}`} className="rounded-2xl border border-emerald-100 p-4 hover:bg-emerald-50">
+                    <p className="text-[10px] font-black uppercase text-emerald-800">{offer.kind}</p>
+                    <p className="font-bold text-slate-900">{offer.title}</p>
+                    <p className="text-xs text-slate-500">{offer.partner_name}</p>
+                    <p className="text-sm font-black mt-1">NPR {Number(offer.price_npr).toLocaleString()}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Section 7: Verified Source Citations & References */}
           <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-stone-50">
@@ -570,11 +601,7 @@ export default function DestinationDetails() {
             </div>
 
             <div className="space-y-2.5">
-              {(destination.sources?.length > 0 ? destination.sources : [
-                { title: `Nepal Tourism Board (NTB) - ${destination.name} Profile`, source_type: "Official Government Tourism Board", source_url: "https://nepaltourism.gov.np", is_verified: true, notes: "Verified geographic coordinates and cultural heritage status." },
-                { title: `${destination.district || "Local"} District Tourism & Municipal Profile`, source_type: "Local Government / Municipality Portal", source_url: "https://mofaga.gov.np", is_verified: true, notes: "Administrative boundaries, local elevation, and road access." },
-                { title: "OpenStreetMap & Wikimedia Heritage Index", source_type: "Open Geographic & Heritage Database", source_url: "https://www.openstreetmap.org", is_verified: true, notes: "Geodetic coordinates and trail network topology." },
-              ]).map((src, i) => (
+              {(destination.sources || []).map((src, i) => (
                 <div key={i} className="p-3.5 rounded-2xl bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <div className="flex items-center gap-2">
@@ -596,6 +623,9 @@ export default function DestinationDetails() {
                   )}
                 </div>
               ))}
+              {!(destination.sources?.length) && (
+                <p className="text-sm text-slate-600">No source citations are stored for this record yet.</p>
+              )}
             </div>
           </div>
         </div>
@@ -603,12 +633,12 @@ export default function DestinationDetails() {
         {/* Right 1 Column: Strategic Sidebar */}
         <div className="space-y-6">
           {/* Multi-Tier Budget Breakdown (Low, Mid, Comfortable) */}
-          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
+          <div className="card-base p-ow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiDollarSign className="text-emerald-600" /> Estimated Budget Ranges
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercasean className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
                 ML Calibrated
               </span>
             </div>
@@ -667,16 +697,16 @@ export default function DestinationDetails() {
             <div className="space-y-2 text-xs text-gray-700">
               <div className="flex justify-between">
                 <span>Tourism Risk Index:</span>
-                <b className="text-primary-900">{riskAnalysis?.tourism_risk_index || 18} / 100</b>
+                <b className="text-primary-900">{riskAnalysis?.tourism_risk_index != null ? `${riskAnalysis.tourism_risk_index} / 100` : "Not recorded"}</b>
               </div>
               <div className="flex justify-between">
-                <span>Natural Hazard Level:</span>
-                <b className="text-emerald-700">Safe Highway & Trail Zone</b>
+                <span>Risk category:</span>
+                <b className="text-emerald-700">{riskAnalysis?.risk_category || "Not recorded"}</b>
               </div>
             </div>
 
             <p className="text-xs text-gray-500 bg-white p-3 rounded-xl border border-gray-100">
-              {activeAlert?.title || activeAlert?.description || "No active natural hazard alerts. Standard seasonal mountain precautions apply."}
+              {activeAlert?.title || activeAlert?.description || "No active alert is stored for this place."}
             </p>
           </div>
 
@@ -687,22 +717,27 @@ export default function DestinationDetails() {
             </h3>
 
             <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className="font-bold text-gray-800">Nearest Hospital</p>
-                <p className="text-primary-700 font-semibold mt-0.5">
-                  {destination.nearest_hospital_info || "District Zonal Hospital"}
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className="font-bold text-gray-800">Tourist Police Helpdesk</p>
-                <p className="text-primary-700 font-semibold mt-0.5">
-                  {destination.nearest_police_info || "Tourist Police 1144"}
-                </p>
-              </div>
-
+              {(emergency?.hospitals || []).slice(0, 2).map((row) => (
+                <div key={row.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <p className="font-bold text-gray-800">{row.name}</p>
+                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "102"}</p>
+                  {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
+                </div>
+              ))}
+              {(emergency?.police || []).slice(0, 1).map((row) => (
+                <div key={row.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <p className="font-bold text-gray-800">{row.name}</p>
+                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "100"}</p>
+                  {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km</p>}
+                </div>
+              ))}
+              {!(emergency?.hospitals?.length) && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-900">
+                  {destination.nearest_hospital_info || "No local hospital record is stored for this place. Use Ambulance 102."}
+                </div>
+              )}
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-950 font-bold text-center">
-                National Tourist Police: 1144 · Police: 100
+                National hotlines: Tourist Police 1144 · Police 100 · Ambulance 102
               </div>
             </div>
 
@@ -724,23 +759,6 @@ export default function DestinationDetails() {
         </div>
       </div>
 
-          {destination.marketplace_listings?.length > 0 && (
-            <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
-              <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
-              <p className="text-sm text-gray-600">Published by the admin desk and approved hotels or operators. Add them to a trip — we never collect card numbers here.</p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {destination.marketplace_listings.map((offer) => (
-                  <Link key={offer.id} to={`/packages/${offer.slug}`} className="rounded-2xl border border-emerald-100 p-4 hover:bg-emerald-50">
-                    <p className="text-[10px] font-black uppercase text-emerald-800">{offer.kind}</p>
-                    <p className="font-bold text-slate-900">{offer.title}</p>
-                    <p className="text-xs text-slate-500">{offer.partner_name}</p>
-                    <p className="text-sm font-black mt-1">NPR {Number(offer.price_npr).toLocaleString()}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
       {extras?.length > 0 && <CMSExtras sections={extras} />}
 
       {/* OFFLINE TRAVEL KIT MODAL */}
@@ -759,7 +777,7 @@ export default function DestinationDetails() {
                     🎒 Offline Travel Kit & Safety Package
                   </span>
                   <h3 className="text-2xl font-black text-gray-900 mt-2">{destination.name}</h3>
-                  <p className="text-xs text-gray-500">{destination.district}, {destination.province} Province · Elevation: {destination.altitude || "1,400m"}</p>
+                  <p className="text-xs text-gray-500">{placeLocationLabel(destination)} · Elevation: {destination.altitude || "Not recorded"}</p>
                 </div>
                 <button
                   onClick={() => setShowOfflineKit(false)}
@@ -777,7 +795,7 @@ export default function DestinationDetails() {
                     <FiMapPin /> GPS Location & Visiting Season
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <div><b>GPS:</b> {destination.latitude}, {destination.longitude}</div>
+                    <div><b>GPS:</b> {formatCoords(destination.latitude, destination.longitude) || "Not recorded"}</div>
                     <div><b>Altitude:</b> {destination.altitude || "1,400m"}</div>
                     <div><b>Best Months:</b> {destination.best_time_to_visit || "October to April"}</div>
                   </div>
@@ -822,8 +840,8 @@ export default function DestinationDetails() {
                   <h4 className="font-bold text-sm text-amber-900 flex items-center gap-1.5">
                     <FiTruck /> Road Transit & Approximate Fares
                   </h4>
-                  <p><b>Distance from Kathmandu:</b> ~{destination.distance_from_kathmandu_km || 200} km</p>
-                  <p><b>Estimated Deluxe Bus Fare:</b> NPR 1,200 – 1,800 · <b>Private Jeep Fare:</b> NPR 12,000 – 18,000</p>
+                  <p><b>Distance from Kathmandu:</b> {destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
+                  <p><b>Recorded transit fare:</b> {destination.transit_routes?.[0]?.estimated_fare_npr != null ? `NPR ${destination.transit_routes[0].estimated_fare_npr} (${destination.transit_routes[0].transport_mode || "recorded route"})` : "No transit fare is stored for this place"}</p>
                 </div>
 
                 {/* 4. Useful Local Phrases */}

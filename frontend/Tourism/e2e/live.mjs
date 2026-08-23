@@ -233,6 +233,46 @@ async function run() {
   }
 
   {
+    const listed = await request(`${API}/destinations/?limit=3`)
+    const rows = listed.data?.results || []
+    const inventedSeason = rows.some((row) => row.recommended_season === "Sep - Nov / Mar - May" && !row.best_time_to_visit)
+    const inventedBudget = rows.some((row) => row.budget_estimate === 35 && !row.entry_fee)
+    if (listed.res.ok && rows.length && !inventedSeason && !inventedBudget) {
+      ok("destination list does not invent default season or $35 budget")
+    } else fail("destination list honesty", `count=${rows.length}`)
+  }
+
+  {
+    const nearby = await request(`${API}/nearby/places?lat=27.7172&lng=85.3240&radius=20000`)
+    const dests = (Array.isArray(nearby.data) ? nearby.data : []).filter((row) => row.type === "destination")
+    if (nearby.res.ok && dests.every((row) => row.slug && row.latitude != null && row.longitude != null)) {
+      ok("nearby destinations include slug and recorded coordinates")
+    } else fail("nearby destination slug", `status=${nearby.res.status} dests=${dests.length}`)
+  }
+
+  {
+    const listed = await request(`${API}/destinations/?limit=1`)
+    const slug = listed.data?.results?.[0]?.slug
+    const emergency = slug
+      ? await request(`${API}/destinations/${encodeURIComponent(slug)}/emergency/?radius_km=80&limit=4`)
+      : { res: { ok: false }, data: {} }
+    const phones = JSON.stringify(emergency.data || {})
+    if (emergency.res.ok && !phones.includes("4412404") && Array.isArray(emergency.data?.hospitals)) {
+      ok("destination emergency uses recorded hospitals, not TUTH 4412404")
+    } else fail("destination emergency honesty", `status=${emergency.res?.status}`)
+  }
+
+  {
+    const hospitals = await request(`${API}/nearby/hospitals?lat=27.7172&lng=85.3240`)
+    const rows = Array.isArray(hospitals.data) ? hospitals.data : []
+    const inventedImage = rows.some((row) => String(row.image_url || "").includes("unsplash.com"))
+    const inventedPhone = rows.some((row) => row.phone_is_national_fallback && String(row.phone_number) === "+977-1-4412404")
+    if (hospitals.res.ok && rows.length && !inventedImage && !inventedPhone) {
+      ok("nearby hospitals do not invent Unsplash photos or TUTH as a default phone")
+    } else fail("nearby hospitals honesty", `status=${hospitals.res.status} count=${rows.length}`)
+  }
+
+  {
     const token = await login("admin")
     const market = await request(`${API}/admin/marketplace/?resource=listings`, {
       headers: { Authorization: `Bearer ${token}` },

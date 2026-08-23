@@ -18,8 +18,10 @@ import recommendationApi from "../api/recommendationApi";
 import alertApi from "../api/alertApi";
 import budgetApi from "../api/budgetApi";
 import userApi from "../api/userApi";
+import emergencyApi from "../api/emergencyApi";
 
 import { destinationApi, photoApi } from "../services/api";
+import { displayName, unwrapFavoriteDestination } from "../utils/placeUtils";
 
 import Loader from "../components/common/Loader";
 import EmptyState from "../components/common/EmptyState";
@@ -74,6 +76,7 @@ const Dashboard = () => {
   const [favorites, setFavorites] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [hotels, setHotels] = useState([]);
+  const [nearbySafety, setNearbySafety] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Hero / AI Search state
@@ -130,15 +133,10 @@ const Dashboard = () => {
     weatherApi
       .getCurrentWeather({ lat: position.lat, lng: position.lng })
       .then((res) => setWeather(res.data))
-      .catch(() => {
-        const temp = position.lat > 28.2 ? 14 : 22
-        setWeather({
-          temperature_c: temp,
-          condition: "Clear",
-          description: "Pleasant mountain climate",
-          humidity: 55,
-        })
-      });
+      .catch(() => setWeather(null));
+    emergencyApi.nearby(position.lat, position.lng, { radius_km: 25, limit: 4 })
+      .then(({ data }) => setNearbySafety(data))
+      .catch(() => setNearbySafety(null));
   }, [position]);
 
   // Shared search: the hero bar and the community-photo search both hit
@@ -235,7 +233,7 @@ const Dashboard = () => {
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_35%)]" />
         <div className="relative">
           <h1 className="text-2xl md:text-3xl font-bold">
-            {copy("hero", "title", `Namaste, ${user?.name || "Traveler"} 👋`)}
+            {copy("hero", "title", `Namaste, ${displayName(user)} 👋`)}
           </h1>
           <p className="text-white/80 mt-2 max-w-xl">
             {copy("hero", "subtitle", copy("hero", "body", "Here's what's happening with your Nepal trip today — weather, safety, budget, and AI picks made just for you."))}
@@ -331,9 +329,11 @@ const Dashboard = () => {
         </h2>
         {favorites.length ? (
           <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
-            {favorites.map((destination) => (
-              <DestinationCard key={destination.id} destination={destination} isFavorite />
-            ))}
+            {favorites.map((row) => {
+              const dest = unwrapFavoriteDestination(row)
+              if (!dest) return null
+              return <DestinationCard key={row.id || dest.id} destination={dest} isFavorite />
+            })}
           </div>
         ) : (
           <EmptyState title="No favorite destinations" subtitle="Save destinations you love and they'll appear here." />
@@ -376,10 +376,10 @@ const Dashboard = () => {
         <h2 className="font-semibold text-lg mb-4">{copy("safety", "title", "Safety Status")}</h2>
         <SafetyOverview
           score={scoreFromAlerts(alerts)}
-          weatherStatus={weather?.condition || "Good"}
-          earthquakeRisk={alerts.some((a) => /earthquake|seismic/i.test(a.title || a.type || "")) ? "Moderate" : "Low"}
-          hospitalsNearby={budget?.byCategory?.length ? "See Risk page" : "—"}
-          policeNearby="—"
+          weatherStatus={weather?.description || weather?.condition || "Not recorded"}
+          earthquakeRisk={alerts.some((a) => /earthquake|seismic/i.test(a.title || a.type || a.alert_type || "")) ? "Alert recorded" : "No recorded alert"}
+          hospitalsNearby={nearbySafety?.counts?.hospitals_within_radius != null ? nearbySafety.counts.hospitals_within_radius : "Enable GPS"}
+          policeNearby={nearbySafety?.counts?.police_within_radius != null ? nearbySafety.counts.police_within_radius : "Enable GPS"}
         />
         <p className="text-xs text-gray-400 mt-2">
           {copy("safety", "body", "Full facility counts and live disaster data live on the Risk Analysis page.")}
