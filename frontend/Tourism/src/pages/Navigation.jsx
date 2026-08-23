@@ -1,45 +1,20 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
 import MapillaryImages from "../components/map/MapillaryImages"
 import useGeolocation from "../hooks/useGeolocation"
 import {
-  FiNavigation, FiMapPin, FiZap, FiShield, FiDollarSign, FiTrendingUp,
+  FiNavigation, FiMapPin, FiShield,
   FiArrowLeft, FiArrowRight, FiArrowUp, FiRotateCcw, FiChevronLeft,
-  FiChevronRight, FiCompass, FiTarget, FiCrosshair, FiMaximize2, FiRadio,
-  FiLayers, FiVolume2, FiAlertCircle
+  FiChevronRight, FiCompass, FiTarget, FiRadio, FiLayers,
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
 import emergencyApi from "../api/emergencyApi"
 import nearbyApi from "../api/nearbyApi"
+import destinationApi from "../api/destinationApi"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import { formatCoords, hasValidCoords } from "../utils/placeUtils"
-
-const ROUTE_TYPES = [
-  { id: "fastest", label: "⚡ Fastest Highway", icon: FiZap, available: true },
-  { id: "safest", label: "🛡️ Safest Low-Risk", icon: FiShield, available: true },
-  { id: "cheapest", label: "💰 Budget Scenic", icon: FiDollarSign, available: true },
-  { id: "trekking", label: "🏔️ Alpine Trekking", icon: FiTrendingUp, available: true },
-]
-
-const QUICK_INTERNAL_ROUTES = [
-  { label: "Kathmandu ➔ Pokhara (Prithvi Hwy)", dest: "Pokhara", start: { lat: 27.7172, lng: 85.3240 } },
-  { label: "Pokhara ➔ Annapurna Base Camp", dest: "Annapurna Base Camp", start: { lat: 28.2096, lng: 83.9856 } },
-  { label: "Kathmandu ➔ Everest Base Camp", dest: "Everest Base Camp", start: { lat: 27.7172, lng: 85.3240 } },
-  { label: "Kathmandu ➔ Chitwan Safari", dest: "Chitwan National Park Safari", start: { lat: 27.7172, lng: 85.3240 } },
-  { label: "Pokhara ➔ Muktinath (Mustang)", dest: "Upper Mustang & Lo Manthang", start: { lat: 28.2096, lng: 83.9856 } },
-  { label: "Kathmandu ➔ Nagarkot Sunrise", dest: "Nagarkot Himalayan Sunrise Viewpoint", start: { lat: 27.7172, lng: 85.3240 } },
-]
-
-const QUICK_LOCAL_DESTINATIONS = [
-  { label: "📍 ➔ Lakeside Pokhara", dest: "Lakeside, Pokhara", coords: { lat: 28.2140, lng: 83.9580 } },
-  { label: "📍 ➔ Sarangkot Sunrise", dest: "Sarangkot Sunrise Viewpoint", coords: { lat: 28.2440, lng: 83.9480 } },
-  { label: "📍 ➔ Mahendrapul City", dest: "Mahendrapul, Pokhara", coords: { lat: 28.2250, lng: 83.9870 } },
-  { label: "📍 ➔ Chipledhunga Market", dest: "Chipledhunga, Pokhara", coords: { lat: 28.2220, lng: 83.9850 } },
-  { label: "📍 ➔ Tal Barahi Lake Temple", dest: "Tal Barahi Temple", coords: { lat: 28.2096, lng: 83.9560 } },
-  { label: "📍 ➔ Patale Chhango (Devi's Fall)", dest: "Devi's Fall, Pokhara", coords: { lat: 28.1900, lng: 83.9580 } },
-]
 
 const AMENITY_TABS = [
   { id: "hospitals", label: "Hospitals / Medical" },
@@ -122,163 +97,13 @@ export default function Navigation() {
   const [error, setError] = useState("")
   const [emergencyDir, setEmergencyDir] = useState(null)
   const [nearbyDests, setNearbyDests] = useState([])
+  const [featuredDests, setFeaturedDests] = useState([])
 
   // Game HUD state
   const [gameMode, setGameMode] = useState(true)
   const [currentStepIdx, setCurrentStepIdx] = useState(0)
   const [satelliteView, setSatelliteView] = useState(false)
   const [amenityTab, setAmenityTab] = useState("hospitals")
-
-  // Dynamic place-specific navigation generator
-  const getDynamicNepalSteps = (name, userLat, userLng) => {
-    const q = (name || "").toLowerCase()
-
-    if (q.includes("pokhara") || q.includes("phewa") || q.includes("sarangkot")) {
-      return [
-        { turn: "start", instruction: "Depart from current GPS location and merge onto Prithvi Highway (H04)", distance_km: 2.5, distance_m: 2500 },
-        { turn: "straight", instruction: "Follow the Trishuli River Valley westbound through Naubise and Malekhu", distance_km: 68.0, distance_m: 68000 },
-        { turn: "right", instruction: "Cross Mugling Trishuli bridge junction and continue on Prithvi Highway towards Pokhara", distance_km: 42.5, distance_m: 42500 },
-        { turn: "straight", instruction: "Pass Damauli and Kotre boundary crossing into Kaski Valley", distance_km: 72.0, distance_m: 72000 },
-        { turn: "left", instruction: "Turn left at Prithvi Chowk towards Lakeside / Phewa Promenade - Arrive at Destination", distance_km: 4.5, distance_m: 4500 },
-      ]
-    }
-
-    if (q.includes("everest") || q.includes("ebc") || q.includes("namche") || q.includes("lukla")) {
-      return [
-        { turn: "start", instruction: "Depart Kathmandu via Tribhuvan Domestic Terminal (TIA) flight to Tenzing-Hillary Airport Lukla (2,846m)", distance_km: 135.0, distance_m: 135000 },
-        { turn: "straight", instruction: "Trek through pine forests along the Dudh Koshi River gorge passing Phakding and Toktok", distance_km: 9.0, distance_m: 9000 },
-        { turn: "right", instruction: "Cross the high Hillary Suspension Bridge and make the steep switchback ascent to Namche Bazaar (3,440m)", distance_km: 6.5, distance_m: 6500 },
-        { turn: "straight", instruction: "Traverse high alpine trail past Tengboche Monastery and Dingboche yak pastures", distance_km: 18.0, distance_m: 18000 },
-        { turn: "straight", instruction: "Cross Khumbu Glacier moraine arriving at Everest Base Camp (5,364m) - High Altitude Safe Zone", distance_km: 8.5, distance_m: 8500 },
-      ]
-    }
-
-    if (q.includes("annapurna") || q.includes("abc") || q.includes("ghandruk") || q.includes("poon")) {
-      return [
-        { turn: "start", instruction: "Depart Pokhara via Baglung Highway through Hemja to Nayapul / Birethanti checkpost", distance_km: 42.0, distance_m: 42000 },
-        { turn: "right", instruction: "Turn right onto the Modi Khola trail towards Kimche and stone village of Ghandruk (1,940m)", distance_km: 11.5, distance_m: 11500 },
-        { turn: "left", instruction: "Cross suspension bridge at Chomrong and ascend through dense bamboo and rhododendron forest", distance_km: 14.0, distance_m: 14000 },
-        { turn: "straight", instruction: "Pass Deurali and Machhapuchhre Base Camp (MBC, 3,700m)", distance_km: 9.5, distance_m: 9500 },
-        { turn: "straight", instruction: "Arrive at Annapurna Base Camp (ABC 4,130m) natural mountain amphitheater", distance_km: 4.5, distance_m: 4500 },
-      ]
-    }
-
-    if (q.includes("chitwan") || q.includes("sauraha") || q.includes("safari")) {
-      return [
-        { turn: "start", instruction: "Depart via Prithvi Highway (H04) down through Naubise to Mugling Junction", distance_km: 110.0, distance_m: 110000 },
-        { turn: "left", instruction: "Turn left (south) at Mugling onto Narayanghat-Mugling Highway (H05)", distance_km: 36.0, distance_m: 36000 },
-        { turn: "straight", instruction: "Pass Bharatpur city center and enter East-West Mahendra Highway", distance_km: 14.0, distance_m: 14000 },
-        { turn: "right", instruction: "Turn right at Tandi Chowk towards Sauraha buffer zone and Rapti River Park Gate", distance_km: 6.5, distance_m: 6500 },
-      ]
-    }
-
-    if (q.includes("mustang") || q.includes("muktinath") || q.includes("jomsom")) {
-      return [
-        { turn: "start", instruction: "Depart Pokhara westward through Kusma and Beni (Kali Gandaki Gate)", distance_km: 75.0, distance_m: 75000 },
-        { turn: "straight", instruction: "Follow Kali Gandaki Gorge corridor through Tatopani hot springs and Ghasa", distance_km: 48.0, distance_m: 48000 },
-        { turn: "right", instruction: "Pass Marpha apple orchards and Jomsom airport towards Kagbeni ancient gateway", distance_km: 32.0, distance_m: 32000 },
-        { turn: "straight", instruction: "Ascend sacred mountain road to Muktinath Temple & Eternal Flame (3,800m)", distance_km: 12.5, distance_m: 12500 },
-      ]
-    }
-
-    if (q.includes("nagarkot") || q.includes("bhaktapur")) {
-      return [
-        { turn: "start", instruction: "Depart Kathmandu via 6-lane Araniko Highway (H03) towards Bhaktapur Durbar Square", distance_km: 14.0, distance_m: 14000 },
-        { turn: "left", instruction: "Turn left at Sallaghari / Kamalbinayak roundabout onto Nagarkot Hill Road", distance_km: 3.5, distance_m: 3500 },
-        { turn: "right", instruction: "Follow scenic winding pine forest road ascending through Telkot", distance_km: 8.0, distance_m: 8000 },
-        { turn: "straight", instruction: "Arrive at Nagarkot Sunrise View Tower (2,175m) - Panoramic Himalayan Outlook", distance_km: 3.0, distance_m: 3000 },
-      ]
-    }
-
-    if (q.includes("lakeside") || q.includes("phewa") || q.includes("baidam")) {
-      return [
-        { turn: "start", instruction: "Depart from current GPS location toward Baidam lakeside boulevard", distance_km: 0.8, distance_m: 800 },
-        { turn: "straight", instruction: "Follow Phewa Promenade past Hallan Chowk along the eastern lake shore", distance_km: 1.5, distance_m: 1500 },
-        { turn: "left", instruction: "Turn left toward Lakeside boat dock & Tal Barahi temple ferry point", distance_km: 0.4, distance_m: 400 },
-        { turn: "straight", instruction: "Arrive at Lakeside Pokhara — Tourist Zone & Phewa Lake Shore", distance_km: 0.2, distance_m: 200 },
-      ]
-    }
-
-    if (q.includes("sarangkot")) {
-      return [
-        { turn: "start", instruction: "Depart Pokhara Lakeside northbound via Bindhyabasini Temple road", distance_km: 3.2, distance_m: 3200 },
-        { turn: "right", instruction: "Turn right onto Sarangkot Mountain Road and ascend switchbacks through terraced slopes", distance_km: 7.5, distance_m: 7500 },
-        { turn: "left", instruction: "Turn left at Sarangkot saddle toward the upper viewing tower parking area", distance_km: 1.0, distance_m: 1000 },
-        { turn: "straight", instruction: "Arrive at Sarangkot Sunrise Viewpoint (1,600m) & Paragliding Launch Ridge", distance_km: 0.5, distance_m: 500 },
-      ]
-    }
-
-    if (q.includes("mahendrapul") || q.includes("chipledhunga")) {
-      return [
-        { turn: "start", instruction: "Depart from current GPS location toward Pokhara Prithvi Chowk", distance_km: 1.5, distance_m: 1500 },
-        { turn: "straight", instruction: "Head north along New Road past City Hall toward Chipledhunga commercial market", distance_km: 2.2, distance_m: 2200 },
-        { turn: "right", instruction: "Cross Mahendrapul bridge over the deep Seti River gorge", distance_km: 0.6, distance_m: 600 },
-        { turn: "straight", instruction: `Arrive at ${name} — Pokhara City Centre & Shopping Bazaar`, distance_km: 0.3, distance_m: 300 },
-      ]
-    }
-
-    if (q.includes("ruru") || q.includes("ridi") || q.includes("rurukshetra")) {
-      return [
-        { turn: "start", instruction: "Depart via Siddhartha Highway (H10) through Butwal and Palpa Tansen", distance_km: 65.0, distance_m: 65000 },
-        { turn: "left", instruction: "Turn left at Tansen junction and descend scenic Ridi river valley corridor", distance_km: 18.5, distance_m: 18500 },
-        { turn: "right", instruction: "Cross Kali Gandaki river suspension bridge into Ruru Kshetra sacred confluence", distance_km: 1.2, distance_m: 1200 },
-        { turn: "straight", instruction: "Arrive at Ruru Kshetra / Ridi Pilgrimage Bathing Ghats & Rishikesh Mandir", distance_km: 0.5, distance_m: 500 },
-      ]
-    }
-
-    if (q.includes("tinjure") || q.includes("tmj")) {
-      return [
-        { turn: "start", instruction: "Depart via Koshi Highway from Dharan through Bhedetar and Dhankuta", distance_km: 78.0, distance_m: 78000 },
-        { turn: "right", instruction: "Turn right at Basantapur junction onto Tinjure Milke Jaljale (TMJ) ridge road", distance_km: 16.0, distance_m: 16000 },
-        { turn: "straight", instruction: "Follow alpine trail through blooming red, pink, and white rhododendron forests", distance_km: 4.5, distance_m: 4500 },
-        { turn: "straight", instruction: "Arrive at Tinjure View Point — Nepal's Rhododendron Capital (2,900m)", distance_km: 1.2, distance_m: 1200 },
-      ]
-    }
-
-    if (q.includes("myanglung") || q.includes("tehrathum")) {
-      return [
-        { turn: "start", instruction: "Depart via Mid-Hill Highway (H18) eastward through Sinduwa and Lasune", distance_km: 24.0, distance_m: 24000 },
-        { turn: "left", instruction: "Take winding hill road ascent to Tehrathum district headquarters", distance_km: 12.5, distance_m: 12500 },
-        { turn: "straight", instruction: "Pass local Limbu traditional settlements and cardamom terraces", distance_km: 3.5, distance_m: 3500 },
-        { turn: "straight", instruction: "Arrive at Myanglung Village & Cultural Heritage Center (1,500m)", distance_km: 0.8, distance_m: 800 },
-      ]
-    }
-
-    if (q.includes("milke")) {
-      return [
-        { turn: "start", instruction: "Depart Basantapur trailhead along high alpine rhododendron ridge trail", distance_km: 8.5, distance_m: 8500 },
-        { turn: "straight", instruction: "Trek northern trail with panoramic Kanchenjunga and Makalu mountain views", distance_km: 11.0, distance_m: 11000 },
-        { turn: "right", instruction: "Ascend final grassy saddle toward Milke Danda high ridge viewpoint", distance_km: 2.5, distance_m: 2500 },
-        { turn: "straight", instruction: "Arrive at Milke Danda (2,980m) — Alpine Rhododendron & Himalayan Panorama", distance_km: 1.5, distance_m: 1500 },
-      ]
-    }
-
-    if (q.includes("devi") || q.includes("fall") || q.includes("chhango")) {
-      return [
-        { turn: "start", instruction: "Depart Pokhara Lakeside southbound along Baidam Road", distance_km: 1.5, distance_m: 1500 },
-        { turn: "right", instruction: "Turn right onto Siddhartha Highway (H10) towards Chorepatan", distance_km: 1.2, distance_m: 1200 },
-        { turn: "left", instruction: "Turn left into Patale Chhango tourist parking & ticket entrance", distance_km: 0.2, distance_m: 200 },
-        { turn: "straight", instruction: "Arrive at Devi's Fall (Patale Chhango) waterfall & Gupteshwor Cave", distance_km: 0.1, distance_m: 100 },
-      ]
-    }
-
-    if (q.includes("temple") || q.includes("mandir") || q.includes("stupa") || q.includes("gumba") || q.includes("pashupati") || q.includes("janaki")) {
-      return [
-        { turn: "start", instruction: `Depart from current GPS location along city feeder road toward ${name}`, distance_km: 1.5, distance_m: 1500 },
-        { turn: "straight", instruction: "Follow designated pilgrim corridor and heritage road", distance_km: 3.2, distance_m: 3200 },
-        { turn: "right", instruction: "Turn right into temple square pedestrian zone", distance_km: 0.5, distance_m: 500 },
-        { turn: "straight", instruction: `Arrive at ${name} main temple entrance & prayer courtyard — footwear removal zone`, distance_km: 0.2, distance_m: 200 },
-      ]
-    }
-
-    // Default dynamic route
-    return [
-      { turn: "start", instruction: `Depart from current GPS coordinates towards ${name}`, distance_km: 2.0, distance_m: 2000 },
-      { turn: "straight", instruction: `Follow the main national transit highway corridor towards ${name}`, distance_km: 28.5, distance_m: 28500 },
-      { turn: "right", instruction: "Turn right onto the local destination feeder bypass road", distance_km: 14.0, distance_m: 14000 },
-      { turn: "straight", instruction: `Arrive at ${name} main tourist entrance - Safe Zone`, distance_km: 4.5, distance_m: 4500 },
-    ]
-  }
 
   const handleGetRoute = async (targetDest = null) => {
     const destName = typeof targetDest === "string" ? targetDest : destinationQuery.trim()
@@ -328,6 +153,23 @@ export default function Navigation() {
     if (requestedDest && position?.lat && position?.lng) handleGetRoute(requestedDest)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedDest, position?.lat, position?.lng])
+
+  useEffect(() => {
+    const recorded = (list) => (Array.isArray(list) ? list : []).filter(
+      (row) => row?.name && hasValidCoords(row.latitude, row.longitude),
+    )
+    destinationApi.getDestinations({ featured: true, page_size: 8, limit: 8 })
+      .then(({ data }) => {
+        const featured = recorded(data.results || data)
+        if (featured.length) {
+          setFeaturedDests(featured.slice(0, 8))
+          return
+        }
+        return destinationApi.getDestinations({ page_size: 8, limit: 8 })
+          .then(({ data: fallback }) => setFeaturedDests(recorded(fallback.results || fallback).slice(0, 8)))
+      })
+      .catch(() => setFeaturedDests([]))
+  }, [])
 
   useEffect(() => {
     if (!position?.lat || !position?.lng) return
@@ -404,40 +246,53 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Quick internal route presets */}
-      <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
-        {QUICK_INTERNAL_ROUTES.map((qr, i) => (
-          <button
-            key={i}
-            onClick={() => {
-              setDestinationQuery(qr.dest)
-              handleGetRoute(qr.dest)
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-purple-50 border border-purple-100 text-purple-900 text-xs font-bold whitespace-nowrap shadow-sm transition-all hover:border-purple-300"
-          >
-            {qr.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Local Pokhara & Nepal Landmark Presets from Current GPS Location */}
+      {/* Recorded featured destinations */}
       <div className="space-y-1.5">
         <p className="text-[11px] font-extrabold uppercase tracking-wider text-purple-700">
-          📍 Quick Local Landmarks from Current GPS Location (Pokhara & Nepal)
+          Recorded destinations
+        </p>
+        <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
+          {featuredDests.map((dest) => (
+            <button
+              key={dest.slug || dest.id}
+              onClick={() => {
+                setDestinationQuery(dest.name)
+                handleGetRoute(dest.name)
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-purple-50 border border-purple-100 text-purple-900 text-xs font-bold whitespace-nowrap shadow-sm transition-all hover:border-purple-300"
+            >
+              {dest.city ? `${dest.city} ➔ ${dest.name}` : dest.name}
+            </button>
+          ))}
+          {!featuredDests.length && (
+            <p className="text-xs text-slate-500">No recorded destinations with coordinates are available yet.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Nearby recorded destinations from current GPS */}
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-extrabold uppercase tracking-wider text-purple-700">
+          Nearby recorded places from current GPS
         </p>
         <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar">
-          {QUICK_LOCAL_DESTINATIONS.map((qr, i) => (
+          {nearbyDests.filter((row) => row?.name).slice(0, 8).map((dest) => (
             <button
-              key={i}
+              key={dest.slug || dest.id || dest.name}
               onClick={() => {
-                setDestinationQuery(qr.dest)
-                handleGetRoute(qr.dest)
+                setDestinationQuery(dest.name)
+                handleGetRoute(dest.name)
               }}
               className="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-950 text-xs font-bold whitespace-nowrap shadow-sm transition-all"
             >
-              {qr.label}
+              {dest.city ? `${dest.city} ➔ ${dest.name}` : dest.name}
             </button>
           ))}
+          {!nearbyDests.length && (
+            <p className="text-xs text-slate-500">
+              {position?.lat ? "No recorded destinations are stored near your GPS location." : "Enable GPS to list recorded destinations near you."}
+            </p>
+          )}
         </div>
       </div>
 

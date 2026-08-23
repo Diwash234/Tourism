@@ -2697,7 +2697,7 @@ class RecordedPlaceHonestyTests(APITestCase):
             district="Kaski",
             created_by=self.user,
         )
-        call_command("fill_missing_place_coords")
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
         missing.refresh_from_db()
         self.assertIsNotNone(missing.latitude)
         self.assertIsNotNone(missing.longitude)
@@ -2718,3 +2718,87 @@ class RecordedPlaceHonestyTests(APITestCase):
             "destination_name": "Honesty Unlocated Cave",
         })
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_fill_city_from_nearest_recorded_neighbour(self):
+        from django.core.management import call_command
+        missing = Destination.objects.create(
+            name="Honesty Neighbour Peak",
+            category=self.category,
+            description="Has GPS but no city",
+            latitude=28.151,
+            longitude=84.051,
+            city="",
+            district="",
+            municipality="",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        missing.refresh_from_db()
+        self.assertEqual(missing.city, "Pokhara")
+
+    def test_admin_fill_location_from_records(self):
+        admin = User.objects.create_superuser(email="honesty-admin@example.com", password="AdminPass123!")
+        missing = Destination.objects.create(
+            name="Honesty Admin Fill Peak",
+            category=self.category,
+            description="Admin should fill city from neighbour GPS",
+            latitude=28.152,
+            longitude=84.052,
+            city="",
+            district="",
+            created_by=admin,
+        )
+        self.client.force_authenticate(admin)
+        response = self.client.post(
+            reverse("admin-destination-detail", kwargs={"id": missing.id}),
+            {"action": "fill_location"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("city", response.data["changed"])
+        missing.refresh_from_db()
+        self.assertEqual(missing.city, "Pokhara")
+        self.assertEqual(response.data["city"], "Pokhara")
+
+    def test_apply_destination_locations_json(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from django.test import override_settings
+        from .location_sync import apply_destination_locations, export_destination_locations
+
+        missing = Destination.objects.create(
+            name="Honesty JSON Restore Peak",
+            slug="honesty-json-restore-peak",
+            category=self.category,
+            description="City only in JSON snapshot",
+            latitude=28.16,
+            longitude=84.06,
+            city="",
+            created_by=self.user,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "dataset").mkdir()
+            (root / "dataset" / "destination_locations.json").write_text(json.dumps({
+                "count": 1,
+                "destinations": {
+                    "honesty-json-restore-peak": {
+                        "name": "Honesty JSON Restore Peak",
+                        "slug": "honesty-json-restore-peak",
+                        "city": "Pokhara",
+                        "district": "Kaski",
+                        "latitude": 28.16,
+                        "longitude": 84.06,
+                    }
+                },
+            }), encoding="utf-8")
+            with override_settings(BASE_DIR=root):
+                applied = apply_destination_locations()
+                self.assertEqual(applied, 1)
+                missing.refresh_from_db()
+                self.assertEqual(missing.city, "Pokhara")
+                self.assertEqual(missing.district, "Kaski")
+                path, count = export_destination_locations()
+                self.assertTrue(path.exists())
+                self.assertGreaterEqual(count, 1)

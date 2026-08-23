@@ -38,28 +38,8 @@ def _require_capability(request, module, action="view"):
 
 def _sync_destination_json(destination):
     """Atomic JSON exchange snapshot for admin-edited destinations."""
-    import json
-    import os
-    from pathlib import Path
-    path = Path(settings.BASE_DIR) / "dataset" / "data.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"destinations": {}}
-    except (json.JSONDecodeError, OSError):
-        existing = {"destinations": {}}
-    existing.setdefault("destinations", {})[str(destination.id)] = {
-        "id": destination.id, "name": destination.name, "slug": destination.slug,
-        "description": destination.description, "short_description": destination.short_description,
-        "city": destination.city, "district": destination.district, "province": destination.province,
-        "municipality": destination.municipality, "ward_number": destination.ward_number,
-        "latitude": float(destination.latitude) if destination.latitude is not None else None,
-        "longitude": float(destination.longitude) if destination.longitude is not None else None,
-        "status": destination.status, "updated_at": destination.updated_at.isoformat(),
-        "images": [{"id": image.id, "url": image.external_url or (image.image.url if image.image else ""), "caption": image.caption, "is_cover": image.is_cover, "status": image.verification_status} for image in destination.gallery.all()[:100]],
-    }
-    temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(temporary, path)
+    from .location_sync import sync_admin_destination_json
+    sync_admin_destination_json(destination)
 
 
 class AdminStatsView(APIView):
@@ -528,6 +508,8 @@ class AdminDestinationsView(APIView):
                 "slug": d.slug,
                 "city": d.city,
                 "district": d.district,
+                "latitude": float(d.latitude) if d.latitude is not None else None,
+                "longitude": float(d.longitude) if d.longitude is not None else None,
                 "category": d.category.name if d.category else "",
                 "status": d.status,
                 "average_rating": float(d.average_rating),
@@ -570,8 +552,9 @@ class AdminDestinationDetailView(APIView):
             "city": destination.city,
             "district": destination.district,
             "province": destination.province,
-            "latitude": float(destination.latitude) if destination.latitude else None,
-            "longitude": float(destination.longitude) if destination.longitude else None,
+            "municipality": destination.municipality,
+            "latitude": float(destination.latitude) if destination.latitude is not None else None,
+            "longitude": float(destination.longitude) if destination.longitude is not None else None,
             "cover_image": _cover_of(destination),
             "gallery": [
                 {
@@ -645,6 +628,47 @@ class AdminDestinationDetailView(APIView):
                 note=f"Admin updated fields: {', '.join(changed)}",
             )
         return Response({"message": "Destination updated successfully", "changed": changed})
+
+    def post(self, request, id):
+        """Fill missing city/coords from other recorded destinations and write JSON."""
+        from .location_sync import fill_city_from_records, fill_coords_from_records, fill_ktm_distance
+
+        destination = Destination.objects.filter(id=id).first()
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        action = (request.data.get("action") or "").strip()
+        if action != "fill_location":
+            return Response({"detail": "Unsupported action. Use action=fill_location."}, status=400)
+
+        changed = []
+        if fill_city_from_records(destination):
+            changed.append("city")
+        if fill_coords_from_records(destination):
+            changed.extend(["latitude", "longitude"])
+        if fill_ktm_distance(destination):
+            changed.append("distance_from_kathmandu_km")
+        if changed:
+            destination.save(update_fields=changed + ["updated_at"])
+            DestinationAuditLog.objects.create(
+                destination=destination,
+                actor=request.user if request.user.is_authenticated else None,
+                action=DestinationAuditLog.Action.EDITED,
+                note=f"Filled recorded location fields: {', '.join(changed)}",
+            )
+        _sync_destination_json(destination)
+        message = (
+            "Filled from recorded destinations and wrote dataset/data.json and destination_locations.json"
+            if changed else
+            "No recorded city or coordinates were available to fill"
+        )
+        return Response({
+            "message": message,
+            "changed": changed,
+            "city": destination.city,
+            "district": destination.district,
+            "latitude": float(destination.latitude) if destination.latitude is not None else None,
+            "longitude": float(destination.longitude) if destination.longitude is not None else None,
+        })
 
     def delete(self, request, id):
         _require_capability(request,"destinations","delete")

@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
+from tourist.location_sync import apply_destination_locations
 from tourist.models import MarketplaceListing, MarketplacePartner, User
 
 
@@ -11,6 +12,9 @@ class Command(BaseCommand):
     help = "Ensure demo logins and published marketplace packages exist for e2e."
 
     def handle(self, *args, **options):
+        applied = apply_destination_locations()
+        if applied:
+            self.stdout.write(f"Applied {applied} recorded destination locations from JSON.")
         users = [
             {
                 "email": "admin@tourism.gov.np",

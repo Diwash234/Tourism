@@ -181,6 +181,7 @@ const adminApi = {
   // Admin destination detail (data, gallery, edit history)
   getAdminDestination: (id) => axiosClient.get(`/admin/destinations/${id}`),
   updateAdminDestination: (id, payload) => axiosClient.put(`/admin/destinations/${id}`, payload),
+  fillAdminDestinationLocation: (id) => axiosClient.post(`/admin/destinations/${id}`, { action: "fill_location" }),
   addAdminDestinationImage: (id, payload) => axiosClient.post(`/admin/destinations/${id}/images`, payload, payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined),
   setAdminDestinationCover: (id, payload) => axiosClient.patch(`/admin/destinations/${id}/images`, { ...payload, is_cover: true }),
   updateAdminDestinationImage: (id, payload) => axiosClient.patch(`/admin/destinations/${id}/images`, payload),
