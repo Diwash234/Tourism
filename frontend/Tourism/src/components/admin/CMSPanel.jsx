@@ -616,8 +616,15 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
   const saveSection = async () => {
     if (!draft?.id) return
     try {
-      await adminApi.updateCMS({ resource: "sections", id: draft.id, ...draft })
-      onToast("Section saved", "success")
+      await adminApi.updateCMS({
+        resource: "sections",
+        id: draft.id,
+        ...draft,
+        status: "published",
+        is_visible: Boolean(draft.is_visible),
+      })
+      window.dispatchEvent(new Event("cms-updated"))
+      onToast("Section saved & published live!", "success")
       setOpenId(null)
       setDraft(null)
       loadSections()
@@ -680,28 +687,47 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
               </article>
             )}
             {openId === section.id && draft && (
-              <div className="mt-3 grid gap-2 rounded-lg bg-white p-3 sm:grid-cols-2">
-                <label className="font-semibold">Title<input className="input-field mt-1" value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
-                <label className="font-semibold">Key<input className="input-field mt-1" value={draft.key || ""} onChange={(e) => setDraft({ ...draft, key: e.target.value })} /></label>
-                <label className="font-semibold">Subtitle<input className="input-field mt-1" value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></label>
-                <label className="font-semibold">Image / media URL<input className="input-field mt-1" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
-                <label className="font-semibold">Section type
-                  <select className="input-field mt-1" value={draft.section_type || "text"} onChange={(e) => setDraft({ ...draft, section_type: e.target.value })}>
+              <div className="mt-3 grid gap-2 rounded-lg bg-slate-900 text-white p-3 sm:grid-cols-2">
+                <label className="font-semibold text-slate-300">Title<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
+                <label className="font-semibold text-slate-300">Key<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.key || ""} onChange={(e) => setDraft({ ...draft, key: e.target.value })} /></label>
+                <label className="font-semibold text-slate-300">Subtitle<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></label>
+                <label className="font-semibold text-slate-300">Image / media URL<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
+                <label className="font-semibold text-slate-300">Button Text (CTA)<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.cta_text || ""} onChange={(e) => setDraft({ ...draft, cta_text: e.target.value })} placeholder="e.g. Explore Now" /></label>
+                <label className="font-semibold text-slate-300">Button Link Route<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.cta_url || ""} onChange={(e) => setDraft({ ...draft, cta_url: e.target.value })} placeholder="/destinations" /></label>
+                <label className="font-semibold text-slate-300">Background Theme / Style
+                  <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.background_style || "clean-white"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), background_style: e.target.value } })}>
+                    <option value="clean-white">Clean White (Standard Card)</option>
+                    <option value="gradient-emerald">Gradient Emerald (Himalayan Forest)</option>
+                    <option value="dark-slate">Dark Slate (Modern Dark Theme)</option>
+                    <option value="saffron-warm">Saffron Gold (Warm Cultural Accent)</option>
+                    <option value="hero-dark">Hero Dark (Cinematic Hero Banner)</option>
+                    <option value="border-accent">Border Accent (Gold Border Highlighting)</option>
+                  </select>
+                </label>
+                <label className="font-semibold text-slate-300">Padding & Spacing
+                  <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.padding_style || "medium"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), padding_style: e.target.value } })}>
+                    <option value="compact">Compact (p-4)</option>
+                    <option value="medium">Medium (p-6)</option>
+                    <option value="spacious">Spacious (p-10)</option>
+                  </select>
+                </label>
+                <label className="font-semibold text-slate-300">Section type
+                  <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.section_type || "text"} onChange={(e) => setDraft({ ...draft, section_type: e.target.value })}>
                     {sectionTypes.map((type) => <option key={type}>{type}</option>)}
                   </select>
                 </label>
-                <label className="font-semibold">Layout
-                  <select className="input-field mt-1" value={draft.layout_variant || "default"} onChange={(e) => setDraft({ ...draft, layout_variant: e.target.value })}>
+                <label className="font-semibold text-slate-300">Layout Variant
+                  <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.layout_variant || "default"} onChange={(e) => setDraft({ ...draft, layout_variant: e.target.value })}>
                     {["default", "compact", "wide", "cards", "hero", "split"].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </label>
-                <label className="sm:col-span-2 font-semibold">Body
+                <label className="sm:col-span-2 font-semibold text-slate-300">Body Content
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
-                <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
+                <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
-                  <button type="button" onClick={saveSection} className="rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white">Save section</button>
-                  <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-200 px-3 py-2 font-bold">Cancel</button>
+                  <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
+                  <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
               </div>
             )}
