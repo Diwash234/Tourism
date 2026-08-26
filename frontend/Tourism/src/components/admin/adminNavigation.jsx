@@ -55,6 +55,7 @@ export const ADMIN_NAV_GROUPS = [
     ["image_pipeline", "Image Acquisition Pipeline", BsTools],
   ]},
   { label: "Content & CMS", items: [
+    ["ai_engine", "Central AI Engine Studio", BsStar],
     ["featured_destinations", "Featured Destinations Studio", BsStar],
     ["visitor_desk", "Visitor notices & featured", BsMegaphone],
     ["cms", "Pages, Sections & Navigation", BsFileEarmarkText],

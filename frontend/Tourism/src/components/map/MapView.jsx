@@ -12,10 +12,27 @@ import { useEffect, useState } from "react"
 import configApi from "../../api/configApi"
 import MapillaryImages from "./MapillaryImages"
 import {
-  MAP_TILE_URL,
   MAPILLARY_ACCESS_TOKEN,
   DEFAULT_MAP_CENTER,
 } from "../../utils/constants"
+
+const TILE_PROVIDERS = {
+  detailed: {
+    name: "Detailed Road Map",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    attr: "&copy; OpenStreetMap contributors &copy; CARTO",
+  },
+  standard: {
+    name: "Standard Light",
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attr: "&copy; OpenStreetMap &copy; CARTO",
+  },
+  satellite: {
+    name: "Satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attr: "Tiles &copy; Esri &mdash; Source: Esri, USGS",
+  },
+}
 
 import {
   userIcon,
@@ -69,24 +86,24 @@ const Recenter = ({ center }) => {
 
 
 const MapView = ({
-
   center,
-
   userLocation,
-
   destination,
-
   nearbyAttractions = [],
-
   hospitals = [],
-
   policeStations = [],
-
   route = [],
-
   height = "420px"
-
 }) => {
+  const [mapStyle, setMapStyle] = useState("detailed")
+  const [layers, setLayers] = useState({
+    route: true,
+    destination: true,
+    attractions: true,
+    hospitals: true,
+    police: true,
+    mapillary: true,
+  })
 
 
   const [mapillaryToken, setMapillaryToken] = useState(
@@ -162,46 +179,46 @@ const MapView = ({
 
 
 
-  return (
+  const activeTile = TILE_PROVIDERS[mapStyle] || TILE_PROVIDERS.detailed
 
+  return (
     <div
       style={{ height }}
       className="rounded-xl overflow-hidden shadow-card relative"
     >
+      {/* Map Style Selector */}
+      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-1.5 shadow-md flex gap-1 text-[11px] font-bold">
+        {Object.entries(TILE_PROVIDERS).map(([key, provider]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMapStyle(key)}
+            className={`px-2.5 py-1 rounded-lg transition-all ${
+              mapStyle === key ? "bg-slate-900 text-white shadow" : "text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {provider.name}
+          </button>
+        ))}
+      </div>
 
-
-      {mapillaryToken && (
+      {/* Mapillary Badge */}
+      {mapillaryToken && layers.mapillary && (
         <div className="absolute right-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
           Mapillary enabled
         </div>
       )}
 
-
       <MapContainer
-
-        center={[
-          mapCenter.lat,
-          mapCenter.lng
-        ]}
-
+        center={[mapCenter.lat, mapCenter.lng]}
         zoom={13}
-
         scrollWheelZoom={true}
-
-        style={{
-          height: "100%",
-          width: "100%"
-        }}
-
+        style={{ height: "100%", width: "100%" }}
       >
-
-
         <TileLayer
-
-          attribution="&copy; OpenStreetMap contributors"
-
-          url={MAP_TILE_URL}
-
+          key={mapStyle}
+          attribution={activeTile.attr}
+          url={activeTile.url}
         />
 
 
@@ -386,20 +403,26 @@ const MapView = ({
 
 
 
-        {
-          fixedRoute.length > 1 &&
-
-          <Polyline
-
-            positions={fixedRoute}
-
-            color="red"
-
-            weight={5}
-
-          />
-
-        }
+        {fixedRoute.length > 1 && layers.route && (
+          <>
+            <Polyline
+              positions={fixedRoute}
+              color="#0f172a"
+              weight={8}
+              opacity={0.3}
+              lineCap="round"
+              lineJoin="round"
+            />
+            <Polyline
+              positions={fixedRoute}
+              color="#2563eb"
+              weight={5}
+              opacity={0.9}
+              lineCap="round"
+              lineJoin="round"
+            />
+          </>
+        )}
 
 
       </MapContainer>

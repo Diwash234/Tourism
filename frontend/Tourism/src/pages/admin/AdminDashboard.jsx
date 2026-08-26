@@ -37,6 +37,7 @@ import OwnerDeskPanel from "../../components/admin/OwnerDeskPanel"
 import MarketplacePanel from "../../components/admin/MarketplacePanel"
 import EmergencyDirectoryPanel from "../../components/admin/EmergencyDirectoryPanel"
 import FeaturedDestinationsPanel from "../../components/admin/FeaturedDestinationsPanel"
+import AIEnginePanel from "../../components/admin/AIEnginePanel"
 import DataHealthPanel from "../../components/admin/DataHealthPanel"
 import AdminRouteManagerPanel from "../../components/admin/AdminRouteManagerPanel"
 import AdminReportManagerPanel from "../../components/admin/AdminReportManagerPanel"
@@ -661,7 +662,7 @@ const AdminDashboard = () => {
         <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
           <label className="text-xs font-black uppercase text-emerald-800">Admin section
             <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
-              {[["overview","Overview & Stats"],["data_health","Data Health & Provenance"],["transport_routes","Transportation & Routes"],["data_reports","User Reports & Corrections"],["featured_destinations","Featured Destinations Studio"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
+              {[["overview","Overview & Stats"],["ai_engine","Central AI Engine Studio"],["data_health","Data Health & Provenance"],["transport_routes","Transportation & Routes"],["data_reports","User Reports & Corrections"],["featured_destinations","Featured Destinations Studio"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
             </select>
           </label>
         </div>
@@ -777,6 +778,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "reports" && <ReportsPanel />}
+        {activeTab === "ai_engine" && <AIEnginePanel />}
         {activeTab === "data_health" && <DataHealthPanel />}
         {activeTab === "transport_routes" && <AdminRouteManagerPanel />}
         {activeTab === "data_reports" && <AdminReportManagerPanel />}

@@ -606,6 +606,18 @@ class Destination(TimeStampedModel):
         help_text="Pinned by an administrator for the homepage and traveller dashboard.",
     )
 
+    ai_recommendation_status = models.CharField(
+        max_length=20,
+        choices=[("ALLOWED", "Allowed"), ("BLOCKED", "Blocked"), ("PRIORITY", "Priority")],
+        default="ALLOWED",
+        db_index=True,
+    )
+    ai_priority_level = models.CharField(
+        max_length=20,
+        choices=[("LOW", "Low"), ("NORMAL", "Normal"), ("HIGH", "High"), ("CRITICAL", "Critical")],
+        default="NORMAL",
+    )
+    ai_override_reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]
