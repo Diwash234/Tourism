@@ -705,6 +705,25 @@ class AIItineraryModificationView(APIView):
                     day_copy["destinations"] = day_copy["destinations"][:1]
                 modified_days.append(day_copy)
 
+        elif action in {"replan", "impact_check", "weather_replan"}:
+            action_note = "IMPACT DETECTED & AUTOMATIC REPLANNING APPLIED: Swapped outdoor high-altitude/water activities with indoor cultural heritage & tea houses."
+            indoor_dests = list(Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+                category__slug__in=["museums", "culture", "heritage", "temples"]
+            )[: len(days_data) * 2])
+            for idx, day in enumerate(days_data):
+                day_copy = dict(day)
+                day_copy["theme"] = "Replanned: Cultural & Indoor Experience"
+                if indoor_dests:
+                    d = indoor_dests[idx % len(indoor_dests)]
+                    day_copy["destinations"] = [{
+                        "name": d.name, "city": d.city or d.district or "Nepal",
+                        "latitude": float(d.latitude) if d.latitude else None,
+                        "longitude": float(d.longitude) if d.longitude else None,
+                        "category": d.category.name if d.category else "Museum / Cultural",
+                    }]
+                modified_days.append(day_copy)
+
         else:
             action_note = f"Custom adjustment applied: {action}"
             modified_days = days_data

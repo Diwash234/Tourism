@@ -5,6 +5,7 @@ import {
   Popup,
   Polyline,
   useMap,
+  useMapEvents,
 } from "react-leaflet"
 
 import { useEffect, useState } from "react"
@@ -67,21 +68,36 @@ const normalizeLocation = (place) => {
 
 
 const Recenter = ({ center }) => {
-
   const map = useMap()
-
   useEffect(() => {
-
     if (center) {
-      map.setView(
-        [center.lat, center.lng],
-        13
-      )
+      map.setView([center.lat, center.lng], 13)
     }
-
   }, [center, map])
-
   return null
+}
+
+const MapMeasureEvents = ({ active, onPoint }) => {
+  useMapEvents({
+    click(e) {
+      if (active) {
+        onPoint([e.latlng.lat, e.latlng.lng])
+      }
+    },
+  })
+  return null
+}
+
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const r = 6371.0
+  const dlat = ((lat2 - lat1) * Math.PI) / 180.0
+  const dlon = ((lon2 - lon1) * Math.PI) / 180.0
+  const a =
+    Math.sin(dlat / 2.0) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180.0) *
+      Math.cos((lat2 * Math.PI) / 180.0) *
+      Math.sin(dlon / 2.0) ** 2
+  return r * 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a))
 }
 
 
@@ -96,7 +112,9 @@ const MapView = ({
   height = "420px"
 }) => {
   const [mapStyle, setMapStyle] = useState("detailed")
-  const [layers, setLayers] = useState({
+  const [measureMode, setMeasureMode] = useState(false)
+  const [measurePoints, setMeasurePoints] = useState([])
+  const [layers] = useState({
     route: true,
     destination: true,
     attractions: true,
@@ -186,8 +204,8 @@ const MapView = ({
       style={{ height }}
       className="rounded-xl overflow-hidden shadow-card relative"
     >
-      {/* Map Style Selector */}
-      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-1.5 shadow-md flex gap-1 text-[11px] font-bold">
+      {/* Map Style Selector & Ruler Tool */}
+      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-1.5 shadow-md flex items-center gap-1.5 text-[11px] font-bold">
         {Object.entries(TILE_PROVIDERS).map(([key, provider]) => (
           <button
             key={key}
@@ -200,7 +218,38 @@ const MapView = ({
             {provider.name}
           </button>
         ))}
+        <div className="h-4 w-px bg-slate-200 mx-1" />
+        <button
+          type="button"
+          onClick={() => {
+            setMeasureMode(!measureMode)
+            if (measureMode) setMeasurePoints([])
+          }}
+          className={`px-2.5 py-1 rounded-lg transition-all ${
+            measureMode ? "bg-amber-500 text-slate-950 font-black shadow" : "text-slate-700 hover:bg-slate-100"
+          }`}
+        >
+          📏 {measureMode ? "Cancel Ruler" : "Measure Distance"}
+        </button>
       </div>
+
+      {measureMode && (
+        <div className="absolute top-14 left-3 z-[1000] bg-slate-950/90 text-white border border-amber-400/50 rounded-xl p-2.5 text-xs shadow-xl space-y-1">
+          <p className="font-bold text-amber-300">Click points on the map to measure geodesic distance</p>
+          <p className="text-[11px] text-slate-200">
+            Measured: <b className="text-white text-sm">{totalMeasuredKm.toFixed(2)} km</b> ({ (totalMeasuredKm * 0.621371).toFixed(2) } mi)
+          </p>
+          {measurePoints.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMeasurePoints([])}
+              className="text-[10px] text-amber-300 underline font-bold"
+            >
+              Clear points ({measurePoints.length})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Mapillary Badge */}
       {mapillaryToken && layers.mapillary && (
@@ -221,6 +270,16 @@ const MapView = ({
           url={activeTile.url}
         />
 
+        <MapMeasureEvents active={measureMode} onPoint={(pt) => setMeasurePoints((prev) => [...prev, pt])} />
+
+        {measurePoints.length > 1 && (
+          <Polyline
+            positions={measurePoints}
+            color="#f59e0b"
+            weight={4}
+            dashArray="6, 6"
+          />
+        )}
 
         <Recenter center={mapCenter} />
 

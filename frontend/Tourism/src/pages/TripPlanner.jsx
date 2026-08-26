@@ -369,6 +369,13 @@ export default function TripPlanner() {
                   >
                     ☕ Slow down pace
                   </button>
+                  <button
+                    disabled={modifying}
+                    onClick={() => handleApplyAIModification("replan")}
+                    className="px-2.5 py-1 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 font-bold"
+                  >
+                    🌦️ Weather / Impact Replan
+                  </button>
                 </div>
                 {plan.modificationNote && (
                   <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200 mt-1">
