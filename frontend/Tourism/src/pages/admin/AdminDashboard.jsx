@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import {
   FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX,
   FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiEdit3,
@@ -12,10 +12,34 @@ import adminApi from "../../api/adminApi"
 import adminPanelApi from "../../api/adminPanelApi"
 import destinationApi from "../../api/destinationApi"
 import Loader from "../../components/common/Loader"
-import LineChartCard from "../../components/charts/LineChartCard"
-import BarChartCard from "../../components/charts/BarChartCard"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
+import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
+import ServicePhotosPanel from "../../components/admin/ServicePhotosPanel"
+import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
+import CMSPanel from "../../components/admin/CMSPanel"
+import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
+import DestinationFeaturesPanel from "../../components/admin/DestinationFeaturesPanel"
+import CategoryTranslationPanel from "../../components/admin/CategoryTranslationPanel"
+import HotelBookingPanel from "../../components/admin/HotelBookingPanel"
+import SafetyManagementPanel from "../../components/admin/SafetyManagementPanel"
+import NotificationSettingsPanel from "../../components/admin/NotificationSettingsPanel"
+import MediaLibraryPanel from "../../components/admin/MediaLibraryPanel"
+import DatasetManagerPanel from "../../components/admin/DatasetManagerPanel"
+import FeedbackWorkspace from "../../components/admin/FeedbackWorkspace"
+import ReportsPanel from "../../components/admin/ReportsPanel"
+import UserManagement from "../../components/admin/UserManagement"
+import ReviewModerationPanel from "../../components/admin/ReviewModerationPanel"
+import BrandingPanel from "../../components/admin/BrandingPanel"
+import TravelServicesPanel from "../../components/admin/TravelServicesPanel"
+import RetentionPolicyPanel from "../../components/admin/RetentionPolicyPanel"
+import OwnerDeskPanel from "../../components/admin/OwnerDeskPanel"
+import MarketplacePanel from "../../components/admin/MarketplacePanel"
+import EmergencyDirectoryPanel from "../../components/admin/EmergencyDirectoryPanel"
+import FeaturedDestinationsPanel from "../../components/admin/FeaturedDestinationsPanel"
+import DataHealthPanel from "../../components/admin/DataHealthPanel"
+import AdminRouteManagerPanel from "../../components/admin/AdminRouteManagerPanel"
+import AdminReportManagerPanel from "../../components/admin/AdminReportManagerPanel"
 
 const ROLES = [
   { id: "tourist", label: "Tourist / Traveler" },
@@ -33,7 +57,9 @@ const AdminDashboard = () => {
   const { user } = useAuth()
   const { showToast } = useToast()
 
-  const [activeTab, setActiveTab] = useState("overview")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get("section") || "overview"
+  const setActiveTab = (section) => setSearchParams(section === "overview" ? {} : { section })
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -87,6 +113,247 @@ const AdminDashboard = () => {
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([])
   const [batchForm, setBatchForm] = useState({ limit: 2500, province: "", district: "" })
   const [isRunningBatch, setIsRunningBatch] = useState(false)
+
+  // Multi-Source Image Acquisition Pipeline state
+  const [pipelineDestSlug, setPipelineDestSlug] = useState("")
+  const [pipelineDests, setPipelineDests] = useState([])
+  const [pipelineImages, setPipelineImages] = useState([])
+  const [pipelineLoading, setPipelineLoading] = useState(false)
+  const [pipelineDestId, setPipelineDestId] = useState(null)
+  const [newImageUrl, setNewImageUrl] = useState("")
+  const [newImageCaption, setNewImageCaption] = useState("")
+  const [newImageFile, setNewImageFile] = useState(null)
+  const [pipelineVideos, setPipelineVideos] = useState([])
+  const [newVideoFile, setNewVideoFile] = useState(null)
+
+  // Image Replacement / Metadata Edit States
+  const [editingImageModal, setEditingImageModal] = useState(null)
+  const [replacementCaption, setReplacementCaption] = useState("")
+  const [replacementUrl, setReplacementUrl] = useState("")
+  const [replacementFile, setReplacementFile] = useState(null)
+
+  const handleSaveImageReplacement = async () => {
+    if (!editingImageModal || !pipelineDestId) return
+    try {
+      if (replacementFile) {
+        const form = new FormData()
+        form.append("image", replacementFile)
+        if (replacementCaption) form.append("caption", replacementCaption)
+        if (editingImageModal.is_cover) form.append("is_cover", "true")
+        await adminApi.addAdminDestinationImage(pipelineDestId, form)
+        showToast("Image replaced with new upload!", "success")
+      } else {
+        await adminApi.updateAdminDestinationImage(pipelineDestId, {
+          image_id: editingImageModal.id,
+          caption: replacementCaption || editingImageModal.caption,
+          external_url: replacementUrl || editingImageModal.url,
+          is_cover: editingImageModal.is_cover,
+        })
+        showToast("Image details / URL updated successfully!", "success")
+      }
+      setEditingImageModal(null)
+      setReplacementCaption("")
+      setReplacementUrl("")
+      setReplacementFile(null)
+      loadPipelineImages()
+    } catch {
+      showToast("Could not update or replace image", "error")
+    }
+  }
+
+  const handleUploadAdminImage = async () => {
+    if (!newImageFile) return
+    const destId = await resolvePipelineDestination()
+    if (!destId) return showToast("Select a destination first.", "error")
+    const form = new FormData()
+    form.append("image", newImageFile)
+    form.append("caption", newImageCaption || newImageFile.name)
+    form.append("is_cover", "true")
+    try {
+      await adminApi.addAdminDestinationImage(destId, form)
+      showToast("Local image uploaded and set as cover.", "success")
+      setNewImageFile(null); setNewImageCaption("")
+      await loadPipelineImages(null, destId)
+    } catch (error) {
+      showToast(error?.response?.data?.detail || "Local image upload failed.", "error")
+    }
+  }
+
+  const handleAddAdminImage = async () => {
+    if (!newImageUrl.trim()) return
+    const destId = await resolvePipelineDestination()
+    if (!destId) return showToast("Select a destination first.", "error")
+    try {
+      await adminApi.addAdminDestinationImage(destId, {
+        image_url: newImageUrl.trim(),
+        caption: newImageCaption || undefined,
+        is_cover: true,
+        source: "admin",
+        photographer: "Administrator",
+        license: "Admin-provided",
+      })
+      showToast("Image added and set as cover.", "success")
+      setNewImageUrl(""); setNewImageCaption("")
+      await loadPipelineImages(null, destId)
+    } catch {
+      showToast("Could not add image. Check the URL and permissions.", "error")
+    }
+  }
+
+  const handleSetAdminCover = async (imageId) => {
+    if (!pipelineDestId) return
+    try {
+      await adminApi.setAdminDestinationCover(pipelineDestId, { image_id: imageId })
+      showToast("Cover updated.", "success")
+      loadPipelineImages()
+    } catch {
+      showToast("Could not update cover.", "error")
+    }
+  }
+
+  const galleryRows = (gallery = []) => gallery.map((img) => ({
+    id: img.id,
+    url: img.url || img.external_url || img.image_url || img.display_url,
+    caption: img.caption,
+    author: img.photographer || img.author || "Administrator",
+    source: img.source || img.source_platform || "admin",
+    license: img.license || img.license_type || "",
+    sourceUrl: img.source_url || img.sourceUrl,
+    isAiGenerated: String(img.source || "").includes("ai") || img.isAiGenerated,
+    is_cover: img.is_cover,
+    verification_status: img.verification_status || img.status,
+  }))
+
+  const resolvePipelineDestination = async (slugToLoad = null, destId = null) => {
+    if (destId) {
+      setPipelineDestId(destId)
+      return destId
+    }
+    const s = slugToLoad || pipelineDestSlug
+    try {
+      const { data } = await destinationApi.getById(s)
+      if (data?.id) {
+        setPipelineDestId(data.id)
+        if (data.slug) setPipelineDestSlug(data.slug)
+        return data.id
+      }
+    } catch { /* fall through to search */ }
+    try {
+      const { data } = await destinationApi.getAll({ search: s, page_size: 8 })
+      const list = data.results || []
+      const found = list.find((row) => row.slug === s || String(row.id) === String(s)) || list[0]
+      if (found?.id) {
+        setPipelineDestId(found.id)
+        if (found.slug) setPipelineDestSlug(found.slug)
+        return found.id
+      }
+    } catch { /* ignore */ }
+    return pipelineDestId || null
+  }
+
+  const loadPipelineImages = async (slugToLoad = null, destId = null) => {
+    const s = slugToLoad || pipelineDestSlug
+    setPipelineLoading(true)
+    try {
+      const id = await resolvePipelineDestination(s, destId)
+      if (id) {
+        const { data } = await adminApi.getAdminDestination(id)
+        setPipelineImages(galleryRows(data.gallery || []))
+        setPipelineVideos(data.videos || [])
+        if (data.slug) setPipelineDestSlug(data.slug)
+      } else {
+        const { data } = await adminApi.getDestinationImages(s)
+        setPipelineImages(galleryRows(data.images || []))
+      }
+    } catch (e) {
+      setPipelineImages([])
+    } finally {
+      setPipelineLoading(false)
+    }
+  }
+
+  const handleDiscoverPipelineImages = async () => {
+    setPipelineLoading(true)
+    try {
+      const { data } = await adminApi.discoverDestinationImages(pipelineDestSlug)
+      setPipelineImages(data.images || [])
+      showToast(data.message || "Multi-source image discovery completed!", "success")
+    } catch (e) {
+      showToast("Could not discover images", "error")
+    } finally {
+      setPipelineLoading(false)
+    }
+  }
+
+  const handleRefreshPipelineImages = async () => {
+    setPipelineLoading(true)
+    try {
+      const { data } = await adminApi.refreshDestinationImages(pipelineDestSlug)
+      setPipelineImages(data.images || [])
+      showToast(data.message || "Image collection refreshed!", "success")
+    } catch (e) {
+      showToast("Could not refresh images", "error")
+    } finally {
+      setPipelineLoading(false)
+    }
+  }
+
+  // Free web image search (Wikimedia / DuckDuckGo / Openverse) for the
+  // currently selected destination.
+  const [webSearching, setWebSearching] = useState(false)
+  const [webImageCount, setWebImageCount] = useState(50) // admin can add up to 50 images at once
+  const [destSearch, setDestSearch] = useState("")
+  const [destSearchResults, setDestSearchResults] = useState([])
+
+  const handleFetchWebImages = async () => {
+    if (!pipelineDestSlug) return
+    setWebSearching(true)
+    try {
+      const { data } = await adminApi.fetchWebImages(pipelineDestSlug, webImageCount || 50)
+      showToast(`${data.saved} real images saved for ${data.destination}`, "success")
+      loadPipelineImages()
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Could not fetch web images", "error")
+    } finally {
+      setWebSearching(false)
+    }
+  }
+
+  const [aiGenerating, setAiGenerating] = useState(false)
+  const handleGenerateAIImages = async () => {
+    if (!pipelineDestSlug) return
+    setAiGenerating(true)
+    try {
+      const { data } = await adminApi.generateAIImages(pipelineDestSlug, 14)
+      showToast(`${data.saved} AI images generated for ${data.destination}`, "success")
+      loadPipelineImages()
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Could not generate AI images", "error")
+    } finally {
+      setAiGenerating(false)
+    }
+  }
+
+  const handleDeleteImage = async (imageId) => {
+    if (!confirm("Remove this image from the destination?")) return
+    try {
+      await adminApi.deleteDestinationImage(imageId)
+      showToast("Image removed", "success")
+      loadPipelineImages()
+    } catch {
+      showToast("Could not delete image", "error")
+    }
+  }
+
+  const runDestinationSearch = async () => {
+    if (!destSearch.trim()) return
+    try {
+      const { data } = await adminApi.getDestinations({ search: destSearch, page_size: 20 })
+      setDestSearchResults(data.results || [])
+    } catch {
+      setDestSearchResults([])
+    }
+  }
 
   const fetchDiscoveryData = async () => {
     setCandidatesLoading(true)
@@ -196,6 +463,27 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchAllData()
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== "image_pipeline") return
+    destinationApi.getDestinations({ featured: true, page_size: 8, limit: 8 })
+      .then(({ data }) => {
+        const list = data.results || data || []
+        const dests = Array.isArray(list) ? list.filter((row) => row?.name) : []
+        setPipelineDests(dests)
+        if (!pipelineDestSlug && dests[0]?.slug) {
+          setPipelineDestSlug(dests[0].slug)
+          setPipelineDestId(dests[0].id || null)
+          loadPipelineImages(dests[0].slug, dests[0].id)
+        } else {
+          loadPipelineImages()
+        }
+      })
+      .catch(() => {
+        setPipelineDests([])
+        loadPipelineImages()
+      })
+  }, [activeTab])
 
   // User Actions
   const handleCreateUser = async (e) => {
@@ -328,43 +616,36 @@ const AdminDashboard = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#180421] via-[#2d0836] to-[#480c35] text-white -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 text-slate-900 -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
       {/* Top Banner */}
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-purple-800/60 pb-6"
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/60 pb-6"
         >
           <div>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-gray-950 shadow-md shadow-amber-400/20">
                 RBAC Central Command
               </span>
-              <span className="text-xs text-purple-200">
+              <span className="text-xs text-slate-300">
                 Logged in as: <b className="text-amber-300">{user?.email}</b> ({user?.role})
               </span>
             </div>
             <h1 className="text-3xl font-extrabold text-white mt-1 tracking-tight">
               Nepal Tourism Admin & Moderation Sentinel
             </h1>
-            <p className="text-purple-200 text-sm">
+            <p className="text-slate-300 text-sm">
               Role-Based Access Control • Destination Approval Desk • Multi-Image Verification • Live Traveler Safety Tracking
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <a
-              href="/Tourism_Full_Project.zip"
-              download="Tourism_Full_Project.zip"
-              className="px-4 py-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-amber-300 hover:text-amber-200 border border-amber-400/40 flex items-center gap-2 text-sm font-bold shadow-md transition-all"
-            >
-              📥 Download ZIP (8.3 MB)
-            </a>
             <button
               onClick={fetchAllData}
-              className="px-4 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 hover:text-white border border-purple-700/50 flex items-center gap-2 text-sm font-medium transition-all"
+              className="px-4 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/50 flex items-center gap-2 text-sm font-medium transition-all"
             >
               <FiRefreshCw className={loading ? "animate-spin" : ""} size={14} /> Refresh
             </button>
@@ -377,49 +658,14 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-        {/* Navigation Tabs */}
-        <div className="flex overflow-x-auto gap-2 border-b border-purple-800/40 pb-3 no-scrollbar">
-          {[
-            { id: "overview", label: "📊 Overview & Stats", count: null },
-            { id: "research", label: "🔬 AI Destination Discovery", count: null },
-            { id: "users", label: "👥 Users & Sub-Admins", count: users.length },
-            { id: "tracking", label: "📍 Live User Tracking & SOS", count: emergencies.filter(e => e.status === "active").length || null, alert: emergencies.some(e => e.status === "active") },
-            { id: "places", label: "📝 Place Approvals", count: pendingPlaces.length, badge: pendingPlaces.length > 0 },
-            { id: "images", label: "🖼️ Image Verification", count: pendingImages.length, badge: pendingImages.length > 0 },
-            { id: "emergencies", label: "🚨 Medical SOS", count: emergencies.filter(e => e.status === "active").length, alert: emergencies.some(e => e.status === "active") },
-            { id: "expenses", label: "💰 Expense ML Data", count: expenseReports.length },
-            { id: "risks", label: "⚠️ Safety & Hazard ML", count: riskReports.length },
-          ].map((tab) => (
-            <motion.button
-              key={tab.id}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap flex items-center gap-2 transition-all ${
-                activeTab === tab.id
-                  ? "bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 shadow-md shadow-amber-400/20"
-                  : "bg-purple-950/50 text-purple-200 hover:bg-purple-900/50 hover:text-white border border-purple-800/30"
-              }`}
-            >
-              {tab.label}
-              {tab.count !== null && (
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    tab.alert
-                      ? "bg-rose-600 text-white animate-pulse"
-                      : activeTab === tab.id
-                      ? "bg-gray-950 text-amber-300"
-                      : "bg-purple-800 text-purple-200"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </motion.button>
-          ))}
+        <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
+          <label className="text-xs font-black uppercase text-emerald-800">Admin section
+            <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
+              {[["overview","Overview & Stats"],["data_health","Data Health & Provenance"],["transport_routes","Transportation & Routes"],["data_reports","User Reports & Corrections"],["featured_destinations","Featured Destinations Studio"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>
         </div>
 
-        {/* TAB 1: OVERVIEW & STATS */}
         {activeTab === "overview" && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -429,12 +675,12 @@ const AdminDashboard = () => {
           >
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-amber-400/50 transition-all">
+              <div className="bg-slate-900/70 border border-slate-600/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-amber-400/50 transition-all">
                 <div className="p-3.5 rounded-xl bg-amber-400/20 text-amber-300">
                   <FiUsers size={26} />
                 </div>
                 <div>
-                  <p className="text-xs text-purple-200 uppercase font-medium">Total Registered Users</p>
+                  <p className="text-xs text-slate-300 uppercase font-medium">Total Registered Users</p>
                   <p className="text-3xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
                   <span className="text-[11px] text-amber-300 font-medium">
                     {stats?.touristCount ?? 0} Tourists · {stats?.staffCount ?? 0} Staff
@@ -442,12 +688,12 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-pink-500/50 transition-all">
+              <div className="bg-slate-900/70 border border-slate-600/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-pink-500/50 transition-all">
                 <div className="p-3.5 rounded-xl bg-pink-500/20 text-pink-400">
                   <FiMapPin size={26} />
                 </div>
                 <div>
-                  <p className="text-xs text-purple-200 uppercase font-medium">Approved Destinations</p>
+                  <p className="text-xs text-slate-300 uppercase font-medium">Approved Destinations</p>
                   <p className="text-3xl font-black text-white">{stats?.totalDestinations ?? "--"}</p>
                   <span className="text-[11px] text-pink-300 font-medium">
                     {pendingPlaces.length} Waiting Approval
@@ -455,25 +701,25 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-amber-400/50 transition-all">
+              <div className="bg-slate-900/70 border border-slate-600/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-amber-400/50 transition-all">
                 <div className="p-3.5 rounded-xl bg-amber-400/20 text-amber-300">
                   <FiEye size={26} />
                 </div>
                 <div>
-                  <p className="text-xs text-purple-200 uppercase font-medium">Total Data Views</p>
-                  <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? 7145}</p>
-                  <span className="text-[11px] text-purple-300 font-medium">
-                    {stats?.totalVisitsLogged ?? 128} Visits Tracked
+                  <p className="text-xs text-slate-300 uppercase font-medium">Total Data Views</p>
+                  <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? "—"}</p>
+                  <span className="text-[11px] text-slate-300 font-medium">
+                    {stats?.totalVisitsLogged != null ? `${stats.totalVisitsLogged} visits tracked` : "Visits not recorded"}
                   </span>
                 </div>
               </div>
 
-              <div className="bg-purple-950/70 border border-purple-700/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-rose-500/50 transition-all">
+              <div className="bg-slate-900/70 border border-slate-600/40 p-5 rounded-2xl shadow-xl backdrop-blur flex items-center gap-4 hover:border-rose-500/50 transition-all">
                 <div className="p-3.5 rounded-xl bg-rose-500/20 text-rose-400">
                   <FiAlertTriangle size={26} />
                 </div>
                 <div>
-                  <p className="text-xs text-purple-200 uppercase font-medium">Medical / SOS Alerts</p>
+                  <p className="text-xs text-slate-300 uppercase font-medium">Medical / SOS Alerts</p>
                   <p className="text-3xl font-black text-white">{emergencies.filter(e => e.status === "active").length}</p>
                   <span className="text-[11px] text-rose-300 font-medium">
                     {stats?.activeAlerts ?? 0} Hazard Alerts
@@ -483,10 +729,10 @@ const AdminDashboard = () => {
             </div>
 
             {/* Quick Action Bar */}
-            <div className="bg-purple-950/40 border border-purple-800/40 p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-slate-900/40 border border-slate-700/40 p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="font-bold text-lg text-white">Administrative Actions & Moderation</h3>
-                <p className="text-xs text-purple-200">
+                <p className="text-xs text-slate-300">
                   Quick dispatch to pending user submissions, field data collection, and safety operations.
                 </p>
               </div>
@@ -520,25 +766,28 @@ const AdminDashboard = () => {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-purple-950/80 border border-purple-700/50 p-6 rounded-2xl shadow-xl">
-                <LineChartCard
-                  title="Monthly Nepal Visitors & Views"
-                  labels={["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"]}
-                  data={[420, 890, 1150, 780, 620, 940]}
-                  label="Travelers"
-                />
+              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-2xl shadow-xl text-slate-300 text-sm">
+                Monthly visitor charts are not stored in this database. Open Reports for recorded counts.
               </div>
-              <div className="bg-purple-950/80 border border-purple-700/50 p-6 rounded-2xl shadow-xl">
-                <BarChartCard
-                  title="Destinations by Province / Category"
-                  labels={["Kathmandu", "Gandaki", "Koshi", "Lumbini", "Karnali", "Madhesh"]}
-                  data={[18, 14, 9, 8, 5, 4]}
-                  label="Destinations"
-                />
+              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-2xl shadow-xl text-slate-300 text-sm">
+                Province destination totals are not pre-invented here. Use Database Explorer or Reports for live records.
               </div>
             </div>
           </motion.div>
         )}
+
+        {activeTab === "reports" && <ReportsPanel />}
+        {activeTab === "data_health" && <DataHealthPanel />}
+        {activeTab === "transport_routes" && <AdminRouteManagerPanel />}
+        {activeTab === "data_reports" && <AdminReportManagerPanel />}
+        {activeTab === "featured_destinations" && <FeaturedDestinationsPanel />}
+        {activeTab === "data_explorer" && <DataExplorerPanel />}
+        {activeTab === "branding" && <BrandingPanel />}
+        {activeTab === "visitor_desk" && <OwnerDeskPanel />}
+        {activeTab === "cms" && <CMSPanel />}
+        {activeTab === "staff_permissions" && <StaffPermissionsPanel />}
+        {activeTab === "destination_features" && <DestinationFeaturesPanel />}
+        {activeTab === "category_translations" && <CategoryTranslationPanel />}
 
         {/* TAB: AI DESTINATION DISCOVERY & RESEARCH */}
         {activeTab === "research" && (
@@ -548,7 +797,7 @@ const AdminDashboard = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <div className="bg-purple-950/70 border border-purple-700/40 p-6 rounded-3xl shadow-xl space-y-4">
+            <div className="bg-slate-900/70 border border-slate-600/40 p-6 rounded-3xl shadow-xl space-y-4">
               <div>
                 <span className="px-3.5 py-1 rounded-full bg-amber-400 text-gray-950 text-xs font-black uppercase tracking-wider">
                   Autonomous Web & Government Archive Research
@@ -556,7 +805,7 @@ const AdminDashboard = () => {
                 <h3 className="font-extrabold text-2xl text-white mt-2 flex items-center gap-2">
                   <FiCompass className="text-amber-400" /> Nepal Destination Discovery & Research Engine
                 </h3>
-                <p className="text-xs text-purple-200 mt-1 max-w-3xl leading-relaxed">
+                <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
                   Search any village, temple, hiking ridge, historical site, or viewpoint in Nepal (e.g. <i>Swargadwari, Waling, Galeshwor, Poon Hill, Barun Valley, Ridi</i>). The system checks existing database records to avoid duplicates, and gathers verified geocoding, cultural history, transit routes, budget ranges, and verified reusable imagery with copyright credits.
                 </p>
               </div>
@@ -571,7 +820,7 @@ const AdminDashboard = () => {
                       setResearchQuery(p)
                       handleTriggerResearch(p)
                     }}
-                    className="px-3 py-1 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-200 text-xs font-semibold border border-purple-700/60 transition-all hover:text-white hover:border-amber-400"
+                    className="px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-600/60 transition-all hover:text-white hover:border-amber-400"
                   >
                     {p}
                   </button>
@@ -587,12 +836,12 @@ const AdminDashboard = () => {
                 className="flex flex-col sm:flex-row gap-3 pt-2"
               >
                 <div className="relative flex-1">
-                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-300" size={18} />
+                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                   <input
                     value={researchQuery}
                     onChange={(e) => setResearchQuery(e.target.value)}
                     placeholder="Enter any destination, temple, village, or viewpoint in Nepal..."
-                    className="w-full pl-12 pr-4 py-3.5 bg-purple-900/60 border border-purple-600/60 rounded-2xl text-sm text-white placeholder-purple-300 focus:outline-none focus:border-amber-400 shadow-inner"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-800/60 border border-slate-600/60 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 shadow-inner"
                   />
                 </div>
                 <button
@@ -618,9 +867,9 @@ const AdminDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-purple-950/80 border border-purple-600/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-white"
+                className="bg-slate-900/80 border border-slate-600/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-white"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-700/60 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-600/60 pb-4">
                   <div>
                     <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
                       researchResult.status === "existing" ? "bg-blue-500/30 text-blue-200 border border-blue-400" : "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
@@ -628,14 +877,14 @@ const AdminDashboard = () => {
                       {researchResult.status === "existing" ? "Existing Destination Loaded (No Duplication)" : "Researched & Verified New Destination"}
                     </span>
                     <h3 className="text-2xl font-black text-white mt-1.5">{researchResult.name}</h3>
-                    <p className="text-xs text-purple-200 mt-0.5">{researchResult.message}</p>
+                    <p className="text-xs text-slate-300 mt-0.5">{researchResult.message}</p>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <Link
                       to={`/destinations/${researchResult.slug}`}
                       target="_blank"
-                      className="px-5 py-2.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-bold flex items-center gap-1.5 border border-purple-700"
+                      className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-600"
                     >
                       <FiExternalLink size={14} /> Open Public Explore Page
                     </Link>
@@ -643,24 +892,24 @@ const AdminDashboard = () => {
                 </div>
 
                 {researchResult.destination && (
-                  <div className="space-y-6 text-xs text-purple-100">
+                  <div className="space-y-6 text-xs text-slate-200">
                     {/* Geographic Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-purple-900/40 border border-purple-700/40">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-800/40 border border-slate-600/40">
                       <div>
-                        <span className="text-purple-300 font-bold">Province & District</span>
+                        <span className="text-slate-300 font-bold">Province & District</span>
                         <p className="font-black text-white text-sm mt-0.5">{researchResult.destination.province}, {researchResult.destination.district}</p>
                       </div>
                       <div>
-                        <span className="text-purple-300 font-bold">Coordinates (Lat / Lon)</span>
+                        <span className="text-slate-300 font-bold">Coordinates (Lat / Lon)</span>
                         <p className="font-black text-amber-300 text-sm mt-0.5">{researchResult.destination.latitude}, {researchResult.destination.longitude}</p>
                       </div>
                       <div>
-                        <span className="text-purple-300 font-bold">Elevation (m)</span>
-                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "1,400m"}</p>
+                        <span className="text-slate-300 font-bold">Elevation (m)</span>
+                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "Not recorded"}</p>
                       </div>
                       <div>
-                        <span className="text-purple-300 font-bold">Distance from KTM</span>
-                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km || 204.5} km</p>
+                        <span className="text-slate-300 font-bold">Distance from KTM</span>
+                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km != null ? `${researchResult.destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
                       </div>
                     </div>
 
@@ -672,16 +921,16 @@ const AdminDashboard = () => {
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           {researchResult.destination.gallery.map((img, idx) => (
-                            <div key={idx} className="rounded-2xl overflow-hidden border border-purple-700 bg-purple-950 flex flex-col justify-between">
+                            <div key={idx} className="rounded-2xl overflow-hidden border border-slate-600 bg-slate-900 flex flex-col justify-between">
                               <div className="h-44 w-full relative bg-black">
                                 <img src={img.external_url || img.image || img.display_url} alt={img.caption} className="w-full h-full object-cover" />
                                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-amber-300 text-[10px] font-bold">
                                   {img.image_category || "Landscape"}
                                 </span>
                               </div>
-                              <div className="p-3 space-y-1 bg-purple-900/60 text-[11px]">
+                              <div className="p-3 space-y-1 bg-slate-800/60 text-[11px]">
                                 <p className="font-bold text-white truncate">{img.caption}</p>
-                                <p className="text-[10px] text-purple-300">
+                                <p className="text-[10px] text-slate-300">
                                   <b>Photographer:</b> {img.photographer || "Public Archive"}
                                 </p>
                                 <p className="text-[10px] text-emerald-300">
@@ -695,11 +944,11 @@ const AdminDashboard = () => {
                     )}
 
                     {/* Descriptions */}
-                    <div className="p-4 rounded-2xl bg-purple-900/30 border border-purple-700/40 space-y-2">
+                    <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-600/40 space-y-2">
                       <h4 className="font-bold text-sm text-amber-300">Researched Overview & Cultural Background:</h4>
-                      <p className="leading-relaxed whitespace-pre-line text-purple-100">{researchResult.destination.description}</p>
+                      <p className="leading-relaxed whitespace-pre-line text-slate-200">{researchResult.destination.description}</p>
                       {researchResult.destination.history && (
-                        <p className="leading-relaxed whitespace-pre-line text-purple-200 pt-2 border-t border-purple-800/40">
+                        <p className="leading-relaxed whitespace-pre-line text-slate-300 pt-2 border-t border-slate-700/40">
                           <b>History & Heritage:</b> {researchResult.destination.history}
                         </p>
                       )}
@@ -708,10 +957,10 @@ const AdminDashboard = () => {
                     {/* Authoritative Sources */}
                     {researchResult.destination.sources && researchResult.destination.sources.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-bold text-sm text-purple-300">Authoritative References & Citations:</h4>
+                        <h4 className="font-bold text-sm text-slate-300">Authoritative References & Citations:</h4>
                         <div className="space-y-1.5">
                           {researchResult.destination.sources.map((src, i) => (
-                            <div key={i} className="p-3 rounded-xl bg-purple-900/40 border border-purple-800 flex justify-between items-center text-xs">
+                            <div key={i} className="p-3 rounded-xl bg-slate-800/40 border border-slate-700 flex justify-between items-center text-xs">
                               <div>
                                 <p className="font-bold text-white">{src.title}</p>
                                 <span className="text-[10px] text-emerald-400">✓ {src.source_type}</span>
@@ -733,41 +982,41 @@ const AdminDashboard = () => {
             <div className="space-y-6 pt-4">
               {/* Discovery Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
-                  <p className="text-[11px] font-bold text-purple-300 uppercase tracking-wider">Production Places</p>
-                  <p className="text-2xl font-black text-white mt-1">{discoveryStats?.total_destinations?.toLocaleString() || "6,414"}</p>
+                <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
+                  <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Production Places</p>
+                  <p className="text-2xl font-black text-white mt-1">{discoveryStats?.total_destinations != null ? discoveryStats.total_destinations.toLocaleString() : "—"}</p>
                   <p className="text-[10px] text-emerald-400 mt-0.5">✓ 100% Live in Catalog</p>
                 </div>
-                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
                   <p className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Candidates Staged</p>
                   <p className="text-2xl font-black text-amber-400 mt-1">{discoveryStats?.total_candidates?.toLocaleString() || "2,382"}</p>
-                  <p className="text-[10px] text-purple-200 mt-0.5">Multi-source entities</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">Multi-source entities</p>
                 </div>
-                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
                   <p className="text-[11px] font-bold text-rose-300 uppercase tracking-wider">Duplicates Caught</p>
-                  <p className="text-2xl font-black text-rose-400 mt-1">{discoveryStats?.duplicates_caught?.toLocaleString() || "2,381"}</p>
-                  <p className="text-[10px] text-purple-200 mt-0.5">Spatial & phonetic match</p>
+                  <p className="text-2xl font-black text-rose-400 mt-1">{discoveryStats?.duplicates_caught != null ? discoveryStats.duplicates_caught.toLocaleString() : "—"}</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">Spatial & phonetic match</p>
                 </div>
-                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
                   <p className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Verified High Quality</p>
                   <p className="text-2xl font-black text-emerald-400 mt-1">{discoveryStats?.verified?.toLocaleString() || "0"}</p>
-                  <p className="text-[10px] text-purple-200 mt-0.5">Quality score &ge; 70%</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">Quality score &ge; 70%</p>
                 </div>
-                <div className="bg-purple-950/70 border border-purple-800/40 p-4 rounded-2xl">
+                <div className="bg-slate-900/70 border border-slate-700/40 p-4 rounded-2xl">
                   <p className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider">Needs Review</p>
                   <p className="text-2xl font-black text-cyan-400 mt-1">{discoveryStats?.needs_review?.toLocaleString() || "0"}</p>
-                  <p className="text-[10px] text-purple-200 mt-0.5">Human verification</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">Human verification</p>
                 </div>
               </div>
 
               {/* Batch Discovery Trigger Panel */}
-              <div className="bg-purple-950/80 border border-purple-700/50 p-6 rounded-3xl space-y-4">
+              <div className="bg-slate-900/80 border border-slate-600/50 p-6 rounded-3xl space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
                       <FiLayers className="text-amber-400" /> Launch Autonomous Multi-Source Discovery Job
                     </h4>
-                    <p className="text-xs text-purple-200 mt-0.5">
+                    <p className="text-xs text-slate-300 mt-0.5">
                       Ingests and geocodes real places across OSM, Topographic Surveys, and Local Gazetteers. Evaluates spatial proximity and phonetic similarity before staging.
                     </p>
                   </div>
@@ -775,11 +1024,11 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                   <div>
-                    <label className="text-[11px] font-bold text-purple-300 uppercase">Target Province</label>
+                    <label className="text-[11px] font-bold text-slate-300 uppercase">Target Province</label>
                     <select
                       value={batchForm.province}
                       onChange={(e) => setBatchForm({ ...batchForm, province: e.target.value })}
-                      className="w-full mt-1 px-3.5 py-2.5 bg-purple-900/70 border border-purple-600/60 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                      className="w-full mt-1 px-3.5 py-2.5 bg-slate-800/70 border border-slate-600/60 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                     >
                       <option value="">All Nepal (7 Provinces)</option>
                       <option value="Bagmati">Bagmati Province</option>
@@ -793,11 +1042,11 @@ const AdminDashboard = () => {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-purple-300 uppercase">Scan Batch Limit</label>
+                    <label className="text-[11px] font-bold text-slate-300 uppercase">Scan Batch Limit</label>
                     <select
                       value={batchForm.limit}
                       onChange={(e) => setBatchForm({ ...batchForm, limit: Number(e.target.value) })}
-                      className="w-full mt-1 px-3.5 py-2.5 bg-purple-900/70 border border-purple-600/60 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                      className="w-full mt-1 px-3.5 py-2.5 bg-slate-800/70 border border-slate-600/60 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                     >
                       <option value={500}>500 Candidate Records</option>
                       <option value={1000}>1,000 Candidate Records</option>
@@ -827,20 +1076,20 @@ const AdminDashboard = () => {
               </div>
 
               {/* Candidate Staging Moderation Table */}
-              <div className="bg-purple-950/80 border border-purple-700/50 rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="bg-slate-900/80 border border-slate-600/50 rounded-3xl p-6 space-y-4 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
                       <FiMapPin className="text-amber-400" /> Staged Discovery Candidates & Deduplication Audit
                     </h4>
-                    <p className="text-xs text-purple-200 mt-0.5">
+                    <p className="text-xs text-slate-300 mt-0.5">
                       Review discovered places, inspect duplicate match confidence, and promote high-quality places or merge aliases.
                     </p>
                   </div>
 
                   {/* Bulk Action Toolbar */}
                   {selectedCandidateIds.length > 0 && (
-                    <div className="flex items-center gap-2 bg-purple-900/90 border border-purple-600 p-2 rounded-2xl">
+                    <div className="flex items-center gap-2 bg-slate-800/90 border border-emerald-600 p-2 rounded-2xl">
                       <span className="text-xs font-bold text-amber-300 px-2">{selectedCandidateIds.length} Selected:</span>
                       <button
                         onClick={() => handleCandidateBulkAction("publish")}
@@ -867,12 +1116,12 @@ const AdminDashboard = () => {
                 {/* Filter & Search Bar */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-1">
                   <div className="relative flex-1">
-                    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-300" size={14} />
+                    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                     <input
                       value={candidateSearch}
                       onChange={(e) => setCandidateSearch(e.target.value)}
                       placeholder="Search candidates by name, district, or normalized token..."
-                      className="w-full pl-9 pr-4 py-2 bg-purple-900/60 border border-purple-700/60 rounded-xl text-xs text-white placeholder-purple-300 focus:outline-none focus:border-amber-400"
+                      className="w-full pl-9 pr-4 py-2 bg-slate-800/60 border border-slate-600/60 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
@@ -891,7 +1140,7 @@ const AdminDashboard = () => {
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                           candidateFilterStatus === f.id
                             ? "bg-amber-400 text-gray-950 shadow"
-                            : "bg-purple-900/50 text-purple-200 hover:bg-purple-900 border border-purple-700/50"
+                            : "bg-slate-800/50 text-slate-300 hover:bg-slate-800 border border-slate-600/50"
                         }`}
                       >
                         {f.label}
@@ -901,9 +1150,9 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Candidates Table */}
-                <div className="overflow-x-auto rounded-2xl border border-purple-800/40">
-                  <table className="w-full text-left text-xs text-purple-100">
-                    <thead className="bg-purple-900/70 text-purple-200 uppercase font-black tracking-wider text-[10px]">
+                <div className="overflow-x-auto rounded-2xl border border-slate-700/40">
+                  <table className="w-full text-left text-xs text-slate-200">
+                    <thead className="bg-slate-800/70 text-slate-300 uppercase font-black tracking-wider text-[10px]">
                       <tr>
                         <th className="p-3">
                           <input
@@ -913,7 +1162,7 @@ const AdminDashboard = () => {
                               if (e.target.checked) setSelectedCandidateIds(candidates.map((c) => c.id))
                               else setSelectedCandidateIds([])
                             }}
-                            className="rounded border-purple-600 bg-purple-950"
+                            className="rounded border-emerald-600 bg-slate-900"
                           />
                         </th>
                         <th className="p-3">Candidate Name & Taxonomy</th>
@@ -923,22 +1172,22 @@ const AdminDashboard = () => {
                         <th className="p-3 text-right">Moderation Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-purple-800/40 bg-purple-950/40">
+                    <tbody className="divide-y divide-slate-700/40 bg-slate-900/40">
                       {candidatesLoading ? (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center text-purple-300">
+                          <td colSpan={6} className="p-8 text-center text-slate-300">
                             <FiRefreshCw className="animate-spin inline-block mr-2" size={16} /> Loading candidate intelligence database...
                           </td>
                         </tr>
                       ) : candidates.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center text-purple-300">
+                          <td colSpan={6} className="p-8 text-center text-slate-300">
                             No candidates found matching the active filters. Launch a discovery batch above to stage new candidate places!
                           </td>
                         </tr>
                       ) : (
                         candidates.map((cand) => (
-                          <tr key={cand.id} className="hover:bg-purple-900/30 transition-colors">
+                          <tr key={cand.id} className="hover:bg-slate-800/30 transition-colors">
                             <td className="p-3">
                               <input
                                 type="checkbox"
@@ -947,27 +1196,27 @@ const AdminDashboard = () => {
                                   if (e.target.checked) setSelectedCandidateIds([...selectedCandidateIds, cand.id])
                                   else setSelectedCandidateIds(selectedCandidateIds.filter((id) => id !== cand.id))
                                 }}
-                                className="rounded border-purple-600 bg-purple-950"
+                                className="rounded border-emerald-600 bg-slate-900"
                               />
                             </td>
                             <td className="p-3">
                               <div className="font-bold text-white text-sm">{cand.name}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-900 text-purple-200 border border-purple-700">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-600">
                                   {cand.place_type?.replace("_", " ")}
                                 </span>
-                                <span className="text-[10px] text-purple-300">Source: {cand.source}</span>
+                                <span className="text-[10px] text-slate-300">Source: {cand.source}</span>
                               </div>
                             </td>
                             <td className="p-3">
                               <div className="font-semibold text-white">{cand.district || "Nepal"}, {cand.province || "Province"}</div>
-                              <div className="text-[10px] text-purple-300 font-mono mt-0.5">
+                              <div className="text-[10px] text-slate-300 font-mono mt-0.5">
                                 {cand.latitude ? `${cand.latitude?.toFixed(4)}, ${cand.longitude?.toFixed(4)}` : "No GPS"}
                               </div>
                             </td>
                             <td className="p-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-16 bg-purple-900 rounded-full h-2 overflow-hidden border border-purple-700">
+                                <div className="w-16 bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-600">
                                   <div
                                     className={`h-full ${
                                       cand.quality_score >= 70 ? "bg-emerald-400" : cand.quality_score >= 45 ? "bg-amber-400" : "bg-rose-400"
@@ -990,7 +1239,7 @@ const AdminDashboard = () => {
                               >
                                 {cand.duplicate_status?.replace("_", " ").toUpperCase()} ({cand.match_score?.toFixed(0)}%)
                               </span>
-                              <p className="text-[10px] text-purple-200 mt-1 line-clamp-2">{cand.duplicate_reason}</p>
+                              <p className="text-[10px] text-slate-300 mt-1 line-clamp-2">{cand.duplicate_reason}</p>
                             </td>
                             <td className="p-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
@@ -1034,134 +1283,10 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
-        {/* TAB 2: USERS & RBAC (With Bio Description & Travel Activity) */}
+        {/* TAB 2: USERS & RBAC */}
         {activeTab === "users" && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative w-full sm:w-80">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-300" />
-                <input
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  placeholder="Search user, email, role, location..."
-                  className="w-full pl-10 pr-4 py-2 bg-purple-950/80 border border-purple-700/60 rounded-xl text-sm text-white placeholder-purple-300 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-400/20"
-              >
-                <FiPlus size={16} /> Create Sub-Admin / Staff
-              </button>
-            </div>
-
-            <div className="bg-purple-950/70 border border-purple-700/40 rounded-2xl overflow-hidden shadow-2xl backdrop-blur">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-purple-900/60 text-purple-200 border-b border-purple-700/50 text-xs uppercase tracking-wider">
-                    <tr>
-                      <th className="px-5 py-3.5">User & Description</th>
-                      <th className="px-4 py-3.5">Role / Sub-Admin</th>
-                      <th className="px-4 py-3.5">Location</th>
-                      <th className="px-4 py-3.5">Travel Activity & Views</th>
-                      <th className="px-4 py-3.5">Status</th>
-                      <th className="px-4 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-purple-800/40 text-purple-100">
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-purple-900/30 transition-colors">
-                        <td className="px-5 py-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-pink-500 text-gray-950 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
-                              {u.first_name?.[0] || u.email[0].toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-white leading-snug">{u.full_name || "Traveler"}</p>
-                              <p className="text-xs text-purple-300">{u.email}</p>
-                              <p className="text-[11px] text-purple-400 italic line-clamp-1 mt-0.5">
-                                {u.bio || "No profile description provided."}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                            className="bg-purple-900/80 border border-purple-600/50 rounded-lg px-2.5 py-1 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-400"
-                          >
-                            {ROLES.map((r) => (
-                              <option key={r.id} value={r.id} className="bg-purple-950 text-white">
-                                {r.label}
-                              </option>
-                            ))}
-                          </select>
-                          {u.managed_district && (
-                            <p className="text-[10px] text-amber-300/80 mt-0.5">District: {u.managed_district}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-xs">
-                          {u.latitude && u.longitude ? (
-                            <div>
-                              <span className="text-emerald-400 font-medium">📍 {u.city || "Nepal"}</span>
-                              <p className="text-[10px] text-purple-300">{u.latitude.toFixed(2)}, {u.longitude.toFixed(2)}</p>
-                            </div>
-                          ) : (
-                            <span className="text-purple-400">Location inactive</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-xs">
-                          <button
-                            onClick={() => setSelectedUserHistory(u)}
-                            className="text-amber-300 hover:text-amber-200 font-bold underline flex items-center gap-1"
-                          >
-                            <FiEye size={12} /> {u.history_count} Places Visited
-                          </button>
-                          {u.last_destination && (
-                            <p className="text-[10px] text-purple-300 truncate max-w-[140px] mt-0.5">
-                              Last: {u.last_destination}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                              u.is_active
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
-                            }`}
-                          >
-                            {u.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-right space-x-2">
-                          <button
-                            onClick={() => handleToggleUserStatus(u.id, u.is_active)}
-                            title={u.is_active ? "Deactivate User" : "Activate User"}
-                            className="p-2 rounded-xl bg-purple-800/60 hover:bg-purple-700 text-purple-200 hover:text-white transition-colors"
-                          >
-                            {u.is_active ? <FiUserX size={15} /> : <FiUserCheck size={15} />}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u.id)}
-                            title="Remove User"
-                            className="p-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-sm shadow-rose-600/30"
-                          >
-                            <FiTrash2 size={15} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
+            <UserManagement />
           </motion.div>
         )}
 
@@ -1173,12 +1298,12 @@ const AdminDashboard = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+            <div className="bg-slate-900/60 border border-slate-600/40 p-5 rounded-2xl flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-white flex items-center gap-2">
                   <FiActivity className="text-amber-400" /> Live Traveler GPS & Medical Emergency Radar
                 </h3>
-                <p className="text-xs text-purple-200">
+                <p className="text-xs text-slate-300">
                   Tracks traveler coordinates, destination history, navigation state, and real-time medical emergencies.
                 </p>
               </div>
@@ -1195,37 +1320,37 @@ const AdminDashboard = () => {
                   className={`p-5 rounded-2xl border transition-all shadow-xl ${
                     t.has_medical_emergency
                       ? "bg-rose-950/90 border-rose-500 shadow-rose-500/30 animate-pulse"
-                      : "bg-purple-950/70 border-purple-700/40 hover:border-purple-600"
+                      : "bg-slate-900/70 border-slate-600/40 hover:border-emerald-600"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-bold text-white text-base">{t.full_name || t.email}</h4>
-                      <p className="text-xs text-purple-300">{t.email}</p>
+                      <p className="text-xs text-slate-300">{t.email}</p>
                     </div>
                     {t.has_medical_emergency ? (
                       <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center gap-1">
                         <FiAlertTriangle /> MEDICAL SOS
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-800 text-purple-200 text-[10px] font-semibold uppercase">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-[10px] font-semibold uppercase">
                         {t.role}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-purple-300 italic mt-2 line-clamp-2">
+                  <p className="text-xs text-slate-300 italic mt-2 line-clamp-2">
                     "{t.bio}"
                   </p>
 
-                  <div className="my-3 text-xs space-y-1 text-purple-200 border-t border-purple-800/40 pt-2">
+                  <div className="my-3 text-xs space-y-1 text-slate-300 border-t border-slate-700/40 pt-2">
                     <p className="flex items-center gap-1">
                       <FiMapPin className="text-amber-300" />
                       <span>{t.city}, {t.country}</span>
                       {t.latitude && <span className="text-[10px] opacity-70">({t.latitude.toFixed(3)}, {t.longitude.toFixed(3)})</span>}
                     </p>
                     <p className="flex items-center gap-1">
-                      <FiEye className="text-purple-300" />
+                      <FiEye className="text-slate-300" />
                       <span>{t.view_count} destination views logged</span>
                     </p>
                     {t.is_navigating && (
@@ -1250,11 +1375,11 @@ const AdminDashboard = () => {
                   )}
 
                   {t.recent_history?.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-purple-800/40 text-[11px]">
-                      <p className="text-purple-300 font-semibold mb-1">Destinations Visited:</p>
+                    <div className="mt-3 pt-2 border-t border-slate-700/40 text-[11px]">
+                      <p className="text-slate-300 font-semibold mb-1">Destinations Visited:</p>
                       <div className="flex flex-wrap gap-1">
                         {t.recent_history.map((h, i) => (
-                          <span key={i} className="px-2 py-0.5 rounded-md bg-purple-900/80 text-purple-200">
+                          <span key={i} className="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300">
                             {h.destination__name}
                           </span>
                         ))}
@@ -1275,22 +1400,22 @@ const AdminDashboard = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+            <div className="bg-slate-900/60 border border-slate-600/40 p-5 rounded-2xl flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-white flex items-center gap-2">
                   <FiMapPin className="text-amber-400" /> Pending Tourist Place Submissions ({pendingPlaces.length})
                 </h3>
-                <p className="text-xs text-purple-200">
+                <p className="text-xs text-slate-300">
                   Inspect user-submitted places with full ward, municipality, amenities, and photos. Accept (Green) directly publishes to the database table.
                 </p>
               </div>
             </div>
 
             {pendingPlaces.length === 0 ? (
-              <div className="p-12 text-center bg-purple-950/40 rounded-2xl border border-purple-800/40">
+              <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-slate-700/40">
                 <FiCheck className="mx-auto text-emerald-400 mb-2" size={32} />
                 <p className="font-bold text-lg text-white">All submissions reviewed!</p>
-                <p className="text-sm text-purple-300">No pending destination submissions waiting for review.</p>
+                <p className="text-sm text-slate-300">No pending destination submissions waiting for review.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1298,7 +1423,7 @@ const AdminDashboard = () => {
                   <motion.div
                     key={p.id}
                     whileHover={{ y: -4 }}
-                    className="bg-purple-950/70 border border-purple-700/50 rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between"
+                    className="bg-slate-900/70 border border-slate-600/50 rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between"
                   >
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-4">
@@ -1307,21 +1432,21 @@ const AdminDashboard = () => {
                             {p.category_name}
                           </span>
                           <h4 className="text-xl font-bold text-white mt-1">{p.name}</h4>
-                          <p className="text-xs text-purple-300">
+                          <p className="text-xs text-slate-300">
                             📍 {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
                           </p>
                         </div>
-                        <span className="text-[11px] text-purple-300 font-medium">By: {p.created_by}</span>
+                        <span className="text-[11px] text-slate-300 font-medium">By: {p.created_by}</span>
                       </div>
 
                       {/* Photo preview */}
                       {p.cover_image_url && (
-                        <div className="h-44 rounded-xl overflow-hidden border border-purple-800">
+                        <div className="h-44 rounded-xl overflow-hidden border border-slate-700">
                           <img src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                       )}
 
-                      <div className="p-3.5 rounded-xl bg-purple-900/40 border border-purple-800/40 text-xs text-purple-100 space-y-1.5">
+                      <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/40 text-xs text-slate-200 space-y-1.5">
                         <p><b>Description:</b> {p.description || "No description provided."}</p>
                         <p><b>Coordinates:</b> {p.latitude?.toFixed(4)}, {p.longitude?.toFixed(4)} ({p.altitude || "Altitude N/A"})</p>
                         {p.history && <p><b>History:</b> {p.history}</p>}
@@ -1331,10 +1456,10 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* GREEN Accept & RED Reject Buttons */}
-                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-purple-800/40">
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-700/40">
                       <button
                         onClick={() => setInspectingPlace(p)}
-                        className="px-3.5 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold flex items-center gap-1.5 border border-purple-700"
+                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-600"
                       >
                         <FiInfo size={13} /> View All Details
                       </button>
@@ -1372,27 +1497,27 @@ const AdminDashboard = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+            <div className="bg-slate-900/60 border border-slate-600/40 p-5 rounded-2xl flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-white flex items-center gap-2">
                   <FiImage className="text-pink-400" /> User-Submitted Image Verification ({pendingImages.length})
                 </h3>
-                <p className="text-xs text-purple-200">
+                <p className="text-xs text-slate-300">
                   Verify authentic high-quality images. Approved images are permanently saved to database galleries and recommendation models.
                 </p>
               </div>
             </div>
 
             {pendingImages.length === 0 ? (
-              <div className="p-12 text-center bg-purple-950/40 rounded-2xl border border-purple-800/40">
+              <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-slate-700/40">
                 <FiCheck className="mx-auto text-emerald-400 mb-2" size={32} />
                 <p className="font-bold text-lg text-white">All photos verified!</p>
-                <p className="text-sm text-purple-300">No community images waiting for admin verification.</p>
+                <p className="text-sm text-slate-300">No community images waiting for admin verification.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pendingImages.map((img) => (
-                  <div key={img.id} className="bg-purple-950/70 border border-purple-700/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between">
+                  <div key={img.id} className="bg-slate-900/70 border border-slate-600/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between">
                     <div className="h-52 w-full relative overflow-hidden bg-black">
                       <img src={img.image_url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                       <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-amber-300 text-xs font-bold">
@@ -1403,11 +1528,11 @@ const AdminDashboard = () => {
                     <div className="p-4 space-y-3">
                       <div>
                         <p className="text-sm font-semibold text-white">{img.caption || "Community Photo"}</p>
-                        <p className="text-xs text-purple-300 mt-1">Uploaded by: {img.uploaded_by}</p>
+                        <p className="text-xs text-slate-300 mt-1">Uploaded by: {img.uploaded_by}</p>
                       </div>
 
                       {/* RED and GREEN Buttons */}
-                      <div className="flex items-center gap-2 pt-2 border-t border-purple-800/40">
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-700/40">
                         <button
                           onClick={() => handleRejectImage(img.id)}
                           className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-600/30"
@@ -1429,7 +1554,415 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
+        {/* TAB: MULTI-SOURCE IMAGE ACQUISITION PIPELINE */}
+        {activeTab === "image_pipeline" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Header Banner */}
+            <div className="bg-slate-900/60 border border-slate-700/60 p-6 rounded-3xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] font-black uppercase tracking-wider">
+                    Autonomous Multi-Source Media Provenance Engine
+                  </span>
+                  <h2 className="text-2xl font-black text-white mt-1 flex items-center gap-2">
+                    🖼️ Multi-Source Image Acquisition & Provenance Desk
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Automated Waterfall Provider Chain: Wikimedia Commons ➔ Openverse ➔ Unsplash ➔ Pexels ➔ Flickr ➔ Pixabay ➔ AI Illustration Fallback
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDiscoverPipelineImages}
+                    disabled={pipelineLoading}
+                    className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs flex items-center gap-1.5 shadow-lg transition-all"
+                  >
+                    ⚡ Find Images (Multi-Source Pipeline)
+                  </button>
+                  <button
+                    onClick={handleRefreshPipelineImages}
+                    disabled={pipelineLoading}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-600 transition-all"
+                  >
+                    🔄 Refresh Images
+                  </button>
+                  <button
+                    onClick={handleGenerateAIImages}
+                    disabled={aiGenerating}
+                    className="px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {aiGenerating ? "🤖 Generating..." : "✨ Generate AI images"}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number" min={1} max={200} value={webImageCount}
+                      onChange={(e) => setWebImageCount(parseInt(e.target.value, 10) || 50)}
+                      title="Number of real photos to fetch (1-200)"
+                      className="w-20 px-2 py-2.5 rounded-xl bg-slate-800/80 border border-slate-600/60 text-center text-white font-bold text-xs focus:outline-none focus:border-emerald-400"
+                    />
+                    <button
+                      onClick={handleFetchWebImages}
+                      disabled={webSearching}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all disabled:opacity-50"
+                    >
+                      {webSearching ? "⏳ Searching web..." : `🌐 Fetch ${webImageCount || 50} real photos`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Search destination by name to switch target */}
+              <div className="pt-3 border-t border-slate-800/60 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={destSearch}
+                    onChange={(e) => setDestSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && runDestinationSearch()}
+                    placeholder="Search destination by name (e.g. Ilam, Rolpa, Mustang)..."
+                    className="flex-1 min-w-[240px] px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                  />
+                  <button onClick={runDestinationSearch} className="px-4 py-2 rounded-lg bg-slate-600 hover:bg-emerald-600 text-white text-sm font-bold">
+                    Search
+                  </button>
+                </div>
+                {destSearchResults.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {destSearchResults.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => { setPipelineDestSlug(d.slug || String(d.id)); setPipelineDestId(d.id); setDestSearchResults([]); loadPipelineImages(d.slug || String(d.id), d.id) }}
+                        className="px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-amber-400 hover:text-gray-950 text-slate-200 text-xs font-semibold border border-slate-600/50"
+                      >
+                        {d.name} <span className="opacity-60">({d.district || d.province || "—"})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Destination Selector Pills */}
+              <div className="pt-2 border-t border-slate-800/60 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-amber-300">Target Destination:</span>
+                {pipelineDests.map((p) => (
+                  <button
+                    key={p.slug || p.id}
+                    onClick={() => {
+                      setPipelineDestSlug(p.slug)
+                      setPipelineDestId(p.id || null)
+                      loadPipelineImages(p.slug, p.id)
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      pipelineDestSlug === p.slug
+                        ? "bg-amber-400 text-gray-950 shadow"
+                        : "bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-slate-600/50"
+                    }`}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom destination slug / ID input */}
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  type="text"
+                  value={pipelineDestSlug}
+                  onChange={(e) => setPipelineDestSlug(e.target.value)}
+                  placeholder="Enter destination slug or ID (e.g. phewa-lake-tal-barahi)..."
+                  className="w-72 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-slate-600/60 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  onClick={() => loadPipelineImages()}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs"
+                >
+                  Load Images
+                </button>
+              </div>
+
+              {/* Admin: upload-by-URL + set cover */}
+              <div className="mt-3 p-3 rounded-xl bg-slate-900/40 border border-slate-700/60 space-y-2">
+                <p className="text-[11px] font-bold text-amber-300">Admin: add / override destination image</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    placeholder="Paste image URL (https://...)"
+                    className="flex-1 px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                  />
+                  <input
+                    type="text"
+                    value={newImageCaption}
+                    onChange={(e) => setNewImageCaption(e.target.value)}
+                    placeholder="Caption (optional)"
+                    className="sm:w-56 px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                  />
+                  <button
+                    onClick={handleAddAdminImage}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold whitespace-nowrap"
+                  >
+                    + Add &amp; set cover
+                  </button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-700/60">
+                  <input type="file" accept="image/*" onChange={(e)=>setNewImageFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
+                  <button type="button" disabled={!newImageFile} onClick={handleUploadAdminImage} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold">Browse PC & Upload Cover</button>
+                </div>
+                {(newImageUrl.trim() || newImageFile) && (
+                  <div className="flex items-center gap-3 pt-2">
+                    <img
+                      src={newImageFile ? URL.createObjectURL(newImageFile) : newImageUrl.trim()}
+                      alt="Selected image preview"
+                      className="h-24 w-36 rounded-lg object-cover border border-amber-400/50 bg-black"
+                      onError={(e) => { e.currentTarget.style.opacity = "0.3" }}
+                    />
+                    <p className="text-[11px] text-slate-300">Preview of the image that will be saved as the current cover. After upload the gallery below refreshes from the database.</p>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-300">URL and local-disk uploads save directly to the database and show on the site immediately.</p>
+                <div className="pt-3 border-t border-slate-700/60 space-y-2">
+                  <p className="text-[11px] font-bold text-sky-300">Admin: destination videos (25 MB max)</p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input type="file" accept="video/*" onChange={(e)=>setNewVideoFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
+                    <button type="button" disabled={!newVideoFile} onClick={async () => {
+                      if (!newVideoFile) return
+                      if (newVideoFile.size > 25 * 1024 * 1024) return showToast("Videos must be 25 MB or smaller.", "error")
+                      const destId = await resolvePipelineDestination()
+                      if (!destId) return showToast("Select a destination first.", "error")
+                      const form = new FormData()
+                      form.append("video_file", newVideoFile)
+                      form.append("title", newVideoFile.name)
+                      try {
+                        await adminApi.addAdminDestinationVideo(destId, form)
+                        showToast("Video added.", "success")
+                        setNewVideoFile(null)
+                        await loadPipelineImages(null, destId)
+                      } catch (error) {
+                        showToast(error?.response?.data?.detail || "Video upload failed.", "error")
+                      }
+                    }} className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-40 text-white text-xs font-bold">Upload video</button>
+                  </div>
+                  {pipelineVideos.length > 0 && (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {pipelineVideos.map((video) => (
+                        <div key={video.id} className="rounded-lg bg-slate-800/80 p-2 text-[11px] text-slate-200">
+                          <p className="font-bold truncate">{video.title || video.caption || "Video"} · {video.verification_status}</p>
+                          {video.url && <video src={video.url} controls className="mt-1 w-full max-h-32 rounded" />}
+                          <div className="mt-1 flex gap-1">
+                            <button type="button" onClick={async () => { await adminApi.updateAdminDestinationVideo(pipelineDestId, { video_id: video.id, verification_status: video.verification_status === "approved" ? "pending" : "approved" }); loadPipelineImages() }} className="rounded bg-emerald-700 px-2 py-1 text-white font-bold">{video.verification_status === "approved" ? "Unpublish" : "Approve"}</button>
+                            <button type="button" onClick={async () => { if (!window.confirm("Remove this video?")) return; await adminApi.deleteAdminDestinationVideo(pipelineDestId, video.id); loadPipelineImages() }} className="rounded bg-rose-700 px-2 py-1 text-white font-bold">Remove</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Strict Commercial Usage-Rights & License Verification Desk Banner */}
+            <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-black uppercase text-emerald-300">
+                  Google Usage-Rights & Commercial Compliance Policy Active
+                </span>
+                <p className="text-xs font-bold text-white">
+                  ✓ All discovered images verified against commercial reuse terms. Non-commercial (CC BY-NC), All Rights Reserved, and paid stock licenses automatically rejected.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black shrink-0">
+                100% Commercial Reusable
+              </span>
+            </div>
+
+            {/* Provenance Stats Bar (All 12 Providers) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-900/50 border border-slate-700/40 text-center">
+                <span className="text-[10px] uppercase font-black text-slate-300 block">Total</span>
+                <p className="text-lg font-black text-white mt-0.5">{pipelineImages.length}</p>
+              </div>
+              <div className="p-3 rounded-2xl bg-blue-950/50 border border-blue-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-blue-300 block">Wikimedia</span>
+                <p className="text-lg font-black text-blue-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source === "wikimedia").length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-800/50 border border-slate-600/40 text-center">
+                <span className="text-[10px] uppercase font-black text-slate-300 block">Openverse</span>
+                <p className="text-lg font-black text-emerald-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source === "openverse").length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-sky-950/50 border border-sky-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-sky-300 block">OSM/Mapillary</span>
+                <p className="text-lg font-black text-sky-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source?.includes("osm") || i.source?.includes("mapillary")).length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-amber-950/50 border border-amber-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-amber-300 block">Nepal Gov/Open</span>
+                <p className="text-lg font-black text-amber-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source?.includes("nepal_gov") || i.source?.includes("kaggle") || i.source?.includes("google_landmark")).length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-teal-950/50 border border-teal-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-teal-300 block">Satellite</span>
+                <p className="text-lg font-black text-teal-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source?.includes("satellite")).length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-emerald-950/50 border border-emerald-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-emerald-300 block">Unsplash</span>
+                <p className="text-lg font-black text-emerald-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source === "unsplash").length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-cyan-950/50 border border-cyan-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-cyan-300 block">Pexels</span>
+                <p className="text-lg font-black text-cyan-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source === "pexels").length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-orange-950/50 border border-orange-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-orange-300 block">Flickr/Pixabay</span>
+                <p className="text-lg font-black text-orange-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.source === "flickr" || i.source === "pixabay").length}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-rose-950/50 border border-rose-800/40 text-center">
+                <span className="text-[10px] uppercase font-black text-rose-300 block">AI Generated</span>
+                <p className="text-lg font-black text-rose-400 mt-0.5">
+                  {pipelineImages.filter((i) => i.isAiGenerated).length}
+                </p>
+              </div>
+            </div>
+
+            {/* Image Grid with Provenance Cards */}
+            {pipelineLoading ? (
+              <div className="py-16 text-center text-slate-300">
+                <FiRefreshCw className="animate-spin mx-auto mb-2 text-amber-400" size={32} />
+                <p className="font-bold">Executing multi-source image acquisition waterfall chain...</p>
+              </div>
+            ) : pipelineImages.length === 0 ? (
+              <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-slate-700/40 text-slate-300">
+                <p className="font-bold">No images discovered yet for destination '{pipelineDestSlug}'.</p>
+                <p className="text-xs text-slate-300 mt-1">Click "Find Images (Multi-Source Pipeline)" above to launch automated discovery!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {pipelineImages.map((img, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-2xl bg-slate-900/60 border border-slate-700/60 overflow-hidden flex flex-col justify-between"
+                  >
+                    <div className="relative h-44 bg-slate-800">
+                      <img
+                        src={img.url}
+                        alt={img.caption || img.author}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null
+                          e.target.removeAttribute("src")
+                        }}
+                      />
+                      <div className="absolute top-2 left-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow ${
+                            img.isAiGenerated
+                              ? "bg-rose-600 text-white animate-pulse"
+                              : img.source === "wikimedia"
+                              ? "bg-blue-600 text-white"
+                              : img.source === "openverse"
+                              ? "bg-emerald-600 text-white"
+                              : img.source === "unsplash"
+                              ? "bg-emerald-600 text-white"
+                              : "bg-amber-500 text-gray-950"
+                          }`}
+                        >
+                          {img.isAiGenerated ? "🤖 AI ILLUSTRATION" : img.source?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="absolute bottom-2 right-2">
+                        <span className="px-2 py-0.5 rounded bg-black/70 text-white text-[10px] font-mono">
+                          {img.license}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+                      <div>
+                        <p className="font-bold text-xs text-white line-clamp-1">{img.caption || "Verified Destination Media"}</p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">Author: <span className="text-white font-semibold">{img.author}</span></p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] gap-2">
+                        <a
+                          href={img.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-amber-300 hover:underline font-bold shrink-0"
+                        >
+                          [View Source]
+                        </a>
+                        {img.id ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingImageModal(img)
+                              setReplacementCaption(img.caption || "")
+                              setReplacementUrl(img.url || "")
+                            }}
+                            className="px-2 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold"
+                          >
+                            Replace / Edit
+                          </button>
+                        ) : null}
+                        {img.id ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await adminApi.setDestinationCover(pipelineDestSlug, img.id)
+                                showToast("Cover image updated.", "success")
+                                loadPipelineImages()
+                              } catch {
+                                showToast("Could not set cover image.", "error")
+                              }
+                            }}
+                            className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold"
+                          >
+                            Set as cover
+                          </button>
+                        ) : null}
+                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,verification_status:img.verification_status==="rejected"?"approved":"rejected",is_verified:img.verification_status==="rejected"});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-slate-600 text-white text-[10px] font-bold">{img.verification_status==="rejected"?"Enable":"Disable"}</button>}
+                        {img.id && <button type="button" onClick={async()=>{await adminApi.updateAdminDestinationImage(pipelineDestId,{image_id:img.id,ordering:Math.max(0,idx-1)});loadPipelineImages()}} className="px-2 py-1 rounded-md bg-blue-600 text-white text-[10px] font-bold">Move up</button>}
+                        {img.id && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImage(img.id)}
+                            className="px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* TAB 6: MEDICAL SOS */}
+        {activeTab === "emergency_directory" && <EmergencyDirectoryPanel />}
         {activeTab === "emergencies" && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -1458,7 +1991,7 @@ const AdminDashboard = () => {
                   className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl ${
                     e.status === "active"
                       ? "bg-rose-950/70 border-rose-500 shadow-rose-500/20"
-                      : "bg-purple-950/60 border-purple-700/40 opacity-80"
+                      : "bg-slate-900/60 border-slate-600/40 opacity-80"
                   }`}
                 >
                   <div className="space-y-1">
@@ -1470,8 +2003,8 @@ const AdminDashboard = () => {
                       </span>
                       <h4 className="font-bold text-white">{e.user_name} ({e.user_email})</h4>
                     </div>
-                    <p className="text-sm text-purple-100 font-medium">{e.message}</p>
-                    <p className="text-xs text-purple-300 flex items-center gap-3">
+                    <p className="text-sm text-slate-200 font-medium">{e.message}</p>
+                    <p className="text-xs text-slate-300 flex items-center gap-3">
                       {e.user_phone && <span>📞 Phone: <b>{e.user_phone}</b></span>}
                       {e.latitude && <span>📍 GPS: <b>{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</b></span>}
                       <span>🕒 {new Date(e.triggered_at).toLocaleString()}</span>
@@ -1492,6 +2025,23 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
+        {activeTab === "infrastructure" && (
+          <div className="space-y-6">
+            <ServicePhotosPanel />
+            <InfrastructureModerationPanel />
+          </div>
+        )}
+        {activeTab === "hotel_bookings" && <HotelBookingPanel />}
+        {activeTab === "marketplace" && <MarketplacePanel />}
+        {activeTab === "travel_services" && <TravelServicesPanel />}
+        {activeTab === "review_moderation" && <ReviewModerationPanel />}
+        {activeTab === "safety_management" && <SafetyManagementPanel />}
+        {activeTab === "notification_settings" && <NotificationSettingsPanel />}
+        {activeTab === "retention" && <RetentionPolicyPanel />}
+        {activeTab === "media_library" && <MediaLibraryPanel />}
+        {activeTab === "datasets" && <DatasetManagerPanel />}
+        {activeTab === "feedback_workspace" && <FeedbackWorkspace />}
+
         {/* TAB 7: EXPENSES */}
         {activeTab === "expenses" && (
           <motion.div
@@ -1500,12 +2050,12 @@ const AdminDashboard = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+            <div className="bg-slate-900/60 border border-slate-600/40 p-5 rounded-2xl flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-white flex items-center gap-2">
                   <FiDollarSign className="text-amber-400" /> Traveler & Employee Field Expenditure Data ({expenseReports.length})
                 </h3>
-                <p className="text-xs text-purple-200">
+                <p className="text-xs text-slate-300">
                   Connects directly to the ML travel budget engine so future cost estimations learn and calibrate against actual ground costs.
                 </p>
               </div>
@@ -1519,18 +2069,18 @@ const AdminDashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {expenseReports.map((exp) => (
-                <div key={exp.id} className="bg-purple-950/70 border border-purple-700/40 rounded-2xl p-5 shadow-xl space-y-3">
+                <div key={exp.id} className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5 shadow-xl space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-bold text-white text-base">{exp.destination_name}</h4>
-                      <p className="text-xs text-purple-300">{exp.num_days} Days · {exp.num_people} Traveler{exp.num_people > 1 ? "s" : ""}</p>
+                      <p className="text-xs text-slate-300">{exp.num_days} Days · {exp.num_people} Traveler{exp.num_people > 1 ? "s" : ""}</p>
                     </div>
                     <span className="text-xl font-black text-amber-300">
                       NPR {Number(exp.total_cost).toLocaleString()}
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-purple-900/40 text-xs text-purple-200 grid grid-cols-2 gap-2">
+                  <div className="p-3 rounded-xl bg-slate-800/40 text-xs text-slate-300 grid grid-cols-2 gap-2">
                     <p>🏨 Stay: <b>NPR {exp.accommodation_cost}</b></p>
                     <p>🚗 Transit: <b>NPR {exp.travel_cost}</b></p>
                     <p>🍛 Food: <b>NPR {exp.food_cost}</b></p>
@@ -1538,10 +2088,10 @@ const AdminDashboard = () => {
                   </div>
 
                   {exp.route_details && (
-                    <p className="text-[11px] text-purple-300">🛣️ <b>Route:</b> {exp.route_details}</p>
+                    <p className="text-[11px] text-slate-300">🛣️ <b>Route:</b> {exp.route_details}</p>
                   )}
 
-                  <div className="pt-2 border-t border-purple-800/40 flex items-center justify-between text-[10px] text-purple-400">
+                  <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between text-[10px] text-emerald-400">
                     <span>By: {exp.user_name || "Field Officer"}</span>
                     {exp.is_employee_verified && <span className="text-emerald-400 font-bold">✓ Field Verified</span>}
                   </div>
@@ -1559,12 +2109,12 @@ const AdminDashboard = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <div className="bg-purple-950/60 border border-purple-700/40 p-5 rounded-2xl flex items-center justify-between">
+            <div className="bg-slate-900/60 border border-slate-600/40 p-5 rounded-2xl flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-white flex items-center gap-2">
                   <FiShield className="text-pink-400" /> Traveler Safety & Risk Incident Assessments ({riskReports.length})
                 </h3>
-                <p className="text-xs text-purple-200">
+                <p className="text-xs text-slate-300">
                   Traveler and field survey feedback (AMS sickness, hazards, local hospitality, transport accessibility) dynamically calibrating ML risk indices.
                 </p>
               </div>
@@ -1572,18 +2122,18 @@ const AdminDashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {riskReports.map((r) => (
-                <div key={r.id} className="bg-purple-950/70 border border-purple-700/40 rounded-2xl p-5 shadow-xl space-y-3">
+                <div key={r.id} className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5 shadow-xl space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-bold text-white text-base">{r.destination_name}</h4>
-                      <p className="text-xs text-purple-300">By: {r.user_name || "Traveler"}</p>
+                      <p className="text-xs text-slate-300">By: {r.user_name || "Traveler"}</p>
                     </div>
                     <span className="px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/40">
                       Safety: {r.overall_safety_rating}/10
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-purple-900/40 text-xs text-purple-200 space-y-1.5">
+                  <div className="p-3 rounded-xl bg-slate-800/40 text-xs text-slate-300 space-y-1.5">
                     <p>🤒 Became Sick: <b className={r.became_sick ? "text-rose-400" : "text-emerald-400"}>{r.became_sick ? `Yes (${r.sickness_type})` : "No"}</b></p>
                     <p>⚠️ Hazard Witnessed: <b>{r.hazard_witnessed || "None"}</b></p>
                     <p>🚗 Transport Ease: <b>{r.transport_accessibility_rating} / 5</b></p>
@@ -1592,7 +2142,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {r.comments && (
-                    <p className="text-xs text-purple-300 italic">"{r.comments}"</p>
+                    <p className="text-xs text-slate-300 italic">"{r.comments}"</p>
                   )}
                 </div>
               ))}
@@ -1609,21 +2159,21 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-gradient-to-br from-[#1d0626] via-[#320a3d] to-[#4c0d38] border border-purple-500/60 rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto"
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-emerald-600/50 rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-start justify-between border-b border-purple-700/60 pb-4">
+              <div className="flex items-start justify-between border-b border-slate-600/60 pb-4">
                 <div>
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
                     {inspectingPlace.category_name}
                   </span>
                   <h2 className="text-2xl font-black text-white mt-1">{inspectingPlace.name}</h2>
-                  <p className="text-xs text-purple-300">
+                  <p className="text-xs text-slate-300">
                     Submitted by: <b>{inspectingPlace.created_by}</b> · {new Date(inspectingPlace.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <button
                   onClick={() => setInspectingPlace(null)}
-                  className="p-2 rounded-full bg-purple-900/60 hover:bg-purple-800 text-purple-200"
+                  className="p-2 rounded-full bg-slate-800/60 hover:bg-slate-700 text-slate-300"
                 >
                   <FiX size={20} />
                 </button>
@@ -1631,79 +2181,79 @@ const AdminDashboard = () => {
 
               {/* Submitted Pictures */}
               {inspectingPlace.cover_image_url && (
-                <div className="h-64 rounded-2xl overflow-hidden border border-purple-700 shadow-lg">
+                <div className="h-64 rounded-2xl overflow-hidden border border-slate-600 shadow-lg">
                   <img src={inspectingPlace.cover_image_url} alt={inspectingPlace.name} className="w-full h-full object-cover" />
                 </div>
               )}
 
               {/* Administrative & Coordinate Details */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-purple-950/80 border border-purple-700/50 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-900/80 border border-slate-600/50 text-xs">
                 <div>
-                  <span className="text-purple-300">Province</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Gandaki"}</p>
+                  <span className="text-slate-300">Province</span>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Not recorded"}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">District / City</span>
+                  <span className="text-slate-300">District / City</span>
                   <p className="font-bold text-white mt-0.5">{inspectingPlace.district || inspectingPlace.city}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">Municipality</span>
+                  <span className="text-slate-300">Municipality</span>
                   <p className="font-bold text-white mt-0.5">{inspectingPlace.municipality || "N/A"}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">Ward Number</span>
+                  <span className="text-slate-300">Ward Number</span>
                   <p className="font-bold text-white mt-0.5">{inspectingPlace.ward_number ? `Ward ${inspectingPlace.ward_number}` : "N/A"}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">Latitude</span>
+                  <span className="text-slate-300">Latitude</span>
                   <p className="font-bold text-amber-300 mt-0.5">{inspectingPlace.latitude?.toFixed(6)}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">Longitude</span>
+                  <span className="text-slate-300">Longitude</span>
                   <p className="font-bold text-amber-300 mt-0.5">{inspectingPlace.longitude?.toFixed(6)}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">Altitude</span>
+                  <span className="text-slate-300">Altitude</span>
                   <p className="font-bold text-cyan-300 mt-0.5">{inspectingPlace.altitude || "N/A"}</p>
                 </div>
                 <div>
-                  <span className="text-purple-300">Entry Fee</span>
+                  <span className="text-slate-300">Entry Fee</span>
                   <p className="font-bold text-emerald-300 mt-0.5">NPR {inspectingPlace.entry_fee || 0}</p>
                 </div>
               </div>
 
               {/* Text content */}
               <div className="space-y-3 text-xs">
-                <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800">
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-700">
                   <h4 className="font-bold text-amber-300 mb-1">Full Description:</h4>
-                  <p className="text-purple-100 leading-relaxed whitespace-pre-line">{inspectingPlace.description}</p>
+                  <p className="text-slate-200 leading-relaxed whitespace-pre-line">{inspectingPlace.description}</p>
                 </div>
 
                 {inspectingPlace.history && (
-                  <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800">
+                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-700">
                     <h4 className="font-bold text-amber-300 mb-1">Historical & Cultural Heritage:</h4>
-                    <p className="text-purple-100 leading-relaxed whitespace-pre-line">{inspectingPlace.history}</p>
+                    <p className="text-slate-200 leading-relaxed whitespace-pre-line">{inspectingPlace.history}</p>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-800">
-                    <h5 className="font-bold text-purple-300">🏥 Nearest Hospital</h5>
-                    <p className="text-purple-100 mt-1">{inspectingPlace.nearest_hospital_info || "None specified"}</p>
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700">
+                    <h5 className="font-bold text-slate-300">🏥 Nearest Hospital</h5>
+                    <p className="text-slate-200 mt-1">{inspectingPlace.nearest_hospital_info || "None specified"}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-800">
-                    <h5 className="font-bold text-purple-300">🏨 Nearest Hotel</h5>
-                    <p className="text-purple-100 mt-1">{inspectingPlace.nearest_hotel_info || "None specified"}</p>
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700">
+                    <h5 className="font-bold text-slate-300">🏨 Nearest Hotel</h5>
+                    <p className="text-slate-200 mt-1">{inspectingPlace.nearest_hotel_info || "None specified"}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-800">
-                    <h5 className="font-bold text-purple-300">👮 Police Station</h5>
-                    <p className="text-purple-100 mt-1">{inspectingPlace.nearest_police_info || "None specified"}</p>
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700">
+                    <h5 className="font-bold text-slate-300">👮 Police Station</h5>
+                    <p className="text-slate-200 mt-1">{inspectingPlace.nearest_police_info || "None specified"}</p>
                   </div>
                 </div>
               </div>
 
               {/* ACTION BUTTONS (GREEN Accept & RED Reject) */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-700/60">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-600/60">
                 <button
                   onClick={() => handleRejectPlace(inspectingPlace.id)}
                   className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-rose-600/30 transition-all"
@@ -1730,22 +2280,22 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gradient-to-br from-[#1d0626] via-[#320a3d] to-[#4c0d38] border border-purple-500/60 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-5 text-white max-h-[85vh] overflow-y-auto"
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-emerald-600/50 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-5 text-white max-h-[85vh] overflow-y-auto"
             >
-              <div className="flex items-start justify-between border-b border-purple-700/60 pb-3">
+              <div className="flex items-start justify-between border-b border-slate-600/60 pb-3">
                 <div>
                   <h3 className="text-xl font-bold text-white">{selectedUserHistory.full_name || selectedUserHistory.email}</h3>
-                  <p className="text-xs text-purple-300">User Profile & Travel History Log</p>
+                  <p className="text-xs text-slate-300">User Profile & Travel History Log</p>
                 </div>
-                <button onClick={() => setSelectedUserHistory(null)} className="text-purple-300 hover:text-white">
+                <button onClick={() => setSelectedUserHistory(null)} className="text-slate-300 hover:text-white">
                   <FiX size={20} />
                 </button>
               </div>
 
-              <div className="p-4 rounded-2xl bg-purple-950/80 border border-purple-800 text-xs space-y-2">
+              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-700 text-xs space-y-2">
                 <p className="text-amber-300 font-bold">Profile Bio / Description:</p>
-                <p className="text-purple-100 italic">"{selectedUserHistory.bio}"</p>
-                <div className="pt-2 flex justify-between text-purple-300 text-[11px]">
+                <p className="text-slate-200 italic">"{selectedUserHistory.bio}"</p>
+                <div className="pt-2 flex justify-between text-slate-300 text-[11px]">
                   <span>Role: <b>{selectedUserHistory.role}</b></span>
                   <span>Registered: <b>{new Date(selectedUserHistory.date_joined).toLocaleDateString()}</b></span>
                 </div>
@@ -1757,14 +2307,14 @@ const AdminDashboard = () => {
                 </h4>
 
                 {selectedUserHistory.travel_history?.length === 0 ? (
-                  <p className="text-xs text-purple-400 italic">No destination visits recorded yet.</p>
+                  <p className="text-xs text-emerald-400 italic">No destination visits recorded yet.</p>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                     {selectedUserHistory.travel_history?.map((item, idx) => (
-                      <div key={idx} className="p-3 rounded-xl bg-purple-950/60 border border-purple-800/50 flex items-center justify-between text-xs">
+                      <div key={idx} className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/50 flex items-center justify-between text-xs">
                         <div>
                           <p className="font-bold text-white">{item.destination__name}</p>
-                          <p className="text-[10px] text-purple-300">{item.destination__city || "Nepal"}</p>
+                          <p className="text-[10px] text-slate-300">{item.destination__city || "Nepal"}</p>
                         </div>
                         <span className="text-[10px] text-amber-300/80">
                           {new Date(item.viewed_at).toLocaleDateString()}
@@ -1787,11 +2337,11 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900 border border-purple-600/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-white"
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-600/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-white"
             >
-              <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <h3 className="text-lg font-bold">Add New User or Assign Sub-Admin</h3>
-                <button onClick={() => setShowAddUserModal(false)} className="text-purple-300 hover:text-white">
+                <button onClick={() => setShowAddUserModal(false)} className="text-slate-300 hover:text-white">
                   <FiX size={20} />
                 </button>
               </div>
@@ -1799,18 +2349,18 @@ const AdminDashboard = () => {
               <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-purple-300">First Name</label>
+                    <label className="text-slate-300">First Name</label>
                     <input
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={newUserForm.first_name}
                       onChange={(e) => setNewUserForm({ ...newUserForm, first_name: e.target.value })}
                       placeholder="e.g. Ramesh"
                     />
                   </div>
                   <div>
-                    <label className="text-purple-300">Last Name</label>
+                    <label className="text-slate-300">Last Name</label>
                     <input
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={newUserForm.last_name}
                       onChange={(e) => setNewUserForm({ ...newUserForm, last_name: e.target.value })}
                       placeholder="e.g. Shrestha"
@@ -1819,11 +2369,11 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="text-purple-300">Email Address *</label>
+                  <label className="text-slate-300">Email Address *</label>
                   <input
                     type="email"
                     required
-                    className="input-field mt-1 text-xs text-gray-900"
+                    className="input-field mt-1 text-xs text-slate-100"
                     value={newUserForm.email}
                     onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
                     placeholder="staff@nepaltourism.gov.np"
@@ -1831,11 +2381,11 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="text-purple-300">Password *</label>
+                  <label className="text-slate-300">Password *</label>
                   <input
                     type="password"
                     required
-                    className="input-field mt-1 text-xs text-gray-900"
+                    className="input-field mt-1 text-xs text-slate-100"
                     value={newUserForm.password}
                     onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                     placeholder="Minimum 8 characters"
@@ -1843,10 +2393,10 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="text-purple-300">User Description / Bio</label>
+                  <label className="text-slate-300">User Description / Bio</label>
                   <textarea
                     rows={2}
-                    className="input-field mt-1 text-xs text-gray-900"
+                    className="input-field mt-1 text-xs text-slate-100"
                     value={newUserForm.bio}
                     onChange={(e) => setNewUserForm({ ...newUserForm, bio: e.target.value })}
                     placeholder="Travel interests, duties, or district assignments..."
@@ -1855,9 +2405,9 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-purple-300">Assign Role (RBAC)</label>
+                    <label className="text-slate-300">Assign Role (RBAC)</label>
                     <select
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={newUserForm.role}
                       onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
                     >
@@ -1867,9 +2417,9 @@ const AdminDashboard = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-purple-300">Managed District</label>
+                    <label className="text-slate-300">Managed District</label>
                     <input
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={newUserForm.managed_district}
                       onChange={(e) => setNewUserForm({ ...newUserForm, managed_district: e.target.value })}
                       placeholder="e.g. Kaski / Mustang"
@@ -1881,7 +2431,7 @@ const AdminDashboard = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddUserModal(false)}
-                    className="px-4 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold"
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
                   >
                     Cancel
                   </button>
@@ -1906,21 +2456,21 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900 border border-purple-600/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-white"
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-600/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-white"
             >
-              <div className="flex items-center justify-between border-b border-purple-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <h3 className="text-lg font-bold">Record Field Expense (ML Feedback)</h3>
-                <button onClick={() => setShowAddExpenseModal(false)} className="text-purple-300 hover:text-white">
+                <button onClick={() => setShowAddExpenseModal(false)} className="text-slate-300 hover:text-white">
                   <FiX size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleSubmitExpense} className="space-y-3 text-xs">
                 <div>
-                  <label className="text-purple-300">Destination Name *</label>
+                  <label className="text-slate-300">Destination Name *</label>
                   <input
                     required
-                    className="input-field mt-1 text-xs text-gray-900"
+                    className="input-field mt-1 text-xs text-slate-100"
                     value={expenseForm.destination_name}
                     onChange={(e) => setExpenseForm({ ...expenseForm, destination_name: e.target.value })}
                     placeholder="e.g. Annapurna Base Camp / Mustang"
@@ -1929,21 +2479,21 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-purple-300">Number of Travelers</label>
+                    <label className="text-slate-300">Number of Travelers</label>
                     <input
                       type="number"
                       min={1}
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={expenseForm.num_people}
                       onChange={(e) => setExpenseForm({ ...expenseForm, num_people: Number(e.target.value) })}
                     />
                   </div>
                   <div>
-                    <label className="text-purple-300">Number of Days</label>
+                    <label className="text-slate-300">Number of Days</label>
                     <input
                       type="number"
                       min={1}
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={expenseForm.num_days}
                       onChange={(e) => setExpenseForm({ ...expenseForm, num_days: Number(e.target.value) })}
                     />
@@ -1952,19 +2502,19 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-purple-300">Stay Cost (NPR)</label>
+                    <label className="text-slate-300">Stay Cost (NPR)</label>
                     <input
                       type="number"
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={expenseForm.accommodation_cost}
                       onChange={(e) => setExpenseForm({ ...expenseForm, accommodation_cost: Number(e.target.value) })}
                     />
                   </div>
                   <div>
-                    <label className="text-purple-300">Transit Cost (NPR)</label>
+                    <label className="text-slate-300">Transit Cost (NPR)</label>
                     <input
                       type="number"
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={expenseForm.travel_cost}
                       onChange={(e) => setExpenseForm({ ...expenseForm, travel_cost: Number(e.target.value) })}
                     />
@@ -1973,30 +2523,30 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-purple-300">Food Cost (NPR)</label>
+                    <label className="text-slate-300">Food Cost (NPR)</label>
                     <input
                       type="number"
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={expenseForm.food_cost}
                       onChange={(e) => setExpenseForm({ ...expenseForm, food_cost: Number(e.target.value) })}
                     />
                   </div>
                   <div>
-                    <label className="text-purple-300">Entry / Permit (NPR)</label>
+                    <label className="text-slate-300">Entry / Permit (NPR)</label>
                     <input
                       type="number"
-                      className="input-field mt-1 text-xs text-gray-900"
+                      className="input-field mt-1 text-xs text-slate-100"
                       value={expenseForm.entry_cost}
                       onChange={(e) => setExpenseForm({ ...expenseForm, entry_cost: Number(e.target.value) })}
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-purple-800">
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-700">
                   <button
                     type="button"
                     onClick={() => setShowAddExpenseModal(false)}
-                    className="px-4 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold"
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
                   >
                     Cancel
                   </button>
@@ -2008,6 +2558,113 @@ const AdminDashboard = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* IMAGE REPLACEMENT MODAL */}
+        {editingImageModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl text-white"
+            >
+              <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-amber-400">Media Management Desk</span>
+                  <h3 className="text-lg font-black mt-0.5">Replace or Edit Destination Image</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingImageModal(null)}
+                  className="p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              {/* Current Preview */}
+              <div className="flex gap-3 items-center p-3 rounded-2xl bg-slate-800/60 border border-slate-700">
+                <img
+                  src={editingImageModal.url}
+                  alt="Preview"
+                  className="w-20 h-16 object-cover rounded-xl shrink-0"
+                />
+                <div className="text-xs space-y-0.5">
+                  <p className="font-bold text-white line-clamp-1">{editingImageModal.caption || "Current Image"}</p>
+                  <p className="text-[11px] text-slate-400">Source: {editingImageModal.source || "Database"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* 1. Upload Replacement File */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300 block">Option A: Upload Replacement Image File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setReplacementFile(e.target.files?.[0] || null)}
+                    className="block w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-400 file:text-slate-950 hover:file:bg-amber-500"
+                  />
+                </div>
+
+                {/* 2. Replacement URL */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300 block">Option B: Replace with New Image URL</label>
+                  <input
+                    type="text"
+                    value={replacementUrl}
+                    onChange={(e) => setReplacementUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                {/* 3. Caption / Metadata */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300 block">Image Caption / Description</label>
+                  <input
+                    type="text"
+                    value={replacementCaption}
+                    onChange={(e) => setReplacementCaption(e.target.value)}
+                    placeholder="e.g. Scenic sunrise view from temple courtyard"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm("Permanently remove this image?")) return
+                    await handleDeleteImage(editingImageModal.id)
+                    setEditingImageModal(null)
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-900/80 hover:bg-rose-800 text-rose-200 text-xs font-bold"
+                >
+                  Delete Image
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingImageModal(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveImageReplacement}
+                    className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

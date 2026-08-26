@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "node e2e/run.mjs",
+    "test:e2e:live": "node e2e/live.mjs",
+    "test:e2e:browser": "playwright test",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "axios": "^1.7.9",

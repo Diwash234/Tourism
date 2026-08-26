@@ -1,3 +1,14 @@
+:root {
+  --brand-primary: #0B3D91;
+  --brand-secondary: #F59E0B;
+  --brand-background: #F8FAFC;
+  --brand-surface: #FFFFFF;
+}
+
+body { background-color: var(--brand-background); }
+.btn-primary { background-color: var(--brand-primary) !important; }
+[data-density="compact"] .card-base { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,44 +18,80 @@
    ========================================== */
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
+  /* ---- Nepal-inspired tourism palette ---- */
+  --text: #44403c;            /* warm stone-700 */
+  --text-h: #1c1917;          /* stone-900 */
+  --text-muted: #78716c;      /* stone-500 */
+  --bg: #faf8f4;             /* warm off-white */
+  --surface: #ffffff;
+  --border: #e7e2d8;          /* warm sand border */
   --code-bg: #f4f3ec;
 
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
+  /* Primary: deep mountain/forest green */
+  --primary: #1f6b4d;
+  --primary-dark: #16523a;
+  --primary-light: #e6f2ec;
+  --primary-bg: rgba(31, 107, 77, 0.08);
+  --primary-border: rgba(31, 107, 77, 0.4);
 
-  --social-bg: rgba(244, 243, 236, 0.5);
+  /* Secondary: warm terracotta */
+  --secondary: #c2603a;
+  --secondary-dark: #a14e2d;
+  --secondary-bg: rgba(194, 96, 58, 0.09);
+
+  /* Accent: Himalayan gold */
+  --accent: #b8862f;
+  --accent-bg: rgba(184, 134, 47, 0.1);
+  --accent-border: rgba(184, 134, 47, 0.5);
+
+  /* Status */
+  --success: #2f7d4f;
+  --success-bg: #e8f4ec;
+  --warning: #b8761e;
+  --warning-bg: #fbf1dd;
+  --danger: #b53d3d;
+  --danger-bg: #fae8e6;
+  --info: #34678c;
+  --info-bg: #e6eef4;
+
+  /* Legacy aliases (keep old accent vars for components that reference them) */
+  --accent-legacy: var(--accent);
+  --himalaya-blue: #4a7a9b;
+  --forest: var(--primary);
+  --terracotta: var(--secondary);
+  --gold: var(--accent);
+  --sand: #e7d9c0;
 
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px,
-    rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    0 1px 3px rgba(28, 25, 23, 0.07),
+    0 8px 24px -10px rgba(28, 25, 23, 0.12);
+  --shadow-lg:
+    0 4px 12px rgba(28, 25, 23, 0.08),
+    0 20px 40px -16px rgba(28, 25, 23, 0.18);
 
-  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 20px;
+
+  --sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font: 16px/1.6 var(--sans);
+  letter-spacing: 0.01em;
 
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
-  background: var(--bg);
+  background: var(--brand-background, var(--bg));
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (max-width: 1024px) {
-  :root {
-    font-size: 16px;
-  }
+@media (min-width: 1024px) {
+  :root { font-size: 17px; }
 }
 
 
@@ -52,29 +99,8 @@
    Dark Mode
    ========================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-
-    --accent: #c084fc;
-    --accent-bg: rgba(192,132,252,0.15);
-    --accent-border: rgba(192,132,252,0.5);
-
-    --social-bg: rgba(47,48,58,0.5);
-
-    --shadow:
-      rgba(0,0,0,0.4) 0 10px 15px -3px,
-      rgba(0,0,0,0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
+/* Keep the traveller site light even when the OS is in dark mode, so body
+   copy never becomes grey-on-white or dark-on-dark. */
 
 
 /* ==========================================
@@ -85,11 +111,14 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 html,
 body {
   width: 100%;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   min-height: 100%;
@@ -100,14 +129,46 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+@media (min-width: 1024px) {
+  body { font-size: 18px; }
 }
 
 #root {
   width: 100%;
+  max-width: 100%;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+/* Global overflow protection: media, tables, long content never
+   push the page wider than the viewport. */
+img, video, svg, canvas {
+  max-width: 100%;
+  height: auto;
+}
+pre, code, table {
+  max-width: 100%;
+}
+table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+p, h1, h2, h3, h4, h5, h6, li, a, span, label, td, th {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+/* Long unbroken URLs/tokens wrap but don't blow out the layout */
+.break-all, .break-word { overflow-wrap: anywhere; }
+input, select, textarea, button {
+  max-width: 100%;
+  font-family: inherit;
 }
 
 
@@ -124,23 +185,35 @@ h2 {
 
 
 h1 {
-  font-size:56px;
-  letter-spacing:-1.68px;
-  margin:32px 0;
+  font-size: clamp(1.9rem, 4.5vw, 3.25rem);
+  letter-spacing:-1px;
+  line-height: 1.12;
+  margin:24px 0 16px;
 }
 
 
 h2 {
-  font-size:24px;
-  line-height:118%;
-  letter-spacing:-0.24px;
-  margin:0 0 8px;
+  font-size:clamp(1.35rem, 2.6vw, 1.85rem);
+  line-height:1.2;
+  letter-spacing:-0.2px;
+  margin:0 0 10px;
 }
 
+h3 { font-size: clamp(1.1rem, 1.8vw, 1.3rem); font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
 
-p {
-  margin:0;
+p { margin:0; font-size: 0.975rem; line-height: 1.6; }
+
+/* Larger, more readable form controls */
+input, select, textarea {
+  font-size: 1rem;
 }
+.input-field {
+  @apply text-base;
+}
+label { font-size: 0.9rem; font-weight: 600; }
+button { font-size: 0.95rem; }
+
+.cards, .card-base p { font-size: 0.925rem; }
 
 
 code,
@@ -174,16 +247,12 @@ code {
 
   animation:fade .5s ease both;
 
-  background-image:
-  repeating-radial-gradient(
-    circle at 15% 20%,
-    color-mix(in srgb,var(--accent-solid,transparent) 5%,transparent) 0,
-    color-mix(in srgb,var(--accent-solid,transparent) 5%,transparent) 1px,
-    transparent 1px,
-    transparent 34px
-  );
-
-  background-attachment:fixed;
+  /* Subtle, neutral page surface. The previous heavy dotted radial
+     pattern made every page look like the same generic template. Pages
+     can still opt into colour with the .theme-* classes, but the default
+     background is now clean and content-focused. */
+  background:
+    linear-gradient(180deg, rgba(249,250,251,0.6), rgba(255,255,255,0));
 }
 
 
@@ -193,84 +262,79 @@ code {
 
 .btn-primary,
 .btn-gradient {
-
-  @apply text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5;
-
-  background:
-  linear-gradient(
-    135deg,
-    var(--accent-from, var(--accent)),
-    var(--accent-to, #7c3aed)
-  );
+  @apply inline-flex items-center justify-center gap-2 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 4px 14px -4px rgba(31,107,77,0.5);
+}
+.btn-primary:hover,
+.btn-gradient:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  box-shadow: 0 8px 22px -6px rgba(31,107,77,0.55);
+  transform: translateY(-1px);
 }
 
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
+  color: #fff;
+  background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+  box-shadow: 0 4px 14px -4px rgba(194,96,58,0.45);
+}
+.btn-secondary:hover { transform: translateY(-1px); }
 
 .btn-outline {
-
-  @apply border border-gray-300 text-dark font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200;
-
-  border-color:var(--border);
+  @apply inline-flex items-center justify-center gap-2 font-semibold px-5 py-2.5 rounded-xl transition-colors duration-200;
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
-
-
 .btn-outline:hover {
-
-  color:var(--accent);
-
-  border-color:var(--accent);
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-bg);
 }
-
-
 
 .input-field {
-
   @apply w-full rounded-xl px-4 py-2.5 focus:outline-none transition;
-
-  background:var(--bg);
-
-  color:var(--text);
-
-  border:1px solid var(--border);
-
+  background: var(--surface);
+  color: var(--text-h);
+  border: 1px solid var(--border);
 }
-
-
-
+.input-field::placeholder { color: var(--text-muted); }
 .input-field:focus {
-
-  border-color:var(--accent);
-
-  box-shadow:0 0 0 3px var(--accent-bg);
-
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-bg);
 }
-
-
 
 .card-base {
-
-  @apply rounded-xl2 transition-all duration-300;
-
-  background:var(--bg);
-
-  border:1px solid var(--border);
-
-  box-shadow:var(--shadow);
-
+  @apply rounded-2xl transition-all duration-300;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
-
-
-
 .card-base:hover {
-
-  transform:translateY(-6px);
-
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--sand, #e7d9c0);
+}
+.card-base:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-.card-base:focus-within {
-
-  outline: 2px solid var(--accent-from, var(--accent));
-  outline-offset: 2px;
-
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, #efebe2 25%, #f6f2ea 50%, #efebe2 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
 }
 
 
@@ -315,27 +379,21 @@ code {
    ========================================== */
 
 .section-title {
-
- @apply font-heading text-2xl md:text-3xl font-bold mb-6 pl-3 relative;
-
- color:var(--text-h);
-
+  @apply font-heading text-2xl md:text-3xl font-bold mb-6 pb-2 relative inline-block;
+  color: var(--text-h);
 }
 
-
-.section-title::before {
-
- content:"";
-
- @apply absolute left-0 top-1 bottom-1 w-1 rounded-full;
-
- background:
- linear-gradient(
- 180deg,
- var(--accent-from,var(--accent)),
- var(--accent-to,#7c3aed)
- );
-
+.section-title::after {
+  content: "";
+  @apply absolute left-0 bottom-0 h-1 rounded-full;
+  width: 25%;
+  min-width: 3rem;
+  max-width: 120px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-from, var(--accent, #10b981)),
+    var(--accent-to, #f59e0b)
+  );
 }
 
 
@@ -411,3 +469,115 @@ code {
  @apply bg-gray-300 rounded-full;
 
 }
+/* ==========================================
+   Responsive sidebar drawer
+   - Desktop (lg+): sidebar permanently visible, content padded (lg:pl-64)
+   - Mobile (<lg):  sidebar hidden off-screen, slides in when body has
+                    .sidebar-open, with a dimmed backdrop.
+   ========================================== */
+.sidebar-drawer {
+  will-change: transform;
+}
+.sidebar-backdrop {
+  opacity: 0;
+  pointer-events: none;
+}
+body.sidebar-open .sidebar-drawer {
+  transform: translateX(0) !important;
+}
+body.sidebar-open .sidebar-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (min-width: 1024px) {
+  /* Always visible on desktop; backdrop never shows */
+  .sidebar-drawer { transform: translateX(0) !important; }
+  .sidebar-backdrop { display: none !important; }
+}
+
+/* Province marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
+
+/* Shared Admin Control Center interaction primitives */
+.admin-icon-button { min-width: 2.5rem; min-height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .75rem; background: rgb(30 41 59); color: rgb(226 232 240); }
+.admin-icon-button:hover { background: rgb(51 65 85); }
+.admin-icon-button:disabled { opacity: .35; cursor: not-allowed; }
+.admin-primary-button, .admin-secondary-button, .admin-danger-button { min-height: 2.5rem; border-radius: .75rem; padding: .55rem 1rem; font-size: .8rem; font-weight: 800; }
+.admin-primary-button { background: rgb(4 120 87); color: white; }
+.admin-secondary-button { background: rgb(51 65 85); color: white; }
+.admin-danger-button { background: rgb(190 18 60); color: white; }
+.admin-skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 200; border-radius: .5rem; background: #fbbf24; color: #0f172a; padding: .75rem 1rem; font-weight: 800; transition: top .15s; }
+.admin-skip-link:focus { top: 1rem; }
+:focus-visible { outline: 3px solid #fbbf24 !important; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+@media (pointer: coarse) { .admin-icon-button, .admin-primary-button, .admin-secondary-button, .admin-danger-button { min-height: 2.75rem; } }
+
+/* Admin chrome stays dark; main workspace is light with dark readable text. */
+.admin-green-theme header input,
+.admin-green-theme header select,
+.admin-green-theme header textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #a7f3d0 !important;
+}
+.admin-green-theme header input::placeholder { color: #64748b !important; }
+.admin-green-theme header .admin-search-results,
+.admin-green-theme header .admin-search-results * { color: #0f172a !important; }
+.admin-green-theme header .admin-search-results { background: #fff !important; border: 1px solid #a7f3d0 !important; }
+.admin-green-theme main .bg-slate-950,
+.admin-green-theme main .bg-slate-950\/80,
+.admin-green-theme main .bg-slate-950\/70,
+.admin-green-theme main .bg-slate-900,
+.admin-green-theme main .bg-slate-900\/80,
+.admin-green-theme main .bg-slate-900\/70,
+.admin-green-theme main .bg-slate-900\/60,
+.admin-green-theme main .bg-slate-800,
+.admin-green-theme main .bg-slate-800\/80,
+.admin-green-theme main .bg-slate-800\/60 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+.admin-green-theme main .text-white,
+.admin-green-theme main .text-slate-100,
+.admin-green-theme main .text-slate-200,
+.admin-green-theme main .text-slate-300,
+.admin-green-theme main .text-slate-400,
+.admin-green-theme main .text-emerald-200,
+.admin-green-theme main .text-amber-200,
+.admin-green-theme main .text-amber-300,
+.admin-green-theme main .text-rose-200,
+.admin-green-theme main .text-pink-300 {
+  color: #14532d !important;
+}
+.admin-green-theme main button.bg-emerald-700,
+.admin-green-theme main button.bg-emerald-600,
+.admin-green-theme main button.bg-rose-700,
+.admin-green-theme main button.bg-rose-600,
+.admin-green-theme main button.bg-sky-700,
+.admin-green-theme main button.bg-amber-400,
+.admin-green-theme main a.bg-emerald-700,
+.admin-green-theme main a.bg-rose-600 {
+  color: #fff !important;
+}
+.admin-green-theme main button.bg-amber-400 { color: #0f172a !important; }
+.admin-green-theme main .border-slate-700,
+.admin-green-theme main .border-slate-800,
+.admin-green-theme main .border-slate-600\/40,
+.admin-green-theme main .border-slate-700\/40 { border-color: #bbf7d0 !important; }
+.admin-green-theme main input,
+.admin-green-theme main select,
+.admin-green-theme main textarea {
+  background-color: #fff !important;
+  color: #0f172a !important;
+  border-color: #86efac !important;
+}
+.admin-green-theme main .card-base { background-color: #fff; border-color: #bbf7d0; color: #0f172a; }

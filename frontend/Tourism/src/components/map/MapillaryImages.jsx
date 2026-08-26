@@ -87,7 +87,16 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
     }
   }, [latitude, longitude, token, radiusM, limit])
 
-  if (!token) return null
+  if (!token)
+    return (
+      <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+        <FiCamera /> Street-level imagery is available when a Mapillary access token
+        is configured (add <code className="font-mono">MAPILLARY_ACCESS_TOKEN</code> to the
+        backend <code className="font-mono">.env</code> or{" "}
+        <code className="font-mono">VITE_MAPILLARY_ACCESS_TOKEN</code> to the frontend{" "}
+        <code className="font-mono">.env</code>).
+      </div>
+    )
   if (loading)
     return (
       <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
