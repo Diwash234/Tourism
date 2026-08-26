@@ -198,42 +198,60 @@ export default function TripPlanner() {
             </div>
           </div>
 
-          {/* 3. Group Type & Travel Style */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* 3. Group Type, Travel Style & Pace */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Group Composition</label>
-              <div className="grid grid-cols-3 gap-1">
-                {[["solo", "Solo"], ["couple", "Couple"], ["family", "Family"], ["friends", "Friends"], ["group", "Group"]].map(([val, lbl]) => (
-                  <button
-                    type="button"
-                    key={val}
-                    onClick={() => setValue("groupType", val)}
-                    className={`py-1.5 rounded-xl text-xs font-bold border transition ${
-                      groupType === val ? "bg-purple-700 text-white border-purple-700" : "bg-slate-50 border-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {lbl}
-                  </button>
-                ))}
-              </div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Group Type</label>
+              <select className="input-field bg-white text-xs" {...register("groupType")}>
+                <option value="solo">Solo Traveler</option>
+                <option value="couple">Couple</option>
+                <option value="family">Family</option>
+                <option value="friends">Friends</option>
+                <option value="group">Group</option>
+              </select>
             </div>
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Travel Style</label>
-              <div className="grid grid-cols-3 gap-1">
-                {[["backpacker", "Backpacker"], ["budget", "Budget"], ["comfortable", "Comfortable"], ["premium", "Premium"], ["luxury", "Luxury"]].map(([val, lbl]) => (
-                  <button
-                    type="button"
-                    key={val}
-                    onClick={() => setValue("travelStyle", val)}
-                    className={`py-1.5 rounded-xl text-xs font-bold border transition ${
-                      travelStyle === val ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-50 border-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {lbl}
-                  </button>
-                ))}
-              </div>
+              <select className="input-field bg-white text-xs" {...register("travelStyle")}>
+                <option value="backpacker">Backpacker</option>
+                <option value="budget">Budget</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="premium">Premium</option>
+                <option value="luxury">Luxury</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Trip Pace</label>
+              <select className="input-field bg-white text-xs" {...register("pace")}>
+                <option value="relaxed">Relaxed & Unhurried</option>
+                <option value="balanced">Balanced Sightseeing</option>
+                <option value="fast">Fast-Paced Explorer</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Places Visited & Places to Avoid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Places Already Visited (Optional)</label>
+              <input
+                type="text"
+                placeholder="e.g., Kathmandu Durbar, Nagarkot"
+                className="input-field bg-white"
+                {...register("visitedPlaces")}
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Places / Cities to Avoid (Optional)</label>
+              <input
+                type="text"
+                placeholder="e.g., Crowded city centers, high altitude > 4000m"
+                className="input-field bg-white"
+                {...register("avoidPlaces")}
+              />
             </div>
           </div>
 
