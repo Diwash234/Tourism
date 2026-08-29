@@ -15,6 +15,7 @@ import EmptyState from "../components/common/EmptyState";
 import Filter from "../components/common/Filter";
 import BarChartCard from "../components/charts/BarChartCard";
 import useToast from "../hooks/useToast";
+import DestinationRiskPanel from "../components/risk/DestinationRiskPanel";
 
 const LEVEL_OPTIONS = [
   { label: "Low", value: "low" },
@@ -125,6 +126,8 @@ const RiskAlertDashboard = () => {
           <FiPlus size={16} /> Submit Safety & Hazard Assessment
         </button>
       </div>
+
+      <DestinationRiskPanel />
 
       <SafetyOverview />
 

@@ -305,3 +305,20 @@ class DetectLocationView(APIView):
     def get(self, request):
         location = resolve_location(request)
         return Response(location)
+
+class MyCapabilitiesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = None
+
+    def get(self, request):
+        user = request.user
+        admin = user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}
+        if admin:
+            from .models import StaffCapabilityProfile
+            capabilities = {module: ["*"] for module in StaffCapabilityProfile.MODULES}
+            districts = []
+        else:
+            profile = getattr(user, "capability_profile", None)
+            capabilities = profile.capabilities if profile and profile.is_active else {}
+            districts = profile.managed_districts if profile else []
+        return Response({"role": user.role, "is_admin": admin, "capabilities": capabilities, "managed_districts": districts})

@@ -11,9 +11,13 @@ from . import views_compat
 from . import views_discovery
 from . import views_family_safety
 from . import views_images
+from .services.ai_images import api as ai_images_api
 from . import views_ml
 from . import views_oauth
 from . import views_osm
+from . import views_marketplace
+from . import views_emergency_admin
+from . import views_navigation
 from .serializers import UserProfileSerializer
 
 
@@ -34,6 +38,10 @@ router.register("categories", views.CategoryViewSet, basename="category")
 router.register("destinations", views.DestinationViewSet, basename="destination")
 router.register("destination-images", views.DestinationImageViewSet, basename="destination-image")
 router.register("hotels", views.HotelViewSet, basename="hotel")
+router.register("restaurants", views.RestaurantViewSet, basename="restaurant")
+router.register("transit-routes", views.TransitRouteViewSet, basename="transit-route")
+router.register("travel-plans", views.TravelPlanViewSet, basename="travel-plan")
+router.register("travel-plan-stops", views.TravelPlanStopViewSet, basename="travel-plan-stop")
 router.register("videos", views.DestinationVideoViewSet, basename="destination-video")
 router.register("reviews", views.ReviewViewSet, basename="review")
 router.register("ratings", views.RatingViewSet, basename="rating")
@@ -49,10 +57,19 @@ router.register("osm-essentials", views.OSMEssentialServiceViewSet, basename="os
 router.register("safety/trusted-contacts", views_family_safety.TrustedContactViewSet, basename="trusted-contact")
 router.register("safety/trips", views_family_safety.SharedTripViewSet, basename="shared-trip")
 router.register("safety/sos", views_family_safety.SOSAlertViewSet, basename="sos-alert")
+router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, basename="family-link")
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
+router.register("admin/destination-features", views.DestinationFeatureProfileViewSet, basename="admin-destination-features")
+router.register("admin/risk-incidents", views.RiskIncidentAdminViewSet, basename="admin-risk-incidents")
+router.register("admin/current-hazards", views.CurrentHazardAdminViewSet, basename="admin-current-hazards")
+router.register("admin/risk-observations", views.RiskObservationAdminViewSet, basename="admin-risk-observations")
+router.register("admin/destination-translations", views.DestinationTranslationAdminViewSet, basename="admin-destination-translations")
+router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
+router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
 
 urlpatterns = [
+    path("notification-preferences/", views.NotificationPreferenceView.as_view(), name="notification-preferences"),
     # Auth endpoints
     path("auth/register/", views_auth.RegisterView.as_view(), name="auth-register"),
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="auth-login"),
@@ -68,6 +85,7 @@ urlpatterns = [
     path("auth/change-password/", views_auth.ChangePasswordView.as_view(), name="auth-change-password"),
     path("auth/update-location/", views_auth.UpdateLocationView.as_view(), name="auth-update-location"),
     path("auth/detect-location/", views_auth.DetectLocationView.as_view(), name="auth-detect-location"),
+    path("auth/capabilities/", views_auth.MyCapabilitiesView.as_view(), name="auth-capabilities"),
     path("auth/google/callback/", views_oauth.GoogleOAuthCallbackView.as_view(), name="auth-google-callback"),
     path("auth/github/callback/", views_oauth.GithubOAuthCallbackView.as_view(), name="auth-github-callback"),
 
@@ -77,6 +95,7 @@ urlpatterns = [
     path("ml/budget/", views_ml.BudgetPredictionView.as_view(), name="ml-budget"),
     path("ml/best-route/", views_ml.BestRouteView.as_view(), name="ml-best-route"),
     path("ml/itinerary/", views_ml.ItineraryView.as_view(), name="ml-itinerary"),
+    path("ml/itinerary/modify/", views_ml.AIItineraryModificationView.as_view(), name="ml-itinerary-modify"),
     path("ml/results/", views_ml.MLResultWebhookView.as_view(), name="ml-results-webhook"),
 
     # Compatibility endpoints
@@ -108,8 +127,55 @@ urlpatterns = [
     # Admin RBAC & Moderation endpoints
     path("admin/stats", views_admin.AdminStatsView.as_view(), name="admin-stats"),
     path("admin/users", views_admin.AdminUsersView.as_view(), name="admin-users"),
-    path("admin/users/<int:id>/", views_admin.UpdateUserStatusView.as_view(), name="admin-user-detail"),
+    path("admin/users/<int:id>/", views_admin.AdminUsersDetailView.as_view(), name="admin-user-detail-full"),
     path("admin/users/<int:id>/status", views_admin.UpdateUserStatusView.as_view(), name="admin-update-user-status"),
+    path("admin/users/<int:id>/actions", views_admin.AdminUserAccessActionView.as_view(), name="admin-user-access-action"),
+    path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
+    path("admin/data-explorer/", views_admin.AdminDataExplorerView.as_view(), name="admin-data-explorer"),
+    path("admin/branding/", views_admin.AdminBrandingView.as_view(), name="admin-branding"),
+    path("admin/cms/", views_admin.AdminCMSView.as_view(), name="admin-cms"),
+    path("admin/staff-workspace/", views_admin.StaffWorkspaceView.as_view(), name="staff-workspace"),
+    path("admin/staff-capabilities/", views_admin.StaffCapabilityManagementView.as_view(), name="admin-staff-capabilities"),
+    path("admin/infrastructure-submissions/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submissions"),
+    path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
+    path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),
+    path("admin/ml/status/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-status"),
+    path("admin/review-moderation/", views_admin.AdminReviewModerationView.as_view(), name="admin-review-moderation"),
+    path("admin/notifications/", views_admin.AdminNotificationManagementView.as_view(), name="admin-notifications"),
+    path("admin/search/", views_admin.AdminGlobalSearchView.as_view(), name="admin-global-search"),
+    path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
+    path("admin/service-media/", views_admin.AdminServiceMediaView.as_view(), name="admin-service-media"),
+    path("admin/visitor-desk/", views_admin.AdminVisitorDeskView.as_view(), name="admin-visitor-desk"),
+    path("navigation/calculate/", views_navigation.UserRouteCalculateView.as_view(), name="user-route-calculate"),
+    path("reports/submit/", views_navigation.UserDataReportSubmitView.as_view(), name="user-report-submit"),
+    path("admin/data-health/", views_navigation.AdminDataHealthView.as_view(), name="admin-data-health"),
+    path("admin/data-reports/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports"),
+    path("admin/data-reports/<int:pk>/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports-detail"),
+    path("admin/coordinates/verify/", views_navigation.AdminCoordinateVerificationView.as_view(), name="admin-coordinates-verify"),
+    path("admin/featured-destinations/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations"),
+    path("admin/featured-destinations/<int:pk>/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations-detail"),
+    path("admin/featured-destinations/reorder/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations-reorder"),
+    path("featured-destinations/", views_admin.PublicFeaturedDestinationView.as_view(), name="public-featured-destinations"),
+    path("destinations/featured/", views_admin.PublicFeaturedDestinationView.as_view(), name="public-destinations-featured"),
+    path("admin/marketplace/", views_marketplace.AdminMarketplaceView.as_view(), name="admin-marketplace"),
+    path("marketplace/listings/", views_marketplace.PublicMarketplaceView.as_view(), name="marketplace-listings"),
+    path("marketplace/listings/<slug:slug>/", views_marketplace.PublicMarketplaceView.as_view(), name="marketplace-listing-detail"),
+    path("marketplace/partners/apply/", views_marketplace.PublicPartnerApplyView.as_view(), name="marketplace-partner-apply"),
+    path("marketplace/checkout/", views_marketplace.MarketplaceCheckoutView.as_view(), name="marketplace-checkout"),
+    path("marketplace/partner/desk/", views_marketplace.PartnerDeskView.as_view(), name="marketplace-partner-desk"),
+    path("marketplace/orders/", views_marketplace.MarketplaceOrderLookupView.as_view(), name="marketplace-orders"),
+    path("admin/emergency-directory/", views_emergency_admin.AdminEmergencyDirectoryView.as_view(), name="admin-emergency-directory"),
+    path("admin/datasets/", views_admin.AdminDatasetManagerView.as_view(), name="admin-datasets"),
+    path("admin/travel-services/", views_admin.AdminTravelServicesView.as_view(), name="admin-travel-services"),
+    path("admin/retention/", views_admin.AdminRetentionPolicyView.as_view(), name="admin-retention"),
+    path("admin/reports/", views_admin.AdminReportsView.as_view(), name="admin-reports"),
+    path("admin/feedback", views_admin.FeedbackListView.as_view(), name="admin-feedback"),
+    path("admin/feedback/<int:id>/reply", views_admin.FeedbackReplyView.as_view(), name="admin-feedback-reply"),
+    path("feedback", views_admin.PublicFeedbackCreateView.as_view(), name="public-feedback"),
+    path("admin/fetch-images/", views_admin.FetchWebImagesView.as_view(), name="admin-fetch-images"),
+    path("admin/generate-ai-images/", views_admin.GenerateAIImagesView.as_view(), name="admin-generate-ai-images"),
+    path("admin/download-ai-images/", views_admin.DownloadAIImagesView.as_view(), name="admin-download-ai-images"),
+    path("admin/images/<int:id>", views_admin.DeleteImageView.as_view(), name="admin-delete-image"),
     path("admin/user-tracking/", views_admin.AdminUserTrackingView.as_view(), name="admin-user-tracking"),
     path("admin/pending-places/", views_admin.AdminPendingPlacesView.as_view(), name="admin-pending-places"),
     path("admin/pending-places/<int:id>/", views_admin.AdminPendingPlacesView.as_view(), name="admin-pending-places-action"),
@@ -119,14 +185,49 @@ urlpatterns = [
     path("admin/emergencies/<int:id>/resolve/", views_admin.AdminEmergenciesView.as_view(), name="admin-emergencies-resolve"),
     path("admin/destinations", views_admin.AdminDestinationsView.as_view(), name="admin-destinations"),
     path("admin/destinations/<int:id>", views_admin.AdminDestinationDetailView.as_view(), name="admin-destination-detail"),
+    path("admin/destinations/<int:id>/images", views_admin.AdminDestinationImageView.as_view(), name="admin-destination-images"),
+    path("admin/destinations/<int:id>/videos", views_admin.AdminDestinationVideoView.as_view(), name="admin-destination-videos"),
     path("admin/alerts", views_admin.AdminAlertsView.as_view(), name="admin-alerts"),
 
     # Additional endpoints
     path("config/public/", views.PublicConfigView.as_view(), name="public-config"),
+    path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
+    # Multi-source Image Acquisition & Provenance Pipeline API
+    path("destinations/<str:slug>/images", views_images.DestinationImagesListView.as_view(), name="destination-images-list-no-slash"),
+    path("destinations/<str:slug>/images/", views_images.DestinationImagesListView.as_view(), name="destination-images-list"),
+    path("destinations/<str:slug>/images/discover", views_images.DestinationImagesDiscoverView.as_view(), name="destination-images-discover-no-slash"),
+    path("destinations/<str:slug>/images/discover/", views_images.DestinationImagesDiscoverView.as_view(), name="destination-images-discover"),
+    path("destinations/<str:slug>/images/refresh", views_images.DestinationImagesRefreshView.as_view(), name="destination-images-refresh-no-slash"),
+    path("destinations/<str:slug>/images/refresh/", views_images.DestinationImagesRefreshView.as_view(), name="destination-images-refresh"),
+    path("destinations/<str:slug>/images/<int:image_id>/set-cover", views_images.DestinationImageSetCoverView.as_view(), name="destination-images-set-cover-no-slash"),
+    path("destinations/<str:slug>/images/<int:image_id>/set-cover/", views_images.DestinationImageSetCoverView.as_view(), name="destination-images-set-cover"),
+
+    # AI Nepal image dataset platform
+    path("ai-images/destinations", ai_images_api.DestinationListView.as_view(), name="ai-image-destinations"),
+    path("ai-images/destinations/<int:pk>", ai_images_api.DestinationDetailView.as_view(), name="ai-image-destination-detail"),
+    path("ai-images/destinations/<int:pk>/images", ai_images_api.DestinationImagesView.as_view(), name="ai-image-destination-images"),
+    path("ai-images/generate", ai_images_api.GenerateImagesView.as_view(), name="ai-image-generate"),
+    path("ai-images/search", ai_images_api.SemanticSearchView.as_view(), name="ai-image-search"),
+    path("ai-images/jobs", ai_images_api.JobsListView.as_view(), name="ai-image-jobs"),
+    path("ai-images/images/<int:pk>/validate", ai_images_api.ImageValidateView.as_view(), name="ai-image-validate"),
+    path("ai-images/images/<int:pk>/match", ai_images_api.ImageMatchView.as_view(), name="ai-image-match"),
+    path("ai-images/images/<int:pk>/moderate", ai_images_api.ImageModerateView.as_view(), name="ai-image-moderate"),
     path("hotels/search/", views.HotelSearchView.as_view(), name="hotel-search"),
+    path("destinations/autocomplete/", views.DestinationAutocompleteView.as_view(), name="destination-autocomplete"),
+    path("destinations/mood-recommendations/", views.MoodRecommendationsView.as_view(), name="mood-recommendations"),
+    path("gallery/featured/", views.FeaturedGalleryView.as_view(), name="featured-gallery"),
+    path("gallery/districts/", views.DistrictGalleryView.as_view(), name="district-gallery"),
+    path("destinations/<str:destination_ref>/risk/", views.DestinationRiskAssessmentView.as_view(), name="destination-risk-assessment"),
+    path("recommendation-events/", views.RecommendationEventView.as_view(), name="recommendation-events"),
+    path("destinations/<str:destination_ref>/emergency/", views.DestinationEmergencyServicesView.as_view(), name="destination-emergency-services"),
+    path("emergency/nearby/", views.NearbyEmergencyServicesView.as_view(), name="nearby-emergency-services"),
+    path("routing/metrics/", views.RouteMetricsView.as_view(), name="route-metrics"),
+    # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)
+    path("postcard/<path:path_info>", views.destination_postcard, name="destination-postcard"),
     path("safety/trip-share/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public"),
+    path("safety/family/members/", views_family_safety.FamilyMembersView.as_view(), name="family-members"),
 
     # Router includes
     path("", include(router.urls)),

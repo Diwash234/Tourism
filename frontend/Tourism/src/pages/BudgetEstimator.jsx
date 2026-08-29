@@ -18,7 +18,22 @@ import useToast from "../hooks/useToast"
 
 const EMERGENCY_RESERVE_RATE = 0.1
 
-const USD_TO_NPR = 133
+// Currency conversion from USD (the ML service returns USD) and symbols.
+// NPR is the default for Nepal travellers; the choice persists on the
+// Settings page under localStorage "tourism_currency".
+const CURRENCIES = {
+  USD: { symbol: "$", rate: 1, label: "US Dollar" },
+  NPR: { symbol: "रू", rate: 133, label: "Nepali Rupee" },
+  INR: { symbol: "₹", rate: 83, label: "Indian Rupee" },
+  EUR: { symbol: "€", rate: 0.92, label: "Euro" },
+  GBP: { symbol: "£", rate: 0.79, label: "British Pound" },
+}
+
+const formatMoney = (usd, currency) => {
+  const c = CURRENCIES[currency] || CURRENCIES.NPR
+  const v = Math.round((Number(usd) || 0) * c.rate)
+  return `${c.symbol}${v.toLocaleString()}`
+}
 
 
 const CATEGORY_META = [
@@ -49,13 +64,6 @@ const CATEGORY_META = [
 ]
 
 
-const npr = (usd) =>
-  `रू ${Math.round(
-    (Number(usd) || 0) * USD_TO_NPR
-  ).toLocaleString()}`
-
-
-
 const BudgetEstimator = () => {
 
 
@@ -80,6 +88,10 @@ const BudgetEstimator = () => {
   const [estimate,setEstimate] = useState(null)
 
   const [loading,setLoading] = useState(false)
+
+  const [currency, setCurrency] = useState(
+    () => localStorage.getItem("tourism_currency") || "NPR"
+  )
 
 
   const {showToast} = useToast()
@@ -177,6 +189,8 @@ const BudgetEstimator = () => {
 
         daily,
 
+        source: result.baseline_source || result.transport_basis || "estimate",
+        dataset: result.dataset || null,
 
         accommodation:
           result.breakdown?.accommodation ??
@@ -445,7 +459,21 @@ loading || isSubmitting
 
 </button>
 
-
+<div className="mt-4">
+  <label className="text-xs font-medium text-gray-500">Display currency</label>
+  <select
+    className="input-field mt-1"
+    value={currency}
+    onChange={(e) => {
+      setCurrency(e.target.value)
+      localStorage.setItem("tourism_currency", e.target.value)
+    }}
+  >
+    {Object.entries(CURRENCIES).map(([code, c]) => (
+      <option key={code} value={code}>{code} — {c.label} ({c.symbol})</option>
+    ))}
+  </select>
+</div>
 
 {
 loading && (
@@ -506,18 +534,23 @@ Estimated Total Cost
 
 <p className="text-4xl font-extrabold text-saffron-600">
 
-{npr(estimate.total)}
+{formatMoney(estimate.total, currency)}
 
 </p>
 
 
 <p className="text-xs text-gray-400">
 
-≈ ${estimate.total} USD
+≈ ${Math.round(estimate.total || 0).toLocaleString()} USD · {formatMoney(estimate.total, currency)} {currency}
 
 </p>
 
-
+{estimate.source === "dataset_csv" ? (
+  <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+    ✓ Based on real Nepal travel-cost dataset
+    {estimate.dataset ? ` (${estimate.dataset.destinations}+ places)` : ""}
+  </p>
+) : null}
 
 </div>
 
@@ -558,7 +591,7 @@ className="card-base p-4 flex items-center gap-3"
 
 <p className="font-bold text-dark">
 
-{npr(estimate[key])}
+{formatMoney(estimate[key], currency)}
 
 </p>
 
@@ -596,7 +629,7 @@ Emergency Reserve (10%)
 
 <p className="font-bold">
 
-{npr(emergencyReserve)}
+{formatMoney(emergencyReserve, currency)}
 
 </p>
 
