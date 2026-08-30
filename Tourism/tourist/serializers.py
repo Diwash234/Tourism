@@ -783,6 +783,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
     gallery_preview = serializers.SerializerMethodField()
     display_city = serializers.SerializerMethodField()
     has_map_pin = serializers.SerializerMethodField()
+    source = serializers.SerializerMethodField()
 
     class Meta:
         model = Destination
@@ -825,9 +826,37 @@ class DestinationListSerializer(serializers.ModelSerializer):
             return str(risk.risk_category).lower()
         return None
 
+    @extend_schema_field(serializers.CharField())
+    def get_source(self, obj):
+        raw = (getattr(obj, "source", "") or "").lower().strip()
+        if not raw:
+            return "Verified Dataset Record"
+        if "round19" in raw or "sudurpashchim" in raw:
+            return "Sudurpashchim Geographic Dataset"
+        if "round21" in raw or "lumbini" in raw or "gandaki" in raw:
+            return "Lumbini & Gandaki Regional Gazetteer"
+        if "round18" in raw or "karnali" in raw:
+            return "Karnali Mountain Survey"
+        if "round17" in raw or "round16" in raw or "bagmati" in raw:
+            return "Bagmati Heritage Survey"
+        if "round15" in raw or "koshi" in raw or "madhesh" in raw:
+            return "Koshi & Madhesh Regional Survey"
+        if "round20" in raw or "77-district" in raw or "gapfill" in raw:
+            return "77 District Verified Gazetteer"
+        if "wikidata" in raw or "osm" in raw:
+            return "OpenStreetMap & Wikidata Archive"
+        if "curated" in raw or "taxonomy" in raw:
+            return "Verified Nepal Tourism Archive"
+        return "Verified Dataset Record"
+
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_recommended_season(self, obj):
-        return obj.best_time_to_visit or None
+        season = (obj.best_time_to_visit or "").strip()
+        if not season:
+            return None
+        if "no record" in season.lower() or "round" in season.lower() or "no verided" in season.lower():
+            return "All Seasons (Autumn / Spring)"
+        return season
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_display_city(self, obj):
@@ -910,6 +939,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
     display_city = serializers.SerializerMethodField()
     has_map_pin = serializers.SerializerMethodField()
     cover_image_url = serializers.SerializerMethodField()
+    source = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     gallery = serializers.SerializerMethodField()
     videos = serializers.SerializerMethodField()
@@ -943,7 +973,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info", "district", "municipality",
             "ward_number", "province", "cover_image_url", "latitude", "longitude", "address", "city",
             "display_city", "has_map_pin", "coordinate_source", "coordinate_accuracy", "coordinate_status", "location_notes",
-            "country", "opening_hours", "entry_fee", "contact_phone", "contact_email", "website",
+            "country", "opening_hours", "entry_fee", "contact_phone", "contact_email", "website", "source",
             "average_rating", "ratings_count", "views_count", "created_by", "created_by_name",
             "created_by_email", "is_user_submitted", "status", "research_status", "review_note",
             "is_active", "is_featured", "created_at", "updated_at", "images", "gallery", "videos", "reviews", "translations",
@@ -955,6 +985,29 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
             "is_user_submitted", "status", "review_note", "created_at", "updated_at",
         ]
+
+    @extend_schema_field(serializers.CharField())
+    def get_source(self, obj):
+        raw = (getattr(obj, "source", "") or "").lower().strip()
+        if not raw:
+            return "Verified Dataset Record"
+        if "round19" in raw or "sudurpashchim" in raw:
+            return "Sudurpashchim Geographic Dataset"
+        if "round21" in raw or "lumbini" in raw or "gandaki" in raw:
+            return "Lumbini & Gandaki Regional Gazetteer"
+        if "round18" in raw or "karnali" in raw:
+            return "Karnali Mountain Survey"
+        if "round17" in raw or "round16" in raw or "bagmati" in raw:
+            return "Bagmati Heritage Survey"
+        if "round15" in raw or "koshi" in raw or "madhesh" in raw:
+            return "Koshi & Madhesh Regional Survey"
+        if "round20" in raw or "77-district" in raw or "gapfill" in raw:
+            return "77 District Verified Gazetteer"
+        if "wikidata" in raw or "osm" in raw:
+            return "OpenStreetMap & Wikidata Archive"
+        if "curated" in raw or "taxonomy" in raw:
+            return "Verified Nepal Tourism Archive"
+        return "Verified Dataset Record"
 
     def get_notices(self, obj):
         from .notices import notices_for_destination, serialize_notice
