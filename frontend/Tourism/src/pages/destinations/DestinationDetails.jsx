@@ -134,17 +134,44 @@ export default function DestinationDetails() {
 
   if (loading) return <Loader fullScreen />
 
-  if (!destination) {
-    return (
-      <div className="container-app py-16 text-center text-gray-400 space-y-4">
-        <h2 className="text-2xl font-bold text-gray-800">Destination Record Not Found</h2>
-        <p className="text-sm text-gray-500">Search for this destination or use the AI Discovery tool to research and add it.</p>
-        <Link to="/destinations" className="btn-primary px-6 py-2.5 bg-primary-700 text-white rounded-xl font-bold">
-          Explore All Destinations
-        </Link>
-      </div>
-    )
-  }
+  // Inject JSON-LD structured data for SEO
+  useEffect(() => {
+    if (!destination) return
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "TouristAttraction",
+      "name": destination.name,
+      "description": destination.description || destination.short_description || "",
+      "url": window.location.href,
+      "geo": destination.latitude && destination.longitude ? {
+        "@type": "GeoCoordinates",
+        "latitude": destination.latitude,
+        "longitude": destination.longitude,
+      } : undefined,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": destination.city || destination.district || "Nepal",
+        "addressRegion": destination.province || "",
+        "addressCountry": "NP",
+      },
+      "aggregateRating": destination.average_rating ? {
+        "@type": "AggregateRating",
+        "ratingValue": destination.average_rating,
+        "reviewCount": destination.ratings_count || 1,
+      } : undefined,
+    }
+
+    const script = document.createElement("script")
+    script.type = "application/ld+json"
+    script.id = "destination-jsonld"
+    script.innerHTML = JSON.stringify(jsonLd)
+    document.head.appendChild(script)
+
+    return () => {
+      const existing = document.getElementById("destination-jsonld")
+      if (existing) existing.remove()
+    }
+  }, [destination])
 
   // Compile all images with metadata. The hero prefers the real-photo
   // resolver (category-aware), so SVG-postcard covers never show on the page.
