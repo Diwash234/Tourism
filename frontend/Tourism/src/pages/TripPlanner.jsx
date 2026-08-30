@@ -394,6 +394,37 @@ export default function TripPlanner() {
                   <span>Estimated Total</span><span>{formatCurrency(plan.estimatedTotal)}</span>
                 </div>
               </div>
+
+              {/* Action Buttons: Save & Open Details */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await axiosClient.post("/travel-plans/", {
+                        title: `${plan.destination.name} ${plan.days}-Day Journey`,
+                        travelers: plan.travelers,
+                        budget_npr: Math.round(plan.estimatedTotal * 132),
+                        itinerary_data: plan,
+                        generation_source: "ml",
+                      })
+                      showToast("Itinerary saved to your account!", "success")
+                    } catch {
+                      showToast("Sign in to save this travel plan to your account", "info")
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow flex items-center justify-center gap-1.5"
+                >
+                  <FiCheckCircle size={14} /> Save to Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/itinerary")}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs text-center"
+                >
+                  View Itinerary ➔
+                </button>
+              </div>
             </div>
           ) : (
             <div className="card-base p-10 text-center text-slate-400 bg-white border border-slate-200">
