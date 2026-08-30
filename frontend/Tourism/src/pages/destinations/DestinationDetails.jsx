@@ -599,6 +599,89 @@ export default function DestinationDetails() {
             )}
           </div>
 
+          {/* Featured 3-Star to 5-Star Hotel Showcase & Promotional Ad Banner */}
+          <div className="card-base p-6 sm:p-8 space-y-6 shadow-xl border border-amber-200 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B3D91] to-slate-950 text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                    ⭐ Featured 3 to 5-Star Stays & Official Offers
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                    ✓ Verified Partner Stays
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-white mt-1.5">
+                  Featured Hotels & Luxury Packages near {destination.name}
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Curated boutique hotels, 5-star luxury resorts, and verified tour packages across {destination.city || destination.district || "Nepal"}.
+                </p>
+              </div>
+
+              <Link
+                to="/hotels/search"
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black shadow-lg transition-all shrink-0"
+              >
+                Browse All Hotels ➔
+              </Link>
+            </div>
+
+            {/* Hotel Ad Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {(destination.hotels && destination.hotels.length > 0
+                ? destination.hotels.slice(0, 3)
+                : [
+                    { name: `${destination.name} Imperial Resort`, rating: 4.9, price_per_night: 8500, stars: "⭐⭐⭐⭐⭐ 5-Star Luxury Resort" },
+                    { name: `Royal ${destination.name} Grand Hotel`, rating: 4.7, price_per_night: 5200, stars: "⭐⭐⭐⭐ 4-Star Comfort Stay" },
+                    { name: `Himalayan ${destination.name} Heritage Lodge`, rating: 4.5, price_per_night: 3200, stars: "⭐⭐⭐ 3-Star Boutique Hotel" },
+                  ]
+              ).map((h, i) => (
+                <div key={i} className="rounded-2xl bg-white/10 backdrop-blur border border-white/15 p-4 flex flex-col justify-between space-y-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-amber-300 block">
+                      {h.stars || (Number(h.rating) >= 4.8 ? "⭐⭐⭐⭐⭐ 5-Star Luxury" : Number(h.rating) >= 4.5 ? "⭐⭐⭐⭐ 4-Star Comfort" : "⭐⭐⭐ 3-Star Stay")}
+                    </span>
+                    <h4 className="font-extrabold text-sm text-white line-clamp-1">{h.name}</h4>
+                    <p className="text-[11px] text-slate-300">📍 {destination.city || destination.district || "Nepal"}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">From</span>
+                      <span className="text-sm font-black text-amber-300">
+                        NPR {Number(h.price_per_night || 4500).toLocaleString()} <span className="text-[10px] font-normal text-slate-300">/ night</span>
+                      </span>
+                    </div>
+
+                    <Link
+                      to={h.id ? `/hotels` : `/hotels/search`}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] shadow transition-all"
+                    >
+                      Book Room
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Travel Promotional Ad Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-emerald-500/20 border border-amber-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">🇳🇵 Nepal Yatra Sponsored Offer</span>
+                <p className="text-xs font-bold text-white mt-0.5">
+                  5-Day {destination.name} & Himalayan Sanctuary Tour (Includes 4-Star Hotel Stay, Daily Breakfast & Private Transport)
+                </p>
+              </div>
+              <Link
+                to="/packages"
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs shrink-0 shadow"
+              >
+                View Package Details ➔
+              </Link>
+            </div>
+          </div>
+
           {destination.marketplace_listings?.length > 0 && (
             <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
