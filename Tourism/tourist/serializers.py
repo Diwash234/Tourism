@@ -1457,13 +1457,14 @@ class OSMEssentialServiceSerializer(serializers.ModelSerializer):
         fields = ["id", "osm_id", "category", "name", "phone", "latitude", "longitude", "address", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "created_at", "updated_at"]
 
     def get_image_url(self, obj):
-        if not obj.image:
-            return None
-        request = self.context.get("request")
-        try:
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
-        except (ValueError, AttributeError):
-            return None
+        if obj.image:
+            request = self.context.get("request")
+            try:
+                return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            except (ValueError, AttributeError):
+                pass
+        from . import photo_catalog
+        return photo_catalog.resolve_poi_photo(obj.category, obj.name, seed=obj.id)["url"]
 
 
 class OSMTourismPlaceSerializer(serializers.ModelSerializer):
