@@ -6,7 +6,7 @@ import {
   FiShield, FiHome, FiCoffee, FiShoppingBag, FiGlobe, FiClock,
   FiNavigation, FiLayers, FiMaximize2, FiChevronLeft, FiChevronRight,
   FiX, FiCalendar, FiActivity, FiAlertTriangle, FiCheckCircle,
-  FiTruck, FiCompass, FiExternalLink, FiInfo, FiBookOpen, FiShare2
+  FiTruck, FiCompass, FiExternalLink, FiInfo, FiBookOpen, FiShare2, FiSun
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"

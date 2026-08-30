@@ -56,7 +56,7 @@ const GROUPS = [
       { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: BsExclamationTriangle, color: "red" },
       { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: BsBell, color: "nepalred" },
       { to: "/family-safety", label: "Family Safety", icon: BsPeople, color: "emerald" },
-      { to: "/navigation", label: "Navigation", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
+      { to: "/navigation", label: "Location & Directions", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
       { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: BsChatQuote, color: "emerald" },
       { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: BsTranslate, color: "cyan" },
       { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: BsRobot, color: "terracotta" },
@@ -115,6 +115,13 @@ export default function Sidebar() {
     if (window.innerWidth < 1024) closeSidebar()
   }
 
+  const PUBLIC_ROUTES = new Set([
+    "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
+    "/explore-map", "/discover-nepal", "/packages", "/collaborate", "/hotels/search",
+    "/emergency", "/risk-alerts", "/navigation", "/language", "/translation", "/chatbot",
+    "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/login", "/register"
+  ])
+
   const managedByRoute = new Map(managedItems.filter(item => String(item.route).startsWith("/")).map(item => [item.route, item]))
   const visibleGroups = GROUPS.map((grp) => ({
     ...grp,
@@ -122,6 +129,7 @@ export default function Sidebar() {
       .filter(link => managedItems.length === 0 || managedByRoute.has(link.to) || link.roleCheck)
       .map(link => managedByRoute.has(link.to) ? { ...link, label: managedByRoute.get(link.to).label } : link)
       .filter((link) => {
+        if (!isAuthenticated && !PUBLIC_ROUTES.has(link.to)) return false
         if (link.roleCheck === "admin" && !isAdmin) return false
         if (link.roleCheck === "staff" && !isStaff) return false
         if (link.roleCheck === "local" && !isLocal && !isAdmin) return false

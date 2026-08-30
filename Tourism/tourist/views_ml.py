@@ -111,17 +111,28 @@ class RecommendedDestinationsView(APIView):
 
 
         except requests.RequestException:
-
+            # Diverse fallback across categories & provinces
             fallback_destinations = Destination.objects.filter(
                 is_active=True,
                 status=Destination.SubmissionStatus.APPROVED,
             ).order_by(
-                "-average_rating"
-            )[:data["top_n"]]
+                "-is_featured", "-average_rating", "-views_count"
+            )[:data["top_n"] * 2]
 
+            # Apply category & district diversity filtering
+            seen_cats, seen_districts, diverse_list = set(), set(), []
+            for dest in fallback_destinations:
+                cat_id = dest.category_id
+                dist = dest.district or dest.city
+                if cat_id not in seen_cats or dist not in seen_districts or len(diverse_list) < data["top_n"]:
+                    diverse_list.append(dest)
+                    if cat_id: seen_cats.add(cat_id)
+                    if dist: seen_districts.add(dist)
+                if len(diverse_list) >= data["top_n"]:
+                    break
 
             results = DestinationListSerializer(
-                fallback_destinations,
+                diverse_list,
                 many=True,
                 context={
                     "request": request,
