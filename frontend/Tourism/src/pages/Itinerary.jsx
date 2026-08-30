@@ -109,6 +109,16 @@ const Itinerary = () => {
 
   }
 
+  const savePlan = async () => {
+    try {
+      await itineraryApi.savePlan({ title: `${form.start_city} ${form.days}-day itinerary`, travelers: form.travelers,
+        budget_npr: plan?.total_estimated_npr || form.budget_npr || null, interests: form.interests,
+        itinerary_data: plan, generation_source: "ml", notes: `${form.travel_style} · ${form.travel_type}` })
+      showToast("Travel plan saved to your account", "success")
+    } catch (saveError) {
+      showToast(saveError.response?.status === 401 ? "Sign in to save this travel plan" : "Could not save travel plan", "error")
+    }
+  }
 
 
   useEffect(()=>{
@@ -823,7 +833,9 @@ const Itinerary = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
 
           >
-
+            <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
+              <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account</p>
+            </button>
 
             <div className="card-base p-4">
 
@@ -1208,7 +1220,29 @@ const Itinerary = () => {
 
                   </div>
 
-
+                  {day.nearby_services && (
+                    <div className="mt-5 pt-4 border-t">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {[
+                          ["🏨 Stay", day.nearby_services.hotels],
+                          ["🏥 Hospital", day.nearby_services.hospitals],
+                          ["👮 Police", day.nearby_services.police],
+                          ["🏦 Essentials", day.nearby_services.essentials],
+                        ].map(([label, services]) => (
+                          <div key={label} className="rounded-xl bg-gray-50 p-3">
+                            <b className="text-xs">{label}</b>
+                            {(services || []).length ? services.map((service) => (
+                              <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
+                                <span className="font-semibold block truncate">{service.name}</span>
+                                <span>{service.distance_km} km{service.phone ? ` · ${service.phone}` : ""}</span>
+                              </div>
+                            )) : <p className="text-[11px] text-gray-400 mt-2">No verified record nearby</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 </motion.div>
 

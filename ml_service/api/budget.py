@@ -4,6 +4,7 @@ from typing import Optional
 import math
 
 from model.budget.budget_engine import estimate_budget
+from model.budget import csv_baselines
 
 router = APIRouter()
 
@@ -76,6 +77,9 @@ class BudgetRequest(BaseModel):
     """
     city: Optional[str] = None
     country: Optional[str] = None
+    district: Optional[str] = None
+    province: Optional[str] = None
+    destination: Optional[str] = None       # alias used by the Django proxy
     latitude: Optional[float] = None       # destination's coordinates
     longitude: Optional[float] = None
     user_latitude: Optional[float] = None  # traveler's current location
@@ -92,7 +96,7 @@ class BudgetRequest(BaseModel):
 
     @model_validator(mode="after")
     def require_destination(self):
-        has_city = bool((self.city or "").strip())
+        has_city = bool((self.city or self.destination or "").strip())
         has_coords = self.latitude is not None and self.longitude is not None
         if not has_city and not has_coords:
             raise ValueError(
@@ -119,8 +123,30 @@ def predict_budget(payload: BudgetRequest):
     except Exception:
         baseline, matched_city = DEFAULT_BASELINE, None
 
+    # Prefer real figures from the cleaned CSV dataset
+    # (processed_data/budget_features.csv) when available. The CSV carries
+    # per-destination/district/province cost ranges, so the estimate is
+    # grounded in actual collected data rather than only the small built-in
+    # city table. Missing fields fall back to the built-in baseline.
+    csv_baseline = None
+    try:
+        csv_baseline = csv_baselines.lookup_baseline(
+            city=payload.city,
+            district=getattr(payload, "district", None),
+            province=getattr(payload, "province", None),
+        )
+    except Exception:
+        csv_baseline = None
+
+    baseline_source = "built_in"
+    if csv_baseline:
+        baseline = {k: (csv_baseline.get(k) if csv_baseline.get(k) is not None else baseline.get(k))
+                    for k in ("transport", "food", "accommodation", "taxi")}
+        baseline_source = "dataset_csv"
+
     multiplier = STYLE_MULTIPLIER.get((payload.budget_level or "mid").lower(), 1.0)
     travelers = max(1, payload.travelers)
+    days = max(1, payload.days)
 
     # GPS-aware transport: if we know both where the traveler actually is
     # AND the destination's real coordinates, compute a real distance-based
@@ -152,7 +178,7 @@ def predict_budget(payload: BudgetRequest):
     taxi *= travelers
     accommodation = accommodation * multiplier * max(1, round(travelers / 2))
 
-    result = estimate_budget(transport, food, accommodation, taxi, payload.days)
+    result = estimate_budget(transport, food, accommodation, taxi, days)
 
     # Django's BudgetPredictionView reads result["estimated_total"] and
     # result["breakdown"] specifically -- estimate_budget() returns
@@ -162,13 +188,16 @@ def predict_budget(payload: BudgetRequest):
     result["estimated_total"] = result["total_budget_usd"]
     result["breakdown"]["activities"] = round(result["breakdown"]["accommodation"] * 0.15, 2)
 
-    result["city"] = payload.city or matched_city
+    result["city"] = payload.city or payload.destination or matched_city
     result["matched_baseline_city"] = matched_city
     result["budget_level"] = payload.budget_level
     result["travelers"] = travelers
+    result["days"] = days
+    result["baseline_source"] = baseline_source
+    result["dataset"] = csv_baselines.dataset_info()
     if distance_km is not None:
         result["distance_km"] = round(distance_km, 1)
         result["transport_basis"] = "gps_distance"
     else:
-        result["transport_basis"] = "city_baseline"
+        result["transport_basis"] = baseline_source
     return result
