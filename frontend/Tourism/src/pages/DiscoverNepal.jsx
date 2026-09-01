@@ -17,79 +17,9 @@ import {
   FiCalendar,
 } from "react-icons/fi"
 
-import NationalSymbols from "../components/dashboard/NationalSymbols"
+import NationalSymbols, { ALL_26_NATIONAL_SYMBOLS, EIGHT_THOUSANDERS, HIMALAYAN_RANGES, DEFAULT_FOODS, DEFAULT_FESTIVALS } from "../components/dashboard/NationalSymbols"
 import destinationApi from "../api/destinationApi"
 import { NOT_RECORDED, UPDATE_SOON, recordedCity, recordedText } from "../utils/placeUtils"
-
-const ALL_26_NATIONAL_SYMBOLS = [
-  { id: "flag", title: "National Flag", icon: "🏳️", nepali: "राष्ट्रिय झण्डा", value: "Unique double-triangle flag symbolizing the Himalayas and bravery.", image: "/images/destinations/flag_png-DqQuUnzj.jfif" },
-  { id: "emblem", title: "National Emblem", icon: "🪶", nepali: "राष्ट्रिय निशान छाप", value: "Features Everest, green hills, female/male hands shaking, and national motto.", image: "/images/destinations/emblem-Q_w8OTwe.jfif" },
-  { id: "animal", title: "National Animal", icon: "🐾", nepali: "गाय (Gai)", value: "The sacred Cow (Gai), symbolizing peace and prosperity.", image: "/images/destinations/cow-Igl23MiB.jfif" },
-  { id: "bird", title: "National Bird", icon: "🐦", nepali: "डाँफे (Danphe)", value: "Himalayan Monal (Danphe), iridescent 9-colored high alpine pheasant.", image: "/images/destinations/images-DG4ceRrC.jfif" },
-  { id: "flower", title: "National Flower", icon: "🌸", nepali: "लालीगुराँस (Lali Gurans)", value: "Rhododendron arboreum (Lali Gurans), blooming across high hills in spring.", image: "/images/destinations/rhododendron-B7PSGnkN.jfif" },
-  { id: "tree", title: "National Tree", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree, providing shade, oxygen, and spiritual sanctuary." },
-  { id: "fruit", title: "National Fruit", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Himalayan and Terai mangoes harvested in summer." },
-  { id: "anthem", title: "National Anthem", icon: "🎵", nepali: "सयौं थुँगा फूलका", value: "'Sayaun Thunga Phool Ka' celebrating unity across 120+ ethnic groups." },
-  { id: "currency", title: "National Currency", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR)", value: "Nepali Rupee (NPR), issued by Nepal Rastra Bank." },
-  { id: "language", title: "Official Language", icon: "🗣️", nepali: "नेपाली भाषा (Nepali)", value: "Nepali (Devanagari script), spoken alongside 120+ indigenous languages." },
-  { id: "capital", title: "Capital City", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley, the historic City of Temples." },
-  { id: "sport", title: "National Sport", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, played in high mountain villages and valley courts." },
-  { id: "dish", title: "National Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Lentil soup, rice, seasonal curry, and pickle)." },
-  { id: "mountain", title: "National Mountain", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth." },
-  { id: "costume", title: "National Costume", icon: "🎭", nepali: "दौरा सुरूवाल र ढाका टोपी", value: "Daura Suruwal with Dhaka Topi for men & Gunyou Cholo for women.", image: "/images/destinations/dhaka-topi-Bwa1r-wM.jfif" },
-  { id: "motto", title: "National Motto", icon: "🦅", nepali: "जननी जन्मभूमिश्च स्वर्गादपि गरीयसी", value: "'Mother and motherland are dearer than heaven itself.'" },
-  { id: "poet", title: "National Poet", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi)." },
-  { id: "day", title: "Constitution / National Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional governance." },
-  { id: "dance", title: "National Dance", icon: "💃", nepali: "मारुनी र लाखे नाच", value: "Maruni, Lakhey, and Charya cultural dances." },
-  { id: "river", title: "Major Sacred River", icon: "🌊", nepali: "सप्तकोशी, गण्डकी, कर्णाली", value: "Karnali, Gandaki, and Koshi Himalayan river systems." },
-  { id: "lake", title: "Sacred Alpine Lakes", icon: "🌊", nepali: "फेवा, रारा, शे-फोक्सुण्डो, गोसाइँकुण्ड", value: "Gosaikunda (4,380m), Rara, Shey Phoksundo, and Phewa lakes." },
-  { id: "insect", title: "National Insect / Butterfly", icon: "🦋", nepali: "कृष्णा कालीज (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies." },
-  { id: "plant", title: "Sacred Medicinal Plant", icon: "🌿", nepali: "यार्सागुम्बा / जिम्बु", value: "Yarsagumba (Cordyceps) & Himalayan Jimbu herbs." },
-  { id: "gemstone", title: "Himalayan Gemstone", icon: "💎", nepali: "नेपाली काईनाइट र रुबी", value: "Ganesh Himal Quartz, Kyanite, and Ruby." },
-  { id: "weapon", title: "Traditional Weapon", icon: "⚔️", nepali: "खुकुरी (Khukuri)", value: "Khukuri, curved Gurkha steel knife representing honor." },
-  { id: "instrument", title: "National Instrument", icon: "🪕", nepali: "मादल र सारङ्गी", value: "Madal drum & Gandharva Sarangi string instrument." },
-]
-
-const HIMALAYAN_RANGES = [
-  { range: "Mahalangur Himal", peaks: "Everest, Lhotse, Makalu, Cho Oyu, Ama Dablam", highest: "Mount Everest – 8,848.86 m", area: "Solukhumbu / Sankhuwasabha" },
-  { range: "Kanchenjunga Himal", peaks: "Kanchenjunga, Jannu (Kumbhakarna)", highest: "Kanchenjunga – 8,586 m", area: "Taplejung (Eastern Nepal)" },
-  { range: "Annapurna Himal", peaks: "Annapurna I, II, III, IV, Gangapurna, Machhapuchhre", highest: "Annapurna I – 8,091 m", area: "Kaski, Manang, Mustang" },
-  { range: "Dhaulagiri Himal", peaks: "Dhaulagiri I, II, III, IV, V", highest: "Dhaulagiri I – 8,167 m", area: "Myagdi / Mustang" },
-  { range: "Manaslu Himal", peaks: "Manaslu, Himalchuli, Ngadi Chuli", highest: "Manaslu – 8,163 m", area: "Gorkha / Manang" },
-  { range: "Langtang Himal", peaks: "Langtang Lirung, Dorje Lakpa, Langshisha Ri", highest: "Langtang Lirung – 7,227 m", area: "Rasuwa / Sindhupalchok" },
-  { range: "Ganesh Himal", peaks: "Yangra (Ganesh I), Ganesh II, III", highest: "Yangra – 7,422 m", area: "Gorkha / Dhading / Rasuwa" },
-  { range: "Rolwaling Himal", peaks: "Gauri Shankar, Melungtse, Dorje Phagmo", highest: "Melungtse – 7,181 m", area: "Dolakha" },
-  { range: "Api–Nampa Himal", peaks: "Api, Nampa, Byas Himal", highest: "Api – 7,132 m", area: "Darchula (Far-West Nepal)" },
-  { range: "Kanjiroba Himal", peaks: "Kanjiroba North, Kanjiroba South", highest: "Kanjiroba South – 6,883 m", area: "Dolpa" },
-  { range: "Jugal Himal", peaks: "Dorje Lakpa, Gyalzen Peak", highest: "Dorje Lakpa – 6,966 m", area: "Sindhupalchok" },
-  { range: "Damodar & Mustang Himal", peaks: "Tilicho Peak, Nilgiri North, Bhrikuti", highest: "Nilgiri North – 7,061 m", area: "Mustang / Manang" },
-]
-
-const EIGHT_THOUSANDERS = [
-  { rank: 1, name: "Mount Everest (Sagarmatha)", height: "8,848.86 m", region: "Solukhumbu", range: "Mahalangur Himal" },
-  { rank: 2, name: "Kanchenjunga", height: "8,586 m", region: "Taplejung", range: "Kanchenjunga Himal" },
-  { rank: 3, name: "Lhotse", height: "8,516 m", region: "Solukhumbu", range: "Mahalangur Himal" },
-  { rank: 4, name: "Makalu", height: "8,485 m", region: "Sankhuwasabha", range: "Mahalangur Himal" },
-  { rank: 5, name: "Cho Oyu", height: "8,188 m", region: "Solukhumbu", range: "Mahalangur Himal" },
-  { rank: 6, name: "Dhaulagiri I", height: "8,167 m", region: "Myagdi", range: "Dhaulagiri Himal" },
-  { rank: 7, name: "Manaslu", height: "8,163 m", region: "Gorkha", range: "Manaslu Himal" },
-  { rank: 8, name: "Annapurna I", height: "8,091 m", region: "Myagdi / Manang", range: "Annapurna Himal" },
-]
-
-const DEFAULT_FOODS = [
-  { name: "Steamed MoMo", nepali: "मःमः", desc: "Handmade steamed dumplings filled with spiced vegetables or chicken, served with spicy tomato sesame chutney.", region: "Kathmandu & Pokhara", image: "/images/destinations/food/momo.jpg" },
-  { name: "Dal Bhat Tarkari", nepali: "दाल भात", desc: "Steamed rice served with yellow lentil soup, curried vegetables, Gundruk, and spicy golbheda pickle.", region: "All Nepal (National Staple)", image: "/images/destinations/food/newari-bhoj.jpg" },
-  { name: "Newari Samay Baji", nepali: "समय् बजि", desc: "Beaten rice with smoked buffalo Choila, black beans, boiled eggs, and fermented Aila.", region: "Patan & Bhaktapur", image: "/images/destinations/food/newari-bhoj.jpg" },
-  { name: "Sel Roti & Achar", nepali: "सेल रोटी", desc: "Traditional ring-shaped fried rice-flour bread eaten during Dashain, Tihar, and morning tea.", region: "All Nepal", image: "/images/destinations/food/sel-roti.jpg" },
-  { name: "Bhaktapur Juju Dhau", nepali: "जुजु धौ", desc: "King of Curds — thick, sweet, rich buffalo-milk yogurt set in clay pots.", region: "Bhaktapur Durbar Square", image: "/images/destinations/food/juju-dhau.jpg" },
-]
-
-const DEFAULT_FESTIVALS = [
-  { title: "Bada Dashain", kind: "National Festival", body: "Nepal's major 15-day celebration of good over evil with Tika blessings, Jamara, and bamboo swings.", city: "All Nepal", date: "Sept – Oct" },
-  { title: "Tihar & Deepawali", kind: "Festival of Lights", body: "5-day light festival honoring dogs, crows, cows, Lakshmi, and Bhai Tika sister-brother bonds.", city: "All Nepal", date: "Oct – Nov" },
-  { title: "Fagu Purnima (Holi)", kind: "Spring Festival", body: "Vibrant festival of dry gulal colors, water balloons, and music across Durbar Squares.", city: "Kathmandu & Pokhara", date: "March" },
-  { title: "Bisket Jatra", kind: "Heritage Festival", body: "Huge chariot pulling festival in Bhaktapur celebrating the Newari New Year.", city: "Bhaktapur", date: "April" },
-]
 
 const DEFAULT_CULTURE = [
   {
@@ -404,7 +334,11 @@ export default function DiscoverNepal() {
                   <div key={s.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl">{s.icon}</span>
+                        {s.image ? (
+                          <img src={s.image} alt={s.title} className="w-12 h-12 rounded-full object-cover border-2 border-amber-500 shadow" />
+                        ) : (
+                          <span className="text-2xl">{s.icon}</span>
+                        )}
                         <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">{s.nepali}</span>
                       </div>
                       <h4 className="font-extrabold text-sm text-slate-900">{s.title}</h4>

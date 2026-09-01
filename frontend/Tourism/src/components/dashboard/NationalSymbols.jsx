@@ -27,7 +27,7 @@ export {
   StupaImg,
 };
 
-const SUMMARY_SYMBOLS = [
+export const SUMMARY_SYMBOLS = [
   {
     image: FlagImg,
     label: "National Flag",
@@ -70,7 +70,7 @@ const SUMMARY_SYMBOLS = [
   },
 ];
 
-const ALL_26_NATIONAL_SYMBOLS = [
+export const ALL_26_NATIONAL_SYMBOLS = [
   { id: "flag", category: "National Flag", title: "National Flag", icon: "🏳️", nepali: "राष्ट्रिय झण्डा", value: "Unique double-triangle flag with sun and moon, symbolizing the Himalayas and eternal bravery.", image: FlagImg },
   { id: "emblem", category: "National Emblem", title: "National Emblem / Coat of Arms", icon: "🪶", nepali: "राष्ट्रिय निशान छाप", value: "Features Mount Everest, green hills, rhododendron wreath, female/male hands shaking, and national motto.", image: EmblemImg },
   { id: "animal", category: "National Animal", title: "National Animal", icon: "🐾", nepali: "गाय (Gai)", value: "The sacred Cow (Gai), symbolizing peace, prosperity, and motherly care.", image: CowImg },
@@ -80,28 +80,28 @@ const ALL_26_NATIONAL_SYMBOLS = [
   { id: "map", category: "Geographic Map", title: "Nepal Sovereign Territory", icon: "🗺️", nepali: "नेपालको नक्सा", value: "147,516 km² spanning Terai plains, mid-hill valleys, and high Himalayas across 7 provinces.", image: MapImg },
   { id: "stupa", category: "Heritage Stupa", title: "Buddhist Stupa Heritage", icon: "☸️", nepali: "बौद्ध स्तुप सम्पदा", value: "Ancient stupa architecture representing enlightenment, peace, and wisdom (Swayambhu & Boudha).", image: StupaImg },
   
-  { id: "tree", category: "National Tree", title: "National Tree", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary." },
-  { id: "fruit", category: "National Fruit", title: "National Fruit", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months." },
-  { id: "anthem", category: "National Anthem", title: "National Anthem", icon: "🎵", nepali: "सयौं थुँगा फूलका", value: "'Sayaun Thunga Phool Ka' celebrating national sovereignty and unity across 120+ ethnic groups." },
-  { id: "currency", category: "National Currency", title: "National Currency", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank." },
-  { id: "language", category: "Official Language", title: "Official Language", icon: "🗣️", nepali: "नेपाली भाषा (Nepali)", value: "Nepali (Devanagari script), spoken alongside 120+ indigenous languages across 77 districts." },
-  { id: "capital", category: "Capital City", title: "Capital City", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads." },
-  { id: "governance", category: "Head of State / State", title: "State System & Governance", icon: "👑", nepali: "संघीय लोकतान्त्रिक गणतन्त्र", value: "Federal Democratic Republic of Nepal governed under the 2015 Constitution." },
-  { id: "sport", category: "National Sport", title: "National Sport", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts." },
-  { id: "dish", category: "National Dish", title: "National Food / Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Steamed rice, lentil soup, seasonal curried vegetables, Gundruk, and pickle)." },
-  { id: "fish", category: "National Fish", title: "National Fish", icon: "🐟", nepali: "सहर (Sahar / Golden Mahseer)", value: "Sahar (Tor putitora / Himalayan Golden Mahseer), king of fast-flowing snow-fed Himalayan rivers." },
-  { id: "river", category: "National River", title: "Major Sacred River Systems", icon: "🌊", nepali: "सप्तकोशी, गण्डकी, कर्णाली", value: "Karnali (longest), Gandaki, and Koshi snow-fed Himalayan river basins." },
-  { id: "mountain", category: "National Mountain", title: "National Mountain Peak", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth located in Mahalangur Himal." },
-  { id: "dance", category: "National Dance", title: "National Heritage Dance", icon: "💃", nepali: "मारुनी र लाखे नाच", value: "Maruni, Lakhey, and Charya cultural dances celebrating harvests and spiritual myths." },
-  { id: "motto", category: "National Motto", title: "National Motto", icon: "🦅", nepali: "जननी जन्मभूमिश्च स्वर्गादपि गरीयसी", value: "'Janani Janmabhumischa Swargadapi Gariyasi' — Mother and motherland are dearer than heaven itself." },
-  { id: "poet", category: "National Poet", title: "National Poet / Adikavi", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi)." },
-  { id: "day", category: "Constitution / National Day", title: "National Constitution Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional rule (Promulgated Sept 20, 2015)." },
-  { id: "gemstone", category: "Himalayan Gemstone", title: "National Gemstone", icon: "💎", nepali: "नेपाली काईनाइट र रुबी", value: "Ganesh Himal Quartz, Himalayan Kyanite, and Ruby mined in high altitudes." },
-  { id: "plant", category: "Sacred Medicinal Herb", title: "Sacred Plant / Herb", icon: "🌿", nepali: "यार्सागुम्बा / जिम्बु", value: "Yarsagumba (Cordyceps sinensis) & Himalayan Jimbu mountain herbs." },
-  { id: "insect", category: "National Butterfly", title: "National Insect / Butterfly", icon: "🐝", nepali: "कृष्णा कालीज (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies in high forest reserves." },
+  { id: "tree", category: "National Tree", title: "National Tree", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary.", image: "/images/destinations/bandipur/hilltop-village.jpg" },
+  { id: "fruit", category: "National Fruit", title: "National Fruit", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months.", image: "/images/destinations/chitwan/safari.jpg" },
+  { id: "anthem", category: "National Anthem", title: "National Anthem", icon: "🎵", nepali: "सयौं थुँगा फूलका", value: "'Sayaun Thunga Phool Ka' celebrating national sovereignty and unity across 120+ ethnic groups.", image: FlagImg },
+  { id: "currency", category: "National Currency", title: "National Currency", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR 1,000 Note)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank with Mt. Everest & twin elephants.", image: EmblemImg },
+  { id: "language", category: "Official Language", title: "Official Language (Devanagari)", icon: "🗣️", nepali: "नेपाली भाषा (क, ख, ग, घ, ङ)", value: "Nepali (Devanagari script), spoken alongside 120+ indigenous languages across 77 districts.", image: StupaImg },
+  { id: "capital", category: "Capital City", title: "Capital City", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads.", image: "/images/destinations/kathmandu/durbar-square.jpg" },
+  { id: "governance", category: "Head of State / State", title: "State System & Governance", icon: "👑", nepali: "संघीय लोकतान्त्रिक गणतन्त्र", value: "Federal Democratic Republic of Nepal governed under the 2015 Constitution.", image: EmblemImg },
+  { id: "sport", category: "National Sport", title: "National Sport (Volleyball)", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts.", image: "/images/destinations/pokhara/fewatal.jpg" },
+  { id: "dish", category: "National Dish", title: "National Food / Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Steamed rice, lentil soup, seasonal curried vegetables, Gundruk, and pickle).", image: "/images/destinations/food/newari-bhoj.jpg" },
+  { id: "fish", category: "National Fish", title: "National Fish", icon: "🐟", nepali: "सहर (Sahar / Golden Mahseer)", value: "Sahar (Tor putitora / Himalayan Golden Mahseer), king of fast-flowing snow-fed Himalayan rivers.", image: "/images/destinations/koshi-tappu/wetlands.jpg" },
+  { id: "river", category: "National River", title: "Major Sacred River Systems", icon: "🌊", nepali: "सप्तकोशी, गण्डकी, कर्णाली", value: "Karnali (longest), Gandaki, and Koshi snow-fed Himalayan river basins.", image: "/images/destinations/koshi-tappu/wetlands.jpg" },
+  { id: "mountain", category: "National Mountain", title: "National Mountain Peak", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth located in Mahalangur Himal.", image: "/images/destinations/everest/base-camp.jpg" },
+  { id: "dance", category: "National Dance", title: "National Heritage Dance", icon: "💃", nepali: "मारुनी र लाखे नाच", value: "Maruni, Lakhey, and Charya cultural dances celebrating harvests and spiritual myths.", image: DanpheImg },
+  { id: "motto", category: "National Motto", title: "National Motto", icon: "🦅", nepali: "जननी जन्मभूमिश्च स्वर्गादपि गरीयसी", value: "'Janani Janmabhumischa Swargadapi Gariyasi' — Mother and motherland are dearer than heaven itself.", image: EmblemImg },
+  { id: "poet", category: "National Poet", title: "National Poet / Adikavi", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi).", image: TopiImg },
+  { id: "day", category: "Constitution / National Day", title: "National Constitution Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional rule (Promulgated Sept 20, 2015).", image: FlagImg },
+  { id: "gemstone", category: "Himalayan Gemstone", title: "National Gemstone", icon: "💎", nepali: "नेपाली काईनाइट र रुबी", value: "Ganesh Himal Quartz, Himalayan Kyanite, and Ruby mined in high altitudes.", image: "/images/destinations/tilicho/himalayan-lake.jpg" },
+  { id: "plant", category: "Sacred Medicinal Herb", title: "Sacred Plant / Herb", icon: "🌿", nepali: "यार्सागुम्बा / जिम्बु", value: "Yarsagumba (Cordyceps sinensis) & Himalayan Jimbu mountain herbs.", image: "/images/destinations/gosaikunda/glacial-lake.jpg" },
+  { id: "insect", category: "National Butterfly", title: "National Insect / Butterfly", icon: "🐝", nepali: "कृष्णा कालीज (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies in high forest reserves.", image: DanpheImg },
 ];
 
-const EIGHT_THOUSANDERS = [
+export const EIGHT_THOUSANDERS = [
   { rank: 1, name: "Mount Everest (Sagarmatha)", height: "8,848.86 m", region: "Solukhumbu", range: "Mahalangur Himal" },
   { rank: 2, name: "Kanchenjunga", height: "8,586 m", region: "Taplejung", range: "Kanchenjunga Himal" },
   { rank: 3, name: "Lhotse", height: "8,516 m", region: "Solukhumbu", range: "Mahalangur Himal" },
@@ -112,7 +112,7 @@ const EIGHT_THOUSANDERS = [
   { rank: 8, name: "Annapurna I", height: "8,091 m", region: "Myagdi / Manang", range: "Annapurna Himal" },
 ];
 
-const HIMALAYAN_RANGES = [
+export const HIMALAYAN_RANGES = [
   { range: "Mahalangur Himal", peaks: "Everest, Lhotse, Makalu, Cho Oyu, Ama Dablam", highest: "Mount Everest – 8,848.86 m", area: "Solukhumbu / Sankhuwasabha" },
   { range: "Kanchenjunga Himal", peaks: "Kanchenjunga, Jannu (Kumbhakarna)", highest: "Kanchenjunga – 8,586 m", area: "Taplejung (Eastern Nepal)" },
   { range: "Annapurna Himal", peaks: "Annapurna I, II, III, IV, Gangapurna, Machhapuchhre", highest: "Annapurna I – 8,091 m", area: "Kaski, Manang, Mustang" },
@@ -127,7 +127,7 @@ const HIMALAYAN_RANGES = [
   { range: "Damodar & Mustang Himal", peaks: "Tilicho Peak, Nilgiri North, Bhrikuti", highest: "Nilgiri North – 7,061 m", area: "Mustang / Manang" },
 ];
 
-const DEFAULT_FOODS = [
+export const DEFAULT_FOODS = [
   { name: "Steamed MoMo", nepali: "मःमः", desc: "Handmade steamed dumplings filled with spiced vegetables or chicken, served with spicy tomato sesame chutney.", region: "Kathmandu & Pokhara" },
   { name: "Dal Bhat Tarkari", nepali: "दाल भात", desc: "Steamed rice served with yellow lentil soup, curried vegetables, Gundruk, and spicy golbheda pickle.", region: "All Nepal (National Staple)" },
   { name: "Newari Samay Baji", nepali: "समय् बजि", desc: "Beaten rice with smoked buffalo Choila, black beans, boiled eggs, and fermented Aila.", region: "Patan & Bhaktapur" },
@@ -135,14 +135,14 @@ const DEFAULT_FOODS = [
   { name: "Bhaktapur Juju Dhau", nepali: "जुजु धौ", desc: "King of Curds — thick, sweet, rich buffalo-milk yogurt set in clay pots.", region: "Bhaktapur Durbar Square" },
 ];
 
-const DEFAULT_FESTIVALS = [
+export const DEFAULT_FESTIVALS = [
   { title: "Bada Dashain", kind: "National Festival", body: "Nepal's major 15-day celebration of good over evil with Tika blessings, Jamara, and bamboo swings.", city: "All Nepal", date: "Sept – Oct" },
   { title: "Tihar & Deepawali", kind: "Festival of Lights", body: "5-day light festival honoring dogs, crows, cows, Lakshmi, and Bhai Tika sister-brother bonds.", city: "All Nepal", date: "Oct – Nov" },
   { title: "Fagu Purnima (Holi)", kind: "Spring Festival", body: "Vibrant festival of dry gulal colors, water balloons, and music across Durbar Squares.", city: "Kathmandu & Pokhara", date: "March" },
   { title: "Bisket Jatra", kind: "Heritage Festival", body: "Huge chariot pulling festival in Bhaktapur celebrating the Newari New Year.", city: "Bhaktapur", date: "April" },
 ];
 
-const PROVINCE_LINKS = [
+export const PROVINCE_LINKS = [
   { name: "Koshi", count: "826 recorded places", highlight: "Ilam Tea Gardens & Kanyam" },
   { name: "Madhesh", count: "167 recorded places", highlight: "Janakpurdham & Janaki Mandir" },
   { name: "Bagmati", count: "2,624 recorded places", highlight: "Boudhanath Stupa & Kathmandu" },
