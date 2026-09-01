@@ -12,5 +12,6 @@ class BookingAdmin(admin.ModelAdmin):
 
 @admin.register(HotelReview)
 class HotelReviewAdmin(admin.ModelAdmin):
-    list_display = ["hotel", "user", "rating", "created_at"]
-    list_filter = ["rating"]
+    list_display = ["hotel", "user", "rating", "moderation_status", "moderated_by", "created_at"]
+    list_filter = ["rating", "moderation_status"]
+    search_fields = ["hotel__name", "user__email", "comment"]

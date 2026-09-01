@@ -16,6 +16,7 @@ import requests
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Destination, MLInsight
+from .models import Destination, Hotel, Hospital, MLInsight, OSMEssentialService, PoliceStation
 from .serializers import (
     DestinationListSerializer,
     MLInsightSerializer,
@@ -38,6 +39,7 @@ from .utils import (
     get_ml_safety_prediction,
     get_ml_budget_prediction,
     get_ml_best_route,
+    haversine_distance,
 )
 
 
@@ -109,17 +111,28 @@ class RecommendedDestinationsView(APIView):
 
 
         except requests.RequestException:
-
+            # Diverse fallback across categories & provinces
             fallback_destinations = Destination.objects.filter(
                 is_active=True,
                 status=Destination.SubmissionStatus.APPROVED,
             ).order_by(
-                "-average_rating"
-            )[:data["top_n"]]
+                "-is_featured", "-average_rating", "-views_count"
+            )[:data["top_n"] * 2]
 
+            # Apply category & district diversity filtering
+            seen_cats, seen_districts, diverse_list = set(), set(), []
+            for dest in fallback_destinations:
+                cat_id = dest.category_id
+                dist = dest.district or dest.city
+                if cat_id not in seen_cats or dist not in seen_districts or len(diverse_list) < data["top_n"]:
+                    diverse_list.append(dest)
+                    if cat_id: seen_cats.add(cat_id)
+                    if dist: seen_districts.add(dist)
+                if len(diverse_list) >= data["top_n"]:
+                    break
 
             results = DestinationListSerializer(
-                fallback_destinations,
+                diverse_list,
                 many=True,
                 context={
                     "request": request,
@@ -366,6 +379,9 @@ class BudgetPredictionView(APIView):
             longitude=longitude,
             user_latitude=data.get("user_latitude"),
             user_longitude=data.get("user_longitude"),
+            district=getattr(destination, "district", None) if destination else data.get("district"),
+            province=getattr(destination, "province", None) if destination else data.get("province"),
+            destination_name=getattr(destination, "name", None) if destination else data.get("city"),
         )
 
 
@@ -453,6 +469,63 @@ class BestRouteView(APIView):
         return Response(result)
 
 
+def _safe_file_url(field):
+    try:
+        return field.url if field else None
+    except (ValueError, AttributeError):
+        return str(field) if field else None
+
+
+def _nearest_for_itinerary(rows, lat, lon, mapper):
+    ranked = []
+    for row in rows:
+        if row.latitude is None or row.longitude is None:
+            continue
+        distance = haversine_distance(lat, lon, row.latitude, row.longitude)
+        ranked.append((distance, row))
+    ranked.sort(key=lambda pair: pair[0])
+    return [mapper(row, round(distance, 2)) for distance, row in ranked[:2]]
+
+
+def enrich_itinerary_with_services(payload):
+    """Attach DB-backed planning and emergency services to every itinerary day."""
+    for day in payload.get("itinerary", []):
+        destinations = day.get("destinations") or []
+        anchor = next((item for item in destinations if item.get("latitude") is not None and item.get("longitude") is not None), None)
+        if anchor:
+            lat, lon = float(anchor["latitude"]), float(anchor["longitude"])
+        else:
+            match = Destination.objects.filter(city__icontains=day.get("city", "")).exclude(latitude__isnull=True).first()
+            if not match:
+                continue
+            lat, lon = float(match.latitude), float(match.longitude)
+
+        day["nearby_services"] = {
+            "hotels": _nearest_for_itinerary(
+                Hotel.objects.all(), lat, lon,
+                lambda row, distance: {
+                    "id": row.id, "name": row.name, "distance_km": distance,
+                    "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
+                    "image_url": _safe_file_url(row.cover_image) or row.external_image_url or None,
+                },
+            ),
+            "hospitals": _nearest_for_itinerary(
+                Hospital.objects.all(), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone, "distance_km": distance},
+            ),
+            "police": _nearest_for_itinerary(
+                PoliceStation.objects.all(), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone or "100", "distance_km": distance},
+            ),
+            "essentials": _nearest_for_itinerary(
+                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"]), lat, lon,
+                lambda row, distance: {"id": row.id, "type": row.category, "name": row.name, "phone": row.phone, "distance_km": distance},
+            ),
+        }
+    payload["service_data_source"] = "live_database_distance_ranking"
+    return payload
+
+
 class ItineraryView(APIView):
     """
     POST /api/v1/ml/itinerary/
@@ -488,7 +561,7 @@ class ItineraryView(APIView):
                 timeout=settings.ML_SERVICE_TIMEOUT * 3,
             )
             response.raise_for_status()
-            return Response(response.json())
+            return Response(enrich_itinerary_with_services(response.json()))
         except requests.RequestException as exc:
             logger.warning("ML itinerary service unreachable: %s", exc)
             # Internal database fallback itinerary builder
@@ -507,8 +580,6 @@ class ItineraryView(APIView):
                 dest_list = list(qs[: days * 3])
 
             itinerary_days = []
-            USD_TO_NPR = 133.0
-            daily_npr = round(35.0 * USD_TO_NPR * travelers)
 
             for day_idx in range(1, days + 1):
                 day_destinations = []
@@ -536,11 +607,10 @@ class ItineraryView(APIView):
                     "city": start_city,
                     "theme": "Cultural & Scenic Exploration",
                     "destinations": day_destinations,
-                    "daily_budget_npr": daily_npr,
+                    "daily_budget_npr": None,
                 })
 
-            total_npr = daily_npr * days
-            return Response({
+            fallback_payload = {
                 "source": "internal_db_engine",
                 "days": days,
                 "travelers": travelers,
@@ -549,10 +619,130 @@ class ItineraryView(APIView):
                 "travel_type": data.get("travel_type", "solo"),
                 "interests": interests,
                 "start_city": start_city,
-                "total_estimated_npr": total_npr,
-                "total_estimated_usd": round(total_npr / USD_TO_NPR, 2),
-                "per_person_npr": round(total_npr / travelers),
+                "total_estimated_npr": None,
+                "total_estimated_usd": None,
+                "per_person_npr": None,
                 "budget_npr": data.get("budget_npr"),
-                "fits_budget": (total_npr <= float(data.get("budget_npr"))) if data.get("budget_npr") else None,
+                "fits_budget": None,
+                "budget_note": "No recorded daily budget is stored for this fallback itinerary.",
                 "itinerary": itinerary_days,
-            }, status=status.HTTP_200_OK)
+            }
+            return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)
+
+
+class AIItineraryModificationView(APIView):
+    """
+    POST /api/v1/ml/itinerary/modify/
+    Modifies an existing structured itinerary data based on natural language or action buttons:
+    (cheaper, luxurious, more_trekking, more_culture, more_nature, hidden_gems, reduce_travel_time, slower_pace, family_friendly)
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        action = (request.data.get("action") or "").strip().lower()
+        itinerary_data = request.data.get("itinerary_data") or request.data.get("itinerary") or {}
+        days_data = itinerary_data.get("itinerary") or []
+        interests = list(itinerary_data.get("interests") or ["culture"])
+
+        if not days_data:
+            return Response({"detail": "No structured itinerary provided to modify."}, status=status.HTTP_400_BAD_REQUEST)
+
+        modified_days = []
+        action_note = ""
+
+        if action in {"cheaper", "make_cheaper"}:
+            action_note = "Rebalanced with budget accommodation and public transport."
+            for day in days_data:
+                day_copy = dict(day)
+                day_copy["theme"] = f"Budget Friendly: {day.get('theme', 'Exploration')}"
+                if day_copy.get("daily_budget_npr"):
+                    day_copy["daily_budget_npr"] = round(float(day_copy["daily_budget_npr"]) * 0.7, 2)
+                modified_days.append(day_copy)
+
+        elif action in {"luxurious", "make_luxurious"}:
+            action_note = "Upgraded to premium private vehicle transit and boutique hotels."
+            for day in days_data:
+                day_copy = dict(day)
+                day_copy["theme"] = f"Boutique Luxury: {day.get('theme', 'Exploration')}"
+                if day_copy.get("daily_budget_npr"):
+                    day_copy["daily_budget_npr"] = round(float(day_copy["daily_budget_npr"]) * 1.5, 2)
+                modified_days.append(day_copy)
+
+        elif action in {"more_culture", "culture"}:
+            action_note = "Enriched with UNESCO heritage sites, durbar squares, and temple circuits."
+            heritage_dests = list(Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+                category__slug__in=["heritage", "culture", "temples", "buddhist-sites"]
+            )[: len(days_data) * 2])
+            for idx, day in enumerate(days_data):
+                day_copy = dict(day)
+                day_copy["theme"] = "Heritage & Cultural Immersion"
+                if heritage_dests:
+                    d = heritage_dests[idx % len(heritage_dests)]
+                    day_copy["destinations"] = [{
+                        "name": d.name, "city": d.city or d.district or "Nepal",
+                        "latitude": float(d.latitude) if d.latitude else None,
+                        "longitude": float(d.longitude) if d.longitude else None,
+                        "category": d.category.name if d.category else "Heritage",
+                    }]
+                modified_days.append(day_copy)
+
+        elif action in {"more_nature", "more_trekking", "hidden_gems"}:
+            action_note = "Swapped crowded spots with quiet alpine lakes, trekking trails, and hidden gems."
+            nature_dests = list(Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+                category__slug__in=["natural-wonders", "trekking", "lakes", "viewpoints"]
+            )[: len(days_data) * 2])
+            for idx, day in enumerate(days_data):
+                day_copy = dict(day)
+                day_copy["theme"] = "Nature & Scenic Exploration"
+                if nature_dests:
+                    d = nature_dests[idx % len(nature_dests)]
+                    day_copy["destinations"] = [{
+                        "name": d.name, "city": d.city or d.district or "Nepal",
+                        "latitude": float(d.latitude) if d.latitude else None,
+                        "longitude": float(d.longitude) if d.longitude else None,
+                        "category": d.category.name if d.category else "Nature",
+                    }]
+                modified_days.append(day_copy)
+
+        elif action in {"slower_pace", "relaxed"}:
+            action_note = "Reduced daily activity density for a relaxed, unhurried pace."
+            for day in days_data:
+                day_copy = dict(day)
+                day_copy["theme"] = f"Relaxed Pace: {day.get('theme', 'Exploration')}"
+                if day_copy.get("destinations"):
+                    day_copy["destinations"] = day_copy["destinations"][:1]
+                modified_days.append(day_copy)
+
+        elif action in {"replan", "impact_check", "weather_replan"}:
+            action_note = "IMPACT DETECTED & AUTOMATIC REPLANNING APPLIED: Swapped outdoor high-altitude/water activities with indoor cultural heritage & tea houses."
+            indoor_dests = list(Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+                category__slug__in=["museums", "culture", "heritage", "temples"]
+            )[: len(days_data) * 2])
+            for idx, day in enumerate(days_data):
+                day_copy = dict(day)
+                day_copy["theme"] = "Replanned: Cultural & Indoor Experience"
+                if indoor_dests:
+                    d = indoor_dests[idx % len(indoor_dests)]
+                    day_copy["destinations"] = [{
+                        "name": d.name, "city": d.city or d.district or "Nepal",
+                        "latitude": float(d.latitude) if d.latitude else None,
+                        "longitude": float(d.longitude) if d.longitude else None,
+                        "category": d.category.name if d.category else "Museum / Cultural",
+                    }]
+                modified_days.append(day_copy)
+
+        else:
+            action_note = f"Custom adjustment applied: {action}"
+            modified_days = days_data
+
+        result = dict(itinerary_data)
+        result["itinerary"] = modified_days
+        result["modification_note"] = action_note
+        result["modified_action"] = action
+        result["modified_at"] = timezone.now().isoformat()
+
+        return Response(enrich_itinerary_with_services(result))

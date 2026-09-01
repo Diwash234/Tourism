@@ -37,7 +37,7 @@ export default function ThankYou() {
             <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
               <FiCompass className="text-purple-700" /> Explore Destinations
             </h4>
-            <p className="text-xs text-gray-500 mt-1">Browse 5,800+ verified spots across all 7 provinces of Nepal.</p>
+            <p className="text-xs text-gray-500 mt-1">Browse recorded destinations across Nepal. Empty fields stay Not recorded.</p>
             <Link to="/destinations" className="text-xs font-bold text-purple-700 hover:underline inline-block mt-2">
               Browse Places ➔
             </Link>
@@ -47,7 +47,7 @@ export default function ThankYou() {
             <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
               <FiShield className="text-rose-600" /> Safety & Emergency
             </h4>
-            <p className="text-xs text-gray-500 mt-1">Instant access to 1,000+ hospitals, police stations & live hazard radar.</p>
+            <p className="text-xs text-gray-500 mt-1">Recorded hospitals and police, plus official numbers 1144, 100 and 102.</p>
             <Link to="/emergency" className="text-xs font-bold text-rose-600 hover:underline inline-block mt-2">
               Emergency Hub ➔
             </Link>

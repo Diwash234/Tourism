@@ -65,13 +65,10 @@ const Login = () => {
       const userData = await login(data)
       showToast(`Welcome back, ${userData?.first_name || userData?.email}!`, "success")
 
-      const adminRoles = ["admin", "super_admin", "tourism_admin", "staff", "content_moderator", "district_manager"]
-      const isAdminOrStaff =
-        adminRoles.includes(userData?.role) ||
-        userData?.is_staff === true ||
-        userData?.is_superuser === true
-
-      const fallback = isAdminOrStaff ? "/admin" : "/dashboard"
+      const role = String(userData?.role || "").toLowerCase()
+      const isAdmin = ["admin", "super_admin", "tourism_admin"].includes(role) || userData?.is_superuser === true
+      const isStaff = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"].includes(role)
+      const fallback = isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard"
       navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
       showToast(err?.response?.data?.detail || err?.response?.data?.message || "Invalid email or password", "error")
