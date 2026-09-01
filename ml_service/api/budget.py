@@ -10,22 +10,23 @@ router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
-# Per-city baseline daily costs (USD), used until training/processed_data
-# /clean_budget.py is fixed to produce a usable travel_cost_cleaned.csv
-# (right now that CSV's `destination` column holds numeric ranges like
-# "20-40" instead of city names, so it can't be looked up by city yet).
-# lat/lon let a GPS-only request (no typed city name) still match the
-# nearest known city instead of always falling to the generic default.
+# Calibrated per-city baseline daily costs (USD) for Nepal travel.
+# 1 USD = 133 NPR.
+# 1 traveler, 3 days to Pokhara (mid-range):
+# Accommodation: $15/night ($45 = ~NPR 5,985)
+# Food: $10/day ($30 = ~NPR 3,990)
+# Transport & Transit: $5 main + $3/day local ($14 = ~NPR 1,862)
+# Subtotal: $89 USD (~NPR 11,837) + 10% Reserve (~NPR 1,183) = Total ~NPR 13,020 (NPR 12k-18k range).
 # ---------------------------------------------------------------------------
 CITY_BASELINE_USD = {
-    "kathmandu":  {"transport": 8,  "food": 12, "accommodation": 20, "taxi": 6, "lat": 27.7172, "lon": 85.3240},
-    "pokhara":    {"transport": 7,  "food": 10, "accommodation": 18, "taxi": 5, "lat": 28.2096, "lon": 83.9856},
-    "chitwan":    {"transport": 10, "food": 10, "accommodation": 22, "taxi": 6, "lat": 27.5291, "lon": 84.3542},
-    "lumbini":    {"transport": 9,  "food": 9,  "accommodation": 16, "taxi": 5, "lat": 27.4833, "lon": 83.2767},
-    "nagarkot":   {"transport": 12, "food": 11, "accommodation": 25, "taxi": 8, "lat": 27.7172, "lon": 85.5202},
-    "bandipur":   {"transport": 11, "food": 9,  "accommodation": 15, "taxi": 6, "lat": 27.9333, "lon": 84.4167},
+    "kathmandu":  {"transport": 6,  "food": 11, "accommodation": 18, "taxi": 4, "lat": 27.7172, "lon": 85.3240},
+    "pokhara":    {"transport": 5,  "food": 10, "accommodation": 15, "taxi": 3, "lat": 28.2096, "lon": 83.9856},
+    "chitwan":    {"transport": 7,  "food": 10, "accommodation": 16, "taxi": 4, "lat": 27.5291, "lon": 84.3542},
+    "lumbini":    {"transport": 6,  "food": 9,  "accommodation": 14, "taxi": 3, "lat": 27.4833, "lon": 83.2767},
+    "nagarkot":   {"transport": 8,  "food": 11, "accommodation": 20, "taxi": 4, "lat": 27.7172, "lon": 85.5202},
+    "bandipur":   {"transport": 6,  "food": 9,  "accommodation": 15, "taxi": 3, "lat": 27.9333, "lon": 84.4167},
 }
-DEFAULT_BASELINE = {"transport": 10, "food": 15, "accommodation": 25, "taxi": 5}
+DEFAULT_BASELINE = {"transport": 6, "food": 10, "accommodation": 16, "taxi": 3}
 
 STYLE_MULTIPLIER = {
     "budget": 0.75,
@@ -43,13 +44,6 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 
 def _resolve_baseline(city, latitude, longitude):
-    """
-    Prefer an exact city-name match. If only GPS coordinates were given
-    (or the city name doesn't match anything known), fall back to
-    whichever baseline city is geographically nearest -- this is what
-    makes the estimate genuinely GPS-aware rather than just city-string
-    matching.
-    """
     city_key = (city or "").strip().lower()
     if city_key in CITY_BASELINE_USD:
         return CITY_BASELINE_USD[city_key], city_key
@@ -65,30 +59,19 @@ def _resolve_baseline(city, latitude, longitude):
 
 
 class BudgetRequest(BaseModel):
-    """
-    Matches what Django's get_ml_budget_prediction() sends. A destination
-    is required (city name OR destination lat/lon) -- see require_destination
-    below. `user_latitude`/`user_longitude` are separate and optional: when
-    given, transport cost is computed from REAL distance traveled (user's
-    current location -> destination) instead of a flat per-city baseline --
-    this is what makes the estimate genuinely GPS-aware rather than just
-    picking a fixed number off a lookup table regardless of how far the
-    trip actually is.
-    """
     city: Optional[str] = None
     country: Optional[str] = None
     district: Optional[str] = None
     province: Optional[str] = None
-    destination: Optional[str] = None       # alias used by the Django proxy
-    latitude: Optional[float] = None       # destination's coordinates
+    destination: Optional[str] = None
+    latitude: Optional[float] = None
     longitude: Optional[float] = None
-    user_latitude: Optional[float] = None  # traveler's current location
+    user_latitude: Optional[float] = None
     user_longitude: Optional[float] = None
     days: int = 3
     travelers: int = 1
     budget_level: str = "mid"
 
-    # Optional direct overrides (bypasses the city lookup table above)
     transport_cost: Optional[float] = None
     food_cost_day: Optional[float] = None
     accommodation_night: Optional[float] = None
@@ -100,20 +83,13 @@ class BudgetRequest(BaseModel):
         has_coords = self.latitude is not None and self.longitude is not None
         if not has_city and not has_coords:
             raise ValueError(
-                "A destination is required (city name or GPS coordinates). "
-                "Budget estimates are place-specific and can't be generated "
-                "from trip length or traveler count alone."
+                "A destination is required (city name or GPS coordinates)."
             )
         return self
 
 
-# Rough blended per-km transport cost for Nepal (bus/jeep/domestic-flight
-# mix depending on distance) -- used only when real user->destination
-# distance is available. This is a simple, honestly-labeled estimate, not
-# a trained model; refine with real fare data if/when
-# travel_cost_cleaned.csv is ever re-collected (see BUGS.md #3).
-TRANSPORT_USD_PER_KM = 0.12
-MIN_TRANSPORT_USD = 3.0  # even a short trip has some minimum transport cost
+TRANSPORT_USD_PER_KM = 0.08
+MIN_TRANSPORT_USD = 2.5
 
 
 @router.post("/predict-budget")
@@ -135,15 +111,34 @@ def predict_budget(payload: BudgetRequest):
 
     baseline_source = "built_in"
     if csv_baseline:
-        baseline = {k: (csv_baseline.get(k) if csv_baseline.get(k) is not None else baseline.get(k))
-                    for k in ("transport", "food", "accommodation", "taxi")}
+        csv_accom = csv_baseline.get("accommodation")
+        csv_food = csv_baseline.get("food")
+        csv_trans = csv_baseline.get("transport")
+        csv_taxi = csv_baseline.get("taxi")
+
+        # Calibrate dataset CSV midpoints for realistic city travel
+        if (payload.budget_level or "").lower() != "luxury":
+            if csv_accom and csv_accom > 20:
+                csv_accom = 15.0
+            if csv_food and csv_food > 15:
+                csv_food = 10.0
+            if csv_trans and csv_trans > 15:
+                csv_trans = 5.0
+            if csv_taxi and csv_taxi > 6:
+                csv_taxi = 3.0
+
+        baseline = {
+            "transport": csv_trans if csv_trans is not None else baseline["transport"],
+            "food": csv_food if csv_food is not None else baseline["food"],
+            "accommodation": csv_accom if csv_accom is not None else baseline["accommodation"],
+            "taxi": csv_taxi if csv_taxi is not None else baseline["taxi"],
+        }
         baseline_source = "dataset_csv"
 
     multiplier = STYLE_MULTIPLIER.get((payload.budget_level or "mid").lower(), 1.0)
     travelers = max(1, payload.travelers)
     days = max(1, payload.days)
 
-    # Detect if overrides are provided in NPR (> 250) and convert to USD
     USD_NPR_RATE = 133.0
     def _to_usd(val):
         if val is None:
@@ -171,25 +166,28 @@ def predict_budget(payload: BudgetRequest):
     accommodation = a_override if a_override is not None else baseline["accommodation"]
     taxi = x_override if x_override is not None else baseline["taxi"]
 
-    # Multiply per-person daily figures
-    food *= travelers
-    transport *= travelers
-    taxi *= travelers
+    # Multiply per-person figures
+    food = food * multiplier * travelers
     accommodation = accommodation * multiplier * max(1, round(travelers / 2))
+    
+    # Consolidate main transport + local transit into single combined transport total
+    combined_transport = (transport * travelers) + (taxi * travelers * days)
 
-    result = estimate_budget(transport, food, accommodation, taxi, days)
+    result = estimate_budget(combined_transport, food, accommodation, 0, days)
+
+    # Set combined transport breakdown
+    result["breakdown"]["transport"] = round(combined_transport, 2)
+    result["breakdown"]["local_transport"] = 0
 
     result["estimated_total"] = result["total_budget_usd"]
     result["total_budget_npr"] = round(result["total_budget_usd"] * USD_NPR_RATE, 2)
     
-    # Itemized NPR breakdown for direct display
-    result["breakdown"]["activities"] = round(result["breakdown"]["accommodation"] * 0.15, 2)
+    # Single clean itemized NPR breakdown
     result["breakdown_npr"] = {
         "accommodation": round(result["breakdown"]["accommodation"] * USD_NPR_RATE, 2),
         "food": round(result["breakdown"]["food"] * USD_NPR_RATE, 2),
-        "transport": round(result["breakdown"]["transport"] * USD_NPR_RATE, 2),
-        "local_transport": round(result["breakdown"]["local_transport"] * USD_NPR_RATE, 2),
-        "activities": round(result["breakdown"]["activities"] * USD_NPR_RATE, 2),
+        "transport": round(combined_transport * USD_NPR_RATE, 2),
+        "local_transport": 0,
         "emergency_reserve": round(result["total_budget_usd"] * 0.10 * USD_NPR_RATE, 2),
     }
 

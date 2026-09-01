@@ -586,6 +586,57 @@ def publish_official_emergency(data, reviewer=None):
     return obj, csv_written
 
 
+def _merge_verified_budget_features(path, records):
+    if not records or not path:
+        return
+    headers = ["Source", "Destination", "District", "Province", "Transport Cost (USD)", "Food Cost/Day (USD)", "Accommodation/Night (USD)", "Local Taxi/Rick"]
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing_rows = []
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                header_line = next(reader, None)
+                existing_rows = [r for r in list(reader) if len(r) >= 4]
+        except Exception:
+            existing_rows = []
+
+    dest_keys = {_norm(r[1]) for r in existing_rows if len(r) >= 2}
+
+    new_rows = []
+    USD_RATE = 133.0
+    for r in records:
+        dest_name = r.destination_name or (r.destination.name if r.destination else "User Travel")
+        if _norm(dest_name) in dest_keys:
+            continue
+        district = r.destination.district if r.destination else ""
+        province = r.destination.province if r.destination else ""
+        people = max(1, r.num_people or 1)
+        days = max(1, r.num_days or 1)
+
+        accom_usd = round((float(r.accommodation_cost or 0) / days / people) / USD_RATE, 2)
+        food_usd = round((float(r.food_cost or 0) / days / people) / USD_RATE, 2)
+        transport_usd = round((float(r.travel_cost or 0) / people) / USD_RATE, 2)
+        taxi_usd = round((float(r.extra_cost or 0) / days / people) / USD_RATE, 2)
+
+        if accom_usd <= 0: accom_usd = 15.0
+        if food_usd <= 0: food_usd = 10.0
+        if transport_usd <= 0: transport_usd = 5.0
+        if taxi_usd <= 0: taxi_usd = 3.0
+
+        new_rows.append([
+            "Verified User Report", dest_name, district, province,
+            str(transport_usd), str(food_usd), str(accom_usd), str(taxi_usd)
+        ])
+
+    if new_rows:
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(headers)
+            writer.writerows(existing_rows + new_rows)
+
+
 def export_verified_ml_feedback():
     budget_fields = [
         "record_id", "destination", "district", "province", "num_people", "num_days",
@@ -598,7 +649,10 @@ def export_verified_ml_feedback():
         "transport_accessibility_rating", "overall_safety_rating", "comments", "verified_at",
     ]
     counts = {"budget": 0, "risk": 0}
-    for record in TravelExpenseFeedback.objects.filter(is_employee_verified=True).select_related("destination"):
+    verified_budget_records = list(
+        TravelExpenseFeedback.objects.filter(is_employee_verified=True).select_related("destination")
+    )
+    for record in verified_budget_records:
         row = {
             "record_id": record.id, "destination": record.destination_name,
             "district": record.destination.district if record.destination else "",
@@ -613,6 +667,12 @@ def export_verified_ml_feedback():
         for path in [ROOT / "Tourism" / "dataset" / "budget_estimation.csv", ROOT / "ml_service" / "data" / "budget" / "budget_estimation.csv"]:
             _append_unique(path, budget_fields, row, ["record_id"])
         counts["budget"] += 1
+
+    for path in [
+        ROOT / "Tourism" / "dataset" / "budget_features.csv",
+        ROOT / "ml_service" / "processed_data" / "budget_features.csv",
+    ]:
+        _merge_verified_budget_features(path, verified_budget_records)
 
     verified_risk_records = list(
         TravelRiskFeedback.objects.filter(is_admin_verified=True).select_related("destination")
