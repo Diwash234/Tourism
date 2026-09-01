@@ -7,7 +7,8 @@ import {
   FiCoffee,
   FiTruck,
   FiShield,
-  FiMap,
+  FiCompass,
+  FiShoppingBag,
   FiLoader,
 } from "react-icons/fi"
 
@@ -49,6 +50,18 @@ const CATEGORY_META = [
     label: "Transport & Transit",
     icon: FiTruck,
     color: "text-blue-600 bg-blue-50",
+  },
+  {
+    key: "activities",
+    label: "Sightseeing & Activities",
+    icon: FiCompass,
+    color: "text-purple-600 bg-purple-50",
+  },
+  {
+    key: "shopping",
+    label: "Local Shopping & Souvenirs",
+    icon: FiShoppingBag,
+    color: "text-emerald-600 bg-emerald-50",
   },
 ]
 
@@ -110,17 +123,22 @@ const BudgetEstimator = () => {
         result.daily_cost_usd ??
         (total ? Math.round(total / (data.days || 3)) : 0)
 
+      const accom = result.breakdown?.accommodation ?? result.accommodation ?? 0
+      const foodVal = result.breakdown?.food ?? result.food ?? 0
+      const transVal = (result.breakdown?.transport ?? result.transport ?? 0) + (result.breakdown?.local_transport ?? result.local_transport ?? 0)
+      const actVal = result.breakdown?.activities ?? Math.round(accom * 0.12)
+      const shopVal = result.breakdown?.shopping ?? Math.round(foodVal * 0.08)
+
       setEstimate({
-        total,
+        total: accom + foodVal + transVal + actVal + shopVal,
         daily,
         source: result.baseline_source || result.transport_basis || "estimate",
         dataset: result.dataset || null,
-        accommodation:
-          result.breakdown?.accommodation ?? result.accommodation ?? 0,
-        food: result.breakdown?.food ?? result.food ?? 0,
-        transport:
-          (result.breakdown?.transport ?? result.transport ?? 0) +
-          (result.breakdown?.local_transport ?? result.local_transport ?? 0),
+        accommodation: accom,
+        food: foodVal,
+        transport: transVal,
+        activities: actVal,
+        shopping: shopVal,
       })
     } catch (error) {
       if (requestId !== requestRef.current) return
@@ -260,12 +278,12 @@ const BudgetEstimator = () => {
               <p className="text-sm text-gray-500">Estimated Total Cost</p>
 
               <p className="text-4xl font-extrabold text-saffron-600 my-1">
-                {formatMoney(estimate.total, currency)}
+                {formatMoney(estimate.total + emergencyReserve, currency)}
               </p>
 
               <p className="text-xs text-gray-500">
-                ≈ ${Math.round(estimate.total || 0).toLocaleString()} USD ·{" "}
-                {formatMoney(estimate.total, currency)} {currency}
+                ≈ ${Math.round((estimate.total + emergencyReserve) || 0).toLocaleString()} USD ·{" "}
+                {formatMoney(estimate.total + emergencyReserve, currency)} {currency}
               </p>
 
               {estimate.source === "dataset_csv" ? (
@@ -278,7 +296,7 @@ const BudgetEstimator = () => {
               ) : null}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {CATEGORY_META.map(({ key, label, icon: Icon, color }) => (
                 <div key={key} className="card-base p-4 flex items-center gap-3 bg-white border border-slate-200 shadow-sm">
                   <div className={`p-2.5 rounded-xl ${color}`}>
@@ -294,7 +312,7 @@ const BudgetEstimator = () => {
                 </div>
               ))}
 
-              <div className="card-base p-4 flex items-center gap-3 sm:col-span-3 bg-slate-50 border border-slate-200">
+              <div className="card-base p-4 flex items-center gap-3 sm:col-span-2 lg:col-span-1 bg-slate-50 border border-slate-200">
                 <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800">
                   <FiShield size={18} />
                 </div>
@@ -313,11 +331,15 @@ const BudgetEstimator = () => {
                 "Accommodation",
                 "Food & Dining",
                 "Transport & Transit",
+                "Activities & Sightseeing",
+                "Shopping & Souvenirs",
               ]}
               data={[
                 estimate.accommodation,
                 estimate.food,
                 estimate.transport,
+                estimate.activities,
+                estimate.shopping,
               ]}
             />
           </motion.div>

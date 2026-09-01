@@ -12,11 +12,6 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 # Calibrated per-city baseline daily costs (USD) for Nepal travel.
 # 1 USD = 133 NPR.
-# 1 traveler, 3 days to Pokhara (mid-range):
-# Accommodation: $15/night ($45 = ~NPR 5,985)
-# Food: $10/day ($30 = ~NPR 3,990)
-# Transport & Transit: $5 main + $3/day local ($14 = ~NPR 1,862)
-# Subtotal: $89 USD (~NPR 11,837) + 10% Reserve (~NPR 1,183) = Total ~NPR 13,020 (NPR 12k-18k range).
 # ---------------------------------------------------------------------------
 CITY_BASELINE_USD = {
     "kathmandu":  {"transport": 6,  "food": 11, "accommodation": 18, "taxi": 4, "lat": 27.7172, "lon": 85.3240},
@@ -116,7 +111,6 @@ def predict_budget(payload: BudgetRequest):
         csv_trans = csv_baseline.get("transport")
         csv_taxi = csv_baseline.get("taxi")
 
-        # Calibrate dataset CSV midpoints for realistic city travel
         if (payload.budget_level or "").lower() != "luxury":
             if csv_accom and csv_accom > 20:
                 csv_accom = 15.0
@@ -167,40 +161,42 @@ def predict_budget(payload: BudgetRequest):
     taxi = x_override if x_override is not None else baseline["taxi"]
 
     # Multiply per-person figures
-    food = food * multiplier * travelers
-    accommodation = accommodation * multiplier * max(1, round(travelers / 2))
-    
-    # Consolidate main transport + local transit into single combined transport total
+    food_total = food * multiplier * travelers * days
+    accommodation_total = accommodation * multiplier * max(1, round(travelers / 2)) * days
     combined_transport = (transport * travelers) + (taxi * travelers * days)
 
-    result = estimate_budget(combined_transport, food, accommodation, 0, days)
+    activities_total = round((accommodation_total * 0.12), 2)
+    shopping_total = round((food_total * 0.08), 2)
+    grand_total_usd = round(accommodation_total + food_total + combined_transport + activities_total + shopping_total, 2)
 
-    # Set combined transport breakdown
-    result["breakdown"]["transport"] = round(combined_transport, 2)
-    result["breakdown"]["local_transport"] = 0
-
-    result["estimated_total"] = result["total_budget_usd"]
-    result["total_budget_npr"] = round(result["total_budget_usd"] * USD_NPR_RATE, 2)
-    
-    # Single clean itemized NPR breakdown
-    result["breakdown_npr"] = {
-        "accommodation": round(result["breakdown"]["accommodation"] * USD_NPR_RATE, 2),
-        "food": round(result["breakdown"]["food"] * USD_NPR_RATE, 2),
-        "transport": round(combined_transport * USD_NPR_RATE, 2),
-        "local_transport": 0,
-        "emergency_reserve": round(result["total_budget_usd"] * 0.10 * USD_NPR_RATE, 2),
+    result = {
+        "total_budget_usd": grand_total_usd,
+        "estimated_total": grand_total_usd,
+        "total_budget_npr": round(grand_total_usd * USD_NPR_RATE, 2),
+        "breakdown": {
+            "accommodation": round(accommodation_total, 2),
+            "food": round(food_total, 2),
+            "transport": round(combined_transport, 2),
+            "local_transport": 0,
+            "activities": activities_total,
+            "shopping": shopping_total,
+        },
+        "breakdown_npr": {
+            "accommodation": round(accommodation_total * USD_NPR_RATE, 2),
+            "food": round(food_total * USD_NPR_RATE, 2),
+            "transport": round(combined_transport * USD_NPR_RATE, 2),
+            "local_transport": 0,
+            "activities": round(activities_total * USD_NPR_RATE, 2),
+            "shopping": round(shopping_total * USD_NPR_RATE, 2),
+            "emergency_reserve": round(grand_total_usd * 0.10 * USD_NPR_RATE, 2),
+        },
+        "city": payload.city or payload.destination or matched_city,
+        "matched_baseline_city": matched_city,
+        "budget_level": payload.budget_level,
+        "travelers": travelers,
+        "days": days,
+        "baseline_source": baseline_source,
+        "dataset": csv_baselines.dataset_info(),
+        "transport_basis": "gps_distance" if distance_km is not None else baseline_source,
     }
-
-    result["city"] = payload.city or payload.destination or matched_city
-    result["matched_baseline_city"] = matched_city
-    result["budget_level"] = payload.budget_level
-    result["travelers"] = travelers
-    result["days"] = days
-    result["baseline_source"] = baseline_source
-    result["dataset"] = csv_baselines.dataset_info()
-    if distance_km is not None:
-        result["distance_km"] = round(distance_km, 1)
-        result["transport_basis"] = "gps_distance"
-    else:
-        result["transport_basis"] = baseline_source
     return result

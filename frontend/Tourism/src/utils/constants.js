@@ -129,7 +129,7 @@ export const NAV_LINKS = [
   },
 
   {
-    label: "Navigation",
+    label: "Location",
     path: "/navigation"
   },
 
