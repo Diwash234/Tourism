@@ -9,6 +9,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
+
+# Production transport/cookie protections are secure-by-default whenever
+# DEBUG is disabled, while local/Arena development remains HTTP-compatible.
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000 if not DEBUG else 0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG, cast=bool)
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="DENY" if not DEBUG else "SAMEORIGIN")
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 
 # ------------------------------------------------------------------
@@ -38,6 +50,8 @@ INSTALLED_APPS = [
     "booking",
     "chatbot",
     "safety",
+    "audit",            # Audit logs + error tracking (finds mistakes)
+    "system_health",    # Live diagnostics & health snapshots
     # "notifications",
     # "media_app",
     # "translations",
@@ -53,6 +67,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "audit.middleware.AuditMiddleware",   # logs every request + error to AuditLog/ErrorEvent
     "tourist.middleware.GeoIPMiddleware",
 ]
 
@@ -132,6 +147,21 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# ---------------------------------------------------------------------------
+# STANDALONE IMAGE SERVER
+# ---------------------------------------------------------------------------
+# Django never stores or transfers the large image dataset. The database only
+# stores relative paths (DestinationImage.image_path) and the full URL is built
+# from IMAGE_BASE_URL, which points at the static image server:
+#   dev:   IMAGE_BASE_URL=http://localhost:8000  (python -m http.server in image-server/)
+#   prod:  IMAGE_BASE_URL=https://images.example.com  (Nginx serving image-server/images/)
+IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="http://localhost:8000").rstrip("/")
+# Local root of the image dataset (used by the import_images management command).
+IMAGE_SERVER_ROOT = config(
+    "IMAGE_SERVER_ROOT",
+    default=str(BASE_DIR.parent / "image-server" / "images"),
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ------------------------------------------------------------------
@@ -139,7 +169,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ------------------------------------------------------------------
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = "SAMEORIGIN"
+X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="DENY" if not DEBUG else "SAMEORIGIN")
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False  # Allows JS to read CSRF token if needed
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
@@ -154,6 +184,15 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
+
+# Browser previews use dynamic HTTPS hosts. Django supports wildcard trusted
+# origins; production deployments should additionally set explicit origins in
+# CSRF_TRUSTED_ORIGINS through the environment.
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="https://*.e2b.app,https://*.arena.site,http://localhost:5173,http://localhost:8000",
+    cast=Csv(),
+)
 
 # ------------------------------------------------------------------
 # Django REST Framework
@@ -315,6 +354,18 @@ PHOTO_PROMOTION_IMPRESSION_THRESHOLD = config("PHOTO_PROMOTION_IMPRESSION_THRESH
 ML_SERVICE_URL = config("ML_SERVICE_URL", default="http://localhost:8001")
 ML_SERVICE_API_KEY = config("ML_SERVICE_API_KEY", default="change-this-ml-api-key")
 ML_SERVICE_TIMEOUT = config("ML_SERVICE_TIMEOUT", default=5, cast=int)
+
+# Optional authoritative/operational integrations. Blank means disabled; the
+# application reports the integration as unconfigured rather than inventing data.
+DHM_FEED_URL = config("DHM_FEED_URL", default="")
+DHM_API_KEY = config("DHM_API_KEY", default="")
+BIPAD_FEED_URL = config("BIPAD_FEED_URL", default="")
+BIPAD_API_KEY = config("BIPAD_API_KEY", default="")
+ROUTING_API_URL = config("ROUTING_API_URL", default="")
+ROUTING_API_KEY = config("ROUTING_API_KEY", default="")
+LOCAL_GRAPH_ROUTING_ENABLED = config("LOCAL_GRAPH_ROUTING_ENABLED", default=True, cast=bool)
+LOCAL_GRAPH_MAX_SNAP_KM = config("LOCAL_GRAPH_MAX_SNAP_KM", default=100, cast=float)
+EXTERNAL_SYNC_TIMEOUT = config("EXTERNAL_SYNC_TIMEOUT", default=15, cast=int)
 ML_WEBHOOK_SECRET = config("ML_WEBHOOK_SECRET", default="change-this-shared-secret")
 BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")
 # Language codes that should try the ML teammate's local-language model
@@ -327,6 +378,27 @@ LOCAL_TRANSLATION_LANGUAGE_CODES = config(
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": "INFO"},
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "audit_db": {
+            "class": "audit.logging_services.AuditDBHandler",
+            "level": "WARNING",
+        },
+    },
+    "root": {"handlers": ["console", "audit_db"], "level": "INFO"},
+    "loggers": {
+        "django.request": {"handlers": ["console", "audit_db"], "level": "ERROR", "propagate": False},
+        "django.security": {"handlers": ["console", "audit_db"], "level": "WARNING", "propagate": False},
+        "tourist": {"handlers": ["console", "audit_db"], "level": "INFO", "propagate": False},
+        "audit": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
 }

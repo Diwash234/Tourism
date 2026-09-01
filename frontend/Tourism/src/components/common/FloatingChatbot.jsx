@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { FiMessageSquare, FiX, FiSend, FiMinimize2, FiMaximize2 } from "react-icons/fi"
 import chatbotApi from "../../api/chatbotApi"
 import useGeolocation from "../../hooks/useGeolocation"
+import useToast from "../../hooks/useToast"
+import HimalPackageCards from "../chat/HimalPackageCards"
 
 const FloatingChatbot = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -18,6 +20,7 @@ const FloatingChatbot = () => {
   const [conversationId, setConversationId] = useState(null)
 
   const { position } = useGeolocation()
+  const { showToast } = useToast()
   const chatScrollRef = useRef(null)
 
   useEffect(() => {
@@ -53,6 +56,8 @@ const FloatingChatbot = () => {
         {
           role: "assistant",
           content: data.reply || "I am here to help you explore Nepal!",
+          package_cards: data.package_cards || [],
+          emergency_cards: data.emergency_cards || [],
         },
       ])
     } catch (error) {
@@ -79,13 +84,14 @@ const FloatingChatbot = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50" data-testid="himal-float">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.9 }}
+            data-testid="himal-float-panel"
             className="card-base w-[360px] sm:w-[400px] h-[520px] shadow-2xl flex flex-col overflow-hidden border border-purple-200 mb-3 bg-white"
           >
             {/* Header */}
@@ -128,6 +134,10 @@ const FloatingChatbot = () => {
                     }`}
                   >
                     {m.content}
+                    <HimalPackageCards
+                      offers={m.package_cards}
+                      onAdd={() => showToast("Added to trip basket", "success")}
+                    />
                   </div>
                 </div>
               ))}
@@ -146,12 +156,14 @@ const FloatingChatbot = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about Nepal places, budgets..."
+                data-testid="himal-float-input"
                 className="input-field py-2 text-xs flex-1"
                 disabled={sending}
               />
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
+                data-testid="himal-float-send"
                 className="bg-purple-700 hover:bg-purple-800 text-white px-3.5 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
               >
                 <FiSend size={15} />

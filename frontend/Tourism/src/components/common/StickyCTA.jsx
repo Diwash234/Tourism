@@ -70,7 +70,7 @@ export default function StickyCTA() {
           to="/destinations"
           className="flex-1 py-2.5 px-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/20"
         >
-          <FiCompass size={14} /> Explore 5,800+ Places
+          <FiCompass size={14} /> Explore places
         </Link>
         <Link
           to="/emergency"

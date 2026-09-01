@@ -54,6 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         HOSPITAL_STAFF = "hospital_staff", "Hospital Staff"
         RESCUE_TEAM = "rescue_team", "Rescue Team"
         EMERGENCY_OPERATOR = "emergency_operator", "Emergency Operator"
+        QA_TESTER = "qa_tester", "QA Tester"
 
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=100, blank=True)
@@ -97,6 +98,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+    anonymized_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
     objects = UserManager()
@@ -113,6 +116,30 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}".strip() or self.email
+
+
+class StaffCapabilityProfile(TimeStampedModel):
+    """Granular module/action permissions layered on the existing User role."""
+    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings", "marketplace"]
+    ACTIONS = ["view", "add", "change", "delete", "approve", "export", "train", "assign"]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_profile")
+    capabilities = models.JSONField(default=dict, blank=True, help_text='{"destinations":["view","change"],"images":["view","approve"]}')
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="capability_profiles_assigned")
+    managed_districts = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        invalid_modules = set(self.capabilities) - set(self.MODULES)
+        invalid_actions = {action for actions in self.capabilities.values() for action in actions if action not in self.ACTIONS}
+        if invalid_modules or invalid_actions:
+            raise ValidationError(f"Invalid modules/actions: {invalid_modules or invalid_actions}")
+
+    def allows(self, module, action="view"):
+        if not self.is_active:
+            return False
+        return action in self.capabilities.get(module, []) or "*" in self.capabilities.get(module, [])
 
 
 class EmailVerificationToken(models.Model):
@@ -295,6 +322,45 @@ class Destination(TimeStampedModel):
         blank=True,
         null=True
     )
+
+    coordinate_source = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Origin source for GPS coordinates (e.g. Official Survey, OSM, Admin Verified).",
+    )
+
+    coordinate_accuracy = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Accuracy level (e.g. High / Exact, Moderate, District Center).",
+    )
+
+    coordinate_status = models.CharField(
+        max_length=30,
+        choices=[
+            ("VERIFIED", "Verified"),
+            ("OFFICIAL", "Official"),
+            ("COMMUNITY_VERIFIED", "Community Verified"),
+            ("APPROXIMATE", "Approximate"),
+            ("UNVERIFIED", "Unverified"),
+            ("NOT_RECORDED", "Not Recorded"),
+        ],
+        default="UNVERIFIED",
+        db_index=True,
+    )
+
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="verified_destinations",
+    )
+    location_notes = models.TextField(blank=True)
+    locality = models.CharField(max_length=100, blank=True)
 
 
     address = models.CharField(
@@ -535,6 +601,23 @@ class Destination(TimeStampedModel):
         default=True
     )
 
+    is_featured = models.BooleanField(
+        default=False,
+        help_text="Pinned by an administrator for the homepage and traveller dashboard.",
+    )
+
+    ai_recommendation_status = models.CharField(
+        max_length=20,
+        choices=[("ALLOWED", "Allowed"), ("BLOCKED", "Blocked"), ("PRIORITY", "Priority")],
+        default="ALLOWED",
+        db_index=True,
+    )
+    ai_priority_level = models.CharField(
+        max_length=20,
+        choices=[("LOW", "Low"), ("NORMAL", "Normal"), ("HIGH", "High"), ("CRITICAL", "Critical")],
+        default="NORMAL",
+    )
+    ai_override_reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -543,6 +626,7 @@ class Destination(TimeStampedModel):
             models.Index(fields=["latitude", "longitude"]),
             models.Index(fields=["city", "country"]),
             models.Index(fields=["status"]),
+            models.Index(fields=["is_featured", "is_active"]),
         ]
 
 
@@ -610,12 +694,29 @@ class DestinationImage(TimeStampedModel):
         WIKIMEDIA = "wikimedia", "Wikimedia Commons"
         GOOGLE_PLACES = "google_places", "Google Places"
         FOURSQUARE = "foursquare", "Foursquare"
+        AI_GENERATED = "ai_generated", "AI Generated"
+        REFERENCE = "reference", "Reference Image"
+        IMAGE_SERVER = "image_server", "Standalone Image Server"
+
+    class ImageStatus(models.TextChoices):
+        PENDING = "pending", "Needs Review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
 
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="gallery")
     image = models.ImageField(upload_to="destinations/gallery/", blank=True, null=True)
     external_url = models.URLField(
         blank=True, help_text="Used instead of `image` for externally-hosted photos (Unsplash/Wikimedia/etc.)"
     )
+    thumbnail_url = models.URLField(blank=True, help_text="Optimized thumbnail for fast web delivery")
+    image_path = models.CharField(
+        max_length=500, blank=True,
+        help_text="Relative path on the standalone image server, e.g. nepal/kathmandu/001.webp. "
+                  "When set, the full URL is IMAGE_BASE_URL + /images/ + image_path and the "
+                  "binary is served by the image server, never by Django.",
+    )
+    alt_text = models.CharField(max_length=255, blank=True, help_text="Accessible alt text for the image")
+    ordering = models.PositiveIntegerField(default=0, help_text="Display order within the destination gallery")
     caption = models.CharField(max_length=200, blank=True)
     is_cover = models.BooleanField(default=False)
 
@@ -626,10 +727,30 @@ class DestinationImage(TimeStampedModel):
     license_type = models.CharField(max_length=100, blank=True, default="Creative Commons CC BY-SA / Unsplash")
     copyright_status = models.CharField(max_length=50, default="verified_reusable")
     image_category = models.CharField(max_length=50, default="attraction")
+
+    # --- AI generation provenance ---
+    generation_provider = models.CharField(max_length=50, blank=True, help_text="openai / stability / google / flux")
+    generation_model = models.CharField(max_length=100, blank=True)
+    generation_prompt = models.TextField(blank=True)
+    negative_prompt = models.TextField(blank=True)
+    generation_seed = models.BigIntegerField(null=True, blank=True)
+    generation_job = models.ForeignKey(
+        "ImageGenerationJob", on_delete=models.SET_NULL, null=True, blank=True, related_name="outputs"
+    )
+
+    # --- Automated quality / authenticity scores (0..1) ---
+    quality_score = models.FloatField(null=True, blank=True)
+    realism_score = models.FloatField(null=True, blank=True)
+    authenticity_score = models.FloatField(null=True, blank=True, help_text="Nepal authenticity")
+    destination_match_score = models.FloatField(null=True, blank=True)
+    duplicate_score = models.FloatField(null=True, blank=True)
+    overall_score = models.FloatField(null=True, blank=True)
+
+    # pHash / dHash for duplicate detection
+    phash = models.CharField(max_length=32, blank=True, db_index=True)
+
     verification_status = models.CharField(
-        max_length=20,
-        choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
-        default="approved"
+        max_length=20, choices=ImageStatus.choices, default=ImageStatus.APPROVED
     )
     is_verified = models.BooleanField(default=True)
     uploaded_by = models.ForeignKey(
@@ -642,19 +763,35 @@ class DestinationImage(TimeStampedModel):
         default=False, help_text="Auto-set true once a community upload crosses the popularity threshold"
     )
     view_count = models.PositiveIntegerField(default=0)
+    crop_box = models.JSONField(default=dict, blank=True, help_text='Optional focal crop as {"x":0,"y":0,"w":100,"h":100} percentages.')
 
     class Meta:
-        ordering = ["-is_cover", "-is_promoted", "-view_count", "-created_at"]
+        ordering = ["-is_cover", "ordering", "-is_promoted", "-view_count", "-created_at"]
+        indexes = [
+            models.Index(fields=["destination", "ordering"], name="destimg_dest_order_idx"),
+            models.Index(fields=["image_path"], name="destimg_path_idx"),
+        ]
 
     def __str__(self):
         return f"{self.destination.name} photo ({self.get_source_display()})"
 
 
 class DestinationVideo(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="videos")
-    video_url = models.URLField(help_text="YouTube/Vimeo link or hosted video URL")
+    video_url = models.URLField(blank=True, help_text="YouTube/Vimeo link or hosted video URL")
+    video_file = models.FileField(upload_to="destinations/videos/", blank=True, null=True)
     title = models.CharField(max_length=200, blank=True)
+    caption = models.CharField(max_length=200, blank=True)
     thumbnail = models.ImageField(upload_to="destinations/video_thumbnails/", blank=True, null=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="uploaded_videos"
+    )
+    verification_status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
 
 
 class Review(TimeStampedModel):
@@ -662,6 +799,10 @@ class Review(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviews")
     comment = models.TextField()
     is_flagged = models.BooleanField(default=False)
+    moderation_status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("approved", "Approved"), ("flagged", "Flagged"), ("archived", "Archived")], default="approved", db_index=True)
+    moderation_note = models.TextField(blank=True)
+    moderated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="destination_reviews_moderated")
+    moderated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -741,6 +882,11 @@ class Hotel(TimeStampedModel):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.DATASET)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-rating", "name"]
@@ -767,9 +913,17 @@ class Hospital(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     district = models.CharField(max_length=100)
+    image = models.ImageField(upload_to="services/hospitals/", blank=True, null=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    emergency_available = models.BooleanField(default=True)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
-    district = models.CharField(max_length=100)
 class PoliceStation(models.Model):
 
     destination = models.ForeignKey(
@@ -787,6 +941,15 @@ class PoliceStation(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    image = models.ImageField(upload_to="services/police/", blank=True, null=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    emergency_available = models.BooleanField(default=True)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class BudgetEstimation(models.Model):
     destination = models.OneToOneField(
@@ -867,7 +1030,13 @@ class Alert(TimeStampedModel):
     city = models.CharField(max_length=100, blank=True)
     country = models.CharField(max_length=100, blank=True)
 
-    source = models.CharField(max_length=100, blank=True, help_text="e.g. OpenWeatherMap, Govt. Authority")
+    source = models.CharField(max_length=100, blank=True, help_text="e.g. DHM, BIPAD, Nepal Police, verified news desk")
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    radius_km = models.FloatField(default=4.0, validators=[MinValueValidator(0.5), MaxValueValidator(100)])
+    municipality = models.CharField(max_length=160, blank=True)
+    district = models.CharField(max_length=120, blank=True)
+    province = models.CharField(max_length=120, blank=True)
     is_active = models.BooleanField(default=True)
     starts_at = models.DateTimeField(default=timezone.now)
     ends_at = models.DateTimeField(null=True, blank=True)
@@ -916,40 +1085,126 @@ class EmergencyContact(TimeStampedModel):
             return f"{self.get_contact_type_display()} (Ward {self.ward_number}) - {self.name}"
         return f"{self.get_contact_type_display()} - {self.name}"
 class RiskAnalysis(models.Model):
+    """Imported/modelled baseline risk features for a destination."""
 
     destination = models.OneToOneField(
         Destination,
         on_delete=models.CASCADE,
         related_name="risk_analysis"
     )
-
     accidents = models.IntegerField(default=0)
-
     landslide = models.IntegerField(default=0)
-
     avalanche = models.IntegerField(default=0)
-
     flood = models.IntegerField(default=0)
-
     earthquake_damage = models.IntegerField(default=0)
-
     hospital_count = models.IntegerField(default=0)
-
     police_count = models.IntegerField(default=0)
-
     fire_station_count = models.IntegerField(default=0)
-
     emergency_risk = models.FloatField()
-
     natural_disaster_risk = models.FloatField()
-
     tourism_risk_index = models.FloatField()
-
     risk_category = models.CharField(max_length=50)
+
+
+class RiskIncident(TimeStampedModel):
+    """A dated, source-attributed historical incident (not a live warning)."""
+
+    class HazardType(models.TextChoices):
+        FLOOD = "flood", "Flood"
+        LANDSLIDE = "landslide", "Landslide"
+        AVALANCHE = "avalanche", "Avalanche"
+        EARTHQUAKE = "earthquake", "Earthquake"
+        GLOF = "glof", "Glacial lake outburst flood"
+        HEAVY_RAIN = "heavy_rain", "Heavy rain"
+        SNOWSTORM = "snowstorm", "Snowstorm"
+        FOREST_FIRE = "forest_fire", "Forest fire"
+        LIGHTNING = "lightning", "Lightning"
+        ROAD_ACCIDENT = "road_accident", "Road accident"
+        HEALTH = "health", "Health / altitude"
+        OTHER = "other", "Other"
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Low"
+        MODERATE = "moderate", "Moderate"
+        HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
+
+    class SourceType(models.TextChoices):
+        CSV_IMPORT = "csv_import", "CSV import"
+        ADMIN = "admin", "Admin verified"
+        OFFICIAL = "official", "Official authority"
+        NEWS = "news", "News report"
+        API = "api", "External API"
+        USER = "user", "Traveler report"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="risk_incidents")
+    hazard_type = models.CharField(max_length=30, choices=HazardType.choices)
+    event_date = models.DateField()
+    title = models.CharField(max_length=240)
+    description = models.TextField(blank=True)
+    severity = models.CharField(max_length=12, choices=Severity.choices, default=Severity.MODERATE)
+    fatalities = models.PositiveIntegerField(default=0)
+    injuries = models.PositiveIntegerField(default=0)
+    source_type = models.CharField(max_length=20, choices=SourceType.choices, default=SourceType.ADMIN)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    municipality = models.CharField(max_length=160, blank=True)
+    affected_area = models.CharField(max_length=240, blank=True)
+    verified = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-event_date", "-created_at"]
+        indexes = [models.Index(fields=["destination", "event_date"]), models.Index(fields=["hazard_type"])]
+
+
+class CurrentHazard(TimeStampedModel):
+    """Time-bounded observation/warning kept separate from model predictions."""
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="current_hazards")
+    hazard_type = models.CharField(max_length=30, choices=RiskIncident.HazardType.choices)
+    title = models.CharField(max_length=240)
+    description = models.TextField(blank=True)
+    severity = models.CharField(max_length=12, choices=RiskIncident.Severity.choices, default=RiskIncident.Severity.MODERATE)
+    source_type = models.CharField(max_length=20, choices=RiskIncident.SourceType.choices, default=RiskIncident.SourceType.OFFICIAL)
+    source_name = models.CharField(max_length=160)
+    source_url = models.URLField(max_length=600, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    observed_at = models.DateTimeField()
+    affected_area = models.CharField(max_length=240, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    station_name = models.CharField(max_length=160, blank=True)
+    distance_km = models.FloatField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-observed_at"]
+        indexes = [models.Index(fields=["destination", "is_active", "observed_at"])]
 
 # ---------------------------------------------------------------------------
 # Notifications
 # ---------------------------------------------------------------------------
+class NotificationPreference(TimeStampedModel):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notification_preferences")
+    in_app_enabled = models.BooleanField(default=True)
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=False)
+    push_enabled = models.BooleanField(default=True)
+    safety_alerts = models.BooleanField(default=True)
+    booking_updates = models.BooleanField(default=True)
+    recommendations = models.BooleanField(default=True)
+    marketing = models.BooleanField(default=False)
+    quiet_hours_start = models.TimeField(null=True, blank=True)
+    quiet_hours_end = models.TimeField(null=True, blank=True)
+
+    def __str__(self): return f"Notification preferences for {self.user.email}"
+
+
 class Notification(TimeStampedModel):
     class Channel(models.TextChoices):
         EMAIL = "email", "Email"
@@ -957,16 +1212,49 @@ class Notification(TimeStampedModel):
         PUSH = "push", "Push"
         IN_APP = "in_app", "In-App"
 
+    class DeliveryStatus(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    class Category(models.TextChoices):
+        GENERAL = "general", "General"
+        SAFETY = "safety", "Safety"
+        BOOKING = "booking", "Booking"
+        RECOMMENDATION = "recommendation", "Recommendation"
+        MARKETING = "marketing", "Marketing"
+        FEEDBACK = "feedback", "Feedback"
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    batch_id = models.UUIDField(null=True, blank=True, db_index=True)
     channel = models.CharField(max_length=10, choices=Channel.choices, default=Channel.IN_APP)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.GENERAL, db_index=True)
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
     is_sent = models.BooleanField(default=False)
+    delivery_status = models.CharField(max_length=12, choices=DeliveryStatus.choices, default=DeliveryStatus.QUEUED, db_index=True)
+    delivery_attempts = models.PositiveSmallIntegerField(default=0)
+    max_attempts = models.PositiveSmallIntegerField(default=3)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    next_retry_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.CharField(max_length=500, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
     related_alert = models.ForeignKey(Alert, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["delivery_status", "next_retry_at"]), models.Index(fields=["user", "is_read"])]
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.channel == self.Channel.IN_APP and self.delivery_status == self.DeliveryStatus.QUEUED:
+            self.delivery_status = self.DeliveryStatus.SENT
+            self.is_sent = True
+            self.sent_at = timezone.now()
+        super().save(*args, **kwargs)
 
 
 class TrustedContact(models.Model):
@@ -1059,6 +1347,39 @@ class SOSAlert(models.Model):
         return f"SOS from {self.user} ({self.status})"
 
 
+class FamilyLink(models.Model):
+    """
+    Account-to-account family linking (unlike TrustedContact, both sides
+    have accounts here). A link is requested by `requester`, accepted by
+    `member`. Once accepted, either side can:
+      * see the other's live location while a SharedTrip is active,
+      * see the other's recent trip history + SOS history,
+      * get an in-app Notification when the other starts a trip or
+        triggers an SOS.
+    """
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+        REVOKED = "revoked", "Revoked"
+
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_links_sent")
+    member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="family_links_received")
+    relationship = models.CharField(max_length=100, blank=True, help_text="e.g. 'Parent', 'Spouse', 'Sibling'")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["requester", "member"], name="unique_family_link_pair"),
+        ]
+
+    def __str__(self):
+        return f"FamilyLink {self.requester_id} -> {self.member_id} ({self.status})"
+
+
 class DeviceToken(models.Model):
     """Push notification device tokens (FCM)."""
 
@@ -1109,6 +1430,8 @@ class OSMEssentialService(TimeStampedModel):
         ARMED_FORCE = "armed_force", "Armed Force"
         FIRE_STATION = "fire_station", "Fire Station"
         BANK = "bank", "Bank"
+        BLOOD_BANK = "blood_bank", "Blood Bank"
+        ATM = "atm", "ATM"
         AMBULANCE = "ambulance", "Ambulance"
         MUNICIPALITY_OFFICE = "municipality_office", "Municipality Office"
         TOURISM_OFFICE = "tourism_office", "Tourism Information Office"
@@ -1120,6 +1443,14 @@ class OSMEssentialService(TimeStampedModel):
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     address = models.CharField(max_length=255, blank=True)
+    image = models.ImageField(upload_to="services/essential/", blank=True, null=True)
+    source_name = models.CharField(max_length=160, blank=True, default="OpenStreetMap")
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    emergency_available = models.BooleanField(default=False)
     raw_tags = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -1280,6 +1611,12 @@ class TravelRiskFeedback(TimeStampedModel):
     )
     overall_safety_rating = models.FloatField(default=9.0, help_text="Safety score from 1.0 to 10.0")
     comments = models.TextField(blank=True)
+    is_admin_verified = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="verified_risk_feedbacks",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -1351,25 +1688,217 @@ class DestinationAttraction(TimeStampedModel):
         return f"{self.name} ({self.destination.name})"
 
 
+class Restaurant(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="restaurants")
+    name = models.CharField(max_length=220)
+    cuisine_types = models.JSONField(default=list, blank=True)
+    description = models.TextField(blank=True)
+    address = models.CharField(max_length=300, blank=True)
+    phone = models.CharField(max_length=60, blank=True)
+    website = models.URLField(blank=True)
+    opening_hours = models.CharField(max_length=200, blank=True)
+    price_range = models.CharField(max_length=10, choices=[("budget", "Budget"), ("mid", "Mid-range"), ("premium", "Premium")], default="mid")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    vegetarian_friendly = models.BooleanField(default=False)
+    image_url = models.URLField(max_length=600, blank=True)
+    source_name = models.CharField(max_length=160, blank=True)
+    source_url = models.URLField(max_length=600, blank=True)
+    is_verified = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="restaurants_updated")
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [models.UniqueConstraint(fields=["destination", "name"], name="unique_restaurant_destination_name")]
+
+    def __str__(self): return f"{self.name} ({self.destination.name})"
+
+
 class DestinationTransitRoute(TimeStampedModel):
-    """
-    Available transportation options, routes, conditions, and fares.
-    """
+    """Available transportation options, routes, conditions, and fares."""
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="transit_routes")
     origin = models.CharField(max_length=150, help_text="e.g. Kathmandu (Kalanki) / Pokhara / Nearest Airport")
+    origin_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    origin_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    destination_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    destination_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     transport_mode = models.CharField(max_length=100, default="Public Deluxe Bus")
     distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     approx_duration = models.CharField(max_length=100, help_text="e.g. 5 hours 30 mins")
     road_condition = models.CharField(max_length=150, blank=True, default="Paved Highway")
     key_stops = models.TextField(blank=True, help_text="Major transit waypoints along the route")
     estimated_fare_npr = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    fare_currency = models.CharField(max_length=10, default="NPR")
     route_source = models.CharField(max_length=200, blank=True, default="Nepal Highway Authority & Local Transit")
+    operator_name = models.CharField(max_length=180, blank=True)
+    contact_phone = models.CharField(max_length=60, blank=True)
+    booking_url = models.URLField(max_length=600, blank=True)
+    departure_schedule = models.CharField(max_length=200, blank=True)
+
+    confidence_level = models.CharField(
+        max_length=30,
+        choices=[
+            ("VERIFIED", "Verified"),
+            ("OFFICIAL", "Official"),
+            ("ADMIN_VERIFIED", "Admin Verified"),
+            ("PROVIDER_DATA", "Provider Data"),
+            ("CALCULATED", "Calculated"),
+            ("ESTIMATED", "Estimated"),
+            ("UNVERIFIED", "Unverified"),
+            ("UNKNOWN", "Unknown"),
+        ],
+        default="CALCULATED",
+        db_index=True,
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    is_verified = models.BooleanField(default=False, db_index=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="transit_routes_updated")
 
     class Meta:
-        ordering = ["distance_km"]
+        ordering = ["distance_km", "-updated_at"]
 
     def __str__(self):
         return f"{self.origin} ➔ {self.destination.name} via {self.transport_mode}"
+
+
+class RouteSegment(TimeStampedModel):
+    """Segment breakdown for multi-leg journeys across Nepal."""
+    route = models.ForeignKey(DestinationTransitRoute, on_delete=models.CASCADE, related_name="segments")
+    segment_order = models.PositiveSmallIntegerField(default=1)
+    from_location = models.CharField(max_length=200)
+    to_location = models.CharField(max_length=200)
+    transport_mode = models.CharField(max_length=100, default="Local Bus")
+    distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    duration_mins = models.PositiveIntegerField(null=True, blank=True)
+    fare_npr = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    notes = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["route", "segment_order"]
+
+    def __str__(self):
+        return f"Leg {self.segment_order}: {self.from_location} ➔ {self.to_location} ({self.transport_mode})"
+
+
+class DataReport(TimeStampedModel):
+    """User error reporting and data quality correction queue."""
+
+    class ReportType(models.TextChoices):
+        MAP_LOCATION = "map_location", "Wrong Map Location"
+        ROUTE = "route", "Wrong Route"
+        DISTANCE = "distance", "Wrong Distance"
+        TRAVEL_TIME = "travel_time", "Wrong Travel Time"
+        FARE = "fare", "Wrong Fare / Price"
+        OPENING_HOURS = "opening_hours", "Wrong Opening Hours"
+        PHOTO = "photo", "Wrong or Broken Photo"
+        DESCRIPTION = "description", "Wrong Description"
+        MOVED = "moved", "Destination Moved or Closed"
+        SAFETY = "safety", "Incorrect Safety Advice"
+        OTHER = "other", "Other Data Correction"
+
+    class Severity(models.TextChoices):
+        CRITICAL = "critical", "Critical"
+        HIGH = "high", "High"
+        MEDIUM = "medium", "Medium"
+        LOW = "low", "Low"
+
+    class Status(models.TextChoices):
+        NEW = "new", "New Report"
+        UNDER_REVIEW = "under_review", "Under Review"
+        NEEDS_VERIFICATION = "needs_verification", "Needs Verification"
+        FIXED = "fixed", "Fixed & Verified"
+        REJECTED = "rejected", "Rejected"
+        DUPLICATE = "duplicate", "Duplicate"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="data_reports",
+    )
+    destination = models.ForeignKey(
+        Destination, null=True, blank=True, on_delete=models.CASCADE, related_name="data_reports",
+    )
+    route = models.ForeignKey(
+        DestinationTransitRoute, null=True, blank=True, on_delete=models.SET_NULL, related_name="data_reports",
+    )
+    report_type = models.CharField(max_length=30, choices=ReportType.choices, default=ReportType.OTHER, db_index=True)
+    severity = models.CharField(max_length=20, choices=Severity.choices, default=Severity.MEDIUM, db_index=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW, db_index=True)
+
+    page_url = models.CharField(max_length=500, blank=True)
+    field_name = models.CharField(max_length=100, blank=True)
+    displayed_value = models.TextField(blank=True)
+    suggested_value = models.TextField(blank=True)
+    description = models.TextField(blank=True)
+
+    internal_notes = models.TextField(blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="data_reports_resolved",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "severity"]),
+            models.Index(fields=["report_type", "status"]),
+        ]
+
+    def __str__(self):
+        dest = self.destination.name if self.destination else "General"
+        return f"[{self.get_severity_display()}] {self.get_report_type_display()} on {dest} ({self.get_status_display()})"
+
+
+class TravelPlan(TimeStampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        ACTIVE = "active", "Active"
+        COMPLETED = "completed", "Completed"
+        ARCHIVED = "archived", "Archived"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="travel_plans")
+    title = models.CharField(max_length=220)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    travelers = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(50)])
+    budget_npr = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    interests = models.JSONField(default=list, blank=True)
+    itinerary_data = models.JSONField(default=dict, blank=True)
+    generation_source = models.CharField(max_length=20, choices=[("manual", "Manual"), ("ml", "ML assisted")], default="manual")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError("End date cannot be before start date")
+
+    def __str__(self): return f"{self.title} — {self.user.email}"
+
+
+class TravelPlanStop(TimeStampedModel):
+    plan = models.ForeignKey(TravelPlan, on_delete=models.CASCADE, related_name="stops")
+    destination = models.ForeignKey(Destination, on_delete=models.PROTECT, related_name="travel_plan_stops")
+    transit_route = models.ForeignKey(DestinationTransitRoute, on_delete=models.SET_NULL, null=True, blank=True, related_name="plan_stops")
+    day_number = models.PositiveSmallIntegerField(default=1)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    arrival_time = models.TimeField(null=True, blank=True)
+    departure_time = models.TimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["day_number", "display_order", "id"]
+        constraints = [models.UniqueConstraint(fields=["plan", "day_number", "display_order"], name="unique_plan_day_stop_order")]
 
 
 class DestinationNearbyPlace(TimeStampedModel):
@@ -1556,3 +2085,908 @@ class DestinationSourceField(TimeStampedModel):
         return f"{self.destination.name}.{self.field_name} = {self.field_value[:30]} ({self.source_name})"
 
 
+
+
+# ===========================================================================
+# AI Nepal Tourist Image Dataset Platform
+# ===========================================================================
+
+class ImageGenerationJob(TimeStampedModel):
+    """One generation request for a destination (can produce many images)."""
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    class Season(models.TextChoices):
+        SPRING = "spring", "Spring"
+        SUMMER = "summer", "Summer"
+        AUTUMN = "autumn", "Autumn"
+        WINTER = "winter", "Winter"
+
+    class TimeOfDay(models.TextChoices):
+        SUNRISE = "sunrise", "Sunrise"
+        DAY = "day", "Daytime"
+        SUNSET = "sunset", "Sunset"
+        NIGHT = "night", "Night"
+
+    class CameraStyle(models.TextChoices):
+        LANDSCAPE = "landscape", "Landscape"
+        AERIAL = "aerial", "Aerial / Drone"
+        STREET = "street", "Street-level"
+        ARCHITECTURAL = "architectural", "Architectural"
+        CULTURAL = "cultural", "Cultural"
+        TREKKING = "trekking", "Trekking"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="generation_jobs")
+    provider = models.CharField(max_length=50, default="openai")
+    model = models.CharField(max_length=100, blank=True)
+    prompt = models.TextField()
+    negative_prompt = models.TextField(blank=True)
+    season = models.CharField(max_length=10, choices=Season.choices, default=Season.AUTUMN)
+    time_of_day = models.CharField(max_length=10, choices=TimeOfDay.choices, default=TimeOfDay.DAY)
+    camera_style = models.CharField(max_length=20, choices=CameraStyle.choices, default=CameraStyle.LANDSCAPE)
+    num_images = models.PositiveSmallIntegerField(default=4)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.QUEUED)
+    error_message = models.TextField(blank=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status"]), models.Index(fields=["destination", "status"])]
+
+    def __str__(self):
+        return f"Job {self.id} for {self.destination_id} ({self.status})"
+
+
+class ImageTag(TimeStampedModel):
+    image = models.ForeignKey(DestinationImage, on_delete=models.CASCADE, related_name="tags")
+    tag = models.CharField(max_length=60, db_index=True)
+    confidence = models.FloatField(default=1.0)
+
+    class Meta:
+        unique_together = ("image", "tag")
+        indexes = [models.Index(fields=["tag"])]
+
+    def __str__(self):
+        return f"{self.tag} ({self.confidence:.2f})"
+
+
+class ImageEmbedding(TimeStampedModel):
+    """Vector embedding of an image / destination for semantic search."""
+    class ContentType(models.TextChoices):
+        IMAGE = "image", "Image"
+        DESTINATION = "destination", "Destination text"
+
+    image = models.OneToOneField(
+        DestinationImage, on_delete=models.CASCADE, null=True, blank=True, related_name="embedding"
+    )
+    destination = models.ForeignKey(
+        Destination, on_delete=models.CASCADE, null=True, blank=True, related_name="embeddings"
+    )
+    content_type = models.CharField(max_length=12, choices=ContentType.choices)
+    embedding_model = models.CharField(max_length=60, default="clip-ViT-B-32")
+    # Stored as JSON in SQLite (no pgvector dependency); adapter can swap to
+    # pgvector on Postgres without touching calling code.
+    vector = models.JSONField(default=list)
+    dimensions = models.PositiveIntegerField(default=512)
+
+    class Meta:
+        indexes = [models.Index(fields=["content_type", "embedding_model"])]
+
+    def __str__(self):
+        return f"{self.content_type} embedding ({self.embedding_model})"
+
+
+class DestinationReferenceImage(TimeStampedModel):
+    """Authoritative reference photo used to validate generated output."""
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="reference_images")
+    image_url = models.URLField(max_length=500)
+    source = models.CharField(max_length=80, blank=True)
+    license = models.CharField(max_length=120, blank=True)
+    description = models.CharField(max_length=300, blank=True)
+    is_primary = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-is_primary", "-created_at"]
+
+    def __str__(self):
+        return f"ref for {self.destination_id}: {self.image_url[:60]}"
+
+
+class InfrastructureSubmission(TimeStampedModel):
+    """Community-supplied place/service data, published only after review."""
+
+    class PlaceType(models.TextChoices):
+        DESTINATION = "destination", "Tourism destination"
+        HOTEL = "hotel", "Hotel / homestay"
+        HOSPITAL = "hospital", "Hospital / clinic"
+        POLICE = "police", "Police station"
+        BANK = "bank", "Bank"
+        ATM = "atm", "ATM"
+        BLOOD_BANK = "blood_bank", "Blood bank"
+        FIRE_STATION = "fire_station", "Fire station"
+        AMBULANCE = "ambulance", "Ambulance service"
+        TOURISM_OFFICE = "tourism_office", "Tourism office"
+        PHARMACY = "pharmacy", "Pharmacy"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved and published"
+        REJECTED = "rejected", "Rejected"
+        NEEDS_CHANGES = "needs_changes", "Needs changes"
+
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="infrastructure_submissions",
+    )
+    place_type = models.CharField(max_length=30, choices=PlaceType.choices)
+    name = models.CharField(max_length=220)
+    description = models.TextField(blank=True)
+    phone = models.CharField(max_length=60, blank=True)
+    website = models.URLField(blank=True)
+    address = models.CharField(max_length=300, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    municipality = models.CharField(max_length=160, blank=True)
+    municipality_type = models.CharField(
+        max_length=30, blank=True,
+        choices=[("metropolitan", "Metropolitan"), ("sub_metropolitan", "Sub-metropolitan"),
+                 ("municipality", "Municipality"), ("rural_municipality", "Rural municipality")],
+    )
+    ward_number = models.PositiveSmallIntegerField(null=True, blank=True)
+    district = models.CharField(max_length=120)
+    province = models.CharField(max_length=120)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="infrastructure_submissions",
+    )
+    transport_mode = models.CharField(max_length=100, blank=True)
+    route_origin = models.CharField(max_length=160, blank=True)
+    travel_time_minutes = models.PositiveIntegerField(null=True, blank=True)
+    distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    road_condition = models.CharField(max_length=160, blank=True)
+    price_npr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    opening_hours = models.CharField(max_length=160, blank=True)
+    image = models.ImageField(upload_to="community/services/images/", blank=True, null=True)
+    video = models.FileField(upload_to="community/services/videos/", blank=True, null=True)
+    source_notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    admin_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="infrastructure_reviews",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    published_model = models.CharField(max_length=60, blank=True)
+    published_object_id = models.PositiveIntegerField(null=True, blank=True)
+    csv_synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "place_type"]), models.Index(fields=["latitude", "longitude"])]
+
+    def __str__(self):
+        return f"{self.get_place_type_display()}: {self.name} ({self.status})"
+
+
+class InfrastructureMedia(TimeStampedModel):
+    class MediaType(models.TextChoices):
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+
+    submission = models.ForeignKey(InfrastructureSubmission, on_delete=models.CASCADE, related_name="media")
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    file = models.FileField(upload_to="community/services/media/")
+    caption = models.CharField(max_length=220, blank=True)
+    is_primary = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-is_primary", "created_at"]
+
+
+class DestinationFeatureProfile(TimeStampedModel):
+    """Structured, editable content features used alongside the existing recommender."""
+    destination = models.OneToOneField(Destination, on_delete=models.CASCADE, related_name="feature_profile")
+    difficulty = models.CharField(max_length=20, choices=[("easy", "Easy"), ("moderate", "Moderate"), ("hard", "Hard")], default="moderate")
+    duration_days = models.PositiveSmallIntegerField(default=2)
+    budget_level = models.CharField(max_length=20, choices=[("low", "Low"), ("medium", "Medium"), ("high", "High")], default="medium")
+    nature_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    adventure_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    culture_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    spiritual_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    wildlife_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    photography_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    family_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    accessibility_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    source_type = models.CharField(max_length=30, default="admin")
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+
+class RecommendationEvent(TimeStampedModel):
+    class EventType(models.TextChoices):
+        IMPRESSION = "impression", "Recommendation impression"
+        SELECT = "select", "Recommendation selected"
+        SEARCH = "search", "Search"
+        VIEW = "view", "Destination viewed"
+        SAVE = "save", "Destination saved"
+        RATING = "rating", "Rating"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="recommendation_events")
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, null=True, blank=True, related_name="recommendation_events")
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    session_key = models.CharField(max_length=80, blank=True)
+    query = models.CharField(max_length=300, blank=True)
+    score = models.FloatField(null=True, blank=True)
+    context = models.JSONField(default=dict, blank=True)
+    consented = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "event_type", "created_at"]), models.Index(fields=["destination", "event_type"])]
+
+
+class RiskObservation(TimeStampedModel):
+    class ObservationType(models.TextChoices):
+        RAINFALL = "rainfall", "Rainfall"
+        RIVER_LEVEL = "river_level", "River level"
+        TEMPERATURE = "temperature", "Temperature"
+        WIND = "wind", "Wind"
+        SNOW = "snow", "Snow"
+        WARNING_LEVEL = "warning_level", "Warning level"
+        OTHER = "other", "Other"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="risk_observations")
+    observation_type = models.CharField(max_length=30, choices=ObservationType.choices)
+    value = models.FloatField()
+    unit = models.CharField(max_length=30)
+    trend = models.CharField(max_length=30, blank=True, choices=[("rising", "Rising"), ("falling", "Falling"), ("steady", "Steady"), ("unknown", "Unknown")])
+    station_name = models.CharField(max_length=180)
+    station_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    station_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    distance_km = models.FloatField(null=True, blank=True)
+    source_type = models.CharField(max_length=30, default="official")
+    source_name = models.CharField(max_length=180)
+    source_url = models.URLField(max_length=600, blank=True)
+    observed_at = models.DateTimeField()
+    published_at = models.DateTimeField(null=True, blank=True)
+    verified = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-observed_at"]
+        indexes = [models.Index(fields=["destination", "observation_type", "observed_at"])]
+
+
+class RiskNewsReport(TimeStampedModel):
+    destination = models.ForeignKey(Destination, on_delete=models.SET_NULL, null=True, blank=True, related_name="risk_news")
+    title = models.CharField(max_length=260)
+    summary = models.TextField(blank=True)
+    hazard_type = models.CharField(max_length=30, choices=RiskIncident.HazardType.choices, default=RiskIncident.HazardType.OTHER)
+    source_name = models.CharField(max_length=180)
+    source_url = models.URLField(max_length=600, unique=True)
+    published_at = models.DateTimeField()
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    affected_area = models.CharField(max_length=240, blank=True)
+    verification_status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("verified", "Verified"), ("rejected", "Rejected"), ("outdated", "Outdated")], default="pending")
+    promoted_to_warning = models.BooleanField(default=False, help_text="Requires a separate verified Alert; news alone is never an official warning")
+
+    class Meta:
+        ordering = ["-published_at"]
+        indexes = [models.Index(fields=["destination", "verification_status", "published_at"])]
+
+
+class MLTrainingRun(TimeStampedModel):
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    model_type = models.CharField(max_length=40)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.QUEUED)
+    version = models.CharField(max_length=80)
+    previous_version = models.CharField(max_length=80, blank=True)
+    dataset_size = models.PositiveIntegerField(default=0)
+    newly_approved_records = models.PositiveIntegerField(default=0)
+    validation_metrics = models.JSONField(default=dict, blank=True)
+    output_log = models.TextField(blank=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="ml_training_runs")
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["model_type", "status", "created_at"])]
+
+
+class UserPreferenceProfile(TimeStampedModel):
+    """Dynamic user preference weights derived from interactions & survey inputs."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="preference_profile")
+
+    culture_weight = models.FloatField(default=0.5)
+    trekking_weight = models.FloatField(default=0.5)
+    nature_weight = models.FloatField(default=0.5)
+    adventure_weight = models.FloatField(default=0.5)
+    spiritual_weight = models.FloatField(default=0.5)
+    wildlife_weight = models.FloatField(default=0.5)
+    photography_weight = models.FloatField(default=0.5)
+    relaxation_weight = models.FloatField(default=0.5)
+    food_weight = models.FloatField(default=0.5)
+    family_weight = models.FloatField(default=0.5)
+
+    budget_sensitivity = models.FloatField(default=0.5)
+    pace_preference = models.CharField(max_length=20, default="balanced")
+    exploration_mode = models.CharField(max_length=20, default="balanced")
+
+    preferred_provinces = models.JSONField(default=list, blank=True)
+    visited_destination_ids = models.JSONField(default=list, blank=True)
+    avoid_destination_ids = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"Preferences for {self.user.email}"
+
+
+class UserFeedback(TimeStampedModel):
+    """Direct messages / feedback from a user to the admin team."""
+    class Status(models.TextChoices):
+        NEW = "new", "New"
+        READ = "read", "Read"
+        IN_PROGRESS = "in_progress", "In Progress"
+        WAITING_USER = "waiting_user", "Waiting for User"
+        REPLIED = "replied", "Replied"
+        RESOLVED = "resolved", "Resolved"
+        CLOSED = "closed", "Closed"
+        ARCHIVED = "archived", "Archived"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feedbacks",
+        null=True, blank=True,
+    )
+    name = models.CharField(max_length=120, blank=True)
+    email = models.EmailField(blank=True)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    category = models.CharField(max_length=50, default="general")
+    rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    recommendation_quality_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    itinerary_quality_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    budget_accuracy_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    route_quality_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.SET_NULL, related_name="user_feedbacks")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
+    priority = models.CharField(max_length=10, choices=[("low","Low"),("normal","Normal"),("high","High"),("urgent","Urgent")], default="normal", db_index=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_feedback_threads")
+    last_user_read_at = models.DateTimeField(null=True, blank=True)
+    last_staff_read_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    admin_reply = models.TextField(blank=True)
+    replied_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="feedback_replies",
+    )
+    replied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status"]), models.Index(fields=["category"])]
+
+    def __str__(self):
+        return f"{self.subject} ({self.status})"
+
+
+class FeedbackEvidence(TimeStampedModel):
+    feedback = models.ForeignKey(UserFeedback, on_delete=models.CASCADE, related_name="evidence")
+    media_type = models.CharField(max_length=10, choices=[("image", "Image"), ("video", "Video")])
+    file = models.FileField(upload_to="feedback/evidence/")
+    caption = models.CharField(max_length=220, blank=True)
+    is_verified = models.BooleanField(default=False)
+
+
+class DataRetentionPolicy(TimeStampedModel):
+    """Singleton operational retention windows for ephemeral personal data."""
+    name = models.CharField(max_length=80, unique=True, default="default")
+    read_notification_days = models.PositiveIntegerField(default=365, validators=[MinValueValidator(30), MaxValueValidator(3650)])
+    location_ping_days = models.PositiveIntegerField(default=30, validators=[MinValueValidator(1), MaxValueValidator(365)])
+    recommendation_event_days = models.PositiveIntegerField(default=365, validators=[MinValueValidator(30), MaxValueValidator(3650)])
+    resolved_sos_days = models.PositiveIntegerField(default=730, validators=[MinValueValidator(365), MaxValueValidator(3650)])
+    audit_log_days = models.PositiveIntegerField(default=2555, validators=[MinValueValidator(365), MaxValueValidator(7300)])
+    preserve_official_risk_records = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="retention_policies_updated")
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.preserve_official_risk_records:
+            raise ValidationError("Official risk records are safety-critical and must be preserved")
+
+    def __str__(self): return self.name
+
+
+class SiteSetting(TimeStampedModel):
+    key = models.SlugField(max_length=120, unique=True)
+    value = models.JSONField(default=dict, blank=True)
+    description = models.CharField(max_length=255, blank=True)
+    is_public = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="site_settings_updated")
+
+    def __str__(self): return self.key
+
+
+class BrandingAsset(TimeStampedModel):
+    class Kind(models.TextChoices):
+        LOGO = "logo", "Logo"
+        FAVICON = "favicon", "Favicon"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, unique=True)
+    file = models.ImageField(upload_to="branding/")
+    alt_text = models.CharField(max_length=160, blank=True)
+    mime_type = models.CharField(max_length=80, blank=True)
+    file_size = models.PositiveIntegerField(default=0)
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="branding_assets_updated")
+
+    def __str__(self): return self.kind
+
+
+class CMSContentTranslation(TimeStampedModel):
+    target_resource = models.CharField(max_length=20, choices=[("pages", "Page"), ("sections", "Section"), ("navigation", "Navigation")])
+    object_id = models.PositiveBigIntegerField()
+    language_code = models.CharField(max_length=10)
+    content = models.JSONField(default=dict)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cms_translations_updated")
+
+    class Meta:
+        ordering = ["target_resource", "object_id", "language_code"]
+        constraints = [models.UniqueConstraint(fields=["target_resource", "object_id", "language_code"], name="unique_cms_content_translation")]
+        indexes = [models.Index(fields=["target_resource", "object_id", "language_code"])]
+
+
+class ManagedPage(TimeStampedModel):
+    route = models.CharField(max_length=180, unique=True)
+    key = models.SlugField(max_length=100, unique=True)
+    title = models.CharField(max_length=220)
+    meta_description = models.CharField(max_length=320, blank=True)
+    seo_title = models.CharField(max_length=70, blank=True, help_text="Optional search-result title. Blank uses the page title.")
+    og_image_url = models.URLField(max_length=600, blank=True)
+    search_visible = models.BooleanField(default=True)
+    is_enabled = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    scheduled_publish_at = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_pages_updated")
+
+    def __str__(self): return f"{self.title} ({self.route})"
+
+
+class ContentSection(TimeStampedModel):
+    page = models.ForeignKey(ManagedPage, on_delete=models.CASCADE, related_name="sections")
+    key = models.SlugField(max_length=120)
+    title = models.CharField(max_length=240, blank=True)
+    subtitle = models.CharField(max_length=320, blank=True)
+    body = models.TextField(blank=True)
+    image_url = models.URLField(max_length=600, blank=True)
+    cta_text = models.CharField(max_length=100, blank=True)
+    cta_url = models.CharField(max_length=240, blank=True)
+    icon = models.CharField(max_length=50, blank=True)
+    section_type = models.CharField(
+        max_length=30,
+        choices=[
+            ("text", "Text"), ("heading", "Heading"), ("image", "Image"), ("gallery", "Gallery"),
+            ("cards", "Cards"), ("faq", "FAQ"), ("cta", "Call to action"), ("map", "Map"),
+            ("video", "Video"), ("audio", "Audio"), ("marquee", "Marquee"),
+            ("animation", "Animation"), ("media", "Media"), ("form", "Form"),
+            ("table", "Table"), ("figure", "Figure"), ("testimonials", "Testimonials"),
+            ("contact", "Contact"), ("breadcrumbs", "Breadcrumbs"), ("search", "Search"),
+        ],
+        default="text",
+    )
+    layout_variant = models.CharField(
+        max_length=30,
+        choices=[
+            ("default", "Default"), ("compact", "Compact"), ("wide", "Wide"),
+            ("cards", "Cards"), ("hero", "Hero"), ("split", "Split"),
+        ],
+        default="default",
+    )
+    config = models.JSONField(default=dict, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+    is_reusable = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    scheduled_publish_at = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_sections_updated")
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        constraints = [models.UniqueConstraint(fields=["page","key"], name="unique_page_section_key")]
+
+
+class ManagedNavigationItem(TimeStampedModel):
+    location = models.CharField(max_length=20, choices=[("navbar","Navbar"),("sidebar","Sidebar"),("footer","Footer")])
+    label = models.CharField(max_length=120)
+    route = models.CharField(max_length=240)
+    icon = models.CharField(max_length=50, blank=True)
+    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="children")
+    allowed_roles = models.JSONField(default=list, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="navigation_items_updated")
+
+    class Meta:
+        ordering = ["location", "display_order", "id"]
+
+
+class CMSRevision(models.Model):
+    """Immutable snapshots for safe CMS preview, audit, and rollback."""
+    resource = models.CharField(max_length=20, choices=[("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"), ("settings", "Settings"), ("translations", "Translations")])
+    object_id = models.PositiveBigIntegerField()
+    revision_number = models.PositiveIntegerField()
+    snapshot = models.JSONField(default=dict)
+    action = models.CharField(max_length=20, choices=[("create", "Create"), ("update", "Update"), ("publish", "Publish"), ("unpublish", "Unpublish"), ("schedule", "Schedule"), ("rollback", "Rollback")])
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cms_revisions")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-revision_number"]
+        constraints = [models.UniqueConstraint(fields=["resource", "object_id", "revision_number"], name="unique_cms_object_revision")]
+        indexes = [models.Index(fields=["resource", "object_id", "-revision_number"])]
+
+
+class FeedbackMessage(TimeStampedModel):
+    feedback = models.ForeignKey(UserFeedback, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="feedback_messages")
+    body = models.TextField()
+    is_internal = models.BooleanField(default=False)
+    attachment = models.FileField(upload_to="feedback/messages/", blank=True, null=True)
+
+
+class VisitorNotice(TimeStampedModel):
+    """Organisation-published visitor bulletin: festivals, closures, permits, seasonal notes."""
+
+    class Kind(models.TextChoices):
+        FESTIVAL = "festival", "Festival"
+        CLOSURE = "closure", "Closure"
+        PERMIT = "permit", "Permit"
+        SEASONAL = "seasonal", "Seasonal"
+        CROWD = "crowd", "Crowd"
+        TRANSPORT = "transport", "Transport"
+        INFO = "info", "Information"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.INFO, db_index=True)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    district = models.CharField(max_length=100, blank=True)
+    destination = models.ForeignKey(
+        Destination, on_delete=models.SET_NULL, null=True, blank=True, related_name="visitor_notices",
+    )
+    starts_at = models.DateTimeField(default=timezone.now)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    is_published = models.BooleanField(default=True, db_index=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="visitor_notices_updated",
+    )
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["is_published", "starts_at", "ends_at"]),
+            models.Index(fields=["kind", "is_published"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.title}"
+
+
+class FeaturedDestination(TimeStampedModel):
+    """Admin Content Publishing Studio: Promotional configuration for featured destinations."""
+
+    destination = models.ForeignKey(
+        Destination,
+        on_delete=models.CASCADE,
+        related_name="featured_configurations",
+        help_text="The underlying destination record being promoted.",
+    )
+    title = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Custom promotional title for the card. Blank defaults to destination name.",
+    )
+    short_description = models.TextField(
+        blank=True,
+        help_text="Custom promotional description. Blank defaults to destination description.",
+    )
+    featured_media = models.ForeignKey(
+        DestinationImage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="featured_promotions",
+        help_text="Selected verified media record from destination gallery.",
+    )
+    featured_media_url = models.URLField(
+        max_length=600,
+        blank=True,
+        help_text="Direct image URL override or fallback.",
+    )
+    cta_label = models.CharField(
+        max_length=60,
+        default="Explore Destination",
+        help_text="Button text for call-to-action.",
+    )
+    cta_url = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Custom internal path override (e.g., /destinations/pokhara). Blank defaults to destination route.",
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        db_index=True,
+        help_text="Ordering position in featured carousel/grid.",
+    )
+    is_published = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Publishing status toggle.",
+    )
+    publish_start = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional start time for scheduled publishing.",
+    )
+    publish_end = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional end time for scheduled publishing.",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="featured_destinations_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="featured_destinations_updated",
+    )
+
+    class Meta:
+        ordering = ["display_order", "-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["destination"],
+                name="unique_featured_destination_ref",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["is_published", "display_order"]),
+            models.Index(fields=["publish_start", "publish_end"]),
+        ]
+
+    def __str__(self):
+        return f"Featured: {self.title or self.destination.name} (Order: {self.display_order})"
+
+    @property
+    def effective_title(self):
+        return self.title.strip() if self.title and self.title.strip() else self.destination.name
+
+    @property
+    def effective_description(self):
+        if self.short_description and self.short_description.strip():
+            return self.short_description.strip()
+        return self.destination.short_description or self.destination.description or ""
+
+    @property
+    def effective_image_url(self):
+        if self.featured_media_url and self.featured_media_url.strip():
+            return self.featured_media_url.strip()
+        if self.featured_media:
+            if self.featured_media.image:
+                try:
+                    return self.featured_media.image.url
+                except (ValueError, AttributeError):
+                    pass
+            if self.featured_media.external_url:
+                return self.featured_media.external_url
+        if self.destination.cover_image:
+            try:
+                return self.destination.cover_image.url
+            except (ValueError, AttributeError):
+                return str(self.destination.cover_image)
+        return getattr(self.destination, "external_image_url", "") or ""
+
+    @property
+    def effective_cta_url(self):
+        if self.cta_url and self.cta_url.strip():
+            return self.cta_url.strip()
+        return f"/destinations/{self.destination.slug}"
+
+
+class MarketplacePartner(TimeStampedModel):
+    """Hotel, operator, restaurant or agency that wants to sell through this platform."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        UNDER_REVIEW = "under_review", "Under review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        SUSPENDED = "suspended", "Suspended"
+
+    class Kind(models.TextChoices):
+        HOTEL = "hotel", "Hotel / stay"
+        HOMESTAY = "homestay", "Homestay"
+        OPERATOR = "operator", "Tour operator"
+        GUIDE = "guide", "Local guide"
+        RESTAURANT = "restaurant", "Restaurant"
+        TRANSPORT = "transport", "Transport"
+        ACTIVITY = "activity", "Activity provider"
+        AGENCY = "agency", "Travel agency"
+        OTHER = "other", "Other"
+
+    name = models.CharField(max_length=200)
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.OPERATOR)
+    contact_name = models.CharField(max_length=160, blank=True)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
+    website = models.URLField(blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    district = models.CharField(max_length=120, blank=True)
+    description = models.TextField(blank=True)
+    services = models.TextField(blank=True, help_text="Packages or services the partner wants to list.")
+    license_info = models.CharField(max_length=240, blank=True)
+    logo_url = models.URLField(max_length=600, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    commission_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_partners",
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_partners_reviewed",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} ({self.status})"
+
+
+class MarketplaceListing(TimeStampedModel):
+    """Admin- or partner-managed package, stay, tour, transfer or sponsored offer."""
+
+    class Kind(models.TextChoices):
+        PACKAGE = "package", "Travel package"
+        HOTEL = "hotel", "Hotel / stay"
+        TOUR = "tour", "Tour / sightseeing"
+        ACTIVITY = "activity", "Activity"
+        TRANSFER = "transfer", "Transfer / transport"
+        RESTAURANT = "restaurant", "Food experience"
+        GUIDE = "guide", "Guide"
+        AD = "ad", "Sponsored offer"
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PENDING = "pending", "Pending review"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+
+    partner = models.ForeignKey(MarketplacePartner, on_delete=models.CASCADE, related_name="listings")
+    destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_listings")
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.PACKAGE, db_index=True)
+    title = models.CharField(max_length=220)
+    slug = models.SlugField(max_length=240, unique=True, blank=True)
+    summary = models.CharField(max_length=320, blank=True)
+    description = models.TextField(blank=True)
+    includes = models.TextField(blank=True)
+    excludes = models.TextField(blank=True)
+    duration_days = models.PositiveSmallIntegerField(default=1)
+    price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=8, default="NPR")
+    image_url = models.URLField(max_length=600, blank=True)
+    external_url = models.URLField(max_length=600, blank=True, help_text="Partner booking page. Must be HTTPS.")
+    city = models.CharField(max_length=120, blank=True)
+    district = models.CharField(max_length=120, blank=True)
+    cancellation_policy = models.CharField(max_length=320, blank=True)
+    capacity = models.PositiveIntegerField(default=10)
+    is_featured = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_listings_updated",
+    )
+
+    class Meta:
+        ordering = ["-is_featured", "-updated_at"]
+        indexes = [models.Index(fields=["status", "kind"]), models.Index(fields=["is_featured", "status"])]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title) or "offer"
+            slug = base
+            n = 2
+            while MarketplaceListing.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class MarketplaceOrder(TimeStampedModel):
+    """Trip basket / checkout. Never stores card numbers."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Trip basket"
+        REQUESTED = "requested", "Requested"
+        UNDER_REVIEW = "under_review", "Under review"
+        CONFIRMED = "confirmed", "Confirmed"
+        CANCELLED = "cancelled", "Cancelled"
+        EXTERNAL = "external", "Sent to partner site"
+
+    class PayMethod(models.TextChoices):
+        REQUEST = "request", "Request to book (pay later / with operator)"
+        EXTERNAL = "external", "Continue on partner website"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="marketplace_orders",
+    )
+    reference = models.CharField(max_length=20, unique=True, blank=True)
+    guest_name = models.CharField(max_length=160, blank=True)
+    guest_email = models.EmailField(blank=True)
+    guest_phone = models.CharField(max_length=40, blank=True)
+    travelers = models.PositiveSmallIntegerField(default=1)
+    start_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    payment_method = models.CharField(max_length=20, choices=PayMethod.choices, default=PayMethod.REQUEST)
+    subtotal_npr = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_npr = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    currency = models.CharField(max_length=8, default="NPR")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = f"NP{timezone.now().strftime('%y%m%d')}{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def recompute(self):
+        total = sum((item.line_total_npr or 0) for item in self.items.all())
+        self.subtotal_npr = total
+        self.total_npr = total
+        self.save(update_fields=["subtotal_npr", "total_npr", "updated_at"])
+
+
+class MarketplaceOrderItem(TimeStampedModel):
+    order = models.ForeignKey(MarketplaceOrder, on_delete=models.CASCADE, related_name="items")
+    listing = models.ForeignKey(MarketplaceListing, on_delete=models.PROTECT, related_name="order_items")
+    title = models.CharField(max_length=220)
+    quantity = models.PositiveSmallIntegerField(default=1)
+    unit_price_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    line_total_npr = models.DecimalField(max_digits=12, decimal_places=2)
+    travel_date = models.DateField(null=True, blank=True)
+    external_url = models.URLField(max_length=600, blank=True)
+
+    def __str__(self):
+        return f"{self.title} × {self.quantity}"
