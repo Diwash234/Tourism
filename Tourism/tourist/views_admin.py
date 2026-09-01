@@ -2722,6 +2722,60 @@ class PublicFeedbackCreateView(APIView):
     """Public 'Contact / communicate with admin' endpoint (login optional)."""
     permission_classes = [permissions.AllowAny]
 
+    def get(self, request):
+        if request.user.is_authenticated:
+            qs = UserFeedback.objects.filter(user=request.user)
+            email_param = request.query_params.get("email")
+            if email_param:
+                qs = qs | UserFeedback.objects.filter(email__iexact=email_param)
+        else:
+            email = request.query_params.get("email")
+            thread_id = request.query_params.get("id")
+            if thread_id:
+                qs = UserFeedback.objects.filter(pk=thread_id)
+            elif email:
+                qs = UserFeedback.objects.filter(email__iexact=email)
+            else:
+                qs = UserFeedback.objects.none()
+
+        category = request.query_params.get("category")
+        if category:
+            qs = qs.filter(category=category)
+
+        qs = qs.distinct().order_by("-updated_at", "-created_at").select_related("user").prefetch_related("messages", "messages__sender", "evidence")
+
+        return Response([{
+            "id": f.id,
+            "name": f.name or (f.user.get_full_name() if f.user else ""),
+            "email": f.email or (f.user.email if f.user else ""),
+            "subject": f.subject,
+            "message": f.message,
+            "category": f.category,
+            "status": f.status,
+            "priority": f.priority,
+            "rating": f.rating,
+            "created_at": f.created_at,
+            "updated_at": f.updated_at,
+            "closed_at": f.closed_at,
+            "admin_reply": f.admin_reply,
+            "messages": [
+                {
+                    "id": m.id,
+                    "sender": (m.sender.get_full_name() or m.sender.email) if m.sender else ("Admin / Staff Support" if not m.is_internal and (not f.user or m.sender != f.user) else "You"),
+                    "sender_role": "admin" if (m.sender and (m.sender.is_staff or m.sender.is_superuser)) else "user",
+                    "body": m.body,
+                    "is_internal": m.is_internal,
+                    "created_at": m.created_at,
+                } for m in f.messages.filter(is_internal=False)
+            ],
+            "evidence": [{
+                "id": e.id,
+                "media_type": e.media_type,
+                "url": request.build_absolute_uri(e.file.url) if e.file else "",
+                "caption": e.caption,
+            } for e in f.evidence.all()]
+        } for f in qs[:100]])
+
     def post(self, request):
         data = request.data
         if not data.get("subject") or not data.get("message"):
@@ -2749,6 +2803,48 @@ class PublicFeedbackCreateView(APIView):
                 file=uploaded, caption=data.get("evidence_caption", ""),
             )
         return Response({"id": fb.id, "message": "feedback received", "evidence_count": min(len(files), 8)}, status=201)
+
+
+class UserFeedbackMessageView(APIView):
+    """User endpoint to post a reply message into an existing support thread."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, id):
+        fb = UserFeedback.objects.filter(pk=id).first()
+        if not fb:
+            return Response({"detail": "Support thread not found"}, status=404)
+
+        if request.user.is_authenticated:
+            if not (request.user.is_staff or request.user.is_superuser or fb.user == request.user or (fb.email and fb.email.lower() == request.user.email.lower())):
+                return Response({"detail": "Permission denied for this thread"}, status=403)
+        else:
+            email = request.data.get("email")
+            if not email or email.lower() != (fb.email or "").lower():
+                return Response({"detail": "Email verification required for guest thread response"}, status=403)
+
+        body = request.data.get("message") or request.data.get("body") or request.data.get("reply")
+        if not body or not str(body).strip():
+            return Response({"detail": "Message content is required"}, status=400)
+
+        msg = FeedbackMessage.objects.create(
+            feedback=fb,
+            sender=request.user if request.user.is_authenticated else None,
+            body=str(body).strip(),
+            is_internal=False
+        )
+
+        if fb.status in [UserFeedback.Status.RESOLVED, UserFeedback.Status.CLOSED, UserFeedback.Status.REPLIED]:
+            fb.status = UserFeedback.Status.IN_PROGRESS
+        else:
+            fb.status = UserFeedback.Status.NEW
+        fb.save()
+
+        return Response({
+            "message": "Message sent to support team",
+            "id": msg.id,
+            "thread_id": fb.id,
+            "status": fb.status
+        }, status=201)
 
 
 class FetchWebImagesView(APIView):
