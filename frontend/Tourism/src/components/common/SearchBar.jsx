@@ -29,6 +29,7 @@ const SearchBar = ({
   const [loadingSug, setLoadingSug] = useState(false)
   const containerRef = useRef(null)
   const navigate = useNavigate()
+  const { t } = useI18n()
   const abortRef = useRef(null)
 
   // Keep controlled value in sync when parent changes defaultValue

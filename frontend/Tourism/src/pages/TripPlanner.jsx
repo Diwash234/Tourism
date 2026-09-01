@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import {
   FiMap, FiTruck, FiUsers, FiCalendar, FiDollarSign, FiPlus, FiTrash2,
@@ -29,6 +30,7 @@ const INTEREST_CHIPS = [
 ]
 
 export default function TripPlanner() {
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: {

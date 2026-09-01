@@ -199,6 +199,12 @@ const MapView = ({
 
   const activeTile = TILE_PROVIDERS[mapStyle] || TILE_PROVIDERS.detailed
 
+  const totalMeasuredKm = measurePoints.reduce((acc, curr, idx) => {
+    if (idx === 0) return 0
+    const prev = measurePoints[idx - 1]
+    return acc + haversineKm(prev[0], prev[1], curr[0], curr[1])
+  }, 0)
+
   return (
     <div
       style={{ height }}
