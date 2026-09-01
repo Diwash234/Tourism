@@ -2,13 +2,25 @@ import axios from "axios"
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1"
 
+export const isGuestPreview = () => {
+  try {
+    return new URLSearchParams(window.location.search).get("as") === "traveller"
+  } catch {
+    return false
+  }
+}
+
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
 })
 
-// Attach access token to every request
+// Attach access token to every request, except logged-out traveller preview.
 axiosClient.interceptors.request.use((config) => {
+  if (isGuestPreview()) {
+    if (config.headers) delete config.headers.Authorization
+    return config
+  }
   const token = localStorage.getItem("access")
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
@@ -29,7 +41,7 @@ axiosClient.interceptors.response.use(
     const originalRequest = error.config
     const status = error.response?.status
 
-    if (status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry && !isGuestPreview()) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           queue.push({ resolve, reject })
@@ -46,11 +58,12 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refresh")
-        // FIXED: was POSTing to `${BASE_URL}/auth/refresh/` with body
-        // `{ refreshToken }` — the backend's actual endpoint is
-        // `/auth/token/refresh/` and it expects the field named `refresh`,
-        // not `refreshToken`. This bug meant EVERY 401 retry silently
-        // failed and force-logged-out the user.
+        if (!refreshToken) {
+          localStorage.removeItem("access")
+          localStorage.removeItem("refresh")
+          localStorage.removeItem("user")
+          return Promise.reject(error)
+        }
         const { data } = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
           refresh: refreshToken,
         })
@@ -65,10 +78,10 @@ axiosClient.interceptors.response.use(
         localStorage.removeItem("access")
         localStorage.removeItem("refresh")
         localStorage.removeItem("user")
-        window.location.href = "/login"
-        return Promise.reject(refreshError)
+        if (originalRequest.headers) delete originalRequest.headers.Authorization
+        return axios(originalRequest)
       } finally {
-        isRefreshing = false
+        isRefreshing = false;
       }
     }
 

@@ -4,6 +4,7 @@ from typing import Optional
 import math
 
 from model.budget.budget_engine import estimate_budget
+from model.budget import csv_baselines
 
 router = APIRouter()
 
@@ -76,6 +77,9 @@ class BudgetRequest(BaseModel):
     """
     city: Optional[str] = None
     country: Optional[str] = None
+    district: Optional[str] = None
+    province: Optional[str] = None
+    destination: Optional[str] = None       # alias used by the Django proxy
     latitude: Optional[float] = None       # destination's coordinates
     longitude: Optional[float] = None
     user_latitude: Optional[float] = None  # traveler's current location
@@ -92,7 +96,7 @@ class BudgetRequest(BaseModel):
 
     @model_validator(mode="after")
     def require_destination(self):
-        has_city = bool((self.city or "").strip())
+        has_city = bool((self.city or self.destination or "").strip())
         has_coords = self.latitude is not None and self.longitude is not None
         if not has_city and not has_coords:
             raise ValueError(
@@ -119,56 +123,86 @@ def predict_budget(payload: BudgetRequest):
     except Exception:
         baseline, matched_city = DEFAULT_BASELINE, None
 
+    csv_baseline = None
+    try:
+        csv_baseline = csv_baselines.lookup_baseline(
+            city=payload.city,
+            district=getattr(payload, "district", None),
+            province=getattr(payload, "province", None),
+        )
+    except Exception:
+        csv_baseline = None
+
+    baseline_source = "built_in"
+    if csv_baseline:
+        baseline = {k: (csv_baseline.get(k) if csv_baseline.get(k) is not None else baseline.get(k))
+                    for k in ("transport", "food", "accommodation", "taxi")}
+        baseline_source = "dataset_csv"
+
     multiplier = STYLE_MULTIPLIER.get((payload.budget_level or "mid").lower(), 1.0)
     travelers = max(1, payload.travelers)
+    days = max(1, payload.days)
 
-    # GPS-aware transport: if we know both where the traveler actually is
-    # AND the destination's real coordinates, compute a real distance-based
-    # cost instead of the flat per-city baseline figure.
+    # Detect if overrides are provided in NPR (> 250) and convert to USD
+    USD_NPR_RATE = 133.0
+    def _to_usd(val):
+        if val is None:
+            return None
+        v = float(val)
+        return v / USD_NPR_RATE if v > 250 else v
+
+    t_override = _to_usd(payload.transport_cost)
+    f_override = _to_usd(payload.food_cost_day)
+    a_override = _to_usd(payload.accommodation_night)
+    x_override = _to_usd(payload.taxi_cost)
+
     distance_km = None
     if (
-        payload.transport_cost is None
+        t_override is None
         and payload.user_latitude is not None and payload.user_longitude is not None
         and payload.latitude is not None and payload.longitude is not None
     ):
         distance_km = _haversine_km(payload.user_latitude, payload.user_longitude, payload.latitude, payload.longitude)
         transport = max(MIN_TRANSPORT_USD, round(distance_km * TRANSPORT_USD_PER_KM, 2))
     else:
-        transport = payload.transport_cost if payload.transport_cost is not None else baseline["transport"]
+        transport = t_override if t_override is not None else baseline["transport"]
 
-    food = payload.food_cost_day if payload.food_cost_day is not None else baseline["food"]
-    accommodation = payload.accommodation_night if payload.accommodation_night is not None else baseline["accommodation"]
-    taxi = payload.taxi_cost if payload.taxi_cost is not None else baseline["taxi"]
+    food = f_override if f_override is not None else baseline["food"]
+    accommodation = a_override if a_override is not None else baseline["accommodation"]
+    taxi = x_override if x_override is not None else baseline["taxi"]
 
-    # Food/taxi scale per traveler and per day (handled by budget_engine.py
-    # multiplying by `days`). Transport scales per traveler as a ONE-TIME
-    # total -- it must NOT also be multiplied by days (see the fixed
-    # budget_engine.py in this same file set -- confirm it's actually
-    # applied, it was still the old double-counting version as of the
-    # last check). Accommodation is per room (roughly 2 travelers/room)
-    # and gets the style multiplier.
+    # Multiply per-person daily figures
     food *= travelers
     transport *= travelers
     taxi *= travelers
     accommodation = accommodation * multiplier * max(1, round(travelers / 2))
 
-    result = estimate_budget(transport, food, accommodation, taxi, payload.days)
+    result = estimate_budget(transport, food, accommodation, taxi, days)
 
-    # Django's BudgetPredictionView reads result["estimated_total"] and
-    # result["breakdown"] specifically -- estimate_budget() returns
-    # "total_budget_usd" instead, so without this alias `flattened["total"]`
-    # always came back None. Also add an "activities" line since the
-    # frontend's pie chart reads breakdown.activities.
     result["estimated_total"] = result["total_budget_usd"]
+    result["total_budget_npr"] = round(result["total_budget_usd"] * USD_NPR_RATE, 2)
+    
+    # Itemized NPR breakdown for direct display
     result["breakdown"]["activities"] = round(result["breakdown"]["accommodation"] * 0.15, 2)
+    result["breakdown_npr"] = {
+        "accommodation": round(result["breakdown"]["accommodation"] * USD_NPR_RATE, 2),
+        "food": round(result["breakdown"]["food"] * USD_NPR_RATE, 2),
+        "transport": round(result["breakdown"]["transport"] * USD_NPR_RATE, 2),
+        "local_transport": round(result["breakdown"]["local_transport"] * USD_NPR_RATE, 2),
+        "activities": round(result["breakdown"]["activities"] * USD_NPR_RATE, 2),
+        "emergency_reserve": round(result["total_budget_usd"] * 0.10 * USD_NPR_RATE, 2),
+    }
 
-    result["city"] = payload.city or matched_city
+    result["city"] = payload.city or payload.destination or matched_city
     result["matched_baseline_city"] = matched_city
     result["budget_level"] = payload.budget_level
     result["travelers"] = travelers
+    result["days"] = days
+    result["baseline_source"] = baseline_source
+    result["dataset"] = csv_baselines.dataset_info()
     if distance_km is not None:
         result["distance_km"] = round(distance_km, 1)
         result["transport_basis"] = "gps_distance"
     else:
-        result["transport_basis"] = "city_baseline"
+        result["transport_basis"] = baseline_source
     return result

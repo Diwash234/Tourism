@@ -67,7 +67,7 @@ const Favorites = () => {
         </p>
         <div className="pt-2">
           <Link
-            to="/login?redirect=/favorites"
+            to="/login?next=/favorites"
             className="px-6 py-3 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm inline-flex items-center gap-2 shadow-lg shadow-purple-700/20 transition-all"
           >
             <FiLogIn size={16} /> Log In to View Favourites

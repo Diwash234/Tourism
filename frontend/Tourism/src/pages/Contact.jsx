@@ -1,7 +1,9 @@
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { FiMail, FiPhone, FiMapPin } from "react-icons/fi"
 import useToast from "../hooks/useToast"
+import adminApi from "../api/adminApi"
 
 const SUPPORT_EMAIL = "support@tourists.app"
 
@@ -16,39 +18,25 @@ const Contact = () => {
   } = useForm()
 
   const {showToast}=useToast()
+  const [evidence, setEvidence] = useState([])
 
 
   const onSubmit = async () => {
-
-    const {
-      name,
-      email,
-      message
-    } = getValues()
-
-
-    const subject =
-      encodeURIComponent(`Message from ${name}`)
-
-
-    const body =
-      encodeURIComponent(
-        `${message}\n\n— ${name} (${email})`
-      )
-
-
-    window.location.href =
-      `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
-
-
-    showToast(
-      "Opening your email application.",
-      "info"
-    )
-
-
-    reset()
-
+    const { name, email, message, subject, category } = getValues()
+    try {
+      const body = new FormData()
+      body.append("name", name || "")
+      body.append("email", email || "")
+      body.append("subject", subject || `Message from ${name || "visitor"}`)
+      body.append("message", message)
+      body.append("category", category || "correction")
+      evidence.forEach((file) => body.append("evidence", file))
+      await adminApi.sendFeedback(body)
+      showToast("Your report and evidence were sent to the admin review queue.", "success")
+      reset(); setEvidence([])
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Could not send message. Please try again.", "error")
+    }
   }
 
 
@@ -150,6 +138,18 @@ Email is required
 
 
 
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<input className="input-field" placeholder="Subject / place name" {...register("subject",{required:true})} />
+<select className="input-field" {...register("category")}>
+<option value="correction">Correct wrong information</option>
+<option value="emergency_service">Emergency service feedback</option>
+<option value="hotel_hospital">Hotel / hospital information</option>
+<option value="route_distance">Route or distance problem</option>
+<option value="risk_news">Risk / disaster news</option>
+<option value="general">General feedback</option>
+</select>
+</div>
+
 <div>
 
 <textarea
@@ -175,6 +175,11 @@ Message is required
 
 
 
+<label className="block rounded-xl border-2 border-dashed border-gray-200 p-4 text-center text-xs font-bold text-gray-500 cursor-pointer">
+Evidence images/videos ({evidence.length}/8)
+<input hidden type="file" multiple accept="image/*,video/*" onChange={(e) => setEvidence(Array.from(e.target.files).slice(0,8))} />
+</label>
+
 <button
 
 type="submit"
@@ -185,13 +190,13 @@ disabled={isSubmitting}
 
 >
 
-{isSubmitting ? "Opening..." : "Send Message"}
+{isSubmitting ? "Sending..." : "Send to Admin"}
 
 </button>
 
 
 <p className="text-xs text-gray-400 text-center">
-Opens your email app — there is no in-app contact backend yet.
+Saved in the admin feedback queue for review and correction.
 </p>
 
 
