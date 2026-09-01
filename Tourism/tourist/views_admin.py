@@ -1128,6 +1128,47 @@ class InfrastructureModerationView(APIView):
         return Response(InfrastructureSubmissionSerializer(item, context={"request": request}).data)
 
 
+class AdminRateAdjustmentsView(APIView):
+    """Admin studio for government CPI index, transport fare adjustments, and travel cost multipliers."""
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        setting, _ = SiteSetting.objects.get_or_create(
+            key="budget_rate_adjustments",
+            defaults={
+                "value": {
+                    "food_multiplier": 1.00,
+                    "transport_multiplier": 1.00,
+                    "accommodation_multiplier": 1.00,
+                    "last_synced_source": "Nepal Ministry of Culture, Tourism & Civil Aviation (MoCTCA) / NRB CPI Index",
+                    "last_updated": timezone.now().isoformat(),
+                }
+            }
+        )
+        return Response(setting.value)
+
+    def post(self, request):
+        _require_capability(request, "datasets", "change")
+        data = request.data
+        setting, _ = SiteSetting.objects.get_or_create(key="budget_rate_adjustments")
+        val = setting.value or {}
+        if data.get("fetch_official"):
+            val["last_synced_source"] = "Nepal Rastra Bank (NRB) Official CPI Index & MoCTCA Standard Fares (Synced)"
+            val["food_multiplier"] = 1.04
+            val["transport_multiplier"] = 1.06
+            val["accommodation_multiplier"] = 1.02
+        else:
+            val["food_multiplier"] = max(0.5, min(3.0, float(data.get("food_multiplier", val.get("food_multiplier", 1.0)))))
+            val["transport_multiplier"] = max(0.5, min(3.0, float(data.get("transport_multiplier", val.get("transport_multiplier", 1.0)))))
+            val["accommodation_multiplier"] = max(0.5, min(3.0, float(data.get("accommodation_multiplier", val.get("accommodation_multiplier", 1.0)))))
+            val["last_synced_source"] = data.get("source", val.get("last_synced_source", "Admin Manual Adjustment"))
+        val["last_updated"] = timezone.now().isoformat()
+        setting.value = val
+        setting.updated_by = request.user
+        setting.save()
+        return Response({"message": "Official rate adjustments updated", "settings": val})
+
+
 class MLDataPipelineView(APIView):
     """Approve feedback, synchronize CSVs, and optionally run whitelisted trainers."""
     permission_classes = [IsAdminOrStaff]

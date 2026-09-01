@@ -138,6 +138,7 @@ urlpatterns = [
     path("admin/staff-capabilities/", views_admin.StaffCapabilityManagementView.as_view(), name="admin-staff-capabilities"),
     path("admin/infrastructure-submissions/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submissions"),
     path("admin/infrastructure-submissions/<int:id>/", views_admin.InfrastructureModerationView.as_view(), name="admin-infrastructure-submission-action"),
+    path("admin/rate-adjustments/", views_admin.AdminRateAdjustmentsView.as_view(), name="admin-rate-adjustments"),
     path("admin/ml-data-pipeline/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-data-pipeline"),
     path("admin/ml/status/", views_admin.MLDataPipelineView.as_view(), name="admin-ml-status"),
     path("admin/review-moderation/", views_admin.AdminReviewModerationView.as_view(), name="admin-review-moderation"),
