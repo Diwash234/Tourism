@@ -36,7 +36,7 @@ const ALL_26_NATIONAL_SYMBOLS = [
   { id: "sport", title: "National Sport", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, played in high mountain villages and valley courts." },
   { id: "dish", title: "National Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Lentil soup, rice, seasonal curry, and pickle)." },
   { id: "mountain", title: "National Mountain", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth." },
-  { id: "costume", title: "National Costume", icon: "🎭", nepali: "दौरा सुरूवाल र ढाका टोपी", value: "Daura Suruwal with Dhaka Topi for men & Gunyou Cholo for women." },
+  { id: "costume", title: "National Costume", icon: "🎭", nepali: "दौरा सुरूवाल र ढाका टोपी", value: "Daura Suruwal with Dhaka Topi for men & Gunyou Cholo for women.", image: "/images/destinations/dhaka-topi-Bwa1r-wM.jfif" },
   { id: "motto", title: "National Motto", icon: "🦅", nepali: "जननी जन्मभूमिश्च स्वर्गादपि गरीयसी", value: "'Mother and motherland are dearer than heaven itself.'" },
   { id: "poet", title: "National Poet", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi)." },
   { id: "day", title: "Constitution / National Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional governance." },
@@ -89,6 +89,37 @@ const DEFAULT_FESTIVALS = [
   { title: "Tihar & Deepawali", kind: "Festival of Lights", body: "5-day light festival honoring dogs, crows, cows, Lakshmi, and Bhai Tika sister-brother bonds.", city: "All Nepal", date: "Oct – Nov" },
   { title: "Fagu Purnima (Holi)", kind: "Spring Festival", body: "Vibrant festival of dry gulal colors, water balloons, and music across Durbar Squares.", city: "Kathmandu & Pokhara", date: "March" },
   { title: "Bisket Jatra", kind: "Heritage Festival", body: "Huge chariot pulling festival in Bhaktapur celebrating the Newari New Year.", city: "Bhaktapur", date: "April" },
+]
+
+const DEFAULT_CULTURE = [
+  {
+    title: "Newari Pagoda Architecture & Durbar Squares",
+    nepali: "नेवारी मल्लकालीन दरबार र वास्तुकला",
+    region: "Kathmandu, Patan & Bhaktapur",
+    desc: "Multi-tiered pagoda temples, 55-Window Palace, intricately carved peacock wooden windows, and golden torana arches built by Malla kings.",
+    image: "/images/destinations/stupa-DJFZCRbV.jfif",
+  },
+  {
+    title: "Sacred Pilgrimage & Spiritual Traditions",
+    nepali: "धार्मिक तथा सांस्कृतिक तीर्थस्थल",
+    region: "Pashupatinath, Lumbini, Muktinath & Janakpur",
+    desc: "Holy Bagmati riverbank rituals, Maya Devi Temple in Buddha's birthplace, Janaki Mandir Mithila art, and sacred flame springs of Muktinath.",
+    image: "/images/destinations/flag_png-DqQuUnzj.jfif",
+  },
+  {
+    title: "Masked Lakhey & Sacred Charya Dances",
+    nepali: "लाखे, मारुनी र चर्या नृत्य",
+    region: "Indra Jatra, Patan & Mountain Villages",
+    desc: "Fierce demon-dispelling Lakhey mask dances during Indra Jatra, Kirat Maruni folk dances, and Vajrayana Buddhist Charya dance dramas performed by priests.",
+    image: "/images/destinations/images-DG4ceRrC.jfif",
+  },
+  {
+    title: "Buddhist Thangka Painting & Bronze Statuary",
+    nepali: "पौभाः, थङ्का र कास्य मूर्ति कला",
+    region: "Patan Craft Workshops & Bouddha",
+    desc: "Centuries-old lost-wax bronze casting, Paubha scroll paintings, and hand-woven Tibetan carpets crafted by master artisans.",
+    image: "/images/destinations/emblem-Q_w8OTwe.jfif",
+  },
 ]
 
 const Section = ({ id, icon: Icon, title, children }) => (
@@ -164,7 +195,7 @@ export default function DiscoverNepal() {
             Discover Nepal — Beyond Everest
           </h1>
           <p className="text-gray-600 text-sm mt-1 max-w-2xl">
-            Explore Nepal's 26 national symbols, 8,000m Himalayan mountain ranges, UNESCO heritage, wildlife reserves, and culinary culture.
+            Explore Nepal's 26 national symbols, 8,000m Himalayan mountain ranges, UNESCO heritage, living cultural traditions, wildlife reserves, and culinary culture.
           </p>
         </div>
 
@@ -233,6 +264,25 @@ export default function DiscoverNepal() {
           </div>
         </div>
       </section>
+
+      {/* CULTURAL & LIVING HERITAGE SECTION */}
+      <Section id="cultural-heritage" icon={FiFeather} title="Nepali Cultural & Living Heritage">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+          {DEFAULT_CULTURE.map((item, idx) => (
+            <div key={idx} className="card-base p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
+              <div className="space-y-2">
+                <img src={item.image} alt={item.title} className="w-full h-36 object-cover rounded-xl bg-slate-100 border border-slate-100" />
+                <div>
+                  <span className="text-[10px] font-black uppercase text-amber-700 block">{item.nepali}</span>
+                  <h3 className="font-extrabold text-sm text-slate-900 mt-0.5">{item.title}</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">📍 {item.region}</p>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
 
       {/* FESTIVALS */}
       <Section id="festivals" icon={FiSun} title="Vibrant Cultural Festivals">
