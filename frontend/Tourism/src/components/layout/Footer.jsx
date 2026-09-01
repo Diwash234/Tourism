@@ -6,6 +6,7 @@ import {
   FiMapPin,
   FiMail,
   FiPhone,
+  FiBookOpen,
 } from "react-icons/fi";
 
 import { APP_NAME } from "../../utils/constants";
@@ -23,7 +24,6 @@ import {
   StupaImg,
 } from "../dashboard/NationalSymbols";
 
-
 const PROVINCE_CITY_LINKS = [
   { name: "Koshi", city: "Biratnagar" },
   { name: "Madhesh", city: "Janakpur" },
@@ -33,7 +33,6 @@ const PROVINCE_CITY_LINKS = [
   { name: "Karnali", city: "Surkhet" },
   { name: "Sudurpashchim", city: "Dhangadhi" },
 ];
-
 
 const NATIONAL_ITEMS = [
   { image: FlagImg, title: "National Flag" },
@@ -46,13 +45,13 @@ const NATIONAL_ITEMS = [
   { image: StupaImg, title: "Stupa" },
 ];
 
-
 const Footer = () => {
   const { branding, navigation, pageCMS } = usePublicConfig()
   const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "tagline"])
   const footerNav = (navigation || []).filter(item => item.location === "footer" && String(item.route || "").startsWith("/"))
   const siteTitle = branding.site_title || APP_NAME
   const footerText = copy("tagline", "body", branding.footer_text || "Discover destinations, plan budgets, and travel safely through Nepal.")
+  const contactAddress = branding.contact_address || "Pokhara, Nepal"
   const contactEmail = branding.contact_email || "support@tourists.app"
   const contactPhone = branding.contact_phone || "+977-000-0000"
 
@@ -87,9 +86,18 @@ const Footer = () => {
           ))}
         </div>
 
-        <p className="mt-6 text-right text-sm italic text-emerald-400 font-semibold">
-          {copy("symbols", "body", "Discover Nepal — Beyond Everest")}
-        </p>
+        <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <Link
+            to="/discover-nepal"
+            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow flex items-center gap-2 transition-transform hover:scale-105"
+          >
+            <FiBookOpen size={16} /> See More — Explore All 26 National Symbols & Country Profile ➔
+          </Link>
+
+          <p className="text-sm italic text-emerald-400 font-semibold">
+            {copy("symbols", "body", "Discover Nepal — Beyond Everest")}
+          </p>
+        </div>
       </div>}
 
       <div className="container-app py-12 grid grid-cols-1 md:grid-cols-5 gap-8">
@@ -157,7 +165,7 @@ const Footer = () => {
           <div>
             <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("contact", "title", "Contact")}</h4>
             <ul className="space-y-3 text-sm">
-              <li className="flex gap-2 items-center text-emerald-200"><FiMapPin className="text-emerald-400" /> Pokhara, Nepal</li>
+              <li className="flex gap-2 items-center text-emerald-200"><FiMapPin className="text-emerald-400" /> {contactAddress}</li>
               <li className="flex gap-2 items-center text-emerald-200"><FiMail className="text-emerald-400" /> {contactEmail}</li>
               <li className="flex gap-2 items-center text-emerald-200"><FiPhone className="text-emerald-400" /> {contactPhone}</li>
             </ul>
@@ -179,6 +187,5 @@ const Footer = () => {
     </footer>
   );
 };
-
 
 export default Footer;

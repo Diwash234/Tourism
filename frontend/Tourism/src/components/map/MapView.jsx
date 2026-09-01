@@ -20,13 +20,13 @@ import {
 const TILE_PROVIDERS = {
   detailed: {
     name: "Detailed Road Map",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attr: "&copy; OpenStreetMap contributors &copy; CARTO",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attr: "&copy; OpenStreetMap contributors",
   },
   standard: {
     name: "Standard Light",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attr: "&copy; OpenStreetMap &copy; CARTO",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attr: "&copy; OpenStreetMap contributors",
   },
   satellite: {
     name: "Satellite",

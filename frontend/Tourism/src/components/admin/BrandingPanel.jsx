@@ -8,6 +8,7 @@ const textFields = [
   ["site_title", "Portal Heading / Site Name *"],
   ["tagline", "Tagline / Subtitle"],
   ["footer_text", "Footer Copyright & Summary"],
+  ["contact_address", "Official Support Address / City"],
   ["contact_email", "Official Contact Email"],
   ["contact_phone", "Official Support Phone"],
 ]
