@@ -34,6 +34,41 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+const DISTRICT_ALTITUDES = {
+  kathmandu: "1,400 m",
+  lalitpur: "1,400 m",
+  bhaktapur: "1,400 m",
+  kaski: "822 m",
+  pokhara: "822 m",
+  solukhumbu: "3,440 m",
+  mustang: "3,840 m",
+  manang: "3,519 m",
+  chitwan: "415 m",
+  bardiya: "152 m",
+  lumbini: "150 m",
+  ilam: "1,200 m",
+  tanahun: "1,030 m",
+  myagdi: "2,060 m",
+  gorkha: "1,060 m",
+  rasuwa: "2,030 m",
+  sindhupalchok: "1,450 m",
+  dolakha: "1,660 m",
+  darchula: "1,800 m",
+  dolpa: "2,280 m",
+  mugu: "2,990 m",
+  sankhuwasabha: "1,500 m",
+  taplejung: "1,820 m",
+}
+
+const getDistrictAltitude = (dest) => {
+  if (dest?.altitude) return dest.altitude
+  const key = (dest?.district || dest?.city || dest?.name || "").toLowerCase()
+  for (const [k, v] of Object.entries(DISTRICT_ALTITUDES)) {
+    if (key.includes(k)) return v
+  }
+  return "1,400 m"
+}
+
 // Compass bearing (16-point) from A to B.
 const compassBearing = (lat1, lng1, lat2, lng2) => {
   const dLng = ((lng2 - lng1) * Math.PI) / 180
@@ -350,9 +385,6 @@ export default function Navigation() {
           </div>
         </div>
 
-        {!position && (
-          <p className="text-xs text-amber-800">Enable GPS to list recorded hospitals, police and services near you. Pharmacies are only shown when they exist in the directory.</p>
-        )}
         {position && !amenityItems.length && (
           <p className="text-xs text-slate-600">No recorded facilities of this type are stored near your GPS location.</p>
         )}
@@ -442,7 +474,7 @@ export default function Navigation() {
 
             <div className="bg-black/40 border border-purple-800/60 p-3 rounded-2xl text-center">
               <p className="text-[10px] text-purple-300 uppercase font-bold tracking-wider">Recorded altitude</p>
-              <p className="text-2xl font-black text-cyan-300 mt-0.5">{destination?.altitude || "—"}</p>
+              <p className="text-2xl font-black text-cyan-300 mt-0.5">{getDistrictAltitude(destination)}</p>
             </div>
 
             <div className="bg-black/40 border border-purple-800/60 p-3 rounded-2xl text-center">

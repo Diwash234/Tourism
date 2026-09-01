@@ -41,7 +41,7 @@ const Hotels = () => {
         </h1>
 
         <p className="text-gray-500">
-          From teahouses on the Annapurna trail to boutique stays in Kathmandu.
+          From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal.
         </p>
       </div>
 

@@ -724,14 +724,14 @@ def _get_related_categories(cat_slug):
 
 REAL_HOTEL_PHOTOS = [
     _p("https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Pukson.jpg/960px-Pukson.jpg", "Nepal Resort & Hotel"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Kathmandu%2C_catholic_Assumption_cathedral.jpg/960px-Kathmandu%2C_catholic_Assumption_cathedral.jpg", "Kathmandu Heritage Hotel"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Around_Gorkha_04.jpg/960px-Around_Gorkha_04.jpg", "Himalayan Mountain Lodge"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Thrangu_Tashi_Yangtse_Monastery.jpg/960px-Thrangu_Tashi_Yangtse_Monastery.jpg", "Pokhara Lakeside Hotel"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Nasalchwok_by_Mahalaxmi_silwal_16.JPG/960px-Nasalchwok_by_Mahalaxmi_silwal_16.JPG", "Historic Palace Hotel"),
+    _p("/images/destinations/pokhara/fewatal.jpg", "Pokhara Lakeside Hotel"),
+    _p("/images/destinations/kathmandu/durbar-square.jpg", "Kathmandu Heritage Boutique Hotel"),
+    _p("/images/destinations/nagarkot/sunrise-view.jpg", "Nagarkot Sunrise Mountain Resort"),
+    _p("/images/destinations/bandipur/hilltop-village.jpg", "Bandipur Heritage Village Lodge"),
+    _p("/images/destinations/chitwan/safari.jpg", "Chitwan Jungle Wildlife Resort"),
+    _p("/images/destinations/annapurna/trek.jpg", "Annapurna Circuit Mountain Teahouse"),
+    _p("/images/destinations/bardiya/tiger-reserve.jpg", "Bardia Safari Eco Lodge"),
     _p("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Tansen_at_sunset%2C_Palpa%2C_Nepal.jpg/960px-Tansen_at_sunset%2C_Palpa%2C_Nepal.jpg", "Tansen Hilltop Hotel"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Nagarkot%2CBhaktapur_%28104%29.JPG/960px-Nagarkot%2CBhaktapur_%28104%29.JPG", "Nagarkot Sunrise Resort"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Braga_Village%2C_Manang.jpg/960px-Braga_Village%2C_Manang.jpg", "Manang Mountain Teahouse"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Goodbye_Shey_Gompa._-_panoramio.jpg/960px-Goodbye_Shey_Gompa._-_panoramio.jpg", "Alpine Teahouse Lodge"),
 ]
 
 def resolve_hotel_photo(hotel):
