@@ -32,7 +32,7 @@ const INTERESTS = [
   { key: "photography", label: "Photography", icon: FiCamera },
   { key: "romantic", label: "Romantic", icon: FiSun },
   { key: "solitude", label: "Solitude", icon: FiMoon },
-  { key: "food", label: "Food", icon: FiAnchor },
+  { key: "food", label: "Food & Culinary", icon: FiAnchor },
   { key: "nature", label: "Nature & Forests", icon: FiFeather },
   { key: "lakes_rivers", label: "Lakes & Rivers", icon: FiDroplet },
   { key: "history", label: "History & Archaeology", icon: FiBookOpen },
@@ -57,7 +57,7 @@ const EDUCATIONAL_CRAFT_FALLBACKS = [
     recommended_days: 1,
     cover_image_url: "/images/destinations/stupa-DJFZCRbV.jfif",
     why_recommended: ["Silkworm house & organic silk yarn spinning", "Traditional Newari weaving craft & research"],
-    safety_context: { nearest_hospital: { distance_km: 4.2 }, nearest_police: { distance_km: 2.5 }, route_condition: "Paved Highway & Local Access" },
+    safety_context: { nearest_hospital: { distance_km: 4.2 }, nearest_police: { distance_km: 2.5 }, route_condition: "Verified Highway & Local Access" },
     risk_summary: { level: "low" },
     ml_score: 0.96,
   },
@@ -108,6 +108,105 @@ const EDUCATIONAL_CRAFT_FALLBACKS = [
     safety_context: { nearest_hospital: { distance_km: 3.5 }, nearest_police: { distance_km: 1.8 }, route_condition: "Mechi Highway Corridor" },
     risk_summary: { level: "low" },
     ml_score: 0.91,
+  },
+]
+
+const FOOD_DESTINATIONS_FALLBACKS = [
+  {
+    id: "food-1",
+    name: "Kathmandu Thamel & Asan Food Street",
+    slug: "kathmandu-thamel-asan-food-street",
+    display_city: "Kathmandu",
+    district: "Kathmandu",
+    province: "Bagmati",
+    difficulty: "easy",
+    budget_level: "budget",
+    recommended_days: 1,
+    cover_image_url: "/images/destinations/food/momo.jpg",
+    why_recommended: ["Famous for Steamed MoMo, Thukpa, Sekuwa, and Newari Khaja", "Vibrant night food stalls and historic spice bazaars"],
+    safety_context: { nearest_hospital: { distance_km: 1.2 }, nearest_police: { distance_km: 0.5 }, route_condition: "Metropolitan Ring Road Corridor" },
+    risk_summary: { level: "low" },
+    ml_score: 0.98,
+  },
+  {
+    id: "food-2",
+    name: "Bhaktapur Durbar Square & Juju Dhau Hub",
+    slug: "bhaktapur-juju-dhau-hub",
+    display_city: "Bhaktapur",
+    district: "Bhaktapur",
+    province: "Bagmati",
+    difficulty: "easy",
+    budget_level: "budget",
+    recommended_days: 1,
+    cover_image_url: "/images/destinations/food/juju-dhau.jpg",
+    why_recommended: ["Birthplace of Juju Dhau (King of Curds)", "Authentic Newari Samay Baji & Yomari traditional feasts"],
+    safety_context: { nearest_hospital: { distance_km: 1.5 }, nearest_police: { distance_km: 0.8 }, route_condition: "Arniko Highway Corridor" },
+    risk_summary: { level: "low" },
+    ml_score: 0.96,
+  },
+  {
+    id: "food-3",
+    name: "Patan Mangal Bazaar & Newari Culinary Corner",
+    slug: "patan-mangal-bazaar-newari-culinary",
+    display_city: "Patan",
+    district: "Lalitpur",
+    province: "Bagmati",
+    difficulty: "easy",
+    budget_level: "budget",
+    recommended_days: 1,
+    cover_image_url: "/images/destinations/food/newari-bhoj.jpg",
+    why_recommended: ["Heritage Newari Bhoj with spicy Choila & Bara", "Artisan courtyards with traditional Aila brewery"],
+    safety_context: { nearest_hospital: { distance_km: 1.8 }, nearest_police: { distance_km: 0.7 }, route_condition: "Lalitpur Heritage Access" },
+    risk_summary: { level: "low" },
+    ml_score: 0.95,
+  },
+  {
+    id: "food-4",
+    name: "Pokhara Lakeside Culinary & Fish Street",
+    slug: "pokhara-lakeside-culinary-fish-street",
+    display_city: "Pokhara",
+    district: "Kaski",
+    province: "Gandaki",
+    difficulty: "easy",
+    budget_level: "budget",
+    recommended_days: 2,
+    cover_image_url: "/images/destinations/food/sel-roti.jpg",
+    why_recommended: ["Fresh Phewa Lake fish, Sel Roti, and mountain masala chiya", "Lakeside dining with Machhapuchhre reflection views"],
+    safety_context: { nearest_hospital: { distance_km: 2.5 }, nearest_police: { distance_km: 1.0 }, route_condition: "Prithvi Highway & Lakeside Road" },
+    risk_summary: { level: "low" },
+    ml_score: 0.94,
+  },
+  {
+    id: "food-5",
+    name: "Ilam Kanyam Orthodox Tea Tasting Estate",
+    slug: "ilam-kanyam-tea-tasting-estate",
+    display_city: "Ilam",
+    district: "Ilam",
+    province: "Koshi",
+    difficulty: "easy",
+    budget_level: "budget",
+    recommended_days: 2,
+    cover_image_url: "/images/destinations/food/masala-chiya.jpg",
+    why_recommended: ["Organic Himalayan orthodox tea tasting & Chhurpi cheese", "Rolling green tea gardens and mountain air"],
+    safety_context: { nearest_hospital: { distance_km: 3.5 }, nearest_police: { distance_km: 1.8 }, route_condition: "Mechi Highway Corridor" },
+    risk_summary: { level: "low" },
+    ml_score: 0.93,
+  },
+  {
+    id: "food-6",
+    name: "Janakpurdham Mithila Thali & Sweet Bazaar",
+    slug: "janakpurdham-mithila-thali-bazaar",
+    display_city: "Janakpur",
+    district: "Dhanusha",
+    province: "Madhesh",
+    difficulty: "easy",
+    budget_level: "budget",
+    recommended_days: 1,
+    cover_image_url: "/images/destinations/janakpur/janaki-mandir.jpg",
+    why_recommended: ["Authentic Mithila Thali, Malpua, and peda sweets", "Historic temple square with vibrant street food stalls"],
+    safety_context: { nearest_hospital: { distance_km: 1.8 }, nearest_police: { distance_km: 0.9 }, route_condition: "Postal Highway Corridor" },
+    risk_summary: { level: "low" },
+    ml_score: 0.92,
   },
 ]
 
@@ -166,6 +265,9 @@ export default function Recommendation() {
       if (selected.includes("educational")) {
         results = [...EDUCATIONAL_CRAFT_FALLBACKS, ...results]
       }
+      if (selected.includes("food")) {
+        results = [...FOOD_DESTINATIONS_FALLBACKS, ...results]
+      }
       setMeta({ source: data.source, version: data.model_version, preferences: data.preferences })
       setItems(results.map((item) => ({
         ...item,
@@ -173,11 +275,10 @@ export default function Recommendation() {
       })))
     } catch (error) {
       console.error("Recommendation request failed", error)
-      if (selected.includes("educational")) {
-        setItems(EDUCATIONAL_CRAFT_FALLBACKS)
-      } else {
-        setItems([])
-      }
+      let fallbacks = []
+      if (selected.includes("educational")) fallbacks = [...fallbacks, ...EDUCATIONAL_CRAFT_FALLBACKS]
+      if (selected.includes("food")) fallbacks = [...fallbacks, ...FOOD_DESTINATIONS_FALLBACKS]
+      setItems(fallbacks)
     } finally {
       setLoading(false)
     }

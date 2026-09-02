@@ -51,10 +51,14 @@ const LOCAL_NEPAL_PHOTOS = {
   patan:           "/images/destinations/patan/durbar-square.jpg",
   lalitpur:        "/images/destinations/patan/durbar-square.jpg",
   "patan durbar":  "/images/destinations/patan/durbar-square.jpg",
-  // Chitwan
+  // Chitwan / Bharatpur
   chitwan:         "/images/destinations/chitwan/safari.jpg",
   "chitwan national park": "/images/destinations/chitwan/safari.jpg",
   sauraha:         "/images/destinations/chitwan/safari.jpg",
+  bharatpur:       "/images/destinations/chitwan/safari.jpg",
+  "bharatpur metropolitan city": "/images/destinations/chitwan/safari.jpg",
+  "bharatpur metropolitan": "/images/destinations/chitwan/safari.jpg",
+  narayani:        "/images/destinations/chitwan/safari.jpg",
   // Lumbini
   lumbini:         "/images/destinations/lumbini/garden.jpg",
   // Annapurna / Ghandruk / Sarangkot
@@ -219,6 +223,9 @@ const EXTRA_LOCAL_PHOTOS = {
   "parsa national park": "/images/destinations/chitwan/safari.jpg",
   "banke national park": "/images/destinations/bardiya/tiger-reserve.jpg",
   "lumbini garden": "/images/destinations/lumbini/garden.jpg",
+  bharatpur: "/images/destinations/chitwan/safari.jpg",
+  "bharatpur metropolitan city": "/images/destinations/chitwan/safari.jpg",
+  "bharatpur metropolitan": "/images/destinations/chitwan/safari.jpg",
   // East / tea
   "ilam tea": "/images/destinations/ilam/tea-gardens.jpg",
   "shree antu": "/images/destinations/ilam/tea-gardens.jpg",
