@@ -3,7 +3,8 @@ import { motion } from "framer-motion"
 import {
   FiCompass, FiMapPin, FiArrowRight, FiTrendingUp, FiShield,
   FiSun, FiCoffee, FiZap, FiUsers, FiDroplet, FiWind, FiCamera,
-  FiMoon, FiAnchor, FiAperture, FiCheckCircle, FiSliders, FiBookOpen
+  FiMoon, FiAnchor, FiAperture, FiCheckCircle, FiSliders, FiBookOpen,
+  FiFeather, FiHome
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import destinationApi from "../api/destinationApi"
@@ -32,6 +33,15 @@ const INTERESTS = [
   { key: "romantic", label: "Romantic", icon: FiSun },
   { key: "solitude", label: "Solitude", icon: FiMoon },
   { key: "food", label: "Food", icon: FiAnchor },
+  { key: "nature", label: "Nature & Forests", icon: FiFeather },
+  { key: "lakes_rivers", label: "Lakes & Rivers", icon: FiDroplet },
+  { key: "history", label: "History & Archaeology", icon: FiBookOpen },
+  { key: "artisan_crafts", label: "Arts & Handicrafts", icon: FiAperture },
+  { key: "village_life", label: "Local Life & Villages", icon: FiHome },
+  { key: "wellness", label: "Wellness & Meditation", icon: FiSun },
+  { key: "camping", label: "Camping", icon: FiCompass },
+  { key: "cycling", label: "Cycling & Outdoor Activities", icon: FiZap },
+  { key: "birdwatching", label: "Birdwatching", icon: FiWind },
 ]
 
 const EDUCATIONAL_CRAFT_FALLBACKS = [

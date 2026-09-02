@@ -1668,6 +1668,16 @@ class MoodRecommendationsView(generics.ListAPIView):
         "food":      {"cats": ["food-culinary", "cities", "shopping"], "kw": ["momo", "food", "bazaar", "market", "culinary", "restaurant"]},
         "festival":  {"cats": ["festivals", "culture"], "kw": ["festival", "jatra", "mela", "dashain", "tihar", "holi"]},
         "shopping":  {"cats": ["shopping", "cities"], "kw": ["bazaar", "market", "shop", "handicraft", "thamel", "asan"]},
+        "educational": {"cats": ["museums", "culture", "heritage", "tea-coffee"], "kw": ["research", "center", "science", "pottery", "silk", "museum", "data", "craft"]},
+        "nature":    {"cats": ["forests", "eco-tourism", "national-park", "natural-wonders"], "kw": ["forest", "botanical", "jungle", "rhododendron", "green", "flora"]},
+        "lakes_rivers": {"cats": ["lakes", "rivers", "waterfalls"], "kw": ["lake", "river", "tal", "koshi", "karnali", "gandaki", "waterfall", "jharna"]},
+        "history":   {"cats": ["heritage", "museums", "cities"], "kw": ["history", "archaeology", "fort", "gadhi", "palace", "durbar", "ancient"]},
+        "artisan_crafts": {"cats": ["culture", "heritage", "shopping"], "kw": ["pottery", "thangka", "handicraft", "weaving", "woodcarving", "bronze", "metal"]},
+        "village_life": {"cats": ["villages", "eco-tourism"], "kw": ["village", "homestay", "gaun", "community", "traditional", "local"]},
+        "wellness":  {"cats": ["spiritual-wellness", "hot-springs", "spiritual"], "kw": ["meditation", "yoga", "retreat", "spa", "hot spring", "tatopani", "peace"]},
+        "camping":   {"cats": ["camping", "nature", "trekking"], "kw": ["camp", "tent", "star", "overnight", "outdoor", "trail"]},
+        "cycling":   {"cats": ["cycling", "adventure", "scenic-routes"], "kw": ["cycle", "biking", "trail", "circuit", "highway"]},
+        "birdwatching": {"cats": ["bird-watching", "wildlife", "forests"], "kw": ["bird", "crane", "florican", "wetland", "koshi tappu", "reserve"]},
         "nature":    {"cats": ["natural-wonders", "forests", "lakes", "waterfalls"], "kw": ["nature", "forest", "waterfall", "lake", "valley"]},
     }
 
