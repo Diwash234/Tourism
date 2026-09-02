@@ -1618,6 +1618,39 @@ class DestinationRiskAssessmentView(APIView):
         return Response(build_destination_risk(destination))
 
 
+NEPAL_HIGHWAYS = {
+    "kaski": "H04 Prithvi Highway & H05 Siddhartha Highway",
+    "pokhara": "H04 Prithvi Highway & H05 Siddhartha Highway",
+    "kathmandu": "H02 Tribhuvan Highway & Ring Road (H16)",
+    "lalitpur": "H02 Tribhuvan Highway & Ring Road (H16)",
+    "bhaktapur": "H03 Arniko Highway",
+    "chitwan": "H01 Mahendra Highway & H04 Prithvi Highway",
+    "solukhumbu": "H15 Pasang Lhamu Highway & Lukla Air Corridor",
+    "mustang": "H18 Kali Gandaki Corridor & Jomsom Highway",
+    "manang": "H18 Kali Gandaki & Annapurna Circuit Trail",
+    "ilam": "H07 Mechi Highway",
+    "sunsari": "H08 Koshi Highway",
+    "morang": "H01 Mahendra Highway & H08 Koshi Highway",
+    "dhanusha": "H10 Postal Highway & H01 Mahendra Highway",
+    "rupandehi": "H01 Mahendra Highway & H05 Siddhartha Highway",
+    "palpa": "H05 Siddhartha Highway",
+    "tanahun": "H04 Prithvi Highway",
+    "syangja": "H05 Siddhartha Highway",
+    "myagdi": "H18 Kali Gandaki Corridor",
+    "gorkha": "H04 Prithvi Highway & Benighat Corridor",
+    "mugu": "H06 Karnali Highway & Talcha Corridor",
+    "dolpa": "H06 Karnali Highway & Dunai Trail",
+    "jumla": "H06 Karnali Highway",
+    "surkhet": "H06 Karnali Highway & Ratna Highway (H12)",
+    "kailali": "H01 Mahendra Highway",
+    "kanchanpur": "H01 Mahendra Highway & Mahakali Corridor",
+    "doti": "H14 Bhimdatta Highway",
+    "darchula": "H14 Bhimdatta Highway & Mahakali Corridor",
+    "sankhuwasabha": "H08 Koshi Highway Corridor",
+    "taplejung": "H07 Mechi Highway Corridor",
+}
+
+
 class MoodRecommendationsView(generics.ListAPIView):
     """
     GET /api/v1/destinations/mood-recommendations/?mood=happy,trekking&days=5&limit=18
@@ -1866,6 +1899,27 @@ class MoodRecommendationsView(generics.ListAPIView):
             if destination.hospital_total and destination.police_total:
                 reasons.append("Verified hospital and police coverage")
 
+            dist_key = (destination.district or destination.city or destination.name or "").lower()
+            official_highway = next((v for k, v in NEPAL_HIGHWAYS.items() if k in dist_key), "Verified National Highway Corridor")
+
+            alt_str = re.sub(r"[^0-9.]", "", str(destination.altitude or "0"))
+            alt_num = float(alt_str) if alt_str else 0.0
+            if alt_num >= 4000:
+                risk_level = "high"
+                reasons.append("High-altitude alpine environment (above 4,000m)")
+            elif alt_num >= 2500:
+                risk_level = "moderate"
+                reasons.append("Alpine elevation trail (above 2,500m)")
+            elif warning and warning.get("severity") in ["moderate", "high", "critical"]:
+                risk_level = warning.get("severity")
+            elif risk and risk.risk_category:
+                risk_level = risk.risk_category.lower()
+            else:
+                risk_level = "low"
+
+            if destination.short_description:
+                reasons.append(destination.short_description[:120])
+
             route_records = list(destination.transit_routes.all())
             route_text = " ".join((route.road_condition or "") for route in route_records).lower()
             route_penalty = -0.10 if any(word in route_text for word in ["blocked", "closed", "landslide", "impassable", "dangerous"]) else 0.04 if route_records else 0.0
@@ -1875,7 +1929,7 @@ class MoodRecommendationsView(generics.ListAPIView):
                 "hospital_count": destination.hospital_total,
                 "police_count": destination.police_total,
                 "hotel_count": destination.hotel_total,
-                "route_condition": route_records[0].road_condition if route_records else "No verified route condition",
+                "route_condition": route_records[0].road_condition if (route_records and route_records[0].road_condition) else official_highway,
                 "availability": availability,
                 "current_warning": {
                     "title": warning["title"], "severity": warning["severity"],
