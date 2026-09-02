@@ -2,13 +2,15 @@ import { forwardRef } from "react"
 import { FiLoader } from "react-icons/fi"
 
 const VARIANTS = {
-  primary: "bg-[#0B3D91] hover:bg-blue-900 text-white shadow-sm focus:ring-blue-500",
-  secondary: "bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 focus:ring-slate-400",
-  emerald: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm focus:ring-emerald-500",
-  amber: "bg-amber-400 hover:bg-amber-500 text-slate-950 font-black shadow-sm focus:ring-amber-500",
-  destructive: "bg-rose-600 hover:bg-rose-700 text-white shadow-sm focus:ring-rose-500",
-  ghost: "bg-transparent hover:bg-slate-100 text-slate-700 focus:ring-slate-400",
-  outline: "bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 focus:ring-blue-500",
+  primary: "bg-[#123B52] hover:bg-[#0F3246] text-white shadow-sm focus:ring-[#123B52]",
+  secondary: "bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 shadow-sm focus:ring-slate-400",
+  emerald: "bg-[#059669] hover:bg-[#047857] text-white shadow-sm focus:ring-[#059669]",
+  amber: "bg-[#D99A3D] hover:bg-[#C88A2D] text-slate-950 font-black shadow-sm focus:ring-[#D99A3D]",
+  saffron: "bg-[#D99A3D] hover:bg-[#C88A2D] text-slate-950 font-black shadow-sm focus:ring-[#D99A3D]",
+  destructive: "bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-sm focus:ring-[#DC2626]",
+  danger: "bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-sm focus:ring-[#DC2626]",
+  ghost: "bg-transparent hover:bg-slate-100 text-slate-800 focus:ring-slate-400",
+  outline: "bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 shadow-sm focus:ring-[#123B52]",
 }
 
 const SIZES = {

@@ -16,8 +16,8 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
     def get_user_name(self, obj):
         if obj.user:
-            return obj.user.get_full_name() or obj.user.email
-        return obj.user_email
+            return getattr(obj.user, "full_name", None) or (f"{obj.user.first_name} {obj.user.last_name}".strip() if obj.user.first_name else "") or obj.user.email
+        return obj.user_email or "System"
 
 
 class ErrorEventSerializer(serializers.ModelSerializer):
@@ -38,7 +38,7 @@ class ErrorEventSerializer(serializers.ModelSerializer):
 
     def get_acknowledged_by_name(self, obj):
         if obj.acknowledged_by:
-            return obj.acknowledged_by.get_full_name() or obj.acknowledged_by.email
+            return getattr(obj.acknowledged_by, "full_name", None) or (f"{obj.acknowledged_by.first_name} {obj.acknowledged_by.last_name}".strip() if obj.acknowledged_by.first_name else "") or obj.acknowledged_by.email
         return None
 
 
