@@ -15,18 +15,20 @@ const axiosClient = axios.create({
   headers: { "Content-Type": "application/json" },
 })
 
-// Attach access token to every request, except logged-out traveller preview.
+// Attach access token to request if present
 axiosClient.interceptors.request.use((config) => {
   if (isGuestPreview()) {
     if (config.headers) delete config.headers.Authorization
     return config
   }
   const token = localStorage.getItem("access")
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
   return config
 })
 
-// Handle 401 -> try refresh token once, then retry original request
+// Handle 401 -> try refresh token once safely
 let isRefreshing = false
 let queue = []
 
@@ -40,8 +42,12 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
     const status = error.response?.status
+    const url = originalRequest?.url || ""
 
-    if (status === 401 && !originalRequest._retry && !isGuestPreview()) {
+    // Never refresh tokens for login, token refresh, or public endpoints
+    const isAuthRoute = url.includes("/auth/token/refresh/") || url.includes("/auth/login/") || url.includes("/config/public/")
+
+    if (status === 401 && !originalRequest._retry && !isGuestPreview() && !isAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           queue.push({ resolve, reject })
@@ -78,10 +84,10 @@ axiosClient.interceptors.response.use(
         localStorage.removeItem("access")
         localStorage.removeItem("refresh")
         localStorage.removeItem("user")
-        if (originalRequest.headers) delete originalRequest.headers.Authorization
-        return axios(originalRequest)
+        window.dispatchEvent(new Event("auth-logout"))
+        return Promise.reject(refreshError)
       } finally {
-        isRefreshing = false;
+        isRefreshing = false
       }
     }
 

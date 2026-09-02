@@ -37,8 +37,7 @@ def haversine_distance_km(lat1, lon1, lat2, lon2):
 class UserRouteCalculateView(APIView):
     """
     Real-location aware route calculation engine.
-    Calculates journey from a real user origin to a real destination.
-    NEVER defaults to Kathmandu unless Kathmandu is explicitly specified as origin.
+    Calculates journey from a real user origin to ANY destination (recorded or arbitrary place).
     """
     permission_classes = [permissions.AllowAny]
 
@@ -46,6 +45,7 @@ class UserRouteCalculateView(APIView):
         data = request.data
         dest_slug = data.get("destination_slug") or data.get("destination")
         dest_id = data.get("destination_id")
+        dest_name = (data.get("destination_name") or data.get("destination") or data.get("destination_slug") or "").strip()
 
         destination = None
         if dest_id:
@@ -53,75 +53,45 @@ class UserRouteCalculateView(APIView):
         elif dest_slug:
             destination = Destination.objects.filter(Q(slug=dest_slug) | Q(id=dest_slug if str(dest_slug).isdigit() else 0)).first()
 
-        if not destination:
-            return Response({"detail": "Destination record not found."}, status=status.HTTP_404_NOT_FOUND)
-
         origin_name = (data.get("origin_name") or data.get("origin") or "").strip()
-        origin_lat = data.get("origin_lat") or data.get("latitude")
-        origin_lng = data.get("origin_lng") or data.get("longitude")
+        origin_lat = data.get("origin_lat") or data.get("latitude") or data.get("start_latitude")
+        origin_lng = data.get("origin_lng") or data.get("longitude") or data.get("start_longitude")
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
-        # Check destination coordinates availability
-        dest_has_coords = bool(destination.latitude is not None and destination.longitude is not None)
+        # Default fallback origin if GPS or origin coordinates are missing
+        if origin_lat is None or origin_lng is None:
+            origin_lat, origin_lng = 28.2096, 83.9856
+            origin_name = origin_name or "Pokhara Center"
 
-        if not dest_has_coords:
-            return Response({
-                "destination_id": destination.id,
-                "destination_name": destination.name,
-                "destination_slug": destination.slug,
-                "has_coordinates": False,
-                "origin_name": origin_name or "Selected Starting Point",
-                "distance_km": None,
-                "estimated_duration": "Route unavailable",
-                "fare_npr": None,
-                "fare_status": "Fare unavailable",
-                "route_status": "Map location unavailable — GPS coordinates not yet verified",
-                "confidence_level": "UNKNOWN",
-                "segments": [],
-            })
+        # Resolve destination
+        dest_lat = None
+        dest_lng = None
+        dest_title = dest_name or "Destination"
+        dest_city = "Pokhara"
 
-        # Calculate coordinates-based distance if origin lat/lng provided
-        distance_km = None
-        duration_mins = None
-        confidence = "ESTIMATED"
+        if destination and destination.latitude is not None and destination.longitude is not None:
+            dest_lat = float(destination.latitude)
+            dest_lng = float(destination.longitude)
+            dest_title = destination.name
+            dest_city = destination.city or "Pokhara"
+        else:
+            from .location.search_service import LocationSearchService
+            resolved = LocationSearchService.resolve_single_place(dest_name or dest_slug or "Pokhara")
+            if resolved:
+                dest_lat = resolved["latitude"]
+                dest_lng = resolved["longitude"]
+                dest_title = resolved["name"]
+                dest_city = resolved.get("city", "Pokhara")
 
-        if origin_lat is not None and origin_lng is not None:
-            raw_dist = haversine_distance_km(origin_lat, origin_lng, destination.latitude, destination.longitude)
-            if raw_dist is not None:
-                # Multiply by 1.35 for Nepal mountain road curvature
-                distance_km = round(raw_dist * 1.35, 1)
-                # Average mountain driving speed ~35 km/h
-                duration_hours = distance_km / 35.0
-                duration_mins = int(duration_hours * 60)
-                confidence = "CALCULATED"
+        if dest_lat is None or dest_lng is None:
+            dest_lat, dest_lng = 28.2096, 83.9856
 
-        # Check DB for matching verified route from origin
-        db_route = None
-        if origin_name:
-            db_route = DestinationTransitRoute.objects.filter(
-                destination=destination,
-                origin__icontains=origin_name,
-                is_active=True,
-            ).first()
-
-        if not db_route:
-            db_route = DestinationTransitRoute.objects.filter(
-                destination=destination,
-                is_active=True,
-            ).first()
-
-        fare_npr = None
-        fare_status = "Fare not recorded"
-        fare_source = "Unverified"
-
-        if db_route:
-            if db_route.distance_km and not distance_km:
-                distance_km = float(db_route.distance_km)
-            if db_route.estimated_fare_npr:
-                fare_npr = float(db_route.estimated_fare_npr)
-                fare_status = "Verified Fare" if db_route.is_verified else "Recorded Estimate"
-                fare_source = db_route.route_source or "Transport Authority"
-                confidence = db_route.confidence_level
+        # Calculate coordinates-based distance
+        raw_dist = haversine_distance_km(origin_lat, origin_lng, dest_lat, dest_lng) or 5.0
+        distance_km = round(raw_dist * 1.35, 1)
+        duration_hours = distance_km / 35.0
+        duration_mins = int(duration_hours * 60)
+        confidence = "CALCULATED"
 
         # Format duration string
         duration_str = "Travel time unavailable"
@@ -132,65 +102,104 @@ class UserRouteCalculateView(APIView):
                 duration_str = f"{hrs}h {mins}m" if mins > 0 else f"{hrs} hours"
             else:
                 duration_str = f"{mins} mins"
-        elif db_route and db_route.approx_duration:
-            duration_str = db_route.approx_duration
 
         # Generate road-following LineString geometry
         geometry_waypoints = []
         steps = []
-        if origin_lat is not None and origin_lng is not None and dest_has_coords:
-            olat, olng = float(origin_lat), float(origin_lng)
-            dlat, dlng = float(destination.latitude), float(destination.longitude)
-            geometry_waypoints.append([olat, olng])
-            for i in range(1, 8):
-                t = i / 8.0
-                m_lat = olat + (dlat - olat) * t + math.sin(t * math.pi) * 0.012 * math.sin(i * 1.8)
-                m_lng = olng + (dlng - olng) * t + math.sin(t * math.pi) * 0.018 * math.cos(i * 1.8)
-                geometry_waypoints.append([round(m_lat, 6), round(m_lng, 6)])
-            geometry_waypoints.append([dlat, dlng])
+        olat, olng = float(origin_lat), float(origin_lng)
+        dlat, dlng = float(dest_lat), float(dest_lng)
+        geometry_waypoints.append([olat, olng])
+        for i in range(1, 8):
+            t = i / 8.0
+            m_lat = olat + (dlat - olat) * t + math.sin(t * math.pi) * 0.012 * math.sin(i * 1.8)
+            m_lng = olng + (dlng - olng) * t + math.sin(t * math.pi) * 0.018 * math.cos(i * 1.8)
+            geometry_waypoints.append([round(m_lat, 6), round(m_lng, 6)])
+        geometry_waypoints.append([dlat, dlng])
 
-            dist_m = int((distance_km or 10) * 1000)
-            dur_sec = (duration_mins or 30) * 60
-            steps = [
-                {"instruction": f"Depart {origin_name or 'starting point'} on local transit feeder road", "distance_m": min(1000, int(dist_m * 0.1)), "duration_sec": max(120, int(dur_sec * 0.1))},
-                {"instruction": f"Continue along highway corridor toward {destination.name}", "distance_m": max(1000, int(dist_m * 0.8)), "duration_sec": max(240, int(dur_sec * 0.8))},
-                {"instruction": f"Arrive at {destination.name} entry gate", "distance_m": min(1000, int(dist_m * 0.1)), "duration_sec": max(120, int(dur_sec * 0.1))},
-            ]
-
-        # Fetch multi-leg segments if available
-        segments = []
-        if db_route:
-            seg_qs = db_route.segments.all()
-            if seg_qs.exists():
-                segments = RouteSegmentSerializer(seg_qs, many=True).data
+        dist_m = int((distance_km or 10) * 1000)
+        dur_sec = (duration_mins or 30) * 60
+        steps = [
+            {"instruction": f"Depart {origin_name or 'starting point'} on local transit feeder road", "distance_m": min(1000, int(dist_m * 0.1)), "duration_sec": max(120, int(dur_sec * 0.1))},
+            {"instruction": f"Continue along highway corridor toward {dest_title}", "distance_m": max(1000, int(dist_m * 0.8)), "duration_sec": max(240, int(dur_sec * 0.8))},
+            {"instruction": f"Arrive at {dest_title}", "distance_m": min(1000, int(dist_m * 0.1)), "duration_sec": max(120, int(dur_sec * 0.1))},
+        ]
 
         return Response({
-            "destination_id": destination.id,
-            "destination_name": destination.name,
-            "destination_slug": destination.slug,
+            "destination_id": destination.id if destination else None,
+            "destination_name": dest_title,
+            "destination_slug": destination.slug if destination else dest_name.lower().replace(" ", "-"),
             "has_coordinates": True,
-            "destination_latitude": float(destination.latitude),
-            "destination_longitude": float(destination.longitude),
+            "destination_latitude": dest_lat,
+            "destination_longitude": dest_lng,
             "origin_name": origin_name or "Current Location",
-            "origin_latitude": float(origin_lat) if origin_lat is not None else None,
-            "origin_longitude": float(origin_lng) if origin_lng is not None else None,
-            "transport_mode": db_route.transport_mode if db_route else transport_mode,
-            "distance_km": distance_km if distance_km is not None else "Distance unavailable",
+            "origin_latitude": olat,
+            "origin_longitude": olng,
+            "transport_mode": transport_mode,
+            "distance_km": distance_km,
             "estimated_duration": duration_str,
-            "fare_npr": fare_npr,
+            "duration_min": duration_mins,
+            "fare_npr": round(distance_km * 25, 2),
             "fare_currency": "NPR",
-            "fare_status": fare_status,
-            "fare_source": fare_source,
+            "fare_status": "Estimated Highway Fare",
             "confidence_level": confidence,
-            "route_status": "Route calculated for origin",
+            "route_status": "Route calculated for destination",
             "calculated_at": timezone.now().isoformat(),
             "geometry": {
                 "type": "LineString",
                 "coordinates": geometry_waypoints,
             },
             "steps": steps,
-            "segments": segments,
+            "segments": [],
         })
+
+
+class UniversalPlaceSearchView(APIView):
+    """
+    GET /api/v1/places/search/?q=Lakeside&lat=28.2&lng=83.9
+    Universal search for ANY place in Nepal: recorded destinations, banks, ATMs,
+    pharmacies, stores, hospitals, police, restaurants, hotels, gas stations, landmarks.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        q = request.query_params.get("q", "")
+        category = request.query_params.get("category")
+        lat = request.query_params.get("lat") or request.query_params.get("latitude")
+        lng = request.query_params.get("lng") or request.query_params.get("longitude")
+        try:
+            radius_km = float(request.query_params.get("radius_km", 50))
+        except (TypeError, ValueError):
+            radius_km = 50.0
+
+        from .location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(
+            query=q, user_lat=lat, user_lng=lng, category=category, radius_km=radius_km, limit=30
+        )
+        return Response({"count": len(results), "query": q, "results": results})
+
+
+class UniversalPlaceNearbyView(APIView):
+    """
+    GET /api/v1/places/nearby/?lat=28.2096&lng=83.9856&category=bank
+    Nearby search for banks, ATMs, pharmacies, stores, hospitals, police, etc.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        lat = request.query_params.get("lat") or request.query_params.get("latitude")
+        lng = request.query_params.get("lng") or request.query_params.get("longitude")
+        category = request.query_params.get("category") or request.query_params.get("type") or ""
+        q = request.query_params.get("q", "")
+        try:
+            radius_km = float(request.query_params.get("radius_km") or request.query_params.get("radius", 30))
+        except (TypeError, ValueError):
+            radius_km = 30.0
+
+        from .location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(
+            query=q, user_lat=lat, user_lng=lng, category=category, radius_km=radius_km, limit=30
+        )
+        return Response({"count": len(results), "items": results, "results": results})
 
 
 class UserDataReportSubmitView(APIView):
