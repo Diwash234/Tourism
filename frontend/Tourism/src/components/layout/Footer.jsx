@@ -47,10 +47,12 @@ const NATIONAL_ITEMS = [
 
 const Footer = () => {
   const { branding, navigation, pageCMS } = usePublicConfig()
-  const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "tagline"])
+  const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact"])
   const footerNav = (navigation || []).filter(item => item.location === "footer" && String(item.route || "").startsWith("/"))
-  const siteTitle = branding.site_title || APP_NAME
-  const footerText = copy("tagline", "body", branding.footer_text || "Discover destinations, plan budgets, and travel safely through Nepal.")
+  
+  const rawTitle = branding.site_title || APP_NAME
+  const siteTitle = rawTitle.replace(/Digital Nepal Tourism Platform/g, "Nepal Yatra").replace(/Digital Nepal Tourism/g, "Nepal Yatra").replace(/Digital Nepal/g, "Nepal Yatra")
+  
   const contactAddress = branding.contact_address || "Pokhara, Nepal"
   const contactEmail = branding.contact_email || "support@tourists.app"
   const contactPhone = branding.contact_phone || "+977-000-0000"
@@ -100,15 +102,7 @@ const Footer = () => {
         </div>
       </div>}
 
-      <div className="container-app py-12 grid grid-cols-1 md:grid-cols-5 gap-8">
-        <div>
-          <h3 className="text-white text-xl font-bold mb-3 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-            {siteTitle}
-          </h3>
-          <p className="text-sm text-emerald-200/90 leading-relaxed">{footerText}</p>
-        </div>
-
+      <div className="container-app py-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         {showBlock("explore") && (
           <div>
             <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("explore", "title", "Explore")}</h4>
