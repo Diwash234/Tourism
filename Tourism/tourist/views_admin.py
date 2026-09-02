@@ -5,13 +5,14 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
     SOSAlert, SharedTrip, LocationPing, Category, Hotel,
     Hospital, PoliceStation, OSMEssentialService, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
-    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
+    SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ContentBlock, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
     CurrentHazard, VisitorNotice, MarketplaceListing, MarketplacePartner, FeaturedDestination,
 )
 from .permissions import IsAdminOrStaff
@@ -774,12 +775,12 @@ class AdminDestinationImageView(APIView):
     Admin image management for a destination:
       POST   {image_url, caption, source, photographer, license, source_url}
              -> add a new image (optionally set as cover)
-      PATCH  {image_id, is_cover: true}  -> set primary image / rollback
-      PATCH  {image_url}                  -> change cover image directly
+      PATCH  {image_id, file, external_url, caption, is_cover}  -> update or replace image
       DELETE {image_id}                   -> remove an image
     Changes are written straight to the database and reflected immediately.
     """
     permission_classes = [IsAdminOrStaff]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def _dest(self, id):
         return Destination.objects.filter(id=id).first()
@@ -815,48 +816,74 @@ class AdminDestinationImageView(APIView):
         )
         display_url = img.external_url or (img.image.url if img.image else "")
         if is_cover or not destination.cover_image:
-            if img.image:
-                Destination.objects.filter(pk=destination.pk).update(cover_image=img.image.name)
+            Destination.objects.filter(pk=destination.pk).update(cover_image=display_url)
 
         DestinationAuditLog.objects.create(
             destination=destination, actor=request.user if request.user.is_authenticated else None,
             action=DestinationAuditLog.Action.EDITED, note=f"Admin added image {display_url[:80]}",
         )
         _sync_destination_json(destination)
-        return Response({"message": "Image added", "image_id": img.id, "cover_url": display_url}, status=201)
+        return Response({"message": "Image added", "image_id": img.id, "cover_url": display_url, "url": display_url}, status=201)
 
     def patch(self, request, id):
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
 
-        # Set an existing gallery image as cover (rollback / primary select)
-        image_id = request.data.get("image_id")
+        image_id = request.data.get("image_id") or request.data.get("id")
         if image_id:
             img = destination.gallery.filter(id=image_id).first()
             if not img:
                 return Response({"detail": "Image not found."}, status=404)
-            editable = {"caption", "ordering", "verification_status", "is_verified", "alt_text"}
-            changed = []
-            for field in editable:
-                if field in request.data:
-                    setattr(img, field, request.data[field]); changed.append(field)
+
+            uploaded = request.FILES.get("image") or request.FILES.get("file")
+            if uploaded:
+                img.image = uploaded
+                if "external_url" not in request.data and "url" not in request.data:
+                    img.external_url = ""
+
+            new_url = (request.data.get("external_url") or request.data.get("url") or request.data.get("image_url") or "").strip()
+            if new_url and new_url.startswith("http"):
+                img.external_url = new_url
+
+            if "caption" in request.data:
+                img.caption = str(request.data["caption"])[:200]
+            if "alt_text" in request.data:
+                img.alt_text = str(request.data["alt_text"])[:255]
+            if "photographer" in request.data:
+                img.photographer = str(request.data["photographer"])[:150]
+            if "license" in request.data or "license_type" in request.data:
+                img.license_type = str(request.data.get("license") or request.data.get("license_type"))[:100]
+            if "ordering" in request.data:
+                try: img.ordering = int(request.data["ordering"])
+                except ValueError: pass
+            if "verification_status" in request.data:
+                img.verification_status = str(request.data["verification_status"])
+                img.is_verified = (img.verification_status == "approved")
+
             make_cover = str(request.data.get("is_cover", "")).lower() in {"1", "true", "yes"}
             if make_cover:
                 destination.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
-                img.is_cover = True; changed.append("is_cover")
-            if changed: img.save(update_fields=list(set(changed)))
-            cover = img.external_url or (img.image.url if img.image else "")
-            if make_cover: Destination.objects.filter(pk=destination.pk).update(cover_image=cover)
-            DestinationAuditLog.objects.create(destination=destination, actor=request.user if request.user.is_authenticated else None, action=DestinationAuditLog.Action.EDITED, note=f"Admin updated image #{img.id}: {', '.join(changed)}")
-            _sync_destination_json(destination)
-            return Response({"message": "Image updated", "cover_url": cover, "changed": changed})
+                img.is_cover = True
 
-        # Directly change the cover URL
-        image_url = (request.data.get("image_url") or "").strip()
+            img.save()
+            cover = img.external_url or (img.image.url if img.image else "")
+            if make_cover:
+                Destination.objects.filter(pk=destination.pk).update(cover_image=cover)
+
+            DestinationAuditLog.objects.create(
+                destination=destination, actor=request.user if request.user.is_authenticated else None,
+                action=DestinationAuditLog.Action.EDITED, note=f"Admin updated/replaced image #{img.id}",
+            )
+            _sync_destination_json(destination)
+            return Response({"message": "Image replaced and database updated", "image_id": img.id, "cover_url": cover, "url": cover, "is_cover": img.is_cover})
+
+        # Directly change cover URL
+        image_url = (request.data.get("image_url") or request.data.get("url") or "").strip()
         if image_url:
             Destination.objects.filter(pk=destination.pk).update(cover_image=image_url)
-            return Response({"message": "Cover URL updated", "cover_url": image_url})
+            _sync_destination_json(destination)
+            return Response({"message": "Cover URL updated", "cover_url": image_url, "url": image_url})
 
         return Response({"detail": "Provide image_id or image_url."}, status=400)
 
@@ -1859,6 +1886,13 @@ class AdminCMSView(APIView):
             row["page_title"] = getattr(page, "title", None)
             row["page_key"] = getattr(page, "key", None)
             row["page_route"] = getattr(page, "route", None)
+            row["blocks"] = [
+                {
+                    "id": b.id, "block_type": b.block_type, "title": b.title,
+                    "position": b.position, "data": b.data, "is_visible": b.is_visible,
+                }
+                for b in obj.blocks.all().order_by("position", "id")
+            ]
         return row
 
     def _snapshot(self, resource, obj):
@@ -2212,6 +2246,148 @@ class AdminCMSView(APIView):
             object_type=model.__name__, object_id=str(obj.pk), extra={"before": old_values, "revision": revision.revision_number})
         return Response({"id": obj.pk, "message": action_name.title() + " complete", "revision_number": revision.revision_number,
                          "record": self._row(resource, obj)})
+
+
+class AdminContentBlockView(APIView):
+    """
+    CRUD API for Block-based CMS elements inside ContentSections.
+      GET    /api/v1/admin/sections/<section_id>/blocks/  -> list blocks
+      POST   /api/v1/admin/sections/<section_id>/blocks/  -> create block
+      PATCH  /api/v1/admin/blocks/<block_id>/             -> update block (type, title, position, data, is_visible)
+      DELETE /api/v1/admin/blocks/<block_id>/             -> delete block
+      POST   /api/v1/admin/blocks/reorder/                -> reorder blocks [{id, position}]
+    """
+    permission_classes = [IsAdminOrStaff]
+
+    def _validate_block_data(self, block_type, data):
+        data = data if isinstance(data, dict) else {}
+        if block_type == "video":
+            url = str(data.get("url") or "").strip()
+            if url and not url.startswith("http"):
+                return False, "Video URL must start with http:// or https://"
+            if url:
+                from urllib.parse import urlparse
+                domain = urlparse(url).netloc.lower()
+                allowed_domains = ["youtube.com", "youtu.be", "vimeo.com"]
+                if not any(d in domain for d in allowed_domains):
+                    return False, f"Video domain '{domain}' is not allowed. Only YouTube and Vimeo embeds are permitted."
+        elif block_type == "table":
+            columns = data.get("columns")
+            rows = data.get("rows")
+            if columns is not None and not isinstance(columns, list):
+                return False, "Table columns must be a list of strings."
+            if rows is not None and not isinstance(rows, list):
+                return False, "Table rows must be a list of rows."
+        elif block_type == "button":
+            url = str(data.get("url") or "").strip()
+            if url and not (url.startswith("http") or url.startswith("/")):
+                return False, "Button URL must be a relative path or valid absolute URL."
+        elif block_type == "map":
+            try:
+                if "latitude" in data and data["latitude"] is not None: float(data["latitude"])
+                if "longitude" in data and data["longitude"] is not None: float(data["longitude"])
+            except (ValueError, TypeError):
+                return False, "Map coordinates must be numeric latitude and longitude."
+        return True, None
+
+    def get(self, request, section_id=None):
+        _require_capability(request, "content", "view")
+        section = ContentSection.objects.filter(pk=section_id).first()
+        if not section:
+            return Response({"detail": "Section not found"}, status=404)
+        blocks = section.blocks.all().order_by("position", "id")
+        return Response([
+            {
+                "id": b.id, "section_id": b.section_id, "block_type": b.block_type,
+                "title": b.title, "position": b.position, "data": b.data,
+                "is_visible": b.is_visible, "created_at": b.created_at, "updated_at": b.updated_at,
+            }
+            for b in blocks
+        ])
+
+    def post(self, request, section_id=None):
+        _require_capability(request, "content", "add")
+        if request.path.endswith("reorder/") or request.data.get("action") == "reorder":
+            return self._reorder(request)
+
+        section = ContentSection.objects.filter(pk=section_id).first()
+        if not section:
+            return Response({"detail": "Section not found"}, status=404)
+
+        block_type = request.data.get("block_type", "rich_text")
+        valid, err = self._validate_block_data(block_type, request.data.get("data"))
+        if not valid:
+            return Response({"detail": err}, status=400)
+
+        from django.db.models import Max
+        max_pos = (section.blocks.aggregate(m=Max("position"))["m"] or 0) + 1
+
+        block = ContentBlock.objects.create(
+            section=section,
+            block_type=block_type,
+            title=(request.data.get("title") or "")[:240],
+            position=int(request.data.get("position", max_pos)),
+            data=request.data.get("data") if isinstance(request.data.get("data"), dict) else {},
+            is_visible=bool(request.data.get("is_visible", True)),
+            updated_by=request.user if request.user.is_authenticated else None,
+        )
+        return Response({
+            "message": "Content block created",
+            "id": block.id,
+            "section_id": block.section_id,
+            "block_type": block.block_type,
+            "title": block.title,
+            "position": block.position,
+            "data": block.data,
+            "is_visible": block.is_visible,
+        }, status=201)
+
+    def patch(self, request, block_id=None):
+        _require_capability(request, "content", "change")
+        block = ContentBlock.objects.filter(pk=block_id).first()
+        if not block:
+            return Response({"detail": "Content block not found"}, status=404)
+
+        block_type = request.data.get("block_type", block.block_type)
+        data = request.data.get("data", block.data)
+        valid, err = self._validate_block_data(block_type, data)
+        if not valid:
+            return Response({"detail": err}, status=400)
+
+        block.block_type = block_type
+        if "title" in request.data: block.title = str(request.data["title"])[:240]
+        if "position" in request.data: block.position = int(request.data["position"])
+        if "data" in request.data: block.data = data if isinstance(data, dict) else {}
+        if "is_visible" in request.data: block.is_visible = bool(request.data["is_visible"])
+        block.updated_by = request.user if request.user.is_authenticated else None
+        block.save()
+
+        return Response({
+            "message": "Content block updated",
+            "id": block.id,
+            "block_type": block.block_type,
+            "title": block.title,
+            "position": block.position,
+            "data": block.data,
+            "is_visible": block.is_visible,
+        })
+
+    def delete(self, request, block_id=None):
+        _require_capability(request, "content", "delete")
+        block = ContentBlock.objects.filter(pk=block_id).first()
+        if not block:
+            return Response({"detail": "Content block not found"}, status=404)
+        block_id_val = block.id
+        block.delete()
+        return Response({"message": "Content block deleted", "id": block_id_val})
+
+    def _reorder(self, request):
+        items = request.data.get("items") or []
+        for idx, item in enumerate(items):
+            b_id = item.get("id") if isinstance(item, dict) else item
+            pos = item.get("position", idx) if isinstance(item, dict) else idx
+            ContentBlock.objects.filter(pk=b_id).update(position=pos)
+        return Response({"message": "Block positions updated"})
 
 
 class AdminReviewModerationView(APIView):
@@ -2578,6 +2754,7 @@ def _write_cropped_image(image):
 
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request):
         _require_capability(request,"images","add")

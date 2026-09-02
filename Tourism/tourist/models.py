@@ -2588,6 +2588,7 @@ class ContentSection(TimeStampedModel):
             ("animation", "Animation"), ("media", "Media"), ("form", "Form"),
             ("table", "Table"), ("figure", "Figure"), ("testimonials", "Testimonials"),
             ("contact", "Contact"), ("breadcrumbs", "Breadcrumbs"), ("search", "Search"),
+            ("blocks", "Block Container"),
         ],
         default="text",
     )
@@ -2611,6 +2612,40 @@ class ContentSection(TimeStampedModel):
     class Meta:
         ordering = ["display_order", "id"]
         constraints = [models.UniqueConstraint(fields=["page","key"], name="unique_page_section_key")]
+
+
+class ContentBlock(TimeStampedModel):
+    """
+    Flexible block-based CMS element belonging to a ContentSection.
+    Supports structured blocks: heading, rich_text, image, gallery, button,
+    table, video, map, destination_grid, hotel_grid, restaurant_grid,
+    statistics, list, quote, alert, divider, html.
+    """
+    section = models.ForeignKey(ContentSection, on_delete=models.CASCADE, related_name="blocks")
+    block_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("heading", "Heading"), ("subheading", "Subheading"), ("rich_text", "Rich Text"),
+            ("image", "Image"), ("gallery", "Gallery"), ("button", "Button"),
+            ("table", "Table"), ("video", "Video / Iframe"), ("map", "Map"),
+            ("destination_grid", "Destination Grid"), ("hotel_grid", "Hotel Grid"),
+            ("restaurant_grid", "Restaurant Grid"), ("statistics", "Statistics"),
+            ("list", "List"), ("quote", "Quote"), ("alert", "Alert / Callout"),
+            ("divider", "Divider"), ("html", "Custom Safe HTML"),
+        ],
+        default="rich_text",
+    )
+    title = models.CharField(max_length=240, blank=True)
+    position = models.PositiveIntegerField(default=0)
+    data = models.JSONField(default=dict, blank=True)
+    is_visible = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_blocks_updated")
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return f"{self.block_type} (#{self.id}) in {self.section.key}"
 
 
 class ManagedNavigationItem(TimeStampedModel):

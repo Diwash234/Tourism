@@ -3140,5 +3140,77 @@ class DataIntegrityAndRouteTests(APITestCase):
         self.assertIn("Budget Friendly", response.data["itinerary"][0]["theme"])
 
 
+class BlockBasedCMSAndImageReplacementTests(APITestCase):
+    def setUp(self):
+        from tourist.models import ManagedPage, ContentSection, ContentBlock
+        self.admin = User.objects.create_superuser(email="blockadmin@nepaltourism.com", password="Pass@12345", first_name="Block", last_name="Admin")
+        self.client.force_authenticate(user=self.admin)
+        self.destination = Destination.objects.create(name="Pokhara Lakeside Test", slug="pokhara-lakeside-test", city="Pokhara", district="Kaski", is_active=True)
+        self.page = ManagedPage.objects.create(route="/test-cms-page", key="test-cms-page", title="Test CMS Page")
+        self.section = ContentSection.objects.create(page=self.page, key="test-section", title="Test Section", section_type="blocks")
+
+    def test_content_block_crud_and_validation(self):
+        # Create block
+        create_resp = self.client.post(
+            reverse("admin-section-blocks", kwargs={"section_id": self.section.id}),
+            {
+                "block_type": "heading",
+                "title": "Welcome to Pokhara",
+                "data": {"text": "Welcome to Pokhara", "level": "h1", "align": "center"},
+            },
+            format="json",
+        )
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        block_id = create_resp.data["id"]
+
+        # Validate invalid video domain rejection
+        video_bad = self.client.post(
+            reverse("admin-section-blocks", kwargs={"section_id": self.section.id}),
+            {"block_type": "video", "data": {"url": "https://malicious-site.com/video"}},
+            format="json",
+        )
+        self.assertEqual(video_bad.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Update block
+        patch_resp = self.client.patch(
+            reverse("admin-block-detail", kwargs={"block_id": block_id}),
+            {"title": "Updated Heading Title", "data": {"text": "Updated Heading", "level": "h2"}},
+            format="json",
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(patch_resp.data["title"], "Updated Heading Title")
+
+        # Delete block
+        del_resp = self.client.delete(reverse("admin-block-detail", kwargs={"block_id": block_id}))
+        self.assertEqual(del_resp.status_code, status.HTTP_200_OK)
+
+    def test_image_replacement_updates_database(self):
+        from tourist.models import DestinationImage
+        img = DestinationImage.objects.create(
+            destination=self.destination,
+            external_url="https://example.com/old-photo.jpg",
+            caption="Old Caption",
+            verification_status="approved",
+            is_verified=True,
+        )
+        # Patch to replace image URL and caption
+        patch_resp = self.client.patch(
+            reverse("admin-destination-images", kwargs={"id": self.destination.id}),
+            {
+                "image_id": img.id,
+                "external_url": "https://images.unsplash.com/photo-1544735716-392fe2489ffa",
+                "caption": "Replaced Phewa Lake Photo",
+                "is_cover": True,
+            },
+            format="json",
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+
+        img.refresh_from_db()
+        self.assertEqual(img.external_url, "https://images.unsplash.com/photo-1544735716-392fe2489ffa")
+        self.assertEqual(img.caption, "Replaced Phewa Lake Photo")
+        self.assertTrue(img.is_cover)
+
+
 
 

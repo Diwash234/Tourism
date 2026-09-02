@@ -182,13 +182,21 @@ class PublicConfigView(APIView):
             sections = []
             for section in page.sections.filter(is_visible=True, status="published"):
                 translated = translations.get(("sections", section.id), {})
+                blocks = [
+                    {
+                        "id": b.id, "block_type": b.block_type, "title": b.title,
+                        "position": b.position, "data": b.data, "is_visible": b.is_visible
+                    }
+                    for b in section.blocks.filter(is_visible=True).order_by("position", "id")
+                ]
                 sections.append({"id": section.id, "key": section.key,
                     "title": translated.get("title", section.title), "subtitle": translated.get("subtitle", section.subtitle),
                     "body": translated.get("body", section.body), "image_url": section.image_url,
                     "cta_text": translated.get("cta_text", section.cta_text), "cta_url": section.cta_url,
                     "icon": section.icon, "section_type": section.section_type,
                     "layout_variant": section.layout_variant, "config": section.config,
-                    "display_order": section.display_order})
+                    "display_order": section.display_order,
+                    "blocks": blocks})
             page_rows.append({"id": page.id, "key": page.key, "route": page.route,
                 "title": page_translation.get("title", page.title),
                 "seo_title": page.seo_title, "og_image_url": page.og_image_url,

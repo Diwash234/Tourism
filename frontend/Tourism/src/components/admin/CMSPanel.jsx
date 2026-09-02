@@ -566,6 +566,314 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
   return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-300">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
 
+function ContentBlocksBuilder({ sectionId, onToast }) {
+  const [blocks, setBlocks] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [editingBlock, setEditingBlock] = useState(null)
+  const [showTypePicker, setShowTypePicker] = useState(false)
+
+  const BLOCK_TYPES = [
+    { type: "heading", label: "Heading", icon: "📌", desc: "H1, H2, H3 title heading" },
+    { type: "subheading", label: "Subheading", icon: "✍️", desc: "Section subheading / tagline" },
+    { type: "rich_text", label: "Rich Text", icon: "📝", desc: "Formatted rich HTML text" },
+    { type: "image", label: "Image", icon: "🖼️", desc: "Single photo with caption & link" },
+    { type: "gallery", label: "Image Gallery", icon: "🎨", desc: "Grid of multiple photography cards" },
+    { type: "button", label: "Action Button", icon: "🔘", desc: "Call to action link button" },
+    { type: "table", label: "Data Table", icon: "📊", desc: "Custom table with rows & columns" },
+    { type: "video", label: "Video / Embed", icon: "🎥", desc: "YouTube / Vimeo embed" },
+    { type: "map", label: "Interactive Map", icon: "🗺️", desc: "Coordinates & map pin" },
+    { type: "destination_grid", label: "Destination Grid", icon: "🏔️", desc: "Live tourism destination cards" },
+    { type: "hotel_grid", label: "Hotel Grid", icon: "🏨", desc: "Recommended hotels & lodges" },
+    { type: "restaurant_grid", label: "Restaurant Grid", icon: "🍽️", desc: "Culinary & food spots" },
+    { type: "statistics", label: "Statistics", icon: "📈", desc: "Key facts & metric numbers" },
+    { type: "list", label: "List", icon: "📑", desc: "Bullet or numbered list items" },
+    { type: "quote", label: "Quote", icon: "💬", desc: "Blockquote & citation" },
+    { type: "alert", label: "Alert / Callout", icon: "⚠️", desc: "Notice, info or warning box" },
+    { type: "divider", label: "Divider", icon: "➖", desc: "Horizontal section divider" },
+    { type: "html", label: "Custom Safe HTML", icon: "💻", desc: "Sanitized HTML content" },
+  ]
+
+  const loadBlocks = async () => {
+    if (!sectionId) return
+    setLoading(true)
+    try {
+      const { data } = await adminApi.getSectionBlocks(sectionId)
+      setBlocks(Array.isArray(data) ? data : [])
+    } catch {
+      setBlocks([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { loadBlocks() }, [sectionId])
+
+  const addBlock = async (type) => {
+    setShowTypePicker(false)
+    try {
+      const defaultData = {
+        heading: { text: "New Heading", level: "h2", align: "left" },
+        subheading: { text: "New Subheading", align: "left" },
+        rich_text: { html: "<p>Write rich text content here...</p>" },
+        image: { url: "/images/destinations/pokhara/fewatal.jpg", caption: "Photo caption", alt: "Photo" },
+        gallery: { images: [{ url: "/images/destinations/pokhara/fewatal.jpg", caption: "Phewa Lake" }] },
+        button: { label: "Explore Now", url: "/destinations", target: "_self", style: "primary" },
+        table: { columns: ["Location", "District", "Altitude"], rows: [["Pokhara", "Kaski", "822m"], ["Kathmandu", "Kathmandu", "1400m"]] },
+        video: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Nepal Video Tour" },
+        map: { latitude: 28.2096, longitude: 83.9856, zoom: 13, title: "Pokhara Lakeside" },
+        statistics: { items: [{ number: "8,000+", label: "Himalayan Peaks" }, { number: "100+", label: "Attractions" }] },
+        alert: { variant: "info", title: "Travel Notice", body: "Check weather forecast before trekking." },
+        quote: { quote: "Nepal is not just a destination; it's a spiritual experience.", author: "Himalayan Guide" },
+        list: { ordered: false, items: ["Verified Trail Routes", "Local Teahouse Stays", "Licensed Guides"] },
+      }[type] || {}
+
+      const { data } = await adminApi.createContentBlock(sectionId, {
+        block_type: type,
+        title: `New ${type.replace("_", " ")}`,
+        data: defaultData,
+        position: blocks.length,
+      })
+      onToast?.("Content block added", "success")
+      loadBlocks()
+      setEditingBlock(data)
+    } catch (err) {
+      onToast?.(err.response?.data?.detail || "Could not add block", "error")
+    }
+  }
+
+  const saveBlock = async (block) => {
+    try {
+      await adminApi.updateContentBlock(block.id, block)
+      onToast?.("Block updated!", "success")
+      setEditingBlock(null)
+      loadBlocks()
+    } catch (err) {
+      onToast?.(err.response?.data?.detail || "Could not save block", "error")
+    }
+  }
+
+  const removeBlock = async (id) => {
+    if (!window.confirm("Delete this content block?")) return
+    try {
+      await adminApi.deleteContentBlock(id)
+      onToast?.("Block deleted", "success")
+      loadBlocks()
+    } catch {
+      onToast?.("Could not delete block", "error")
+    }
+  }
+
+  const moveBlock = (index, dir) => {
+    const target = index + dir
+    if (target < 0 || target >= blocks.length) return
+    const copy = blocks.slice()
+    const [moved] = copy.splice(index, 1)
+    copy.splice(target, 0, moved)
+    setBlocks(copy)
+    adminApi.reorderContentBlocks({ items: copy.map((b, idx) => ({ id: b.id, position: idx })) })
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl bg-slate-950 p-4 text-white border border-slate-800">
+      <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+        <div>
+          <h4 className="font-extrabold text-sm text-amber-400">Content Blocks Builder ({blocks.length})</h4>
+          <p className="text-[11px] text-slate-400">Add, arrange, and edit rich structured content blocks inside this section.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowTypePicker(!showTypePicker)}
+          className="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow hover:bg-amber-300"
+        >
+          {showTypePicker ? "Close Block Picker" : "+ Add Content Block"}
+        </button>
+      </div>
+
+      {/* TYPE PICKER MODAL / GRID */}
+      {showTypePicker && (
+        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-700 space-y-2">
+          <p className="text-xs font-bold text-amber-300">Choose a Content Block Type to insert:</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {BLOCK_TYPES.map((bt) => (
+              <button
+                key={bt.type}
+                type="button"
+                onClick={() => addBlock(bt.type)}
+                className="p-2.5 rounded-xl bg-slate-800 hover:bg-emerald-900 border border-slate-700 text-left transition space-y-1 group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>{bt.icon}</span>
+                  <span className="font-extrabold text-xs text-white group-hover:text-amber-300">{bt.label}</span>
+                </div>
+                <p className="text-[10px] text-slate-400 line-clamp-2">{bt.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* BLOCK LIST */}
+      {loading ? (
+        <p className="text-xs text-slate-400">Loading blocks…</p>
+      ) : !blocks.length ? (
+        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-500">
+          No content blocks added yet. Click <b>"+ Add Content Block"</b> above to build headings, rich text, images, tables, videos, and destination cards.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {blocks.map((b, idx) => (
+            <div key={b.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-black uppercase">
+                    {b.block_type}
+                  </span>
+                  <span className="font-bold text-white truncate max-w-xs">{b.title || b.data?.text || b.data?.label || `Block #${b.id}`}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => moveBlock(idx, -1)} disabled={idx === 0} className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30">↑</button>
+                  <button type="button" onClick={() => moveBlock(idx, 1)} disabled={idx === blocks.length - 1} className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30">↓</button>
+                  <button type="button" onClick={() => setEditingBlock(editingBlock?.id === b.id ? null : { ...b })} className="px-2.5 py-1 rounded bg-amber-400 text-slate-950 font-bold hover:bg-amber-300">
+                    {editingBlock?.id === b.id ? "Close" : "Edit"}
+                  </button>
+                  <button type="button" onClick={() => removeBlock(b.id)} className="px-2 py-1 rounded bg-rose-950 text-rose-300 hover:bg-rose-900 font-bold">Delete</button>
+                </div>
+              </div>
+
+              {/* EDIT BLOCK FORM */}
+              {editingBlock?.id === b.id && (
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 space-y-3 text-xs">
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    <label className="block font-semibold text-slate-300">Block Title
+                      <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, title: e.target.value })} />
+                    </label>
+                    <label className="flex items-center gap-2 mt-5 font-semibold text-slate-300">
+                      <input type="checkbox" checked={editingBlock.is_visible !== false} onChange={(e) => setEditingBlock({ ...editingBlock, is_visible: e.target.checked })} />
+                      Visible on page
+                    </label>
+                  </div>
+
+                  {/* TAILORED DATA FIELDS BY BLOCK TYPE */}
+                  {editingBlock.block_type === "heading" && (
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <label className="block font-semibold text-slate-300">Heading Text
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.text || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, text: e.target.value } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Heading Level
+                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.level || "h2"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, level: e.target.value } })}>
+                          <option value="h1">H1 (Main Title)</option>
+                          <option value="h2">H2 (Section Heading)</option>
+                          <option value="h3">H3 (Subheading)</option>
+                          <option value="h4">H4 (Minor Heading)</option>
+                        </select>
+                      </label>
+                      <label className="block font-semibold text-slate-300">Alignment
+                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.align || "left"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, align: e.target.value } })}>
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "rich_text" && (
+                    <label className="block font-semibold text-slate-300">Rich Text Body
+                      <RichTextEditor value={editingBlock.data?.html || editingBlock.data?.text || ""} onChange={(html) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, html } })} />
+                    </label>
+                  )}
+
+                  {editingBlock.block_type === "image" && (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <label className="block font-semibold text-slate-300">Image URL
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} placeholder="/images/... or https://..." />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Caption
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.caption || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, caption: e.target.value } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Alt Text
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.alt || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, alt: e.target.value } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Link URL (optional)
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.link || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, link: e.target.value } })} />
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "button" && (
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <label className="block font-semibold text-slate-300">Button Label
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.label || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, label: e.target.value } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Destination Route / URL
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Button Style
+                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.style || "primary"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, style: e.target.value } })}>
+                          <option value="primary">Primary Emerald</option>
+                          <option value="gold">Saffron Gold</option>
+                          <option value="outline">Outline</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "table" && (
+                    <div className="space-y-2">
+                      <p className="font-bold text-amber-300">Table Data Builder</p>
+                      <label className="block font-semibold text-slate-300">Columns (comma separated)
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={(editingBlock.data?.columns || []).join(", ")} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, columns: e.target.value.split(",").map(x => x.trim()).filter(Boolean) } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Rows JSON (array of arrays)
+                        <textarea rows="4" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.rows || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, rows: JSON.parse(e.target.value) } }) } catch { /* keep */ } }} />
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "video" && (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <label className="block font-semibold text-slate-300">YouTube / Vimeo Embed URL
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} placeholder="https://www.youtube.com/watch?v=..." />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Video Title
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, title: e.target.value } })} />
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "alert" && (
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <label className="block font-semibold text-slate-300">Alert Variant
+                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.variant || "info"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, variant: e.target.value } })}>
+                          <option value="info">Info (Blue)</option>
+                          <option value="warning">Warning (Gold)</option>
+                          <option value="danger">Danger (Red)</option>
+                          <option value="success">Success (Emerald)</option>
+                        </select>
+                      </label>
+                      <label className="block font-semibold text-slate-300">Alert Title
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, title: e.target.value } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Alert Message Body
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.body || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, body: e.target.value } })} />
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
+                    <button type="button" onClick={() => setEditingBlock(null)} className="px-3 py-1.5 rounded bg-slate-800 text-slate-300 font-bold">Cancel</button>
+                    <button type="button" onClick={() => saveBlock(editingBlock)} className="px-4 py-1.5 rounded bg-emerald-600 text-white font-black shadow hover:bg-emerald-500">Save Block</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PageSectionBuilder({ pageId, refreshKey, onToast }) {
   const [sections, setSections] = useState([])
   const [openId, setOpenId] = useState(null)
@@ -724,6 +1032,9 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <label className="sm:col-span-2 font-semibold text-slate-300">Body Content
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
+                <div className="sm:col-span-2 mt-2">
+                  <ContentBlocksBuilder sectionId={draft.id} onToast={onToast} />
+                </div>
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
                   <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
