@@ -142,7 +142,6 @@ export default function DestinationList() {
 
     const chipParams = chipToQuery(categoryChip)
 
-    // If user GPS is active and no typed search query, load nearby destinations nearest first!
     if (position?.lat && position?.lng && !query && !letter && !categoryChip) {
       setIsGpsSorted(true)
       destinationApi.nearby(position.lat, position.lng, { radius_km: 250, page, limit: PAGE_SIZE })
@@ -300,6 +299,12 @@ export default function DestinationList() {
   const catActive = "bg-[#c2603a] text-white border border-[#c2603a] shadow"
   const catIdle = "bg-white text-[#1f3329] border border-[#1f6b4d]/20 hover:border-[#1f6b4d]/60"
 
+  // Filter out any raw admin placeholder texts from extras
+  const cleanExtras = (extras || []).filter((sec) => {
+    const body = String(sec?.body || "").toLowerCase()
+    return !body.includes("managed from") && !body.includes("configure featured")
+  })
+
   return (
     <div className="container-app py-6 sm:py-8 space-y-6 animate-fadeIn">
       <Breadcrumbs items={[{ label: "Destinations Explorer", to: "/destinations" }]} />
@@ -320,10 +325,10 @@ export default function DestinationList() {
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold mt-1 flex items-center gap-2"
               style={{ color: INK, fontFamily: 'ui-serif, Georgia, "Noto Serif Devanagari", serif' }}>
-            <FiMapPin style={{ color: TERRACOTTA }} /> {copy("intro", "title", "Explore Nepal")}
+            <FiMapPin style={{ color: TERRACOTTA }} /> Explore Nepal Destinations
           </h1>
           <p className="text-gray-600 text-sm mt-1 max-w-xl">
-            {copy("intro", "body", "Discover real temples, stupas, caves, lakes, Himalayan viewpoints, national parks and heritage sites across Nepal's 7 provinces.")}
+            Discover real temples, stupas, caves, lakes, Himalayan viewpoints, national parks and heritage sites across Nepal's 7 provinces.
           </p>
         </div>
 
@@ -335,65 +340,6 @@ export default function DestinationList() {
           <FiPlus size={16} /> Submit a Place
         </Link>
       </div>
-
-      {/* Featured Destinations Showcase */}
-      {featuredDestinations.length > 0 && !query && !letter && (
-        <section className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white border border-emerald-800/40 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-800/60 pb-3">
-            <div>
-              <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                Featured Destinations
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-                ⭐ Hand-Picked Top Nepal Attractions
-              </h2>
-              <p className="text-xs text-emerald-200">
-                Verified high-rated destinations with real local photos, ratings, and instant travel guides.
-              </p>
-            </div>
-            <Link to="/recommendation" className="text-xs text-amber-300 font-bold hover:underline">
-              AI Recommendation Matching ➔
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {featuredDestinations.slice(0, 3).map((d) => (
-              <div key={`feat-${d.id}`} className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md flex flex-col justify-between p-4 space-y-3">
-                <div className="h-40 relative rounded-xl overflow-hidden bg-slate-950">
-                  <img src={getDestinationImageUrl(d)} alt={d.name} className="w-full h-full object-cover" />
-                  <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase shadow">
-                    ⭐ Featured
-                  </span>
-                  <span className="absolute bottom-2.5 left-2.5 text-white font-extrabold text-sm drop-shadow">
-                    {d.name}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-xs text-slate-400 flex items-center gap-1">
-                    <FiMapPin size={12} className="text-amber-400" /> {d.display_city || d.district || "Nepal"}
-                  </p>
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                    {d.short_description || "Verified destination with rich cultural and natural heritage."}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-300">
-                    ★ {d.average_rating || "4.8"}
-                  </span>
-                  <Link
-                    to={`/destinations/${d.slug}`}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow"
-                  >
-                    Explore Destination ➔
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Type chips */}
       <div className="flex flex-wrap gap-2">
@@ -566,7 +512,67 @@ export default function DestinationList() {
           </button>
         </div>
       )}
-      {extras?.length > 0 && <CMSExtras sections={extras} />}
+
+      {/* Featured Destinations Showcase (Placed toward bottom as requested!) */}
+      {featuredDestinations.length > 0 && !query && !letter && (
+        <section className="mt-12 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white border border-emerald-800/40 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-800/60 pb-3">
+            <div>
+              <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                Featured Destinations
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+                ⭐ Hand-Picked Top Nepal Attractions
+              </h2>
+              <p className="text-xs text-emerald-200">
+                Verified high-rated destinations with real local photos, ratings, and instant travel guides.
+              </p>
+            </div>
+            <Link to="/recommendation" className="text-xs text-amber-300 font-bold hover:underline">
+              AI Recommendation Matching ➔
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {featuredDestinations.slice(0, 3).map((d) => (
+              <div key={`feat-${d.id}`} className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md flex flex-col justify-between p-4 space-y-3">
+                <div className="h-40 relative rounded-xl overflow-hidden bg-slate-950">
+                  <img src={getDestinationImageUrl(d)} alt={d.name} className="w-full h-full object-cover" />
+                  <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase shadow">
+                    ⭐ Featured
+                  </span>
+                  <span className="absolute bottom-2.5 left-2.5 text-white font-extrabold text-sm drop-shadow">
+                    {d.name}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-400 flex items-center gap-1">
+                    <FiMapPin size={12} className="text-amber-400" /> {d.display_city || d.district || "Nepal"}
+                  </p>
+                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                    {d.short_description || "Verified destination with rich cultural and natural heritage."}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300">
+                    ★ {d.average_rating || "4.8"}
+                  </span>
+                  <Link
+                    to={`/destinations/${d.slug}`}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow"
+                  >
+                    Explore Destination ➔
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {cleanExtras?.length > 0 && <CMSExtras sections={cleanExtras} />}
     </div>
   )
 }
