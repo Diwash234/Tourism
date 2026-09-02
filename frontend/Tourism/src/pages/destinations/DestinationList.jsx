@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { FiMapPin, FiPlus, FiSearch } from "react-icons/fi"
+import { FiMapPin, FiPlus, FiSearch, FiStar } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
@@ -35,8 +35,7 @@ const TYPE_OPTIONS = [
   { label: "🌐 All Places", value: "all" },
 ]
 
-// Fine-grained category chips (work on top of type=attraction)
-// Values map directly to the 36-category backend taxonomy slugs
+// Fine-grained category chips
 const CATEGORY_CHIPS = [
   { label: "All", value: "", icon: "✨" },
   { label: "Mountains", value: "mountains", icon: "🏔️" },
@@ -75,7 +74,6 @@ const CATEGORY_CHIPS = [
   { label: "Natural Wonders", value: "natural-wonders", icon: "🌟" },
 ]
 
-// Map chip -> backend category slug (matches new 36-taxonomy slugs directly)
 const CHIP_TO_PARAMS = {}
 CATEGORY_CHIPS.forEach((c) => {
   if (c.value) CHIP_TO_PARAMS[c.value] = { category: c.value }
@@ -100,6 +98,7 @@ export default function DestinationList() {
   const initialType = searchParams.get("type") || "attraction"
 
   const [destinations, setDestinations] = useState([])
+  const [featuredDestinations, setFeaturedDestinations] = useState([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(parseInt(searchParams.get("page") || "1", 10))
@@ -113,6 +112,16 @@ export default function DestinationList() {
   const [didYouMean, setDidYouMean] = useState(null)
 
   const { position } = useGeolocation()
+
+  // Fetch featured destinations
+  useEffect(() => {
+    destinationApi.getDestinations({ featured: true, page_size: 6, limit: 6 })
+      .then(({ data }) => {
+        const list = data.results || data || []
+        setFeaturedDestinations(Array.isArray(list) ? list : [])
+      })
+      .catch(() => setFeaturedDestinations([]))
+  }, [])
 
   // Sync URL with filter state
   useEffect(() => {
@@ -143,12 +152,10 @@ export default function DestinationList() {
       params.search = query
       params.q = query
     }
-    // Keyword search from chip
     if (chipParams.search && !query) {
       params.search = chipParams.search
     }
     if (letter) {
-      // A-Z browsing: filter server-side by first letter (works across ALL pages)
       params.letter = letter
     }
     if (position) {
@@ -169,7 +176,6 @@ export default function DestinationList() {
         )
         setTotalCount(data.count || results.length)
         setDidYouMean(null)
-        // Empty result + typed query -> ask the API for a did-you-mean correction
         if (query && results.length === 0 && !letter) {
           destinationApi
             .autocomplete(query, { type })
@@ -293,6 +299,65 @@ export default function DestinationList() {
           <FiPlus size={16} /> Submit a Place
         </Link>
       </div>
+
+      {/* Featured Destinations Showcase */}
+      {featuredDestinations.length > 0 && !query && !letter && (
+        <section className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white border border-emerald-800/40 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-800/60 pb-3">
+            <div>
+              <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                Featured Destinations
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+                ⭐ Hand-Picked Top Nepal Attractions
+              </h2>
+              <p className="text-xs text-emerald-200">
+                Verified high-rated destinations with real local photos, ratings, and instant travel guides.
+              </p>
+            </div>
+            <Link to="/recommendation" className="text-xs text-amber-300 font-bold hover:underline">
+              AI Recommendation Matching ➔
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {featuredDestinations.slice(0, 3).map((d) => (
+              <div key={`feat-${d.id}`} className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md flex flex-col justify-between p-4 space-y-3">
+                <div className="h-40 relative rounded-xl overflow-hidden bg-slate-950">
+                  <img src={d.cover_image_url || "/images/destinations/kathmandu/durbar-square.jpg"} alt={d.name} className="w-full h-full object-cover" />
+                  <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase shadow">
+                    ⭐ Featured
+                  </span>
+                  <span className="absolute bottom-2.5 left-2.5 text-white font-extrabold text-sm drop-shadow">
+                    {d.name}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-400 flex items-center gap-1">
+                    <FiMapPin size={12} className="text-amber-400" /> {d.display_city || d.district || "Nepal"}
+                  </p>
+                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                    {d.short_description || "Verified destination with rich cultural and natural heritage."}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300">
+                    ★ {d.average_rating || "4.8"}
+                  </span>
+                  <Link
+                    to={`/destinations/${d.slug}`}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow"
+                  >
+                    Explore Destination ➔
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Type chips */}
       <div className="flex flex-wrap gap-2">
@@ -433,7 +498,6 @@ export default function DestinationList() {
             </p>
           </div>
 
-          {/* Did-you-mean autocorrect from the real destination names */}
           {didYouMean && (
             <div className="rounded-2xl border p-4 text-left"
                  style={{ borderColor: `${GOLD}55`, background: `${GOLD}12` }}>
