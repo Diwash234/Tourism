@@ -11,7 +11,7 @@ INBOUND: ML service -> backend (webhook)
 """
 
 import logging
-
+import re
 import requests
 
 from django.conf import settings
@@ -305,36 +305,30 @@ class BudgetPredictionView(APIView):
             )
 
 
-        destination_value = data.get(
-            "destination"
-        )
-
-
-        if (
-            destination_value
-            and not str(destination_value).isdigit()
-        ):
-
-            match = Destination.objects.filter(
-                name__icontains=destination_value
-            ).first()
-
-
-            if match:
-
-                data["destination"] = match.id
-
+        destination_value = data.get("destination")
+        if destination_value:
+            dest_str = str(destination_value).strip()
+            if dest_str.isdigit():
+                match = Destination.objects.filter(pk=dest_str).first()
+                if match:
+                    data["destination"] = match.id
+                else:
+                    return Response({
+                        "detail": "Destination not found. Please select a valid Nepal destination.",
+                        "suggestions": ["Pokhara", "Kathmandu", "Patan", "Bhaktapur", "Lumbini"]
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            elif len(dest_str) < 2 or re.fullmatch(r"[0-9\W]+", dest_str):
+                return Response({
+                    "detail": "Destination not found. Please select a valid Nepal destination.",
+                    "suggestions": ["Pokhara", "Kathmandu", "Patan", "Bhaktapur", "Lumbini"]
+                }, status=status.HTTP_400_BAD_REQUEST)
             else:
-
-                data.pop(
-                    "destination",
-                    None
-                )
-
-                data.setdefault(
-                    "city",
-                    destination_value
-                )
+                match = Destination.objects.filter(name__icontains=dest_str).first()
+                if match:
+                    data["destination"] = match.id
+                else:
+                    data.pop("destination", None)
+                    data.setdefault("city", dest_str)
 
 
         serializer = BudgetPredictionRequestSerializer(
