@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { FiMapPin, FiPlus, FiSearch, FiStar } from "react-icons/fi"
+import { FiMapPin, FiPlus, FiSearch, FiStar, FiNavigation, FiCheckCircle } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import userApi from "../../api/userApi"
@@ -17,6 +17,7 @@ import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { CMSExtras } from "../../components/cms/CMSBlock"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 // Nepal palette
 const GREEN = "#1f6b4d"
@@ -110,6 +111,7 @@ export default function DestinationList() {
   const [loading, setLoading] = useState(true)
   const [researching, setResearching] = useState(false)
   const [didYouMean, setDidYouMean] = useState(null)
+  const [isGpsSorted, setIsGpsSorted] = useState(false)
 
   const { position } = useGeolocation()
 
@@ -134,66 +136,93 @@ export default function DestinationList() {
     setSearchParams(sp, { replace: true })
   }, [query, letter, categoryChip, type, page, setSearchParams])
 
-  // Fetch destinations
+  // Fetch destinations — GPS proximity nearest first when position active & no explicit search query!
   useEffect(() => {
     setLoading(true)
 
     const chipParams = chipToQuery(categoryChip)
 
-    const params = {
-      page,
-      limit: PAGE_SIZE,
-      type,
-      ordering: "name",
+    // If user GPS is active and no typed search query, load nearby destinations nearest first!
+    if (position?.lat && position?.lng && !query && !letter && !categoryChip) {
+      setIsGpsSorted(true)
+      destinationApi.nearby(position.lat, position.lng, { radius_km: 250, page, limit: PAGE_SIZE })
+        .then(({ data }) => {
+          const results = data.results || data || []
+          const list = Array.isArray(results) ? results : []
+          if (list.length) {
+            setDestinations(list)
+            setTotalPages(data.total_pages || Math.ceil((data.count || list.length) / PAGE_SIZE) || 1)
+            setTotalCount(data.count || list.length)
+            setLoading(false)
+            return
+          }
+          fallbackFetch()
+        })
+        .catch(() => fallbackFetch())
+      return
     }
 
-    if (chipParams.category) params.category = chipParams.category
-    if (query) {
-      params.search = query
-      params.q = query
-    }
-    if (chipParams.search && !query) {
-      params.search = chipParams.search
-    }
-    if (letter) {
-      params.letter = letter
-    }
-    if (position) {
-      params.latitude = position.lat
-      params.longitude = position.lng
+    setIsGpsSorted(false)
+
+    function fallbackFetch() {
+      const params = {
+        page,
+        limit: PAGE_SIZE,
+        type,
+        ordering: "name",
+      }
+
+      if (chipParams.category) params.category = chipParams.category
+      if (query) {
+        params.search = query
+        params.q = query
+      }
+      if (chipParams.search && !query) {
+        params.search = chipParams.search
+      }
+      if (letter) {
+        params.letter = letter
+      }
+      if (position) {
+        params.latitude = position.lat
+        params.longitude = position.lng
+      }
+
+      destinationApi
+        .getAll(params)
+        .then(({ data }) => {
+          const results = data.results || data || []
+          setDestinations(results)
+          setTotalPages(
+            data.total_pages ||
+            data.totalPages ||
+            Math.ceil((data.count || results.length) / PAGE_SIZE) ||
+            1
+          )
+          setTotalCount(data.count || results.length)
+          setDidYouMean(null)
+          if (query && results.length === 0 && !letter) {
+            destinationApi
+              .autocomplete(query, { type })
+              .then((res) => {
+                const dym = res.data?.did_you_mean
+                if (dym) setDidYouMean(dym)
+              })
+              .catch(() => {})
+          }
+        })
+        .catch(() => {
+          setDestinations([])
+          setTotalPages(1)
+          setTotalCount(0)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
 
-    destinationApi
-      .getAll(params)
-      .then(({ data }) => {
-        const results = data.results || data || []
-        setDestinations(results)
-        setTotalPages(
-          data.total_pages ||
-          data.totalPages ||
-          Math.ceil((data.count || results.length) / PAGE_SIZE) ||
-          1
-        )
-        setTotalCount(data.count || results.length)
-        setDidYouMean(null)
-        if (query && results.length === 0 && !letter) {
-          destinationApi
-            .autocomplete(query, { type })
-            .then((res) => {
-              const dym = res.data?.did_you_mean
-              if (dym) setDidYouMean(dym)
-            })
-            .catch(() => {})
-        }
-      })
-      .catch(() => {
-        setDestinations([])
-        setTotalPages(1)
-        setTotalCount(0)
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+    fallbackFetch()
+
   }, [page, categoryChip, type, query, letter, position])
 
   useEffect(() => {
@@ -278,10 +307,17 @@ export default function DestinationList() {
       {/* Hero header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1f6b4d]/20 pb-4">
         <div>
-          <span className="px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider"
-                style={{ background: `${TERRACOTTA}15`, color: TERRACOTTA }}>
-            Himalayan Atlas
-          </span>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className="px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider"
+                  style={{ background: `${TERRACOTTA}15`, color: TERRACOTTA }}>
+              Himalayan Atlas
+            </span>
+            {isGpsSorted && (
+              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider flex items-center gap-1">
+                <FiNavigation size={12} /> Ranked Nearest by GPS Location
+              </span>
+            )}
+          </div>
           <h1 className="text-3xl md:text-4xl font-extrabold mt-1 flex items-center gap-2"
               style={{ color: INK, fontFamily: 'ui-serif, Georgia, "Noto Serif Devanagari", serif' }}>
             <FiMapPin style={{ color: TERRACOTTA }} /> {copy("intro", "title", "Explore Nepal")}
@@ -324,7 +360,7 @@ export default function DestinationList() {
             {featuredDestinations.slice(0, 3).map((d) => (
               <div key={`feat-${d.id}`} className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md flex flex-col justify-between p-4 space-y-3">
                 <div className="h-40 relative rounded-xl overflow-hidden bg-slate-950">
-                  <img src={d.cover_image_url || "/images/destinations/kathmandu/durbar-square.jpg"} alt={d.name} className="w-full h-full object-cover" />
+                  <img src={getDestinationImageUrl(d)} alt={d.name} className="w-full h-full object-cover" />
                   <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase shadow">
                     ⭐ Featured
                   </span>
@@ -432,6 +468,7 @@ export default function DestinationList() {
         <div className="flex items-center justify-between text-xs text-gray-500 px-1">
           <span>
             Showing <b style={{ color: INK }}>{totalCount.toLocaleString()}</b> places
+            {isGpsSorted && <span className="text-emerald-700 font-bold ml-1">(ranked nearest to your location)</span>}
             {query && <> for "<b style={{ color: TERRACOTTA }}>{query}</b>"</>}
             {letter && <> starting with <b style={{ color: TERRACOTTA }}>{letter}</b></>}
           </span>
