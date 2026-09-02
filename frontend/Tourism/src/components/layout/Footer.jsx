@@ -50,6 +50,13 @@ const Footer = () => {
   const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact"])
   const footerNav = (navigation || []).filter(item => item.location === "footer" && String(item.route || "").startsWith("/"))
   
+  const filteredExtras = (extras || []).filter(
+    (sec) =>
+      sec?.key !== "tagline" &&
+      sec?.title !== "Footer note" &&
+      !sec?.body?.includes("Discover destinations, plan budgets")
+  )
+  
   const rawTitle = branding.site_title || APP_NAME
   const siteTitle = rawTitle.replace(/Digital Nepal Tourism Platform/g, "Nepal Yatra").replace(/Digital Nepal Tourism/g, "Nepal Yatra").replace(/Digital Nepal/g, "Nepal Yatra")
   
@@ -172,7 +179,7 @@ const Footer = () => {
         )}
       </div>
 
-      {extras?.length > 0 && <div className="container-app pb-8 text-emerald-100"><CMSExtras sections={extras} /></div>}
+      {filteredExtras?.length > 0 && <div className="container-app pb-8 text-emerald-100"><CMSExtras sections={filteredExtras} /></div>}
 
       <div className="border-t border-emerald-900/60 py-4 text-center text-xs text-emerald-300">
         © {new Date().getFullYear()} {siteTitle}. All rights reserved.

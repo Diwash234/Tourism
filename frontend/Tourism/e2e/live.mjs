@@ -102,7 +102,7 @@ async function run() {
   {
     const { res, data } = await request(`${API}/marketplace/listings/`)
     const titles = (data?.results || []).map((row) => row.title)
-    if (res.ok && titles.includes("E2E Five Day Nepal Circuit") && !titles.includes("E2E Hidden Pending Stay")) {
+    if (res.ok && titles.includes("Pokhara & Annapurna Heritage Circuit") && !titles.includes("Pokhara Eco-Lodge Pending Stay")) {
       ok("public catalogue shows published package only")
     } else fail("public catalogue", JSON.stringify(titles.slice(0, 8)))
   }
@@ -201,10 +201,10 @@ async function run() {
     const alts = (himal.data?.package_cards || []).filter((row) => row.is_alternative).map((row) => row.title)
     if (
       himal.res.ok &&
-      titles.includes("E2E Five Day Nepal Circuit") &&
-      !titles.includes("E2E Luxury Over Budget Week") &&
-      !titles.includes("E2E Hidden Pending Stay") &&
-      alts.includes("E2E Six Day Alternative Circuit")
+      titles.includes("Pokhara & Annapurna Heritage Circuit") &&
+      !titles.includes("Himalayan Luxury Panorama Week") &&
+      !titles.includes("Pokhara Eco-Lodge Pending Stay") &&
+      alts.includes("Kathmandu & Pokhara 6-Day Cultural Circuit")
     ) {
       ok("Himal AI returns published in-budget packages only")
     } else fail("Himal AI packages", JSON.stringify(titles))

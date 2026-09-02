@@ -130,11 +130,11 @@ export const HIMALAYAN_RANGES = [
 ];
 
 export const DEFAULT_FOODS = [
-  { name: "Steamed MoMo", nepali: "मःमः", desc: "Handmade steamed dumplings filled with spiced vegetables or chicken, served with spicy tomato sesame chutney.", region: "Kathmandu & Pokhara" },
-  { name: "Dal Bhat Tarkari", nepali: "दाल भात", desc: "Steamed rice served with yellow lentil soup, curried vegetables, Gundruk, and spicy golbheda pickle.", region: "All Nepal (National Staple)" },
-  { name: "Newari Samay Baji", nepali: "समय् बजि", desc: "Beaten rice with smoked buffalo Choila, black beans, boiled eggs, and fermented Aila.", region: "Patan & Bhaktapur" },
-  { name: "Sel Roti & Achar", nepali: "सेल रोटी", desc: "Traditional ring-shaped fried rice-flour bread eaten during Dashain, Tihar, and morning tea.", region: "All Nepal" },
-  { name: "Bhaktapur Juju Dhau", nepali: "जुजु धौ", desc: "King of Curds — thick, sweet, rich buffalo-milk yogurt set in clay pots.", region: "Bhaktapur Durbar Square" },
+  { name: "Steamed MoMo", nepali: "मःमः", desc: "Handmade steamed dumplings filled with spiced vegetables or chicken, served with spicy tomato sesame chutney.", region: "Kathmandu & Pokhara", image: "/images/destinations/food/momo.jpg" },
+  { name: "Dal Bhat Tarkari", nepali: "दाल भात", desc: "Steamed rice served with yellow lentil soup, curried vegetables, Gundruk, and spicy golbheda pickle.", region: "All Nepal (National Staple)", image: "/images/destinations/food/dal-bhat.jpg" },
+  { name: "Newari Samay Baji", nepali: "समय् बजि", desc: "Beaten rice with smoked buffalo Choila, black beans, boiled eggs, and fermented Aila.", region: "Patan & Bhaktapur", image: "/images/destinations/food/newari-bhoj.jpg" },
+  { name: "Sel Roti & Achar", nepali: "सेल रोटी", desc: "Traditional ring-shaped fried rice-flour bread eaten during Dashain, Tihar, and morning tea.", region: "All Nepal", image: "/images/destinations/food/sel-roti.jpg" },
+  { name: "Bhaktapur Juju Dhau", nepali: "जुजु धौ", desc: "King of Curds — thick, sweet, rich buffalo-milk yogurt set in clay pots.", region: "Bhaktapur Durbar Square", image: "/images/destinations/food/juju-dhau.jpg" },
 ];
 
 export const DEFAULT_FESTIVALS = [
@@ -426,11 +426,16 @@ const NationalSymbols = () => {
                       <h4 className="text-sm font-black text-amber-300">🍲 Authentic Nepali Culinary Heritage</h4>
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {DEFAULT_FOODS.map((food, i) => (
-                          <div key={i} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
-                            <span className="text-[10px] font-black uppercase text-amber-400">{food.nepali}</span>
-                            <h5 className="font-extrabold text-white text-xs">{food.name}</h5>
-                            <p className="text-[10px] text-slate-400">📍 {food.region}</p>
-                            <p className="text-slate-300 text-[11px] leading-relaxed">{food.desc}</p>
+                          <div key={i} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col overflow-hidden">
+                            {food.image && (
+                              <img src={food.image} alt={food.name} className="w-full h-28 object-cover rounded-xl border border-slate-700/50" />
+                            )}
+                            <div className="flex-1 space-y-1">
+                              <span className="text-[10px] font-black uppercase text-amber-400">{food.nepali}</span>
+                              <h5 className="font-extrabold text-white text-xs">{food.name}</h5>
+                              <p className="text-[10px] text-slate-400">📍 {food.region}</p>
+                              <p className="text-slate-300 text-[11px] leading-relaxed">{food.desc}</p>
+                            </div>
                           </div>
                         ))}
                       </div>

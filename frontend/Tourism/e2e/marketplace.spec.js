@@ -7,8 +7,8 @@ test.describe("Marketplace, booking, and partner desk", () => {
     await expect(page.getByTestId("packages-page")).toBeVisible()
     await expect(page.getByText("Travel Packages")).toBeVisible()
     await expect(page.getByText("we never take card numbers here")).toBeVisible()
-    await expect(page.getByText("E2E Five Day Nepal Circuit").first()).toBeVisible()
-    await expect(page.getByText("E2E Hidden Pending Stay")).toHaveCount(0)
+    await expect(page.getByText("Pokhara & Annapurna Heritage Circuit").first()).toBeVisible()
+    await expect(page.getByText("Pokhara Eco-Lodge Pending Stay")).toHaveCount(0)
     expect(await noCardFields(page)).toBeTruthy()
   })
 
@@ -23,7 +23,7 @@ test.describe("Marketplace, booking, and partner desk", () => {
 
   test("add to trip, request booking, then look up with reference + email", async ({ page }) => {
     await page.goto("/packages")
-    await expect(page.getByText("E2E Five Day Nepal Circuit").first()).toBeVisible()
+    await expect(page.getByText("Pokhara & Annapurna Heritage Circuit").first()).toBeVisible()
     await page.locator('[data-package-slug="e2e-five-day-nepal-circuit"]').getByTestId("add-to-trip").first().click()
     await page.goto("/checkout")
     const email = `e2e-${Date.now()}@example.com`
@@ -46,7 +46,7 @@ test.describe("Marketplace, booking, and partner desk", () => {
     await page.getByTestId("trip-lookup").click()
     await expect(page.getByTestId("trip-result")).toBeVisible()
     await expect(page.getByText(reference).first()).toBeVisible()
-    await expect(page.getByText("E2E Five Day Nepal Circuit").first()).toBeVisible()
+    await expect(page.getByText("Pokhara & Annapurna Heritage Circuit").first()).toBeVisible()
   })
 
   test("collaborate application submits for review", async ({ page }) => {

@@ -1348,9 +1348,10 @@ const AdminDashboard = () => {
                   </p>
 
                   <div className="my-3 text-xs space-y-1 text-slate-300 border-t border-slate-700/40 pt-2">
-                    <p className="flex items-center gap-1">
+                    <p className="flex items-center gap-1 flex-wrap">
                       <FiMapPin className="text-amber-300" />
-                      <span>{t.city}, {t.country}</span>
+                      <span className="font-semibold text-white">{t.city}, {t.country}</span>
+                      {t.distance_text && <span className="text-[10px] font-bold text-amber-300">· {t.distance_text}</span>}
                       {t.latitude && <span className="text-[10px] opacity-70">({t.latitude.toFixed(3)}, {t.longitude.toFixed(3)})</span>}
                     </p>
                     <p className="flex items-center gap-1">

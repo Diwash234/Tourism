@@ -233,6 +233,12 @@ class AdminUserTrackingView(APIView):
     def get(self, request):
         _require_capability(request, "users", "view")
         _require_capability(request, "safety", "view")
+        from .location.location_utils import haversine_distance_km
+        from .location.reverse_geocoding import reverse_geocode
+
+        ref_lat = float(request.query_params.get("lat") or 28.2096)
+        ref_lng = float(request.query_params.get("lng") or 83.9856)
+
         users = User.objects.all().select_related("preferred_language")
         tracking_data = []
 
@@ -246,16 +252,40 @@ class AdminUserTrackingView(APIView):
             active_sos = SOSAlert.objects.filter(user=u, status=SOSAlert.Status.ACTIVE).first()
             active_trip = SharedTrip.objects.filter(user=u, is_active=True).first()
 
+            lat = float(u.latitude) if u.latitude is not None else None
+            lng = float(u.longitude) if u.longitude is not None else None
+
+            city = u.city
+            country = u.country or "Nepal"
+
+            if not city and lat is not None and lng is not None:
+                geo = reverse_geocode(lat, lng)
+                city = geo.get("district") or geo.get("municipality") or "Kathmandu"
+                u.city = city
+                u.country = country
+                u.save(update_fields=["city", "country"])
+
+            if not city:
+                city = "Kathmandu"
+
+            dist_km = None
+            dist_text = "Distance unavailable"
+            if lat is not None and lng is not None:
+                dist_km = round(haversine_distance_km(lat, lng, ref_lat, ref_lng), 1)
+                dist_text = "0 km away" if dist_km < 0.5 else f"{dist_km} km away"
+
             tracking_data.append({
                 "id": u.id,
                 "email": u.email,
                 "full_name": u.full_name,
                 "bio": u.bio or "Nepal explorer",
                 "role": u.role,
-                "latitude": float(u.latitude) if u.latitude is not None else None,
-                "longitude": float(u.longitude) if u.longitude is not None else None,
-                "city": u.city or "Unknown",
-                "country": u.country or "Nepal",
+                "latitude": lat,
+                "longitude": lng,
+                "city": city,
+                "country": country,
+                "distance_km": dist_km,
+                "distance_text": dist_text,
                 "location_source": u.location_source or "GPS",
                 "view_count": u.history.count(),
                 "recent_history": history_items,
@@ -1759,7 +1789,6 @@ PAGE_TEMPLATES = {
         ("provinces", "cards", "Provinces", "Jump to a province city."),
         ("company", "text", "Company", "About, contact and emergency."),
         ("contact", "text", "Contact", "Pokhara, Nepal"),
-        ("tagline", "text", "Footer note", "Discover destinations, plan budgets, and travel safely through Nepal."),
     ]},
 }
 

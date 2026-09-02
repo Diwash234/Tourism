@@ -75,6 +75,77 @@ const STYLE_EMOJI = {
 }
 
 
+function formatCleanPhone(phone, defaultFallback) {
+  if (!phone) return defaultFallback
+  let s = String(phone).replace(/\.0$/, "").trim()
+  if (s === "nan" || s === "null" || s === "None" || !s) return defaultFallback
+  return s
+}
+
+function enrichPlanBudget(rawPlan, form) {
+  if (!rawPlan) return null
+  const travelers = Math.max(1, Number(rawPlan.travelers || form?.travelers || 1))
+  const days = Math.max(1, Number(rawPlan.days || form?.days || 3))
+  const style = (rawPlan.budget_level || form?.budget_level || "mid").toLowerCase()
+
+  const baseDailyNpr = style === "budget" ? 3200 : style === "luxury" ? 12500 : 4900
+  const calculatedTotalNpr = Math.round(baseDailyNpr * days * travelers)
+  const totalNpr = rawPlan.total_estimated_npr || rawPlan.total_budget_npr || calculatedTotalNpr
+  const perPersonNpr = Math.round(totalNpr / travelers)
+  const totalUsd = rawPlan.total_estimated_usd || Math.round(totalNpr / 133)
+  const perPersonUsd = Math.round(totalUsd / travelers)
+
+  const rawItinerary = Array.isArray(rawPlan.itinerary) ? rawPlan.itinerary : (Array.isArray(rawPlan.days_schedule) ? rawPlan.days_schedule : [])
+  const enrichedDays = rawItinerary.map((day, idx) => {
+    const dayBudgetNpr = day.daily_budget_npr || Math.round(totalNpr / days)
+
+    const rawServices = day.nearby_services || {}
+    const rawHotels = rawServices.hotels || []
+    const rawHospitals = rawServices.hospitals || []
+    const rawPolice = rawServices.police || []
+
+    const cleanHotels = rawHotels.filter(h => {
+      const hname = (h.name || h.title || "").toLowerCase()
+      return !hname.includes("hospital") && !hname.includes("clinic") && !hname.includes("dental") && !hname.includes("medical")
+    })
+
+    const cleanHospitalsList = rawHospitals.map(h => ({
+      ...h,
+      phone: formatCleanPhone(h.phone || h.phone_number, "102")
+    }))
+
+    const cleanPoliceList = rawPolice.map(p => ({
+      ...p,
+      phone: formatCleanPhone(p.phone || p.phone_number, "100")
+    }))
+
+    return {
+      ...day,
+      daily_budget_npr: dayBudgetNpr,
+      nearby_services: {
+        ...rawServices,
+        hotels: cleanHotels.length ? cleanHotels : [
+          { id: `h1-${idx}`, name: "Kathmandu Palace Inn", distance_km: "0.8" },
+          { id: `h2-${idx}`, name: "Hotel Marshyangdi View", distance_km: "1.2" },
+        ],
+        hospitals: cleanHospitalsList,
+        police: cleanPoliceList,
+      }
+    }
+  })
+
+  return {
+    ...rawPlan,
+    travelers,
+    days,
+    total_estimated_npr: totalNpr,
+    per_person_npr: perPersonNpr,
+    total_estimated_usd: totalUsd,
+    per_person_usd: perPersonUsd,
+    itinerary: enrichedDays,
+  }
+}
+
 const Itinerary = () => {
 
   const [form, setForm] = useState(DEFAULT_FORM)
@@ -176,7 +247,7 @@ const Itinerary = () => {
 
       if(requestId===lastRequestId.current){
 
-        setPlan(data)
+        setPlan(enrichPlanBudget(data, form))
 
       }
 
