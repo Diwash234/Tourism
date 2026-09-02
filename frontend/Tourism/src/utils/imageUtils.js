@@ -614,7 +614,7 @@ const CORRECTED_DESTINATION_MEDIA = {
  * Return a usable image URL for a destination/hotel/card.
  */
 export const getDestinationImageUrl = (destination) => {
-  if (!destination) return ""
+  if (!destination) return "/images/destinations/kathmandu/durbar-square.jpg"
   const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
   if (corrected) return corrected
   if (Array.isArray(destination.images)) {
@@ -631,10 +631,10 @@ export const getDestinationImageUrl = (destination) => {
     }
   }
   // Restore the previously generated, bundled place-specific media for known
-  // Nepal landmarks. This is deterministic by place name, not a random stock
-  // pool, and admins can replace it from the image dashboard.
+  // Nepal landmarks.
   const local = lookupLocalNepal(destination.name, deriveImageCategory(destination))
-  return local || ""
+  if (local) return local
+  return fallbackImageUrl(destination.name || destination.title || "Nepal Landmark", deriveImageCategory(destination)) || "/images/destinations/kathmandu/durbar-square.jpg"
 }
 
 /**
