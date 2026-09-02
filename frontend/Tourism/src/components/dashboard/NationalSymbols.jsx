@@ -15,6 +15,8 @@ import EmblemImg from "./emblem.jfif";
 import TopiImg from "./dhaka-topi.jfif";
 import StupaImg from "./stupa.jfif";
 
+import { SYMBOL_VISUALS } from "./nationalSymbolImages";
+
 // Export images so other components can use them
 export {
   FlagImg,
@@ -80,25 +82,25 @@ export const ALL_26_NATIONAL_SYMBOLS = [
   { id: "map", category: "Geographic Map", title: "Nepal Sovereign Territory", icon: "🗺️", nepali: "नेपालको नक्सा", value: "147,516 km² spanning Terai plains, mid-hill valleys, and high Himalayas across 7 provinces.", image: MapImg },
   { id: "stupa", category: "Heritage Stupa", title: "Buddhist Stupa Heritage", icon: "☸️", nepali: "बौद्ध स्तुप सम्पदा", value: "Ancient stupa architecture representing enlightenment, peace, and wisdom (Swayambhu & Boudha).", image: StupaImg },
   
-  { id: "tree", category: "National Tree", title: "National Tree", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary.", image: "/images/destinations/bandipur/hilltop-village.jpg" },
-  { id: "fruit", category: "National Fruit", title: "National Fruit", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months.", image: "/images/destinations/chitwan/safari.jpg" },
-  { id: "anthem", category: "National Anthem", title: "National Anthem", icon: "🎵", nepali: "सयौं थुँगा फूलका", value: "'Sayaun Thunga Phool Ka' celebrating national sovereignty and unity across 120+ ethnic groups.", image: FlagImg },
-  { id: "currency", category: "National Currency", title: "National Currency", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR 1,000 Note)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank with Mt. Everest & twin elephants.", image: EmblemImg },
-  { id: "language", category: "Official Language", title: "Official Language (Devanagari)", icon: "🗣️", nepali: "नेपाली भाषा (क, ख, ग, घ, ङ)", value: "Nepali (Devanagari script), spoken alongside 120+ indigenous languages across 77 districts.", image: StupaImg },
-  { id: "capital", category: "Capital City", title: "Capital City", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads.", image: "/images/destinations/kathmandu/durbar-square.jpg" },
+  { id: "tree", category: "National Tree", title: "National Tree (Peepal)", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary.", image: SYMBOL_VISUALS.tree },
+  { id: "fruit", category: "National Fruit", title: "National Fruit (Mango / Aap)", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months.", image: SYMBOL_VISUALS.fruit },
+  { id: "anthem", category: "National Anthem", title: "National Anthem (Sayaun Thunga)", icon: "🎵", nepali: "सयौं थुँगा फूलका हामी", value: "'Sayaun Thunga Phool Ka' celebrating national sovereignty and unity across 120+ ethnic groups.", image: SYMBOL_VISUALS.anthem },
+  { id: "currency", category: "National Currency", title: "National Currency (NPR 1,000 Note)", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR 1000)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank with Mt. Everest & twin elephants.", image: SYMBOL_VISUALS.currency },
+  { id: "language", category: "Official Language", title: "Official Language (Devanagari Script)", icon: "🗣️", nepali: "नेपाली भाषा (क, ख, ग, घ, ङ)", value: "Nepali (Devanagari script), spoken alongside 120+ indigenous languages across 77 districts.", image: SYMBOL_VISUALS.language },
+  { id: "capital", category: "Capital City", title: "Capital City (Kathmandu Valley)", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads.", image: SYMBOL_VISUALS.capital },
   { id: "governance", category: "Head of State / State", title: "State System & Governance", icon: "👑", nepali: "संघीय लोकतान्त्रिक गणतन्त्र", value: "Federal Democratic Republic of Nepal governed under the 2015 Constitution.", image: EmblemImg },
-  { id: "sport", category: "National Sport", title: "National Sport (Volleyball)", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts.", image: "/images/destinations/pokhara/fewatal.jpg" },
-  { id: "dish", category: "National Dish", title: "National Food / Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Steamed rice, lentil soup, seasonal curried vegetables, Gundruk, and pickle).", image: "/images/destinations/food/newari-bhoj.jpg" },
-  { id: "fish", category: "National Fish", title: "National Fish", icon: "🐟", nepali: "सहर (Sahar / Golden Mahseer)", value: "Sahar (Tor putitora / Himalayan Golden Mahseer), king of fast-flowing snow-fed Himalayan rivers.", image: "/images/destinations/koshi-tappu/wetlands.jpg" },
-  { id: "river", category: "National River", title: "Major Sacred River Systems", icon: "🌊", nepali: "सप्तकोशी, गण्डकी, कर्णाली", value: "Karnali (longest), Gandaki, and Koshi snow-fed Himalayan river basins.", image: "/images/destinations/koshi-tappu/wetlands.jpg" },
-  { id: "mountain", category: "National Mountain", title: "National Mountain Peak", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth located in Mahalangur Himal.", image: "/images/destinations/everest/base-camp.jpg" },
-  { id: "dance", category: "National Dance", title: "National Heritage Dance", icon: "💃", nepali: "मारुनी र लाखे नाच", value: "Maruni, Lakhey, and Charya cultural dances celebrating harvests and spiritual myths.", image: DanpheImg },
+  { id: "sport", category: "National Sport", title: "National Sport (Volleyball)", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts.", image: SYMBOL_VISUALS.sport },
+  { id: "dish", category: "National Dish", title: "National Food / Dish", icon: "🍲", nepali: "दाल भात तरकारी", value: "Dal Bhat Tarkari (Steamed rice, lentil soup, seasonal curried vegetables, Gundruk, and pickle).", image: SYMBOL_VISUALS.dish },
+  { id: "fish", category: "National Fish", title: "National Fish (Sahar)", icon: "🐟", nepali: "सहर (Sahar / Golden Mahseer)", value: "Sahar (Tor putitora / Himalayan Golden Mahseer), king of fast-flowing snow-fed Himalayan rivers.", image: SYMBOL_VISUALS.river },
+  { id: "river", category: "National River", title: "Major Sacred River Systems", icon: "🌊", nepali: "सप्तकोशी, गण्डकी, कर्णाली", value: "Karnali (longest), Gandaki, and Koshi snow-fed Himalayan river basins.", image: SYMBOL_VISUALS.river },
+  { id: "mountain", category: "National Mountain", title: "National Mountain Peak", icon: "🏔️", nepali: "सगरमाथा (Mount Everest)", value: "Mount Everest / Sagarmatha (8,848.86 m), highest peak on Earth located in Mahalangur Himal.", image: SYMBOL_VISUALS.mountain },
+  { id: "dance", category: "National Dance", title: "National Heritage Dance", icon: "💃", nepali: "मारुनी र लाखे नाच", value: "Maruni, Lakhey, and Charya cultural dances celebrating harvests and spiritual myths.", image: SYMBOL_VISUALS.dance },
   { id: "motto", category: "National Motto", title: "National Motto", icon: "🦅", nepali: "जननी जन्मभूमिश्च स्वर्गादपि गरीयसी", value: "'Janani Janmabhumischa Swargadapi Gariyasi' — Mother and motherland are dearer than heaven itself.", image: EmblemImg },
-  { id: "poet", category: "National Poet", title: "National Poet / Adikavi", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi).", image: TopiImg },
-  { id: "day", category: "Constitution / National Day", title: "National Constitution Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional rule (Promulgated Sept 20, 2015).", image: FlagImg },
-  { id: "gemstone", category: "Himalayan Gemstone", title: "National Gemstone", icon: "💎", nepali: "नेपाली काईनाइट र रुबी", value: "Ganesh Himal Quartz, Himalayan Kyanite, and Ruby mined in high altitudes.", image: "/images/destinations/tilicho/himalayan-lake.jpg" },
-  { id: "plant", category: "Sacred Medicinal Herb", title: "Sacred Plant / Herb", icon: "🌿", nepali: "यार्सागुम्बा / जिम्बु", value: "Yarsagumba (Cordyceps sinensis) & Himalayan Jimbu mountain herbs.", image: "/images/destinations/gosaikunda/glacial-lake.jpg" },
-  { id: "insect", category: "National Butterfly", title: "National Insect / Butterfly", icon: "🐝", nepali: "कृष्णा कालीज (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies in high forest reserves.", image: DanpheImg },
+  { id: "poet", category: "National Poet", title: "National Poet / Adikavi", icon: "✍️", nepali: "राष्ट्रकवि माधवप्रसाद घिमिरे / भानुभक्त", value: "Bhanubhakta Acharya (Adikavi) & Madhav Prasad Ghimire (Rashtrakavi).", image: SYMBOL_VISUALS.poet },
+  { id: "day", category: "Constitution / National Day", title: "National Constitution Day", icon: "📜", nepali: "संविधान दिवस (Ashoj 3 / Sept 20)", value: "Constitution Day celebrating democratic constitutional rule (Promulgated Sept 20, 2015).", image: SYMBOL_VISUALS.constitution },
+  { id: "gemstone", category: "Himalayan Gemstone", title: "National Gemstone", icon: "💎", nepali: "नेपाली काईनाइट र रुबी", value: "Ganesh Himal Quartz, Himalayan Kyanite, and Ruby mined in high altitudes.", image: SYMBOL_VISUALS.gemstone },
+  { id: "plant", category: "Sacred Medicinal Herb", title: "Sacred Plant / Herb", icon: "🌿", nepali: "यार्सागुम्बा / जिम्बु", value: "Yarsagumba (Cordyceps sinensis) & Himalayan Jimbu mountain herbs.", image: SYMBOL_VISUALS.plant },
+  { id: "insect", category: "National Butterfly", title: "National Insect / Butterfly", icon: "🐝", nepali: "कृष्णा कालीज (Kaiser-i-Hind)", value: "Kaiser-i-Hind & Himalayan Swallowtail butterflies in high forest reserves.", image: SYMBOL_VISUALS.insect },
 ];
 
 export const EIGHT_THOUSANDERS = [
