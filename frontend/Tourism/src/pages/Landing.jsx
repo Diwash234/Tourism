@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   FiMapPin, FiShield, FiDollarSign, FiNavigation, FiStar,
   FiCompass, FiArrowRight, FiCheckCircle, FiPhoneCall, FiSun
 } from "react-icons/fi"
+import { useI18n } from "../i18n"
 
 import SearchBar from "../components/common/SearchBar"
 import DestinationCard from "../components/cards/DestinationCard"
@@ -15,6 +16,11 @@ import NepalExperienceSection from "../components/dashboard/NepalExperienceSecti
 import NationalSymbols from "../components/dashboard/NationalSymbols"
 import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
+import userApi from "../api/userApi"
+import adminApi from "../api/adminApi"
+import usePublicConfig from "../hooks/usePublicConfig"
+import VisitorNoticeBanner from "../components/common/VisitorNoticeBanner"
+import { CMSExtras } from "../components/cms/CMSBlock"
 import {
   FadeIn, SlideUp, Stagger, StaggerItem, HoverCard,
   BurnGlowBadge, InteractiveHeroCanvas
@@ -22,6 +28,7 @@ import {
 import CaseStudiesSection from "../components/landing/CaseStudiesSection"
 import TestimonialsSection from "../components/landing/TestimonialsSection"
 import StickyCTA from "../components/common/StickyCTA"
+import ProvinceMarquee from "../components/landing/ProvinceMarquee"
 
 const PROVINCES = [
   { name: "Koshi Province", city: "Biratnagar / Ilam", code: "koshi" },
@@ -33,189 +40,229 @@ const PROVINCES = [
   { name: "Sudurpashchim", city: "Dhangadhi / Khaptad", code: "sudurpashchim" },
 ]
 
-const QUICK_SEARCH_PILLS = [
-  "Pokhara", "Everest Base Camp", "Annapurna Sanctuary", "Chitwan Safari", "Lumbini", "Mustang", "Rara Lake", "Nagarkot"
-]
-
 const FEATURES = [
   {
     icon: FiMapPin,
-    title: "5,800+ Verified Destinations",
-    desc: "Curated cultural landmarks, hidden waterfalls, alpine passes, and local homestays across all 7 provinces.",
+    title: "Recorded destinations",
+    desc: "Browse places stored in the Nepal catalogue. Missing city, season, or budget fields stay Not recorded until an administrator adds them.",
   },
   {
     icon: FiDollarSign,
-    title: "ML Travel Cost Estimator",
-    desc: "Predict accommodation, food, transit, and entry fees calibrated by actual traveler expenditure records.",
+    title: "Recorded travel costs",
+    desc: "Budgets appear only when a destination or published package has a stored NPR amount. Empty costs are never invented.",
   },
   {
     icon: FiShield,
-    title: "24/7 Mountain Risk Sentinel",
-    desc: "Live altitude sickness advisories, weather warnings, and direct emergency police/hospital connectivity.",
+    title: "Emergency directory",
+    desc: "Nearest hospitals and police from the recorded directory, plus official national numbers 1144, 100 and 102.",
   },
   {
     icon: FiNavigation,
-    title: "GTA Tactical Navigation HUD",
-    desc: "Turn-by-turn road and trail navigation with speedometer, compass bearing, and nearby checkpoints.",
+    title: "Navigation for mapped places",
+    desc: "Routes open only for destinations that have recorded Nepal coordinates. Unmapped places stay off the map.",
   },
 ]
 
 const FAQ_ITEMS = [
   {
     question: "Why use this Nepal Tourism portal over generic search engines?",
-    answer: "Generic searches give fragmented data. This platform integrates verified municipal geocoding, ML budget estimation, live natural hazard alerts, 1,000+ emergency hospitals/police stations, and turn-by-turn navigation in a single portal."
+    answer: "This portal lists destinations, emergency contacts, and published packages that are stored in the database. If a field is empty it shows Not recorded instead of inventing a value."
   },
   {
     question: "How accurate are the travel budget estimates?",
-    answer: "The ML budget engine is calibrated using real traveler feedback and field officer survey data, breaking costs into accommodation, transit, meals, and national park permits."
+    answer: "Only recorded NPR amounts from destination entry fees, budget rows, or published packages are shown. Missing costs stay Not recorded until an administrator updates them."
   },
   {
     question: "What should I do during high-altitude or medical emergencies?",
-    answer: "Tap the 24/7 red Emergency button to view nearest hospitals and police stations on the live GPS map, or dial Tourist Police Nepal directly at 1144."
+    answer: "Open Emergency to see recorded nearby hospitals and police. For immediate dispatch use official national numbers: Tourist Police 1144, Police 100, Ambulance 102."
   },
   {
     question: "Can community travelers submit new hidden gems?",
-    answer: "Yes! Travelers can submit new spots with photos, municipality, and ward details. All submissions pass through the Admin Verification Sentinel before publishing live."
+    answer: "Yes. Travelers can submit a place with photos and location. Submissions stay pending until an administrator reviews and publishes them."
   },
   {
     question: "Does the navigation work for remote Himalayan trekking routes?",
-    answer: "Yes! The system integrates topological road graph routes and trekking trail corridors with altitude tracking and maneuver guidance."
+    answer: "Navigation uses recorded destination coordinates. If a place has no stored latitude and longitude, the map pin is Not recorded."
   }
 ]
 
+const HOME_KEYS = ["hero", "features", "featured", "case-studies", "highlights", "symbols", "culture", "provinces", "marquee", "testimonials", "faq", "cta"]
+
 export default function Landing() {
+  const { t } = useI18n()
   const navigate = useNavigate()
+  const publicConfig = usePublicConfig()
+  const { showBlock, copy, extras } = publicConfig.pageCMS("home", HOME_KEYS)
+  const notices = publicConfig.notices || []
+  const destCount = publicConfig.catalog?.destination_count
+  const destCountLabel = destCount != null ? destCount.toLocaleString() : null
   const [destinations, setDestinations] = useState([])
+  const [featuredCards, setFeaturedCards] = useState([])
+  const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(true)
+  const cmsHero = { title: copy("hero", "title"), subtitle: copy("hero", "subtitle", copy("hero", "body")) }
+
+  // Search-as-you-type suggestions + did-you-mean autocorrect from the API
+  const fetchSuggestions = useCallback(async (q, signal) => {
+    try {
+      const res = await destinationApi.autocomplete(q, { type: "attraction" })
+      return res.data
+    } catch {
+      return []
+    }
+  }, [])
 
   useEffect(() => {
+    adminApi.getPublicFeaturedDestinations()
+      .then(({ data }) => {
+        const items = data.results || data || []
+        setFeaturedCards(items)
+      })
+      .catch(() => setFeaturedCards([]))
+
     destinationApi
-      .getAll({ limit: 6, featured: true })
+      .getAll({ limit: 8, featured: true })
       .then(({ data }) => {
         setDestinations(data.results || data || [])
       })
       .catch(() => setDestinations([]))
       .finally(() => setLoading(false))
+
+    userApi.getMarketplaceListings({ featured: true })
+      .then(({ data }) => setPackages(data.results || []))
+      .catch(() => setPackages([]))
   }, [])
 
   return (
     <div className="relative overflow-x-hidden bg-white text-gray-900">
-      {/* 1. HERO SECTION (Above the fold conversion engine) */}
-      <section className="relative bg-gradient-to-br from-[#1c042e] via-[#35093e] to-[#540d3a] text-white overflow-hidden py-24 sm:py-32">
-        <HeroEffects />
-        <InteractiveHeroCanvas />
+      {showBlock("hero") && (
+        <section className="relative w-full min-h-[85vh] sm:min-h-[90vh] bg-[#102A2E] text-white flex flex-col justify-end p-6 sm:p-12 lg:p-16 overflow-hidden group">
+          {/* Real Himalayan Range Background Hero Image */}
+          <img
+            src={cmsHero?.image_url || "/images/destinations/everest/base-camp.jpg"}
+            alt="Himalayan Range Nepal"
+            className="absolute inset-0 w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-1000 ease-out"
+          />
 
-        {/* Ambient glow blobs */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
+          {/* Accessible Dark Gradient Protection Overlay (Guarantees 100% Text & Control Legibility) */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#102A2E] via-[#102A2E]/65 to-[#102A2E]/30 opacity-95" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#102A2E]/90 via-[#102A2E]/40 to-transparent" />
 
-        <div className="container-app relative z-10 max-w-5xl mx-auto text-center space-y-7">
-          <FadeIn delay={0.1}>
-            <BurnGlowBadge
-              icon={FiSun}
-              text="Explore Nepal's 7 Provinces · Live 2026 Himalayan Sentinel"
-            />
-          </FadeIn>
+          <HeroEffects />
+          <InteractiveHeroCanvas />
 
-          <FadeIn delay={0.2}>
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] max-w-4xl mx-auto">
-              Explore Local Wonders,{" "}
-              <span className="bg-gradient-to-r from-amber-300 via-rose-300 to-amber-200 bg-clip-text text-transparent">
-                Travel Smart & Safe
-              </span>
-            </h1>
-          </FadeIn>
-
-          <FadeIn delay={0.3}>
-            <p className="text-base sm:text-xl text-purple-100/90 max-w-2xl mx-auto font-normal leading-relaxed">
-              Your official Himalayan travel companion — AI-curated destinations, real-time ML budgets, turn-by-turn road navigation, and 24/7 emergency rescue.
-            </p>
-          </FadeIn>
-
-          {/* Above-the-fold Search Input with Quick Pills */}
-          <FadeIn delay={0.4} className="max-w-2xl mx-auto space-y-3">
-            <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-white/20">
-              <SearchBar
-                placeholder="Search places, temples, treks, cities (e.g. Pokhara, Everest, Chitwan)..."
-                className="w-full text-gray-900"
-                onSearch={(val) => navigate(`/destinations?q=${encodeURIComponent(val)}`)}
-              />
-            </div>
-
-            {/* Quick search pills */}
-            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-              <span className="text-[11px] font-bold text-purple-200">Popular:</span>
-              {QUICK_SEARCH_PILLS.map((pill, i) => (
-                <button
-                  key={i}
-                  onClick={() => navigate(`/destinations?q=${encodeURIComponent(pill)}`)}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur transition-all border border-white/10"
-                >
-                  {pill}
-                </button>
-              ))}
-            </div>
-          </FadeIn>
-
-          {/* Primary & Secondary Above-The-Fold CTAs */}
-          <FadeIn delay={0.5} className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Link
-              to="/destinations"
-              className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-gray-950 font-black text-sm hover:scale-105 shadow-xl shadow-amber-400/25 transition-all flex items-center gap-2"
-            >
-              <FiCompass size={18} /> Explore 5,800+ Destinations <FiArrowRight size={16} />
-            </Link>
-
-            <Link
-              to="/budget-estimator"
-              className="px-7 py-3.5 rounded-2xl bg-purple-900/80 hover:bg-purple-800 text-white font-bold text-sm border border-purple-500/50 backdrop-blur shadow-lg transition-all"
-            >
-              Calculate Trip Budget (ML)
-            </Link>
-          </FadeIn>
-
-          {/* Trust & Proof Indicators */}
-          <FadeIn delay={0.6} className="pt-8 border-t border-purple-800/40 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
-                ✓
+          <div className="container-app relative z-10 max-w-5xl mx-auto space-y-7 text-left pb-4">
+            <FadeIn delay={0.1}>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D9C7A3] text-[#102A2E] text-xs font-black uppercase tracking-widest shadow-lg">
+                <FiSun className="text-[#D99048]" />
+                Explore Nepal's 7 Provinces · Live 2026 Himalayan Sentinel
               </div>
-              <span className="text-xs text-purple-200 font-medium">5,800+ Verified Places</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
-                ★
-              </div>
-              <span className="text-xs text-purple-200 font-medium">10,000+ Real Hikers</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
-                🚨
-              </div>
-              <span className="text-xs text-purple-200 font-medium">24/7 Helpline (1144)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold text-xs shrink-0">
-                🏔️
-              </div>
-              <span className="text-xs text-purple-200 font-medium">All 7 Provinces</span>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
+            </FadeIn>
 
-      {/* 2. CORE FEATURES (REFERO & STITCH GRADE POLISH) */}
-      <section className="container-app py-20 relative z-10">
+            <FadeIn delay={0.2}>
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] max-w-4xl text-white drop-shadow-md">
+                {cmsHero?.title || (
+                  <>
+                    DISCOVER NEPAL
+                    <span className="block bg-gradient-to-r from-[#D9C7A3] via-[#D99048] to-amber-200 bg-clip-text text-transparent font-extrabold mt-1">
+                      Journey Beyond The Ordinary
+                    </span>
+                  </>
+                )}
+              </h1>
+            </FadeIn>
+
+            <FadeIn delay={0.3}>
+              <p className="text-sm sm:text-lg text-stone-200/90 max-w-2xl font-medium leading-relaxed drop-shadow">
+                {cmsHero?.subtitle || cmsHero?.body || "Mountains, ancient culture, wildlife, and high-altitude adventures across all seven provinces."}
+              </p>
+            </FadeIn>
+
+            {/* Floating Glassmorphism Search & Quick Tabs Bar */}
+            <FadeIn delay={0.4} className="max-w-3xl space-y-3">
+              <div className="bg-white/15 backdrop-blur-xl p-3 rounded-3xl shadow-2xl border border-white/20">
+                <SearchBar
+                  placeholder="Where will you go? (Search Pokhara, Everest, Chitwan, Lumbini...)"
+                  className="w-full text-gray-900"
+                  onSearch={(val) => navigate(`/destinations?q=${encodeURIComponent(val)}`)}
+                  fetchSuggestions={fetchSuggestions}
+                />
+              </div>
+
+              {/* Quick Destination Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-bold text-[#D9C7A3] uppercase tracking-wider">Popular:</span>
+                {destinations.slice(0, 8).map((dest) => (
+                  <button
+                    key={dest.slug || dest.id}
+                    onClick={() => navigate(dest.slug ? `/destinations/${dest.slug}` : `/destinations?q=${encodeURIComponent(dest.name)}`)}
+                    className="text-[11px] font-semibold px-3 py-1 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur transition-all border border-white/15"
+                  >
+                    {dest.name}
+                  </button>
+                ))}
+              </div>
+            </FadeIn>
+
+            {/* Primary & Secondary CTAs */}
+            <FadeIn delay={0.5} className="flex flex-wrap items-center gap-4 pt-2">
+              <Link
+                to="/destinations"
+                className="px-8 py-3.5 rounded-2xl bg-[#D99048] hover:bg-amber-600 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 transition-all hover:scale-105 flex items-center gap-2"
+              >
+                <FiCompass size={18} /> {t("home.hero_cta")} <FiArrowRight size={16} />
+              </Link>
+
+              <Link
+                to="/trip-planner"
+                className="px-7 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-sm border border-white/20 backdrop-blur shadow-lg transition-all"
+              >
+                Plan My Journey
+              </Link>
+            </FadeIn>
+
+            {/* Trust Indicators Bar */}
+            <FadeIn delay={0.6} className="pt-6 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-[#D9C7A3]/20 text-[#D9C7A3] flex items-center justify-center font-bold text-xs shrink-0">
+                  ✓
+                </div>
+                <span className="text-xs text-stone-200 font-medium">{destCountLabel ? `${destCountLabel} recorded places` : "Recorded places"}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  ★
+                </div>
+                <span className="text-xs text-stone-200 font-medium">Verified Local Guides</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  🚨
+                </div>
+                <span className="text-xs text-stone-200 font-medium">24/7 Safety Helpline (1144)</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  🏔️
+                </div>
+                <span className="text-xs text-stone-200 font-medium">All 7 Provinces</span>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+      )}
+
+      {showBlock("features") && <section className="container-app py-20 relative z-10">
         <SlideUp>
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
               Engineered for Himalayan Explorers
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-              Why Travel with Nepal Portal
+              {copy("features", "title", "Why Travel with Nepal Portal")}
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              Everything you need for an unforgettable, safe, and cost-effective expedition.
+              {copy("features", "body", "Everything you need for an unforgettable, safe, and cost-effective expedition.")}
             </p>
           </div>
         </SlideUp>
@@ -224,41 +271,62 @@ export default function Landing() {
           {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
             <HoverCard
               key={title}
-              className="card-base p-7 rounded-3xl border border-purple-100/80 shadow-xl bg-gradient-to-br from-white to-purple-50/30 flex flex-col justify-between space-y-4"
+              className="card-base p-7 rounded-3xl border border-emerald-100/80 shadow-xl bg-gradient-to-br from-white to-emerald-50/20 flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shadow-sm">
                   <Icon size={24} />
                 </div>
                 <h3 className="font-bold text-base text-gray-900 leading-snug">{title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
               </div>
               <div className="pt-2 border-t border-gray-100">
-                <span className="text-[11px] font-bold text-purple-700 flex items-center gap-1">
+                <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
                   Learn more <FiArrowRight size={12} />
                 </span>
               </div>
             </HoverCard>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {/* 3. FEATURED TOP DESTINATIONS */}
-      <section className="container-app py-16">
+      {notices.length > 0 && <section className="container-app pt-10"><VisitorNoticeBanner notices={notices} /></section>}
+
+      {packages.length > 0 && <section className="container-app py-12">
+        <div className="flex items-end justify-between gap-4 mb-6">
+          <div>
+            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">Live catalogue</span>
+            <h2 className="text-3xl font-extrabold text-gray-900 mt-2 tracking-tight">Featured packages</h2>
+          </div>
+          <Link to="/packages" className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">All packages <FiArrowRight size={14} /></Link>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {packages.slice(0, 3).map((offer) => (
+            <Link key={offer.id} to={`/packages/${offer.slug}`} className="card-base p-5 hover:shadow-lg transition">
+              <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind} · {offer.duration_days} days</p>
+              <h3 className="font-black text-slate-900 mt-1">{offer.title}</h3>
+              <p className="text-sm text-slate-600 mt-1 line-clamp-2">{offer.summary}</p>
+              <p className="mt-3 font-black">NPR {Number(offer.price_npr).toLocaleString()}</p>
+            </Link>
+          ))}
+        </div>
+      </section>}
+
+      {showBlock("featured") && <section className="container-app py-16">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
               Handpicked Wonders
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-              Featured Nepal Destinations
+              {copy("featured", "title", "Featured Nepal Destinations")}
             </h2>
           </div>
           <Link
             to="/destinations"
-            className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 shrink-0"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 shrink-0"
           >
-            View All 5,800+ Destinations <FiArrowRight size={14} />
+            {destCountLabel ? `View all ${destCountLabel} destinations` : "View all destinations"} <FiArrowRight size={14} />
           </Link>
         </div>
 
@@ -270,26 +338,67 @@ export default function Landing() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {destinations.map((d) => (
-              <DestinationCard key={d.id} destination={d} />
-            ))}
+            {(featuredCards.length ? featuredCards : destinations).map((card) => {
+              if (card.cta_label || card.effective_title || card.destination_slug) {
+                return (
+                  <motion.div
+                    key={card.id || card.destination_slug}
+                    className="card-base group overflow-hidden rounded-3xl bg-white border border-slate-200/80 hover:shadow-xl hover:border-emerald-300 transition-all flex flex-col justify-between"
+                  >
+                    <div className="relative h-52 overflow-hidden bg-slate-100">
+                      <img
+                        src={card.image_url || card.effective_image_url || card.cover_image_url || "/images/destinations/annapurna/img1.jpg"}
+                        alt={card.title || card.destination_name || card.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-600/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur">
+                        📍 {card.destination_city || card.city || card.destination_province || "Nepal"}
+                      </span>
+                      {card.destination_rating || card.average_rating ? (
+                        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/70 text-amber-400 text-xs font-bold flex items-center gap-1 backdrop-blur">
+                          <FiStar size={12} className="fill-amber-400" /> {card.destination_rating || card.average_rating}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
+                          {card.title || card.destination_name || card.name}
+                        </h3>
+                        <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                          {card.short_description || card.description || ""}
+                        </p>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-400">Verified Destination</span>
+                        <Link
+                          to={card.cta_url || `/destinations/${card.destination_slug || card.slug}`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-sm transition-all"
+                        >
+                          {card.cta_label || "Explore Destination"} <FiArrowRight size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              }
+              return <DestinationCard key={card.id} destination={card} />
+            })}
           </div>
         )}
-      </section>
+      </section>}
 
-      {/* 4. EXPEDITION BLUEPRINTS & CASE STUDIES */}
-      <CaseStudiesSection />
+      {showBlock("case-studies") && <CaseStudiesSection />}
+      {showBlock("highlights") && <NepalHighlights />}
+      {(showBlock("symbols") || showBlock("culture")) && <section className="container-app py-10">
+        {showBlock("symbols") && <NationalSymbols />}
+        {showBlock("culture") && <NepalExperienceSection />}
+      </section>}
 
-      {/* 5. NEPAL HIGHLIGHTS & CULTURAL EXPERIENCES */}
-      <NepalHighlights />
-
-      <section className="container-app py-10">
-        <NationalSymbols />
-        <NepalExperienceSection />
-      </section>
-
-      {/* 6. PROVINCES DIRECTORY */}
-      <section className="container-app py-16">
+      {showBlock("provinces") && <section className="container-app py-16">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Explore Destinations by Province
@@ -304,36 +413,34 @@ export default function Landing() {
             <Link
               key={prov.name}
               to={`/destinations?q=${encodeURIComponent(prov.city)}`}
-              className="card-base p-4 text-center rounded-2xl border border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
+              className="card-base p-4 text-center rounded-2xl border border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
             >
               <span className="font-bold text-xs text-gray-900">{prov.name}</span>
-              <span className="text-[10px] text-purple-700 mt-1 font-semibold">{prov.city}</span>
+              <span className="text-[10px] text-emerald-700 mt-1 font-semibold">{prov.city}</span>
             </Link>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {/* 7. REAL TESTIMONIALS */}
-      <TestimonialsSection />
+      {showBlock("marquee") && <ProvinceMarquee />}
+      {showBlock("testimonials") && <TestimonialsSection />}
 
-      {/* 8. FAQ SECTION */}
-      <section className="container-app py-16">
+      {showBlock("faq") && <section className="container-app py-16">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Frequently Asked Questions
+            {copy("faq", "title", "Frequently Asked Questions")}
           </h2>
           <p className="text-gray-500 text-sm mt-1">
-            Everything travelers ask before embarking on their journey in Nepal.
+            {copy("faq", "body", "Everything travelers ask before embarking on their journey in Nepal.")}
           </p>
         </div>
-
         <div className="max-w-3xl mx-auto">
           <FAQAccordion items={FAQ_ITEMS} />
         </div>
-      </section>
+      </section>}
 
-      {/* 9. STICKY CONVERSION CTA */}
-      <StickyCTA />
+      {showBlock("cta") && <StickyCTA />}
+      {extras?.length > 0 && <section className="container-app py-12"><CMSExtras sections={extras} /></section>}
     </div>
   )
 }
