@@ -29,6 +29,8 @@ import CaseStudiesSection from "../components/landing/CaseStudiesSection"
 import TestimonialsSection from "../components/landing/TestimonialsSection"
 import StickyCTA from "../components/common/StickyCTA"
 import ProvinceMarquee from "../components/landing/ProvinceMarquee"
+import NepalStats from "../components/landing/NepalStats"
+import FeaturedEditorialGrid from "../components/landing/FeaturedEditorialGrid"
 
 const PROVINCES = [
   { name: "Koshi Province", city: "Biratnagar / Ilam", code: "koshi" },
@@ -312,84 +314,16 @@ export default function Landing() {
         </div>
       </section>}
 
-      {showBlock("featured") && <section className="container-app py-16">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-          <div>
-            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
-              Handpicked Wonders
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-              {copy("featured", "title", "Featured Nepal Destinations")}
-            </h2>
-          </div>
-          <Link
-            to="/destinations"
-            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 shrink-0"
-          >
-            {destCountLabel ? `View all ${destCountLabel} destinations` : "View all destinations"} <FiArrowRight size={14} />
-          </Link>
-        </div>
+      {/* Nepal, in Numbers CEE Data-Style Section */}
+      <NepalStats />
 
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <DestinationCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(featuredCards.length ? featuredCards : destinations).map((card) => {
-              if (card.cta_label || card.effective_title || card.destination_slug) {
-                return (
-                  <motion.div
-                    key={card.id || card.destination_slug}
-                    className="card-base group overflow-hidden rounded-3xl bg-white border border-slate-200/80 hover:shadow-xl hover:border-emerald-300 transition-all flex flex-col justify-between"
-                  >
-                    <div className="relative h-52 overflow-hidden bg-slate-100">
-                      <img
-                        src={card.image_url || card.effective_image_url || card.cover_image_url || "/images/destinations/annapurna/img1.jpg"}
-                        alt={card.title || card.destination_name || card.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                      <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-600/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur">
-                        📍 {card.destination_city || card.city || card.destination_province || "Nepal"}
-                      </span>
-                      {card.destination_rating || card.average_rating ? (
-                        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/70 text-amber-400 text-xs font-bold flex items-center gap-1 backdrop-blur">
-                          <FiStar size={12} className="fill-amber-400" /> {card.destination_rating || card.average_rating}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
-                          {card.title || card.destination_name || card.name}
-                        </h3>
-                        <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                          {card.short_description || card.description || ""}
-                        </p>
-                      </div>
-
-                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-slate-400">Verified Destination</span>
-                        <Link
-                          to={card.cta_url || `/destinations/${card.destination_slug || card.slug}`}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-sm transition-all"
-                        >
-                          {card.cta_label || "Explore Destination"} <FiArrowRight size={14} />
-                        </Link>
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              }
-              return <DestinationCard key={card.id} destination={card} />
-            })}
-          </div>
-        )}
-      </section>}
+      {/* Featured Editorial Grid Showcase (Everest, Annapurna, Mustang) */}
+      {showBlock("featured") && (
+        <FeaturedEditorialGrid
+          destinations={destinations}
+          featuredCards={featuredCards}
+        />
+      )}
 
       {showBlock("case-studies") && <CaseStudiesSection />}
       {showBlock("highlights") && <NepalHighlights />}
