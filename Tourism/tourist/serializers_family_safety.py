@@ -5,7 +5,7 @@ lines, rather than growing that file further)
 """
 from rest_framework import serializers
 
-from .models import TrustedContact, SharedTrip, LocationPing, SOSAlert
+from .models import TrustedContact, SharedTrip, LocationPing, SOSAlert, FamilyLink
 
 
 class TrustedContactSerializer(serializers.ModelSerializer):
@@ -71,3 +71,58 @@ class SOSAlertSerializer(serializers.ModelSerializer):
             "triggered_at", "resolved_at", "notified_contacts",
         ]
         read_only_fields = ["id", "triggered_at", "resolved_at", "notified_contacts"]
+
+class FamilyLinkSerializer(serializers.ModelSerializer):
+    """A family link from the perspective of the requesting user."""
+
+    member_id = serializers.IntegerField(read_only=True)
+    member_name = serializers.SerializerMethodField()
+    member_username = serializers.SerializerMethodField()
+    requester_name = serializers.SerializerMethodField()
+    requester_username = serializers.SerializerMethodField()
+    direction = serializers.SerializerMethodField()
+    username_or_email = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = FamilyLink
+        fields = [
+            "id", "requester", "member", "member_id", "member_name", "member_username",
+            "requester_name", "requester_username", "relationship", "status",
+            "direction", "username_or_email", "created_at", "accepted_at",
+        ]
+        read_only_fields = ["id", "requester", "member", "created_at", "accepted_at"]
+
+    def get_member_name(self, obj):
+        u = obj.member
+        return (u.first_name or u.full_name or u.email or "").strip() or u.email
+
+    def get_member_username(self, obj):
+        return getattr(obj.member, "username", "") or obj.member.email or obj.member.id
+
+    def get_requester_name(self, obj):
+        u = obj.requester
+        return (u.first_name or u.full_name or u.email or "").strip() or u.email
+
+    def get_requester_username(self, obj):
+        return getattr(obj.requester, "username", "") or obj.requester.email or obj.requester.id
+
+    def get_direction(self, obj):
+        request = self.context.get("request")
+        if request and obj.requester_id == request.user.id:
+            return "sent"
+        return "received"
+
+
+class FamilyMemberSerializer(serializers.Serializer):
+    """Live status of an accepted family member (for the family dashboard)."""
+
+    link_id = serializers.IntegerField()
+    user_id = serializers.IntegerField()
+    name = serializers.CharField()
+    username = serializers.CharField()
+    relationship = serializers.CharField(allow_blank=True)
+    is_live = serializers.BooleanField()
+    live_trip = serializers.DictField(allow_null=True, required=False)
+    latest_ping = serializers.DictField(allow_null=True, required=False)
+    history = serializers.ListField(child=serializers.DictField(), required=False)
+    active_sos = serializers.ListField(child=serializers.DictField(), required=False)

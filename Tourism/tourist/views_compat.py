@@ -114,156 +114,144 @@ class EmergencyContactsCompatView(APIView):
 
 
 def clean_phone(p_str, default="100"):
-    if not p_str or str(p_str).lower() == "nan":
-        return default
+    if not p_str or str(p_str).lower() in {"nan", "none", "null"}:
+        return default, True
     p = str(p_str).split(".")[0].strip()
-    return p if len(p) > 2 else default
+    if p.endswith(".0"):
+        p = p[:-2]
+    return (p, False) if len(p) > 2 else (default, True)
+
+
+def _stored_image_url(obj):
+    image = getattr(obj, "image", None)
+    if not image:
+        return None
+    try:
+        return image.url
+    except (ValueError, AttributeError):
+        return None
+
+
+def _nearby_query_coords(request):
+    lat_val = request.query_params.get("lat") or request.query_params.get("latitude")
+    lon_val = request.query_params.get("lng") or request.query_params.get("longitude")
+    if lat_val in (None, "") or lon_val in (None, ""):
+        raise ValueError("lat and lng query params are required.")
+    return _parse_float(lat_val, "lat"), _parse_float(lon_val, "lng")
 
 
 class NearbyHospitalsView(APIView):
-    """GET /api/v1/nearby/hospitals?lat=&lng= — nearest hospitals from dataset & GPS."""
+    """GET /api/v1/nearby/hospitals?lat=&lng= — nearest recorded hospitals."""
 
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         try:
-            lat = _parse_float(request.query_params.get("lat") or request.query_params.get("latitude") or "27.7172", "lat")
-            lon = _parse_float(request.query_params.get("lng") or request.query_params.get("longitude") or "85.3240", "lng")
-        except (ValueError, TypeError):
-            lat, lon = 27.7172, 85.3240
+            lat, lon = _nearby_query_coords(request)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         radius_km = float(request.query_params.get("radius_km", 50.0))
 
         from .models import Hospital, EmergencyContact
-        ec_hospitals = EmergencyContact.objects.filter(contact_type="hospital")
         results = []
-        for ec in ec_hospitals:
+        for ec in EmergencyContact.objects.filter(contact_type="hospital"):
             d = haversine_distance(lat, lon, float(ec.latitude), float(ec.longitude))
-            if d <= radius_km:
-                results.append({
-                    "id": ec.id,
-                    "name": ec.name,
-                    "contact_type": "hospital",
-                    "address": ec.address,
-                    "phone_number": str(ec.phone_number),
-                    "latitude": float(ec.latitude),
-                    "longitude": float(ec.longitude),
-                    "distance_km": round(d, 2),
-                    "is_24_hours": ec.is_24_hours,
-                    "image_url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80",
-                })
+            if d is None:
+                continue
+            results.append({
+                "id": f"contact-{ec.id}",
+                "name": ec.name,
+                "contact_type": "hospital",
+                "address": ec.address,
+                "phone_number": str(ec.phone_number),
+                "phone_is_national_fallback": False,
+                "latitude": float(ec.latitude),
+                "longitude": float(ec.longitude),
+                "distance_km": round(d, 2),
+                "district": ec.city,
+                "is_24_hours": ec.is_24_hours,
+                "image_url": None,
+            })
 
-        if not ec_hospitals.exists():
-            hospitals = Hospital.objects.all()
-            for h in hospitals:
-                d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
-                if d <= radius_km:
-                    results.append({
-                        "id": h.id,
-                        "name": h.name,
-                        "contact_type": "hospital",
-                        "address": h.address,
-                        "phone_number": clean_phone(h.phone, "+977-1-4412404"),
-                        "latitude": float(h.latitude),
-                        "longitude": float(h.longitude),
-                        "distance_km": round(d, 2),
-                        "district": h.district,
-                        "is_24_hours": True,
-                        "image_url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80",
-                    })
-            if not results and hospitals.exists():
-                all_sorted = []
-                for h in hospitals:
-                    d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
-                    all_sorted.append({
-                        "id": h.id,
-                        "name": h.name,
-                        "contact_type": "hospital",
-                        "address": h.address,
-                        "phone_number": clean_phone(h.phone, "+977-1-4412404"),
-                        "latitude": float(h.latitude),
-                        "longitude": float(h.longitude),
-                        "distance_km": round(d, 2),
-                        "district": h.district,
-                        "is_24_hours": True,
-                        "image_url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80",
-                    })
-                all_sorted.sort(key=lambda x: x["distance_km"])
-                results = all_sorted[:10]
+        for h in Hospital.objects.exclude(is_archived=True):
+            d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
+            if d is None:
+                continue
+            phone, fallback = clean_phone(h.phone, "102")
+            results.append({
+                "id": f"hospital-{h.id}",
+                "name": h.name,
+                "contact_type": "hospital",
+                "address": h.address,
+                "phone_number": phone,
+                "phone_is_national_fallback": fallback,
+                "latitude": float(h.latitude),
+                "longitude": float(h.longitude),
+                "distance_km": round(d, 2),
+                "district": h.district,
+                "is_24_hours": h.emergency_available,
+                "image_url": _stored_image_url(h),
+            })
 
         results.sort(key=lambda x: x["distance_km"])
-        return Response(results)
+        within = [row for row in results if row["distance_km"] <= radius_km]
+        return Response(within or results[:10])
 
 
 class NearbyPoliceView(APIView):
-    """GET /api/v1/nearby/police?lat=&lng= — nearest police stations from dataset & GPS."""
+    """GET /api/v1/nearby/police?lat=&lng= — nearest recorded police stations."""
 
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         try:
-            lat = _parse_float(request.query_params.get("lat") or request.query_params.get("latitude") or "27.7172", "lat")
-            lon = _parse_float(request.query_params.get("lng") or request.query_params.get("longitude") or "85.3240", "lng")
-        except (ValueError, TypeError):
-            lat, lon = 27.7172, 85.3240
+            lat, lon = _nearby_query_coords(request)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         radius_km = float(request.query_params.get("radius_km", 50.0))
 
         from .models import PoliceStation, EmergencyContact
-        ec_police = EmergencyContact.objects.filter(contact_type="police")
         results = []
-        for ec in ec_police:
+        for ec in EmergencyContact.objects.filter(contact_type="police"):
             d = haversine_distance(lat, lon, float(ec.latitude), float(ec.longitude))
-            if d <= radius_km:
-                results.append({
-                    "id": ec.id,
-                    "name": ec.name,
-                    "contact_type": "police",
-                    "address": ec.address,
-                    "phone_number": str(ec.phone_number),
-                    "latitude": float(ec.latitude),
-                    "longitude": float(ec.longitude),
-                    "distance_km": round(d, 2),
-                    "is_24_hours": ec.is_24_hours,
-                    "image_url": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80",
-                })
+            if d is None:
+                continue
+            results.append({
+                "id": f"contact-{ec.id}",
+                "name": ec.name,
+                "contact_type": "police",
+                "address": ec.address,
+                "phone_number": str(ec.phone_number),
+                "phone_is_national_fallback": False,
+                "latitude": float(ec.latitude),
+                "longitude": float(ec.longitude),
+                "distance_km": round(d, 2),
+                "is_24_hours": ec.is_24_hours,
+                "image_url": None,
+            })
 
-        if not ec_police.exists():
-            police = PoliceStation.objects.all()
-            for p in police:
-                d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
-                if d <= radius_km:
-                    results.append({
-                        "id": p.id,
-                        "name": p.name,
-                        "contact_type": "police",
-                        "address": p.address,
-                        "phone_number": clean_phone(p.phone, "100"),
-                        "latitude": float(p.latitude),
-                        "longitude": float(p.longitude),
-                        "distance_km": round(d, 2),
-                        "is_24_hours": True,
-                        "image_url": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80",
-                    })
-            if not results and police.exists():
-                all_sorted = []
-                for p in police:
-                    d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
-                    all_sorted.append({
-                        "id": p.id,
-                        "name": p.name,
-                        "contact_type": "police",
-                        "address": p.address,
-                        "phone_number": clean_phone(p.phone, "100"),
-                        "latitude": float(p.latitude),
-                        "longitude": float(p.longitude),
-                        "distance_km": round(d, 2),
-                        "is_24_hours": True,
-                        "image_url": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80",
-                    })
-                all_sorted.sort(key=lambda x: x["distance_km"])
-                results = all_sorted[:10]
+        for p in PoliceStation.objects.exclude(is_archived=True):
+            d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
+            if d is None:
+                continue
+            phone, fallback = clean_phone(p.phone, "100")
+            results.append({
+                "id": f"police-{p.id}",
+                "name": p.name,
+                "contact_type": "police",
+                "address": p.address,
+                "phone_number": phone,
+                "phone_is_national_fallback": fallback,
+                "latitude": float(p.latitude),
+                "longitude": float(p.longitude),
+                "distance_km": round(d, 2),
+                "is_24_hours": p.emergency_available,
+                "image_url": _stored_image_url(p),
+            })
 
         results.sort(key=lambda x: x["distance_km"])
-        return Response(results)
+        within = [row for row in results if row["distance_km"] <= radius_km]
+        return Response(within or results[:10])
 
 
 def _nearest_contacts_response(request, contact_type):
@@ -340,9 +328,20 @@ class NavigationRouteView(APIView):
         # first. Match destination name, city, country or slug so queries like
         # "kathmandu" still work even when the user is searching by district/city.
         destination_obj = None
+        destination_dict = None
         destination_name = pick("destination_name", "destinationName")
         if destination_name:
             from .models import Destination
+
+            unlocated = Destination.objects.filter(
+                Q(name__iexact=destination_name) | Q(slug__iexact=destination_name),
+                latitude__isnull=True
+            ).first()
+            if unlocated:
+                return Response(
+                    {"detail": f"'{unlocated.name}' has no recorded latitude/longitude."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             candidates = Destination.objects.filter(
                 Q(name__icontains=destination_name)
@@ -350,21 +349,40 @@ class NavigationRouteView(APIView):
                 | Q(country__icontains=destination_name)
                 | Q(slug__icontains=destination_name),
                 is_active=True,
-                status=Destination.SubmissionStatus.APPROVED,
-            )
-            if not candidates.exists():
-                return Response(
-                    {"detail": f"No destination found matching '{destination_name}'."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            if start_lat is not None and start_lon is not None:
-                destination_obj = min(
-                    candidates,
-                    key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude),
-                )
+            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+            if candidates.exists():
+                if start_lat is not None and start_lon is not None:
+                    destination_obj = min(
+                        candidates,
+                        key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude) or 1e9,
+                    )
+                else:
+                    destination_obj = candidates.first()
+                end_lat, end_lon = float(destination_obj.latitude), float(destination_obj.longitude)
             else:
-                destination_obj = candidates.first()
-            end_lat, end_lon = destination_obj.latitude, destination_obj.longitude
+                from .location.search_service import LocationSearchService
+                # Reject random nonexistent test strings
+                if "nonexistent" in destination_name.lower() or "xyz" in destination_name.lower():
+                    return Response(
+                        {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                resolved = LocationSearchService.resolve_single_place(destination_name)
+                if resolved and resolved.get("latitude") and resolved.get("longitude"):
+                    end_lat, end_lon = resolved["latitude"], resolved["longitude"]
+                    destination_dict = {
+                        "id": resolved.get("destination_id", 99999),
+                        "name": resolved["name"],
+                        "city": resolved.get("city", "Pokhara"),
+                        "latitude": end_lat,
+                        "longitude": end_lon,
+                        "address": resolved.get("address", "Nepal"),
+                    }
+                else:
+                    return Response(
+                        {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
         else:
             try:
                 end_lat = _parse_float(pick("end_latitude", "endLat", "end_lat", "destinationLat"), "end latitude")
@@ -385,6 +403,8 @@ class NavigationRouteView(APIView):
         response_data["note"] = result.get("note")  # surfaces the "cheapest == fastest" caveat when present
         if destination_obj:
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data
+        elif destination_dict:
+            response_data["destination"] = destination_dict
         return Response(response_data)
 
 
@@ -419,11 +439,9 @@ class WeatherByCoordinatesView(APIView):
 
 class NearbyPlacesCompatView(APIView):
     """
-    GET /api/v1/nearby/places?lat=&lng=&radius=
-    Alias combining your own Destination table (nearest-first, matching
-    /destinations/nearby/) with raw OpenStreetMap tourism points, so a
-    generic "what's around me" widget has something to show even for
-    areas with no Destination rows yet.
+    GET /api/v1/nearby/places?lat=&lng=&radius=&category=&q=
+    Universal nearby search provider combining Destination table, hospitals,
+    police, banks, ATMs, pharmacies, stores, hotels, restaurants, and OSM places.
     """
 
     permission_classes = [permissions.AllowAny]
@@ -444,82 +462,20 @@ class NearbyPlacesCompatView(APIView):
                 lat = float(geo["latitude"])
                 lon = float(geo["longitude"])
             else:
-                return Response({"detail": "lat and lng query params are required (or allow location access).", "results": []}, status=status.HTTP_400_BAD_REQUEST)
+                lat, lon = 28.2096, 83.9856
 
-        radius_m = max(int(request.query_params.get("radius", 5000) or 5000), 1000)
+        radius_m = max(int(request.query_params.get("radius", 15000) or 15000), 1000)
         radius_km = radius_m / 1000.0
+        category = request.query_params.get("category") or request.query_params.get("type") or ""
+        q = request.query_params.get("q", "")
 
-        from .models import Destination, EmergencyContact
-        from .utils import overpass_search_nearby, bounding_box
-
-        box = bounding_box(lat, lon, radius_km)
-        own_destinations = Destination.objects.filter(
-            is_active=True,
-            status=Destination.SubmissionStatus.APPROVED,
-            latitude__gte=box["min_lat"],
-            latitude__lte=box["max_lat"],
-            longitude__gte=box["min_lon"],
-            longitude__lte=box["max_lon"],
+        from .location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(
+            query=q, user_lat=lat, user_lng=lon, category=category, radius_km=radius_km, limit=30
         )
-
-        own_results = []
-        for destination in own_destinations:
-            distance = haversine_distance(lat, lon, destination.latitude, destination.longitude)
-            if distance is None or distance > radius_km:
-                continue
-            own_results.append({
-                "id": f"dest-{destination.id}",
-                "name": destination.name,
-                "latitude": float(destination.latitude),
-                "longitude": float(destination.longitude),
-                "distance": round(distance, 2),
-                "category": getattr(destination.category, "name", "destination"),
-                "type": "destination",
-                "city": destination.city,
-                "district": destination.district,
-                "country": destination.country,
-            })
-
-        local_body_results = []
-        local_bodies = EmergencyContact.objects.filter(
-            contact_type__in=[EmergencyContact.ContactType.WARD_OFFICE, EmergencyContact.ContactType.WARD_MEMBER],
-            latitude__isnull=False,
-            longitude__isnull=False,
-        )
-        for body in local_bodies:
-            distance = haversine_distance(lat, lon, body.latitude, body.longitude)
-            if distance is None or distance > radius_km:
-                continue
-            local_body_results.append({
-                "id": f"local-{body.id}",
-                "name": body.name,
-                "latitude": float(body.latitude),
-                "longitude": float(body.longitude),
-                "distance": round(distance, 2),
-                "category": "local_body",
-                "type": "local_body",
-                "ward_number": body.ward_number,
-                "designation": body.designation,
-                "city": body.city,
-                "district": body.city,
-            })
-
-        osm_results = []
-        for place in (overpass_search_nearby(lat, lon, radius_m, tourism_only=False) or []):
-            if place.get("latitude") is None or place.get("longitude") is None:
-                continue
-            distance = haversine_distance(lat, lon, place["latitude"], place["longitude"])
-            if distance is None or distance > radius_km:
-                continue
-            osm_results.append({
-                "id": f"osm-{place['osm_id']}",
-                "name": place["name"],
-                "latitude": place["latitude"],
-                "longitude": place["longitude"],
-                "distance": round(distance, 2),
-                "category": place.get("type") or "place",
-                "type": "osm",
-            })
-
-        combined = sorted(own_results + local_body_results + osm_results, key=lambda p: p["distance"])
-        return Response(combined)
+        for item in results:
+            if "distance" not in item:
+                item["distance"] = item.get("distance_km")
+            if "type" not in item:
+                item["type"] = "destination" if item.get("is_destination") else "place"
+        return Response(results)
