@@ -18,6 +18,7 @@ from . import views_osm
 from . import views_marketplace
 from . import views_emergency_admin
 from . import views_navigation
+from . import views_local
 from .serializers import UserProfileSerializer
 
 
@@ -60,6 +61,7 @@ router.register("safety/sos", views_family_safety.SOSAlertViewSet, basename="sos
 router.register("safety/family-links", views_family_safety.FamilyLinkViewSet, basename="family-link")
 router.register("expense-feedback", views.TravelExpenseFeedbackViewSet, basename="expense-feedback")
 router.register("risk-feedback", views.TravelRiskFeedbackViewSet, basename="risk-feedback")
+router.register("user/personal-details", views_local.PersonalDetailViewSet, basename="personal-detail")
 router.register("admin/destination-features", views.DestinationFeatureProfileViewSet, basename="admin-destination-features")
 router.register("admin/risk-incidents", views.RiskIncidentAdminViewSet, basename="admin-risk-incidents")
 router.register("admin/current-hazards", views.CurrentHazardAdminViewSet, basename="admin-current-hazards")
@@ -234,7 +236,21 @@ urlpatterns = [
     # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)
     path("postcard/<path:path_info>", views.destination_postcard, name="destination-postcard"),
     path("safety/trip-share/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public"),
+    # Alias: every share link the frontend copies points at /safety/shared/<token>/
+    # (FamilySafety.jsx copyShareLink + SharedTripView.jsx route), so the API
+    # must serve that path too.
+    path("safety/shared/<uuid:token>/", views_family_safety.SharedTripPublicView.as_view(), name="shared-trip-public-alias"),
     path("safety/family/members/", views_family_safety.FamilyMembersView.as_view(), name="family-members"),
+
+    # Local Guide Dashboard + Personal Details (views_local.py)
+    # Both slashless and slashed variants: the frontend calls /local/places
+    # without a trailing slash and Django's APPEND_SLASH can't redirect POSTs.
+    path("local/places/<int:pk>/images/", views_local.LocalPlaceImageView.as_view(), name="local-place-image"),
+    path("local/places/<int:pk>/images", views_local.LocalPlaceImageView.as_view()),
+    path("local/places/<int:pk>/", views_local.LocalPlaceSubmissionView.as_view(), name="local-place-detail"),
+    path("local/places/<int:pk>", views_local.LocalPlaceSubmissionView.as_view()),
+    path("local/places/", views_local.LocalPlaceSubmissionView.as_view(), name="local-place-list"),
+    path("local/places", views_local.LocalPlaceSubmissionView.as_view()),
 
     # Router includes
     path("", include(router.urls)),

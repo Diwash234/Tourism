@@ -3025,3 +3025,37 @@ class MarketplaceOrderItem(TimeStampedModel):
 
     def __str__(self):
         return f"{self.title} × {self.quantity}"
+
+
+# ---------------------------------------------------------------------------
+# Personal travel details (PersonalDetails.jsx -> /user/personal-details/)
+class PersonalDetail(TimeStampedModel):
+    """
+    A traveller's own document / emergency-contact record -- "self" or a
+    travelling relative. Private to the owning user.
+    """
+
+    class RelationTag(models.TextChoices):
+        SELF = "self", "Self"
+        RELATIVE = "relative", "Relative"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="personal_details"
+    )
+    full_name = models.CharField(max_length=150)
+    relation_tag = models.CharField(
+        max_length=10, choices=RelationTag.choices, default=RelationTag.SELF
+    )
+    relation = models.CharField(max_length=60, blank=True, help_text="e.g. 'Spouse', 'Father'")
+    phone = models.CharField(max_length=30, blank=True)
+    id_type = models.CharField(max_length=50, blank=True, help_text="Passport / Citizenship / License")
+    id_number = models.CharField(max_length=100, blank=True)
+    nationality = models.CharField(max_length=80, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["relation_tag", "-created_at"]
+        indexes = [models.Index(fields=["user", "relation_tag"])]
+
+    def __str__(self):
+        return f"{self.full_name} ({self.relation_tag}) for {self.user_id}"
