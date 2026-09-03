@@ -34,7 +34,7 @@ export default function StickyCTA() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-40 items-center gap-4 px-5 py-2.5 rounded-full bg-gray-950/90 text-white border border-purple-500/40 shadow-2xl backdrop-blur-md"
+            className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-40 items-center gap-4 px-5 py-2.5 rounded-full bg-gray-950/90 text-white border border-[#1D5146]/40 shadow-2xl backdrop-blur-md"
           >
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
@@ -55,7 +55,7 @@ export default function StickyCTA() {
               </Link>
               <Link
                 to="/budget-estimator"
-                className="px-3.5 py-1.5 rounded-full bg-purple-900/80 hover:bg-purple-800 text-purple-200 text-xs font-bold border border-purple-700/60 transition-colors"
+                className="px-3.5 py-1.5 rounded-full bg-[#102A2E]/80 hover:bg-[#1D5146] text-purple-200 text-xs font-bold border border-purple-700/60 transition-colors"
               >
                 Estimate Cost
               </Link>
@@ -68,9 +68,9 @@ export default function StickyCTA() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-2xl pb-[max(0.65rem,env(safe-area-inset-bottom))]">
         <Link
           to="/destinations"
-          className="flex-1 py-2.5 px-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/20"
+          className="flex-1 py-2.5 px-3 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-[#102A2E]/20"
         >
-          <FiCompass size={14} /> Explore 5,800+ Places
+          <FiCompass size={14} /> Explore places
         </Link>
         <Link
           to="/emergency"

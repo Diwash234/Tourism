@@ -15,6 +15,7 @@ import EmptyState from "../components/common/EmptyState";
 import Filter from "../components/common/Filter";
 import BarChartCard from "../components/charts/BarChartCard";
 import useToast from "../hooks/useToast";
+import DestinationRiskPanel from "../components/risk/DestinationRiskPanel";
 
 const LEVEL_OPTIONS = [
   { label: "Low", value: "low" },
@@ -111,7 +112,7 @@ const RiskAlertDashboard = () => {
             Live Risk Sentinel
           </span>
           <h1 className="text-3xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
-            <FiShield className="text-purple-700" /> Nepal Safety & Risk Alert Sentinel
+            <FiShield className="text-[#102A2E]" /> Nepal Safety & Risk Alert Sentinel
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Real-time hazard advisories, high-altitude weather tracking, and traveler risk assessments.
@@ -120,11 +121,13 @@ const RiskAlertDashboard = () => {
 
         <button
           onClick={() => setShowFeedbackModal(true)}
-          className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-purple-900/20 transition-all shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-[#102A2E]/20 transition-all shrink-0"
         >
           <FiPlus size={16} /> Submit Safety & Hazard Assessment
         </button>
       </div>
+
+      <DestinationRiskPanel />
 
       <SafetyOverview />
 
@@ -176,7 +179,7 @@ const RiskAlertDashboard = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 border border-purple-100 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-4 border border-[#E5E0D5] max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b pb-3">
                 <div>
@@ -200,14 +203,14 @@ const RiskAlertDashboard = () => {
                   />
                 </div>
 
-                <div className="p-4 rounded-2xl bg-purple-50 space-y-3">
+                <div className="p-4 rounded-2xl bg-[#F7F8F5] space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="font-bold text-purple-900">Did anyone become sick on this trip?</label>
+                    <label className="font-bold text-[#102A2E]">Did anyone become sick on this trip?</label>
                     <input
                       type="checkbox"
                       checked={feedbackForm.became_sick}
                       onChange={(e) => setFeedbackForm({ ...feedbackForm, became_sick: e.target.checked })}
-                      className="w-4 h-4 text-purple-600 rounded"
+                      className="w-4 h-4 text-emerald-700 rounded"
                     />
                   </div>
                   {feedbackForm.became_sick && (
@@ -307,7 +310,7 @@ const RiskAlertDashboard = () => {
                   </button>
                   <button
                     type="submit"
-                    className="btn-primary px-5 py-2.5 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-lg"
+                    className="btn-primary px-5 py-2.5 text-xs font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow-lg"
                   >
                     Submit Assessment to ML Engine
                   </button>

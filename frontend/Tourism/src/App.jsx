@@ -1,23 +1,36 @@
+import { useEffect } from "react"
 import { Routes, Route } from "react-router-dom"
+import ErrorBoundary from "./components/common/ErrorBoundary"
+import { installGlobalErrorHandlers } from "./utils/errorLogger"
+import CommandPalette from "./components/common/CommandPalette"
 
 // Layouts
 import MainLayout from "./components/layout/MainLayout"
 import DashboardLayout from "./components/layout/DashboardLayout"
+import AuthLayout from "./components/auth/AuthLayout"
 import ScrollToTop from "./components/layout/ScrollToTop"
 
 // Route Guards
 import ProtectedRoute from "./routes/ProtectedRoute"
 import AdminRoute from "./routes/AdminRoute"
+import StaffRoute from "./routes/StaffRoute"
 
 // Public Pages
 import Landing from "./pages/Landing"
 import About from "./pages/About"
 import Contact from "./pages/Contact"
+import HowItWorks from "./pages/HowItWorks"
+import PrivacyPolicy from "./pages/PrivacyPolicy"
+import TermsOfService from "./pages/TermsOfService"
+import CustomerSupport from "./pages/CustomerSupport"
 import ThankYou from "./pages/ThankYou"
 import NotFound from "./pages/NotFound"
 
 // Authentication
 import Login from "./pages/auth/Login"
+import UserLogin from "./pages/auth/UserLogin"
+import StaffLogin from "./pages/auth/StaffLogin"
+import AdminLogin from "./pages/auth/AdminLogin"
 import Register from "./pages/auth/Register"
 import ForgotPassword from "./pages/auth/ForgotPassword"
 import OAuthCallback from "./pages/auth/OAuthCallback"
@@ -27,6 +40,7 @@ import VerifyPhone from "./pages/VerifyPhone"
 import DestinationList from "./pages/destinations/DestinationList"
 import DestinationDetails from "./pages/destinations/DestinationDetails"
 import SubmitPlacePage from "./pages/SubmitPlacePage"
+import SubmitServicePage from "./pages/SubmitServicePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
 import ExploreNepalMap from "./pages/ExploreNepalMap"
 import CompareDestinations from "./pages/CompareDestinations"
@@ -61,31 +75,78 @@ import Itinerary from "./pages/Itinerary"
 import FamilySafety from "./pages/FamilySafety"
 import SharedTripView from "./pages/SharedTripView"
 
+// New Features (Remote Repository Updates)
+import Packages from "./pages/Packages"
+import PackageDetail from "./pages/PackageDetail"
+import Collaborate from "./pages/Collaborate"
+import Checkout from "./pages/Checkout"
+import PartnerDesk from "./pages/PartnerDesk"
+import TripStatus from "./pages/TripStatus"
+import TripPlanner from "./pages/TripPlanner"
+import PersonalDetails from "./pages/PersonalDetails"
+import LocalDashboard from "./pages/local/LocalDashboard"
+import LocalRoute from "./routes/LocalRoute"
+
 // Admin
 import AdminDashboard from "./pages/admin/AdminDashboard"
+import AdminLayout from "./components/admin/AdminLayout"
+import StaffLayout from "./components/admin/StaffLayout"
+import DiagnosticsCenter from "./pages/admin/DiagnosticsCenter"
 import HotelAssignments from "./pages/admin/HotelAssignments"
 import AdminTasks from "./pages/admin/Tasks"
 
 
 function App() {
+  useEffect(() => {
+    installGlobalErrorHandlers()
+    const importInterceptor = async () => {
+      try {
+        const { default: axiosClient } = await import("./api/axiosClient")
+        axiosClient.interceptors.response.use(
+          (resp) => {
+            const rid = resp.headers?.["x-request-id"]
+            if (rid) window.__LAST_REQUEST_ID__ = rid
+            return resp
+          },
+          (err) => {
+            const rid = err.response?.headers?.["x-request-id"]
+            if (rid) window.__LAST_REQUEST_ID__ = rid
+            return Promise.reject(err)
+          },
+        )
+      } catch {}
+    }
+    importInterceptor()
+  }, [])
   return (
-    <>
+    <ErrorBoundary name="App">
       <ScrollToTop />
+      <CommandPalette />
       <Routes>
 
-      {/* Public Routes */}
+      {/* Auth portals — no traveller navbar/sidebar so Admin, Staff and Traveller look different */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<UserLogin />} />
+        <Route path="/login/user" element={<UserLogin />} />
+        <Route path="/staff/login" element={<StaffLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/portal" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
+      </Route>
+
+      {/* Public traveller chrome */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/support" element={<CustomerSupport />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/knowledge-base" element={<HowItWorks />} />
         <Route path="/thank-you" element={<ThankYou />} />
-
-        {/* Auth */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        {/* Public — user isn't logged in yet during this step */}
-        <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
 
         {/* Destinations */}
         <Route path="/destinations" element={<DestinationList />} />
@@ -94,6 +155,14 @@ function App() {
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/itinerary" element={<Itinerary />} />
+        <Route path="/packages" element={<Packages />} />
+        <Route path="/packages/:slug" element={<PackageDetail />} />
+        <Route path="/collaborate" element={<Collaborate />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/trip/:reference?" element={<TripStatus />} />
+        <Route path="/trip" element={<TripStatus />} />
+        <Route path="/trip-planner" element={<TripPlanner />} />
+        <Route path="/chatbot" element={<Chatbot />} />
 
         {/* Public Emergency */}
         <Route path="/emergency" element={<Emergency />} />
@@ -107,11 +176,13 @@ function App() {
 
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/personal-details" element={<PersonalDetails />} />
           <Route path="/verify-phone" element={<VerifyPhone />} />
           <Route path="/hotels" element={<Hotels />} />
           {/* Dedicated search endpoint (richer data: image_url, destination_name) */}
           <Route path="/hotels/search" element={<HotelSearch />} />
           <Route path="/destinations/submit" element={<SubmitPlacePage />} />
+          <Route path="/submit-service" element={<SubmitServicePage />} />
           <Route path="/discover-nepal" element={<DiscoverNepal />} />
           <Route path="/explore-map" element={<ExploreNepalMap />} />
 
@@ -151,25 +222,51 @@ function App() {
           <Route path="/history" element={<History />} />
           <Route path="/expenditure" element={<Expenditure />} />
           <Route path="/my-submissions" element={<MySubmissions />} />
-          <Route path="/staff" element={<StaffDashboard />} />
-
-          <Route path="/chatbot" element={<Chatbot />} />
 
           <Route
             path="/hotels/:hotelId/book"
             element={<BookHotel />}
           />
 
-          <Route 
-            path="/my-bookings" 
-            element={<MyBooking />} 
+          <Route
+            path="/my-bookings"
+            element={<MyBooking />}
           />
+          <Route path="/partner" element={<PartnerDesk />} />
 
-          <Route 
-            path="/notifications" 
-            element={<Notifications />} 
+          <Route
+            path="/notifications"
+            element={<Notifications />}
           />
+        </Route>
+      </Route>
 
+      {/* Staff-only Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<StaffRoute />}>
+          <Route element={<StaffLayout />}>
+            <Route path="/staff" element={<StaffDashboard module="dashboard" />} />
+            <Route path="/staff/destinations" element={<StaffDashboard module="destinations" />} />
+            <Route path="/staff/images" element={<StaffDashboard module="images" />} />
+            <Route path="/staff/budget" element={<StaffDashboard module="budget" />} />
+            <Route path="/staff/safety" element={<StaffDashboard module="safety" />} />
+            <Route path="/staff/reviews" element={<StaffDashboard module="reviews" />} />
+            <Route path="/staff/hotels" element={<StaffDashboard module="hotels" />} />
+            <Route path="/staff/restaurants" element={<StaffDashboard module="restaurants" />} />
+            <Route path="/staff/transportation" element={<StaffDashboard module="transportation" />} />
+            <Route path="/staff/travel-plans" element={<StaffDashboard module="travel_plans" />} />
+            <Route path="/staff/content" element={<StaffDashboard module="content" />} />
+            <Route path="/staff/feedback" element={<StaffDashboard module="feedback" />} />
+          </Route>
+        </Route>
+      </Route>
+
+      {/* Local Guide Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<LocalRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/local/dashboard" element={<LocalDashboard />} />
+          </Route>
         </Route>
       </Route>
 
@@ -177,21 +274,14 @@ function App() {
       {/* Admin Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminRoute />}>
-          <Route element={<DashboardLayout />}>
+          <Route element={<AdminLayout />}>
             <Route 
               path="/admin" 
               element={<AdminDashboard />} 
             />
-            {/* FIXED: both fully built, both had zero routes anywhere —
-                same "built but never wired up" pattern as Bookhotel.jsx
-                earlier this session. Gated behind the same AdminRoute as
-                /admin since the backend has no way to expose a stricter
-                superadmin-only flag to the frontend yet (checked
-                UserProfileSerializer — is_superuser isn't a field on it
-                at all). The backend still enforces the real
-                superuser-only restriction on assign/delete actions. */}
             <Route path="/admin/hotel-assignments" element={<HotelAssignments />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
+            <Route path="/admin/diagnostics" element={<DiagnosticsCenter />} />
           </Route>
         </Route>
       </Route>
@@ -202,8 +292,8 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
 
-    </Routes>
-    </>
+      </Routes>
+    </ErrorBoundary>
   )
 }
 

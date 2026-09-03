@@ -230,11 +230,11 @@ export default function SubmitPlacePage() {
       <Breadcrumbs items={[{ label: "Submit a Place", to: "/destinations/submit" }]} />
 
       <div className="text-center mb-8">
-        <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+        <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           All 77 Districts & 753 Local Bodies
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 flex items-center justify-center gap-2">
-          <FiMapPin className="text-purple-700" /> Submit a New Nepal Destination
+          <FiMapPin className="text-[#102A2E]" /> Submit a New Nepal Destination
         </h1>
         <p className="text-gray-500 text-sm max-w-2xl mx-auto mt-1">
           Select or manually enter any district, municipality, village, or ward across Nepal to auto-calculate coordinates, attach photos, and submit for Admin Verification.
@@ -245,12 +245,12 @@ export default function SubmitPlacePage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
-        className="card-base p-6 sm:p-8 space-y-6 shadow-2xl border border-purple-100 rounded-3xl bg-white"
+        className="card-base p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E5E0D5] rounded-3xl bg-white"
       >
         {/* Section 1: Basic Details */}
         <div>
           <h3 className="font-bold text-base text-gray-900 border-b pb-2 flex items-center gap-2">
-            <FiCompass className="text-purple-600" /> 1. Destination Identification
+            <FiCompass className="text-emerald-700" /> 1. Destination Identification
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-xs">
             <div>
@@ -263,10 +263,10 @@ export default function SubmitPlacePage() {
                 required
               />
               {autoGeocodeMatch && (
-                <div className="mt-2 p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 flex items-center justify-between">
+                <div className="mt-2 p-2.5 rounded-xl bg-[#F7F8F5] border border-[#E5E0D5] text-xs text-[#102A2E] flex items-center justify-between">
                   <div>
                     <span className="font-bold">⚡ Auto-Geocoded:</span> {autoGeocodeMatch.district}, {autoGeocodeMatch.province}
-                    <span className="text-[11px] text-purple-700 ml-2 font-mono">
+                    <span className="text-[11px] text-[#102A2E] ml-2 font-mono">
                       (GPS: {autoGeocodeMatch.latitude?.toFixed(4)}° N, {autoGeocodeMatch.longitude?.toFixed(4)}° E · Alt: {autoGeocodeMatch.altitude})
                     </span>
                   </div>
@@ -298,7 +298,7 @@ export default function SubmitPlacePage() {
           <div className="flex items-center justify-between border-b pb-2">
             <div>
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <FiLayers className="text-purple-600" /> 2. Administrative Location (77 Districts & Municipalities)
+                <FiLayers className="text-emerald-700" /> 2. Administrative Location (77 Districts & Municipalities)
               </h3>
               <p className="text-[11px] text-gray-400">
                 Coordinates & altitude are auto-calculated. You can also toggle manual entry to type any custom Gaunpalika / Village.
@@ -310,7 +310,7 @@ export default function SubmitPlacePage() {
                 type="button"
                 onClick={() => setManualMuniMode(!manualMuniMode)}
                 className={`text-xs font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all ${
-                  manualMuniMode ? "bg-purple-700 text-white border-purple-700" : "bg-purple-50 text-purple-700 border-purple-200"
+                  manualMuniMode ? "bg-[#102A2E] text-white border-purple-700" : "bg-[#F7F8F5] text-[#102A2E] border-[#E5E0D5]"
                 }`}
               >
                 <FiEdit3 size={13} /> {manualMuniMode ? "Switch to Dropdown" : "✍️ Type Custom Village/Muni"}
@@ -318,7 +318,7 @@ export default function SubmitPlacePage() {
               <button
                 type="button"
                 onClick={handleDetectGPS}
-                className="text-xs font-bold text-purple-700 hover:text-purple-800 flex items-center gap-1 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200"
+                className="text-xs font-bold text-[#102A2E] hover:text-[#1D5146] flex items-center gap-1 bg-[#F7F8F5] px-3 py-1.5 rounded-xl border border-[#E5E0D5]"
               >
                 <FiCrosshair /> GPS Sensor
               </button>
@@ -400,7 +400,7 @@ export default function SubmitPlacePage() {
                 type="number"
                 min={1}
                 max={35}
-                className="input-field mt-1 text-xs font-bold text-purple-900"
+                className="input-field mt-1 text-xs font-bold text-[#102A2E]"
                 value={selectedWard}
                 onChange={(e) => setSelectedWard(parseInt(e.target.value, 10) || 1)}
               />
@@ -429,7 +429,7 @@ export default function SubmitPlacePage() {
           </div>
 
           {/* Coordinates readout and manual adjustments */}
-          <div className="mt-3 p-4 rounded-2xl bg-purple-50/80 border border-purple-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+          <div className="mt-3 p-4 rounded-2xl bg-[#F7F8F5]/80 border border-[#E5E0D5] grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div>
               <label className="text-[10px] text-gray-500 font-bold uppercase">Latitude (DD)</label>
               <input
@@ -452,7 +452,7 @@ export default function SubmitPlacePage() {
             </div>
             <div className="col-span-2 sm:col-span-1 flex flex-col justify-end">
               <span className="text-[10px] text-gray-500 font-bold uppercase">Location Geocode</span>
-              <p className="text-xs font-extrabold text-purple-900 mt-1">
+              <p className="text-xs font-extrabold text-[#102A2E] mt-1">
                 📍 {selectedDistrict}, Ward {selectedWard}
               </p>
             </div>
@@ -462,7 +462,7 @@ export default function SubmitPlacePage() {
         {/* Section 3: Descriptions, Cultural & Religious Background */}
         <div>
           <h3 className="font-bold text-base text-gray-900 border-b pb-2 flex items-center gap-2">
-            <FiInfo className="text-purple-600" /> 3. Detailed Descriptions & Cultural Heritage
+            <FiInfo className="text-emerald-700" /> 3. Detailed Descriptions & Cultural Heritage
           </h3>
           <div className="space-y-4 mt-4 text-xs">
             <div>
@@ -503,7 +503,7 @@ export default function SubmitPlacePage() {
         {/* Section 4: Travel Planning & Local Amenities */}
         <div>
           <h3 className="font-bold text-base text-gray-900 border-b pb-2 flex items-center gap-2">
-            <FiClock className="text-purple-600" /> 4. Travel Logistics & Nearby Services
+            <FiClock className="text-emerald-700" /> 4. Travel Logistics & Nearby Services
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-xs">
             <div>
@@ -577,11 +577,11 @@ export default function SubmitPlacePage() {
         {/* Section 5: High-Resolution Photo Uploads with Live Preview */}
         <div>
           <h3 className="font-bold text-base text-gray-900 border-b pb-2 flex items-center gap-2">
-            <FiUploadCloud className="text-purple-600" /> 5. High-Resolution Destination Photos
+            <FiUploadCloud className="text-emerald-700" /> 5. High-Resolution Destination Photos
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            <div className="p-5 border-2 border-dashed border-purple-200 rounded-2xl text-center bg-purple-50/50 hover:bg-purple-50 transition-colors">
-              <FiUploadCloud size={32} className="mx-auto text-purple-600 mb-2" />
+            <div className="p-5 border-2 border-dashed border-[#E5E0D5] rounded-2xl text-center bg-[#F7F8F5]/50 hover:bg-[#F7F8F5] transition-colors">
+              <FiUploadCloud size={32} className="mx-auto text-emerald-700 mb-2" />
               <p className="font-bold text-sm text-gray-800">Main Cover Photo *</p>
               <p className="text-xs text-gray-500 mb-2">Upload featured landscape photo</p>
               <input
@@ -591,14 +591,14 @@ export default function SubmitPlacePage() {
                 onChange={handleCoverImageChange}
               />
               {coverImagePreview && (
-                <div className="mt-3 h-32 rounded-xl overflow-hidden border border-purple-200">
+                <div className="mt-3 h-32 rounded-xl overflow-hidden border border-[#E5E0D5]">
                   <img src={coverImagePreview} alt="Cover Preview" className="w-full h-full object-cover" />
                 </div>
               )}
             </div>
 
-            <div className="p-5 border-2 border-dashed border-purple-200 rounded-2xl text-center bg-purple-50/50 hover:bg-purple-50 transition-colors">
-              <FiImage size={32} className="mx-auto text-purple-600 mb-2" />
+            <div className="p-5 border-2 border-dashed border-[#E5E0D5] rounded-2xl text-center bg-[#F7F8F5]/50 hover:bg-[#F7F8F5] transition-colors">
+              <FiImage size={32} className="mx-auto text-emerald-700 mb-2" />
               <p className="font-bold text-sm text-gray-800">Additional Gallery Photos</p>
               <p className="text-xs text-gray-500 mb-2">Upload up to 5 additional pictures</p>
               <input
@@ -611,7 +611,7 @@ export default function SubmitPlacePage() {
               {galleryPreviews.length > 0 && (
                 <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
                   {galleryPreviews.map((preview, i) => (
-                    <img key={i} src={preview} alt={`Gallery ${i}`} className="w-14 h-14 rounded-lg object-cover border border-purple-200 shrink-0" />
+                    <img key={i} src={preview} alt={`Gallery ${i}`} className="w-14 h-14 rounded-lg object-cover border border-[#E5E0D5] shrink-0" />
                   ))}
                 </div>
               )}
@@ -628,7 +628,7 @@ export default function SubmitPlacePage() {
         </button>
 
         {status && (
-          <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs leading-relaxed">
+          <div className="p-4 rounded-xl bg-[#F7F8F5] border border-[#E5E0D5] text-[#102A2E] text-xs leading-relaxed">
             {status}
           </div>
         )}

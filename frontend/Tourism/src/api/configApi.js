@@ -1,7 +1,7 @@
 import axiosClient from "./axiosClient"
 
 const configApi = {
-  getPublicConfig: () => axiosClient.get("/config/public/"),
+  getPublicConfig: (lang) => axiosClient.get("/config/public/", { params: lang ? { lang } : {} }),
 }
 
 export default configApi

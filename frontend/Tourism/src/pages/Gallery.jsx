@@ -6,309 +6,6 @@ import {
   FiMapPin, FiCompass, FiAward, FiExternalLink, FiSearch, FiFilter
 } from "react-icons/fi"
 
-const DESTINATIONS_MEDIA = [
-  {
-    key: "annapurna",
-    name: "Annapurna Sanctuary & ABC",
-    slug: "annapurna-base-camp-abc-sanctuary",
-    location: "Kaski, Gandaki Province",
-    category: "mountain",
-    tag: "🏔️ Mountains & Alpine",
-    images: [
-      { url: "/images/destinations/annapurna/img1.jpg", caption: "Annapurna Base Camp Amphitheater", category: "mountain" },
-      { url: "/images/destinations/annapurna/img2.jpg", caption: "Machhapuchhre (Fishtail) Sunrise", category: "mountain" },
-      { url: "/images/destinations/annapurna/img3.jpg", caption: "Alpine Valley Hiking Trail", category: "mountain" },
-      { url: "/images/destinations/annapurna/img4.jpg", caption: "Glacial Stream & Suspension Bridge", category: "nature" },
-      { url: "/images/destinations/annapurna/img5.jpg", caption: "Snow-Capped Annapurna South Peak", category: "mountain" },
-    ]
-  },
-  {
-    key: "everest",
-    name: "Everest Base Camp & Khumbu",
-    slug: "everest-base-camp-ebc",
-    location: "Solukhumbu, Koshi Province",
-    category: "mountain",
-    tag: "🏔️ Mountains & Alpine",
-    images: [
-      { url: "/images/destinations/everest/img1.jpg", caption: "Mt. Everest (8,848m) High Summit", category: "mountain" },
-      { url: "/images/destinations/everest/img2.jpg", caption: "Namche Bazaar Sherpa Capital", category: "village" },
-      { url: "/images/destinations/everest/img3.jpg", caption: "Tengboche Monastery with Everest Backdrop", category: "temple" },
-      { url: "/images/destinations/everest/img4.jpg", caption: "Khumbu Glacier & Icefall", category: "nature" },
-      { url: "/images/destinations/everest/img5.jpg", caption: "Prayer Flags at Kala Patthar (5,545m)", category: "mountain" },
-    ]
-  },
-  {
-    key: "pokhara",
-    name: "Pokhara & Phewa Lake",
-    slug: "phewa-lake-tal-barahi",
-    location: "Kaski, Gandaki Province",
-    category: "lake",
-    tag: "🌊 Lakes & Waters",
-    images: [
-      { url: "/images/destinations/pokhara/img1.jpg", caption: "Phewa Lake with Colorful Wooden Boats", category: "lake" },
-      { url: "/images/destinations/pokhara/img2.jpg", caption: "Tal Barahi Island Temple at Sunset", category: "temple" },
-      { url: "/images/destinations/pokhara/img3.jpg", caption: "Sarangkot Sunrise Mountain View", category: "viewpoint" },
-      { url: "/images/destinations/pokhara/img4.jpg", caption: "Paragliding over Lakeside Pokhara", category: "adventure" },
-      { url: "/images/destinations/pokhara/img5.jpg", caption: "World Peace Pagoda Overlook", category: "temple" },
-    ]
-  },
-  {
-    key: "mustang",
-    name: "Upper Mustang & Lo Manthang",
-    slug: "upper-mustang-lo-manthang",
-    location: "Mustang, Gandaki Province",
-    category: "landscape",
-    tag: "🏜️ High Altitude Deserts",
-    images: [
-      { url: "/images/destinations/mustang/img1.jpg", caption: "Walled Kingdom of Lo Manthang", category: "heritage" },
-      { url: "/images/destinations/mustang/img2.jpg", caption: "Red Clay Canyon Cliffs & Caves", category: "landscape" },
-      { url: "/images/destinations/mustang/img3.jpg", caption: "Ancient Tibetan Chortens", category: "temple" },
-      { url: "/images/destinations/mustang/img4.jpg", caption: "Kali Gandaki River Valley", category: "landscape" },
-      { url: "/images/destinations/mustang/img5.jpg", caption: "Horse Caravans along Tibetan Border", category: "culture" },
-    ]
-  },
-  {
-    key: "rara",
-    name: "Rara Lake & National Park",
-    slug: "rara-lake-national-park",
-    location: "Mugu, Karnali Province",
-    category: "lake",
-    tag: "🌊 Lakes & Waters",
-    images: [
-      { url: "/images/destinations/rara/img1.jpg", caption: "Crystal Turquoise Waters of Rara Lake", category: "lake" },
-      { url: "/images/destinations/rara/img2.jpg", caption: "Pine Forests Surrounding the Lake", category: "nature" },
-      { url: "/images/destinations/rara/img3.jpg", caption: "Murma Top Viewpoint Panorama", category: "viewpoint" },
-      { url: "/images/destinations/rara/img4.jpg", caption: "Wildflowers & Meadow Horse Riding", category: "landscape" },
-      { url: "/images/destinations/rara/img5.jpg", caption: "Morning Mist over Rara Mirror Lake", category: "lake" },
-    ]
-  },
-  {
-    key: "chitwan",
-    name: "Chitwan National Park Safari",
-    slug: "chitwan-national-park-safari",
-    location: "Sauraha, Chitwan",
-    category: "wildlife",
-    tag: "🐅 Wildlife & Safaris",
-    images: [
-      { url: "/images/destinations/chitwan/img1.jpg", caption: "One-Horned Rhinoceros in Grasslands", category: "wildlife" },
-      { url: "/images/destinations/chitwan/img2.jpg", caption: "Rapti River Sunset Canoe Ride", category: "lake" },
-      { url: "/images/destinations/chitwan/img3.jpg", caption: "Bengal Tiger Track Safari", category: "wildlife" },
-      { url: "/images/destinations/chitwan/img4.jpg", caption: "Tharu Cultural Stick Dance Performance", category: "culture" },
-      { url: "/images/destinations/chitwan/img5.jpg", caption: "Gharial Crocodile Sanctuary", category: "wildlife" },
-    ]
-  },
-  {
-    key: "lumbini",
-    name: "Lumbini Sacred Garden & Maya Devi",
-    slug: "lumbini-sacred-garden-maya-devi-temple",
-    location: "Rupandehi, Lumbini Province",
-    category: "temple",
-    tag: "🏛️ Spiritual & UNESCO Heritage",
-    images: [
-      { url: "/images/destinations/lumbini/img1.jpg", caption: "Maya Devi Temple & Sacred Pond", category: "temple" },
-      { url: "/images/destinations/lumbini/img2.jpg", caption: "Emperor Ashoka Pillar Inscription", category: "heritage" },
-      { url: "/images/destinations/lumbini/img3.jpg", caption: "World Peace Pagoda Lumbini", category: "temple" },
-      { url: "/images/destinations/lumbini/img4.jpg", caption: "Eternal Peace Flame", category: "culture" },
-      { url: "/images/destinations/lumbini/img5.jpg", caption: "Monastic Zone Architecture", category: "temple" },
-    ]
-  },
-  {
-    key: "bhaktapur",
-    name: "Bhaktapur Durbar Square",
-    slug: "bhaktapur-durbar-square",
-    location: "Bhaktapur, Bagmati Province",
-    category: "heritage",
-    tag: "🏛️ Spiritual & UNESCO Heritage",
-    images: [
-      { url: "/images/destinations/bhaktapur/img1.jpg", caption: "55-Window Palace & Golden Gate", category: "heritage" },
-      { url: "/images/destinations/bhaktapur/img2.jpg", caption: "Nyatapola 5-Story Pagoda Temple", category: "temple" },
-      { url: "/images/destinations/bhaktapur/img3.jpg", caption: "Pottery Square Clay Artisans", category: "culture" },
-      { url: "/images/destinations/bhaktapur/img4.jpg", caption: "Dattatreya Square Ancient Wood Carvings", category: "heritage" },
-      { url: "/images/destinations/bhaktapur/img5.jpg", caption: "Traditional Newari Brick Courtyards", category: "culture" },
-    ]
-  },
-  {
-    key: "patan",
-    name: "Patan Durbar Square",
-    slug: "patan-durbar-square",
-    location: "Lalitpur, Bagmati Province",
-    category: "heritage",
-    tag: "🏛️ Spiritual & UNESCO Heritage",
-    images: [
-      { url: "/images/destinations/patan/img1.jpg", caption: "Krishna Mandir Stone Pagoda Architecture", category: "temple" },
-      { url: "/images/destinations/patan/img2.jpg", caption: "Golden Temple (Hiranya Varna Mahavihar)", category: "temple" },
-      { url: "/images/destinations/patan/img3.jpg", caption: "Patan Museum Courtyard & Bronzes", category: "heritage" },
-      { url: "/images/destinations/patan/img4.jpg", caption: "Mul Chowk Royal Bath Tusha Hiti", category: "heritage" },
-      { url: "/images/destinations/patan/img5.jpg", caption: "Evening Oil Lamps at Durbar Square", category: "culture" },
-    ]
-  },
-  {
-    key: "janakpur",
-    name: "Janakpurdham & Janaki Mandir",
-    slug: "janakpurdham-janaki-mandir",
-    location: "Dhanusha, Madhesh Province",
-    category: "temple",
-    tag: "🏛️ Spiritual & UNESCO Heritage",
-    images: [
-      { url: "/images/destinations/janakpur/img1.jpg", caption: "Grand Janaki Temple (Naulakha Mandir)", category: "temple" },
-      { url: "/images/destinations/janakpur/img2.jpg", caption: "Mithila Folk Painting Murals", category: "culture" },
-      { url: "/images/destinations/janakpur/img3.jpg", caption: "Ganga Sagar Holy Bathing Ghat", category: "lake" },
-      { url: "/images/destinations/janakpur/img4.jpg", caption: "Dhanush Sagar Temple Reflection", category: "temple" },
-      { url: "/images/destinations/janakpur/img5.jpg", caption: "Vivah Mandap Monument", category: "culture" },
-    ]
-  },
-  {
-    key: "ilam",
-    name: "Ilam Tea Gardens & Kanyam",
-    slug: "ilam-tea-gardens-kanyam",
-    location: "Ilam, Koshi Province",
-    category: "landscape",
-    tag: "🌿 Tea Gardens & Landscapes",
-    images: [
-      { url: "/images/destinations/ilam/img1.jpg", caption: "Rolling Green Slopes of Kanyam Tea Estate", category: "landscape" },
-      { url: "/images/destinations/ilam/img2.jpg", caption: "Horse Riding across Tea Plantations", category: "adventure" },
-      { url: "/images/destinations/ilam/img3.jpg", caption: "Antu Danda Sunrise & Mt. Kanchenjunga", category: "viewpoint" },
-      { url: "/images/destinations/ilam/img4.jpg", caption: "Mai Pokhari Sacred Ramsar Wetland", category: "lake" },
-      { url: "/images/destinations/ilam/img5.jpg", caption: "Fresh Orthodox Tea Plucking Experience", category: "culture" },
-    ]
-  },
-  {
-    key: "nagarkot",
-    name: "Nagarkot Himalayan Viewpoint",
-    slug: "nagarkot-himalayan-sunrise-viewpoint",
-    location: "Bhaktapur/Kavre, Bagmati Province",
-    category: "viewpoint",
-    tag: "🏔️ Mountains & Alpine",
-    images: [
-      { url: "/images/destinations/nagarkot/img1.jpg", caption: "Nagarkot Sunrise over the Himalayan Range", category: "viewpoint" },
-      { url: "/images/destinations/nagarkot/img2.jpg", caption: "View of 8 Himalayan Ranges from Tower", category: "mountain" },
-      { url: "/images/destinations/nagarkot/img3.jpg", caption: "Pine Forest Nature Walking Trails", category: "nature" },
-      { url: "/images/destinations/nagarkot/img4.jpg", caption: "Terraced Farmlands & Valley Clouds", category: "landscape" },
-      { url: "/images/destinations/nagarkot/img5.jpg", caption: "Evening Golden Hour over Langtang", category: "viewpoint" },
-    ]
-  },
-  {
-    key: "tilicho",
-    name: "Tilicho Lake (4,919m)",
-    slug: "tilicho-lake-trek",
-    location: "Manang, Gandaki Province",
-    category: "lake",
-    tag: "🌊 Lakes & Waters",
-    images: [
-      { url: "/images/destinations/tilicho/img1.jpg", caption: "One of the Highest Lakes in the World", category: "lake" },
-      { url: "/images/destinations/tilicho/img2.jpg", caption: "Tilicho Peak (7,134m) Glacial Backdrop", category: "mountain" },
-      { url: "/images/destinations/tilicho/img3.jpg", caption: "High Landslide Scree Slope Trail", category: "adventure" },
-      { url: "/images/destinations/tilicho/img4.jpg", caption: "Deep Indigo Blue Alpine Water", category: "lake" },
-      { url: "/images/destinations/tilicho/img5.jpg", caption: "Tilicho Base Camp Teahouses", category: "village" },
-    ]
-  },
-  {
-    key: "bandipur",
-    name: "Bandipur Heritage Hill Station",
-    slug: "bandipur-heritage-hill-station",
-    location: "Tanahun, Gandaki Province",
-    category: "heritage",
-    tag: "🏡 Heritage Hill Stations",
-    images: [
-      { url: "/images/destinations/bandipur/img1.jpg", caption: "Preserved 18th-Century Newari Main Street", category: "heritage" },
-      { url: "/images/destinations/bandipur/img2.jpg", caption: "Thani Mai Temple Sunrise Ridge", category: "viewpoint" },
-      { url: "/images/destinations/bandipur/img3.jpg", caption: "Siddha Cave (Largest Cave in Nepal)", category: "nature" },
-      { url: "/images/destinations/bandipur/img4.jpg", caption: "Traditional Carved Wooden Balconies", category: "culture" },
-      { url: "/images/destinations/bandipur/img5.jpg", caption: "Silkworm Farm & Mountain Overlook", category: "landscape" },
-    ]
-  },
-  {
-    key: "bardiya",
-    name: "Bardiya National Park",
-    slug: "bardiya-national-park",
-    location: "Bardiya, Lumbini Province",
-    category: "wildlife",
-    tag: "🐅 Wildlife & Safaris",
-    images: [
-      { url: "/images/destinations/bardiya/img1.jpg", caption: "Wild Royal Bengal Tiger in Riverbank", category: "wildlife" },
-      { url: "/images/destinations/bardiya/img2.jpg", caption: "Karnali River Rafting & Gangetic Dolphins", category: "lake" },
-      { url: "/images/destinations/bardiya/img3.jpg", caption: "Wild Asian Elephant Herd", category: "wildlife" },
-      { url: "/images/destinations/bardiya/img4.jpg", caption: "Untamed Sal Hardwood Forests", category: "nature" },
-      { url: "/images/destinations/bardiya/img5.jpg", caption: "Tharu Indigenous Community Homestay", category: "culture" },
-    ]
-  },
-  {
-    key: "gosaikunda",
-    name: "Gosaikunda Holy Alpine Lake (4,380m)",
-    slug: "gosaikunda-holy-lake",
-    location: "Rasuwa, Bagmati Province",
-    category: "lake",
-    tag: "🌊 Lakes & Waters",
-    images: [
-      { url: "/images/destinations/gosaikunda/img1.jpg", caption: "Sacred Lake Dedicated to Lord Shiva", category: "lake" },
-      { url: "/images/destinations/gosaikunda/img2.jpg", caption: "Laurebina Pass (4,610m) View of Langtang", category: "mountain" },
-      { url: "/images/destinations/gosaikunda/img3.jpg", caption: "Surrounding Bhairav Kunda & Saraswati Kunda", category: "lake" },
-      { url: "/images/destinations/gosaikunda/img4.jpg", caption: "Janai Purnima Pilgrim Festival Gathering", category: "culture" },
-      { url: "/images/destinations/gosaikunda/img5.jpg", caption: "Snow-Dusted Glacial Basin", category: "landscape" },
-    ]
-  },
-  {
-    key: "manaslu",
-    name: "Manaslu Circuit Trek (8,163m)",
-    slug: "manaslu-circuit-trek",
-    location: "Gorkha, Gandaki Province",
-    category: "mountain",
-    tag: "🏔️ Mountains & Alpine",
-    images: [
-      { url: "/images/destinations/manaslu/img1.jpg", caption: "Mt. Manaslu 'Mountain of the Spirit'", category: "mountain" },
-      { url: "/images/destinations/manaslu/img2.jpg", caption: "Larkya La Pass (5,106m) Summit Crossing", category: "mountain" },
-      { url: "/images/destinations/manaslu/img3.jpg", caption: "Samagaun Tibetan Buddhist Village", category: "village" },
-      { url: "/images/destinations/manaslu/img4.jpg", caption: "Birendra Glacial Lake & Ice Falls", category: "lake" },
-      { url: "/images/destinations/manaslu/img5.jpg", caption: "Historic Mani Stone Walls & Chortens", category: "temple" },
-    ]
-  },
-  {
-    key: "dolpo",
-    name: "Shey Phoksundo & Upper Dolpo",
-    slug: "shey-phoksundo-national-park",
-    location: "Dolpa, Karnali Province",
-    category: "lake",
-    tag: "🌊 Lakes & Waters",
-    images: [
-      { url: "/images/destinations/dolpo/img1.jpg", caption: "Deep Turquoise Water of Shey Phoksundo", category: "lake" },
-      { url: "/images/destinations/dolpo/img2.jpg", caption: "Ringmo Bon Monastic Village", category: "culture" },
-      { url: "/images/destinations/dolpo/img3.jpg", caption: "Suligad 167m High Waterfall", category: "nature" },
-      { url: "/images/destinations/dolpo/img4.jpg", caption: "Yak Caravans across Trans-Himalayan Pass", category: "landscape" },
-      { url: "/images/destinations/dolpo/img5.jpg", caption: "Shey Gompa Crystal Mountain Sanctuary", category: "temple" },
-    ]
-  },
-  {
-    key: "koshi-tappu",
-    name: "Koshi Tappu Wildlife Reserve",
-    slug: "koshi-tappu-wildlife-reserve",
-    location: "Sunsari/Saptari, Koshi Province",
-    category: "wildlife",
-    tag: "🐅 Wildlife & Safaris",
-    images: [
-      { url: "/images/destinations/koshi-tappu/img1.jpg", caption: "Last Surviving Wild Water Buffaloes (Arna)", category: "wildlife" },
-      { url: "/images/destinations/koshi-tappu/img2.jpg", caption: "Wetland Birdwatching Paradise (500+ Species)", category: "wildlife" },
-      { url: "/images/destinations/koshi-tappu/img3.jpg", caption: "Saptakoshi River Floodplain Sunset", category: "lake" },
-      { url: "/images/destinations/koshi-tappu/img4.jpg", caption: "Gangetic River Dolphin Observation", category: "nature" },
-      { url: "/images/destinations/koshi-tappu/img5.jpg", caption: "Koshi Barrage & Migratory Flocks", category: "landscape" },
-    ]
-  },
-  {
-    key: "kathmandu",
-    name: "Kathmandu Valley & Pashupatinath",
-    slug: "pashupatinath-temple",
-    location: "Kathmandu Valley, Bagmati Province",
-    category: "temple",
-    tag: "🏛️ Spiritual & UNESCO Heritage",
-    images: [
-      { url: "/images/destinations/kathmandu/img1.jpg", caption: "Pashupatinath Temple on the Holy Bagmati River", category: "temple" },
-      { url: "/images/destinations/kathmandu/img2.jpg", caption: "Boudhanath Stupa Prayer Wheels & Kora", category: "temple" },
-      { url: "/images/destinations/kathmandu/img3.jpg", caption: "Swayambhunath Monkey Temple Hilltop", category: "temple" },
-      { url: "/images/destinations/kathmandu/img4.jpg", caption: "Kathmandu Durbar Square Taleju Temple", category: "heritage" },
-      { url: "/images/destinations/kathmandu/img5.jpg", caption: "Evening Bagmati Ganga Aarti Ritual", category: "culture" },
-    ]
-  }
-]
-
 const CATEGORY_FILTERS = [
   { id: "all", label: "All Photos (100+)" },
   { id: "mountain", label: "🏔️ Mountains & Alpine" },
@@ -319,34 +16,139 @@ const CATEGORY_FILTERS = [
   { id: "landscape", label: "🌿 Landscapes & Hills" },
 ]
 
+import destinationApi from "../api/destinationApi"
+import { getDestinationImageUrl } from "../utils/imageUtils"
+
+const normalizeGalleryCategory = (value = "") => {
+  const category = String(value).toLowerCase()
+  if (/(mountain|trek|peak|winter|viewpoint|hill)/.test(category)) return "mountain"
+  if (/(lake|river|waterfall|water-sport|wetland)/.test(category)) return "lake"
+  if (/(temple|buddhist|pilgrimage|stupa|monastery|spiritual)/.test(category)) return "temple"
+  if (/(wildlife|bird|forest|national park|eco-tourism)/.test(category)) return "wildlife"
+  if (/(heritage|museum|culture|historic|palace|city)/.test(category)) return "heritage"
+  return "landscape"
+}
+
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [destinationsMedia, setDestinationsMedia] = useState([])
+  const [galleryLoading, setGalleryLoading] = useState(true)
 
   // Lightbox state
   const [activePhoto, setActivePhoto] = useState(null)
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
   const [flatPhotoList, setFlatPhotoList] = useState([])
 
+  // Load real backend destinations into gallery
+  useEffect(() => {
+    destinationApi.getDestinations({ page_size: 100 })
+      .then(({ data }) => {
+        const list = data.results || data.items || data || []
+        if (Array.isArray(list) && list.length > 0) {
+          const existingNames = new Set()
+          const dynamicEntries = []
+          list.forEach((dest) => {
+            if (!dest.name || existingNames.has(dest.name.toLowerCase())) return
+            existingNames.add(dest.name.toLowerCase())
+            const preview = Array.isArray(dest.gallery_preview) ? dest.gallery_preview : []
+            const fallback = getDestinationImageUrl(dest)
+            const manuallyCorrected = fallback && ["hot-air-balloon-pokhara", "ultralight-flight-pokhara", "zipflyer-pokhara", "chhoser-sky-caves", "gupteswor-gupha"].some((folder) => fallback.includes(`/${folder}/`))
+            const images = manuallyCorrected
+              ? [{ url: fallback, caption: dest.name, category: normalizeGalleryCategory(dest.category_name), source: "manual_correction" }]
+              : preview.length ? preview.map((media) => ({
+                  url: media.url,
+                  caption: media.caption || dest.name,
+                  category: normalizeGalleryCategory(dest.category_name),
+                  photographer: media.photographer,
+                  license: media.license,
+                  source: media.source,
+                  verification_status: media.verification_status,
+                })) : (fallback ? [{ url: fallback, caption: dest.name, category: normalizeGalleryCategory(dest.category_name) }] : [])
+            if (!images.length) return
+            dynamicEntries.push({
+              key: dest.slug || dest.id,
+              name: dest.name,
+              slug: dest.slug,
+              location: `${dest.district || dest.city || "Nepal"}, ${dest.province || ""}`.replace(/, $/, ""),
+              category: normalizeGalleryCategory(dest.category_name),
+              tag: `🌿 Nepal Destination · ${images.length} image${images.length === 1 ? "" : "s"}`,
+              description: dest.short_description || `Explore the landscape, culture and visitor highlights of ${dest.name}.`,
+              images,
+            })
+          })
+          setDestinationsMedia((current) => [...current.filter((entry) => String(entry.key).startsWith("featured-")), ...dynamicEntries, ...current.filter((entry) => String(entry.key).startsWith("district-"))])
+        }
+      })
+      .catch(() => {})
+
+    destinationApi.getFeaturedGallery()
+      .then(({ data }) => {
+        const featuredEntries = (data.results || []).map((dest) => {
+          const preview = Array.isArray(dest.gallery_preview) ? dest.gallery_preview : []
+          const fallback = getDestinationImageUrl(dest)
+          const images = preview.length ? preview.map((media) => ({
+            url: media.url, caption: media.caption || dest.name,
+            category: normalizeGalleryCategory(dest.category_name),
+            photographer: media.photographer, license: media.license,
+            source: media.source, verification_status: media.verification_status,
+          })) : fallback ? [{ url: fallback, caption: dest.name, category: normalizeGalleryCategory(dest.category_name) }] : []
+          return {
+            key: `featured-${dest.slug || dest.id}`, name: dest.name, slug: dest.slug,
+            location: `${dest.district || dest.city || "Nepal"}, ${dest.province || ""}`.replace(/, $/, ""),
+            category: normalizeGalleryCategory(dest.category_name),
+            tag: `⭐ Featured Nepal Collection · ${images.length} image${images.length === 1 ? "" : "s"}`,
+            description: dest.short_description || `A featured visual journey through ${dest.name}, its scenery, heritage and travel experiences.`,
+            images,
+          }
+        }).filter((entry) => entry.images.length)
+        setDestinationsMedia((current) => [...featuredEntries, ...current.filter((entry) => !String(entry.key).startsWith("featured-"))])
+      })
+      .catch(() => {})
+
+    destinationApi.getDistrictGallery()
+      .then(({ data }) => {
+        const districtEntries = (data.districts || []).map((group) => ({
+          key: `district-${group.district}`,
+          name: `${group.district} District`,
+          slug: group.images?.[0]?.destination_slug,
+          location: `${group.district}, ${group.images?.[0]?.province || "Nepal"}`,
+          category: normalizeGalleryCategory(group.images?.[0]?.category_name),
+          tag: `🗺️ District Gallery · ${group.images.length} image${group.images.length === 1 ? "" : "s"}`,
+          description: `Five source-attributed views representing destinations, landscapes and cultural places connected with ${group.district} District.`,
+          images: group.images.map((media) => ({
+            url: media.url, caption: media.caption || media.destination_name,
+            category: normalizeGalleryCategory(media.category_name), photographer: media.photographer,
+            license: media.license, source: media.source,
+          })),
+        }))
+        setDestinationsMedia((current) => [...current.filter((entry) => !String(entry.key).startsWith("district-")), ...districtEntries])
+      })
+      .catch(() => {})
+      .finally(() => setGalleryLoading(false))
+  }, [])
+
   // Flatten all photos for lightbox navigation
   useEffect(() => {
     const all = []
-    DESTINATIONS_MEDIA.forEach((d) => {
+    destinationsMedia.forEach((d) => {
       d.images.forEach((img) => {
         all.push({
           ...img,
           destinationName: d.name,
           slug: d.slug,
           location: d.location,
-          photographer: "Nepal Tourism Media Archive",
-          license: "Creative Commons CC BY-SA 4.0",
+          photographer: img.photographer || "Source contributor",
+          license: img.license || "See source record",
         })
       })
     })
     setFlatPhotoList(all)
-  }, [])
+  }, [destinationsMedia])
 
-  const filteredDestinations = DESTINATIONS_MEDIA.filter((dest) => {
+  const districtMedia = destinationsMedia.filter((dest) => String(dest.key).startsWith("district-") && dest.images.length)
+
+  const filteredDestinations = destinationsMedia.filter((dest) => {
     const matchesCat = selectedCategory === "all" || dest.category === selectedCategory || dest.images.some(i => i.category === selectedCategory)
     const matchesSearch = !searchQuery.trim() || dest.name.toLowerCase().includes(searchQuery.toLowerCase()) || dest.location.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesCat && matchesSearch
@@ -382,22 +184,22 @@ export default function Gallery() {
   }, [activePhoto, activePhotoIndex, flatPhotoList])
 
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
+    <div className="container-app theme-indigo py-8 space-y-8 animate-fadeIn">
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-2">
-        <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+        <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           Visual Media & Photo Story Archive
         </span>
         <h1 className="text-3xl sm:text-4xl font-black text-gray-900 flex items-center justify-center gap-2">
           📸 Nepal Destination Photography & Visual Stories
         </h1>
         <p className="text-sm text-gray-500">
-          Explore over 100+ verified high-resolution photographs from Everest, Annapurna, Pokhara, Mustang, Rara, and all 7 Provinces with complete license and photographer attribution.
+          Explore destination-linked and source-attributed photographs from all 77 districts and 7 provinces. Imported and corrected media remains manageable through the Admin Image Dashboard.
         </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-purple-50/70 border border-purple-100 p-4 rounded-3xl">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#F7F8F5]/70 border border-[#E5E0D5] p-4 rounded-3xl">
         {/* Category Pills */}
         <div className="flex overflow-x-auto gap-2 w-full sm:w-auto no-scrollbar pb-1 sm:pb-0">
           {CATEGORY_FILTERS.map((f) => (
@@ -406,8 +208,8 @@ export default function Gallery() {
               onClick={() => setSelectedCategory(f.id)}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 selectedCategory === f.id
-                  ? "bg-purple-700 text-white shadow-md shadow-purple-900/20"
-                  : "bg-white text-gray-700 hover:bg-purple-100/60 border border-purple-200"
+                  ? "bg-[#102A2E] text-white shadow-md shadow-[#102A2E]/20"
+                  : "bg-white text-gray-700 hover:bg-emerald-100/60 border border-[#E5E0D5]"
               }`}
             >
               {f.label}
@@ -422,29 +224,55 @@ export default function Gallery() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by place or district..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-purple-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-purple-600 shadow-sm"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-[#E5E0D5] rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-purple-600 shadow-sm"
           />
         </div>
       </div>
 
+      {galleryLoading && <div className="rounded-3xl bg-[#F7F8F5] border border-[#E5E0D5] p-10 text-center text-[#1D5146] font-bold animate-pulse">Loading destination, mountain, lake and 77-district photo collections…</div>}
+
+      {/* 77-district moving visual index */}
+      {districtMedia.length > 0 && (
+        <section className="overflow-hidden rounded-3xl bg-slate-950 py-5 border border-purple-900/40">
+          <div className="px-5 mb-4 flex items-center justify-between">
+            <div><p className="text-[10px] uppercase tracking-widest text-purple-300 font-black">All Nepal District Visual Index</p><h2 className="text-white font-black text-xl">77 District Photo Marquee</h2></div>
+            <span className="text-xs text-slate-400">5 images per district · swipe or browse below</span>
+          </div>
+          <motion.div
+            className="flex gap-3 w-max px-3"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
+          >
+            {[...districtMedia, ...districtMedia].map((district, index) => (
+              <button key={`${district.key}-${index}`} onClick={() => setSearchQuery(district.name.replace(" District", ""))} className="relative w-48 h-28 shrink-0 rounded-2xl overflow-hidden border border-white/10 group">
+                <img src={district.images[index % district.images.length]?.url} alt={district.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10" />
+                <span className="absolute bottom-2 left-3 text-white text-xs font-black">{district.name}</span>
+              </button>
+            ))}
+          </motion.div>
+        </section>
+      )}
+
       {/* Destination Collections Grid */}
       <div className="space-y-10">
         {filteredDestinations.map((dest) => (
-          <div key={dest.key} className="space-y-3 bg-white p-6 rounded-3xl border border-purple-100 shadow-sm">
+          <div key={dest.key} className="space-y-3 bg-white p-6 rounded-3xl border border-[#E5E0D5] shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 text-[10px] font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#102A2E] text-[10px] font-bold">
                     {dest.tag}
                   </span>
                   <span className="text-xs text-gray-500">• {dest.location}</span>
                 </div>
                 <h3 className="text-xl font-black text-gray-900 mt-1">{dest.name}</h3>
+                {dest.description && <p className="text-xs text-gray-500 mt-1 max-w-3xl leading-relaxed">{dest.description}</p>}
               </div>
 
               <Link
                 to={`/destinations/${dest.slug}`}
-                className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow transition-all self-start sm:self-auto"
+                className="px-4 py-2 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs inline-flex items-center gap-1.5 shadow transition-all self-start sm:self-auto"
               >
                 <FiCompass size={14} /> Explore Destination ➔
               </Link>
@@ -464,8 +292,8 @@ export default function Gallery() {
                       destinationName: dest.name,
                       slug: dest.slug,
                       location: dest.location,
-                      photographer: "Nepal Tourism Media Archive",
-                      license: "Creative Commons CC BY-SA 4.0",
+                      photographer: img.photographer || "Source contributor",
+                      license: img.license || "See source record",
                     }, globalIdx)}
                   >
                     <div className="h-40 w-full relative overflow-hidden">
@@ -473,6 +301,9 @@ export default function Gallery() {
                         src={img.url}
                         alt={img.caption}
                         loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
@@ -484,7 +315,7 @@ export default function Gallery() {
 
                     <div className="p-2 bg-white text-[11px] space-y-0.5">
                       <p className="font-bold text-gray-900 truncate">{img.caption}</p>
-                      <p className="text-[9px] text-emerald-600 font-mono">✓ CC BY-SA 4.0</p>
+                      <p className="text-[9px] text-emerald-600 font-mono truncate">{img.license || "Source attribution available"}</p>
                     </div>
                   </motion.div>
                 )
@@ -509,7 +340,7 @@ export default function Gallery() {
               <div className="flex items-center gap-3">
                 <Link
                   to={`/destinations/${activePhoto.slug}`}
-                  className="px-3.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1"
+                  className="px-3.5 py-1.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs flex items-center gap-1"
                 >
                   <FiCompass size={13} /> View Place Details
                 </Link>
@@ -527,6 +358,9 @@ export default function Gallery() {
               <img
                 src={activePhoto.url}
                 alt={activePhoto.caption}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                }}
                 className="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl"
               />
               <button
@@ -556,7 +390,14 @@ export default function Gallery() {
                     activePhotoIndex === i ? "border-amber-400 scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-80"
                   }`}
                 >
-                  <img src={p.url} alt={`Thumb ${i}`} className="w-full h-full object-cover" />
+                  <img
+                    src={p.url}
+                    alt={`Thumb ${i}`}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>

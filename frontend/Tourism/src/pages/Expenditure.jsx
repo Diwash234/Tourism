@@ -30,27 +30,27 @@ export default function Expenditure() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="btn-primary px-4 py-2 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow"
+          className="btn-primary px-4 py-2 text-xs font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow"
         >
           <FiPlus /> {showForm ? "Close Form" : "Log Trip Expense"}
         </button>
       </div>
 
       {showForm && (
-        <div className="card-base p-6 max-w-xl shadow-xl border border-purple-100 rounded-3xl">
+        <div className="card-base p-6 max-w-xl shadow-xl border border-[#E5E0D5] rounded-3xl">
           <TravelExpenditureForm onSuccess={() => { setShowForm(false); loadData(); }} />
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {reports.map((exp) => (
-          <div key={exp.id} className="card-base p-5 shadow-lg border border-purple-100 rounded-2xl space-y-2">
+          <div key={exp.id} className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-2xl space-y-2">
             <div className="flex justify-between items-start">
               <h4 className="font-bold text-gray-900">{exp.destination_name}</h4>
-              <span className="text-lg font-black text-purple-900">NPR {Number(exp.total_cost).toLocaleString()}</span>
+              <span className="text-lg font-black text-[#102A2E]">NPR {Number(exp.total_cost).toLocaleString()}</span>
             </div>
             <p className="text-xs text-gray-500">{exp.num_days} Days · {exp.num_people} Person(s) · {exp.travel_mode}</p>
-            <div className="p-3 rounded-xl bg-purple-50 text-[11px] grid grid-cols-2 gap-1 text-gray-700">
+            <div className="p-3 rounded-xl bg-[#F7F8F5] text-[11px] grid grid-cols-2 gap-1 text-gray-700">
               <div>🏨 Stay: NPR {exp.accommodation_cost}</div>
               <div>🚗 Transit: NPR {exp.travel_cost}</div>
               <div>🍛 Food: NPR {exp.food_cost}</div>

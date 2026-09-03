@@ -28,7 +28,7 @@ const HotelAssignments = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(()=>{load()}, [])
 
   const handleAssign = async (e) => {
     e.preventDefault()

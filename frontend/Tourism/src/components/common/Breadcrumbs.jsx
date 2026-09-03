@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router-dom"
 import { FiChevronRight, FiHome } from "react-icons/fi"
+import { useI18n } from "../../i18n"
 
 export default function Breadcrumbs({ items = [] }) {
+  const { t } = useI18n()
   const location = useLocation()
 
   // Generate breadcrumb list if not explicitly passed
@@ -41,7 +43,7 @@ export default function Breadcrumbs({ items = [] }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
       />
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-gray-500 py-2 mb-4 overflow-x-auto no-scrollbar">
-        <Link to="/" className="hover:text-purple-700 flex items-center gap-1 font-medium">
+        <Link to="/" className="hover:text-[#102A2E] flex items-center gap-1 font-medium">
           <FiHome size={12} /> Home
         </Link>
         {breadcrumbs.map((b, idx) => {
@@ -50,11 +52,11 @@ export default function Breadcrumbs({ items = [] }) {
             <div key={idx} className="flex items-center gap-1.5 shrink-0">
               <FiChevronRight size={12} className="text-gray-300" />
               {isLast ? (
-                <span className="font-bold text-purple-900 truncate max-w-[200px]" aria-current="page">
+                <span className="font-bold text-[#102A2E] truncate max-w-[200px]" aria-current="page">
                   {b.label}
                 </span>
               ) : (
-                <Link to={b.to} className="hover:text-purple-700 font-medium truncate max-w-[150px]">
+                <Link to={b.to} className="hover:text-[#102A2E] font-medium truncate max-w-[150px]">
                   {b.label}
                 </Link>
               )}
