@@ -53,6 +53,7 @@ import RecommendationCard from "../components/cards/RecommendationCard"
 import DestinationCard from "../components/cards/DestinationCard"
 import WeatherCard from "../components/cards/WeatherCard"
 import SafetyOverview from "../components/cards/SafetyOverview"
+import { scoreFromAlerts } from "../utils/safetyScore"
 import HotelCard from "../components/cards/HotelCard"
 import NepalExperienceSection from "../components/dashboard/NepalExperienceSection"
 import NepalHighlights from "../components/dashboard/NepalHighlights"
@@ -67,13 +68,7 @@ function unwrapList(response) {
   return response?.data?.results || response?.data?.items || response?.data || []
 }
 
-function scoreFromAlerts(alerts = []) {
-  const penalty = alerts.reduce((sum, a) => {
-    const level = (a.level || a.severity || "").toLowerCase()
-    return sum + (level === "high" ? 15 : level === "moderate" ? 8 : 4)
-  }, 0)
-  return Math.max(40, 100 - penalty)
-}
+// scoreFromAlerts moved to utils/safetyScore.js (shared with RiskAlertDashboard)
 
 const Dashboard = () => {
   const { user } = useAuth()

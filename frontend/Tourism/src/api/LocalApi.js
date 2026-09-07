@@ -1,84 +1,23 @@
 import axiosClient from "./axiosClient"
 
-// Helper for client-side fallback storage when backend endpoint is not reachable
-const STORAGE_KEY = "tourism_local_places"
-const getStoredPlaces = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-const saveStoredPlaces = (places) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(places))
-  } catch {
-    // ignore quota errors
-  }
-}
-
+// Local-guide submissions ride the SAME real pipeline as SubmitPlacePage:
+//   POST   /destinations/                  (multipart, cover_image in the same request)
+//   GET    /destinations/my_submissions/   (the user's own queue, incl. pending/rejected)
+//   DELETE /destinations/{slug}/           (submitter while pending, or staff)
+//
+// Errors propagate to callers so the UI can report honest failures.
+// NOTE: this module previously swallowed every error and substituted a
+// localStorage copy that faked "saved"/"deleted" success against endpoints
+// that never existed on the backend (no /local/* routes were ever registered
+// in tourist/urls.py). That fake-success layer was removed per the project
+// brief ("no fake success messages"); nothing else imported it.
 const localApi = {
-  getMyPlaces: async () => {
-    try {
-      const res = await axiosClient.get("/local/places")
-      return res
-    } catch {
-      return { data: { items: getStoredPlaces() } }
-    }
-  },
+  getMyPlaces: (params = {}) =>
+    axiosClient.get("/destinations/my_submissions/", { params }),
 
-  addPlace: async (payload) => {
-    try {
-      const res = await axiosClient.post("/local/places", payload)
-      return res
-    } catch {
-      const newPlace = {
-        id: Date.now().toString(),
-        ...payload,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      }
-      const existing = getStoredPlaces()
-      saveStoredPlaces([newPlace, ...existing])
-      return { data: newPlace }
-    }
-  },
+  addPlace: (formData) => axiosClient.post("/destinations/", formData),
 
-  updatePlace: async (id, payload) => {
-    try {
-      const res = await axiosClient.put(`/local/places/${id}`, payload)
-      return res
-    } catch {
-      const existing = getStoredPlaces()
-      const updated = existing.map((p) => (p.id === id ? { ...p, ...payload } : p))
-      saveStoredPlaces(updated)
-      return { data: updated.find((p) => p.id === id) || payload }
-    }
-  },
-
-  deletePlace: async (id) => {
-    try {
-      const res = await axiosClient.delete(`/local/places/${id}`)
-      return res
-    } catch {
-      const existing = getStoredPlaces()
-      saveStoredPlaces(existing.filter((p) => p.id !== id))
-      return { data: { success: true } }
-    }
-  },
-
-  uploadPlaceImage: async (id, formData) => {
-    try {
-      const res = await axiosClient.post(`/local/places/${id}/images`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      return res
-    } catch {
-      return { data: { success: false, url: null, pending_local_upload: true } }
-    }
-  },
+  deletePlace: (slugOrId) => axiosClient.delete(`/destinations/${slugOrId}/`),
 }
 
 export default localApi

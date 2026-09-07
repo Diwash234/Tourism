@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 
 from .models import (
     User,
+    TravelerDocument,
     Language,
     Category,
     Destination,
@@ -1633,3 +1634,17 @@ class UserPreferenceProfileSerializer(serializers.ModelSerializer):
 
         return attrs
 
+
+
+class TravelerDocumentSerializer(serializers.ModelSerializer):
+    """Personal Details CRUD. `user` is always the request user (set in the
+    viewset's perform_create) and never accepted from the client."""
+
+    class Meta:
+        model = TravelerDocument
+        fields = [
+            "id", "full_name", "relation_tag", "relation", "phone",
+            "id_type", "id_number", "nationality", "notes",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]

@@ -3068,3 +3068,42 @@ class MarketplaceOrderItem(TimeStampedModel):
 
     def __str__(self):
         return f"{self.title} × {self.quantity}"
+
+
+class TravelerDocument(TimeStampedModel):
+    """Travel documents / IDs for the account owner and their companions.
+
+    Powers the Personal Details page ("+ Add person"). One row per person,
+    strictly scoped to the owning user by TravelerDocumentViewSet. Additive
+    model — no existing model or API contract is touched.
+    """
+
+    class RelationTag(models.TextChoices):
+        SELF = "self", "Myself"
+        RELATIVE = "relative", "Relative / companion"
+
+    class IdType(models.TextChoices):
+        PASSPORT = "passport", "Passport"
+        NATIONAL_ID = "national_id", "National ID"
+        DRIVING_LICENSE = "driving_license", "Driving License"
+        CITIZENSHIP = "citizenship", "Citizenship Certificate"
+        OTHER = "other", "Other"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="traveler_documents"
+    )
+    full_name = models.CharField(max_length=200)
+    relation_tag = models.CharField(max_length=10, choices=RelationTag.choices, default=RelationTag.SELF)
+    relation = models.CharField(max_length=100, blank=True, help_text="e.g. Spouse, Child, Friend")
+    phone = models.CharField(max_length=32, blank=True)
+    id_type = models.CharField(max_length=20, choices=IdType.choices, default=IdType.PASSPORT)
+    id_number = models.CharField(max_length=100, blank=True)
+    nationality = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True, help_text="Allergies, medical info, etc.")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Traveler document"
+
+    def __str__(self):
+        return f"{self.full_name} ({self.get_relation_tag_display()})"

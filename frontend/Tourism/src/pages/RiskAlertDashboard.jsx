@@ -12,6 +12,7 @@ import adminApi from "../api/adminApi";
 
 import AlertCard from "../components/cards/AlertCard";
 import SafetyOverview from "../components/cards/SafetyOverview";
+import { scoreFromAlerts } from "../utils/safetyScore";
 import Loader from "../components/common/Loader";
 import EmptyState from "../components/common/EmptyState";
 import Filter from "../components/common/Filter";
@@ -130,7 +131,10 @@ const RiskAlertDashboard = () => {
 
       <DestinationRiskPanel />
 
-      <SafetyOverview />
+      <SafetyOverview
+        score={scoreFromAlerts(alerts)}
+        earthquakeRisk={alerts.some((a) => /earthquake|seismic/i.test(a.title || a.type || a.alert_type || "")) ? "Alert recorded" : "No recorded alert"}
+      />
 
       <div className="flex justify-between items-center my-6">
         <Filter

@@ -20,6 +20,7 @@ from .models import (
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
+    TravelerDocument,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -33,6 +34,7 @@ from .serializers import (
     InfrastructureSubmissionSerializer, InfrastructureMediaSerializer, RiskNewsReportSerializer, DestinationFeatureProfileSerializer,
     RiskIncidentAdminSerializer, CurrentHazardAdminSerializer, RiskObservationAdminSerializer,
     RestaurantSerializer, DestinationTransitRouteSerializer, TravelPlanSerializer, TravelPlanStopSerializer,
+    TravelerDocumentSerializer,
 )
 from .utils import (
     haversine_distance, bounding_box, translate_text, notify_user,
@@ -2085,3 +2087,21 @@ def destination_postcard(request, path_info=""):
     svg = generate_postcard_svg(name, cat, dist)
     return HttpResponse(svg, content_type="image/svg+xml; charset=utf-8",
                         headers={"Cache-Control": "public, max-age=86400"})
+
+
+class TravelerDocumentViewSet(viewsets.ModelViewSet):
+    """CRUD for the requesting user's traveler documents (Personal Details page).
+
+    Every queryset is scoped to `request.user`; ownership is also re-checked on
+    update/delete via get_object() so one user can never touch another's rows.
+    """
+
+    serializer_class = TravelerDocumentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return TravelerDocument.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

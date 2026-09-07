@@ -12,7 +12,7 @@ const emptyForm = {
   relationTag: "self", // self | relative
   relation: "",
   phone: "",
-  idType: "Passport",
+  idType: "passport",
   idNumber: "",
   nationality: "",
   notes: "",
@@ -21,6 +21,7 @@ const emptyForm = {
 const PersonalDetails = () => {
   const [details, setDetails] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const { showToast } = useToast()
@@ -28,10 +29,14 @@ const PersonalDetails = () => {
 
   const load = () => {
     setLoading(true)
+    setLoadError("")
     userApi
       .getPersonalDetails()
       .then(({ data }) => setDetails(data.items || data || []))
-      .catch(() => setDetails([]))
+      .catch((err) => {
+        setDetails([])
+        setLoadError(err?.response?.data?.detail || err?.message || "Could not load your personal details.")
+      })
       .finally(() => setLoading(false))
   }
 
@@ -66,25 +71,25 @@ const PersonalDetails = () => {
         showToast("Personal details added", "success")
       }
       closeForm()
-    } catch {
-      showToast("Could not save details. Backend not connected — saved locally instead.", "info")
-      if (editingId) {
-        setDetails((prev) => prev.map((d) => (d.id === editingId ? { ...d, ...data } : d)))
-      } else {
-        setDetails((prev) => [...prev, { id: Date.now().toString(), ...data }])
-      }
-      closeForm()
+    } catch (err) {
+      // Keep the form open so nothing typed is lost; report the real reason.
+      const detail = err?.response?.data
+      const msg = typeof detail === "string" ? detail
+        : detail?.detail || (detail && Object.entries(detail)[0] ? `${Object.entries(detail)[0][0]}: ${Object.values(detail)[0]}` : "")
+        || err?.message || "Could not save details."
+      showToast(msg, "error")
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Remove ${item.fullName}'s details?`)) return
     try {
-      await userApi.deletePersonalDetails(id)
-    } catch {
-      /* remove locally regardless so the UI stays responsive */
+      await userApi.deletePersonalDetails(item.id)
+      setDetails((prev) => prev.filter((d) => d.id !== item.id))
+      showToast("Personal details removed", "success")
+    } catch (err) {
+      showToast(err?.response?.data?.detail || err?.message || "Could not remove this entry.", "error")
     }
-    setDetails((prev) => prev.filter((d) => d.id !== id))
-    showToast("Personal details removed", "info")
   }
 
   return (
@@ -133,9 +138,11 @@ const PersonalDetails = () => {
             <div>
               <label className="text-xs font-medium text-gray-500">ID Type</label>
               <select className="input-field mt-1" {...register("idType")}>
-                <option>Passport</option>
-                <option>National ID</option>
-                <option>Driving License</option>
+                <option value="passport">Passport</option>
+                <option value="national_id">National ID</option>
+                <option value="driving_license">Driving License</option>
+                <option value="citizenship">Citizenship Certificate</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div>
@@ -162,6 +169,11 @@ const PersonalDetails = () => {
 
       {loading ? (
         <Loader />
+      ) : loadError ? (
+        <div className="card-base p-6 text-center">
+          <p className="text-sm text-rose-600 mb-3">{loadError}</p>
+          <button onClick={load} className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold">Retry</button>
+        </div>
       ) : details.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {details.map((item) => (
@@ -177,7 +189,7 @@ const PersonalDetails = () => {
                   <button onClick={() => openEditForm(item)} className="text-gray-400 hover:text-indigo-500">
                     <FiEdit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500">
+                  <button onClick={() => handleDelete(item)} className="text-gray-400 hover:text-red-500">
                     <FiTrash2 size={16} />
                   </button>
                 </div>

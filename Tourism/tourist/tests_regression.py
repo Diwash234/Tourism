@@ -172,3 +172,80 @@ class CMSPublishFlowRegressionTests(TestCase):
         self.assertIsNotNone(served, "published regression page must appear in public config")
         titles = [s.get("title") for s in served.get("sections", [])]
         self.assertIn("Regression Updated", titles)
+
+
+class TravelerDocumentRegressionTests(TestCase):
+    """Pins the Personal Details page chain: /traveler-documents/ CRUD is real,
+    persisted, and strictly scoped to the owning user (no fake local saves)."""
+
+    def setUp(self):
+        self.alice = User.objects.create_user(email="alice-docs@test.local", password="Docs!Pass123")
+        self.bob = User.objects.create_user(email="bob-docs@test.local", password="Docs!Pass123")
+
+    def test_crud_is_scoped_to_owner(self):
+        client = APIClient()
+        client.force_authenticate(self.alice)
+        created = client.post("/api/v1/traveler-documents/", {
+            "full_name": "Alice Rai", "relation_tag": "self",
+            "id_type": "passport", "id_number": "P123456", "nationality": "Nepali",
+        }, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        doc_id = created.data["id"]
+
+        listed = client.get("/api/v1/traveler-documents/")
+        self.assertEqual(len(listed.data), 1)
+
+        # Bob sees none of Alice's rows and cannot touch them.
+        client.force_authenticate(self.bob)
+        self.assertEqual(len(client.get("/api/v1/traveler-documents/").data), 0)
+        self.assertEqual(client.patch(f"/api/v1/traveler-documents/{doc_id}/", {"phone": "+9779800000001"}, format="json").status_code, 404)
+        self.assertEqual(client.delete(f"/api/v1/traveler-documents/{doc_id}/").status_code, 404)
+
+        # Alice can still update + delete her own row.
+        client.force_authenticate(self.alice)
+        patched = client.patch(f"/api/v1/traveler-documents/{doc_id}/", {"relation_tag": "relative", "relation": "Spouse"}, format="json")
+        self.assertEqual(patched.status_code, 200)
+        self.assertEqual(patched.data["relation"], "Spouse")
+        self.assertEqual(client.delete(f"/api/v1/traveler-documents/{doc_id}/").status_code, 204)
+        self.assertEqual(len(client.get("/api/v1/traveler-documents/").data), 0)
+
+    def test_anonymous_denied(self):
+        resp = self.client.get("/api/v1/traveler-documents/")
+        self.assertIn(resp.status_code, (401, 403))
+
+
+class PlaceSubmissionFlowRegressionTests(TestCase):
+    """Pins the LocalDashboard / SubmitPlacePage chain: authenticated users can
+    POST /destinations/ (multipart) and the submission shows up in
+    /destinations/my_submissions/ while staying hidden from the public list."""
+
+    def test_submit_then_my_submissions(self):
+        from .models import Category, Destination
+        category = Category.objects.create(name="Heritage Test", slug="heritage-test")
+        user = User.objects.create_user(email="submitter@test.local", password="Submit!Pass123")
+
+        client = APIClient()
+        client.force_authenticate(user)
+        created = client.post("/api/v1/destinations/", {
+            "name": "Test Local Temple", "category": category.id,
+            "city": "Bandipur", "address": "Ward 4, Bandipur",
+            "description": "A locally submitted temple for regression coverage.",
+        }, format="multipart")
+        self.assertEqual(created.status_code, 201, created.content)
+        # DestinationWriteSerializer returns id (slug is generated server-side
+        # and only exposed by the read serializers) — resolve it via the model.
+        slug = Destination.objects.get(id=created.data["id"]).slug
+
+        mine = client.get("/api/v1/destinations/my_submissions/")
+        results = mine.data.get("results", mine.data)
+        self.assertIn(slug, [r["slug"] for r in results])
+        row = next(r for r in results if r["slug"] == slug)
+        self.assertEqual(row["status"], Destination.SubmissionStatus.PENDING)
+
+        # Public (anonymous) listing must not expose the pending submission.
+        public = APIClient().get("/api/v1/destinations/")
+        public_results = public.data.get("results", public.data)
+        self.assertNotIn(slug, [r["slug"] for r in public_results])
+
+        # Submitter can delete their own pending submission.
+        self.assertEqual(client.delete(f"/api/v1/destinations/{slug}/").status_code, 204)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import {
+import { FiAlertTriangle,
   FiCompass, FiMapPin, FiArrowRight, FiTrendingUp, FiShield,
   FiSun, FiCoffee, FiZap, FiUsers, FiDroplet, FiWind, FiCamera,
   FiMoon, FiAnchor, FiAperture, FiCheckCircle, FiSliders, FiBookOpen,
@@ -111,7 +111,7 @@ const EDUCATIONAL_CRAFT_FALLBACKS = [
     risk_summary: { level: "low" },
     ml_score: 0.91,
   },
-]
+].map((i) => ({ ...i, is_fallback: true, ml_score: null }))
 
 const FOOD_DESTINATIONS_FALLBACKS = [
   {
@@ -210,7 +210,7 @@ const FOOD_DESTINATIONS_FALLBACKS = [
     risk_summary: { level: "low" },
     ml_score: 0.92,
   },
-]
+].map((i) => ({ ...i, is_fallback: true, ml_score: null }))
 
 const SELECTS = {
   budget: [["any", "Any budget"], ["low", "Budget"], ["medium", "Mid-range"], ["high", "Premium"]],
@@ -282,6 +282,8 @@ export default function Recommendation() {
       if (selected.includes("educational")) fallbacks = [...fallbacks, ...EDUCATIONAL_CRAFT_FALLBACKS]
       if (selected.includes("food")) fallbacks = [...fallbacks, ...FOOD_DESTINATIONS_FALLBACKS]
       setItems(fallbacks)
+      // Degraded mode must be visible, not passed off as live model output.
+      setMeta(fallbacks.length ? { offline: true } : null)
     } finally {
       setLoading(false)
     }
@@ -381,10 +383,17 @@ export default function Recommendation() {
         </section>
 
         {meta && !loading && (
-          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-            <FiCheckCircle className="text-emerald-700" />
-            <b>Live database model</b><span>·</span><span>{meta.version || "content-v2"}</span><span>·</span><span>{items.length} unique-photo matches</span>
-          </div>
+          meta.offline ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5">
+              <FiAlertTriangle />
+              <b>Recommendation engine unreachable</b><span>·</span><span>Showing curated editorial picks instead of live model results.</span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+              <FiCheckCircle className="text-emerald-700" />
+              <b>Live database model</b><span>·</span><span>{meta.version || "content-v2"}</span><span>·</span><span>{items.length} unique-photo matches</span>
+            </div>
+          )
         )}
 
         {loading ? <Loader /> : items.length ? (
@@ -395,7 +404,9 @@ export default function Recommendation() {
                 <div className="h-52 relative overflow-hidden bg-gray-900">
                   <PlaceholderImage src={item.cover_image_url || "/images/destinations/kathmandu/durbar-square.jpg"} title={item.name} alt={item.name} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent" />
-                  <span className="absolute top-3 left-3 rounded-full px-3 py-1 bg-white/95 text-emerald-800 text-xs font-black flex items-center gap-1"><FiTrendingUp /> {Math.round((item.ml_score || 0.9) * 100)}% match</span>
+                  {item.ml_score != null
+                    ? <span className="absolute top-3 left-3 rounded-full px-3 py-1 bg-white/95 text-emerald-800 text-xs font-black flex items-center gap-1"><FiTrendingUp /> {Math.round(item.ml_score * 100)}% match</span>
+                    : <span className="absolute top-3 left-3 rounded-full px-3 py-1 bg-amber-100/95 text-amber-800 text-xs font-black flex items-center gap-1"><FiCheckCircle /> Curated pick</span>}
                   <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-black ${riskColor(item.risk_summary?.level || "low")}`}><FiShield className="inline mr-1" />{item.risk_summary?.level || "low"}</span>
                   <h3 className="absolute bottom-4 left-4 right-4 text-white text-xl font-black line-clamp-1">{item.name}</h3>
                 </div>

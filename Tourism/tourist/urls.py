@@ -67,6 +67,7 @@ router.register("admin/risk-observations", views.RiskObservationAdminViewSet, ba
 router.register("admin/destination-translations", views.DestinationTranslationAdminViewSet, basename="admin-destination-translations")
 router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
 router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
+router.register("traveler-documents", views.TravelerDocumentViewSet, basename="traveler-document")
 
 urlpatterns = [
     path("notification-preferences/", views.NotificationPreferenceView.as_view(), name="notification-preferences"),

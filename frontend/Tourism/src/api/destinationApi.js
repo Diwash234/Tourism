@@ -100,6 +100,22 @@ const destinationApi = {
   moodRecommendations: (params = {}) =>
     axiosClient.get("/destinations/mood-recommendations/", { params }),
 
+  /** User place submission — POST multipart to the real /destinations/ endpoint.
+   *  CanSubmitPlace lets any authenticated user submit; `cover_image` travels in
+   *  the same request (see DestinationWriteSerializer). SubmitPlacePage and
+   *  LocalDashboard both use this — previously SubmitPlacePage called
+   *  destinationApi.submit() which did not exist on this wrapper. */
+  submit: (formData) => axiosClient.post("/destinations/", formData),
+
+  /** The requesting user's own submissions, incl. pending/rejected
+   *  (backend action: DestinationViewSet.my_submissions). Paginated. */
+  getMySubmissions: (params = {}) =>
+    axiosClient.get("/destinations/my_submissions/", { params }),
+
+  /** Submitter (while pending) or staff can delete a submission. */
+  deleteSubmission: (slugOrId) =>
+    axiosClient.delete(`/destinations/${slugOrId}/`),
+
   getFeaturedGallery: () => axiosClient.get("/gallery/featured/"),
   getDistrictGallery: () => axiosClient.get("/gallery/districts/"),
   discoverNepal: () => axiosClient.get("/discover-nepal/"),

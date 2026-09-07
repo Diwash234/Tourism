@@ -1,5 +1,30 @@
 import axiosClient from "./axiosClient"
 
+// Personal Details field mapping: page state is camelCase, the
+// TravelerDocumentSerializer speaks snake_case.
+const docToApi = ({ fullName, relationTag, relation, phone, idType, idNumber, nationality, notes }) => ({
+  full_name: fullName,
+  relation_tag: relationTag || "self",
+  relation: relation || "",
+  phone: phone || "",
+  id_type: idType || "passport",
+  id_number: idNumber || "",
+  nationality: nationality || "",
+  notes: notes || "",
+})
+
+const docFromApi = (d) => ({
+  id: d.id,
+  fullName: d.full_name,
+  relationTag: d.relation_tag,
+  relation: d.relation,
+  phone: d.phone,
+  idType: d.id_type,
+  idNumber: d.id_number,
+  nationality: d.nationality,
+  notes: d.notes,
+})
+
 const userApi = {
   // Profile
   getProfile: () =>
@@ -113,47 +138,28 @@ const userApi = {
     throw new Error("Choose a published package from the marketplace")
   },
 
-  // Personal Details Management (with client-side fallback)
+  // Personal Details — real endpoint: /traveler-documents/ (TravelerDocumentViewSet,
+  // strictly scoped to the authenticated user). The page speaks camelCase; the
+  // API speaks snake_case, so both directions are mapped here. Errors propagate
+  // to the caller — the previous localStorage fallback faked "saved" success
+  // against a /user/personal-details/ endpoint that never existed on the backend.
   getPersonalDetails: async () => {
-    try {
-      return await axiosClient.get("/user/personal-details/")
-    } catch {
-      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
-      return { data: { items } }
-    }
+    const res = await axiosClient.get("/traveler-documents/")
+    const rows = res.data.results || res.data || []
+    return { data: rows.map(docFromApi) }
   },
 
   addPersonalDetails: async (payload) => {
-    try {
-      return await axiosClient.post("/user/personal-details/", payload)
-    } catch {
-      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
-      const newItem = { id: Date.now().toString(), ...payload }
-      localStorage.setItem("tourism_personal_details", JSON.stringify([newItem, ...items]))
-      return { data: newItem }
-    }
+    const res = await axiosClient.post("/traveler-documents/", docToApi(payload))
+    return { data: docFromApi(res.data) }
   },
 
   updatePersonalDetails: async (id, payload) => {
-    try {
-      return await axiosClient.put(`/user/personal-details/${id}/`, payload)
-    } catch {
-      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
-      const updated = items.map((item) => (item.id === id ? { ...item, ...payload } : item))
-      localStorage.setItem("tourism_personal_details", JSON.stringify(updated))
-      return { data: updated.find((item) => item.id === id) || payload }
-    }
+    const res = await axiosClient.patch(`/traveler-documents/${id}/`, docToApi(payload))
+    return { data: docFromApi(res.data) }
   },
 
-  deletePersonalDetails: async (id) => {
-    try {
-      return await axiosClient.delete(`/user/personal-details/${id}/`)
-    } catch {
-      const items = JSON.parse(localStorage.getItem("tourism_personal_details") || "[]")
-      localStorage.setItem("tourism_personal_details", JSON.stringify(items.filter((item) => item.id !== id)))
-      return { data: { success: true } }
-    }
-  },
+  deletePersonalDetails: async (id) => axiosClient.delete(`/traveler-documents/${id}/`),
 }
 
 export default userApi
