@@ -28,10 +28,13 @@ const adminApi = {
   getReviewModeration: (params) => axiosClient.get("/admin/review-moderation/", { params }),
   moderateReviews: (payload) => axiosClient.patch("/admin/review-moderation/", payload),
   updateMediaLibrary: (payload) => axiosClient.patch("/admin/media-library/", payload),
-  deleteMediaLibrary: (id) => axiosClient.delete("/admin/media-library/", { data: { id } }),
+  deleteMediaLibrary: (id, force = false) => axiosClient.delete("/admin/media-library/", { data: { id, force } }),
+  getMediaUsage: (id) => axiosClient.get("/admin/media-library/", { params: { usage_of: id } }),
   getUsers: (params) => axiosClient.get("/admin/users", { params }),
   createUser: (payload) => axiosClient.post("/admin/users", payload),
-  updateUser: (id, payload) => axiosClient.put(`/admin/users/${id}/`, payload),
+  // NOTE: the effective updateUser lives further below (PATCH — the backend
+  // AdminUsersDetailView implements patch, not put). A duplicate PUT entry
+  // used to sit here and was silently shadowed; removed (no-dupe-keys).
   updateUserStatus: (id, payload) => axiosClient.put(`/admin/users/${id}/status`, payload),
   deleteUser: (id) => axiosClient.delete(`/admin/users/${id}/`),
 

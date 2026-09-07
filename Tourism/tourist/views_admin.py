@@ -2766,6 +2766,48 @@ def _write_cropped_image(image):
     image.image.save(name, ContentFile(buffer.getvalue()), save=False)
 
 
+def _media_usage_references(image):
+    """Every live-content reference pointing at this media record.
+
+    Implements usage tracking + delete safety: an admin must see where an
+    asset is used before it can be deleted (spec: media references / delete
+    protection). Matches by stored file name, served URL, or external URL.
+    """
+    refs = []
+    needles = []
+    if image.image:
+        needles.append(image.image.name.rsplit("/", 1)[-1])
+        try:
+            needles.append(image.image.url)
+        except Exception:
+            pass
+    if image.external_url:
+        needles.append(image.external_url)
+    needles = [n for n in needles if n]
+    if not needles:
+        return refs
+
+    def hit(value):
+        return isinstance(value, str) and any(n in value for n in needles)
+
+    from .models import ContentSection, ManagedPage, HeroSlide
+    for sec in ContentSection.objects.exclude(image_url="").exclude(image_url=None):
+        if hit(sec.image_url):
+            refs.append({"type": "CMS section", "label": f"{getattr(sec.page, 'key', '?')} \u2192 {sec.key}", "id": sec.id})
+    for page in ManagedPage.objects.exclude(og_image_url="").exclude(og_image_url=None):
+        if hit(page.og_image_url):
+            refs.append({"type": "Page OG/SEO image", "label": page.key, "id": page.id})
+    for slide in HeroSlide.objects.all():
+        if hit(slide.image_url) or (slide.image and any(n in slide.image.name for n in needles)):
+            refs.append({"type": "Hero slide", "label": slide.title, "id": slide.id})
+    setting = SiteSetting.objects.filter(key="branding").first()
+    if setting and isinstance(setting.value, dict):
+        for key, value in setting.value.items():
+            if hit(value):
+                refs.append({"type": "Branding setting", "label": key, "id": setting.id})
+    return refs
+
+
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -2798,6 +2840,12 @@ class AdminMediaLibraryView(APIView):
 
     def get(self, request):
         _require_capability(request,"images","view")
+        usage_of=request.query_params.get("usage_of")
+        if usage_of:
+            image=DestinationImage.objects.filter(pk=usage_of).first()
+            if not image:return Response({"detail":"Image not found"},status=404)
+            refs=_media_usage_references(image)
+            return Response({"id":image.id,"references":refs,"total":len(refs)})
         qs=DestinationImage.objects.select_related("destination","uploaded_by").order_by("destination__name","ordering","id")
         q=request.query_params.get("q","");status_filter=request.query_params.get("status");source=request.query_params.get("source")
         if q: qs=qs.filter(Q(destination__name__icontains=q)|Q(caption__icontains=q)|Q(external_url__icontains=q))
@@ -2865,6 +2913,12 @@ class AdminMediaLibraryView(APIView):
         _require_capability(request,"images","delete")
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()
         if not image:return Response({"detail":"Image not found"},status=404)
+        force=str(request.data.get("force","")).lower() in {"1","true","yes"}
+        refs=_media_usage_references(image)
+        if refs and not force:
+            # Delete safety: never silently remove an asset that live content
+            # still points at. The admin sees the usage list and must confirm.
+            return Response({"detail":f"This image is used in {len(refs)} place(s). Review the usage list, then retry with force=true to delete anyway.","references":refs,"usage_count":len(refs)},status=409)
         destination=image.destination;was_cover=image.is_cover;image.delete()
         if was_cover:
             replacement=destination.gallery.exclude(verification_status="rejected").order_by("ordering","id").first()

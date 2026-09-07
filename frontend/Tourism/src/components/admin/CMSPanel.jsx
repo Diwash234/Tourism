@@ -53,7 +53,9 @@ export default function CMSPanel() {
   const [layoutUrl, setLayoutUrl] = useState("")
   const dirty = Boolean(selected) && json !== savedJson
   const dirtyRef = useRef(false)
-  dirtyRef.current = dirty
+  // Refs must not be written during render (react-hooks/refs); mirror the
+  // dirty flag in an effect — callbacks below read it outside of render.
+  useEffect(() => { dirtyRef.current = dirty }, [dirty])
 
   const confirmLeave = () => !dirtyRef.current || window.confirm("You have unsaved changes.\n\nStay on this record or discard the changes?")
 
@@ -123,6 +125,26 @@ export default function CMSPanel() {
   const choose = (row) => {
     if (!confirmLeave()) return
     applyRow(row)
+  }
+
+  // Section reordering: swaps the row with its neighbour and persists the
+  // full ordered id list through the existing reorder action (one call, no
+  // per-row display_order writes).
+  const moveSection = async (index, dir) => {
+    const target = index + dir
+    if (resource !== "sections" || target < 0 || target >= rows.length) return
+    const ids = rows.map((r) => r.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    setBusy(true)
+    try {
+      await adminApi.updateCMS({ resource: "sections", action: "reorder", id: ids[0], section_ids: ids })
+      await load(selected?.id)
+      showToast("Section order updated", "success")
+    } catch (e) {
+      showToast(e.response?.data?.detail || "Reorder failed", "error")
+    } finally {
+      setBusy(false)
+    }
   }
 
   const createNew = () => {
@@ -246,14 +268,34 @@ export default function CMSPanel() {
           </div>
           <div className="overflow-y-auto max-h-[65vh] p-2 space-y-1">
             {rows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records found.</p>}
-            {rows.map(row => (
-              <button onClick={() => choose(row)} key={row.id} className={`block w-full text-left p-3 rounded-xl text-xs ${selected?.id === row.id ? "bg-emerald-50 ring-1 ring-emerald-600" : "bg-slate-50 hover:bg-emerald-50"}`}>
-                <span className="font-bold text-slate-900">{displayName(row)}</span>
-                <span className="flex justify-between mt-1 text-[10px] text-slate-500">
-                  <span>#{row.id}</span>
-                  {row.status && <span className={row.status === "published" ? "text-emerald-700" : row.status === "scheduled" ? "text-sky-700" : "text-amber-700"}>{row.status}</span>}
-                </span>
-              </button>
+            {rows.map((row, idx) => (
+              <div key={row.id} className="flex items-stretch gap-1">
+                <button onClick={() => choose(row)} className={`block flex-1 min-w-0 text-left p-3 rounded-xl text-xs ${selected?.id === row.id ? "bg-emerald-50 ring-1 ring-emerald-600" : "bg-slate-50 hover:bg-emerald-50"}`}>
+                  <span className="font-bold text-slate-900">{displayName(row)}</span>
+                  <span className="flex justify-between mt-1 text-[10px] text-slate-500">
+                    <span>#{row.id}</span>
+                    {row.status && <span className={row.status === "published" ? "text-emerald-700" : row.status === "scheduled" ? "text-sky-700" : "text-amber-700"}>{row.status}</span>}
+                  </span>
+                </button>
+                {resource === "sections" && rows.length > 1 && (
+                  <div className="flex flex-col justify-center gap-0.5">
+                    <button
+                      onClick={() => moveSection(idx, -1)}
+                      disabled={idx === 0 || busy}
+                      aria-label={`Move ${displayName(row)} up`}
+                      title="Move up"
+                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
+                    >↑</button>
+                    <button
+                      onClick={() => moveSection(idx, 1)}
+                      disabled={idx === rows.length - 1 || busy}
+                      aria-label={`Move ${displayName(row)} down`}
+                      title="Move down"
+                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
+                    >↓</button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>

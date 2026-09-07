@@ -117,14 +117,25 @@ export default function MediaLibraryPanel() {
     } finally { setBusy(false) }
   }
 
-  const remove = async (image) => {
-    if (!window.confirm("Permanently remove this media record? Destination and audit records remain protected.")) return
+  const remove = async (image, force = false) => {
+    if (!force && !window.confirm("Permanently remove this media record? Destination and audit records remain protected.")) return
     try {
-      await adminApi.deleteMediaLibrary(image.id)
+      await adminApi.deleteMediaLibrary(image.id, force)
       showToast("Media removed", "success")
       load(data.page)
     } catch (error) {
-      showToast(error.response?.data?.detail || "Delete failed", "error")
+      const res = error.response
+      if (res?.status === 409 && Array.isArray(res.data?.references) && res.data.references.length) {
+        // Delete safety: the backend refused because live content still uses
+        // this asset. Show WHERE it is used and require explicit confirmation.
+        const list = res.data.references.map((r) => `\u2022 ${r.type}: ${r.label}`).join("\n")
+        const ok = window.confirm(
+          `This image is used in ${res.data.usage_count} place(s):\n\n${list}\n\nDelete anyway? Those places will lose the image.`
+        )
+        if (ok) return remove(image, true)
+        return
+      }
+      showToast(res?.data?.detail || "Delete failed", "error")
     }
   }
 
