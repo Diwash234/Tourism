@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { useParams } from "react-router-dom"
 import { FiMapPin, FiClock } from "react-icons/fi"
 import safetyApi from "../api/safetyApi"
@@ -63,10 +64,7 @@ const SharedTripView = () => {
 
   return (
     <div className="container-app py-10 max-w-2xl">
-      <h1 className="section-title flex items-center gap-2">
-        <FiMapPin className="text-himalaya-500" />
-        {trip.label || "Shared Trip"}
-      </h1>
+      <PageHeader title={<>{trip.label || "Shared Trip"}</>} icon={ FiMapPin } />
 
       {ping ? (
         <>

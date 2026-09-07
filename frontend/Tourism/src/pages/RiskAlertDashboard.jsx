@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -113,9 +114,7 @@ const RiskAlertDashboard = () => {
           <span className="px-3.5 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold uppercase tracking-wider">
             Live Risk Sentinel
           </span>
-          <h1 className="text-3xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
-            <FiShield className="text-[#102A2E]" /> Nepal Safety & Risk Alert Sentinel
-          </h1>
+          <PageHeader title="Nepal Safety & Risk Alert Sentinel" icon={FiShield} />
           <p className="text-gray-500 text-sm mt-1">
             Real-time hazard advisories, high-altitude weather tracking, and traveler risk assessments.
           </p>

@@ -1,4 +1,5 @@
 import { useForm, useWatch } from "react-hook-form"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
@@ -168,15 +169,8 @@ const BudgetEstimator = () => {
       <CMSPageIntro pageKey="budget-estimator" />
       {/* FORM */}
       <div>
-        <h1 className="section-title flex items-center gap-2">
-          <FiDollarSign className="text-saffron-600" />
-          Budget Estimator
-        </h1>
-
-        <p className="text-gray-500 text-sm mb-6">
-          Plan your Nepal trip expenses. The estimate updates automatically when
-          you change your trip details.
-        </p>
+        <PageHeader title="Budget Estimator" subtitle={<>Plan your Nepal trip expenses. The estimate updates automatically when
+          you change your trip details.</>} icon={ FiDollarSign } />
 
         <form
           onSubmit={handleSubmit(onSubmit)}

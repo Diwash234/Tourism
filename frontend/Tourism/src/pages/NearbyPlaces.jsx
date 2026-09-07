@@ -4,6 +4,7 @@
 // fields matching exactly what this page reads.
 
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import useGeolocation from "../hooks/useGeolocation"
@@ -44,10 +45,7 @@ const NearbyPlaces = () => {
 
   return (
     <div className="container-app py-10 fade-in theme-forest">
-      <h1 className="section-title flex items-center gap-2">
-        <FiMapPin className="text-himalaya-500" />
-        Nearby Places
-      </h1>
+      <PageHeader title="Nearby Places" icon={ FiMapPin } />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-xl2 overflow-hidden shadow-premium">

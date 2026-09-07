@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 
 import { getRisk as predictRisk } from "../services/mlService"
 
@@ -106,11 +107,7 @@ const Risk = () => {
     <div className="container-app py-10 theme-amber">
 
 
-      <h1 className="section-title">
-
-        Travel Safety Risk
-
-      </h1>
+      <PageHeader title="Travel Safety Risk" />
 
 
 

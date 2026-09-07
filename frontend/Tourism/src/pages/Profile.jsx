@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import PageHeader from "../components/common/PageHeader"
 import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { FiCamera, FiUser, FiMail, FiPhone, FiGlobe, FiFileText, FiMapPin, FiHeart, FiBookOpen, FiAward } from "react-icons/fi"
@@ -96,7 +97,7 @@ const Profile = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl fade-in space-y-6">
-      <h1 className="section-title">My Profile</h1>
+      <PageHeader title="My Profile" />
 
       <div className="card-base p-6 relative overflow-hidden">
         <MandalaBackground className="w-72 h-72 -top-10 -right-10 opacity-60" />

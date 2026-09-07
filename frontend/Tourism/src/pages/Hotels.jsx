@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import usePublicConfig from "../hooks/usePublicConfig"
 import CMSIntro from "../components/cms/CMSIntro"
 import { FiSearch } from "react-icons/fi"
@@ -40,13 +41,7 @@ const Hotels = () => {
       <CMSIntro section={cmsBlock("intro")} />
 
       <div>
-        <h1 className="section-title mb-2">
-          Hotels & Stays
-        </h1>
-
-        <p className="text-gray-500">
-          From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal.
-        </p>
+        <PageHeader title="Hotels & Stays" subtitle="From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal." />
       </div>
 
 

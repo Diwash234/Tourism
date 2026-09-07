@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PageHeader from "../components/common/PageHeader"
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiSearch, FiStar } from "react-icons/fi";
@@ -32,7 +33,7 @@ const HotelSearch = () => {
 
   return (
     <div className="container-app py-10 fade-in">
-      <h1 className="section-title">Find a Hotel</h1>
+      <PageHeader title="Find a Hotel" />
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-2xl">
         <div className="relative flex-1">

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react"
+import PageHeader from "../components/common/PageHeader"
 import {
   FiHeadphones, FiMessageSquare, FiSend, FiCheckCircle, FiPhoneCall,
-  FiMail, FiHelpCircle, FiShield, FiUser, FiPlus, FiRefreshCw, FiClock, FiCheck, FiAlertCircle
+  FiMail, FiHelpCircle, FiShield, FiUser, FiPlus, FiRefreshCw, FiClock, FiCheck, FiAlertCircle,
+  FiLifeBuoy,
 } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
@@ -127,9 +129,7 @@ export default function CustomerSupport() {
           <span className="px-3.5 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-400/30">
             24/7 Traveler Help Desk & Admin Support
           </span>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            Customer Support & Admin Chat Center
-          </h1>
+          <PageHeader title="Customer Support & Admin Chat Center" subtitle="Talk to the support desk — real people, real tickets." icon={FiLifeBuoy} />
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             Direct real-time communication channel with Nepal Yatra Admin and Field Support Staff. Ask questions, report trip issues, or request itinerary assistance.
           </p>

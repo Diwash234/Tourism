@@ -1,4 +1,5 @@
 import { useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -189,9 +190,7 @@ const Language = () => {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-bold uppercase tracking-wider">
             Multi-Dialect Cultural Phrasebook
           </span>
-          <h1 className="text-3xl font-extrabold text-gray-900 mt-2 flex items-center gap-2">
-            <FiGlobe className="text-[#102A2E]" /> Languages of Nepal & Local Dialects
-          </h1>
+          <PageHeader title="Languages of Nepal & Local Dialects" icon={FiGlobe} />
           <p className="text-gray-500 text-sm mt-1">
             Learn authentic local phrases in Nepali, Newari, Sherpa, Maithili, Tamang, and Gurung with instant pronunciation audio.
           </p>

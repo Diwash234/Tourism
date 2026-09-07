@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams } from "react-router-dom"
 import { reportError } from "../utils/errorLogger"
@@ -411,16 +412,8 @@ const Itinerary = () => {
     <div className="container-app py-10">
       <CMSPageIntro pageKey="itinerary" />
 
-      <h1 className="section-title flex items-center gap-2">
-        <FiCalendar />
-        Itinerary Planner
-      </h1>
-
-
-      <p className="text-sm text-gray-500 mb-8">
-        Tell us your days, budget and interests — your trip plan updates
-        automatically as you change anything.
-      </p>
+      <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests — your trip plan updates
+        automatically as you change anything.</>} icon={ FiCalendar } />
 
 
 

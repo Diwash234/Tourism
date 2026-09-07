@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiMapPin, FiChevronRight } from "react-icons/fi"
@@ -49,13 +50,8 @@ const ExploreNepalMap = () => {
   return (
     <div className="container-app py-10 fade-in">
       <CMSPageIntro pageKey="explore-map" />
-      <h1 className="section-title flex items-center gap-2">
-        <FiMapPin className="text-himalaya-500" /> Explore Nepal by Province
-      </h1>
-      <p className="text-gray-500 text-sm mb-2 max-w-2xl">
-        Pick a province to narrow down destinations, then drill into any place for hotels, weather,
-        budget, and safety info all in one view.
-      </p>
+      <PageHeader title="Explore Nepal by Province" subtitle={<>Pick a province to narrow down destinations, then drill into any place for hotels, weather,
+        budget, and safety info all in one view.</>} icon={ FiMapPin } />
       <p className="text-xs text-gray-400 mb-6">
         Simplified schematic, not a precise geographic map — each zone links to that province's main city.
       </p>

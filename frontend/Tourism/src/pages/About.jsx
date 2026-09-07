@@ -4,19 +4,18 @@ import { FiUsers, FiTarget, FiGlobe, FiArrowRight } from "react-icons/fi"
 import { APP_NAME } from "../utils/constants"
 import usePublicConfig from "../hooks/usePublicConfig"
 import CMSIntro from "../components/cms/CMSIntro"
+import PageHeader from "../components/common/PageHeader"
 
 const About = () => {
   const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
   return (
   <div className="container-app py-16 fade-in theme-maroon">
     <CMSIntro section={block("intro")} />
-    <motion.h1
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="section-title text-center mx-auto w-fit"
-    >
-      About {APP_NAME}
-    </motion.h1>
+    <PageHeader
+      title={<>About {APP_NAME}</>}
+      subtitle="Who we are, what we stand for, and how we help you travel Nepal safely."
+      icon={FiGlobe}
+    />
 
     <p className="max-w-2xl mx-auto text-center text-gray-500 mb-12">
       {APP_NAME} is a local tourism information portal built to help travelers

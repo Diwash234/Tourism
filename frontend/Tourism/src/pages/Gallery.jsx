@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link } from "react-router-dom"
 import {
   FiImage, FiMaximize2, FiX, FiChevronLeft, FiChevronRight,
-  FiMapPin, FiCompass, FiAward, FiExternalLink, FiSearch, FiFilter
+  FiMapPin, FiCompass, FiAward, FiExternalLink, FiSearch, FiFilter,
+  FiCamera,
 } from "react-icons/fi"
 
 const CATEGORY_FILTERS = [
@@ -194,9 +196,7 @@ export default function Gallery() {
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           Visual Media & Photo Story Archive
         </span>
-        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 flex items-center justify-center gap-2">
-          📸 Nepal Destination Photography & Visual Stories
-        </h1>
+        <PageHeader title="Nepal Destination Photography & Visual Stories" subtitle="Real photos from the Nepal Yatra media library." icon={FiCamera} />
         <p className="text-sm text-gray-500">
           Explore destination-linked and source-attributed photographs from all 77 districts and 7 provinces. Imported and corrected media remains manageable through the Admin Image Dashboard.
         </p>

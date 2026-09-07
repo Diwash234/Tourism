@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -16,6 +17,7 @@ import {
   FiBookOpen,
   FiX,
   FiCalendar,
+  FiCompass,
 } from "react-icons/fi"
 
 import NationalSymbols, { ALL_26_NATIONAL_SYMBOLS, EIGHT_THOUSANDERS, HIMALAYAN_RANGES, DEFAULT_FOODS, DEFAULT_FESTIVALS } from "../components/dashboard/NationalSymbols"
@@ -123,9 +125,7 @@ export default function DiscoverNepal() {
           <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
             Himalayan Atlas & National Identity
           </span>
-          <h1 className="text-3xl md:text-5xl font-black text-slate-900 mt-2 tracking-tight">
-            Discover Nepal — Beyond Everest
-          </h1>
+          <PageHeader title="Discover Nepal — Beyond Everest" subtitle="Curated experiences across every province." icon={FiCompass} />
           <p className="text-gray-600 text-sm mt-1 max-w-2xl">
             Explore Nepal's 26 national symbols, 8,000m Himalayan mountain ranges, UNESCO heritage, living cultural traditions, wildlife reserves, and culinary culture.
           </p>

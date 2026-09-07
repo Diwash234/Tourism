@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { FiDollarSign, FiPlus } from "react-icons/fi"
 import adminApi from "../api/adminApi"
 import TravelExpenditureForm from "../components/forms/TravelExpenditureForm"
@@ -22,9 +23,7 @@ export default function Expenditure() {
     <div className="container-app py-8 space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2">
-            <FiDollarSign className="text-emerald-600" /> Travel Expenditure History
-          </h1>
+          <PageHeader title="Travel Expenditure History" icon={FiDollarSign} />
           <p className="text-gray-500 text-sm mt-1">
             Track your actual trip spending and train ML prediction models.
           </p>

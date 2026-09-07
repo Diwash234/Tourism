@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -235,9 +236,7 @@ export default function SubmitPlacePage() {
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           All 77 Districts & 753 Local Bodies
         </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 flex items-center justify-center gap-2">
-          <FiMapPin className="text-[#102A2E]" /> Submit a New Nepal Destination
-        </h1>
+        <PageHeader title="Submit a New Nepal Destination" subtitle="Share a place with evidence — admin approval keeps the map trustworthy." icon={FiMapPin} />
         <p className="text-gray-500 text-sm max-w-2xl mx-auto mt-1">
           Select or manually enter any district, municipality, village, or ward across Nepal to auto-calculate coordinates, attach photos, and submit for Admin Verification.
         </p>

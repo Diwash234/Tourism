@@ -1,4 +1,5 @@
 import { useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
@@ -52,10 +53,7 @@ const Contact = () => {
           <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
             Official Contact & Help Desk
           </span>
-          <h1 className="section-title mt-2">Get in Touch with {siteTitle}</h1>
-          <p className="text-gray-500 text-sm">
-            Have questions about a destination, itinerary, or need customer support? Reach out to our team directly or send us feedback.
-          </p>
+          <PageHeader title={<>Get in Touch with {siteTitle}</>} subtitle="Have questions about a destination, itinerary, or need customer support? Reach out to our team directly or send us feedback." />
         </div>
 
         <div className="space-y-4 text-sm text-gray-700 p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">

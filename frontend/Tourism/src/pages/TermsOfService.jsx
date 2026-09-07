@@ -1,4 +1,6 @@
 import React from "react"
+import { FiFileText } from "react-icons/fi"
+import PageHeader from "../components/common/PageHeader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
 
@@ -15,8 +17,7 @@ export default function TermsOfService() {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-bold uppercase">
             Legal Terms & Conditions
           </span>
-          <h1 className="text-3xl font-black text-slate-900 mt-2">Terms of Service</h1>
-          <p className="text-xs text-slate-500">Effective Date: August 2026 · Official Nepal Yatra Platform</p>
+          <PageHeader title="Terms of Service" subtitle="Effective Date: August 2026 · Official Nepal Yatra Platform" icon={FiFileText} />
         </div>
 
         <div className="space-y-4 text-xs leading-relaxed text-slate-700 border-t border-slate-100 pt-4">

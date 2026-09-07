@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { FiMapPin, FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
 
@@ -14,9 +15,7 @@ export default function MySubmissions() {
   return (
     <div className="container-app py-8 space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2">
-          <FiMapPin className="text-[#102A2E]" /> My Place Submissions & Status
-        </h1>
+        <PageHeader title="My Place Submissions & Status" icon={FiMapPin} />
         <p className="text-gray-500 text-sm mt-1">
           Review places you suggested to the community and track their Admin Verification status.
         </p>

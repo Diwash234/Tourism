@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
@@ -713,9 +714,7 @@ return (
 <div className="flex justify-between items-center mb-3">
 
 
-<h1 className="section-title">
-🌎 AI Language Translator
-</h1>
+<PageHeader title={<>🌎 AI Language Translator</>} />
 
 
 

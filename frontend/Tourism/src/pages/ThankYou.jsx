@@ -1,4 +1,5 @@
 import { motion } from "framer-motion"
+import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
 import { FiCheckCircle, FiCompass, FiPhoneCall, FiArrowRight, FiShield } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
@@ -18,9 +19,7 @@ export default function ThankYou() {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-bold uppercase tracking-wider">
             Submission Received
           </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3">
-            Dhanyabad! Your Submission is in Good Hands 🙏
-          </h1>
+          <PageHeader title="Dhanyabad! Your Submission is in Good Hands 🙏" subtitle="Our team reviews every submission before it goes live." icon={FiCheckCircle} />
           <p className="text-gray-600 text-sm max-w-lg mx-auto mt-2 leading-relaxed">
             Thank you for contributing to the Nepal Tourism portal. Your submission has been securely queued in the Admin Moderation & Verification Sentinel.
           </p>

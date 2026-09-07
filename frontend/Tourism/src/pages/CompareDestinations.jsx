@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { Link, useSearchParams } from "react-router-dom"
@@ -6,6 +7,7 @@ import {
   FiCompass, FiPlus, FiX, FiDollarSign,
   FiActivity, FiShield, FiTruck, FiTrendingUp,
   FiSun, FiNavigation,
+  FiColumns,
 } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
 import Loader from "../components/common/Loader"
@@ -162,9 +164,7 @@ export default function CompareDestinations() {
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           Side-by-Side Comparison
         </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 flex items-center justify-center gap-2">
-          Compare recorded Nepal destinations
-        </h1>
+        <PageHeader title="Compare recorded Nepal destinations" icon={FiColumns} />
         <p className="text-sm text-gray-500">
           Only stored fields are shown. Empty values stay “Not recorded”.
         </p>

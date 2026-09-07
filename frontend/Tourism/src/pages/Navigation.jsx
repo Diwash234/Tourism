@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
@@ -267,9 +268,7 @@ export default function Navigation() {
             </span>
             <span className="text-xs text-gray-500 font-medium">Any Origin ➔ Any Destination in 7 Provinces</span>
           </div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight mt-1 flex items-center gap-2">
-            <FiNavigation className="text-[#102A2E]" /> Universal Route Planner & Safety Radar
-          </h1>
+          <PageHeader title="Universal Route Planner & Safety Radar" icon={FiNavigation} />
         </div>
 
         {/* HUD & Map Tools Switcher */}

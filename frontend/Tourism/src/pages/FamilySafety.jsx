@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import {
@@ -193,13 +194,8 @@ const FamilySafety = () => {
   return (
     <div className="container-app py-10 max-w-5xl theme-amber-alt">
       <CMSPageIntro pageKey="family-safety" />
-      <h1 className="section-title flex items-center gap-2">
-        <FiUsers className="text-forest-500" /> {t("family.title")}
-      </h1>
-      <p className="text-gray-500 text-sm mb-6">
-        Link your family members' accounts — they see your live location, trip history, and get
-        notified instantly if you trigger an SOS. And you see theirs.
-      </p>
+      <PageHeader title={<>{t("family.title")}</>} subtitle={<>Link your family members' accounts — they see your live location, trip history, and get
+        notified instantly if you trigger an SOS. And you see theirs.</>} icon={ FiUsers } />
 
       {/* SOS -- always visible */}
       <button

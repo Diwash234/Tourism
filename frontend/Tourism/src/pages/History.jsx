@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiClock } from "react-icons/fi"
@@ -40,10 +41,7 @@ const History = () => {
       className="fade-in theme-brown"
     >
       <CMSPageIntro pageKey="history" />
-      <h1 className="section-title flex items-center gap-2">
-        <FiClock className="text-himalaya-500" />
-        Visit History
-      </h1>
+      <PageHeader title="Visit History" icon={ FiClock } />
 
       {history.length ? (
         <TravelTimeline items={timelineItems} />

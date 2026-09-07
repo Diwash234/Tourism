@@ -1,4 +1,6 @@
 import React from "react"
+import { FiShield } from "react-icons/fi"
+import PageHeader from "../components/common/PageHeader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
 
@@ -15,8 +17,7 @@ export default function PrivacyPolicy() {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold uppercase">
             Data Protection & Privacy
           </span>
-          <h1 className="text-3xl font-black text-slate-900 mt-2">Privacy Policy</h1>
-          <p className="text-xs text-slate-500">Last updated: August 2026 · Official Nepal Yatra Platform</p>
+          <PageHeader title="Privacy Policy" subtitle="Last updated: August 2026 · Official Nepal Yatra Platform" icon={FiShield} />
         </div>
 
         <div className="space-y-4 text-xs leading-relaxed text-slate-700 border-t border-slate-100 pt-4">

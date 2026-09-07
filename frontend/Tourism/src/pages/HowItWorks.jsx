@@ -1,4 +1,5 @@
 import { useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -156,9 +157,7 @@ export default function HowItWorks() {
             <FiBookOpen size={14} /> Knowledge Base & System Transparency
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            How Nepal Tourism Platform Works
-          </h1>
+          <PageHeader title="How Nepal Yatra Works" subtitle="From discovery to a planned trip — the whole journey." icon={FiInfo} />
 
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             Discover how we curate authentic destination data, uphold our strict Zero-Hallucination policy, and empower both travelers and administrators.

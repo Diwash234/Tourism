@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react"
+import PageHeader from "./components/common/PageHeader"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiSend, FiCompass, FiShield, FiDollarSign, FiPhoneCall, FiSun,
   FiMapPin, FiImage, FiNavigation, FiArrowRight, FiGlobe, FiKey,
-  FiCalendar, FiClock, FiCheck, FiTruck, FiExternalLink, FiMaximize2
+  FiCalendar, FiClock, FiCheck, FiTruck, FiExternalLink, FiMaximize2,
+  FiMessageCircle,
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
@@ -146,9 +148,7 @@ export default function ChatBot() {
           <span className="px-3.5 py-1 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase tracking-wider">
             AI Travel Companion
           </span>
-          <h1 className="text-3xl font-extrabold text-gray-900 mt-2 flex items-center justify-center gap-2">
-            🏔️ Himal AI Assistant & Visual Guide
-          </h1>
+          <PageHeader title="Himal AI Assistant & Visual Guide" subtitle="Ask about destinations, safety, permits and more." icon={FiMessageCircle} />
           <p className="text-gray-500 text-sm mt-1">
             Recorded destinations, published packages, and official emergency numbers
           </p>

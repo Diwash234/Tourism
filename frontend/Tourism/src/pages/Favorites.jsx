@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiHeart, FiLogIn, FiCompass } from "react-icons/fi"
@@ -87,10 +88,7 @@ const Favorites = () => {
       <CMSPageIntro pageKey="favorites" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center gap-2">
-            <FiHeart className="text-rose-500 fill-rose-500" />
-            My Saved Favourites
-          </h1>
+          <PageHeader title="My Saved Favourites" icon={FiHeart} />
           <p className="text-xs text-gray-500 mt-1">
             {favorites.length} {favorites.length === 1 ? "destination" : "destinations"} saved to your personal Nepal collection.
           </p>

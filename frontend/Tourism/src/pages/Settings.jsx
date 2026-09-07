@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
@@ -267,9 +268,7 @@ const Settings = () => {
       <CMSPageIntro pageKey="settings" />
 
 
-      <h1 className="section-title">
-        Settings
-      </h1>
+      <PageHeader title="Settings" />
 
 
 

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
+import PageHeader from "./components/common/PageHeader"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
-import { FiCalendar, FiHome, FiStar } from "react-icons/fi"
+import { FiCalendar, FiHome, FiStar,
+  FiBriefcase,
+} from "react-icons/fi"
 import bookingApi from "./api/bookingApi"
 import Loader from "./components/common/Loader"
 import EmptyState from "./components/common/EmptyState"
@@ -58,7 +61,7 @@ const MyBookings = () => {
   return (
     <div className="container-app py-10">
       <CMSPageIntro pageKey="bookings" />
-      <h1 className="section-title mb-6">My Bookings</h1>
+      <PageHeader title="My Bookings" subtitle="Your booking requests and their current status." icon={FiBriefcase} />
 
       {bookings.length ? (
         <div className="space-y-4">
