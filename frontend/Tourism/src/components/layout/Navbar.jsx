@@ -59,7 +59,7 @@ const Navbar = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-emerald-100 shadow-sm w-full min-w-0">
-      <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16">
+      <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0">
 
         {/* Sidebar Toggle */}
         <button
@@ -132,7 +132,7 @@ const Navbar = () => {
         </div>
 
         {/* Desktop User Actions */}
-        <div className="hidden md:flex items-center gap-3 shrink-0">
+        <div className="hidden md:flex items-center gap-3 shrink-0 ml-auto">
           <LanguageSwitcher compact />
           {isAuthenticated ? (
             <>

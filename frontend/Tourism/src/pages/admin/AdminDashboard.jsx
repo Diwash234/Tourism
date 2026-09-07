@@ -653,7 +653,7 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => setShowAddUserModal(true)}
-              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold flex items-center gap-2 text-sm shadow-lg shadow-amber-400/20 transition-all"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-all whitespace-nowrap"
             >
               <FiPlus size={16} /> Add Sub-Admin / Staff
             </button>
@@ -741,13 +741,13 @@ const AdminDashboard = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => setActiveTab("places")}
-                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-2 shadow-md shadow-amber-400/20"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 whitespace-nowrap"
                 >
                   <FiMapPin size={14} /> Review Places ({pendingPlaces.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("images")}
-                  className="px-4 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-pink-500/20"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 whitespace-nowrap"
                 >
                   <FiImage size={14} /> Verify Photos ({pendingImages.length})
                 </button>

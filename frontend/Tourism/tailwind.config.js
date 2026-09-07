@@ -4,6 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Semantic tokens from the UI audit — single source of truth for
+        // role-based colors. Existing per-page classes keep working; new
+        // code should use these.
+        brand: {
+          DEFAULT: '#047857', // emerald-700 — primary actions, active nav
+          gradientFrom: '#1e3a8a', // blue-900 — hero CTAs
+          gradientTo: '#059669',   // emerald-600
+        },
+        accent: '#f59e0b',  // amber-500 — secondary CTA + pending/attention ONLY
+        danger: '#dc2626',  // red-600 — SOS/emergency/destructive ONLY
+        ai: '#9333ea',      // purple-600 — genuinely AI-powered features ONLY
         // RE-THEMED: primary/secondary used to be coral/teal (the old
         // generic starter palette). They're referenced by className
         // across every page — btn-primary, input-field's focus ring,

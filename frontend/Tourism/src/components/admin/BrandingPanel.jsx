@@ -124,7 +124,7 @@ export default function BrandingPanel() {
         <button
           disabled={busy}
           onClick={save}
-          className="px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-2xl font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-400/20 transition-all"
+          className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all whitespace-nowrap"
         >
           <FiSave size={16} /> {busy ? "Publishing..." : "Publish Branding & Heading"}
         </button>

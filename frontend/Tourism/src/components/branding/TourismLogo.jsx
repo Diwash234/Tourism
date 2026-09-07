@@ -103,7 +103,7 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = fal
       )}
 
       <div className="leading-tight flex flex-col justify-center min-w-0">
-        <div className="flex items-center gap-1 font-heading font-black tracking-tight">
+        <div className="flex items-center gap-1 font-heading font-black tracking-tight whitespace-nowrap">
           <span className={darkText ? "text-slate-900" : "text-white drop-shadow-sm"}>
             {siteTitle.includes("Nepal") ? "Nepal" : siteTitle}
           </span>

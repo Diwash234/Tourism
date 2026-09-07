@@ -95,7 +95,7 @@ const FloatingChatbot = () => {
             className="card-base w-[360px] sm:w-[400px] h-[520px] shadow-2xl flex flex-col overflow-hidden border border-[#E5E0D5] mb-3 bg-white"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-rose-700 text-white px-4 py-3 flex items-center justify-between shadow-md">
+            <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-purple-700 text-white px-4 py-3 flex items-center justify-between shadow-md">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
                   🏔️
@@ -178,7 +178,7 @@ const FloatingChatbot = () => {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-700 to-rose-600 text-white shadow-xl flex items-center justify-center hover:shadow-2xl transition-shadow relative"
+        className="w-14 h-14 rounded-full bg-gradient-to-r from-emerald-700 to-purple-700 text-white shadow-xl flex items-center justify-center hover:shadow-2xl transition-shadow relative"
       >
         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-900">
           !

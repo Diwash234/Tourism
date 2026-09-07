@@ -233,7 +233,7 @@ export default function FeaturedDestinationsPanel() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleOpenAddModal}
-            className="px-5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-400/20 transition-all"
+            className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all whitespace-nowrap"
           >
             <FiPlus size={16} /> Feature a Destination
           </button>
@@ -285,7 +285,7 @@ export default function FeaturedDestinationsPanel() {
           </p>
           <button
             onClick={handleOpenAddModal}
-            className="px-5 py-2.5 rounded-2xl bg-amber-400 text-slate-950 font-bold text-xs inline-flex items-center gap-2"
+            className="px-5 py-2.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs inline-flex items-center gap-2 whitespace-nowrap"
           >
             <FiPlus /> Add First Featured Card
           </button>

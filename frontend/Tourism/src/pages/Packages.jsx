@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiCheck, FiMapPin, FiPackage, FiShoppingBag } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -23,7 +23,10 @@ const Packages = () => {
   const [loading, setLoading] = useState(true)
   const [basketCount, setBasketCount] = useState(getTripBasket().length)
 
+  const inFlight = useRef(false)
   const load = async () => {
+    if (inFlight.current) return
+    inFlight.current = true
     setLoading(true)
     try {
       const { data } = await userApi.getMarketplaceListings({ kind, q: query })
@@ -33,6 +36,7 @@ const Packages = () => {
       showToast("Could not load packages from the live catalogue", "error")
     } finally {
       setLoading(false)
+      inFlight.current = false
     }
   }
 

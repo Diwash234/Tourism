@@ -165,7 +165,7 @@ const Settings = () => {
         y:0
       }}
 
-      className="max-w-2xl fade-in theme-slate"
+      className="container-app max-w-3xl py-6 sm:py-8"
 
     >
 

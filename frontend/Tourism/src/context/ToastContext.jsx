@@ -69,7 +69,7 @@ export const ToastProvider = ({ children }) => {
       <div
         className="
           fixed
-          top-4
+          top-20
           right-4
           z-[9999]
           space-y-2
