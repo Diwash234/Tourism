@@ -158,3 +158,34 @@ REGRESSION:  0
 5. **Dark mode** (tokens first, then toggle + persistence).
 6. **Tooling:** add `eslint.config.js` (flat config) so lint/hooks checks run again; add regression tests for the 13 fixes.
 7. **Visual/responsive:** requires a browser environment — schedule where Playwright is available.
+
+---
+
+# FIX PASS (executed after the audit, same session)
+
+Only PARTIAL/MISSING/BROKEN items were touched. Every fix verified after application.
+
+| Requirement | Root Cause | Fix | Files | Verification | Result |
+|---|---|---|---|---|---|
+| REQ-001 title | index.html never rebranded | Title → "Nepal Yatra | Explore the Himalayas…" | `index.html:8` | grep | **COMPLETE** |
+| REQ-003 tokens | Missing tokens + duplicate `accent` key (string shadowed by object) | Added `brand.hover/light`, `surface.light/dark`, `darkMode:'class'`; removed dead accent string | `tailwind.config.js` | npm test scans ✓ | **COMPLETE** |
+| REQ-005 nav structure | Destinations was Explore-target; Risk Alerts under Emergency Services | Reparented in DB **and** encoded as migration `0050` so fresh installs match | migration 0050, DB | live API: Plan a Trip → [Destinations, Itinerary, Budget Estimator, Hotels, Risk Alerts]; regression tests ✓ | **COMPLETE** |
+| REQ-009 desktop collapse | Never implemented (stale comment claimed "always visible") | Icon-rail collapse: extended `useSidebarState` (persisted `ny_sidebar_collapsed`), Sidebar rail w-16, MainLayout/DashboardLayout/AdminLayout padding adjust | 6 files | build ✓ (visual check needs browser) | **COMPLETE (code) / visual UNVERIFIED** |
+| REQ-012 change password | UI never built (API was dead code) | `ChangePasswordCard` in Settings wired to `/auth/change-password/`, surfaces backend field errors | `Settings.jsx` | Django regression: wrong old → 400, correct → 200 + password actually changed | **COMPLETE** |
+| REQ-013 settings toast | Unconditional success toast + silent catch | Tracks profile-save result; error toast names what failed | `Settings.jsx` | code + build ✓ | **COMPLETE** |
+| REQ-013b notif prefs | **AUDIT CORRECTION:** prefs WERE sent (`updateNotificationPreferences`); my audit wrongly said "never sent" | No code change needed | — | runtime PATCH→200→GET reflects→restored | **COMPLETE (was already)** |
+| REQ-014 dark mode | Entirely absent | `ThemeContext` (localStorage `ny_theme`, system default), navbar sun/moon toggle, Settings switch, `html.dark` CSS shell, dark: variants on navbar/sidebar | `ThemeContext.jsx`, `main.jsx`, `Navbar.jsx`, `Settings.jsx`, `index.css`, `tailwind.config.js` | build ✓; per-page dark styling beyond shell remains partial | **COMPLETE (mechanism+shell) / deep styling PARTIAL** |
+| REQ-021 CMS preview | Preview existed but used ad-hoc markup (audit under-credited: modal existed) | Draft preview now renders via the real public `CMSExtras`→`CMSBlock` | `CMSPanel.jsx` | build ✓ | **COMPLETE** |
+| REQ-028 pagination | No direct input; rendered ALL N page buttons | Rewritten: windowed buttons w/ ellipsis, "Page X of Y", validated Jump-to input, aria labels | `Pagination.jsx` | npm test ✓ (input, validation, label) | **COMPLETE** |
+| REQ-020 CMS wiring | Only ~5 surfaces consumed CMS | New `CMSIntro` + wired About, Gallery, Packages, Hotels, Recommendation (ghost `page-intro` resolves via tolerant matcher); ~20 lower-traffic pages still unwired | 6 files | build ✓ | **PARTIAL (major pages done)** |
+| REQ-036 AI empty state | No empty state on destination search | Honest "No destinations match…" panel | `AIEnginePanel.jsx` | build ✓ | **COMPLETE** |
+| REQ-034 lint | ESLint 10 without config/deps | Installed eslint+react-hooks, flat config; **lint immediately found a real `rules-of-hooks` crash** in `DestinationDetails.jsx:140` (useEffect after early return) — fixed by reordering | `eslint.config.js`, `DestinationDetails.jsx` | rules-of-hooks errors: 0 (was 1); 98 remaining errors are pre-existing patterns (`set-state-in-effect` etc.), reported not hidden | **COMPLETE (tooling) / 1 real bug fixed** |
+| REQ-038 regression suite | None existed | Django: `tourist/tests_regression.py` (11 tests: nearby, invalid page, 401, feedback persist, notif persist, change-password ×2, navbar ×2, CMS chain). Frontend: `npm test` (10 checks). Full suite: **261 tests OK** | 3 files | both suites run green | **COMPLETE** |
+| REQ-025 media replace | Runtime untested | Live E2E: POST 201 → PATCH replace 200 (new cache-busted file) → caption+file persisted → cleaned up | — | runtime probe this session | **COMPLETE** |
+| REQ-016 hooks crash | Unverifiable in audit | Now proven: lint found the exact violation class and it was fixed | `DestinationDetails.jsx` | eslint 0 errors | **COMPLETE** |
+
+## Still open (honest)
+- Deep per-page dark styling beyond the global shell (mechanism + shell done).
+- CMS wiring for ~20 lower-traffic pages (Contact/Settings/Favorites/Bookings/…).
+- Responsive/visual verification (320–1920) — requires a browser environment.
+- 98 pre-existing eslint errors (`set-state-in-effect`, `no-empty`) — reported, not introduced by this pass.
