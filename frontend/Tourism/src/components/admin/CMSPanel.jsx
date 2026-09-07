@@ -965,7 +965,17 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
           <p className="self-center text-[10px] text-slate-500">Edit, preview, drag or use arrows.</p>
         </div>
       </div>
-      {!sections.length && <p className="rounded-xl border border-dashed border-emerald-200 p-4 text-xs text-slate-500">No sections yet. Choose a template, add a reusable block, or add a section.</p>}
+      {!sections.length && (
+        <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-8 text-center">
+          <p className="text-sm font-bold text-slate-800">No content sections yet</p>
+          <p className="text-xs text-slate-500 mt-1 mb-4 max-w-sm mx-auto">
+            Start from a template for a full page layout, drop in a reusable block, or add a single section.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button type="button" onClick={addSection} className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white">Add section</button>
+          </div>
+        </div>
+      )}
       <div className="space-y-2">
         {sections.map((section, index) => (
           <div key={section.id} className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs">
