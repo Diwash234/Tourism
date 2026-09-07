@@ -16,6 +16,15 @@ const ROUTES = [
   "/itinerary",
   "/packages",
   "/gallery",
+  "/discover-nepal",
+  "/compare",
+  "/translation",
+  "/language",
+  "/navigation",
+  "/family-safety",
+  "/risk-alerts",
+  "/chatbot",
+  "/trip",
 ]
 
 const WIDTHS = [320, 375, 414, 768, 1024, 1280]
