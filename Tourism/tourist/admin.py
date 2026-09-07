@@ -11,7 +11,7 @@ from .models import (
     InfrastructureSubmission, DestinationFeatureProfile, FeedbackEvidence, MLTrainingRun,
     RecommendationEvent, RiskNewsReport, RiskObservation, UserFeedback, StaffCapabilityProfile,
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ManagedNavigationItem, CMSRevision, NotificationPreference, FeedbackMessage,
-    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop,
+    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
 )
 
 
@@ -594,6 +594,37 @@ class CMSRevisionAdmin(admin.ModelAdmin):
 @admin.register(SiteSetting)
 class SiteSettingAdmin(admin.ModelAdmin):
     list_display=['key','is_public','updated_by','updated_at']; list_filter=['is_public']; search_fields=['key','description']
+
+
+@admin.register(HeroSlide)
+class HeroSlideAdmin(admin.ModelAdmin):
+    """Manage the cinematic landing hero: swap imagery, copy, and overlay."""
+    list_display = ["preview", "title", "order", "is_active", "overlay_strength", "focal_point", "updated_at"]
+    list_editable = ["order", "is_active", "overlay_strength", "focal_point"]
+    list_filter = ["is_active", "focal_point"]
+    search_fields = ["title", "subtitle", "kicker", "link_slug"]
+    ordering = ["order", "id"]
+    readonly_fields = ["updated_by", "preview"]
+    fieldsets = (
+        (None, {"fields": ("title", "kicker", "subtitle", "tagline", "link_slug")}),
+        ("Background image", {"fields": ("image", "image_url", "local_image", "preview")}),
+        ("Presentation", {"fields": ("overlay_strength", "focal_point", "order", "is_active", "duration_seconds")}),
+        ("Meta", {"fields": ("updated_by",)}),
+    )
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        src = obj.resolve_image()
+        if not src:
+            return "—"
+        return format_html(
+            '<img src="{}" alt="{}" style="height:64px;width:112px;object-fit:cover;border-radius:8px;" />',
+            src, obj.title,
+        )
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
 
 @admin.register(ManagedNavigationItem)
 class ManagedNavigationItemAdmin(admin.ModelAdmin):

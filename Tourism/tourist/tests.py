@@ -3214,3 +3214,37 @@ class BlockBasedCMSAndImageReplacementTests(APITestCase):
 
 
 
+
+
+class HeroSlidePublicConfigTests(APITestCase):
+    """The cinematic landing hero is admin-managed and publicly exposed."""
+
+    def test_public_config_exposes_active_hero_slides(self):
+        from .models import HeroSlide
+        HeroSlide.objects.create(
+            title="TEST PEAK", order=1,
+            local_image="/images/destinations/everest/base-camp.jpg",
+            overlay_strength=62, focal_point="top",
+        )
+        resp = self.client.get(reverse("public-config"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        slides = resp.data.get("hero_slides")
+        self.assertIsInstance(slides, list)
+        titles = [s["title"] for s in slides]
+        self.assertIn("TEST PEAK", titles)
+        slide = next(s for s in slides if s["title"] == "TEST PEAK")
+        self.assertEqual(slide["image"], "/images/destinations/everest/base-camp.jpg")
+        self.assertEqual(slide["overlay"], 62)
+        self.assertEqual(slide["focal_point"], "top")
+
+    def test_inactive_hero_slide_is_hidden_from_public(self):
+        from .models import HeroSlide
+        HeroSlide.objects.create(title="HIDDEN PEAK", is_active=False)
+        resp = self.client.get(reverse("public-config"))
+        self.assertNotIn("HIDDEN PEAK", [s["title"] for s in resp.data["hero_slides"]])
+
+    def test_upload_image_takes_priority_over_url_and_local(self):
+        from .models import HeroSlide
+        s = HeroSlide(title="PRIO", image_url="https://example.com/a.jpg", local_image="/images/x.jpg")
+        self.assertEqual(s.resolve_image(), "https://example.com/a.jpg")
+        self.assertEqual(HeroSlide(title="LOCAL", local_image="/images/x.jpg").resolve_image(), "/images/x.jpg")

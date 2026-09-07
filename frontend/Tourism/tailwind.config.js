@@ -73,12 +73,26 @@ export default {
           500: '#DC143C', // Nepal flag red
           600: '#b10f30',
         },
+        // CEE "AI Index" reference palette — deep indigo anchor + glacier/turquoise data accents.
+        cee: {
+          bg: '#F9FAFE',
+          glacier: '#8BB2FC',
+          blue: '#71A0F7',
+          indigo: '#3E58B0',
+          navy: '#231E54',
+          ink: '#0d1330',
+          night: '#070c20',
+          lavender: '#8E70AE',
+          turquoise: '#70B1AB',
+        },
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
         heading: ['Outfit', '"Playfair Display"', 'system-ui', 'sans-serif'],
         serif: ['"Playfair Display"', 'Cinzel', 'Georgia', 'serif'],
         royal: ['Cinzel', '"Playfair Display"', 'serif'],
+        // CEE "AI Index" reference typeface — clean, geometric, data-confident.
+        ubuntu: ['Ubuntu', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         devanagari: ['"Noto Sans Devanagari"', 'sans-serif'],
       },

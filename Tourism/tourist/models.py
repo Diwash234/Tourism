@@ -2539,6 +2539,49 @@ class BrandingAsset(TimeStampedModel):
     def __str__(self): return self.kind
 
 
+class HeroSlide(TimeStampedModel):
+    """A single, admin-managed cinematic landing hero slide.
+
+    Administrators can upload a photo, paste an absolute URL, or point at a
+    bundled ``/images/...`` asset; swap copy; tune the legibility overlay and
+    focal point; and reorder / enable slides. The public config serializes the
+    resolved image so the frontend never has to guess. See
+    :class:`HeroSlide.resolve_image`.
+    """
+
+    class FocalPoint(models.TextChoices):
+        CENTER = "center", "Center"
+        TOP = "top", "Top (sky / peaks)"
+        BOTTOM = "bottom", "Bottom (valley / foreground)"
+
+    title = models.CharField(max_length=120)
+    kicker = models.CharField(max_length=140, blank=True, help_text="Small pill line, e.g. “Solukhumbu · 8,849 m”")
+    subtitle = models.CharField(max_length=200, blank=True)
+    tagline = models.CharField(max_length=300, blank=True)
+    link_slug = models.SlugField(max_length=140, blank=True, help_text="Destination slug for the primary Explore button")
+
+    image = models.ImageField(upload_to="hero/", blank=True, help_text="Uploaded photo (served from /media/).")
+    image_url = models.URLField(max_length=600, blank=True, help_text="Absolute CDN / Wikimedia URL, used if no upload.")
+    local_image = models.CharField(max_length=300, blank=True, help_text="Bundled asset path e.g. /images/destinations/everest/base-camp.jpg")
+
+    overlay_strength = models.PositiveSmallIntegerField(default=60, validators=[MinValueValidator(10), MaxValueValidator(92)], help_text="Legibility scrim intensity in percent. Higher = darker, more readable text.")
+    focal_point = models.CharField(max_length=10, choices=FocalPoint.choices, default=FocalPoint.CENTER)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    duration_seconds = models.PositiveSmallIntegerField(default=7, validators=[MinValueValidator(3), MaxValueValidator(20)])
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="hero_slides_updated")
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def resolve_image(self, request=None):
+        if self.image:
+            return self.image.url
+        return self.image_url or self.local_image
+
+    def __str__(self): return f"{self.order}. {self.title}"
+
+
 class CMSContentTranslation(TimeStampedModel):
     target_resource = models.CharField(max_length=20, choices=[("pages", "Page"), ("sections", "Section"), ("navigation", "Navigation")])
     object_id = models.PositiveBigIntegerField()

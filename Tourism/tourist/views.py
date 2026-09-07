@@ -19,7 +19,7 @@ from .models import (
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
-    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop,
+    Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -219,9 +219,20 @@ class PublicConfigView(APIView):
             "province_count": 7,
             "note": "Counts are live recorded destinations. Visitor totals are not stored.",
         }
+        hero_slides = [
+            {
+                "id": s.id, "title": s.title, "kicker": s.kicker, "subtitle": s.subtitle,
+                "tagline": s.tagline, "link_slug": s.link_slug,
+                "image": s.resolve_image(request=request),
+                "overlay": s.overlay_strength, "focal_point": s.focal_point,
+                "duration": s.duration_seconds,
+            }
+            for s in HeroSlide.objects.filter(is_active=True).order_by("order", "id")
+        ]
         return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
-            "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog})
+            "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog,
+            "hero_slides": hero_slides})
 
 
 class DiscoverNepalView(APIView):

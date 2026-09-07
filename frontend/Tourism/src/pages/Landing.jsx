@@ -31,7 +31,7 @@ import StickyCTA from "../components/common/StickyCTA"
 import ProvinceMarquee from "../components/landing/ProvinceMarquee"
 import NepalStats from "../components/landing/NepalStats"
 import FeaturedEditorialGrid from "../components/landing/FeaturedEditorialGrid"
-import HeroTemplateCarousel from "../components/landing/HeroTemplateCarousel"
+import HeroCinematic from "../components/landing/HeroCinematic"
 
 const PROVINCES = [
   { name: "Koshi Province", city: "Biratnagar / Ilam", code: "koshi" },
@@ -139,7 +139,7 @@ export default function Landing() {
   return (
     <div className="relative overflow-x-hidden bg-white text-gray-900">
       {showBlock("hero") && (
-        <HeroTemplateCarousel />
+        <HeroCinematic />
       )}
 
       {showBlock("features") && <section className="container-app py-20 relative z-10">

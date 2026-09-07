@@ -959,3 +959,50 @@ by exact destination name:
 
 **Verification:** `manage.py test tourist` = 60 OK; `npm run build` clean; DB
 integrity ok; all pushed to GitHub `arena/01a00b65-tourism`.
+
+---
+
+## 🏔️ Round 24: Cinematic Himalayan redesign (CEE "AI Index" inspired) — admin-manageable hero, legible text, destination photo backdrops
+
+Inspired by the referenced CEE AI Index data-landing (deep navy `#231E54`,
+indigo `#3E58B0`, glacier/turquoise data accents, Ubuntu type, smooth-scroll
+storytelling) and the travel-redesign samples, the site now leads with real
+Himalayan range photography while keeping every headline, button and metric
+fully legible.
+
+### 1. Admin-manageable cinematic hero (`HeroSlide`)
+- New `tourist.HeroSlide` model (migration `0048`) + seed migration `0049`
+  with six authentic Himalayan slides (Everest, Annapurna, Mustang, Pokhara,
+  Langtang, Rara) using bundled `/images/...` photos.
+- Three image sources per slide, in priority order: uploaded `ImageField`
+  (`/media/hero/`), absolute `image_url` (CDN/Wikimedia), or bundled
+  `local_image`. `resolve_image()` picks the first present.
+- Django admin `HeroSlideAdmin`: live thumbnail preview, inline reorder,
+  active toggle, per-slide overlay strength (10–92%) and focal point
+  (top/center/bottom), duration.
+- Public config (`/api/v1/config/public/`) now exposes `hero_slides`
+  (active only, ordered) so the frontend renders exactly what admins publish.
+- New `HeroCinematic.jsx`: full-bleed crossfading Ken Burns photographs,
+  admin-driven legibility scrim + vignette, Ubuntu display type, autoplay with
+  pause-on-hover and `prefers-reduced-motion` support, slide dots/arrows, and a
+  continuous data-ticker marquee (recorded destinations, districts, Everest
+  elevation, verified-photo count).
+
+### 2. Destination details hero now uses that place's own photos
+- `DestinationHero.jsx` rotates through `destination.images` (verified
+  Wikimedia / media URLs) with the cover first, crossfade + Ken Burns.
+- A fixed high-contrast navy scrim + per-element text-shadows guarantee the
+  title, location line, description, metric chips and action buttons are
+  readable over ANY photograph. Metrics reflow `2 → 4` columns (no overlap).
+
+### 3. Design system & motion
+- Tailwind: `font-ubuntu` (CEE reference typeface) + `cee` palette
+  (navy/indigo/glacier/turquoise/lavender). `index.html` loads Ubuntu.
+- `animations.css`: `kenburns`, `ticker` keyframes and a global
+  `prefers-reduced-motion` freeze for hero/marquee loops.
+
+### Verification
+- `manage.py test` → **250 OK** (incl. 3 new `HeroSlidePublicConfigTests`).
+- `npm run build` → clean (2573 modules). Live preview serves the new bundle;
+  `/api/v1/config/public/` returns 6 `hero_slides` over both :8000 and the
+  :5173 proxy.
