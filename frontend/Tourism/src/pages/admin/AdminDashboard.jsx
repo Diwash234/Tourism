@@ -629,7 +629,7 @@ const AdminDashboard = () => {
         >
           <div>
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-gray-950 shadow-md shadow-amber-400/20">
+              <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-gray-950 shadow-md shadow-emerald-600/20">
                 RBAC Central Command
               </span>
               <span className="text-xs text-slate-300">
@@ -753,7 +753,7 @@ const AdminDashboard = () => {
                 </button>
                 <button
                   onClick={() => setShowAddExpenseModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-2 shadow-md shadow-amber-400/20"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20"
                 >
                   <FiDollarSign size={14} /> Log Ground Expense
                 </button>
@@ -851,7 +851,7 @@ const AdminDashboard = () => {
                 <button
                   type="submit"
                   disabled={isResearching || !researchQuery.trim()}
-                  className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-gray-950 font-black text-sm shadow-xl shadow-amber-400/20 hover:scale-105 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+                  className="px-8 py-3.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black text-sm shadow-xl shadow-purple-600/25 hover:scale-105 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   {isResearching ? (
                     <>
@@ -1063,7 +1063,7 @@ const AdminDashboard = () => {
                     <button
                       onClick={handleRunBatch}
                       disabled={isRunningBatch}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-gray-950 font-black text-xs shadow-lg shadow-amber-400/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-gray-950 font-black text-xs shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {isRunningBatch ? (
                         <>
@@ -1103,7 +1103,7 @@ const AdminDashboard = () => {
                       </button>
                       <button
                         onClick={() => handleCandidateBulkAction("merge_alias")}
-                        className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-1 shadow"
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow"
                       >
                         <FiLayers size={12} /> Merge Aliases
                       </button>
@@ -1143,7 +1143,7 @@ const AdminDashboard = () => {
                         onClick={() => setCandidateFilterStatus(f.id)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                           candidateFilterStatus === f.id
-                            ? "bg-amber-400 text-gray-950 shadow"
+                            ? "bg-white text-slate-950 shadow"
                             : "bg-slate-800/50 text-slate-300 hover:bg-slate-800 border border-slate-600/50"
                         }`}
                       >
@@ -1259,7 +1259,7 @@ const AdminDashboard = () => {
                                 {cand.matched_destination && (
                                   <button
                                     onClick={() => handleCandidateSingleAction(cand.id, "merge_alias", cand.matched_destination.id)}
-                                    className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-[11px] flex items-center gap-1 shadow"
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1 shadow"
                                     title={`Merge as alternate alias for #${cand.matched_destination.id}`}
                                   >
                                     <FiLayers size={11} /> Alias
@@ -1643,7 +1643,7 @@ const AdminDashboard = () => {
                       <button
                         key={d.id}
                         onClick={() => { setPipelineDestSlug(d.slug || String(d.id)); setPipelineDestId(d.id); setDestSearchResults([]); loadPipelineImages(d.slug || String(d.id), d.id) }}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-amber-400 hover:text-gray-950 text-slate-200 text-xs font-semibold border border-slate-600/50"
+                        className="px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-white hover:text-slate-950 text-slate-200 text-xs font-semibold border border-slate-600/50"
                       >
                         {d.name} <span className="opacity-60">({d.district || d.province || "—"})</span>
                       </button>
@@ -1665,7 +1665,7 @@ const AdminDashboard = () => {
                     }}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       pipelineDestSlug === p.slug
-                        ? "bg-amber-400 text-gray-950 shadow"
+                        ? "bg-white text-slate-950 shadow"
                         : "bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-slate-600/50"
                     }`}
                   >
@@ -1924,7 +1924,7 @@ const AdminDashboard = () => {
                               setReplacementCaption(img.caption || "")
                               setReplacementUrl(img.url || "")
                             }}
-                            className="px-2 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold"
+                            className="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-[10px] font-bold"
                           >
                             Replace / Edit
                           </button>
@@ -2066,7 +2066,7 @@ const AdminDashboard = () => {
               </div>
               <button
                 onClick={() => setShowAddExpenseModal(true)}
-                className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-400/20"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20"
               >
                 <FiPlus size={14} /> Submit Field Expense
               </button>
@@ -2442,7 +2442,7 @@ const AdminDashboard = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/20"
                   >
                     Create User / Sub-Admin
                   </button>
@@ -2557,7 +2557,7 @@ const AdminDashboard = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/20"
                   >
                     Feed into ML Engine
                   </button>
@@ -2664,7 +2664,7 @@ const AdminDashboard = () => {
                   <button
                     type="button"
                     onClick={handleSaveImageReplacement}
-                    className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-400/20"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 whitespace-nowrap"
                   >
                     Save Changes
                   </button>

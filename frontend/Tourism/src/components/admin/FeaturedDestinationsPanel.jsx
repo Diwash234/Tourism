@@ -384,7 +384,7 @@ export default function FeaturedDestinationsPanel() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleOpenEditModal(card)}
-                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold text-xs flex items-center gap-1"
                       >
                         <FiEdit3 size={13} /> Edit
                       </button>
@@ -635,7 +635,7 @@ export default function FeaturedDestinationsPanel() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-400/20"
+                    className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-600/20 whitespace-nowrap"
                   >
                     {editingCard ? "Save Changes" : "Publish Featured Card"}
                   </button>
