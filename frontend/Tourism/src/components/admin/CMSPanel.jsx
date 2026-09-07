@@ -47,7 +47,8 @@ export default function CMSPanel() {
   const futureRef = useRef([])
   const prevJsonRef = useRef(json)
   const skipHistoryRef = useRef(false)
-  const [histTick, setHistTick] = useState(0)
+  const [histCounts, setHistCounts] = useState({ past: 0, future: 0 })
+  const syncHistCounts = () => setHistCounts({ past: pastRef.current.length, future: futureRef.current.length })
   useEffect(() => {
     if (skipHistoryRef.current) {
       skipHistoryRef.current = false
@@ -55,7 +56,7 @@ export default function CMSPanel() {
       pastRef.current.push(prevJsonRef.current)
       if (pastRef.current.length > 50) pastRef.current.shift()
       futureRef.current = []
-      setHistTick((t) => t + 1)
+      syncHistCounts()
     }
     prevJsonRef.current = json
   }, [json])
@@ -66,7 +67,7 @@ export default function CMSPanel() {
     skipHistoryRef.current = true
     prevJsonRef.current = prev
     setJson(prev)
-    setHistTick((t) => t + 1)
+    syncHistCounts()
   }
   const redo = () => {
     if (!futureRef.current.length) return
@@ -75,7 +76,7 @@ export default function CMSPanel() {
     skipHistoryRef.current = true
     prevJsonRef.current = next
     setJson(next)
-    setHistTick((t) => t + 1)
+    syncHistCounts()
   }
   const [preview, setPreview] = useState(null)
   const [scheduleAt, setScheduleAt] = useState("")
@@ -103,7 +104,7 @@ export default function CMSPanel() {
     futureRef.current = []
     skipHistoryRef.current = true
     prevJsonRef.current = next
-    setHistTick((t) => t + 1)
+    syncHistCounts()
     setSelected(row)
     setJson(next)
     setSavedJson(next)
@@ -359,8 +360,8 @@ export default function CMSPanel() {
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
                 <b className="mr-auto">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
-                <button type="button" onClick={undo} disabled={!pastRef.current.length} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
-                <button type="button" onClick={redo} disabled={!futureRef.current.length} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
+                <button type="button" onClick={undo} disabled={!histCounts.past} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
+                <button type="button" onClick={redo} disabled={!histCounts.future} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
                 {resource === "pages" && <button type="button" onClick={() => setSeoPreview(true)} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap"><FiEye /> SEO preview</button>}
                 <button disabled={busy} onClick={saveAndPublish} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-xs flex gap-1 shadow whitespace-nowrap"><FiSend /> Save & Publish Live</button>
                 <button disabled={busy} onClick={save} className="px-3 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-bold flex gap-1"><FiSave /> Save draft</button>
@@ -468,6 +469,8 @@ export default function CMSPanel() {
             </div>
             <p className="text-xs text-slate-500 mt-1 mb-4">How this page is likely to appear. Uses the current draft values — nothing is published by previewing.</p>
             {(() => {
+              let value = {}
+              try { value = JSON.parse(json || "{}") } catch { /* invalid draft JSON — preview stays empty */ }
               const seoTitle = value.seo_title || value.title || ""
               const desc = value.meta_description || ""
               const route = value.route || "/"
