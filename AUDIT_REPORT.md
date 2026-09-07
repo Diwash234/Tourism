@@ -189,3 +189,28 @@ Only PARTIAL/MISSING/BROKEN items were touched. Every fix verified after applica
 - CMS wiring for ~20 lower-traffic pages (Contact/Settings/Favorites/Bookings/…).
 - Responsive/visual verification (320–1920) — requires a browser environment.
 - 98 pre-existing eslint errors (`set-state-in-effect`, `no-empty`) — reported, not introduced by this pass.
+
+---
+
+# FINAL PHASE STATUS vs MASTER PROMPT (re-verified by live commands, 2026-09-07)
+
+| Master-prompt phase | Status | Live evidence this check |
+|---|---|---|
+| 1. Audit-first workflow | DONE | This report (audit → fix → re-audit) |
+| 2. Runtime/API bugs (nearby, hooks crash, 400/404/405, categories) | DONE | nearby regression test ✓; `rules-of-hooks errors: 0` (eslint JSON); `page=abc`→404 JSON; `categories/999999`→`{"detail":"No Category matches the given query."}`; POST→clean 401 JSON |
+| 3. Layout: navbar 5 items + Plan a Trip dropdown, sidebar collapse, Profile out | DONE (visual pass pending) | live API tops `[Home, Explore, Plan a Trip, Emergency Services, About]`; Profile-in-sidebar grep = 0; collapse rail in code, build ✓ |
+| 4. Design system: brand, tokens, one look | DONE | `site_title: Nepal Yatra`; darkMode+surface tokens grep ✓; theme-unify rule ✓; legacy-brand guard ✓ |
+| 5. Dest/Rec UX: pagination direct input, AI empty state | DONE (card equal-height = visual, pending) | Jump-to input grep ✓; npm test asserts validation |
+| 6. Dashboards: change/forgot password, notif + dark toggles persisted | DONE | ChangePasswordCard ✓ (+ regression tests 400/200); notif PATCH→GET roundtrip ✓; ThemeContext persisted ✓ |
+| 7. CMS: PATCH→publish→invalidate, preview with real components, page/section reuse | DONE for wired surfaces; PARTIAL for ~20 low-traffic pages | CMSExtras-in-preview grep=3; CMS chain regression test ✓; CMSIntro wired into 5 major pages |
+| 8. Media: replace persisting + cache-bust + provenance | DONE (crop/rotate code present, runtime untested) | live E2E: 201→PATCH replace 200→persisted→cleanup |
+| 9. Responsive QA 320–1920 | **REMAINING — BLOCKED** | no browser/Playwright installable in sandbox |
+| 10. Regression tests + final report | DONE | 261 Django tests OK (11 new); `npm test` 10 checks; this report |
+
+## Remaining work (complete list)
+1. **Visual QA pass on a real browser** (responsive 320–1920, equal-height cards, homepage overlaps, gallery polish, dark-mode look) — run `npm run dev` on your machine.
+2. **Deep dark styling** per page section (mechanism+shell done).
+3. **CMS wiring** for ~20 low-traffic pages (Favorites, Bookings, History, Settings…).
+4. **Crop/rotate runtime test** (UI present in MediaLibraryPanel).
+5. **98 pre-existing lint issues** (`set-state-in-effect`, `no-empty`) — legacy, reported.
+6. **PageHeader unification** — awaiting user go-ahead (redesign boundary).
