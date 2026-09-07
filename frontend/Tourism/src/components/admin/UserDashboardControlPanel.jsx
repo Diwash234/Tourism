@@ -118,7 +118,7 @@ export default function UserDashboardControlPanel() {
             User Experience Studio
           </span>
           <h2 className="text-2xl font-black mt-2 flex items-center gap-2">
-            <FiLayout className="text-amber-400" /> User Dashboard Layout & Feature Controls
+            <FiLayout className="text-emerald-600" /> User Dashboard Layout & Feature Controls
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
             Customize which components, engagement tools, AI replanning actions, and broadcast announcements appear on all traveler user dashboards in real time.
@@ -146,7 +146,7 @@ export default function UserDashboardControlPanel() {
       {/* Broadcast Notice Banner Studio */}
       <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
         <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
-          <FiVolume2 className="text-amber-600" /> Traveler Broadcast Notice / Announcement
+          <FiVolume2 className="text-emerald-600" /> Traveler Broadcast Notice / Announcement
         </h3>
         <p className="text-xs text-slate-500">
           Publish a top banner notice visible on every user's dashboard (e.g. seasonal festival greetings, road closures, special offers).
