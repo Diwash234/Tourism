@@ -265,12 +265,15 @@ const DestinationCard = ({
       <div className="p-4">
 
 
-        <h3 className="
+        <h3
+          className="
         font-bold
         text-dark
         text-lg
         truncate
-        ">
+        "
+          title={name}
+        >
 
           {name}
 
