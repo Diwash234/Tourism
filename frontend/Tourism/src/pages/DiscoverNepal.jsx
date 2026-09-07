@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -115,6 +116,7 @@ export default function DiscoverNepal() {
 
   return (
     <div className="container-app py-10 fade-in space-y-8">
+      <CMSPageIntro pageKey="discover-nepal" />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
         <div>

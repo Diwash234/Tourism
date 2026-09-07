@@ -1,4 +1,5 @@
 import { useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { FiMail, FiPhone, FiMapPin, FiClock, FiShield } from "react-icons/fi"
@@ -45,6 +46,7 @@ const Contact = () => {
 
   return (
     <div className="container-app py-16 grid grid-cols-1 md:grid-cols-2 gap-10 fade-in theme-indigo">
+      <CMSPageIntro pageKey="contact" />
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
         <div>
           <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">

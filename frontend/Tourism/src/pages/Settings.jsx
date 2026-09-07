@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import {
@@ -263,6 +264,7 @@ const Settings = () => {
       className="container-app max-w-3xl py-6 sm:py-8"
 
     >
+      <CMSPageIntro pageKey="settings" />
 
 
       <h1 className="section-title">

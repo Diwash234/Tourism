@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
@@ -256,6 +257,7 @@ export default function Navigation() {
 
   return (
     <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn" data-testid="navigation-page">
+      <CMSPageIntro pageKey="navigation" />
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>

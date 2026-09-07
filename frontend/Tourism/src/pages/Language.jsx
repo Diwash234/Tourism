@@ -1,4 +1,5 @@
 import { useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiGlobe, FiVolume2, FiCopy, FiPlus, FiSearch, FiCheck,
@@ -181,6 +182,7 @@ const Language = () => {
 
   return (
     <div className="container-app py-8 space-y-8 animate-fadeIn">
+      <CMSPageIntro pageKey="phrasebook" />
       {/* Header banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

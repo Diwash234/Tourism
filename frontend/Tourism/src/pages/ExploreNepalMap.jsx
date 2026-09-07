@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiMapPin, FiChevronRight } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
@@ -47,6 +48,7 @@ const ExploreNepalMap = () => {
 
   return (
     <div className="container-app py-10 fade-in">
+      <CMSPageIntro pageKey="explore-map" />
       <h1 className="section-title flex items-center gap-2">
         <FiMapPin className="text-himalaya-500" /> Explore Nepal by Province
       </h1>

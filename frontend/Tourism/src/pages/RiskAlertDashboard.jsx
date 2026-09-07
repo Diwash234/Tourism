@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiShield, FiAlertTriangle, FiPlus, FiCheckCircle, FiActivity,
@@ -106,6 +107,7 @@ const RiskAlertDashboard = () => {
 
   return (
     <div className="container-app py-8 space-y-6 animate-fadeIn">
+      <CMSPageIntro pageKey="risk-alerts" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
         <div>
           <span className="px-3.5 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold uppercase tracking-wider">

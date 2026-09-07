@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams } from "react-router-dom"
 import { reportError } from "../utils/errorLogger"
 import { motion } from "framer-motion"
@@ -408,6 +409,7 @@ const Itinerary = () => {
   )
     return (
     <div className="container-app py-10">
+      <CMSPageIntro pageKey="itinerary" />
 
       <h1 className="section-title flex items-center gap-2">
         <FiCalendar />

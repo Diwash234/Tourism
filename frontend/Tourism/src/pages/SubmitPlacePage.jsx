@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiMapPin, FiUploadCloud, FiClock, FiDollarSign, FiShield,
@@ -227,6 +228,7 @@ export default function SubmitPlacePage() {
 
   return (
     <div className="container-app py-8 max-w-4xl animate-fadeIn space-y-6">
+      <CMSPageIntro pageKey="submit-place" />
       <Breadcrumbs items={[{ label: "Submit a Place", to: "/destinations/submit" }]} />
 
       <div className="text-center mb-8">

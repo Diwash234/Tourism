@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { Link, useSearchParams } from "react-router-dom"
 import {
@@ -156,6 +157,7 @@ export default function CompareDestinations() {
 
   return (
     <div className="container-app theme-gold py-8 space-y-6 animate-fadeIn">
+      <CMSPageIntro pageKey="compare" />
       <div className="text-center max-w-3xl mx-auto space-y-2">
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           Side-by-Side Comparison

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "./components/cms/CMSPageIntro"
 import { FiCalendar, FiHome, FiStar } from "react-icons/fi"
 import bookingApi from "./api/bookingApi"
 import Loader from "./components/common/Loader"
@@ -56,6 +57,7 @@ const MyBookings = () => {
 
   return (
     <div className="container-app py-10">
+      <CMSPageIntro pageKey="bookings" />
       <h1 className="section-title mb-6">My Bookings</h1>
 
       {bookings.length ? (

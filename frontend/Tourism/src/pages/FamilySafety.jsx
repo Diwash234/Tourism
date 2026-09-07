@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import {
   FiShare2, FiAlertTriangle, FiCopy, FiStopCircle, FiUserPlus,
@@ -191,6 +192,7 @@ const FamilySafety = () => {
 
   return (
     <div className="container-app py-10 max-w-5xl theme-amber-alt">
+      <CMSPageIntro pageKey="family-safety" />
       <h1 className="section-title flex items-center gap-2">
         <FiUsers className="text-forest-500" /> {t("family.title")}
       </h1>

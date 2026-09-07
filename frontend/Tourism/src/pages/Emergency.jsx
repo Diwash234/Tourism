@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link, useSearchParams } from "react-router-dom"
 import {
   FiPhoneCall, FiAlertTriangle, FiMapPin, FiNavigation, FiShield,
@@ -155,6 +156,7 @@ export default function Emergency() {
 
   return (
     <div className="container-app py-8 space-y-7 animate-fadeIn" data-testid="emergency-page">
+      <CMSPageIntro pageKey="emergency" />
       <Breadcrumbs items={[{ label: "Emergency Services", to: "/emergency" }]} />
 
       <section className="rounded-3xl bg-gradient-to-r from-rose-900 via-rose-800 to-purple-950 text-white p-6 sm:p-8 shadow-2xl">

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { FiCamera, FiMapPin, FiSend, FiVideo } from "react-icons/fi"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
@@ -45,6 +46,7 @@ export default function SubmitServicePage() {
   }
 
   return <div className="container-app py-8 space-y-6" data-testid="submit-service-page">
+      <CMSPageIntro pageKey="submit-service" />
     <Breadcrumbs items={[{ label: "Submit Local Service", to: "/submit-service" }]} />
     <div className="rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-800 text-white p-7"><h1 className="text-3xl font-black">Help Map Local Nepal</h1><p className="text-sm text-emerald-100 mt-2">Send a hospital, hotel, police station, bank, emergency service or destination with GPS and evidence. Admin approval is required before database and CSV publication.</p></div>
     <form onSubmit={submit} className="rounded-3xl bg-white border shadow-sm p-6 space-y-6">

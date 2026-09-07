@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 
@@ -706,6 +707,7 @@ label:language.name
 return (
 
 <div className="container-app py-10">
+      <CMSPageIntro pageKey="translation" />
 
 
 <div className="flex justify-between items-center mb-3">

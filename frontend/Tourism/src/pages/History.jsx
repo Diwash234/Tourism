@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiClock } from "react-icons/fi"
 import userApi from "../api/userApi"
@@ -38,6 +39,7 @@ const History = () => {
       animate={{ opacity: 1, y: 0 }}
       className="fade-in theme-brown"
     >
+      <CMSPageIntro pageKey="history" />
       <h1 className="section-title flex items-center gap-2">
         <FiClock className="text-himalaya-500" />
         Visit History

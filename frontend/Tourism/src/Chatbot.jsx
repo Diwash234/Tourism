@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import CMSPageIntro from "./components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiSend, FiCompass, FiShield, FiDollarSign, FiPhoneCall, FiSun,
@@ -139,6 +140,7 @@ export default function ChatBot() {
 
   return (
     <div className="container-app py-8 animate-fadeIn" data-testid="himal-page">
+      <CMSPageIntro pageKey="chatbot" />
       <div className="max-w-4xl mx-auto space-y-5">
         <div className="text-center">
           <span className="px-3.5 py-1 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase tracking-wider">

@@ -1,4 +1,5 @@
 import { useForm, useWatch } from "react-hook-form"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import {
@@ -164,6 +165,7 @@ const BudgetEstimator = () => {
 
   return (
     <div className="container-app py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in theme-orange">
+      <CMSPageIntro pageKey="budget-estimator" />
       {/* FORM */}
       <div>
         <h1 className="section-title flex items-center gap-2">
