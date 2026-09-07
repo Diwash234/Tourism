@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Link } from "react-router-dom"
-import { FiPlus, FiRefreshCw } from "react-icons/fi"
+import { FiPlus, FiRefreshCw, FiRadio, FiShield, FiAlertTriangle } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 
@@ -27,22 +27,48 @@ export default function EmergencyDirectoryPanel() {
   const [query, setQuery] = useState("")
   const [kind, setKind] = useState("")
   const [loading, setLoading] = useState(true)
+  const [lastUpdatedSec, setLastUpdatedSec] = useState(0)
 
-  const load = async () => {
-    setLoading(true)
+  const prevPendingCount = useRef(0)
+
+  const load = async (isBackground = false) => {
+    if (!isBackground) setLoading(true)
     try {
       const { data } = await adminApi.getEmergencyDirectory({ q: query, kind })
       setRows(data.results || [])
-      setPending(data.pending_submissions || [])
+      const newPending = data.pending_submissions || []
+      setPending(newPending)
       setCoverage(data.coverage || {})
+
+      if (isBackground && newPending.length > prevPendingCount.current) {
+        showToast(`🚨 New community emergency submission received! (${newPending.length} pending)`, "warning")
+      }
+      prevPendingCount.current = newPending.length
+      setLastUpdatedSec(0)
     } catch (error) {
-      showToast(error.response?.data?.detail || "Could not load emergency directory", "error")
+      if (!isBackground) showToast(error.response?.data?.detail || "Could not load emergency directory", "error")
     } finally {
-      setLoading(false)
+      if (!isBackground) setLoading(false)
     }
   }
 
   useEffect(() => { load() }, [kind])
+
+  // Live 5-second polling interval + timer counter
+  useEffect(() => {
+    const pollTimer = setInterval(() => {
+      load(true)
+    }, 5000)
+
+    const secTimer = setInterval(() => {
+      setLastUpdatedSec((prev) => prev + 1)
+    }, 1000)
+
+    return () => {
+      clearInterval(pollTimer)
+      clearInterval(secTimer)
+    }
+  }, [query, kind])
 
   const save = async (event) => {
     event.preventDefault()
@@ -75,25 +101,30 @@ export default function EmergencyDirectoryPanel() {
       <div className="rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Safety</p>
-            <h2 className="text-2xl font-black text-slate-900">Emergency directory</h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-3xl">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Safety</p>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                <FiRadio className="animate-pulse text-emerald-600" /> Live 5s Polling · Updated {lastUpdatedSec}s ago
+              </span>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mt-1">Emergency directory</h2>
+            <p className="text-sm text-slate-500 mt-1 max-w-3xl">
               Add accurate hospitals, police, pharmacies or fire stations with coordinates.
               Saves to the database and appends the official CSV. This does not scrape Google or Facebook,
               and it does not invent 50–60 pharmacies per ward.
             </p>
           </div>
-          <button type="button" onClick={load} className="px-4 py-2 rounded-xl border border-rose-200 text-rose-800 text-sm font-bold flex items-center gap-2">
+          <button type="button" onClick={() => load(false)} className="px-4 py-2 rounded-xl border border-rose-200 text-rose-800 text-sm font-bold flex items-center gap-2">
             <FiRefreshCw className={loading ? "animate-spin" : ""} /> Refresh
           </button>
         </div>
-        <div className="flex flex-wrap gap-3 mt-4 text-xs font-bold text-slate-300">
-          <span>Hospitals {coverage.hospitals ?? "—"}</span>
-          <span>Police {coverage.police ?? "—"}</span>
-          <span>Pharmacies {coverage.pharmacy ?? "—"}</span>
-          <span>Fire {coverage.fire_station ?? "—"}</span>
+        <div className="flex flex-wrap gap-3 mt-4 text-xs font-bold text-slate-600">
+          <span>Hospitals: <b>{coverage.hospitals ?? "—"}</b></span>
+          <span>Police: <b>{coverage.police ?? "—"}</b></span>
+          <span>Pharmacies: <b>{coverage.pharmacy ?? "—"}</b></span>
+          <span>Fire & Rescue: <b>{coverage.fire_station ?? "—"}</b></span>
         </div>
-        <form className="flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); load() }}>
+        <form className="flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); load(false) }}>
           <input className="input-field" placeholder="Search Dadeldhura, Amargadhi, pharmacy…" value={query} onChange={(e) => setQuery(e.target.value)} />
           <select className="input-field max-w-[180px]" value={kind} onChange={(e) => setKind(e.target.value)}>
             <option value="">All types</option>
@@ -105,8 +136,8 @@ export default function EmergencyDirectoryPanel() {
 
       {pending.length > 0 && (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h3 className="font-black text-slate-900 mb-2">Pending community submissions</h3>
-          <p className="text-xs text-slate-300 mb-3">These stay hidden until an administrator verifies them. Approve from Infrastructure, or add the verified row here.</p>
+          <h3 className="font-black text-slate-900 mb-2 flex items-center gap-1.5"><FiAlertTriangle className="text-amber-600" /> Pending community submissions ({pending.length})</h3>
+          <p className="text-xs text-slate-500 mb-3">These stay hidden until an administrator verifies them. Approve from Infrastructure, or add the verified row here.</p>
           <div className="space-y-2">
             {pending.map((row) => (
               <div key={row.id} className="rounded-xl border border-amber-200 bg-white p-3">
@@ -149,7 +180,7 @@ export default function EmergencyDirectoryPanel() {
               <div key={`${row.kind}-${row.id}`} className="rounded-xl border border-slate-200 p-3">
                 <p className="font-bold text-slate-900">{row.name}</p>
                 <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
-                <p className="text-xs text-slate-300">{row.latitude}, {row.longitude}</p>
+                <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>
                 <div className="flex gap-2 mt-2">
                   {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}
                   {!row.is_archived && <button type="button" onClick={() => act(row, "archive")} className="text-xs font-bold text-rose-700">Archive</button>}
