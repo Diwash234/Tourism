@@ -1586,7 +1586,7 @@ const AdminDashboard = () => {
                   <button
                     onClick={handleDiscoverPipelineImages}
                     disabled={pipelineLoading}
-                    className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs flex items-center gap-1.5 shadow-lg transition-all"
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all whitespace-nowrap"
                   >
                     ⚡ Find Images (Multi-Source Pipeline)
                   </button>
@@ -1600,7 +1600,7 @@ const AdminDashboard = () => {
                   <button
                     onClick={handleGenerateAIImages}
                     disabled={aiGenerating}
-                    className="px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all disabled:opacity-50"
+                    className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition-all disabled:opacity-50 whitespace-nowrap"
                   >
                     {aiGenerating ? "🤖 Generating..." : "✨ Generate AI images"}
                   </button>

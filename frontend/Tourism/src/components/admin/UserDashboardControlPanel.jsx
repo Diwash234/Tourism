@@ -195,7 +195,7 @@ export default function UserDashboardControlPanel() {
               <p className="font-bold text-xs text-slate-900">AI Itinerary Modification Bar</p>
               <p className="text-[11px] text-slate-500">Enable 1-click AI modification actions on user travel plans</p>
             </div>
-            {enableAIReplanning ? <FiToggleRight size={24} className="text-emerald-700" /> : <FiToggleLeft size={24} className="text-slate-400" />}
+            {enableAIReplanning ? <FiToggleRight size={24} className="text-emerald-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
           </div>
 
           <div
@@ -214,14 +214,14 @@ export default function UserDashboardControlPanel() {
           <div
             onClick={() => setEnablePhotoUploads(!enablePhotoUploads)}
             className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-              enablePhotoUploads ? "bg-amber-50 border-amber-300" : "bg-slate-50 border-slate-200 opacity-60"
+              enablePhotoUploads ? "bg-emerald-50 border-emerald-300" : "bg-slate-50 border-slate-200 opacity-60"
             }`}
           >
             <div>
               <p className="font-bold text-xs text-slate-900">Community Photo Upload Desk</p>
               <p className="text-[11px] text-slate-500">Allow travelers to upload photos directly from dashboard</p>
             </div>
-            {enablePhotoUploads ? <FiToggleRight size={24} className="text-amber-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
+            {enablePhotoUploads ? <FiToggleRight size={24} className="text-emerald-600" /> : <FiToggleLeft size={24} className="text-slate-400" />}
           </div>
         </div>
       </div>

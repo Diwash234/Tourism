@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
 import { Link } from "react-router-dom"
 import { FiAlertCircle, FiBriefcase, FiCheck, FiCheckCircle, FiClock, FiRefreshCw, FiX } from "react-icons/fi"
 import adminApi from "../api/adminApi"
@@ -15,11 +15,14 @@ export default function StaffDashboard({ module = "dashboard" }) {
   const { showToast } = useToast()
   const [data, setData] = useState({ results: [], tasks: [], task_summary: {}, queue_counts: {}, capabilities: {} })
   const [loading, setLoading] = useState(false)
+  const loadInFlight = useRef(false)
   const load = useCallback(async () => {
+    if (loadInFlight.current) return
+    loadInFlight.current = true
     setLoading(true)
     try { setData((await adminApi.getStaffWorkspace(module)).data) }
     catch (error) { showToast(error.response?.data?.detail || "This workspace is not assigned to you", "error") }
-    finally { setLoading(false) }
+    finally { setLoading(false); loadInFlight.current = false }
   }, [module])
   useEffect(() => { load() }, [load])
 

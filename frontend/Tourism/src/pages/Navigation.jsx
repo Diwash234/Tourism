@@ -276,7 +276,7 @@ export default function Navigation() {
             onClick={() => setGameMode(!gameMode)}
             className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all ${
               gameMode
-                ? "bg-[#102A2E] text-amber-300 shadow-lg shadow-purple-950/30 ring-2 ring-amber-400"
+                ? "bg-[#102A2E] text-emerald-300 shadow-lg shadow-emerald-950/30 ring-2 ring-emerald-500"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
@@ -376,7 +376,7 @@ export default function Navigation() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 to-rose-600 hover:from-purple-800 hover:to-rose-700 text-white font-black text-xs shadow-lg transition-all"
+              className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-lg transition-all whitespace-nowrap"
             >
               {loading ? "Calculating..." : "Find Route & Calculate Distance"}
             </button>

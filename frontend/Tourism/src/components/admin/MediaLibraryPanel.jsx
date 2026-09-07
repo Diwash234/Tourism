@@ -178,12 +178,12 @@ export default function MediaLibraryPanel() {
               {image.used_on?.length > 0 && <p className="mt-1 text-[10px] text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" · ")}</p>}
               <p>{image.source} · {image.status} · position {image.ordering + 1}</p>
               <div className="mt-3 grid grid-cols-2 gap-1.5">
-                <button onClick={() => handleOpenEditMedia(image)} className="col-span-2 rounded-lg bg-amber-400 hover:bg-amber-500 px-2 py-1.5 font-bold text-slate-950">Replace / Edit Image</button>
+                <button onClick={() => handleOpenEditMedia(image)} className="col-span-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-2 py-1.5 font-bold">Replace / Edit Image</button>
                 <button onClick={() => update(image, { verification_status: "approved", is_verified: true })} className="rounded-lg bg-emerald-700 px-2 py-1.5 font-bold text-white">Approve</button>
                 <button onClick={() => update(image, { verification_status: "rejected", is_verified: false })} className="rounded-lg bg-rose-600 px-2 py-1.5 font-bold text-white">Reject</button>
                 <button onClick={() => update(image, { action: "move_up" })} className="rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-900" title="Move up"><FiArrowUp className="inline" /> Up</button>
                 <button onClick={() => update(image, { action: "move_down" })} className="rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-900" title="Move down"><FiArrowDown className="inline" /> Down</button>
-                <button onClick={async () => { await adminApi.setAdminDestinationCover(image.destination_id, { image_id: image.id }); load(data.page) }} className="rounded-lg bg-amber-400 px-2 py-1.5 font-bold text-slate-950">Cover</button>
+                <button onClick={async () => { await adminApi.setAdminDestinationCover(image.destination_id, { image_id: image.id }); load(data.page) }} className="rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-2 py-1.5 font-bold">Cover</button>
                 <button onClick={() => setCropping(image)} className="rounded-lg bg-sky-700 px-2 py-1.5 font-bold text-white">Crop</button>
                 <button onClick={() => remove(image)} className="col-span-2 rounded-lg bg-rose-100 px-2 py-1.5 font-bold text-rose-800">Remove</button>
               </div>
