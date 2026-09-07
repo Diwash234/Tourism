@@ -5,7 +5,7 @@ export default function BudgetInfo({ budgetEst, entryFee = 0 }) {
   const totalCost = budgetEst?.estimated_trip_budget || (dailyCost * 3)
 
   return (
-    <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl bg-gradient-to-br from-white to-purple-50/50 space-y-4">
+    <div className="card-base overflow-hidden p-6 shadow-xl border border-[#E5E0D5] rounded-3xl bg-gradient-to-br from-white to-purple-50/50 space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
         <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
           <FiDollarSign className="text-emerald-600" /> Travel Budget Breakdown

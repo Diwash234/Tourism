@@ -10,7 +10,7 @@ const RiskCard = ({ title, level = "LOW", description, value }) => {
   const risk = RISK_LEVELS[level] || RISK_LEVELS.LOW
 
   return (
-    <div className="card-base p-5">
+    <div className="card-base overflow-hidden p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className={`p-2 rounded-xl ${risk.color}`}>

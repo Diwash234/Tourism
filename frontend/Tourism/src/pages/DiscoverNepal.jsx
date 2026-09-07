@@ -79,7 +79,7 @@ const DestChip = ({ dest }) => (
 )
 
 const DestCard = ({ dest, icon: Icon }) => (
-  <Link to={dest.slug ? `/destinations/${dest.slug}` : "/destinations"} className="card-base p-4 hover:shadow-md transition bg-white border border-slate-200">
+  <Link to={dest.slug ? `/destinations/${dest.slug}` : "/destinations"} className="card-base overflow-hidden p-4 hover:shadow-md transition bg-white border border-slate-200">
     {dest.cover_image_url ? (
       <img src={dest.cover_image_url} alt={dest.name} className="w-full h-32 rounded-xl mb-3 object-cover bg-gray-100" />
     ) : (
@@ -141,7 +141,7 @@ export default function DiscoverNepal() {
       <NationalSymbols />
 
       {/* 8,000m PEAKS TABLE & HIMALAYAN RANGES */}
-      <section className="card-base p-6 sm:p-8 bg-white border border-slate-200 shadow-xl space-y-6">
+      <section className="card-base overflow-hidden p-6 sm:p-8 bg-white border border-slate-200 shadow-xl space-y-6">
         <div>
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
             Highest Mountains on Earth
@@ -199,7 +199,7 @@ export default function DiscoverNepal() {
       <Section id="cultural-heritage" icon={FiFeather} title="Nepali Cultural & Living Heritage">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
           {DEFAULT_CULTURE.map((item, idx) => (
-            <div key={idx} className="card-base p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
+            <div key={idx} className="card-base overflow-hidden p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
               <div className="space-y-2">
                 <img src={item.image} alt={item.title} className="w-full h-36 object-cover rounded-xl bg-slate-100 border border-slate-100" />
                 <div>
@@ -218,7 +218,7 @@ export default function DiscoverNepal() {
       <Section id="festivals" icon={FiSun} title="Vibrant Cultural Festivals">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
           {festivals.map((fest, idx) => (
-            <div key={idx} className="card-base p-5 bg-white border border-slate-200 space-y-2">
+            <div key={idx} className="card-base overflow-hidden p-5 bg-white border border-slate-200 space-y-2">
               <div className="flex justify-between items-start">
                 <h3 className="font-black text-base text-slate-900">{fest.title || fest.name}</h3>
                 <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold">
@@ -271,7 +271,7 @@ export default function DiscoverNepal() {
       <Section id="local-food" icon={FiCoffee} title="Authentic Nepali Culinary Heritage">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-2">
           {DEFAULT_FOODS.map((food, i) => (
-            <div key={i} className="card-base p-4 bg-white border border-slate-200 space-y-3">
+            <div key={i} className="card-base overflow-hidden p-4 bg-white border border-slate-200 space-y-3">
               <img src={food.image} alt={food.name} className="w-full h-36 object-cover rounded-xl" />
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-700">{food.nepali}</span>
@@ -291,7 +291,7 @@ export default function DiscoverNepal() {
             <Link
               key={province.name}
               to={`/destinations?q=${encodeURIComponent(province.name)}`}
-              className="card-base p-4 hover:shadow-md transition bg-white border border-slate-200"
+              className="card-base overflow-hidden p-4 hover:shadow-md transition bg-white border border-slate-200"
             >
               <h3 className="font-extrabold text-base text-slate-900">{province.name}</h3>
               <p className="text-xs text-emerald-700 font-bold mt-1">

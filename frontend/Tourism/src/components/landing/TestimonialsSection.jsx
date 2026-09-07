@@ -57,7 +57,7 @@ export default function TestimonialsSection() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {displayReviews.map((t) => (
-          <HoverCard key={t.id} className="card-base p-7 rounded-3xl border border-[#E5E0D5]/80 shadow-xl bg-white flex flex-col justify-between space-y-4">
+          <HoverCard key={t.id} className="card-base overflow-hidden p-7 rounded-3xl border border-[#E5E0D5]/80 shadow-xl bg-white flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
                 {"★".repeat(t.rating || 5)}

@@ -172,7 +172,7 @@ export default function ChatBot() {
           ))}
         </div>
 
-        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-primary-100 shadow-2xl rounded-3xl bg-white">
+        <div className="card-base overflow-hidden h-[680px] flex flex-col overflow-hidden border border-primary-100 shadow-2xl rounded-3xl bg-white">
           <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
@@ -191,7 +191,7 @@ export default function ChatBot() {
 
           <div
             ref={chatBoxRef}
-            className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/70"
+            className="flex-1 min-w-0 overflow-y-auto p-5 space-y-4 bg-slate-50/70"
           >
             {messages.map((message, index) => (
               <div
@@ -335,7 +335,7 @@ export default function ChatBot() {
                           <div className="flex gap-1.5 pt-1">
                             <Link
                               to={`/destinations/${card.slug}`}
-                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-[10px] font-bold transition-colors"
+                              className="flex-1 min-w-0 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-[10px] font-bold transition-colors"
                             >
                               View Details
                             </Link>
@@ -404,7 +404,7 @@ export default function ChatBot() {
               value={input}
               disabled={sending}
               placeholder="Ask about Nepal destinations, distance between cities, 5-day itineraries, or say 'show photos'..."
-              className="input-field flex-1 resize-none text-sm"
+              className="input-field flex-1 min-w-0 resize-none text-sm"
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
             />

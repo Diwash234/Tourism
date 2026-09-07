@@ -6,7 +6,7 @@ const RecommendationCard = ({ item }) => {
   const matchScore = Math.round(((item.score || item.ml_score || 0)) * 100)
 
   return (
-    <div className="card-base p-5">
+    <div className="card-base overflow-hidden p-5">
       <div className="flex items-center gap-2 text-forest-600 text-sm font-semibold">
         <FiTrendingUp />
         {matchScore}% match

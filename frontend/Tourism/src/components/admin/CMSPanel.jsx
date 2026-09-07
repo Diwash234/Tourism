@@ -334,7 +334,7 @@ export default function CMSPanel() {
               ))}
               <button onClick={() => setPreview(null)}><FiX size={22} /></button>
             </div>
-            <div className="flex min-h-0 flex-1 justify-center overflow-hidden">
+            <div className="flex min-h-0 flex-1 min-w-0 justify-center overflow-hidden">
               <div className={`overflow-hidden rounded-[1.5rem] border-8 border-slate-900 bg-white shadow-2xl ${previewMode === "mobile" ? "h-full w-[390px]" : previewMode === "tablet" ? "h-full w-[768px]" : "h-full w-full"}`}>
                 {previewKind === "live" && preview.route ? (
                   <iframe title="Logged-out traveller preview" src={travellerPreviewSrc()} className="h-full w-full bg-white" />
@@ -977,7 +977,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
               className="flex cursor-grab items-center gap-3"
             >
               <span className="font-black text-emerald-800">{index + 1}</span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 min-w-0">
                 <p className="truncate font-bold">{section.title || section.key}</p>
                 <p className="text-[10px] uppercase tracking-widest text-slate-500">{section.key} · {section.section_type || "text"} · {section.status}{section.is_visible === false ? " · hidden" : ""}</p>
               </div>

@@ -25,7 +25,7 @@ export default function Phrasebook({ dialect = "ne" }) {
   return (
     <div className="space-y-3">
       {PHRASES.map((p, i) => (
-        <div key={i} className="card-base p-4 rounded-2xl border border-[#E5E0D5] flex items-center justify-between shadow-sm">
+        <div key={i} className="card-base overflow-hidden p-4 rounded-2xl border border-[#E5E0D5] flex items-center justify-between shadow-sm">
           <div>
             <p className="text-xs text-gray-500">{p.en}</p>
             <p className="text-base font-bold text-purple-950 mt-0.5">{p[dialect] || p.ne}</p>

@@ -36,7 +36,7 @@ const ForgotPassword = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 card-base w-full max-w-md p-8"
+        className="relative z-10 card-base overflow-hidden w-full max-w-md p-8"
       >
         <h1 className="text-2xl font-bold text-center mb-1">Forgot Password</h1>
         <p className="text-sm text-gray-500 text-center mb-6">

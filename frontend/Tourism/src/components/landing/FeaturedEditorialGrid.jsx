@@ -72,7 +72,7 @@ export default function FeaturedEditorialGrid({ destinations = [], featuredCards
         {/* Main 50% Featured Card (col-span-6) */}
         <div
           onClick={() => navigate(main.cta_url || `/destinations/${main.destination_slug || "everest-base-camp"}`)}
-          className="lg:col-span-6 relative min-h-[460px] sm:min-h-[520px] rounded-3xl overflow-hidden bg-[#102A2E] text-white p-8 flex flex-col justify-end shadow-2xl cursor-pointer group"
+          className="lg:col-span-6 relative min-h-[460px] sm:min-h-[520px] rounded-3xl overflow-hidden bg-[#102A2E] text-white p-8 flex flex-wrap gap-2 flex-col justify-end shadow-2xl cursor-pointer group"
         >
           <img
             src={main.image_url || main.effective_image_url || main.cover_image_url || "/images/destinations/everest/base-camp.jpg"}

@@ -33,7 +33,7 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="card-base p-8 text-center max-w-xl mx-auto my-10">
+        <div className="card-base overflow-hidden p-8 text-center max-w-xl mx-auto my-10">
           <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
             <FiAlertTriangle size={28} />
           </div>

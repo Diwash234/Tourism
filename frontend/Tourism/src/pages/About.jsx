@@ -37,7 +37,7 @@ const About = () => (
           desc: "Covering destinations across Nepal with real-time alerts and translations.",
         },
       ].map(({ icon: Icon, title, desc }) => (
-        <div key={title} className="card-base p-6 text-center">
+        <div key={title} className="card-base overflow-hidden p-6 text-center">
           <div className="inline-flex p-3 rounded-full bg-forest-50 text-forest-500 mb-4">
             <Icon size={24} />
           </div>
@@ -54,7 +54,7 @@ const About = () => (
     </div>
 
 
-    <div className="card-base p-8 text-center bg-gradient-to-br from-himalaya-500 to-forest-600 text-white">
+    <div className="card-base overflow-hidden p-8 text-center bg-gradient-to-br from-himalaya-500 to-forest-600 text-white">
 
       <h2 className="text-xl font-heading font-bold mb-2">
         Ready to explore?

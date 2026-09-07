@@ -9,7 +9,7 @@ const TURN_ICONS = {
 
 export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep }) {
   return (
-    <div className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-3xl space-y-4">
+    <div className="card-base overflow-hidden p-5 shadow-lg border border-[#E5E0D5] rounded-3xl space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
         <h3 className="font-bold text-base text-gray-900">Turn-by-Turn Route Guidance</h3>
         <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#1D5146] font-bold">

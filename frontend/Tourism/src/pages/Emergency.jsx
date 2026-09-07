@@ -52,7 +52,7 @@ function FacilityCard({ facility }) {
       {facility.outside_requested_radius && <p className="text-[10px] rounded-lg bg-amber-50 text-amber-800 px-2 py-1">No service found inside the selected radius; showing the nearest known result.</p>}
       {facility.phone_is_national_fallback && <p className="text-[10px] text-gray-500">Local phone unavailable in the source dataset — national {meta.label.toLowerCase()} line shown.</p>}
       <div className="flex gap-2 pt-2 border-t">
-        {(facility.phone_number || meta.fallback) ? <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 rounded-xl bg-[#102A2E] text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a> : <span className="flex-1 rounded-xl bg-gray-100 text-gray-500 py-2 text-center text-xs font-bold">Phone unavailable</span>}
+        {(facility.phone_number || meta.fallback) ? <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 min-w-0 rounded-xl bg-[#102A2E] text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a> : <span className="flex-1 min-w-0 rounded-xl bg-gray-100 text-gray-500 py-2 text-center text-xs font-bold">Phone unavailable</span>}
         {facility.latitude != null && <a href={directions} target="_blank" rel="noreferrer" className="rounded-xl border border-[#E5E0D5] text-[#1D5146] px-3 py-2 text-xs font-bold"><FiNavigation className="inline" /> Route</a>}
       </div>
       <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
@@ -166,7 +166,7 @@ export default function Emergency() {
 
       <section className="rounded-3xl bg-white border shadow-sm p-5 space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); loadDestination(query) }} className="relative flex gap-2">
-          <div className="relative flex-1"><FiSearch className="absolute left-4 top-3.5 text-gray-400" /><input className="input-field pl-11" data-testid="emergency-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Rara Lake, Mardi Himal, Janakpur…" />
+          <div className="relative flex-1 min-w-0"><FiSearch className="absolute left-4 top-3.5 text-gray-400" /><input className="input-field pl-11" data-testid="emergency-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Rara Lake, Mardi Himal, Janakpur…" />
             {suggestions.length > 0 && <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white border rounded-xl shadow-2xl overflow-hidden">{suggestions.slice(0, 7).map((item) => <button type="button" key={item.id} onClick={() => loadDestination(item.slug)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b last:border-0"><b>{item.name}</b><span className="ml-2 text-xs text-gray-400">{item.district}, {item.province}</span></button>)}</div>}
           </div>
           <button className="rounded-xl bg-[#102A2E] text-white px-6 font-black text-sm">Find help</button>

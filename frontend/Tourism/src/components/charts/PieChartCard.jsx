@@ -10,7 +10,7 @@ const PieChartCard = ({ title, labels, data }) => {
     datasets: [{ data, backgroundColor: COLORS }],
   }
   return (
-    <div className="card-base p-5">
+    <div className="card-base overflow-hidden p-5">
       {title && <h4 className="font-semibold mb-4">{title}</h4>}
       <Pie data={chartData} options={{ responsive: true }} />
     </div>

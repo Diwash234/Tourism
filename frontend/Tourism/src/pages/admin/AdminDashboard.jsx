@@ -839,7 +839,7 @@ const AdminDashboard = () => {
                 }}
                 className="flex flex-col sm:flex-row gap-3 pt-2"
               >
-                <div className="relative flex-1">
+                <div className="relative flex-1 min-w-0">
                   <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                   <input
                     value={researchQuery}
@@ -1119,7 +1119,7 @@ const AdminDashboard = () => {
 
                 {/* Filter & Search Bar */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                     <input
                       value={candidateSearch}
@@ -1540,13 +1540,13 @@ const AdminDashboard = () => {
                       <div className="flex items-center gap-2 pt-2 border-t border-slate-700/40">
                         <button
                           onClick={() => handleRejectImage(img.id)}
-                          className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-600/30"
+                          className="flex-1 min-w-0 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-600/30"
                         >
                           <FiX size={14} /> Reject (Red)
                         </button>
                         <button
                           onClick={() => handleApproveImage(img.id)}
-                          className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/30"
+                          className="flex-1 min-w-0 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/30"
                         >
                           <FiCheck size={14} /> Accept & Save (Green)
                         </button>
@@ -1631,7 +1631,7 @@ const AdminDashboard = () => {
                     onChange={(e) => setDestSearch(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && runDestinationSearch()}
                     placeholder="Search destination by name (e.g. Ilam, Rolpa, Mustang)..."
-                    className="flex-1 min-w-[240px] px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                    className="flex-1 min-w-0 min-w-[240px] px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
                   />
                   <button onClick={runDestinationSearch} className="px-4 py-2 rounded-lg bg-slate-600 hover:bg-emerald-600 text-white text-sm font-bold">
                     Search
@@ -1700,7 +1700,7 @@ const AdminDashboard = () => {
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
                     placeholder="Paste image URL (https://...)"
-                    className="flex-1 px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-600/60 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
                   />
                   <input
                     type="text"
@@ -1717,7 +1717,7 @@ const AdminDashboard = () => {
                   </button>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-700/60">
-                  <input type="file" accept="image/*" onChange={(e)=>setNewImageFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
+                  <input type="file" accept="image/*" onChange={(e)=>setNewImageFile(e.target.files?.[0] || null)} className="flex-1 min-w-0 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
                   <button type="button" disabled={!newImageFile} onClick={handleUploadAdminImage} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold">Browse PC & Upload Cover</button>
                 </div>
                 {(newImageUrl.trim() || newImageFile) && (
@@ -1735,7 +1735,7 @@ const AdminDashboard = () => {
                 <div className="pt-3 border-t border-slate-700/60 space-y-2">
                   <p className="text-[11px] font-bold text-sky-300">Admin: destination videos (25 MB max)</p>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <input type="file" accept="video/*" onChange={(e)=>setNewVideoFile(e.target.files?.[0] || null)} className="flex-1 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
+                    <input type="file" accept="video/*" onChange={(e)=>setNewVideoFile(e.target.files?.[0] || null)} className="flex-1 min-w-0 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white" />
                     <button type="button" disabled={!newVideoFile} onClick={async () => {
                       if (!newVideoFile) return
                       if (newVideoFile.size > 25 * 1024 * 1024) return showToast("Videos must be 25 MB or smaller.", "error")
@@ -1901,7 +1901,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+                    <div className="p-3.5 space-y-2 flex-1 min-w-0 flex flex-col justify-between">
                       <div>
                         <p className="font-bold text-xs text-white line-clamp-1">{img.caption || "Verified Destination Media"}</p>
                         <p className="text-[11px] text-slate-300 mt-0.5">Author: <span className="text-white font-semibold">{img.author}</span></p>

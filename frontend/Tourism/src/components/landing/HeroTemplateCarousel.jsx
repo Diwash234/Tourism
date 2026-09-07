@@ -164,7 +164,7 @@ export default function HeroTemplateCarousel() {
         </div>
 
         {/* Right Side: Floating Card Carousel Previews (Matching Dribbble Reference) */}
-        <div className="lg:col-span-5 hidden sm:flex items-center gap-4 overflow-x-auto pb-2">
+        <div className="lg:col-span-5 hidden sm:flex flex-wrap gap-2 items-center gap-4 overflow-x-auto pb-2">
           {activeTemplate.sideCards.map((sc, i) => (
             <div
               key={i}

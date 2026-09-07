@@ -6,7 +6,7 @@ export default function RiskInfo({ riskAnalysis, alertTitle }) {
   const color = category === "LOW" ? "bg-emerald-100 text-emerald-800" : category === "MODERATE" ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
 
   return (
-    <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
+    <div className="card-base overflow-hidden p-6 shadow-xl border border-[#E5E0D5] rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
         <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
           <FiShield className="text-emerald-700" /> Safety & Risk Score

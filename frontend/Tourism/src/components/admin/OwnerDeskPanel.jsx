@@ -190,7 +190,7 @@ export default function OwnerDeskPanel() {
             Show on the public site
           </label>
           <div className="flex gap-2">
-            <button type="submit" className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 flex items-center justify-center gap-2">
+            <button type="submit" className="flex-1 min-w-0 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 flex items-center justify-center gap-2">
               <FiPlus /> {editing ? "Update notice" : "Publish notice"}
             </button>
             {editing && (

@@ -22,9 +22,9 @@ const GoogleMark = () => (
 const SocialLoginButtons = () => (
   <div className="space-y-3">
     <div className="flex items-center gap-3">
-      <div className="flex-1 h-px bg-gray-200" />
+      <div className="flex-1 min-w-0 h-px bg-gray-200" />
       <span className="text-xs text-gray-400">or continue with</span>
-      <div className="flex-1 h-px bg-gray-200" />
+      <div className="flex-1 min-w-0 h-px bg-gray-200" />
     </div>
 
     <div className="grid grid-cols-2 gap-3">

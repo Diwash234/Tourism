@@ -59,7 +59,7 @@ export default function Checkout() {
       />
 
       {result ? (
-        <div className="card-base p-6 max-w-2xl space-y-3" data-testid="checkout-result">
+        <div className="card-base overflow-hidden p-6 max-w-2xl space-y-3" data-testid="checkout-result">
           <h2 className="text-xl font-black" data-testid="checkout-reference">Your trip request {result.order?.reference}</h2>
           <p className="text-slate-600">{titles}{days ? ` — ${days} days` : ""}</p>
           <p className="font-bold">Status: {result.order?.status_label || result.order?.status}</p>
@@ -83,7 +83,7 @@ export default function Checkout() {
         </div>
       ) : (
         <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">
-          <section className="card-base p-5 space-y-3">
+          <section className="card-base overflow-hidden p-5 space-y-3">
             <h2 className="font-black">Trip basket</h2>
             {items.length === 0 && (
               <p className="text-sm text-slate-600">Nothing here yet. <Link to="/packages" className="font-bold text-emerald-800">Browse packages</Link>.</p>
@@ -99,7 +99,7 @@ export default function Checkout() {
             ))}
             <p className="text-xl font-black">Total NPR {total.toLocaleString()}</p>
           </section>
-          <form onSubmit={submit} className="card-base p-5 space-y-3" data-testid="checkout-form">
+          <form onSubmit={submit} className="card-base overflow-hidden p-5 space-y-3" data-testid="checkout-form">
             {!isAuthenticated && (
               <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 You can request as a guest, or <Link to="/login?next=/checkout" className="font-bold underline">log in</Link> so we can attach the request to your account.

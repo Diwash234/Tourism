@@ -354,7 +354,7 @@ export default function Gallery() {
             </div>
 
             {/* Main Center Image */}
-            <div className="flex-1 flex items-center justify-center relative my-3">
+            <div className="flex-1 min-w-0 flex items-center justify-center relative my-3">
               <img
                 src={activePhoto.url}
                 alt={activePhoto.caption}

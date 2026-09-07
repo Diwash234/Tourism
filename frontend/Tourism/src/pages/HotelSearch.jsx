@@ -35,7 +35,7 @@ const HotelSearch = () => {
       <h1 className="section-title">Find a Hotel</h1>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-2xl">
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             className="input-field pl-11"

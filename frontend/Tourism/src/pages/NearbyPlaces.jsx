@@ -69,7 +69,7 @@ const NearbyPlaces = () => {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: Math.min(i * 0.04, 0.4) }}
-                  className="card-base p-4 flex items-center gap-3"
+                  className="card-base overflow-hidden p-4 flex items-center gap-3"
                 >
                   <FiMapPin className="text-himalaya-500" />
 

@@ -106,7 +106,7 @@ const PasswordStrengthField = forwardRef((
       {/* Strength bar */}
       {value && (
         <div className="mt-2 flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-stone-200 overflow-hidden">
+          <div className="flex-1 min-w-0 h-1.5 rounded-full bg-stone-200 overflow-hidden">
             <motion.div
               initial={false}
               animate={{ width: `${((s.score + 1) / 5) * 100}%` }}

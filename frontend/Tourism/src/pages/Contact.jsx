@@ -83,7 +83,7 @@ const Contact = () => {
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         onSubmit={handleSubmit(onSubmit)}
-        className="card-base p-6 sm:p-8 space-y-4 bg-white border border-slate-200 shadow-xl rounded-3xl"
+        className="card-base overflow-hidden p-6 sm:p-8 space-y-4 bg-white border border-slate-200 shadow-xl rounded-3xl"
       >
         <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
           <FiShield className="text-[#102A2E]" /> Send Message to Admin Desk

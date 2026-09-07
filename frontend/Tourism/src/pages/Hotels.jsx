@@ -48,7 +48,7 @@ const Hotels = () => {
 
       <div className="flex flex-col sm:flex-row gap-3">
 
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
 
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 

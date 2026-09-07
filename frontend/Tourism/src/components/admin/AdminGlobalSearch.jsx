@@ -94,7 +94,7 @@ export default function AdminGlobalSearch() {
   }
 
   return (
-    <div ref={box} className="relative max-w-xl flex-1">
+    <div ref={box} className="relative max-w-xl flex-1 min-w-0">
       <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-800" />
       <input
         value={q}

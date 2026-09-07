@@ -39,7 +39,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
             <Link
               to={`/packages/${offer.slug}`}
               data-testid="himal-package-view"
-              className="flex-1 text-center text-[11px] font-black rounded-lg bg-amber-400 text-gray-950 py-1.5"
+              className="flex-1 min-w-0 text-center text-[11px] font-black rounded-lg bg-amber-400 text-gray-950 py-1.5"
             >
               View
             </Link>
@@ -47,7 +47,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
               type="button"
               data-testid="himal-package-add"
               onClick={() => add(offer)}
-              className="flex-1 text-[11px] font-black rounded-lg bg-emerald-700 text-white py-1.5"
+              className="flex-1 min-w-0 text-[11px] font-black rounded-lg bg-emerald-700 text-white py-1.5"
             >
               Add to trip
             </button>

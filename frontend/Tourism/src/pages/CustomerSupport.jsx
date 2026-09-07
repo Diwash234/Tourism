@@ -200,7 +200,7 @@ export default function CustomerSupport() {
               <FiPlus size={16} /> Open New Support Ticket
             </button>
 
-            <div className="flex-1 overflow-y-auto space-y-2 max-h-[460px] pr-1">
+            <div className="flex-1 min-w-0 overflow-y-auto space-y-2 max-h-[460px] pr-1">
               {threads.length === 0 ? (
                 <div className="p-6 text-center text-slate-500 text-xs space-y-2">
                   <FiMessageSquare size={24} className="mx-auto text-slate-600" />
@@ -307,7 +307,7 @@ export default function CustomerSupport() {
                 </div>
               </form>
             ) : selectedThread ? (
-              <div className="flex-1 flex flex-col min-h-0 space-y-3">
+              <div className="flex-1 min-w-0 flex flex-col min-h-0 space-y-3">
                 {/* Thread Header */}
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                   <div>
@@ -324,7 +324,7 @@ export default function CustomerSupport() {
                 </div>
 
                 {/* Messages Feed */}
-                <div className="flex-1 overflow-y-auto space-y-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800 min-h-[340px] max-h-[440px]">
+                <div className="flex-1 min-w-0 overflow-y-auto space-y-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800 min-h-[340px] max-h-[440px]">
                   {/* Initial Ticket Creator Post */}
                   <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/40 text-amber-100 text-xs space-y-1">
                     <div className="font-bold flex items-center gap-1.5 text-amber-300 mb-1">
@@ -371,7 +371,7 @@ export default function CustomerSupport() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Write a message to Admin & Staff support team..."
-                    className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 text-xs"
+                    className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 text-xs"
                   />
                   <button
                     type="submit"
@@ -383,7 +383,7 @@ export default function CustomerSupport() {
                 </form>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-3">
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-3">
                 <FiMessageSquare size={48} className="text-slate-700" />
                 <h3 className="text-lg font-bold text-slate-300">Select a support ticket or create a new one</h3>
                 <p className="text-xs text-slate-400 max-w-sm">

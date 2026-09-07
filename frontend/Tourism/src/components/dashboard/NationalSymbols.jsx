@@ -313,7 +313,7 @@ const NationalSymbols = () => {
               </div>
 
               {/* Modal Content Scroll Area */}
-              <div className="flex-1 overflow-y-auto pr-1 space-y-6 text-xs">
+              <div className="flex-1 min-w-0 overflow-y-auto pr-1 space-y-6 text-xs">
                 
                 {/* TAB 1: ALL 26 NATIONAL SYMBOLS */}
                 {activeModalTab === "symbols" && (
@@ -430,7 +430,7 @@ const NationalSymbols = () => {
                             {food.image && (
                               <img src={food.image} alt={food.name} className="w-full h-28 object-cover rounded-xl border border-slate-700/50" />
                             )}
-                            <div className="flex-1 space-y-1">
+                            <div className="flex-1 min-w-0 space-y-1">
                               <span className="text-[10px] font-black uppercase text-amber-400">{food.nepali}</span>
                               <h5 className="font-extrabold text-white text-xs">{food.name}</h5>
                               <p className="text-[10px] text-slate-400">📍 {food.region}</p>

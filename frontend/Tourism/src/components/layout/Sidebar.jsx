@@ -174,10 +174,10 @@ export default function Sidebar() {
             </div>
           ) : (
             <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2">
-              <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800">
+              <Link to="/login" onClick={handleNav} className="flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800">
                 <BsBoxArrowInRight size={13} /> Login
               </Link>
-              <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-50">
+              <Link to="/register" onClick={handleNav} className="flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-50">
                 <BsPersonPlus size={13} /> Sign up
               </Link>
             </div>

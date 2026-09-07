@@ -49,7 +49,7 @@ export default function TripStatus() {
   const card = (row) => {
     const titles = (row.items || []).map((item) => item.title).join(" & ")
     return (
-      <article key={row.id || row.reference} className="card-base p-5 space-y-2" data-testid="trip-result">
+      <article key={row.id || row.reference} className="card-base overflow-hidden p-5 space-y-2" data-testid="trip-result">
         <p className="text-xs font-black uppercase text-emerald-800">Trip request {row.reference}</p>
         <h2 className="text-xl font-black">{titles || row.headline}</h2>
         <p className="text-slate-600">{row.duration_days} day{row.duration_days === 1 ? "" : "s"} · NPR {row.total_npr}</p>
@@ -70,7 +70,7 @@ export default function TripStatus() {
         icon={FiClipboard}
         theme="gold"
       />
-      <form onSubmit={lookup} className="card-base p-5 max-w-xl grid sm:grid-cols-[1fr_1fr_auto] gap-2" data-testid="trip-lookup-form">
+      <form onSubmit={lookup} className="card-base overflow-hidden p-5 max-w-xl grid sm:grid-cols-[1fr_1fr_auto] gap-2" data-testid="trip-lookup-form">
         <input className="input-field" name="reference" data-testid="trip-reference" placeholder="Reference (e.g. NP260823ABC123)" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
         <input className="input-field" type="email" name="email" data-testid="trip-email" placeholder="Email used at checkout" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <button type="submit" disabled={busy} data-testid="trip-lookup" className="btn-primary">{busy ? "Looking…" : "Look up"}</button>

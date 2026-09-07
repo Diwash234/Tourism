@@ -55,7 +55,7 @@ export default function Collaborate() {
         theme="forest"
       />
       {done ? (
-        <div className="card-base p-8 max-w-xl space-y-3" data-testid="collaborate-success">
+        <div className="card-base overflow-hidden p-8 max-w-xl space-y-3" data-testid="collaborate-success">
           <h2 className="text-xl font-black">Application submitted successfully</h2>
           <p className="text-slate-600">Our team will review your application and contact you.</p>
           <div className="flex flex-wrap gap-2">
@@ -64,7 +64,7 @@ export default function Collaborate() {
           </div>
         </div>
       ) : (
-        <form onSubmit={submit} className="card-base p-6 max-w-xl space-y-3" data-testid="collaborate-form">
+        <form onSubmit={submit} className="card-base overflow-hidden p-6 max-w-xl space-y-3" data-testid="collaborate-form">
           <input className="input-field" required name="name" data-testid="partner-name" placeholder="Business / hotel name" value={form.name} onChange={set("name")} />
           <select className="input-field" value={form.kind} onChange={set("kind")}>
             {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}

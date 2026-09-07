@@ -357,7 +357,7 @@ export default function DestinationList() {
 
       {/* Search bar with autocomplete */}
       <SearchBar
-        className="flex-1"
+        className="flex-1 min-w-0"
         defaultValue={initialQuery}
         placeholder="Search by name, district (e.g. Mahendra Cave, Phewa, Rara, Pathibhara)…"
         fetchSuggestions={fetchSuggestions}

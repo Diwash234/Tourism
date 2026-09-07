@@ -105,7 +105,7 @@ const PersonalDetails = () => {
       />
 
       {showForm && (
-        <div className="card-base p-6 mb-8">
+        <div className="card-base overflow-hidden p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">{editingId ? "Update Personal Details" : "Add Personal Details"}</h3>
             <button onClick={closeForm} className="text-gray-400 hover:text-dark"><FiX /></button>
@@ -150,7 +150,7 @@ const PersonalDetails = () => {
               <label className="text-xs font-medium text-gray-500">Notes (allergies, medical info, etc.)</label>
               <textarea rows={2} className="input-field mt-1" {...register("notes")} />
             </div>
-            <div className="sm:col-span-2 flex gap-3">
+            <div className="sm:col-span-2 flex flex-wrap gap-2 gap-3">
               <button type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl transition" disabled={isSubmitting}>
                 {isSubmitting ? "Saving..." : editingId ? "Update Details" : "Save Details"}
               </button>
@@ -165,7 +165,7 @@ const PersonalDetails = () => {
       ) : details.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {details.map((item) => (
-            <div key={item.id} className="card-base p-4">
+            <div key={item.id} className="card-base overflow-hidden p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold">{item.fullName}</p>

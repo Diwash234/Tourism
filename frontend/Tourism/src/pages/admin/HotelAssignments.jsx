@@ -65,7 +65,7 @@ const HotelAssignments = () => {
         Assign/remove actions require super admin permissions — enforced by the backend even though this page doesn't hide the form from regular admins.
       </p>
 
-      <form onSubmit={handleAssign} className="card-base p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+      <form onSubmit={handleAssign} className="card-base overflow-hidden p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <div>
           <label className="text-xs font-medium text-gray-500">Hotel ID</label>
           <input className="input-field mt-1" value={hotelId} onChange={(e) => setHotelId(e.target.value)} placeholder="e.g. 3" />
@@ -88,7 +88,7 @@ const HotelAssignments = () => {
       ) : assignments.length ? (
         <div className="space-y-3">
           {assignments.map((a) => (
-            <div key={a.id} className="card-base p-4 flex items-center justify-between">
+            <div key={a.id} className="card-base overflow-hidden p-4 flex items-center justify-between">
               <div>
                 <p className="font-semibold">{a.hotel_name}</p>
                 <p className="text-sm text-gray-500">Managed by {a.admin_email}</p>

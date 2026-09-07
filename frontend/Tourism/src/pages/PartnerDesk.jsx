@@ -72,7 +72,7 @@ export default function PartnerDesk() {
       <div className="container-app py-10">
         <PageHeader title="Partner desk" subtitle="Apply first. After an administrator approves your business you can add packages here." icon={FiBriefcase} theme="forest" />
         <div data-testid="partner-desk-missing" />
-        <div className="card-base p-6 max-w-xl space-y-3">
+        <div className="card-base overflow-hidden p-6 max-w-xl space-y-3">
           <p className="text-slate-600">No partner application is linked to this account.</p>
           <Link to="/collaborate" className="btn-primary inline-flex">Apply to partner</Link>
         </div>
@@ -92,7 +92,7 @@ export default function PartnerDesk() {
         icon={FiBriefcase}
         theme="forest"
       />
-      <section className="card-base p-5">
+      <section className="card-base overflow-hidden p-5">
         <p className="text-xs font-black uppercase text-emerald-800">{partner.kind}</p>
         <h2 className="text-2xl font-black">{partner.name}</h2>
         <p className="text-sm text-slate-600">Status: <b>{partner.status}</b> · {partner.email}</p>
@@ -101,7 +101,7 @@ export default function PartnerDesk() {
 
       {desk.can_manage_listings && (
         <div className="grid xl:grid-cols-[360px_1fr] gap-5">
-          <form onSubmit={submit} className="card-base p-5 space-y-3" data-testid="partner-listing-form">
+          <form onSubmit={submit} className="card-base overflow-hidden p-5 space-y-3" data-testid="partner-listing-form">
             <h3 className="font-black">Submit a package for review</h3>
             <select className="input-field" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
               {LISTING_KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -121,7 +121,7 @@ export default function PartnerDesk() {
             <input className="input-field" placeholder="Partner HTTPS booking URL" value={form.external_url} onChange={(e) => setForm({ ...form, external_url: e.target.value })} />
             <button type="submit" disabled={busy} data-testid="partner-listing-submit" className="btn-primary w-full">{busy ? "Sending…" : "Submit for review"}</button>
           </form>
-          <section className="card-base p-5 space-y-3">
+          <section className="card-base overflow-hidden p-5 space-y-3">
             <h3 className="font-black">Your offers</h3>
             {(desk.listings || []).length === 0 && <p className="text-sm text-slate-500">No packages yet.</p>}
             {(desk.listings || []).map((row) => (
@@ -136,7 +136,7 @@ export default function PartnerDesk() {
       )}
 
       {(desk.orders || []).length > 0 && (
-        <section className="card-base p-5 space-y-3">
+        <section className="card-base overflow-hidden p-5 space-y-3">
           <h3 className="font-black">Incoming trip requests</h3>
           {desk.orders.map((row) => (
             <div key={row.id} className="rounded-xl border border-slate-200 p-3">

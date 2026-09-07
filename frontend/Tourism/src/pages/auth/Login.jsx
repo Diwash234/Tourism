@@ -88,7 +88,7 @@ const Login = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 card-base w-full max-w-md p-8 shadow-2xl border border-[#E5E0D5] bg-white"
+        className="relative z-10 card-base overflow-hidden w-full max-w-md p-8 shadow-2xl border border-[#E5E0D5] bg-white"
       >
         <div className="text-center mb-6">
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Portal Login</h1>

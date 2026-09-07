@@ -17,7 +17,7 @@ const BarChartCard = ({ title, labels, data, label = "Value" }) => {
     ],
   }
   return (
-    <div className="card-base p-5">
+    <div className="card-base overflow-hidden p-5">
       {title && <h4 className="font-semibold mb-4">{title}</h4>}
       <Bar data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
     </div>

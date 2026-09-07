@@ -329,7 +329,7 @@ export default function CompareDestinations() {
             <div className="p-4 pt-0 flex gap-2">
               <Link
                 to={`/destinations/${dest.slug}`}
-                className="flex-1 py-2.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs text-center transition-colors shadow"
+                className="flex-1 min-w-0 py-2.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs text-center transition-colors shadow"
               >
                 View details
               </Link>

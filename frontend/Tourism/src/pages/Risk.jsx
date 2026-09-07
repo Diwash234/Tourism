@@ -114,7 +114,7 @@ const Risk = () => {
 
 
 
-      <div className="card-base p-6 mt-5">
+      <div className="card-base overflow-hidden p-6 mt-5">
 
 
         <p>

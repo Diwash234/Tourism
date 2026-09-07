@@ -23,7 +23,7 @@ const SafetyOverview = ({
   const isHigh = displayScore >= 80
 
   return (
-    <div className="card-base p-6 sm:p-8 bg-white border border-slate-200 shadow-xl rounded-3xl space-y-6">
+    <div className="card-base overflow-hidden p-6 sm:p-8 bg-white border border-slate-200 shadow-xl rounded-3xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-800 shadow-sm">

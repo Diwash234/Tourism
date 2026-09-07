@@ -2,7 +2,7 @@ import { FiCalendar } from "react-icons/fi"
 
 export default function BestTimeToVisit({ bestTime, altitude, hours }) {
   return (
-    <div className="card-base p-6 shadow-lg border border-[#E5E0D5] rounded-3xl space-y-4">
+    <div className="card-base overflow-hidden p-6 shadow-lg border border-[#E5E0D5] rounded-3xl space-y-4">
       <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
         <FiCalendar className="text-emerald-700" /> Best Time to Visit & Climate
       </h3>

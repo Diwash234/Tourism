@@ -57,7 +57,7 @@ const ResetPassword = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 card-base w-full max-w-md p-8"
+        className="relative z-10 card-base overflow-hidden w-full max-w-md p-8"
       >
         {done ? (
           <div className="text-center">

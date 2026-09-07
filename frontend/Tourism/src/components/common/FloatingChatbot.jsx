@@ -92,7 +92,7 @@ const FloatingChatbot = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.9 }}
             data-testid="himal-float-panel"
-            className="card-base w-[360px] sm:w-[400px] h-[520px] shadow-2xl flex flex-col overflow-hidden border border-[#E5E0D5] mb-3 bg-white"
+            className="card-base overflow-hidden w-[360px] sm:w-[400px] h-[520px] shadow-2xl flex flex-col overflow-hidden border border-[#E5E0D5] mb-3 bg-white"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-rose-700 text-white px-4 py-3 flex items-center justify-between shadow-md">
@@ -119,7 +119,7 @@ const FloatingChatbot = () => {
             {/* Message List */}
             <div
               ref={chatScrollRef}
-              className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 text-sm"
+              className="flex-1 min-w-0 overflow-y-auto p-4 space-y-3 bg-slate-50 text-sm"
             >
               {messages.map((m, i) => (
                 <div
@@ -157,7 +157,7 @@ const FloatingChatbot = () => {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about Nepal places, budgets..."
                 data-testid="himal-float-input"
-                className="input-field py-2 text-xs flex-1"
+                className="input-field py-2 text-xs flex-1 min-w-0"
                 disabled={sending}
               />
               <button

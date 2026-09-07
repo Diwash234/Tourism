@@ -182,7 +182,7 @@ const Settings = () => {
           handleSubmit(onSubmit)
         }
 
-        className="card-base p-6 space-y-6"
+        className="card-base overflow-hidden p-6 space-y-6"
 
       >
 

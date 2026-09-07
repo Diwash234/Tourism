@@ -245,7 +245,7 @@ export default function SubmitPlacePage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
-        className="card-base p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E5E0D5] rounded-3xl bg-white"
+        className="card-base overflow-hidden p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E5E0D5] rounded-3xl bg-white"
       >
         {/* Section 1: Basic Details */}
         <div>
@@ -450,7 +450,7 @@ export default function SubmitPlacePage() {
                 onChange={(e) => update("longitude", e.target.value)}
               />
             </div>
-            <div className="col-span-2 sm:col-span-1 flex flex-col justify-end">
+            <div className="col-span-2 sm:col-span-1 flex flex-wrap gap-2 flex-col justify-end">
               <span className="text-[10px] text-gray-500 font-bold uppercase">Location Geocode</span>
               <p className="text-xs font-extrabold text-[#102A2E] mt-1">
                 📍 {selectedDistrict}, Ward {selectedWard}

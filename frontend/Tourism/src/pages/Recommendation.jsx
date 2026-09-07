@@ -395,7 +395,7 @@ export default function Recommendation() {
                   <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-black ${riskColor(item.risk_summary?.level || "low")}`}><FiShield className="inline mr-1" />{item.risk_summary?.level || "low"}</span>
                   <h3 className="absolute bottom-4 left-4 right-4 text-white text-xl font-black line-clamp-1">{item.name}</h3>
                 </div>
-                <div className="p-5 flex-1 space-y-4">
+                <div className="p-5 flex-1 min-w-0 space-y-4">
                   <p className="text-xs text-gray-500 flex items-center gap-1"><FiMapPin /> {item.display_city || item.district || "Nepal"}{item.province ? `, ${item.province}` : ""}</p>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.difficulty || "Easy"}</b><span className="text-[10px] text-gray-400">ranking</span></div>

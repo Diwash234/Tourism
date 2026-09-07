@@ -69,7 +69,7 @@ export default function PackageDetail() {
             {listing.cancellation_policy && <p className="text-sm text-slate-600"><b>Cancellation:</b> {listing.cancellation_policy}</p>}
           </div>
         </article>
-        <aside className="card-base p-6 h-fit space-y-3">
+        <aside className="card-base overflow-hidden p-6 h-fit space-y-3">
           <p className="text-3xl font-black">NPR {Number(listing.price_npr).toLocaleString()}</p>
           <p className="text-sm text-slate-600">{listing.duration_days} day{listing.duration_days === 1 ? "" : "s"} · up to {listing.capacity} travellers</p>
           <button type="button" data-testid="add-to-trip" onClick={add} className="btn-primary w-full">Add to trip & continue</button>

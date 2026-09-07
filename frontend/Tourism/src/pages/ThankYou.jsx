@@ -9,7 +9,7 @@ export default function ThankYou() {
     <div className="container-app py-12 max-w-3xl animate-fadeIn">
       <Breadcrumbs items={[{ label: "Submission Confirmed", to: "/thank-you" }]} />
 
-      <FadeIn className="text-center space-y-6 card-base p-8 sm:p-12 rounded-3xl shadow-2xl border border-[#E5E0D5] bg-white">
+      <FadeIn className="text-center space-y-6 card-base overflow-hidden p-8 sm:p-12 rounded-3xl shadow-2xl border border-[#E5E0D5] bg-white">
         <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10">
           <FiCheckCircle size={44} />
         </div>

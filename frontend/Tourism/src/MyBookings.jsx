@@ -61,7 +61,7 @@ const MyBookings = () => {
       {bookings.length ? (
         <div className="space-y-4">
           {bookings.map((b) => (
-            <div key={b.id} className="card-base p-5">
+            <div key={b.id} className="card-base overflow-hidden p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-semibold">
                   <FiHome className="text-primary-500" />

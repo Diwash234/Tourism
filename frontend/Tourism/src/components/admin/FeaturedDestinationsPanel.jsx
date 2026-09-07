@@ -351,7 +351,7 @@ export default function FeaturedDestinationsPanel() {
               </div>
 
               {/* Card Body */}
-              <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+              <div className="p-5 space-y-3 flex-1 min-w-0 flex flex-col justify-between">
                 <div className="space-y-1.5">
                   <h3 className="text-lg font-black text-white leading-snug">
                     {card.effective_title}

@@ -314,7 +314,7 @@ const SearchBar = ({
                   <button
                     type="button"
                     onClick={() => handleSelectGeocoded(geocodedResult)}
-                    className="flex-1 py-2 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-1 shadow hover:opacity-90 transition"
+                    className="flex-1 min-w-0 py-2 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-1 shadow hover:opacity-90 transition"
                     style={{ background: MOUNTAIN_GREEN }}
                   >
                     <FiCompass size={12} /> Explore

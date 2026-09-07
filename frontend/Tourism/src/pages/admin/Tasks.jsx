@@ -68,7 +68,7 @@ const Tasks = () => {
       </p>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="card-base p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+        <form onSubmit={handleCreate} className="card-base overflow-hidden p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
           <input
             className="input-field"
             placeholder="Task title"
@@ -108,7 +108,7 @@ const Tasks = () => {
       ) : tasks.length ? (
         <div className="space-y-3">
           {tasks.map((t) => (
-            <div key={t.id} className="card-base p-4 flex items-center justify-between">
+            <div key={t.id} className="card-base overflow-hidden p-4 flex items-center justify-between">
               <div>
                 <p className="font-semibold">{t.title}</p>
                 <p className="text-sm text-gray-500">

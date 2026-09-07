@@ -207,7 +207,7 @@ const FamilySafety = () => {
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {/* --- Live sharing card (kept from before) --- */}
-        <div className="card-base p-5">
+        <div className="card-base overflow-hidden p-5">
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
             <FiMapPin className="text-forest-500" /> {t("family.live_location")}
           </h3>
@@ -250,7 +250,7 @@ const FamilySafety = () => {
         </div>
 
         {/* --- Link a family member --- */}
-        <div className="card-base p-5">
+        <div className="card-base overflow-hidden p-5">
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
             <FiUserPlus className="text-forest-500" /> {t("family.link_member")}
           </h3>
@@ -311,7 +311,7 @@ const FamilySafety = () => {
       </h3>
 
       {accepted.length === 0 && (
-        <div className="card-base p-8 text-center text-gray-400 text-sm">
+        <div className="card-base overflow-hidden p-8 text-center text-gray-400 text-sm">
           {t("family.no_members")} — use the form above to send your first link request.
         </div>
       )}
@@ -379,7 +379,7 @@ const FamilySafety = () => {
 
       {/* --- Sent requests --- */}
       {sent.filter((l) => l.status === "pending").length > 0 && (
-        <div className="card-base p-4 mb-4">
+        <div className="card-base overflow-hidden p-4 mb-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Sent requests waiting for acceptance
           </p>

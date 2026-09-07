@@ -40,7 +40,7 @@ const MainLayout = () => {
       <Sidebar />
       <main
         key={location.pathname}
-        className="flex-1 w-full pt-16 transition-[padding] duration-300 lg:pl-64"
+        className="flex-1 min-w-0 w-full pt-16 transition-[padding] duration-300 lg:pl-64"
       >
         <Outlet />
       </main>

@@ -218,9 +218,9 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
             </div>
           </form>
         ) : (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden text-xs">
+          <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-hidden text-xs">
             {selectedThread ? (
-              <div className="flex-1 flex flex-col min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                   <div>
                     <button
@@ -243,7 +243,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                 </div>
 
                 {/* Messages Chat List */}
-                <div className="flex-1 overflow-y-auto space-y-3 p-2 bg-slate-950/60 rounded-xl border border-slate-800">
+                <div className="flex-1 min-w-0 overflow-y-auto space-y-3 p-2 bg-slate-950/60 rounded-xl border border-slate-800">
                   <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-800/40 text-amber-200 text-xs">
                     <div className="font-bold flex items-center gap-1 text-amber-300 mb-1">
                       <FiUser size={12} /> {selectedThread.name || "You"} (Ticket Creator)
@@ -288,7 +288,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Write a message to Admin & Staff support..."
-                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs"
                   />
                   <button
                     type="submit"

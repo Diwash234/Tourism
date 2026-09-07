@@ -95,7 +95,7 @@ const VerifyPhone = () => {
 
   return (
     <div className="container-app py-16 max-w-md mx-auto fade-in">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-8 text-center">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base overflow-hidden p-8 text-center">
         {verified ? (
           <>
             <FiCheckCircle className="mx-auto text-forest-500 mb-3" size={40} />

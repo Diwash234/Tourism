@@ -140,8 +140,8 @@ const Register = () => {
       </form>
 
       <div className="my-5 flex items-center gap-3 text-xs text-stone-400 relative z-10">
-        <div className="flex-1 h-px bg-stone-200" /> or continue with{" "}
-        <div className="flex-1 h-px bg-stone-200" />
+        <div className="flex-1 min-w-0 h-px bg-stone-200" /> or continue with{" "}
+        <div className="flex-1 min-w-0 h-px bg-stone-200" />
       </div>
       <div className="relative z-10"><SocialLoginButtons /></div>
 

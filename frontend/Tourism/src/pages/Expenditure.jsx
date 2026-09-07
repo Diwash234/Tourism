@@ -37,14 +37,14 @@ export default function Expenditure() {
       </div>
 
       {showForm && (
-        <div className="card-base p-6 max-w-xl shadow-xl border border-[#E5E0D5] rounded-3xl">
+        <div className="card-base overflow-hidden p-6 max-w-xl shadow-xl border border-[#E5E0D5] rounded-3xl">
           <TravelExpenditureForm onSuccess={() => { setShowForm(false); loadData(); }} />
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {reports.map((exp) => (
-          <div key={exp.id} className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-2xl space-y-2">
+          <div key={exp.id} className="card-base overflow-hidden p-5 shadow-lg border border-[#E5E0D5] rounded-2xl space-y-2">
             <div className="flex justify-between items-start">
               <h4 className="font-bold text-gray-900">{exp.destination_name}</h4>
               <span className="text-lg font-black text-[#102A2E]">NPR {Number(exp.total_cost).toLocaleString()}</span>

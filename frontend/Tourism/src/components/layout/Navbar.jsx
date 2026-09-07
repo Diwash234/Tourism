@@ -67,7 +67,7 @@ const Navbar = () => {
         {/* Search (visible on all screens; grows to fill space) */}
         <form
           onSubmit={handleSmartSearch}
-          className="flex flex-1 max-w-md relative items-center"
+          className="flex flex-1 min-w-0 max-w-md relative items-center"
         >
           <FiSearch
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"

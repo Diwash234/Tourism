@@ -295,7 +295,7 @@ export default function DestinationDetails() {
 
       </div>
 
-      <div className="card-base p-5 rounded-3xl border border-emerald-100 space-y-3">
+      <div className="card-base overflow-hidden p-5 rounded-3xl border border-emerald-100 space-y-3">
         <h3 className="font-black text-gray-900">Community videos (25 MB max)</h3>
         <p className="text-xs text-gray-500">Logged-in travellers can submit a short clip of this place. Admin reviews it before it is public.</p>
         {(destination.videos || []).length > 0 && (
@@ -362,7 +362,7 @@ export default function DestinationDetails() {
         {/* Left 2 Columns */}
         <div className="lg:col-span-2 space-y-8">
           {/* Section 1: About & Introduction */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+          <div className="card-base overflow-hidden p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               <FiCompass className="text-primary-700" /> About {destination.name}
             </h2>
@@ -379,7 +379,7 @@ export default function DestinationDetails() {
 
           {/* Section 2: Historical, Cultural & Religious Background */}
           {(destination.history || destination.cultural_significance || destination.religious_significance) && (
-            <div className="card-base p-6 sm:p-8 space-y-5 shadow-xl border border-primary-100 rounded-3xl bg-white">
+            <div className="card-base overflow-hidden p-6 sm:p-8 space-y-5 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                 🏛️ Cultural, Religious & Historical Heritage
               </h2>
@@ -414,7 +414,7 @@ export default function DestinationDetails() {
           )}
 
           {/* Section 3: Things To Do & Recommended Activities */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+          <div className="card-base overflow-hidden p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               <FiActivity className="text-primary-700" /> Things To Do & Experiences
             </h2>
@@ -439,7 +439,7 @@ export default function DestinationDetails() {
           </div>
 
           {/* Section 4: Available Routes & Transportation Options */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+          <div className="card-base overflow-hidden p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
             <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
               <FiTruck className="text-primary-700" /> Available Routes & Transportation
             </h2>
@@ -479,7 +479,7 @@ export default function DestinationDetails() {
           {(destination.food_cuisine_info || destination.travel_safety_tips) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {destination.food_cuisine_info && (
-                <div className="card-base p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-amber-50/30 space-y-2">
+                <div className="card-base overflow-hidden p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-amber-50/30 space-y-2">
                   <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                     <FiCoffee className="text-amber-600" /> Food & Local Cuisine
                   </h3>
@@ -490,7 +490,7 @@ export default function DestinationDetails() {
               )}
 
               {destination.travel_safety_tips && (
-                <div className="card-base p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-rose-50/30 space-y-2">
+                <div className="card-base overflow-hidden p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-rose-50/30 space-y-2">
                   <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                     <FiShield className="text-rose-600" /> Practical Travel & Safety Tips
                   </h3>
@@ -503,7 +503,7 @@ export default function DestinationDetails() {
           )}
 
           {/* Section 6: Interactive Map & Street-Level Imagery */}
-          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4 bg-white">
+          <div className="card-base overflow-hidden p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4 bg-white">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
                 <FiMapPin className="text-primary-600" /> Interactive Location & Satellite Map
@@ -543,7 +543,7 @@ export default function DestinationDetails() {
           </div>
 
           {/* Featured 3-Star to 5-Star Hotel Showcase & Promotional Ad Banner */}
-          <div className="card-base p-6 sm:p-8 space-y-6 shadow-xl border border-amber-200 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B3D91] to-slate-950 text-white">
+          <div className="card-base overflow-hidden p-6 sm:p-8 space-y-6 shadow-xl border border-amber-200 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B3D91] to-slate-950 text-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -626,7 +626,7 @@ export default function DestinationDetails() {
           </div>
 
           {destination.marketplace_listings?.length > 0 && (
-            <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+            <div className="card-base overflow-hidden p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
               <p className="text-sm text-gray-600">Published by the admin desk and approved hotels or operators. Add them to a trip — we never collect card numbers here.</p>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -643,7 +643,7 @@ export default function DestinationDetails() {
           )}
 
           {/* Section 7: Verified Source Citations & References */}
-          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-stone-50">
+          <div className="card-base overflow-hidden p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-stone-50">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiBookOpen className="text-primary-700" /> Researched Source References & Citations
@@ -686,7 +686,7 @@ export default function DestinationDetails() {
         {/* Right 1 Column: Strategic Sidebar */}
         <div className="space-y-6">
           {/* Recorded budget only */}
-          <div className="card-base p-6 border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
+          <div className="card-base overflow-hidden p-6 border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiDollarSign className="text-emerald-600" /> Recorded budget
@@ -710,7 +710,7 @@ export default function DestinationDetails() {
           </div>
 
           {/* Safety & Risk Status */}
-          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
+          <div className="card-base overflow-hidden p-6 shadow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
                 <FiShield className="text-primary-600" /> Safety & Risk Index
@@ -737,7 +737,7 @@ export default function DestinationDetails() {
           </div>
 
           {/* Emergency Helplines */}
-          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4">
+          <div className="card-base overflow-hidden p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4">
             <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
               <FiPhoneCall className="text-rose-600" /> Emergency & Medical Contacts
             </h3>
@@ -930,7 +930,7 @@ export default function DestinationDetails() {
               </button>
             </div>
 
-            <div className="flex-1 flex items-center justify-center relative my-4">
+            <div className="flex-1 min-w-0 flex items-center justify-center relative my-4">
               <img
                 src={activeImage.url}
                 alt={activeImage.caption}

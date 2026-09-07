@@ -904,11 +904,11 @@ const Itinerary = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
 
           >
-            <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
+            <button onClick={savePlan} className="card-base overflow-hidden p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
               <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account</p>
             </button>
 
-            <div className="card-base p-4">
+            <div className="card-base overflow-hidden p-4">
 
               <p className="text-xs text-gray-500">
                 Total estimate
@@ -935,7 +935,7 @@ const Itinerary = () => {
 
 
 
-            <div className="card-base p-4">
+            <div className="card-base overflow-hidden p-4">
 
               <p className="text-xs text-gray-500">
                 Per person
@@ -962,7 +962,7 @@ const Itinerary = () => {
 
 
 
-            <div className="card-base p-4">
+            <div className="card-base overflow-hidden p-4">
 
               <p className="text-xs text-gray-500">
                 Total travel
@@ -989,7 +989,7 @@ const Itinerary = () => {
 
 
 
-            <div className="card-base p-4">
+            <div className="card-base overflow-hidden p-4">
 
 
               <p className="text-xs text-gray-500">
@@ -1104,7 +1104,7 @@ const Itinerary = () => {
                   }}
 
 
-                  className="card-base p-6"
+                  className="card-base overflow-hidden p-6"
 
 
                 >

@@ -2,7 +2,7 @@ import { FiPhoneCall, FiHome, FiShield, FiPlus } from "react-icons/fi"
 
 export default function NearbyServices({ hospitalInfo, hotelInfo, policeInfo }) {
   return (
-    <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
+    <div className="card-base overflow-hidden p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
       <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
         <FiPhoneCall className="text-rose-600" /> Nearby Essential Services
       </h3>

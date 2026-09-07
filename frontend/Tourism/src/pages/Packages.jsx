@@ -64,7 +64,7 @@ const Packages = () => {
       />
 
       <form className="flex flex-col sm:flex-row gap-3 mb-6" onSubmit={(event) => { event.preventDefault(); load() }}>
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input className="input-field pl-11" placeholder="Search Pokhara, treks, stays…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
@@ -76,7 +76,7 @@ const Packages = () => {
 
       {loading && <p className="text-sm text-slate-600">Loading published offers…</p>}
       {!loading && listings.length === 0 && (
-        <div className="card-base p-8 text-center">
+        <div className="card-base overflow-hidden p-8 text-center">
           <p className="font-bold text-slate-900">No published packages yet</p>
           <p className="text-sm text-slate-600 mt-2">An administrator can add them from Admin → Packages & partners, or a hotel can apply to collaborate.</p>
         </div>
@@ -110,7 +110,7 @@ function OfferCard({ listing, onAdd, featured }) {
         <span className="absolute top-3 left-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">{listing.kind}</span>
         {featured && <span className="absolute top-3 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase text-gray-950">Featured</span>}
       </div>
-      <div className="p-5 flex-1 flex flex-col">
+      <div className="p-5 flex-1 min-w-0 flex flex-col">
         <p className="text-xs text-slate-500">{listing.partner_name} · {listing.city || listing.destination_name || "Nepal"}</p>
         <h3 className="text-lg font-black text-slate-900 mt-1">{listing.title}</h3>
         <p className="text-sm text-slate-600 mt-2 line-clamp-3">{listing.summary || listing.description}</p>
@@ -120,8 +120,8 @@ function OfferCard({ listing, onAdd, featured }) {
         </ul>
         <p className="mt-4 text-2xl font-black text-slate-900">NPR {Number(listing.price_npr).toLocaleString()}</p>
         <div className="mt-4 flex gap-2">
-          <Link to={`/packages/${listing.slug}`} className="flex-1 btn-outline text-center">Details</Link>
-          <button type="button" data-testid="add-to-trip" onClick={() => onAdd(listing)} className="flex-1 btn-primary">Add to trip</button>
+          <Link to={`/packages/${listing.slug}`} className="flex-1 min-w-0 btn-outline text-center">Details</Link>
+          <button type="button" data-testid="add-to-trip" onClick={() => onAdd(listing)} className="flex-1 min-w-0 btn-primary">Add to trip</button>
         </div>
       </div>
     </article>

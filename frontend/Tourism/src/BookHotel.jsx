@@ -37,7 +37,7 @@ const BookHotel = () => {
         <FiCalendar className="text-primary-500" /> Book This Hotel
       </h1>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-4 mt-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="card-base overflow-hidden p-6 space-y-4 mt-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-medium text-gray-500">Check-in</label>

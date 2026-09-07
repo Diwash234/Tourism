@@ -16,7 +16,7 @@ export default function TripPlanner() {
   }
 
   return (
-    <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
+    <div className="card-base overflow-hidden p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
         <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
           <FiCalendar className="text-emerald-700" /> Nepal Custom Trip Planner
@@ -27,7 +27,7 @@ export default function TripPlanner() {
       <form onSubmit={handleAdd} className="flex gap-2">
         <input
           placeholder="New trip title (e.g. Rara Lake Wilderness Drive)..."
-          className="input-field text-xs flex-1"
+          className="input-field text-xs flex-1 min-w-0"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
         />

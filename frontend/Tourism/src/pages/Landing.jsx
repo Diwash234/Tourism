@@ -161,7 +161,7 @@ export default function Landing() {
           {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
             <HoverCard
               key={title}
-              className="card-base p-7 rounded-3xl border border-emerald-100/80 shadow-xl bg-gradient-to-br from-white to-emerald-50/20 flex flex-col justify-between space-y-4"
+              className="card-base overflow-hidden p-7 rounded-3xl border border-emerald-100/80 shadow-xl bg-gradient-to-br from-white to-emerald-50/20 flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shadow-sm">
@@ -192,7 +192,7 @@ export default function Landing() {
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           {packages.slice(0, 3).map((offer) => (
-            <Link key={offer.id} to={`/packages/${offer.slug}`} className="card-base p-5 hover:shadow-lg transition">
+            <Link key={offer.id} to={`/packages/${offer.slug}`} className="card-base overflow-hidden p-5 hover:shadow-lg transition">
               <p className="text-[10px] font-black uppercase text-amber-800">{offer.kind} · {offer.duration_days} days</p>
               <h3 className="font-black text-slate-900 mt-1">{offer.title}</h3>
               <p className="text-sm text-slate-600 mt-1 line-clamp-2">{offer.summary}</p>
@@ -235,7 +235,7 @@ export default function Landing() {
             <Link
               key={prov.name}
               to={`/destinations?q=${encodeURIComponent(prov.city)}`}
-              className="card-base p-4 text-center rounded-2xl border border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
+              className="card-base overflow-hidden p-4 text-center rounded-2xl border border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all flex flex-col items-center justify-between"
             >
               <span className="font-bold text-xs text-gray-900">{prov.name}</span>
               <span className="text-[10px] text-emerald-700 mt-1 font-semibold">{prov.city}</span>

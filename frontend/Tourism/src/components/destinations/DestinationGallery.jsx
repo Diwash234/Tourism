@@ -83,7 +83,7 @@ export default function DestinationGallery({ images = [], name = "Destination" }
               </button>
             </div>
 
-            <div className="flex-1 flex items-center justify-center relative my-4">
+            <div className="flex-1 min-w-0 flex items-center justify-center relative my-4">
               <img
                 src={images[activeIdx]}
                 alt="Fullscreen"

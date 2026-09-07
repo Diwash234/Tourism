@@ -178,7 +178,7 @@ const BudgetEstimator = () => {
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="card-base p-6 space-y-4 shadow-md bg-white border border-slate-200"
+          className="card-base overflow-hidden p-6 space-y-4 shadow-md bg-white border border-slate-200"
         >
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -274,7 +274,7 @@ const BudgetEstimator = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="card-base p-6 text-center bg-white border border-slate-200 shadow-md">
+            <div className="card-base overflow-hidden p-6 text-center bg-white border border-slate-200 shadow-md">
               <p className="text-sm text-gray-500">Estimated Total Cost</p>
 
               <p className="text-4xl font-extrabold text-saffron-600 my-1">
@@ -298,7 +298,7 @@ const BudgetEstimator = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {CATEGORY_META.map(({ key, label, icon: Icon, color }) => (
-                <div key={key} className="card-base p-4 flex items-center gap-3 bg-white border border-slate-200 shadow-sm">
+                <div key={key} className="card-base overflow-hidden p-4 flex items-center gap-3 bg-white border border-slate-200 shadow-sm">
                   <div className={`p-2.5 rounded-xl ${color}`}>
                     <Icon size={18} />
                   </div>
@@ -312,7 +312,7 @@ const BudgetEstimator = () => {
                 </div>
               ))}
 
-              <div className="card-base p-4 flex items-center gap-3 sm:col-span-2 lg:col-span-1 bg-slate-50 border border-slate-200">
+              <div className="card-base overflow-hidden p-4 flex flex-wrap gap-2 items-center gap-3 sm:col-span-2 lg:col-span-1 bg-slate-50 border border-slate-200">
                 <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800">
                   <FiShield size={18} />
                 </div>
@@ -344,7 +344,7 @@ const BudgetEstimator = () => {
             />
           </motion.div>
         ) : (
-          <div className="card-base p-10 text-center text-gray-400 h-full flex items-center justify-center bg-white border border-slate-200">
+          <div className="card-base overflow-hidden p-10 text-center text-gray-400 h-full flex items-center justify-center bg-white border border-slate-200">
             Fill in the form to see your budget breakdown here.
           </div>
         )}

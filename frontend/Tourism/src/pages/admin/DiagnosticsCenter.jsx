@@ -97,7 +97,7 @@ function HealthPanel() {
   const checks = health?.checks || {}
 
   return (
-    <div className="card-base p-6">
+    <div className="card-base overflow-hidden p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${overallOk ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
@@ -181,7 +181,7 @@ function ErrorsPanel() {
   }
 
   return (
-    <div className="card-base p-6">
+    <div className="card-base overflow-hidden p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-50 text-rose-600">
@@ -215,11 +215,11 @@ function ErrorsPanel() {
         {errors.map((e) => (
           <div key={e.id} className="py-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="flex items-start gap-3 min-w-0 flex-1 min-w-0">
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${severityColor[e.severity] || severityColor.error}`}>
                   {e.severity}
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-stone-900">{e.error_type}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
@@ -279,7 +279,7 @@ function AuditPanel() {
   useEffect(() => { refresh() }, [refresh])
 
   return (
-    <div className="card-base p-6">
+    <div className="card-base overflow-hidden p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-50 text-primary-700">

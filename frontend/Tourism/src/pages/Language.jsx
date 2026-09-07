@@ -262,7 +262,7 @@ const Language = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
-              className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-2xl flex flex-col justify-between hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-purple-50/30"
+              className="card-base overflow-hidden p-5 shadow-lg border border-[#E5E0D5] rounded-2xl flex flex-col justify-between hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-purple-50/30"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">

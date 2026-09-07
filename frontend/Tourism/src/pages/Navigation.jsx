@@ -321,7 +321,7 @@ export default function Navigation() {
       )}
 
       {/* ROUTE SEARCH FORM: ORIGIN -> DESTINATION */}
-      <div className="card-base p-5 border border-[#E5E0D5] rounded-3xl space-y-4 bg-white shadow-md">
+      <div className="card-base overflow-hidden p-5 border border-[#E5E0D5] rounded-3xl space-y-4 bg-white shadow-md">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -423,7 +423,7 @@ export default function Navigation() {
       )}
 
       {/* NEARBY SERVICES & AMENITIES RADAR */}
-      <div className="card-base p-5 border border-[#E5E0D5] rounded-3xl space-y-4 bg-gradient-to-r from-white to-purple-50/30">
+      <div className="card-base overflow-hidden p-5 border border-[#E5E0D5] rounded-3xl space-y-4 bg-gradient-to-r from-white to-purple-50/30">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E0D5] pb-3">
           <div>
             <h3 className="text-sm font-black text-purple-950 flex items-center gap-2">
@@ -486,7 +486,7 @@ export default function Navigation() {
         </div>
 
         {/* HUD NAVIGATOR PANEL */}
-        <div className="card-base p-5 bg-slate-950 text-white rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between">
+        <div className="card-base overflow-hidden p-5 bg-slate-950 text-white rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
               <span className="text-[10px] font-black uppercase text-amber-400">Tactical HUD Navigation</span>

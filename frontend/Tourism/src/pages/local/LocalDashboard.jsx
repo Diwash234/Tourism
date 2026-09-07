@@ -67,7 +67,7 @@ const LocalDashboard = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-4 h-fit">
+        <form onSubmit={handleSubmit(onSubmit)} className="card-base overflow-hidden p-6 space-y-4 h-fit">
           <h3 className="font-semibold flex items-center gap-2"><FiPlus /> Add a Place</h3>
           <div>
             <label className="text-xs font-medium text-gray-500">Place Name</label>
@@ -113,7 +113,7 @@ const LocalDashboard = () => {
               {places.map((place) => (
                 <div key={place.id} className="card-base overflow-hidden flex">
                   <PlaceholderImage src={place.image} title={place.name} alt={place.name} className="w-28 h-28" />
-                  <div className="p-3 flex-1 flex flex-col justify-between">
+                  <div className="p-3 flex-1 min-w-0 flex flex-col justify-between">
                     <div>
                       <p className="font-semibold text-sm">{place.name}</p>
                       <p className="text-xs text-gray-400">{place.location}</p>

@@ -68,7 +68,7 @@ export default function StickyCTA() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-2xl pb-[max(0.65rem,env(safe-area-inset-bottom))]">
         <Link
           to="/destinations"
-          className="flex-1 py-2.5 px-3 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-[#102A2E]/20"
+          className="flex-1 min-w-0 py-2.5 px-3 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-[#102A2E]/20"
         >
           <FiCompass size={14} /> Explore places
         </Link>

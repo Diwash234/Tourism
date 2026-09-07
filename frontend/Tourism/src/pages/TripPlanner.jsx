@@ -149,7 +149,7 @@ export default function TripPlanner() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Planner Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-6 bg-white border border-slate-200">
+        <form onSubmit={handleSubmit(onSubmit)} className="card-base overflow-hidden p-6 space-y-6 bg-white border border-slate-200">
           {/* 1. Destination & Origin */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -415,27 +415,27 @@ export default function TripPlanner() {
                       showToast("Sign in to save this travel plan to your account", "info")
                     }
                   }}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow flex items-center justify-center gap-1.5"
+                  className="flex-1 min-w-0 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow flex items-center justify-center gap-1.5"
                 >
                   <FiCheckCircle size={14} /> Save to Account
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/itinerary")}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs text-center"
+                  className="flex-1 min-w-0 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs text-center"
                 >
                   View Itinerary ➔
                 </button>
               </div>
             </div>
           ) : (
-            <div className="card-base p-10 text-center text-slate-400 bg-white border border-slate-200">
+            <div className="card-base overflow-hidden p-10 text-center text-slate-400 bg-white border border-slate-200">
               Configure your preferences and click "Generate Trip Plan" to view your customized Nepal itinerary.
             </div>
           )}
 
           {/* Trip Cost Notepad */}
-          <div className="card-base p-5 bg-white border border-slate-200 space-y-4">
+          <div className="card-base overflow-hidden p-5 bg-white border border-slate-200 space-y-4">
             <div>
               <h3 className="font-bold text-sm text-slate-900">Trip Cost Notepad</h3>
               <p className="text-xs text-slate-500">Add custom lodge rates or local flight quotes to your trip budget total.</p>

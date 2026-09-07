@@ -339,7 +339,7 @@ const Dashboard = () => {
 
             {/* AI Search Bar */}
             <form onSubmit={handleHeroSearch} className="mt-4 flex flex-col sm:flex-row gap-2 max-w-xl">
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-0">
                 <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
                   className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/95 text-slate-900 text-sm font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -379,7 +379,7 @@ const Dashboard = () => {
 
       {/* 3. Quick Stats & Engagement Counter Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="card-base p-4 flex items-center gap-3 hover:border-blue-400">
+        <div className="card-base overflow-hidden p-4 flex items-center gap-3 hover:border-blue-400">
           <div className="p-3 rounded-2xl bg-blue-50 text-blue-600">
             <FiCalendar size={22} />
           </div>
@@ -389,7 +389,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card-base p-4 flex items-center gap-3 hover:border-emerald-400">
+        <div className="card-base overflow-hidden p-4 flex items-center gap-3 hover:border-emerald-400">
           <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
             <FiTag size={22} />
           </div>
@@ -399,7 +399,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card-base p-4 flex items-center gap-3 hover:border-pink-400">
+        <div className="card-base overflow-hidden p-4 flex items-center gap-3 hover:border-pink-400">
           <div className="p-3 rounded-2xl bg-pink-50 text-pink-600">
             <FiHeart size={22} />
           </div>
@@ -409,7 +409,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card-base p-4 flex items-center gap-3 hover:border-amber-400">
+        <div className="card-base overflow-hidden p-4 flex items-center gap-3 hover:border-amber-400">
           <div className="p-3 rounded-2xl bg-amber-50 text-amber-600">
             <FiDollarSign size={22} />
           </div>
@@ -419,7 +419,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card-base p-4 flex items-center gap-3 hover:border-purple-400 col-span-2 sm:col-span-1">
+        <div className="card-base overflow-hidden p-4 flex flex-wrap gap-2 items-center gap-3 hover:border-purple-400 col-span-2 sm:col-span-1">
           <div className="p-3 rounded-2xl bg-[#F7F8F5] text-emerald-700">
             <FiShield size={22} />
           </div>
@@ -1070,7 +1070,7 @@ const Dashboard = () => {
               className="flex flex-col md:flex-row gap-3"
             >
               <input
-                className="input-field flex-1 text-xs"
+                className="input-field flex-1 min-w-0 text-xs"
                 placeholder="Find a destination to upload a photo for (e.g. Bandipur, Pokhara)..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1086,7 +1086,7 @@ const Dashboard = () => {
                   <div
                     key={place.id}
                     onClick={() => selectDestination(place)}
-                    className="card-base p-4 cursor-pointer hover:border-emerald-500"
+                    className="card-base overflow-hidden p-4 cursor-pointer hover:border-emerald-500"
                   >
                     {place.cover_image_url && (
                       <img

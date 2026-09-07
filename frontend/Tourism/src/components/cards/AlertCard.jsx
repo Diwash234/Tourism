@@ -5,7 +5,7 @@ const AlertCard = ({ alert }) => {
   const severity = (alert.severity || alert.level || "moderate").toUpperCase()
   const level = RISK_LEVELS[severity] || RISK_LEVELS.MODERATE
   const location = [alert.city, alert.municipality, alert.district, alert.province].filter(Boolean).join(", ")
-  return <article className="card-base p-4 flex gap-3 items-start">
+  return <article className="card-base overflow-hidden p-4 flex gap-3 items-start">
     <div className={`p-2 rounded-full ${level.color}`}><FiAlertTriangle /></div>
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between gap-2"><h4 className="font-semibold text-sm">{alert.title}</h4><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${level.color}`}>{level.label}</span></div>

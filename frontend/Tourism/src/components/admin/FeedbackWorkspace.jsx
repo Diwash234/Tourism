@@ -89,7 +89,7 @@ export default function FeedbackWorkspace() {
           ))}
         </select>
 
-        <div className="flex-1 space-y-2 max-h-[64vh] overflow-y-auto pr-1 text-xs">
+        <div className="flex-1 min-w-0 space-y-2 max-h-[64vh] overflow-y-auto pr-1 text-xs">
           {rows.length === 0 ? (
             <p className="p-6 text-center text-slate-500">No support threads found.</p>
           ) : (
@@ -209,7 +209,7 @@ export default function FeedbackWorkspace() {
             )}
 
             {/* Conversation Messages */}
-            <div className="flex-1 overflow-y-auto space-y-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800 max-h-[380px] text-xs">
+            <div className="flex-1 min-w-0 overflow-y-auto space-y-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800 max-h-[380px] text-xs">
               {/* Opener message */}
               <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-800/40 text-amber-100 space-y-1">
                 <div className="font-bold text-[11px] text-amber-300 flex items-center gap-1">

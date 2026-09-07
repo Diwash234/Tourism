@@ -30,7 +30,7 @@ export default function RecommendationEngine() {
   }, [])
 
   return (
-    <div className="card-base p-6 space-y-4 bg-gradient-to-br from-white to-purple-50/50 border border-[#E5E0D5] rounded-3xl shadow-xl">
+    <div className="card-base overflow-hidden p-6 space-y-4 bg-gradient-to-br from-white to-purple-50/50 border border-[#E5E0D5] rounded-3xl shadow-xl">
       <div className="flex items-center justify-between border-b pb-3">
         <div>
           <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
