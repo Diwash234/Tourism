@@ -471,6 +471,64 @@ export default function CMSPanel() {
   )
 }
 
+function VisibilityFields({ value, set }) {
+  const config = value.config || {}
+  const vis = config.visibility || {}
+  const setVis = (patch) => {
+    const next = { ...vis, ...patch }
+    // Drop empty keys so the stored config stays clean.
+    Object.keys(next).forEach((k) => {
+      const v = next[k]
+      if (!v || (Array.isArray(v) && !v.length)) delete next[k]
+    })
+    const cleaned = { ...config }
+    if (Object.keys(next).length) cleaned.visibility = next
+    else delete cleaned.visibility
+    set("config", cleaned)
+  }
+  const toggleIn = (list, item) => (list || []).includes(item) ? (list || []).filter((x) => x !== item) : [...(list || []), item]
+  return (
+    <details className="sm:col-span-2 rounded-xl border border-emerald-200 bg-white p-3">
+      <summary className="cursor-pointer text-xs font-black text-emerald-800">
+        Conditional visibility {vis.start_date || vis.end_date || vis.roles?.length || vis.devices?.length ? "(rules active)" : "(optional)"}
+      </summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="text-xs font-semibold">Show from (date)
+          <input type="date" className="input-field mt-1" value={vis.start_date || ""} onChange={(e) => setVis({ start_date: e.target.value })} />
+        </label>
+        <label className="text-xs font-semibold">Show until (date)
+          <input type="date" className="input-field mt-1" value={vis.end_date || ""} onChange={(e) => setVis({ end_date: e.target.value })} />
+        </label>
+        <div className="text-xs font-semibold sm:col-span-2">
+          Audience (empty = everyone)
+          <div className="mt-1 flex flex-wrap gap-3">
+            {["guest", "tourist", "staff", "admin"].map((role) => (
+              <label key={role} className="flex items-center gap-1.5 font-normal capitalize">
+                <input type="checkbox" checked={(vis.roles || []).includes(role)} onChange={() => setVis({ roles: toggleIn(vis.roles, role) })} />
+                {role}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="text-xs font-semibold sm:col-span-2">
+          Devices (empty = all)
+          <div className="mt-1 flex flex-wrap gap-3">
+            {["desktop", "tablet", "mobile"].map((device) => (
+              <label key={device} className="flex items-center gap-1.5 font-normal capitalize">
+                <input type="checkbox" checked={(vis.devices || []).includes(device)} onChange={() => setVis({ devices: toggleIn(vis.devices, device) })} />
+                {device}
+              </label>
+            ))}
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-500 sm:col-span-2">
+          Date + audience rules are enforced by the API (hidden content is never sent). Device rules hide the section in the browser.
+        </p>
+      </div>
+    </details>
+  )
+}
+
 function SectionConfigFields({ value, set }) {
   const config = value.config || {}
   const setConfig = (next) => set("config", { ...config, ...next })
@@ -637,6 +695,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         {field("cta_url", "Button route")}
         {field("icon", "Icon")}
         <SectionConfigFields value={value} set={set} />
+        <VisibilityFields value={value} set={set} />
         <label className="text-xs font-semibold text-slate-300">Section type
           <select className="input-field mt-1" value={value.section_type || "text"} onChange={e => set("section_type", e.target.value)}>
             {sectionTypes.map(type => <option key={type}>{type}</option>)}

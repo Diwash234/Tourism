@@ -2164,6 +2164,27 @@ class AdminCMSView(APIView):
         success_message = str(config.get("success_message") or "").strip()
         if success_message:
             safe["success_message"] = re.sub(r"(?is)<script.*?>.*?</script>", "", success_message)[:200]
+        # Conditional visibility rules (spec §12): date window + roles enforced
+        # by the public API; devices delivered for the frontend to honor.
+        if isinstance(config.get("visibility"), dict):
+            raw_vis = config["visibility"]
+            vis = {}
+            for key in ("start_date", "end_date"):
+                value = str(raw_vis.get(key) or "").strip()
+                if value:
+                    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                        raise ValueError("Visibility dates must be YYYY-MM-DD")
+                    vis[key] = value
+            allowed_roles = {"guest", "tourist", "user", "staff", "admin", "super_admin", "local"}
+            roles = [str(r).lower() for r in (raw_vis.get("roles") or []) if isinstance(r, str) and str(r).lower() in allowed_roles]
+            if roles:
+                vis["roles"] = roles[:6]
+            allowed_devices = {"desktop", "tablet", "mobile"}
+            devices = [str(d).lower() for d in (raw_vis.get("devices") or []) if isinstance(d, str) and str(d).lower() in allowed_devices]
+            if devices:
+                vis["devices"] = devices
+            if vis:
+                safe["visibility"] = vis
         return safe
 
     def _import_layout(self, request, page):

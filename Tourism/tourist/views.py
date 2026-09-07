@@ -160,6 +160,35 @@ class QueryParamAliasMixin:
         self.request._request.GET = params
         return super().filter_queryset(queryset)
     
+def _section_visible_for(vis, user, now):
+    """Conditional content (date window + audience roles) enforced SERVER-SIDE
+    so hidden sections never even reach the client. Device rules are the only
+    part evaluated in the browser (the server cannot know the viewport)."""
+    from datetime import date as _date
+    if not isinstance(vis, dict):
+        return True
+    today = now.date()
+    for key, compare in (("start_date", -1), ("end_date", 1)):
+        raw = str(vis.get(key) or "").strip()
+        if raw:
+            try:
+                bound = _date.fromisoformat(raw)
+            except ValueError:
+                continue
+            if compare < 0 and today < bound:
+                return False
+            if compare > 0 and today > bound:
+                return False
+    roles = vis.get("roles") or []
+    if isinstance(roles, list) and roles:
+        role = "guest"
+        if getattr(user, "is_authenticated", False):
+            role = str(getattr(user, "role", None) or "tourist").lower()
+        if role not in {str(r).lower() for r in roles}:
+            return False
+    return True
+
+
 class PublicConfigView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -181,6 +210,9 @@ class PublicConfigView(APIView):
             page_translation = translations.get(("pages", page.id), {})
             sections = []
             for section in page.sections.filter(is_visible=True, status="published"):
+                section_config = section.config if isinstance(section.config, dict) else {}
+                if not _section_visible_for(section_config.get("visibility"), request.user, now):
+                    continue
                 translated = translations.get(("sections", section.id), {})
                 blocks = [
                     {

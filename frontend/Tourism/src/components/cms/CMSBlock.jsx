@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const embedUrl = (url = "") => {
   if (/youtube\.com\/watch\?v=/.test(url)) return url.replace("watch?v=", "embed/")
@@ -240,7 +240,21 @@ export function ContentBlockItem({ block }) {
 
 export default function CMSBlock({ section }) {
   const [sent, setSent] = useState("")
+  // Re-evaluate device-visibility rules on resize (date/role rules are
+  // already enforced server-side by the public config API).
+  const [, setViewportTick] = useState(0)
+  useEffect(() => {
+    const onResize = () => setViewportTick((n) => n + 1)
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
   if (!section) return null
+  const visibility = section.config?.visibility
+  if (Array.isArray(visibility?.devices) && visibility.devices.length) {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1280
+    const current = w < 768 ? "mobile" : w < 1024 ? "tablet" : "desktop"
+    if (!visibility.devices.includes(current)) return null
+  }
   const type = section.section_type || "text"
   const config = section.config || {}
   const media = config.media_url || section.image_url
