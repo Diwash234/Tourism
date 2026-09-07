@@ -89,7 +89,7 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = fal
   }[size] || { box: 42, text: "text-xl", tagline: "text-[11px]" }
 
   return (
-    <Link to={to} className="flex items-center gap-2.5 select-none shrink-0 min-w-0 group">
+    <Link to={to} className="flex items-center gap-2 select-none shrink-0 min-w-0 group">
       {branding.logo_url ? (
         <img
           src={branding.logo_url}
