@@ -10,7 +10,7 @@
  * No feature here can crash the page: every sub-panel is wrapped in
  * its own ErrorBoundary.
  */
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import {
   FiActivity, FiAlertCircle, FiCheckCircle, FiClock, FiRefreshCw,
   FiShield, FiList, FiWifi, FiDatabase, FiHardDrive, FiCpu, FiImage,
@@ -184,6 +184,34 @@ function ErrorsPanel() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Group identical events (same source+type+message) so repeated backend
+  // errors (e.g. the same 503) collapse into one row with a count, instead of
+  // a wall of duplicate rows.
+  const grouped = useMemo(() => {
+    const map = new Map()
+    for (const e of errors) {
+      const k = `${e.source}|${e.error_type}|${e.error_message}`
+      if (!map.has(k)) {
+        map.set(k, { ...e, groupCount: 1, ids: [e.id] })
+      } else {
+        const g = map.get(k)
+        g.groupCount += 1
+        g.ids.push(e.id)
+        g.occurrences = (g.occurrences || 0) + (e.occurrences || 0)
+        if (new Date(e.last_seen) > new Date(g.last_seen)) g.last_seen = e.last_seen
+        if (!e.resolved) g.resolved = false
+      }
+    }
+    return [...map.values()]
+  }, [errors])
+
+  const resolveGroup = async (ids) => {
+    await Promise.all(ids.map((id) =>
+      adminApi.acknowledgeError(id, { resolved: true, resolution_note: "Marked resolved from admin UI" })
+    ))
+    refresh()
+  }
+
   const resolve = async (id) => {
     await adminApi.acknowledgeError(id, { resolved: true, resolution_note: "Marked resolved from admin UI" })
     refresh()
@@ -221,7 +249,7 @@ function ErrorsPanel() {
             No errors in this view. 🎉
           </div>
         )}
-        {errors.map((e) => (
+        {grouped.map((e) => (
           <div key={e.id} className="py-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -240,6 +268,7 @@ function ErrorsPanel() {
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-stone-500 flex-wrap">
                     <span className="inline-flex items-center gap-1"><FiClock /> {new Date(e.last_seen).toLocaleString()}</span>
                     <span>×{e.occurrences}</span>
+                    {e.groupCount > 1 && <span className="px-1.5 py-0.5 rounded bg-stone-100 font-semibold">{e.groupCount} events</span>}
                     {e.endpoint && <span className="font-mono">{e.method || "GET"} {e.endpoint}</span>}
                     {e.component && <span>component: <b>{e.component}</b></span>}
                     {e.user_email && <span>user: {e.user_email}</span>}
@@ -254,7 +283,7 @@ function ErrorsPanel() {
                   </button>
                 )}
                 {!e.resolved && (
-                  <button onClick={() => resolve(e.id)}
+                  <button onClick={() => resolveGroup(e.ids || [e.id])}
                     className="text-xs px-2 py-1 rounded-md bg-primary-600 text-white hover:bg-primary-700 inline-flex items-center gap-1">
                     <FiCheckSquare /> Resolve
                   </button>
