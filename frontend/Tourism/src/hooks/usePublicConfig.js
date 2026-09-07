@@ -40,7 +40,11 @@ function applyBranding(branding = {}) {
   Object.entries(vars).forEach(([key, value]) => value && root.style.setProperty(key, value))
   root.dataset.themePreset = branding.theme_preset || "himalayan"
   root.dataset.density = branding.density || "comfortable"
-  if (branding.site_title) document.title = branding.site_title
+  // Legacy brand guard: any DB/backup that still carries the old platform
+  // name is rendered as "Nepal Yatra" (spec: single brand everywhere).
+  const dropLegacyBrand = (value) =>
+    String(value || "").replace(/Digital Nepal Tourism( Platform)?/g, "Nepal Yatra")
+  if (branding.site_title) document.title = dropLegacyBrand(branding.site_title)
   if (branding.favicon_url) {
     let icon = document.querySelector("link[rel='icon']")
     if (!icon) { icon = document.createElement("link"); icon.rel = "icon"; document.head.appendChild(icon) }
