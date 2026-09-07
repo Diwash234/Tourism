@@ -134,9 +134,10 @@ export default function DestinationDetails() {
     }
   }
 
-  if (loading) return <Loader fullScreen />
-
-  // Inject JSON-LD structured data for SEO
+  // Inject JSON-LD structured data for SEO.
+  // NOTE: this hook must run BEFORE any early return, otherwise the hook
+  // count changes when `loading` flips and React throws "Rendered more hooks
+  // than during the previous render" (react-hooks/rules-of-hooks).
   useEffect(() => {
     if (!destination) return
     const jsonLd = {
@@ -174,6 +175,8 @@ export default function DestinationDetails() {
       if (existing) existing.remove()
     }
   }, [destination])
+
+  if (loading) return <Loader fullScreen />
 
   // Compile all images with metadata. The hero prefers the real-photo
   // resolver (category-aware), so SVG-postcard covers never show on the page.
