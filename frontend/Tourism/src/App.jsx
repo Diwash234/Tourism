@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate } from "react-router-dom"
 import ErrorBoundary from "./components/common/ErrorBoundary"
 import { installGlobalErrorHandlers } from "./utils/errorLogger"
 import CommandPalette from "./components/common/CommandPalette"
@@ -82,7 +82,8 @@ import Collaborate from "./pages/Collaborate"
 import Checkout from "./pages/Checkout"
 import PartnerDesk from "./pages/PartnerDesk"
 import TripStatus from "./pages/TripStatus"
-import TripPlanner from "./pages/TripPlanner"
+// TripPlanner was merged into Itinerary (single dataset-driven planner).
+// The old /trip-planner route now redirects to /itinerary below.
 import PersonalDetails from "./pages/PersonalDetails"
 import LocalDashboard from "./pages/local/LocalDashboard"
 import LocalRoute from "./routes/LocalRoute"
@@ -155,13 +156,14 @@ function App() {
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/itinerary" element={<Itinerary />} />
+        <Route path="/trip-planner" element={<Navigate to="/itinerary" replace />} />
         <Route path="/packages" element={<Packages />} />
         <Route path="/packages/:slug" element={<PackageDetail />} />
         <Route path="/collaborate" element={<Collaborate />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/trip/:reference?" element={<TripStatus />} />
         <Route path="/trip" element={<TripStatus />} />
-        <Route path="/trip-planner" element={<TripPlanner />} />
+
         <Route path="/chatbot" element={<Chatbot />} />
 
         {/* Public Emergency */}

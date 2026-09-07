@@ -288,11 +288,14 @@ const DestinationCard = ({
         items-center
         gap-1
         mt-1
+        min-w-0
         ">
 
-          <FiMapPin size={14}/>
+          <FiMapPin size={14} className="shrink-0"/>
 
+          <span className="truncate">
           {placeLocationLabel({ display_city: destination.display_city, city, district: destination.district, municipality: destination.municipality, province: destination.province })}
+          </span>
 
           {
           distance_km != null &&

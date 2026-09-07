@@ -25,6 +25,9 @@ const FamilySafety = () => {
   // family linking
   const [links, setLinks] = useState([])
   const [members, setMembers] = useState([])
+  // "Live" is periodic polling (not a push socket). Track when data last arrived
+  // so the UI can state this honestly instead of implying a realtime stream.
+  const [lastUpdated, setLastUpdated] = useState(null)
   const [linkEmail, setLinkEmail] = useState("")
   const [linkRelation, setLinkRelation] = useState("")
   const [linking, setLinking] = useState(false)
@@ -47,6 +50,7 @@ const FamilySafety = () => {
     try {
       const { data } = await familyApi.getFamilyMembers()
       setMembers(Array.isArray(data) ? data : data.results || [])
+      setLastUpdated(new Date())
     } catch {
       /* ignore */
     }
@@ -316,6 +320,18 @@ const FamilySafety = () => {
         </div>
       )}
 
+      {accepted.length > 0 && (
+        <p className="text-[11px] text-gray-500 mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="inline-flex items-center gap-1 font-bold text-forest-700 bg-forest-50 rounded-full px-2 py-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-forest-500 animate-pulse" /> Auto-refresh every {MEMBER_POLL_MS / 1000}s
+          </span>
+          <span>Location & SOS status use periodic polling (not a live push connection).</span>
+          {lastUpdated && (
+            <span className="font-mono text-gray-600">Last updated {lastUpdated.toLocaleTimeString()}</span>
+          )}
+        </p>
+      )}
+
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {accepted.map((l) => {
           const m = members.find((x) => x.link_id === l.id)
@@ -324,7 +340,7 @@ const FamilySafety = () => {
             <div key={l.id} className={`card-base p-4 relative ${live ? "ring-2 ring-forest-400" : ""}`}>
               {live && (
                 <span className="absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold text-forest-700 bg-forest-50 rounded-full px-2 py-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-forest-500 animate-pulse" /> LIVE
+                  <span className="h-1.5 w-1.5 rounded-full bg-forest-500 animate-pulse" /> LIVE · {MEMBER_POLL_MS / 1000}s
                 </span>
               )}
               <div className="flex items-center gap-3 mb-2">

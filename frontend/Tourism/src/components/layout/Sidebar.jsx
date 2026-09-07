@@ -33,8 +33,7 @@ const GROUPS = [
   {
     label: "My Trips", tk: "sidebar.planning",
     links: [
-      { to: "/trip-planner", label: "Trip Planner", tk: "sidebar.trip_planner", icon: BsCalendar3, color: "emerald" },
-      { to: "/itinerary", label: "Itineraries", tk: "sidebar.itinerary", icon: BsListOl, color: "himalaya" },
+      { to: "/itinerary", label: "Trip Planner & Itineraries", tk: "sidebar.trip_planner", icon: BsCalendar3, color: "emerald" },
       { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: BsWallet2, color: "emerald" },
       { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: BsCalculator, color: "orange" },
       { to: "/favorites", label: "Saved Trips", tk: "sidebar.favorites", icon: BsHeart, color: "pink" },

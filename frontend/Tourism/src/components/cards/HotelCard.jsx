@@ -84,9 +84,9 @@ const HotelCard = ({ hotel, destinationName }) => {
       <div className="p-4">
         <h3 className="font-bold text-dark truncate">{name}</h3>
         {address && (
-          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-            <FiMapPin size={14} />
-            {address}
+          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 min-w-0">
+            <FiMapPin size={14} className="shrink-0" />
+            <span className="truncate">{address}</span>
           </p>
         )}
         {destinationName && (
