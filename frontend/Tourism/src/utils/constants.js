@@ -92,62 +92,14 @@ export const PAGE_SIZE = 12
 // -----------------------------------------
 
 export const NAV_LINKS = [
-
-  {
-    label: "Destinations",
-    path: "/destinations"
-  },
-
-  {
-    label: "Packages",
-    path: "/packages"
-  },
-
-  {
-    label: "Himal AI",
-    path: "/chatbot"
-  },
-
-  {
-    label: "Trip Planner",
-    path: "/trip-planner"
-  },
-
-  {
-    label: "Budget Planner",
-    path: "/budget-estimator"
-  },
-
-  {
-    label: "Itinerary",
-    path: "/itinerary"
-  },
-
-  {
-    label: "Risk Analysis",
-    path: "/risk-alerts"
-  },
-
-  {
-    label: "Location",
-    path: "/navigation"
-  },
-
-  {
-    label: "How It Works",
-    path: "/how-it-works"
-  },
-
-  {
-    label: "Emergency",
-    path: "/emergency"
-  },
-
-  {
-    label: "Translation",
-    path: "/translation"
-  }
-
+  { label: "Destinations", path: "/destinations" },
+  { label: "Hotels", path: "/hotels" },
+  { label: "Trip Planner", path: "/trip-planner" },
+  { label: "Budget", path: "/budget-estimator" },
+  { label: "Recommendations", path: "/recommendation" },
+  { label: "Risk Alerts", path: "/risk-alerts" },
+  { label: "Safety", path: "/emergency" },
+  { label: "About", path: "/about" },
 ]
 
 
