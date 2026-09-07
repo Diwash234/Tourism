@@ -481,24 +481,14 @@ code {
    - Mobile (<lg):  sidebar hidden off-screen, slides in when body has
                     .sidebar-open, with a dimmed backdrop.
    ========================================== */
+/* Sidebar drawer/backdrop are driven by React state classes on the elements
+   (translate-x-0 / -translate-x-full and opacity), so the hamburger toggle
+   works at every breakpoint. These rules only set non-transform helpers. */
 .sidebar-drawer {
   will-change: transform;
 }
 .sidebar-backdrop {
-  opacity: 0;
-  pointer-events: none;
-}
-body.sidebar-open .sidebar-drawer {
-  transform: translateX(0) !important;
-}
-body.sidebar-open .sidebar-backdrop {
-  opacity: 1;
-  pointer-events: auto;
-}
-@media (min-width: 1024px) {
-  /* Always visible on desktop; backdrop never shows */
-  .sidebar-drawer { transform: translateX(0) !important; }
-  .sidebar-backdrop { display: none !important; }
+  transition: opacity 0.3s ease;
 }
 
 /* Province marquee */

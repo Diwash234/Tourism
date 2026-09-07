@@ -3,14 +3,17 @@ import { useEffect, useState, useCallback } from "react"
 const listeners = new Set()
 // Mobile-only drawer state. On desktop (lg+) the sidebar is always visible
 // regardless of this flag -- the CSS handles that.
-let openState = false
+let openState = true
 
 const BODY_CLASS = "sidebar-open"
 
 const applyBodyClass = (open) => {
   if (typeof document === "undefined") return
   const el = document.body
-  if (open) el.classList.add(BODY_CLASS)
+  // Body class (scroll lock) only matters for the mobile drawer; on desktop the
+  // sidebar is an inline column and must not lock page scroll.
+  const mobile = typeof window !== "undefined" && window.innerWidth < 1024
+  if (open && mobile) el.classList.add(BODY_CLASS)
   else el.classList.remove(BODY_CLASS)
 }
 

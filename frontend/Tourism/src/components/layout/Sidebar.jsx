@@ -11,7 +11,7 @@ import {
 } from "react-icons/bs"
 
 import useAuth from "../../hooks/useAuth"
-import { closeSidebar } from "../../hooks/useSidebarState"
+import useSidebarState, { closeSidebar } from "../../hooks/useSidebarState"
 import { useI18n } from "../../i18n"
 import configApi from "../../api/configApi"
 
@@ -108,7 +108,10 @@ export default function Sidebar() {
   const { t } = useI18n()
   const [managedItems, setManagedItems] = useState([])
   const [expanded, setExpanded] = useState({ Explore: true, "My Trips": true, Hotels: false, Safety: false, Account: true, "Workspace portals": true })
+  const [open] = useSidebarState()
   useEffect(() => { configApi.getPublicConfig().then(({ data }) => setManagedItems((data.navigation || []).filter(item => item.location === "sidebar"))).catch(() => {}) }, [])
+  // On mobile the drawer starts closed; on desktop it stays open by default.
+  useEffect(() => { if (typeof window !== "undefined" && window.innerWidth < 1024) closeSidebar() }, [])
 
   const handleNav = () => {
     if (window.innerWidth < 1024) closeSidebar()
@@ -140,15 +143,15 @@ export default function Sidebar() {
     <>
       <div
         onClick={closeSidebar}
-        className="fixed inset-0 top-16 bg-black/40 z-30 lg:hidden sidebar-backdrop opacity-0 pointer-events-none transition-opacity duration-300"
+        className={`fixed inset-0 top-16 bg-black/40 z-30 lg:hidden sidebar-backdrop transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         data-sidebar-backdrop="true"
         aria-hidden="true"
       />
 
       <aside
-        className="sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white border-r border-emerald-100 overflow-y-auto overscroll-contain
-                   transform -translate-x-full transition-transform duration-300 will-change-transform
-                   shadow-xl lg:translate-x-0 lg:shadow-none lg:max-w-none"
+        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white border-r border-emerald-100 overflow-y-auto overscroll-contain
+                   transform transition-transform duration-300 will-change-transform
+                   shadow-xl lg:shadow-none lg:max-w-none ${open ? "translate-x-0" : "-translate-x-full"}`}
         style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       >
         <div className="p-4 space-y-5">

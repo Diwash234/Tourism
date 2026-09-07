@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import useSidebarState from "../../hooks/useSidebarState"
 import { Outlet, useLocation } from "react-router-dom"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
@@ -20,6 +21,7 @@ const setMeta = (attr, key, value) => {
 }
 
 const MainLayout = () => {
+  const [sidebarOpen] = useSidebarState()
   const location = useLocation()
   const { pages, branding } = usePublicConfig()
 
@@ -40,11 +42,11 @@ const MainLayout = () => {
       <Sidebar />
       <main
         key={location.pathname}
-        className="flex-1 w-full pt-16 transition-[padding] duration-300 lg:pl-64"
+        className={`flex-1 w-full pt-16 transition-[padding] duration-300 ${sidebarOpen ? "lg:pl-64" : "lg:pl-0"}`}
       >
         <Outlet />
       </main>
-      <div className="pb-16 transition-[padding] duration-300 lg:pb-0 lg:pl-64">
+      <div className={`pb-16 transition-[padding] duration-300 lg:pb-0 ${sidebarOpen ? "lg:pl-64" : "lg:pl-0"}`}>
         <Footer />
       </div>
       <MobileBottomNav />
