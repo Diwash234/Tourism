@@ -62,15 +62,18 @@ function CheckRow({ label, data }) {
 function HealthPanel() {
   const [health, setHealth] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [running, setRunning] = useState(false)
   const [sample, setSample] = useState(null)
   const [err, setErr] = useState(null)
 
+  // Timeouts keep this panel from spinning forever when the backend is slow
+  // or unreachable — previously a hung request left the UI stuck on "Loading…".
   const refresh = useCallback(async () => {
     setLoading(true); setErr(null)
     try {
       const [full, latest] = await Promise.all([
-        adminApi.runHealthCheck(),
-        adminApi.getLatestHealthSample().catch(() => ({ data: null })),
+        adminApi.runHealthCheck({ timeout: 20000 }),
+        adminApi.getLatestHealthSample({ timeout: 10000 }).catch(() => ({ data: null })),
       ])
       setHealth(full.data)
       setSample(latest.data)
@@ -80,15 +83,15 @@ function HealthPanel() {
   }, [])
 
   const runDiag = async () => {
-    setLoading(true); setErr(null)
+    setRunning(true); setErr(null)
     try {
-      const r = await adminApi.writeHealthSample()
+      const r = await adminApi.writeHealthSample({ timeout: 20000 })
       setSample(r.data.sample)
-      const full = await adminApi.runHealthCheck()
+      const full = await adminApi.runHealthCheck({ timeout: 20000 })
       setHealth(full.data)
     } catch (e) {
       setErr(e?.response?.data?.detail || e.message)
-    } finally { setLoading(false) }
+    } finally { setRunning(false); setLoading(false) }
   }
 
   useEffect(() => { refresh() }, [refresh])
@@ -105,8 +108,14 @@ function HealthPanel() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-stone-900">Live system health</h3>
-            <p className="text-xs text-stone-500">
-              {health ? `Checked at ${new Date(health.checked_at).toLocaleTimeString()}` : "Loading…"}
+            <p className={`text-xs ${err && !health ? "text-rose-600" : "text-stone-500"}`}>
+              {health
+                ? `Checked at ${new Date(health.checked_at).toLocaleTimeString()}`
+                : err
+                ? "Health unavailable — see the error below"
+                : loading
+                ? "Checking system vitals…"
+                : "Not checked yet"}
             </p>
           </div>
         </div>
@@ -114,8 +123,8 @@ function HealthPanel() {
           <button onClick={refresh} disabled={loading} className="btn-outline text-sm py-1.5 inline-flex items-center gap-2">
             <FiRefreshCw className={loading ? "animate-spin" : ""} /> Refresh
           </button>
-          <button onClick={runDiag} disabled={loading} className="btn-primary text-sm py-1.5 inline-flex items-center gap-2">
-            <FiActivity /> Run diagnostics now
+          <button onClick={runDiag} disabled={running} className="btn-primary text-sm py-1.5 inline-flex items-center gap-2">
+            <FiActivity /> {running ? "Running…" : "Run diagnostics now"}
           </button>
         </div>
       </div>

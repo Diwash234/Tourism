@@ -215,10 +215,10 @@ const adminApi = {
   getErrors: (params) => axiosClient.get("/audit/errors/", { params }),
   acknowledgeError: (id, payload) => axiosClient.post(`/audit/errors/${id}/acknowledge/`, payload || {}),
   bulkResolveErrors: (ids, note = "") => axiosClient.post("/audit/errors/bulk-resolve/", { ids, resolution_note: note }),
-  getHealthSamples: () => axiosClient.get("/audit/health/"),
-  getLatestHealthSample: () => axiosClient.get("/audit/health/latest/"),
-  runHealthCheck: () => axiosClient.get("/system/health/full/"),
-  writeHealthSample: () => axiosClient.post("/system/health/sample/"),
+  getHealthSamples: (config) => axiosClient.get("/audit/health/", config),
+  getLatestHealthSample: (config) => axiosClient.get("/audit/health/latest/", config),
+  runHealthCheck: (config) => axiosClient.get("/system/health/full/", config),
+  writeHealthSample: (config) => axiosClient.post("/system/health/sample/", null, config),
 }
 
 export default adminApi
