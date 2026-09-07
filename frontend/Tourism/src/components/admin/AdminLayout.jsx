@@ -9,6 +9,14 @@ import { ADMIN_NAV_GROUPS, ADMIN_PRIMARY_NAV, adminSectionHref, findAdminSection
 
 export default function AdminLayout() {
   const [open, setOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return window.localStorage?.getItem("ny_admin_sidebar_collapsed") === "1" } catch { return false }
+  })
+  const toggleCollapsed = () =>
+    setCollapsed((v) => {
+      try { window.localStorage?.setItem("ny_admin_sidebar_collapsed", v ? "0" : "1") } catch { /* ignore */ }
+      return !v
+    })
   const [expanded, setExpanded] = useState(
     Object.fromEntries(ADMIN_NAV_GROUPS.map((group, index) => [group.label, index < 3]))
   )
@@ -67,12 +75,21 @@ export default function AdminLayout() {
       <aside
         id="admin-navigation"
         aria-label="Admin navigation"
-        className={`fixed bottom-0 top-16 z-40 w-80 max-w-[90vw] overflow-y-auto overscroll-contain border-r border-emerald-900 bg-emerald-950 text-emerald-50 shadow-lg transition-transform ${
+        className={`fixed bottom-0 top-16 z-40 w-80 max-w-[90vw] overflow-y-auto overscroll-contain border-r border-emerald-900 bg-emerald-950 text-emerald-50 shadow-lg transition-[transform,width] ${
           open ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+        } lg:translate-x-0 ${collapsed ? "lg:w-16" : "lg:w-80"}`}
       >
-        <nav className="p-4">
-          <div className="mb-4 rounded-xl bg-emerald-900 p-3 text-white">
+        <nav className={`p-4 ${collapsed ? "lg:p-1.5" : ""}`}>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="mb-2 hidden w-full items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-300 hover:bg-emerald-900 lg:flex"
+            aria-label={collapsed ? "Expand admin sidebar" : "Collapse admin sidebar"}
+            title={collapsed ? "Expand admin sidebar" : "Collapse admin sidebar"}
+          >
+            {collapsed ? <FiChevronRight /> : <><FiChevronRight className="rotate-180" /> <span>Collapse</span></>}
+          </button>
+          <div className={`mb-4 rounded-xl bg-emerald-900 p-3 text-white ${collapsed ? "lg:hidden" : ""}`}>
             <FiShield className="inline text-emerald-300" /> <b>Administrator workspace</b>
             <p className="mt-1 text-xs text-emerald-200">CMS, media, users, analytics and safety</p>
           </div>
@@ -80,14 +97,14 @@ export default function AdminLayout() {
             <section key={group.label} className="mb-2">
               <button
                 onClick={() => setExpanded((value) => ({ ...value, [group.label]: !value[group.label] }))}
-                className="flex min-h-10 w-full items-center justify-between py-2 text-xs font-black uppercase tracking-widest text-emerald-300"
+                className={`flex min-h-10 w-full items-center justify-between py-2 text-xs font-black uppercase tracking-widest text-emerald-300 ${collapsed ? "lg:hidden" : ""}`}
                 aria-expanded={expanded[group.label]}
               >
                 {group.label}
                 {expanded[group.label] ? <FiChevronDown /> : <FiChevronRight />}
               </button>
               {expanded[group.label] && (
-                <div className="space-y-1 border-l-2 border-emerald-800 pl-2">
+                <div className={`space-y-1 border-l-2 border-emerald-800 pl-2 ${collapsed ? "lg:border-l-0 lg:pl-0" : ""}`}>
                   {group.items.map(([section, label, Icon, children]) => (
                     <div key={section}>
                       <Link
@@ -101,7 +118,7 @@ export default function AdminLayout() {
                         }`}
                       >
                         <Icon aria-hidden="true" className="text-base shrink-0" />
-                        {label}
+                        <span className={collapsed ? "lg:hidden" : ""}>{label}</span>
                       </Link>
                       {children?.length > 0 && (activeSection === section || children.some((child) => (child.query?.section || section) === activeSection)) && (
                         <div className="ml-8 mt-1 mb-2 space-y-1 text-xs text-emerald-100">
@@ -125,7 +142,7 @@ export default function AdminLayout() {
             </section>
           ))}
           <section className="mt-4 border-t border-emerald-800 pt-4">
-            <p className="mb-2 text-xs font-black uppercase text-emerald-300">Dedicated tools</p>
+            <p className={`mb-2 text-xs font-black uppercase text-emerald-300 ${collapsed ? "lg:hidden" : ""}`}>Dedicated tools</p>
             <Link to="/admin/diagnostics" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-emerald-100 hover:bg-emerald-900">
               <FiActivity /> Audit & Diagnostics
             </Link>
@@ -143,7 +160,7 @@ export default function AdminLayout() {
           <FiX className="sr-only" />
         </button>
       )}
-      <main id="admin-main" tabIndex="-1" className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 pt-16 lg:pl-80">
+      <main id="admin-main" tabIndex="-1" className={`min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 pt-16 transition-[padding] duration-300 ${collapsed ? "lg:pl-16" : "lg:pl-80"}`}>
         <div className="p-3 sm:p-6">
           <Outlet />
         </div>

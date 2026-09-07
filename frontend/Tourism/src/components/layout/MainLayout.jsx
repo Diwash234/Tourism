@@ -21,7 +21,8 @@ const setMeta = (attr, key, value) => {
 }
 
 const MainLayout = () => {
-  const [sidebarOpen] = useSidebarState()
+  const [sidebarOpen, , , , sidebarCollapsed] = useSidebarState()
+  const desktopPad = sidebarOpen ? (sidebarCollapsed ? "lg:pl-16" : "lg:pl-64") : "lg:pl-0"
   const location = useLocation()
   const { pages, branding } = usePublicConfig()
 
@@ -42,11 +43,11 @@ const MainLayout = () => {
       <Sidebar />
       <main
         key={location.pathname}
-        className={`flex-1 w-full pt-16 transition-[padding] duration-300 ${sidebarOpen ? "lg:pl-64" : "lg:pl-0"}`}
+        className={`flex-1 w-full pt-16 transition-[padding] duration-300 ${desktopPad}`}
       >
         <Outlet />
       </main>
-      <div className={`pb-16 transition-[padding] duration-300 lg:pb-0 ${sidebarOpen ? "lg:pl-64" : "lg:pl-0"}`}>
+      <div className={`pb-16 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}>
         <Footer />
       </div>
       <MobileBottomNav />

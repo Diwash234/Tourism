@@ -13,6 +13,7 @@ import {
 import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
+import useTheme from "../context/ThemeContext"
 import { ALL_LANGS, setLang } from "../i18n"
 
 import {
@@ -21,6 +22,92 @@ import {
   setTranslationProvider,
 } from "../utils/translationPreference"
 
+
+const ChangePasswordCard = () => {
+  const { showToast } = useToast()
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [busy, setBusy] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (newPassword.length < 8) {
+      showToast("New password must be at least 8 characters.", "error")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      showToast("New password and confirmation do not match.", "error")
+      return
+    }
+    setBusy(true)
+    try {
+      await userApi.changePassword({ old_password: oldPassword, new_password: newPassword })
+      showToast("Password changed successfully.", "success")
+      setOldPassword(""); setNewPassword(""); setConfirmPassword("")
+    } catch (err) {
+      const detail = err?.response?.data
+      const msg = detail?.old_password || detail?.new_password || detail?.detail || "Could not change password."
+      showToast(Array.isArray(msg) ? msg[0] : String(msg), "error")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-6"
+      aria-label="Change password"
+    >
+      <h3 className="font-semibold flex items-center gap-2 text-gray-900 mb-4">
+        <FiCheck className="text-emerald-700" size={16} />
+        Change Password
+      </h3>
+      <form onSubmit={submit} className="grid gap-4 max-w-md">
+        <label className="block text-sm font-medium text-gray-700">
+          Current password
+          <input
+            type="password"
+            required
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+            className="input-field mt-1"
+            autoComplete="current-password"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700">
+          New password
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="input-field mt-1"
+            autoComplete="new-password"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700">
+          Confirm new password
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="input-field mt-1"
+            autoComplete="new-password"
+          />
+        </label>
+        <button type="submit" className="btn-primary w-fit" disabled={busy}>
+          {busy ? "Updating…" : "Change Password"}
+        </button>
+      </form>
+    </motion.section>
+  )
+}
 
 const Settings = () => {
 
@@ -33,6 +120,7 @@ const Settings = () => {
 
   const { user, setUser } = useAuth()
   const { showToast } = useToast()
+  const { isDark, toggleTheme } = useTheme()
 
 
   const [saving, setSaving] = useState(false)
@@ -130,6 +218,7 @@ const Settings = () => {
           } catch { /* i18n store unavailable */ }
         }
       }
+      let profileSaved = true
       try {
         const { data: updated } = await userApi.updateSettings({
           preferred_language: selectedLanguage?.id || selectedLanguage?.language_id || null,
@@ -137,9 +226,15 @@ const Settings = () => {
         })
         setUser(updated)
       } catch (e) {
-        /* Ignore backend 404/500 if updateSettings is not mounted */
+        // Language/currency profile write failed — the user must know instead
+        // of getting a blanket "everything saved" toast (audit REQ-013).
+        profileSaved = false
       }
-      showToast("Language, currency, and notification preferences saved!", "success")
+      if (profileSaved) {
+        showToast("Language, currency, and notification preferences saved!", "success")
+      } else {
+        showToast("Notification preferences saved, but language/currency could not be saved to your profile. Please try again.", "error")
+      }
     } catch (error) {
       showToast("Could not save settings", "error")
     } finally {
@@ -492,6 +587,36 @@ const Settings = () => {
 
       </form>
 
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-6"
+        aria-label="Appearance"
+      >
+        <h3 className="font-semibold flex items-center gap-2 text-gray-900 mb-4">
+          <FiCpu className="text-emerald-700" size={16} />
+          Appearance
+        </h3>
+        <div className="flex items-center justify-between max-w-md">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Dark theme</p>
+            <p className="text-xs text-gray-500">Your choice is saved on this device and restored on your next visit.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isDark}
+            onClick={toggleTheme}
+            className={`relative h-7 w-12 rounded-full transition-colors ${isDark ? "bg-emerald-600" : "bg-gray-300"}`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${isDark ? "left-[22px]" : "left-0.5"}`}
+            />
+          </button>
+        </div>
+      </motion.section>
+
+      <ChangePasswordCard />
 
     </motion.div>
 

@@ -107,7 +107,7 @@ export default function Sidebar() {
   const { t } = useI18n()
   const [managedItems, setManagedItems] = useState([])
   const [expanded, setExpanded] = useState({ Explore: true, "My Trips": true, Hotels: false, Safety: false, Account: true, "Workspace portals": true })
-  const [open] = useSidebarState()
+  const [open, , , , collapsed, , toggleCollapsed] = useSidebarState()
   useEffect(() => { configApi.getPublicConfig().then(({ data }) => setManagedItems((data.navigation || []).filter(item => item.location === "sidebar"))).catch(() => {}) }, [])
   // On mobile the drawer starts closed; on desktop it stays open by default.
   useEffect(() => { if (typeof window !== "undefined" && window.innerWidth < 1024) closeSidebar() }, [])
@@ -148,12 +148,22 @@ export default function Sidebar() {
       />
 
       <aside
-        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white border-r border-emerald-100 overflow-y-auto overscroll-contain
-                   transform transition-transform duration-300 will-change-transform
-                   shadow-xl lg:shadow-none lg:max-w-none ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white dark:bg-slate-900 border-r border-emerald-100 dark:border-slate-700 overflow-y-auto overscroll-contain
+                   transform transition-[transform,width] duration-300 will-change-transform
+                   shadow-xl lg:shadow-none lg:max-w-none ${collapsed ? "lg:w-16" : "lg:w-64"} ${open ? "translate-x-0" : "-translate-x-full"}`}
         style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="p-4 space-y-5">
+        <div className={`space-y-5 ${collapsed ? "p-2 lg:p-1.5" : "p-4"}`}>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="hidden lg:flex w-full items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide text-emerald-800 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-slate-800"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <BsChevronRight size={14} className={`transition-transform ${collapsed ? "" : "rotate-180"}`} />
+            {collapsed ? null : <span>Collapse</span>}
+          </button>
           <div className="flex items-center justify-between lg:hidden">
             <span className="text-sm font-bold text-gray-900">Traveller menu</span>
             <button onClick={closeSidebar} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600" aria-label="Close menu">
@@ -166,7 +176,7 @@ export default function Sidebar() {
               <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white font-black flex items-center justify-center text-sm shadow">
                 {user?.first_name?.[0] || user?.email[0].toUpperCase()}
               </div>
-              <div className="min-w-0">
+              <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
                 <p className="font-bold text-xs text-gray-900 truncate">{user?.full_name || user?.email}</p>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
                   {user?.role || "Tourist"}
@@ -174,7 +184,7 @@ export default function Sidebar() {
               </div>
             </div>
           ) : (
-            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2">
+            <div className={`p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2 ${collapsed ? "lg:hidden" : ""}`}>
               <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800">
                 <BsBoxArrowInRight size={13} /> Login
               </Link>
@@ -189,14 +199,14 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
-                className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider"
+                className={`flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider ${collapsed ? "lg:hidden" : ""}`}
                 aria-expanded={expanded[grp.label] !== false}
               >
                 {grp.tk ? t(grp.tk) : grp.label}
                 {expanded[grp.label] !== false ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
               </button>
               {expanded[grp.label] !== false && (
-                <div className="space-y-0.5 border-l-2 border-emerald-100 ml-3 pl-1">
+                <div className={`space-y-0.5 border-l-2 border-emerald-100 ml-3 pl-1 ${collapsed ? "lg:border-l-0 lg:ml-0 lg:pl-0" : ""}`}>
                   {grp.links.map((link) => {
                     const Icon = link.icon
                     const colorClass = COLOR_MAP[link.color] || COLOR_MAP.stone
@@ -208,16 +218,19 @@ export default function Sidebar() {
                         onClick={handleNav}
                         className={({ isActive }) =>
                           `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                            collapsed ? "lg:justify-center lg:px-1" : ""
+                          } ${
                             isActive
                               ? "bg-emerald-700 text-white shadow-md"
                               : "text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
                           }`
                         }
+                        title={link.tk ? t(link.tk) : link.label}
                       >
                         <div className={`p-1.5 rounded-lg ${colorClass}`}>
                           <Icon size={14} />
                         </div>
-                        <span>{link.tk ? t(link.tk) : link.label}</span>
+                        <span className={collapsed ? "lg:hidden" : ""}>{link.tk ? t(link.tk) : link.label}</span>
                       </NavLink>
                     )
                   })}

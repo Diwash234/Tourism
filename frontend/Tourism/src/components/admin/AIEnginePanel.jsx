@@ -256,6 +256,13 @@ export default function AIEnginePanel() {
                   placeholder="Search destination name (e.g., Everest, Annapurna, Phewa Lake)..."
                   className="w-full px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-400"
                 />
+                {destSearch.trim().length > 1 && destResults.length === 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 rounded-2xl bg-slate-900 border border-slate-700 z-20 p-4 text-sm text-slate-400">
+                    No destinations match &ldquo;{destSearch.trim()}&rdquo;. AI overrides can only
+                    be set on destinations that exist in the catalog — check the spelling or
+                    add the destination first.
+                  </div>
+                )}
                 {destResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 rounded-2xl bg-slate-900 border border-slate-700 z-20 max-h-48 overflow-y-auto divide-y divide-slate-800">
                     {destResults.map((d) => (

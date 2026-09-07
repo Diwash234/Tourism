@@ -104,7 +104,7 @@ export const NAV_LINKS = [
     { label: "Budget Estimator", path: "/budget-estimator" },
     { label: "Hotels", path: "/hotels" },
   ] },
-  { label: "Safety", path: "/emergency", children: [
+  { label: "Emergency Services", path: "/emergency", children: [
     { label: "Risk Alerts", path: "/risk-alerts" },
     { label: "Family Safety", path: "/family-safety" },
     { label: "Emergency / SOS", path: "/emergency" },

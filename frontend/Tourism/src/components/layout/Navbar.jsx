@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom"
-import { FiMenu, FiUser, FiBell, FiHeart, FiSearch, FiChevronDown } from "react-icons/fi"
+import { FiMenu, FiUser, FiBell, FiHeart, FiSearch, FiChevronDown, FiSun, FiMoon } from "react-icons/fi"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
@@ -10,6 +10,7 @@ import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
+import useTheme from "../../context/ThemeContext"
 
 const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)
 
@@ -23,6 +24,7 @@ const Navbar = () => {
   const [openMenu, setOpenMenu] = useState(null)
   const location = useLocation()
   const { navigation } = usePublicConfig()
+  const { isDark, toggleTheme } = useTheme()
 
   useEffect(() => {
     const role = user?.role || "tourist"
@@ -58,7 +60,7 @@ const Navbar = () => {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-emerald-100 shadow-sm w-full min-w-0">
+    <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-emerald-100 dark:border-slate-700 shadow-sm w-full min-w-0">
       <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0">
 
         {/* Sidebar Toggle */}
@@ -146,6 +148,15 @@ const Navbar = () => {
                   Staff
                 </Link>
               )}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="text-gray-600 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white"
+                aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+                title={isDark ? "Light mode" : "Dark mode"}
+              >
+                {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
+              </button>
               <Link
                 to="/notifications"
                 className="text-gray-600 hover:text-primary-600"

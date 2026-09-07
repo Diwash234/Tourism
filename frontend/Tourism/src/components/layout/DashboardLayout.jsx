@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom"
+import useSidebarState from "../../hooks/useSidebarState"
 import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
@@ -8,6 +9,8 @@ import { ElevationScrollProgress } from "../common/MotionSystem"
 
 const DashboardLayout = () => {
   const location = useLocation()
+  const [sidebarOpen, , , , sidebarCollapsed] = useSidebarState()
+  const desktopPad = sidebarOpen ? (sidebarCollapsed ? "lg:pl-16" : "lg:pl-64") : "lg:pl-0"
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 w-full overflow-x-hidden">
@@ -16,7 +19,7 @@ const DashboardLayout = () => {
       <Sidebar />
       <div
         key={location.pathname}
-        className="flex-1 w-full flex flex-col justify-between pt-16 transition-[padding] duration-300 lg:pl-64"
+        className={`flex-1 w-full flex flex-col justify-between pt-16 transition-[padding] duration-300 ${desktopPad}`}
       >
         <div className="flex-1 min-w-0 px-3 sm:px-4 md:px-6 lg:px-8 py-5 md:py-8 max-w-[1600px] mx-auto w-full">
           <Outlet />

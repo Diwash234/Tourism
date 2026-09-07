@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // Dark theme is class-driven: ThemeContext toggles `.dark` on <html> and
+  // persists the choice in localStorage (key: ny_theme).
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -9,10 +12,19 @@ export default {
         // code should use these.
         brand: {
           DEFAULT: '#047857', // emerald-700 — primary actions, active nav
+          hover: '#065f46',   // emerald-800 — hover/pressed state of brand
+          light: '#d1fae5',   // emerald-100 — brand tinted backgrounds
           gradientFrom: '#1e3a8a', // blue-900 — hero CTAs
           gradientTo: '#059669',   // emerald-600
         },
-        accent: '#f59e0b',  // amber-500 — secondary CTA + pending/attention ONLY
+        // NOTE: a bare `accent: '#f59e0b'` string used to live here and was
+        // silently shadowed by the accent{} scale object below (duplicate key
+        // in the same literal — last one wins). Removed; use accent-500 or
+        // saffron-500 for the amber attention color.
+        surface: {
+          light: '#f9fafb', // gray-50 — page background (light theme)
+          dark: '#0f172a',  // slate-900 — page background (dark theme)
+        },
         danger: '#dc2626',  // red-600 — SOS/emergency/destructive ONLY
         ai: '#9333ea',      // purple-600 — genuinely AI-powered features ONLY
         // RE-THEMED: primary/secondary used to be coral/teal (the old
