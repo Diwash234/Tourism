@@ -1,27 +1,7 @@
-import "./ChartSetup"
-import { Line } from "react-chartjs-2"
+import ChartCard from "./ChartCard"
 
-const LineChartCard = ({ title, labels, data, label = "Value" }) => {
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        label,
-        data,
-        // issue as BarChartCard.jsx.
-        borderColor: "#0B3D91",
-        backgroundColor: "rgba(11,61,145,0.15)",
-        tension: 0.4,
-        fill: true,
-      },
-    ],
-  }
-  return (
-    <div className="card-base p-5">
-      {title && <h4 className="font-semibold mb-4">{title}</h4>}
-      <Line data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-    </div>
-  )
-}
+const LineChartCard = ({ title, labels, data, label = "Value" }) => (
+  <ChartCard type="line" title={title} labels={labels} data={data} label={label} />
+)
 
 export default LineChartCard

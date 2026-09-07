@@ -37,6 +37,9 @@ jobs:
       - name: Install frontend deps
         working-directory: frontend/Tourism
         run: npm ci || npm install --no-audit --no-fund
+      - name: Unit-verify chart components
+        working-directory: frontend/Tourism
+        run: npm run verify:charts
       - name: Build frontend
         working-directory: frontend/Tourism
         run: npm run build

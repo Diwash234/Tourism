@@ -11,7 +11,8 @@
     "test:e2e": "node e2e/run.mjs",
     "test:e2e:live": "node e2e/live.mjs",
     "test:e2e:browser": "playwright test",
-    "test:e2e:install": "playwright install chromium"
+    "test:e2e:install": "playwright install chromium",
+    "verify:charts": "esbuild scripts/verify-charts.test.jsx --bundle --format=cjs --platform=node --jsx=automatic --outfile=node_modules/.charts-verify.cjs --log-level=error --external:react --external:react-dom && node node_modules/.charts-verify.cjs"
   },
   "dependencies": {
     "axios": "^1.7.9",
