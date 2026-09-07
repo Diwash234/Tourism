@@ -87,7 +87,7 @@ export default function HeroCinematic() {
       {/* Top meta bar */}
       <div className="relative z-10 flex items-center justify-between px-6 sm:px-10 lg:px-14 pt-6">
         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/20 text-[11px] font-black uppercase tracking-[0.18em] text-[#8BB2FC]">
-          🇳 Digital Nepal Tourism · Himalayan Index
+          🇳 Nepal Yatra · Himalayan Index
         </span>
         <div className="flex items-center gap-2">
           <button onClick={() => go(idx - 1)} aria-label="Previous destination" className="p-2.5 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur border border-white/20 transition-all"><FiChevronLeft size={18} /></button>

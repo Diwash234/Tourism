@@ -65,7 +65,6 @@ const GROUPS = [
     label: "Account", tk: "sidebar.account",
     links: [
       { to: "/dashboard", label: "My Dashboard", tk: "sidebar.dashboard", icon: BsHouseDoor, color: "himalaya" },
-      { to: "/profile", label: "Profile", tk: "sidebar.profile", icon: BsPerson, color: "himalaya" },
       { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: BsCardText, color: "himalaya" },
       { to: "/notifications", label: "Notifications", icon: BsInbox, color: "saffron" },
       { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: BsCheck2Square, color: "saffron" },
