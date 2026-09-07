@@ -147,7 +147,7 @@ export default function AdminRouteManagerPanel() {
             })
             setShowModal(true)
           }}
-          className="px-5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow"
+          className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow whitespace-nowrap"
         >
           <FiPlus size={16} /> Add Transit Route
         </button>

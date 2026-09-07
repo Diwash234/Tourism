@@ -216,7 +216,7 @@ export default function DataHealthPanel() {
             <button
               type="submit"
               disabled={savingRates}
-              className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow"
+              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow whitespace-nowrap"
             >
               <FiSave size={14} /> {savingRates ? "Saving..." : "Save Rate Multipliers"}
             </button>

@@ -136,7 +136,7 @@ export default function AdminReportManagerPanel() {
                     setInternalNotes(r.internal_notes || "")
                     setNewStatus("fixed")
                   }}
-                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold shrink-0 self-start sm:self-center"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shrink-0 self-start sm:self-center whitespace-nowrap"
                 >
                   Investigate & Resolve
                 </button>

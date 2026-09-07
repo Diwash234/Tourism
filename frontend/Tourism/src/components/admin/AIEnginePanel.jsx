@@ -123,7 +123,7 @@ export default function AIEnginePanel() {
         <button
           disabled={busy}
           onClick={handleSaveAIConfig}
-          className="px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-amber-400/20"
+          className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-emerald-600/20 whitespace-nowrap"
         >
           <FiSave size={16} /> {busy ? "Saving..." : "Publish AI Rules"}
         </button>
@@ -322,7 +322,7 @@ export default function AIEnginePanel() {
                 <button
                   type="button"
                   onClick={handleSaveDestinationOverride}
-                  className="px-5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold"
+                  className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold whitespace-nowrap"
                 >
                   Save Destination AI Override
                 </button>

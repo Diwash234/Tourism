@@ -265,8 +265,8 @@ export default function CMSPanel() {
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
                 <b className="mr-auto">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
-                <button disabled={busy} onClick={saveAndPublish} className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex gap-1 shadow"><FiSend /> Save & Publish Live</button>
-                <button disabled={busy} onClick={save} className="px-3 py-2 bg-emerald-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiSave /> Save draft</button>
+                <button disabled={busy} onClick={saveAndPublish} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-xs flex gap-1 shadow whitespace-nowrap"><FiSend /> Save & Publish Live</button>
+                <button disabled={busy} onClick={save} className="px-3 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-bold flex gap-1"><FiSave /> Save draft</button>
                 {selected.id && <button onClick={showPreview} className="px-3 py-2 bg-sky-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiEye /> Preview</button>}
                 {selected.id && <button onClick={showHistory} className="px-3 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiClock /> History</button>}
               </div>
