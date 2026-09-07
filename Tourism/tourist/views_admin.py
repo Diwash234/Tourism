@@ -1951,6 +1951,60 @@ class AdminCMSView(APIView):
             index += 1
         return candidate
 
+    def _health_report(self, request):
+        """Page health check (spec §31/32): content/images/links/SEO/sections/published
+        indicators + concrete warnings per page. Pure static analysis — no
+        external HTTP calls, so it is fast and safe to run site-wide."""
+        import re as _re
+        page_id = request.query_params.get("page_id")
+        pages = ManagedPage.objects.all().order_by("route")
+        if page_id:
+            pages = pages.filter(pk=page_id)
+            if not pages.exists():
+                return Response({"detail": "Page not found"}, status=404)
+        url_re = _re.compile(r'href=["\']([^"\']*)["\']', _re.I)
+        reports = []
+        for page in pages[:60]:
+            warnings = []
+            sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
+            drafts = [s for s in sections if s.status != "published"]
+            if page.status != "published" or not page.is_enabled:
+                warnings.append({"code": "page_not_published", "message": f"Page status is '{page.status}'" + ("" if page.is_enabled else " and the page is disabled")})
+            if not (page.meta_description or "").strip():
+                warnings.append({"code": "missing_seo_description", "message": "No meta description (SEO)"})
+            if not (page.og_image_url or "").strip():
+                warnings.append({"code": "missing_og_image", "message": "No social share (OG) image"})
+            for s in sections:
+                has_content = bool((s.title or "").strip() or (s.body or "").strip() or (s.image_url or "").strip())
+                if not has_content:
+                    warnings.append({"code": "empty_section", "message": f"Section '{s.key}' has no content", "section_id": s.id})
+                    continue
+                if (s.body or "").strip() and not (s.title or "").strip():
+                    warnings.append({"code": "empty_heading", "message": f"Section '{s.key}' has body text but no heading", "section_id": s.id})
+                for field in ("image_url", "cta_url"):
+                    value = (getattr(s, field) or "").strip()
+                    if value and not value.startswith(("http://", "https://", "/media/", "/", "mailto:", "tel:")):
+                        warnings.append({"code": "suspicious_url", "message": f"Section '{s.key}' {field} is not a valid URL: {value[:60]}", "section_id": s.id})
+                for href in url_re.findall(s.body or ""):
+                    if href.strip() in {"#", ""} or href.lower().startswith("javascript:"):
+                        warnings.append({"code": "broken_link", "message": f"Section '{s.key}' contains a dead link ('{href[:40]}')", "section_id": s.id})
+            checks = {
+                "content": "warn" if any(w["code"] in {"empty_section", "empty_heading"} for w in warnings) else "ok",
+                "images": "warn" if any(w["code"] in {"suspicious_url", "missing_og_image"} for w in warnings) else "ok",
+                "links": "warn" if any(w["code"] == "broken_link" for w in warnings) else "ok",
+                "seo": "warn" if any(w["code"] == "missing_seo_description" for w in warnings) else "ok",
+                "sections": "ok" if sections else "warn",
+                "published": "warn" if drafts or any(w["code"] == "page_not_published" for w in warnings) else "ok",
+            }
+            reports.append({
+                "page_id": page.id, "key": page.key, "route": page.route, "title": page.title,
+                "section_count": len(sections), "draft_sections": len(drafts),
+                "checks": checks, "warnings": warnings[:30], "warning_count": len(warnings),
+            })
+        if page_id:
+            return Response(reports[0])
+        return Response({"results": reports, "count": len(reports)})
+
     def get(self, request):
         _require_capability(request, "content", "view")
         self._publish_due()
@@ -1960,6 +2014,8 @@ class AdminCMSView(APIView):
             queryset = ContentSection.objects.filter(is_reusable=True).select_related("page")
             return Response({"resource": "sections", "results": [self._row("sections", obj) for obj in queryset[:200]]})
         resource = request.query_params.get("resource", "pages")
+        if resource == "health":
+            return self._health_report(request)
         model = self.MODELS.get(resource)
         if not model:
             return Response({"detail": "Unknown CMS resource"}, status=400)

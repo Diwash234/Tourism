@@ -148,6 +148,7 @@ const adminApi = {
   uploadBrandingAsset: (formData) => axiosClient.post("/admin/branding/", formData, { headers: { "Content-Type": "multipart/form-data" } }),
   deleteBrandingAsset: (kind) => axiosClient.delete("/admin/branding/", { data: { kind } }),
   getCMS: (resource, params = {}) => axiosClient.get("/admin/cms/", { params: { resource, ...params } }),
+  getCMSHealth: (params = {}) => axiosClient.get("/admin/cms/", { params: { resource: "health", ...params } }),
   runCMSAction: (payload) => axiosClient.patch("/admin/cms/", payload),
   getStaffWorkspace: (module = "dashboard") => axiosClient.get("/admin/staff-workspace/", { params: { module } }),
   runStaffWorkspaceAction: (payload) => axiosClient.post("/admin/staff-workspace/", payload),

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
-import { FiClock, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
+import { FiActivity, FiClock, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
@@ -40,6 +40,7 @@ export default function CMSPanel() {
   const [json, setJson] = useState("")
   const [savedJson, setSavedJson] = useState("")
   const [history, setHistory] = useState([])
+  const [health, setHealth] = useState(null)
   const [preview, setPreview] = useState(null)
   const [scheduleAt, setScheduleAt] = useState("")
   const [busy, setBusy] = useState(false)
@@ -231,6 +232,15 @@ export default function CMSPanel() {
     try { setHistory((await adminApi.getCMS(resource, { id: selected.id, history: true })).data.results || []) }
     catch { showToast("Revision history unavailable", "error") }
   }
+  const showHealth = async () => {
+    const pageId = resource === "pages" ? selected?.id : selected?.page_id || selected?.page
+    if (!pageId) { showToast("Select a page (or a section belonging to a page) first.", "error"); return }
+    try {
+      setHealth((await adminApi.getCMSHealth({ page_id: pageId })).data)
+    } catch {
+      showToast("Health check unavailable", "error")
+    }
+  }
   const rollback = async (revisionId) => {
     if (!window.confirm("Restore this revision as a new revision? The current version remains in history.")) return
     await workflow("rollback", { revision_id: revisionId })
@@ -311,6 +321,7 @@ export default function CMSPanel() {
                 <button disabled={busy} onClick={save} className="px-3 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-bold flex gap-1"><FiSave /> Save draft</button>
                 {selected.id && <button onClick={showPreview} className="px-3 py-2 bg-sky-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiEye /> Preview</button>}
                 {selected.id && <button onClick={showHistory} className="px-3 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiClock /> History</button>}
+                <button onClick={showHealth} className="px-3 py-2 bg-emerald-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiActivity /> Health check</button>
               </div>
               {resource === "pages" && (
                 <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[1fr_auto_auto]">
@@ -400,6 +411,39 @@ export default function CMSPanel() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {health && (
+        <div className="fixed inset-0 z-[80] bg-black/75 flex justify-end">
+          <aside className="bg-white border-l w-full max-w-lg p-5 overflow-y-auto">
+            <div className="flex justify-between">
+              <h3 className="text-xl font-black">Page health — {health.title || health.key}</h3>
+              <button onClick={() => setHealth(null)} aria-label="Close health report"><FiX /></button>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 mb-4">
+              {health.section_count} section(s) · {health.draft_sections} draft(s) · {health.warning_count} warning(s)
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {Object.entries(health.checks || {}).map(([name, state]) => (
+                <div key={name} className={`rounded-xl border px-3 py-2 text-xs font-bold capitalize ${state === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
+                  {state === "ok" ? "✓" : "⚠"} {name}
+                </div>
+              ))}
+            </div>
+            {health.warnings?.length > 0 ? (
+              <ul className="space-y-2">
+                {health.warnings.map((w, i) => (
+                  <li key={i} className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs">
+                    <b className="text-amber-900">{w.code.replaceAll("_", " ")}</b>
+                    <p className="text-slate-700 mt-0.5">{w.message}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-emerald-700 font-bold">No issues found on this page.</p>
+            )}
+          </aside>
         </div>
       )}
 
