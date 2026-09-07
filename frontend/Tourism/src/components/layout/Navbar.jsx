@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { Link, NavLink, useNavigate } from "react-router-dom"
-import { FiMenu, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom"
+import { FiMenu, FiUser, FiBell, FiHeart, FiSearch, FiChevronDown } from "react-icons/fi"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
@@ -11,7 +11,7 @@ import LanguageSwitcher from "../common/LanguageSwitcher"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 
-const NavChildren = ({ items, depth = 0 }) => items.map(child => <div key={child.path}><NavLink to={child.path} className="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1}/>}</div>)
+const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -20,6 +20,8 @@ const Navbar = () => {
   const { t } = useI18n()
   const navigate = useNavigate()
   const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
+  const [openMenu, setOpenMenu] = useState(null)
+  const location = useLocation()
   const { navigation } = usePublicConfig()
 
   useEffect(() => {
@@ -31,6 +33,14 @@ const Navbar = () => {
     allowed.forEach(item => { const node = nodes.get(item.id); const parent = nodes.get(item.parent_id); if (parent) parent.children.push(node); else roots.push(node) })
     setManagedLinks(roots)
   }, [navigation, user?.role])
+
+  // Close any open dropdown on route change or Escape key
+  useEffect(() => { setOpenMenu(null) }, [location.pathname])
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") setOpenMenu(null) }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -95,9 +105,28 @@ const Navbar = () => {
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-6 shrink-0">
           {managedLinks.map((link, idx) => (
-            <div key={link.id || `${link.path}-${idx}`} className="relative group">
-              <NavLink to={link.path} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap ${isActive ? "text-primary-600" : "text-gray-600 hover:text-dark"}`}>{link.label}</NavLink>
-              {!!link.children?.length && <div className="absolute hidden group-hover:block group-focus-within:block top-full left-0 pt-3 min-w-52"><div className="bg-white border border-gray-100 shadow-xl rounded-xl p-2"><NavChildren items={link.children}/></div></div>}
+            <div key={link.id || `${link.path}-${idx}`} className="relative group" onMouseLeave={() => setOpenMenu(null)}>
+              <div className="flex items-center gap-0.5">
+                <NavLink to={link.path} onClick={() => setOpenMenu(null)} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap ${isActive ? "text-primary-600" : "text-gray-600 hover:text-dark"}`}>{link.label}</NavLink>
+                {!!link.children?.length && (
+                  <button
+                    type="button"
+                    aria-label={`Toggle ${link.label} menu`}
+                    aria-expanded={openMenu === idx}
+                    onClick={() => setOpenMenu(openMenu === idx ? null : idx)}
+                    className={`p-1 rounded transition-colors ${openMenu === idx ? "text-primary-600" : "text-gray-400 hover:text-primary-600"}`}
+                  >
+                    <FiChevronDown size={14} className={`transition-transform ${openMenu === idx ? "rotate-180" : ""}`} />
+                  </button>
+                )}
+              </div>
+              {!!link.children?.length && (
+                <div className={`absolute top-full left-0 pt-3 min-w-52 z-50 ${openMenu === idx ? "block" : "hidden group-hover:block group-focus-within:block"}`}>
+                  <div className="bg-white border border-gray-100 shadow-xl rounded-xl p-2">
+                    <NavChildren items={link.children} onNavigate={() => setOpenMenu(null)} />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
