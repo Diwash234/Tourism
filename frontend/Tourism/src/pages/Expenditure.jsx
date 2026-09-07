@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { FiDollarSign, FiPlus } from "react-icons/fi"
 import adminApi from "../api/adminApi"
 import TravelExpenditureForm from "../components/forms/TravelExpenditureForm"
+import EmptyState from "../components/common/EmptyState"
 
 export default function Expenditure() {
   const [reports, setReports] = useState([])
@@ -40,6 +41,14 @@ export default function Expenditure() {
         <div className="card-base p-6 max-w-xl shadow-xl border border-[#E5E0D5] rounded-3xl">
           <TravelExpenditureForm onSuccess={() => { setShowForm(false); loadData(); }} />
         </div>
+      )}
+
+      {!showForm && reports.length === 0 && (
+        <EmptyState
+          icon={FiDollarSign}
+          title="No trip expenses logged yet"
+          subtitle="Log your first trip expense to see your spending history and help train the ML budget model."
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
