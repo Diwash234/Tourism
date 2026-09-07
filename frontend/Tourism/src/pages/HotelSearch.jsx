@@ -79,6 +79,11 @@ const HotelSearch = () => {
         </div>
       ) : searched && !loading ? (
         <EmptyState title="No hotels found" subtitle="Try a different city, area, or hotel name." />
+      ) : !searched && !loading ? (
+        <EmptyState
+          title="Find your stay"
+          subtitle="Search a city, area, or hotel name to see available hotels and lodges across Nepal."
+        />
       ) : null}
     </div>
   );
