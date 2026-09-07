@@ -92,12 +92,9 @@ export const PAGE_SIZE = 12
 // -----------------------------------------
 
 export const NAV_LINKS = [
-  { label: "Destinations", path: "/destinations" },
-  { label: "Hotels", path: "/hotels" },
-  { label: "Trip Planner", path: "/trip-planner" },
-  { label: "Budget", path: "/budget-estimator" },
-  { label: "Recommendations", path: "/recommendation" },
-  { label: "Risk Alerts", path: "/risk-alerts" },
+  { label: "Home", path: "/" },
+  { label: "Explore", path: "/destinations" },
+  { label: "Plan a Trip", path: "/trip-planner" },
   { label: "Safety", path: "/emergency" },
   { label: "About", path: "/about" },
 ]
