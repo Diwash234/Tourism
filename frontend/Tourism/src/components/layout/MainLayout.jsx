@@ -44,7 +44,7 @@ const MainLayout = () => {
       >
         <Outlet />
       </main>
-      <div className="transition-[padding] duration-300 lg:pl-64">
+      <div className="pb-16 transition-[padding] duration-300 lg:pb-0 lg:pl-64">
         <Footer />
       </div>
       <MobileBottomNav />

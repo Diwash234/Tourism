@@ -8,7 +8,7 @@ export default function MobileBottomNav() {
   const navItems = [
     { to: isAuthenticated ? "/dashboard" : "/", label: "Home", icon: BsHouseDoor },
     { to: "/destinations", label: "Explore", icon: BsGeoAlt },
-    { to: "/trip-planner", label: "My Trip", icon: BsCalendar3 },
+    { to: "/itinerary", label: "My Trip", icon: BsCalendar3 },
     { to: "/favorites", label: "Saved", icon: BsHeart },
     { to: isAuthenticated ? "/profile" : "/login", label: "Profile", icon: BsPerson },
   ]

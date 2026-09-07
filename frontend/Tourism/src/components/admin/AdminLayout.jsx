@@ -46,7 +46,7 @@ export default function AdminLayout() {
               <Link
                 key={section}
                 to={adminSectionHref(section)}
-                className={`flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${
+                className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-bold ${
                   activeSection === section ? "bg-white text-emerald-950" : "text-emerald-100 hover:bg-emerald-800"
                 }`}
               >
@@ -60,7 +60,7 @@ export default function AdminLayout() {
         <div className="ml-auto flex items-center gap-2 text-xs">
           <span className="hidden rounded-full bg-emerald-800 px-2 py-1 font-black uppercase tracking-wide text-emerald-200 sm:inline">Admin</span>
           <span className="hidden text-emerald-100 sm:inline">{user?.email}</span>
-          <Link to="/" className="min-h-10 rounded-lg bg-white px-3 py-2 font-bold text-emerald-950">Traveller site</Link>
+          <Link to="/" className="min-h-10 whitespace-nowrap rounded-lg bg-white px-3 py-2 font-bold text-emerald-950">Traveller site</Link>
           <button onClick={logout} className="admin-icon-button !bg-rose-700 !text-white" aria-label="Log out">
             <FiLogOut />
           </button>

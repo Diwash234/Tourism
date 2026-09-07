@@ -48,7 +48,7 @@ export default function StaffLayout() {
         <b>Nepal Yatra Staff Operations</b>
         <span className="ml-auto hidden rounded-full bg-amber-800 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-100 sm:inline">Staff</span>
         <span className="hidden text-xs text-amber-950 sm:inline">{user?.email}</span>
-        <Link to="/" className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-amber-900">Traveller site</Link>
+        <Link to="/" className="whitespace-nowrap rounded-lg bg-white px-3 py-2 text-xs font-bold text-amber-900">Traveller site</Link>
         <button onClick={logout} className="rounded-lg bg-rose-700 p-2 text-white" aria-label="Log out">
           <FiLogOut />
         </button>
