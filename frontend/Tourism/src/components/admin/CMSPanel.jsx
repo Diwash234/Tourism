@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { FiClock, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -175,7 +176,7 @@ export default function CMSPanel() {
         await adminApi.runCMSAction({ resource, id: selected.id, action: "publish" })
       }
 
-      window.dispatchEvent(new Event("cms-updated"))
+      notifyCmsUpdated()
       return res
     },
     "Published live to user site!"
@@ -931,7 +932,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
         status: "published",
         is_visible: Boolean(draft.is_visible),
       })
-      window.dispatchEvent(new Event("cms-updated"))
+      notifyCmsUpdated()
       onToast("Section saved & published live!", "success")
       setOpenId(null)
       setDraft(null)

@@ -16,6 +16,14 @@ export const invalidatePublicConfigCache = () => {
 
 if (typeof window !== "undefined") {
   window.addEventListener("cms-updated", invalidatePublicConfigCache)
+  // Cross-tab: another tab's publish writes localStorage; the `storage` event
+  // fires in every other tab so the public site refreshes without a reload.
+  window.addEventListener("storage", (e) => { if (e.key === "cms-updated-at") invalidatePublicConfigCache() })
+}
+
+export const notifyCmsUpdated = () => {
+  try { localStorage.setItem("cms-updated-at", String(Date.now())) } catch {}
+  window.dispatchEvent(new Event("cms-updated"))
 }
 
 const load = lang => {

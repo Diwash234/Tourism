@@ -32,6 +32,19 @@ const destinationApi = {
   getNearby: (params = {}) =>
     axiosClient.get("/destinations/nearby/", { params }),
 
+  // Alias matching callers that use destinationApi.nearby(lat, lng, opts).
+  // Backend /destinations/nearby/ expects latitude, longitude, radius_km.
+  nearby: (lat, lng, params = {}) =>
+    axiosClient.get("/destinations/nearby/", {
+      params: {
+        latitude: lat,
+        longitude: lng,
+        radius_km: params.radius_km ?? 250,
+        page: params.page,
+        limit: params.limit,
+      },
+    }),
+
 
   // FIXED: the backend has no nested `/destinations/{slug}/reviews/`
   // route — reviews are a flat resource filtered by a `destination` query

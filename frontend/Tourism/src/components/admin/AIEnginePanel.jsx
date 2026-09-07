@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import {
   FiCpu, FiSliders, FiCheck, FiSave, FiSearch, FiShield,
   FiZap, FiCompass, FiDollarSign, FiAlertTriangle, FiCheckCircle, FiLock
@@ -80,7 +81,7 @@ export default function AIEnginePanel() {
         description: "Central AI/ML Engine Configuration & Rules",
         is_public: true,
       })
-      window.dispatchEvent(new Event("cms-updated"))
+      notifyCmsUpdated()
       showToast("Central AI Engine Configuration updated & published!", "success")
     } catch {
       showToast("Could not save AI configuration.", "error")

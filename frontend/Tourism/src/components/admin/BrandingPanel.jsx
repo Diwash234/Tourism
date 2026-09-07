@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { FiImage, FiSave, FiTrash2, FiUpload, FiCheck, FiSliders, FiSun, FiGlobe } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -69,7 +70,7 @@ export default function BrandingPanel() {
       setBranding(data.branding)
 
       // Notify all public config listeners to update logo and headers globally across the platform
-      window.dispatchEvent(new Event("cms-updated"))
+      notifyCmsUpdated()
       showToast("Portal Branding & Heading updated globally across all pages!", "success")
     } catch (error) {
       showToast("Branding save failed", "error")
@@ -86,7 +87,7 @@ export default function BrandingPanel() {
     body.append("alt_text", kind === "logo" ? branding.site_title || "Nepal Yatra logo" : "Website icon")
     try {
       await adminApi.uploadBrandingAsset(body)
-      window.dispatchEvent(new Event("cms-updated"))
+      notifyCmsUpdated()
       showToast(`${kind.toUpperCase()} asset uploaded successfully!`, "success")
       load()
     } catch (error) {
@@ -98,7 +99,7 @@ export default function BrandingPanel() {
     if (!window.confirm(`Remove the current ${kind}? The system will fall back to the vector emblem.`)) return
     try {
       await adminApi.deleteBrandingAsset(kind)
-      window.dispatchEvent(new Event("cms-updated"))
+      notifyCmsUpdated()
       showToast(`${kind} removed. Reverted to default vector logo.`, "info")
       load()
     } catch (error) {

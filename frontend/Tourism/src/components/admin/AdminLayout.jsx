@@ -34,9 +34,6 @@ export default function AdminLayout() {
           <FiMenu />
         </button>
         <TourismLogo size="sm" to="/admin" showTagline={false} />
-        <div className="hidden whitespace-nowrap font-black md:block text-xs">
-          <span className="text-amber-400 font-extrabold">{branding?.site_title || "Nepal Yatra"}</span> Admin Desk
-        </div>
         <nav aria-label="Priority admin navigation" className="hidden items-center gap-1 xl:flex">
           {ADMIN_PRIMARY_NAV.map((section) => {
             const item = findAdminSection(section)
@@ -56,7 +53,7 @@ export default function AdminLayout() {
             )
           })}
         </nav>
-        <AdminGlobalSearch />
+        <div className="mx-2 hidden min-w-0 max-w-xs flex-1 md:block"><AdminGlobalSearch /></div>
         <div className="ml-auto flex items-center gap-2 text-xs">
           <span className="hidden rounded-full bg-emerald-800 px-2 py-1 font-black uppercase tracking-wide text-emerald-200 sm:inline">Admin</span>
           <span className="hidden text-emerald-100 sm:inline">{user?.email}</span>
