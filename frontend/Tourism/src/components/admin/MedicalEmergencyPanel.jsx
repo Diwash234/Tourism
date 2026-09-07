@@ -29,7 +29,7 @@ export default function MedicalEmergencyPanel({ emergencies = [], onResolve }) {
             className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl ${
               e.status === "active"
                 ? "bg-rose-950/80 border-rose-500 shadow-rose-500/20"
-                : "bg-purple-950/60 border-purple-700/40 opacity-80"
+                : "bg-orange-950/60 border-orange-700/40 opacity-80"
             }`}
           >
             <div className="space-y-1.5">
@@ -41,8 +41,8 @@ export default function MedicalEmergencyPanel({ emergencies = [], onResolve }) {
                 </span>
                 <h4 className="font-bold text-white text-base">{e.user_name} ({e.user_email})</h4>
               </div>
-              <p className="text-sm text-purple-100 font-medium">{e.message}</p>
-              <div className="text-xs text-purple-300 flex flex-wrap items-center gap-4 pt-1">
+              <p className="text-sm text-orange-100 font-medium">{e.message}</p>
+              <div className="text-xs text-orange-300 flex flex-wrap items-center gap-4 pt-1">
                 {e.user_phone && <span className="flex items-center gap-1">📞 Phone: <b className="text-white">{e.user_phone}</b></span>}
                 {e.latitude && <span className="flex items-center gap-1">📍 Coordinates: <b className="text-amber-300">{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</b></span>}
                 <span className="flex items-center gap-1">🕒 {new Date(e.triggered_at).toLocaleString()}</span>

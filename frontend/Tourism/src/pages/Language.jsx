@@ -184,11 +184,11 @@ const Language = () => {
       {/* Header banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold uppercase tracking-wider">
+          <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-bold uppercase tracking-wider">
             Multi-Dialect Cultural Phrasebook
           </span>
           <h1 className="text-3xl font-extrabold text-gray-900 mt-2 flex items-center gap-2">
-            <FiGlobe className="text-purple-700" /> Languages of Nepal & Local Dialects
+            <FiGlobe className="text-[#102A2E]" /> Languages of Nepal & Local Dialects
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Learn authentic local phrases in Nepali, Newari, Sherpa, Maithili, Tamang, and Gurung with instant pronunciation audio.
@@ -211,8 +211,8 @@ const Language = () => {
             onClick={() => setSelectedDialect(d.id)}
             className={`p-3.5 rounded-2xl border text-left transition-all ${
               selectedDialect === d.id
-                ? "bg-purple-800 text-white border-purple-800 shadow-lg shadow-purple-900/20 scale-105"
-                : "bg-white border-gray-200 hover:border-purple-300 text-gray-800"
+                ? "bg-[#1D5146] text-white border-purple-800 shadow-lg shadow-[#102A2E]/20 scale-105"
+                : "bg-white border-gray-200 hover:border-[#2E6B5A] text-gray-800"
             }`}
           >
             <p className="font-bold text-xs">{d.name}</p>
@@ -232,7 +232,7 @@ const Language = () => {
               onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeCategory === cat
-                  ? "bg-purple-700 text-white shadow-md"
+                  ? "bg-[#102A2E] text-white shadow-md"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -262,11 +262,11 @@ const Language = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
-              className="card-base p-5 shadow-lg border border-purple-100 rounded-2xl flex flex-col justify-between hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-purple-50/30"
+              className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-2xl flex flex-col justify-between hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-purple-50/30"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-[#1D5146]">
                     {phrase.category}
                   </span>
                   <span className="text-[10px] font-semibold text-gray-400 uppercase">
@@ -283,17 +283,17 @@ const Language = () => {
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-purple-100 mt-4">
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#E5E0D5] mt-4">
                 <button
                   onClick={() => speakText(currentTranslation)}
-                  className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors"
+                  className="p-2 rounded-xl bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E] transition-colors"
                   title="Listen Pronunciation"
                 >
                   <FiVolume2 size={16} />
                 </button>
                 <button
                   onClick={() => copyPhrase(currentTranslation)}
-                  className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors"
+                  className="p-2 rounded-xl bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E] transition-colors"
                   title="Copy Phrase"
                 >
                   <FiCopy size={16} />
@@ -312,7 +312,7 @@ const Language = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 border border-purple-100"
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 border border-[#E5E0D5]"
             >
               <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="text-lg font-bold text-gray-900">Add New Word / Cultural Phrase</h3>
@@ -388,7 +388,7 @@ const Language = () => {
                   </button>
                   <button
                     type="submit"
-                    className="btn-primary px-5 py-2 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-lg shadow-purple-900/20"
+                    className="btn-primary px-5 py-2 text-xs font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow-lg shadow-[#102A2E]/20"
                   >
                     Save to Phrasebook
                   </button>

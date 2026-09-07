@@ -29,7 +29,7 @@ const MyBookings = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(()=>{load()}, [])
 
   const handleCancel = async (id) => {
     try {

@@ -1,0 +1,28 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - media_data:/app/Tourism/media
+      - db_data:/app/Tourism
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=${DEBUG:-0}
+      - DATABASE_URL=${DATABASE_URL:-}
+    restart: unless-stopped
+
+  # Optional: Postgres for production
+  # db:
+  #   image: postgres:16-alpine
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_DB: tourism
+  #     POSTGRES_USER: tourism
+  #     POSTGRES_PASSWORD: tourism
+
+volumes:
+  media_data:
+  db_data:
+  # pgdata:

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a8562"/><stop offset="60%" stop-color="#1f6b4d"/><stop offset="100%" stop-color="#0f3828"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <path d="M0,0 L800,0 L800,180 L600,180 L580,220 L480,230 L460,180 L340,180 L320,220 L220,230 L200,180 L0,180 Z" fill="#0a281d"/>
+  <rect x="360" y="180" width="80" height="220" fill="#e8f3f7" opacity=".85"/>
+  <rect x="365" y="180" width="10" height="220" fill="#ffffff" opacity=".5"/>
+  <rect x="385" y="180" width="8" height="220" fill="#ffffff" opacity=".4"/>
+  <rect x="405" y="180" width="12" height="220" fill="#ffffff" opacity=".45"/>
+  <path d="M300,400 Q400,440 500,400 Q580,370 620,400 L800,400 L800,500 L0,500 L0,400 Q200,370 300,400 Z" fill="#4f9bb0" opacity=".85"/>
+  <ellipse cx="400" cy="400" rx="60" ry="15" fill="#ffffff" opacity=".4"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".85" font-style="italic">Himalayan Waterfall</text>
+</svg>

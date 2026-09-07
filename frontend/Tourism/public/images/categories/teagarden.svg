@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9dcf7a"/><stop offset="55%" stop-color="#3f7a25"/><stop offset="100%" stop-color="#1f3810"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <path d="M0,300 Q200,240 400,280 T800,260 L800,500 L0,500 Z" fill="#2d5b1a"/>
+  <path d="M0,340 Q200,290 400,320 T800,300 L800,500 L0,500 Z" fill="#1f3e10"/>
+  <path d="M0,380 Q200,340 400,360 T800,350 L800,500 L0,500 Z" fill="#14290a"/>
+  <!-- tea bushes pattern -->
+  <g fill="#5fa33b" opacity=".7">
+    <circle cx="80" cy="420" r="10"/><circle cx="180" cy="440" r="10"/><circle cx="280" cy="420" r="10"/>
+    <circle cx="380" cy="440" r="10"/><circle cx="480" cy="420" r="10"/><circle cx="580" cy="440" r="10"/>
+    <circle cx="680" cy="420" r="10"/><circle cx="130" cy="460" r="10"/><circle cx="230" cy="470" r="10"/>
+    <circle cx="330" cy="460" r="10"/><circle cx="430" cy="470" r="10"/><circle cx="530" cy="460" r="10"/>
+    <circle cx="630" cy="470" r="10"/><circle cx="730" cy="460" r="10"/>
+  </g>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".9" font-style="italic">Tea Garden Hills, Ilam</text>
+</svg>

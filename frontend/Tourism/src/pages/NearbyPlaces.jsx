@@ -4,6 +4,7 @@
 // fields matching exactly what this page reads.
 
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import useGeolocation from "../hooks/useGeolocation"
 import nearbyApi from "../api/nearbyApi"
@@ -73,15 +74,20 @@ const NearbyPlaces = () => {
                   <FiMapPin className="text-himalaya-500" />
 
                   <div>
-                    <p className="font-medium text-sm">
-                      {p.name}
-                    </p>
+                    {p.slug ? (
+                      <Link to={`/destinations/${p.slug}`} className="font-medium text-sm text-emerald-800 hover:underline">
+                        {p.name}
+                      </Link>
+                    ) : (
+                      <p className="font-medium text-sm">{p.name}</p>
+                    )}
 
                     <p className="text-xs text-gray-400">
-                      {p.distance
-                        ? `${p.distance} km away`
-                        : p.category}
+                      {[p.distance != null ? `${p.distance} km` : p.distance_km != null ? `${p.distance_km} km` : null, p.district || p.city, p.category].filter(Boolean).join(" · ")}
                     </p>
+                    {p.latitude != null && p.longitude != null && (
+                      <p className="text-[11px] font-mono text-emerald-800">{Number(p.latitude).toFixed(4)}°, {Number(p.longitude).toFixed(4)}°</p>
+                    )}
                   </div>
                 </motion.div>
               ))}

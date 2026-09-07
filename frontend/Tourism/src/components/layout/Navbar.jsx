@@ -1,19 +1,36 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
-import { FiMenu, FiX, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
-import { motion, AnimatePresence } from "framer-motion"
+import { FiMenu, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
+
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
 import { NAV_LINKS } from "../../utils/constants"
 import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
+import LanguageSwitcher from "../common/LanguageSwitcher"
+import { useI18n } from "../../i18n"
+import usePublicConfig from "../../hooks/usePublicConfig"
+
+const NavChildren = ({ items, depth = 0 }) => items.map(child => <div key={child.path}><NavLink to={child.path} className="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1}/>}</div>)
 
 const Navbar = () => {
-  const [open, setOpen] = useState(false)
-  const [, , toggleSidebar] = useSidebarState()
   const [searchQuery, setSearchQuery] = useState("")
-  const { isAuthenticated, user, logout } = useAuth()
+  const [, , toggleSidebar] = useSidebarState()
+  const { isAuthenticated, user, logout, isAdmin, isStaff } = useAuth()
+  const { t } = useI18n()
   const navigate = useNavigate()
+  const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
+  const { navigation } = usePublicConfig()
+
+  useEffect(() => {
+    const role = user?.role || "tourist"
+    const allowed = (navigation || []).filter(item => item.location === "navbar" && String(item.route).startsWith("/") && (!item.allowed_roles?.length || item.allowed_roles.includes(role)))
+    if (!allowed.length) return setManagedLinks(NAV_LINKS)
+    const nodes = new Map(allowed.map(item => [item.id, { path: item.route, label: item.label, children: [] }]))
+    const roots = []
+    allowed.forEach(item => { const node = nodes.get(item.id); const parent = nodes.get(item.parent_id); if (parent) parent.children.push(node); else roots.push(node) })
+    setManagedLinks(roots)
+  }, [navigation, user?.role])
 
   const handleLogout = async () => {
     await logout()
@@ -27,19 +44,18 @@ const Navbar = () => {
     if (destination) {
       navigate(destination)
       setSearchQuery("")
-      setOpen(false)
     }
   }
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-gray-100 w-full min-w-0">
+    <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur border-b border-emerald-100 shadow-sm w-full min-w-0">
       <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16">
 
         {/* Sidebar Toggle */}
         <button
           type="button"
           onClick={toggleSidebar}
-          className="p-2 rounded-lg text-gray-600 hover:text-himalaya-600 hover:bg-gray-100 transition-colors shrink-0 flex items-center justify-center"
+          className="p-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors shrink-0 flex items-center justify-center"
           aria-label="Toggle sidebar menu"
           title="Toggle sidebar menu"
         >
@@ -48,10 +64,10 @@ const Navbar = () => {
 
         <TourismLogo size="md" showTagline={false} />
 
-        {/* Desktop Search */}
+        {/* Search (visible on all screens; grows to fill space) */}
         <form
           onSubmit={handleSmartSearch}
-          className="hidden md:flex flex-1 max-w-md relative"
+          className="flex flex-1 max-w-md relative items-center"
         >
           <FiSearch
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -61,44 +77,58 @@ const Navbar = () => {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search destinations, hotels, emergency, budget..."
-            className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-himalaya-500 focus:border-transparent"
+            placeholder="Search destinations, map, safety... (Ctrl+K)"
+            className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-14 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
+
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
+            className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
+            title="Open Command Palette (Ctrl+K)"
+          >
+            <span>Ctrl</span>
+            <span>K</span>
+          </button>
         </form>
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-6 shrink-0">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              className={({ isActive }) =>
-                `text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive
-                    ? "text-himalaya-500"
-                    : "text-gray-600 hover:text-dark"
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
+          {managedLinks.map((link, idx) => (
+            <div key={link.id || `${link.path}-${idx}`} className="relative group">
+              <NavLink to={link.path} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap ${isActive ? "text-primary-600" : "text-gray-600 hover:text-dark"}`}>{link.label}</NavLink>
+              {!!link.children?.length && <div className="absolute hidden group-hover:block group-focus-within:block top-full left-0 pt-3 min-w-52"><div className="bg-white border border-gray-100 shadow-xl rounded-xl p-2"><NavChildren items={link.children}/></div></div>}
+            </div>
           ))}
         </div>
 
         {/* Desktop User Actions */}
-        <div className="hidden md:flex items-center gap-4 shrink-0">
+        <div className="hidden md:flex items-center gap-3 shrink-0">
+          <LanguageSwitcher compact />
           {isAuthenticated ? (
             <>
+              {isAdmin && (
+                <Link to="/admin" className="text-xs font-black uppercase tracking-wide rounded-lg bg-emerald-900 text-white px-3 py-2">
+                  Admin
+                </Link>
+              )}
+              {isStaff && !isAdmin && (
+                <Link to="/staff" className="text-xs font-black uppercase tracking-wide rounded-lg bg-amber-500 text-amber-950 px-3 py-2">
+                  Staff
+                </Link>
+              )}
               <Link
                 to="/notifications"
-                className="text-gray-600 hover:text-himalaya-500"
+                className="text-gray-600 hover:text-primary-600"
+                aria-label="Notifications"
               >
                 <FiBell size={20} />
               </Link>
 
               <Link
                 to="/favorites"
-                className="text-gray-600 hover:text-himalaya-500"
+                className="text-gray-600 hover:text-primary-600"
+                aria-label="Favorites"
               >
                 <FiHeart size={20} />
               </Link>
@@ -108,8 +138,8 @@ const Navbar = () => {
                 className="flex items-center gap-2 border border-gray-200 rounded-full px-3 py-1.5 hover:shadow-card"
               >
                 <FiUser />
-                <span className="text-sm font-medium">
-                  {user?.name || "Profile"}
+                <span className="text-sm font-medium max-w-[120px] truncate">
+                  {user?.first_name || user?.name || t("nav.profile")}
                 </span>
               </Link>
 
@@ -117,113 +147,22 @@ const Navbar = () => {
                 onClick={handleLogout}
                 className="btn-outline text-sm py-1.5"
               >
-                Logout
+                {t("nav.logout")}
               </button>
             </>
           ) : (
             <>
               <Link to="/login" className="btn-outline text-sm py-1.5">
-                Login
+                {t("nav.login")}
               </Link>
 
               <Link to="/register" className="btn-primary text-sm py-1.5">
-                Sign Up
+                {t("nav.signup")}
               </Link>
             </>
           )}
         </div>
-
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden text-2xl ml-auto"
-          onClick={() => setOpen(!open)}
-        >
-          {open ? <FiX /> : <FiMenu />}
-        </button>
       </nav>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden border-t border-gray-100 overflow-hidden"
-          >
-            <div className="flex flex-col p-4 gap-3">
-
-              {/* Mobile Search */}
-              <form
-                onSubmit={handleSmartSearch}
-                className="relative"
-              >
-                <FiSearch
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={16}
-                />
-
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search anything..."
-                  className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-himalaya-500"
-                />
-              </form>
-
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-
-              {isAuthenticated ? (
-                <>
-                  <Link to="/dashboard" onClick={() => setOpen(false)}>
-                    Dashboard
-                  </Link>
-
-                  <Link to="/profile" onClick={() => setOpen(false)}>
-                    Profile
-                  </Link>
-
-                  <Link to="/notifications" onClick={() => setOpen(false)}>
-                    Notifications
-                  </Link>
-
-                  <button
-                    onClick={handleLogout}
-                    className="btn-outline"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    onClick={() => setOpen(false)}
-                    className="btn-outline text-center"
-                  >
-                    Login
-                  </Link>
-
-                  <Link
-                    to="/register"
-                    onClick={() => setOpen(false)}
-                    className="btn-primary text-center"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   )
 }

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a8f72"/><stop offset="55%" stop-color="#1f6b4d"/><stop offset="100%" stop-color="#0f3828"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <polygon points="0,400 100,300 180,340 280,220 380,290 460,200 560,280 660,230 760,310 800,290 800,500 0,500" fill="#0f3828" opacity=".7"/>
+  <polygon points="0,430 130,350 240,380 330,290 430,340 540,260 650,330 750,290 800,320 800,500 0,500" fill="#0a2a1d" opacity=".9"/>
+  <circle cx="620" cy="110" r="45" fill="#f7e9b8" opacity=".95"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".85" font-style="italic">Himalayan Mountains</text>
+</svg>

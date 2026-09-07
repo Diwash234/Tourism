@@ -7,15 +7,17 @@ import {
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
+import destinationApi from "./api/destinationApi"
 import useGeolocation from "./hooks/useGeolocation"
+import useToast from "./hooks/useToast"
+import HimalPackageCards from "./components/chat/HimalPackageCards"
+import { NOT_RECORDED, recordedCity } from "./utils/placeUtils"
 
 const QUICK_COMMANDS = [
-  { label: "🏔️ Top Places & Photos", prompt: "Show top places to visit in Nepal with pictures" },
-  { label: "📏 KTM to Pokhara Distance", prompt: "How far is Pokhara from Kathmandu and what are the bus and drive times?" },
-  { label: "🗓️ 7-Day Mustang Trip", prompt: "Plan an 7-day itinerary for Mustang with budget NPR 60,000" },
-  { label: "💰 5-Day Annapurna Cost", prompt: "Estimate budget for 5 days in Annapurna and Pokhara" },
-  { label: "🖼️ View Everest Photos", prompt: "Show me beautiful photos of Everest Base Camp" },
-  { label: "🚨 24/7 Emergency Helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
+  { label: "🏔️ Recorded destinations", prompt: "Show recorded destinations in Nepal" },
+  { label: "🚨 Emergency helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
+  { label: "🎒 Live travel packages", prompt: "What travel packages can I add to a trip?" },
+  { label: "💵 5-day trip under $500", prompt: "I want a 5-day trip to Nepal under $500" },
 ]
 
 export default function ChatBot() {
@@ -24,29 +26,8 @@ export default function ChatBot() {
       role: "assistant",
       content:
         "Namaste! 🙏 I am **Himal AI**, your personal Nepal Travel Companion & Intelligent Visual Guide.\n\n" +
-        "I can calculate real highway distances, design day-by-day itineraries, estimate travel costs in NPR/USD, and show verified photos from all 77 districts.",
-      destination_cards: [
-        {
-          name: "Pokhara & Phewa Lake",
-          city: "Kaski, Gandaki",
-          image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80",
-          slug: "phewa-lake-tal-barahi",
-          rating: "4.9",
-          budget: "NPR 4,500/day",
-          altitude: "822m",
-          category: "Lakes & Adventure",
-        },
-        {
-          name: "Everest Base Camp (5,364m)",
-          city: "Solukhumbu, Koshi",
-          image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80",
-          slug: "everest-base-camp-ebc",
-          rating: "5.0",
-          budget: "NPR 7,000/day",
-          altitude: "5,364m",
-          category: "High Mountain Trek",
-        }
-      ],
+        "I answer from recorded destinations, published packages, and the emergency directory. Missing fields stay Not recorded.",
+      destination_cards: [],
       image_cards: [],
       itinerary_cards: null,
       distance_cards: null,
@@ -54,6 +35,7 @@ export default function ChatBot() {
     },
   ])
 
+  const { showToast } = useToast()
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState(null)
@@ -66,6 +48,29 @@ export default function ChatBot() {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight
     }
   }, [messages, sending])
+
+  useEffect(() => {
+    destinationApi.getDestinations({ featured: true, page_size: 4, limit: 4 })
+      .then(({ data }) => {
+        const dests = data.results || data || []
+        const cards = (Array.isArray(dests) ? dests : []).filter((row) => row?.name).slice(0, 2).map((dest) => ({
+          name: dest.name,
+          city: recordedCity(dest) || dest.district || NOT_RECORDED,
+          image: dest.cover_image_url || "",
+          slug: dest.slug,
+          rating: dest.average_rating != null ? dest.average_rating : NOT_RECORDED,
+          budget: dest.entry_fee ? `NPR ${dest.entry_fee}` : NOT_RECORDED,
+          altitude: dest.altitude || NOT_RECORDED,
+          category: dest.category_name || dest.type || "Destination",
+        }))
+        if (!cards.length) return
+        setMessages((prev) => {
+          if (!prev.length || prev[0].role !== "assistant") return prev
+          return [{ ...prev[0], destination_cards: cards }, ...prev.slice(1)]
+        })
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSend = async (textToSend = null) => {
     const query = typeof textToSend === "string" ? textToSend : input.trim()
@@ -102,6 +107,7 @@ export default function ChatBot() {
           itinerary_cards: data.itinerary_cards || null,
           distance_cards: data.distance_cards || null,
           emergency_cards: data.emergency_cards || [],
+          package_cards: data.package_cards || [],
         },
       ])
     } catch (error) {
@@ -132,18 +138,22 @@ export default function ChatBot() {
   }
 
   return (
-    <div className="container-app py-8 animate-fadeIn">
+    <div className="container-app py-8 animate-fadeIn" data-testid="himal-page">
       <div className="max-w-4xl mx-auto space-y-5">
         <div className="text-center">
-          <span className="px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider">
+          <span className="px-3.5 py-1 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase tracking-wider">
             AI Travel Companion
           </span>
           <h1 className="text-3xl font-extrabold text-gray-900 mt-2 flex items-center justify-center gap-2">
             🏔️ Himal AI Assistant & Visual Guide
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Grok & Gemini Intelligence • 77 Districts • Photo Galleries • Highway Distances & Itineraries
+            Recorded destinations, published packages, and official emergency numbers
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Grounded AI Guarantee: Answers strictly from verified dataset records — missing data stays "Not recorded".</span>
+          </div>
         </div>
 
         {/* Quick prompt badges */}
@@ -151,22 +161,24 @@ export default function ChatBot() {
           {QUICK_COMMANDS.map((qp, idx) => (
             <button
               key={idx}
+              type="button"
+              data-testid={qp.prompt.includes("under $500") ? "himal-quick-budget" : `himal-quick-${idx}`}
               onClick={() => handleSend(qp.prompt)}
               disabled={sending}
-              className="text-xs font-bold bg-white text-purple-900 hover:bg-purple-50 border border-purple-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 transition-all shadow-sm hover:border-purple-400"
+              className="text-xs font-bold bg-white text-primary-900 hover:bg-primary-50 border border-primary-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 transition-all shadow-sm hover:border-primary-400"
             >
               {qp.label}
             </button>
           ))}
         </div>
 
-        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-purple-100 shadow-2xl rounded-3xl bg-white">
-          <div className="bg-gradient-to-r from-purple-900 via-purple-800 to-rose-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
+        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-primary-100 shadow-2xl rounded-3xl bg-white">
+          <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
                 Himal AI Travel Sentinel 🙏
               </h2>
-              <p className="text-xs text-purple-200">
+              <p className="text-xs text-primary-100">
                 Connected to Knowledge Engine, Road Corridors & Visual Media Database
               </p>
             </div>
@@ -191,7 +203,7 @@ export default function ChatBot() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-5 py-3.5 whitespace-pre-wrap text-sm leading-relaxed shadow-sm ${
                     message.role === "user"
-                      ? "bg-purple-700 text-white rounded-br-none"
+                      ? "bg-primary-600 text-white rounded-br-none"
                       : "bg-white text-gray-800 border border-gray-100 rounded-bl-none shadow"
                   }`}
                 >
@@ -200,8 +212,8 @@ export default function ChatBot() {
 
                 {/* 1. Distance & Transit Route Card */}
                 {message.distance_cards && (
-                  <div className="max-w-[85%] mt-3 w-full bg-gradient-to-br from-purple-900 via-purple-950 to-slate-900 text-white p-4 rounded-2xl border border-purple-700 shadow-lg space-y-3">
-                    <div className="flex justify-between items-center border-b border-purple-700/60 pb-2">
+                  <div className="max-w-[85%] mt-3 w-full bg-gradient-to-br from-primary-900 via-stone-900 to-stone-950 text-white p-4 rounded-2xl border border-primary-700 shadow-lg space-y-3">
+                    <div className="flex justify-between items-center border-b border-primary-700/60 pb-2">
                       <h4 className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
                         <FiTruck /> {message.distance_cards.origin} ➔ {message.distance_cards.destination}
                       </h4>
@@ -211,25 +223,25 @@ export default function ChatBot() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Road Distance:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Road Distance:</span>
                         <p className="font-black text-white text-xs mt-0.5">{message.distance_cards.road_distance_km} km</p>
                       </div>
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Driving Time:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Driving Time:</span>
                         <p className="font-black text-amber-300 text-xs mt-0.5">{message.distance_cards.estimated_drive_time}</p>
                       </div>
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Public Bus:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Public Bus:</span>
                         <p className="font-black text-emerald-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_bus_npr?.toLocaleString()}</p>
                       </div>
-                      <div className="bg-purple-900/40 p-2 rounded-xl border border-purple-800">
-                        <span className="text-purple-300">Private Jeep:</span>
+                      <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
+                        <span className="text-primary-200">Private Jeep:</span>
                         <p className="font-black text-cyan-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_jeep_npr?.toLocaleString()}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 text-[10px] text-purple-200">
+                    <div className="flex items-center justify-between pt-1 text-[10px] text-primary-100">
                       <span>Corridor: <b>{message.distance_cards.highway_corridor}</b></span>
                       <Link
                         to={`/navigation?origin=${encodeURIComponent(message.distance_cards.origin)}&dest=${encodeURIComponent(message.distance_cards.destination)}`}
@@ -243,19 +255,19 @@ export default function ChatBot() {
 
                 {/* 2. Structured Itinerary Card */}
                 {message.itinerary_cards && message.itinerary_cards.schedule && (
-                  <div className="max-w-[85%] mt-3 w-full bg-white p-4 rounded-2xl border border-purple-100 shadow-lg space-y-3">
+                  <div className="max-w-[85%] mt-3 w-full bg-white p-4 rounded-2xl border border-primary-100 shadow-lg space-y-3">
                     <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                       <div>
-                        <h4 className="font-bold text-xs text-purple-900 flex items-center gap-1.5">
+                        <h4 className="font-bold text-xs text-primary-900 flex items-center gap-1.5">
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
                         <p className="text-[10px] text-gray-500">
-                          Total Budget: <b>NPR {message.itinerary_cards.total_estimated_npr?.toLocaleString()}</b> (~${message.itinerary_cards.total_estimated_usd} USD)
+                          Total Budget: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Not recorded"}</b>
                         </p>
                       </div>
                       <Link
                         to="/itinerary"
-                        className="px-3 py-1 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-[10px] font-bold"
+                        className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-bold"
                       >
                         Customize Itinerary ➔
                       </Link>
@@ -266,7 +278,7 @@ export default function ChatBot() {
                         <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
                           <div className="flex justify-between font-bold text-gray-900">
                             <span>{item.title}</span>
-                            <span className="text-purple-700 font-mono">NPR {item.daily_budget_npr?.toLocaleString()}</span>
+                            <span className="text-primary-700 font-mono">NPR {item.daily_budget_npr?.toLocaleString()}</span>
                           </div>
                           <p className="text-[10px] text-gray-600 mt-0.5">{item.highlights}</p>
                         </div>
@@ -278,12 +290,12 @@ export default function ChatBot() {
                 {/* 3. Verified Photo Gallery Cards */}
                 {message.image_cards && message.image_cards.length > 0 && (
                   <div className="max-w-[85%] mt-3 w-full space-y-1.5">
-                    <p className="text-[11px] font-bold text-purple-900 flex items-center gap-1">
+                    <p className="text-[11px] font-bold text-primary-900 flex items-center gap-1">
                       <FiImage /> Verified Photos & Attribution Credits:
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {message.image_cards.map((img, i) => (
-                        <div key={i} className="rounded-xl overflow-hidden border border-purple-100 bg-white shadow-sm flex flex-col justify-between">
+                        <div key={i} className="rounded-xl overflow-hidden border border-primary-100 bg-white shadow-sm flex flex-col justify-between">
                           <div className="h-24 w-full relative bg-slate-900 overflow-hidden">
                             <img src={img.url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                             <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[9px] font-bold">
@@ -306,7 +318,7 @@ export default function ChatBot() {
                     {message.destination_cards.map((card, i) => (
                       <div
                         key={i}
-                        className="bg-white rounded-2xl overflow-hidden border border-purple-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow"
+                        className="bg-white rounded-2xl overflow-hidden border border-primary-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow"
                       >
                         <div className="h-32 w-full relative overflow-hidden bg-black">
                           <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
@@ -323,7 +335,7 @@ export default function ChatBot() {
                           <div className="flex gap-1.5 pt-1">
                             <Link
                               to={`/destinations/${card.slug}`}
-                              className="flex-1 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-center text-[10px] font-bold transition-colors"
+                              className="flex-1 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-center text-[10px] font-bold transition-colors"
                             >
                               View Details
                             </Link>
@@ -339,6 +351,11 @@ export default function ChatBot() {
                     ))}
                   </div>
                 )}
+
+                <HimalPackageCards
+                  offers={message.package_cards}
+                  onAdd={() => showToast("Added to trip basket", "success")}
+                />
 
                 {/* 5. Emergency Helplines Cards */}
                 {message.emergency_cards && message.emergency_cards.length > 0 && (
@@ -368,8 +385,8 @@ export default function ChatBot() {
             ))}
 
             {sending && (
-              <div className="flex items-center gap-2 text-xs text-purple-700 font-bold italic">
-                <span className="w-2 h-2 rounded-full bg-purple-600 animate-bounce"></span>
+              <div className="flex items-center gap-2 text-xs text-primary-700 font-bold italic">
+                <span className="w-2 h-2 rounded-full bg-primary-600 animate-bounce"></span>
                 Himal AI is researching knowledge engine, routes, and verified images...
               </div>
             )}
@@ -395,7 +412,8 @@ export default function ChatBot() {
             <button
               type="submit"
               disabled={sending || !input.trim()}
-              className="btn-primary px-6 flex items-center justify-center bg-purple-700 hover:bg-purple-800 transition-colors disabled:opacity-50"
+              data-testid="himal-send"
+              className="btn-primary px-6 flex items-center justify-center bg-primary-600 hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               <FiSend size={18} />
             </button>

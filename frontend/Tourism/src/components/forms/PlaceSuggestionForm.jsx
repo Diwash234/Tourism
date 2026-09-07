@@ -67,7 +67,7 @@ export default function PlaceSuggestionForm({ onSuccess }) {
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full py-2.5 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-md"
+        className="btn-primary w-full py-2.5 text-xs font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow-md"
       >
         {loading ? "Submitting..." : "Submit Suggestion to Admin"}
       </button>

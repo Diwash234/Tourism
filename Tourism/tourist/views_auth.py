@@ -272,6 +272,7 @@ class UpdateLocationView(APIView):
     """
     Sets the user's current location. Prefers browser-supplied GPS
     coordinates; falls back to server-side GeoIP lookup when GPS is absent.
+    Automatically reverse-geocodes GPS coordinates into real Nepal cities.
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -285,15 +286,20 @@ class UpdateLocationView(APIView):
 
         location = resolve_location(request, gps_latitude=lat, gps_longitude=lon)
         user = request.user
-        user.latitude = location["latitude"]
-        user.longitude = location["longitude"]
+        if location.get("latitude") is not None:
+            user.latitude = location["latitude"]
+        if location.get("longitude") is not None:
+            user.longitude = location["longitude"]
         if location.get("country"):
             user.country = location["country"]
         if location.get("city"):
             user.city = location["city"]
-        user.location_source = location["source"]
+        user.location_source = location.get("source") or "gps"
         user.save(update_fields=["latitude", "longitude", "country", "city", "location_source"])
         return Response(UserProfileSerializer(user).data)
+
+    put = post
+    patch = post
 
 
 class DetectLocationView(APIView):
@@ -305,3 +311,20 @@ class DetectLocationView(APIView):
     def get(self, request):
         location = resolve_location(request)
         return Response(location)
+
+class MyCapabilitiesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = None
+
+    def get(self, request):
+        user = request.user
+        admin = user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}
+        if admin:
+            from .models import StaffCapabilityProfile
+            capabilities = {module: ["*"] for module in StaffCapabilityProfile.MODULES}
+            districts = []
+        else:
+            profile = getattr(user, "capability_profile", None)
+            capabilities = profile.capabilities if profile and profile.is_active else {}
+            districts = profile.managed_districts if profile else []
+        return Response({"role": user.role, "is_admin": admin, "capabilities": capabilities, "managed_districts": districts})

@@ -39,8 +39,8 @@ class HotelReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HotelReview
-        fields = ["id", "hotel", "user", "user_name", "booking", "rating", "comment", "created_at"]
-        read_only_fields = ["user", "created_at"]
+        fields = ["id", "hotel", "user", "user_name", "booking", "rating", "comment", "moderation_status", "created_at"]
+        read_only_fields = ["user", "moderation_status", "created_at"]
 
     def validate_hotel(self, hotel):
         request = self.context.get("request")

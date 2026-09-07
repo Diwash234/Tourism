@@ -8,7 +8,6 @@ const BarChartCard = ({ title, labels, data, label = "Value" }) => {
       {
         label,
         data,
-        // FIXED: was #00A699 (the old teal brand color) — a raw hex
         // string in Chart.js config, invisible to the Tailwind color
         // retheme done earlier this session since that only affects
         // generated CSS classes, not JS literals.

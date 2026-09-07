@@ -50,8 +50,11 @@ const OAuthCallback = () => {
             ? await authApi.googleAuthCallback(code, getRedirectUri("google"))
             : await authApi.githubAuthCallback(code)
 
-        await loginWithTokens(data)
-        navigate("/dashboard", { replace: true })
+        const userData = await loginWithTokens(data)
+        const role = String(userData?.role || "").toLowerCase()
+        const isAdmin = userData?.is_superuser === true || ["admin", "super_admin", "tourism_admin"].includes(role)
+        const isStaff = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"].includes(role)
+        navigate(isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard", { replace: true })
       } catch (err) {
         setStatus("error")
         setErrorMessage(

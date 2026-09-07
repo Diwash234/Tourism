@@ -46,9 +46,9 @@ export default function RiskAssessmentForm({ onSuccess }) {
         />
       </div>
 
-      <div className="p-3 rounded-xl bg-purple-50 space-y-2">
+      <div className="p-3 rounded-xl bg-[#F7F8F5] space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-bold text-purple-900">Did anyone become sick?</span>
+          <span className="font-bold text-[#102A2E]">Did anyone become sick?</span>
           <input
             type="checkbox"
             checked={form.became_sick}
@@ -108,7 +108,7 @@ export default function RiskAssessmentForm({ onSuccess }) {
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full py-2.5 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-md"
+        className="btn-primary w-full py-2.5 text-xs font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow-md"
       >
         {loading ? "Submitting..." : "Submit Safety Report to ML"}
       </button>

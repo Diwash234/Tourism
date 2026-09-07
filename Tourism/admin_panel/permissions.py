@@ -15,7 +15,14 @@ class IsSuperAdminOrAssignedAdmin(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.is_staff)
+        user = request.user
+        if not user or not user.is_authenticated or not user.is_staff: return False
+        if user.is_superuser or getattr(user,"role",None) in {"admin","super_admin","tourism_admin"}: return True
+        module = "hotels" if "hotel" in getattr(view,"basename","") else "dashboard"
+        profile = getattr(user, "capability_profile", None)
+        # Preserve assigned-object access for legacy staff created before
+        # capability profiles existed; once a profile exists it is authoritative.
+        return profile.allows(module, "view") if profile else True
 
     def has_object_permission(self, request, view, obj):
         if request.user.is_superuser:

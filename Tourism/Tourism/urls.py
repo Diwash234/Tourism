@@ -13,6 +13,8 @@ urlpatterns = [
     path("api/v1/admin-panel/", include("admin_panel.urls")),
     path("api/v1/", include("booking.urls")),
     path("api/v1/chatbot/", include("chatbot.urls")),
+    path("api/v1/audit/", include("audit.urls")),                # audit logs / errors / health samples
+    path("api/v1/system/health/", include("system_health.urls")),  # live health checks
     # path("api/v1/safety/", include("safety.urls")),
     # path("api/v1/", include("translation.urls")),
     # path("api/v1/", include("media_app.urls")),

@@ -52,6 +52,12 @@ api.interceptors.response.use(
     isRefreshing = true;
     try {
       const refresh = localStorage.getItem("refresh");
+      if (!refresh) {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        localStorage.removeItem("user");
+        return Promise.reject(error);
+      }
       const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
       localStorage.setItem("access", data.access);
       resolvePending(data.access);
@@ -60,7 +66,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
-      window.location.href = "/login";
+      localStorage.removeItem("user");
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
@@ -192,6 +198,9 @@ export const photoApi = {
   get: (slug) => api.get(`/destinations/${slug}/photos/`),
   upload: (slug, formData) =>
     api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  getVideos: (slug) => api.get(`/destinations/${slug}/videos/`),
+  uploadVideo: (slug, formData) =>
+    api.post(`/destinations/${slug}/videos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
 };
 
 export const hotelApi = {

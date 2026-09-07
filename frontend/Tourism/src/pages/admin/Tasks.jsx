@@ -23,7 +23,7 @@ const Tasks = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(()=>{load()}, [])
 
   const handleCreate = async (e) => {
     e.preventDefault()

@@ -21,6 +21,78 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Image URL resolution
+# ---------------------------------------------------------------------------
+# A large amount of seed data stored external image URLs (Unsplash,
+# Wikimedia, Pexels, ...) directly inside ImageField columns. Django's
+# ImageField treats its value as a *relative media path*, so calling
+# .url on "https://images.unsplash.com/..." produced a broken
+# "/media/https%3A/..." link -- this is why "images exist in the
+# database but never show up". The helpers below detect external URLs
+# and return them verbatim, only building a MEDIA url for genuinely
+# local files.
+
+def _is_external_url(value):
+    if not value:
+        return False
+    s = str(value).strip()
+    return s.startswith("http://") or s.startswith("https://") or s.startswith("//")
+
+
+def resolve_image_url(image_field, request=None):
+    """
+    Return a usable URL for an ImageField/FileField value that may actually
+    hold an external URL. External URLs are returned as-is; local files are
+    resolved via .url (and made absolute when a request is available).
+    Returns None when there is no usable image.
+    """
+    if not image_field:
+        return None
+
+    # ImageFieldFile exposes the raw stored string via .name
+    raw = getattr(image_field, "name", None) or str(image_field)
+    if not raw:
+        return None
+
+    if _is_external_url(raw):
+        return raw.strip()
+
+    # Genuinely local media file
+    try:
+        url = image_field.url
+    except (ValueError, AttributeError):
+        return None
+    if request is not None:
+        try:
+            return request.build_absolute_uri(url)
+        except Exception:  # noqa: BLE001
+            return url
+    return url
+
+
+def resolve_str_image_url(value, request=None):
+    """Like resolve_image_url but accepts a plain string value."""
+    if not value:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if _is_external_url(s):
+        return s
+    # Local path -- prefix MEDIA_URL if it isn't already absolute
+    if s.startswith("/"):
+        url = s
+    else:
+        url = f"{settings.MEDIA_URL}{s}"
+    if request is not None:
+        try:
+            return request.build_absolute_uri(url)
+        except Exception:  # noqa: BLE001
+            return url
+    return url
+
+
+# ---------------------------------------------------------------------------
 # Distance
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
@@ -125,11 +197,17 @@ def resolve_location(request, gps_latitude=None, gps_longitude=None):
     Returns a dict with latitude, longitude, country, city, source.
     """
     if gps_latitude is not None and gps_longitude is not None:
+        from .location.reverse_geocoding import reverse_geocode
+        try:
+            geo = reverse_geocode(float(gps_latitude), float(gps_longitude))
+            city = geo.get("district") or geo.get("municipality") or geo.get("city") or "Kathmandu"
+        except Exception:
+            city = "Kathmandu"
         return {
-            "latitude": gps_latitude,
-            "longitude": gps_longitude,
-            "country": "",
-            "city": "",
+            "latitude": float(gps_latitude),
+            "longitude": float(gps_longitude),
+            "country": "Nepal",
+            "city": city,
             "source": "gps",
         }
 
@@ -139,7 +217,7 @@ def resolve_location(request, gps_latitude=None, gps_longitude=None):
         geo["source"] = "geoip"
         return geo
 
-    return {"latitude": None, "longitude": None, "country": "", "city": "", "source": ""}
+    return {"latitude": None, "longitude": None, "country": "Nepal", "city": "Kathmandu", "source": "default"}
 
 
 # ---------------------------------------------------------------------------
@@ -347,27 +425,15 @@ def send_push_notification(device_tokens, title, message):
 
 
 def notify_user(user, title, message, channel="in_app", related_alert=None):
-    """Creates a Notification record and dispatches it over the requested channel."""
-    from .models import Notification  # local import avoids circular import
-
-    notification = Notification.objects.create(
-        user=user, channel=channel, title=title, message=message, related_alert=related_alert
-    )
-
-    sent = False
-    if channel == "email":
-        sent = send_email_notification(user.email, title, message)
-    elif channel == "sms" and user.phone_number:
-        sent = send_sms_notification(user.phone_number, message)
-    elif channel == "push":
-        tokens = list(user.device_tokens.values_list("token", flat=True))
-        sent = send_push_notification(tokens, title, message)
-    else:
-        sent = True  # in-app notifications are considered "sent" once stored
-
-    notification.is_sent = sent
-    notification.save(update_fields=["is_sent"])
+    """Queue a preference-aware notification and honestly record provider delivery."""
+    from .notification_delivery import queue_notification, deliver_notification
+    notification = queue_notification(user, title, message, channel=channel,
+        category="safety" if related_alert else "general", related_alert=related_alert)
+    if channel != "in_app" and notification.delivery_status == "queued":
+        deliver_notification(notification.id)
+        notification.refresh_from_db()
     return notification
+
 
 
 # ---------------------------------------------------------------------------
@@ -450,7 +516,8 @@ def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
 
 
 def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid",
-                             latitude=None, longitude=None, user_latitude=None, user_longitude=None):
+                             latitude=None, longitude=None, user_latitude=None, user_longitude=None,
+                             district=None, province=None, destination_name=None):
     """
     Calls {ML_SERVICE_URL}/budget/predict-budget for an estimated trip cost.
     Returns None if the ML service is unreachable.
@@ -458,6 +525,9 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
     FIX: signature extended to accept/forward destination coordinates and
     the traveler's own coordinates — views_ml.py was passing them and the
     ML service expects them (see ml_service/api/budget.py BudgetRequest).
+    Also forwards district/province so the ML service can match the real
+    cleaned CSV cost dataset (budget_features.csv) at the most specific
+    geographic level available.
     """
     try:
         response = requests.post(
@@ -467,6 +537,8 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
                 "latitude": latitude, "longitude": longitude,
                 "user_latitude": user_latitude, "user_longitude": user_longitude,
                 "days": days, "travelers": travelers, "budget_level": budget_level,
+                "district": district, "province": province,
+                "destination": destination_name,
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -493,10 +565,44 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        if result.get("route") and "routing_engine" not in result:
+            result["routing_engine"] = "bundled_nepal_graphml"
+            result["road_distance_km"] = None
+            result["duration_min"] = result.get("duration_min") or max(1, round(float(result.get("distance_km", 0)) / 35 * 60))
+            result["steps"] = result.get("steps") or result.get("directions", [])
+            result["note"] = result.get("note") or "Approximate GraphML route; not a GraphHopper/OSRM street-level road route."
+        return result
     except requests.RequestException as exc:
-        logger.warning("ML routing service unreachable: %s", exc)
-        return None
+        logger.warning("ML routing service unreachable; trying bundled GraphML: %s", exc)
+        try:
+            from .routing_service import route_metrics
+            metrics = route_metrics(start_latitude, start_longitude, end_latitude, end_longitude)
+            if metrics.get("status") not in {"graph_routed", "routed"}:
+                return None
+            directions = metrics.get("directions", [])
+            steps = []
+            for direction in directions:
+                steps.append({
+                    "turn": str(direction.get("turn", "straight")).lower(),
+                    "instruction": direction.get("instruction", "Continue along the graph route"),
+                    "distance_km": direction.get("distance_km", 0),
+                    "distance_m": round(float(direction.get("distance_km", 0)) * 1000),
+                })
+            return {
+                "distance_km": metrics.get("route_distance_km"),
+                "duration_min": metrics.get("duration_min"),
+                "route_type": route_type,
+                "route": metrics.get("route", []),
+                "steps": steps,
+                "routing_engine": metrics.get("routing_engine"),
+                "straight_line_km": metrics.get("straight_line_km"),
+                "road_distance_km": metrics.get("road_distance_km"),
+                "note": metrics.get("note"),
+            }
+        except Exception as graph_exc:  # noqa: BLE001
+            logger.warning("Bundled GraphML routing failed: %s", graph_exc)
+            return None
 
 
 def get_ml_supported_languages():

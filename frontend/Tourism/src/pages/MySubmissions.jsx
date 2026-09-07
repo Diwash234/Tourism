@@ -15,7 +15,7 @@ export default function MySubmissions() {
     <div className="container-app py-8 space-y-6 animate-fadeIn">
       <div>
         <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2">
-          <FiMapPin className="text-purple-700" /> My Place Submissions & Status
+          <FiMapPin className="text-[#102A2E]" /> My Place Submissions & Status
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           Review places you suggested to the community and track their Admin Verification status.
@@ -26,7 +26,7 @@ export default function MySubmissions() {
         {submissions.map((p) => {
           const isApproved = p.status === "approved"
           return (
-            <div key={p.id} className="card-base p-5 shadow-lg border border-purple-100 rounded-2xl space-y-3">
+            <div key={p.id} className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-2xl space-y-3">
               <div className="flex justify-between items-start">
                 <h4 className="font-bold text-gray-900 text-base">{p.name}</h4>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${

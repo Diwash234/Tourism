@@ -39,7 +39,7 @@ const ExploreNepalMap = () => {
     if (!selected) return
     setLoading(true)
     destinationApi
-      .getAll({ city: selected.city, limit: 12 })
+      .getAll({ province: selected.name, limit: 12 })
       .then(({ data }) => setDestinations(data.results || data || []))
       .catch(() => setDestinations([]))
       .finally(() => setLoading(false))

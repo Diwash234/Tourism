@@ -14,7 +14,8 @@ from typing import Dict, List, Optional, Tuple, Any
 from .ai_service import ask_ai
 from tourist.models import (
     Destination, DestinationImage, DestinationTransitRoute,
-    Hospital, PoliceStation, BudgetEstimation, RiskAnalysis, Category
+    Hospital, PoliceStation, BudgetEstimation, RiskAnalysis, Category,
+    MarketplaceListing,
 )
 from tourist.discovery_pipeline import haversine_distance_km
 
@@ -72,6 +73,103 @@ def find_matching_destinations(query: str, limit: int = 4) -> List[Destination]:
         matches = list(Destination.objects.filter(is_active=True).order_by("-average_rating")[:limit])
 
     return matches[:limit]
+
+
+def parse_trip_constraints(message: str):
+    """Extract requested days and a budget in NPR from a traveller question."""
+    text = (message or "").lower()
+    days = None
+    days_match = re.search(r"(\d+)\s*[- ]?\s*days?", text)
+    if days_match:
+        days = max(1, min(60, int(days_match.group(1))))
+    budget_npr = None
+    usd_match = re.search(r"\$\s*([\d,]+)", text)
+    npr_match = re.search(r"(?:npr|rs\.?)\s*([\d,]+)", text)
+    if usd_match:
+        budget_npr = float(usd_match.group(1).replace(",", "")) * USD_TO_NPR
+    elif npr_match:
+        budget_npr = float(npr_match.group(1).replace(",", ""))
+    return days, budget_npr
+
+
+def is_budget_trip_intent(message: str, days=None, budget_npr=None) -> bool:
+    text = (message or "").lower()
+    trip_words = any(word in text for word in ("trip", "package", "tour", "holiday", "vacation"))
+    under = any(word in text for word in ("under", "below", "less than", "budget", "cheap"))
+    return bool((days and budget_npr) or (trip_words and budget_npr) or (days and under and trip_words))
+
+
+KNOWN_PLACE_WORDS = set(CITY_COORDS.keys()) | {
+    "annapurna", "mustang", "chitwan", "lumbini", "everest", "langtang",
+    "bandipur", "nagarkot", "bhaktapur", "patan", "ilam", "rara",
+    "janakpur", "kathmandu", "pokhara", "lukla", "jomsom", "phewa",
+}
+
+
+def package_card(listing: MarketplaceListing, is_alternative: bool = False) -> dict:
+    return {
+        "id": listing.id,
+        "slug": listing.slug,
+        "title": listing.title,
+        "kind": listing.kind,
+        "price_npr": str(listing.price_npr),
+        "duration_days": listing.duration_days,
+        "city": listing.city or (listing.destination.city if listing.destination else "Nepal"),
+        "partner_name": listing.partner.name,
+        "summary": listing.summary,
+        "image_url": listing.image_url,
+        "is_alternative": bool(is_alternative),
+    }
+
+
+def _listing_haystack(listing: MarketplaceListing) -> str:
+    hay = f"{listing.title} {listing.summary} {listing.city} {listing.district} {listing.partner.name}".lower()
+    if listing.destination_id:
+        dest = listing.destination
+        hay += f" {dest.name} {dest.city or ''} {dest.district or ''}"
+    return hay
+
+
+def match_published_packages(query: str, days=None, budget_npr=None, limit: int = 6):
+    """Return published, in-budget packages. Exact duration is primary; ±1 day is alternative."""
+    listings = list(
+        MarketplaceListing.objects.filter(
+            status="published", partner__status="approved",
+        ).select_related("partner", "destination")
+    )
+    words = [w for w in re.split(r"\W+", (query or "").lower()) if len(w) > 2]
+    skip = {
+        "want", "with", "from", "that", "this", "nepal", "trip", "days", "day",
+        "under", "below", "less", "than", "package", "packages", "travel",
+        "holiday", "vacation", "tour", "tours", "add", "the",
+    }
+    dest_words = [w for w in words if w not in skip and w in KNOWN_PLACE_WORDS]
+    primaries, alternatives = [], []
+    for listing in listings:
+        price = float(listing.price_npr)
+        if budget_npr is not None and price > float(budget_npr):
+            continue
+        hay = _listing_haystack(listing)
+        if dest_words and not any(word in hay for word in dest_words):
+            continue
+        duration = listing.duration_days or 1
+        if days:
+            if duration == days:
+                primaries.append(listing)
+            elif abs(duration - days) == 1:
+                alternatives.append(listing)
+        else:
+            primaries.append(listing)
+
+    def score(listing):
+        points = 2 if listing.is_featured else 0
+        hay = _listing_haystack(listing)
+        points += sum(1 for word in dest_words if word in hay)
+        return points
+
+    primaries.sort(key=score, reverse=True)
+    alternatives.sort(key=score, reverse=True)
+    return primaries[:limit], alternatives[:limit]
 
 
 def get_destination_image_url(dest: Destination) -> str:
@@ -203,6 +301,7 @@ def get_chatbot_reply(
             "itinerary_cards": None,
             "distance_cards": None,
             "emergency_cards": [],
+            "package_cards": [],
         }
 
     last_user_msg = history[-1]["content"] if history else ""
@@ -215,12 +314,29 @@ def get_chatbot_reply(
     is_itinerary_intent = any(w in msg_lower for w in ["itinerary", "plan", "days trip", "day trip", "schedule", "build my trip", "tour plan", "day 1", "day-by-day"])
     is_emergency_intent = any(w in msg_lower for w in ["emergency", "hospital", "police", "ambulance", "doctor", "rescue", "sos", "danger", "helpline", "1144"])
     is_budget_intent = any(w in msg_lower for w in ["budget", "cost", "price", "how much", "npr", "dollar", "expenses", "cheap"])
+    requested_days, requested_budget = parse_trip_constraints(msg_lower)
+    is_package_intent = any(w in msg_lower for w in [
+        "package", "packages", "marketplace", "book a tour", "travel package",
+        "add to trip", "trip basket", "collaborate",
+    ])
+    is_budget_trip = is_budget_trip_intent(msg_lower, requested_days, requested_budget)
+    if is_budget_trip:
+        is_package_intent = True
+        is_itinerary_intent = False
 
     destination_cards = []
     image_cards = []
     itinerary_card = None
     distance_card = None
     emergency_cards = []
+    package_cards = []
+
+    if is_package_intent:
+        matched, alternatives = match_published_packages(
+            msg_clean, days=requested_days, budget_npr=requested_budget, limit=6,
+        )
+        package_cards = [package_card(listing, is_alternative=False) for listing in matched]
+        package_cards.extend(package_card(listing, is_alternative=True) for listing in alternatives)
 
     # Match relevant destinations in DB
     matched_destinations = find_matching_destinations(msg_clean, limit=4)
@@ -278,27 +394,33 @@ def get_chatbot_reply(
 
     # Pack Emergency Cards
     if is_emergency_intent:
-        for h in Hospital.objects.all()[:3]:
+        for h in Hospital.objects.exclude(is_archived=True)[:3]:
+            phone = str(h.phone or "").strip()
             emergency_cards.append({
                 "name": h.name,
                 "type": "Emergency Hospital",
-                "phone": h.phone or "+977-1-4412404",
-                "district": h.district or "Kathmandu",
+                "phone": phone or "102",
+                "phone_is_national_fallback": not phone,
+                "district": h.district or "",
             })
-        for p in PoliceStation.objects.all()[:2]:
+        for p in PoliceStation.objects.exclude(is_archived=True)[:2]:
+            phone = str(p.phone or "").strip()
             emergency_cards.append({
                 "name": p.name,
                 "type": "Tourist & Civil Police",
-                "phone": p.phone or "1144",
-                "district": "Nationwide / Tourist Police",
+                "phone": phone or "100",
+                "phone_is_national_fallback": not phone,
+                "district": p.destination.district if p.destination_id else "",
             })
 
     # 1. Attempt calling configured AI providers (OpenRouter, Gemini, Grok, Groq, Hugging Face, OpenAI)
+    # Package questions stay on the live marketplace so travellers see published offers.
     ai_text_reply = None
-    try:
-        ai_text_reply = ask_ai(msg_clean, context=f"Coordinates: lat={latitude}, lng={longitude}", history=history)
-    except Exception as e:
-        logger.warning(f"AI Provider execution failed: {e}")
+    if not is_package_intent:
+        try:
+            ai_text_reply = ask_ai(msg_clean, context=f"Coordinates: lat={latitude}, lng={longitude}", history=history)
+        except Exception as e:
+            logger.warning(f"AI Provider execution failed: {e}")
 
     # 2. Autonomous Local Engine Fallback if AI providers unavailable or hit free rate limit
     if not ai_text_reply:
@@ -334,16 +456,54 @@ def get_chatbot_reply(
             ai_text_reply += "💡 *Permits & Logistics:* Ensure you have valid TIMS and conservation park permits before departure!"
         elif is_emergency_intent:
             ai_text_reply = (
-                "🚨 **NEPAL 24/7 EMERGENCY SENTINEL & HOTLINES**\n\n"
-                "• **Tourist Police Nepal:** `1144` or `+977-1-4247041` (Nationwide Tourist Protection)\n"
-                "• **Nepal Police Hotline:** `100`\n"
-                "• **Ambulance Emergency:** `102`\n"
-                "• **Fire Brigade Service:** `101`\n"
-                "• **Traffic Police:** `103`\n"
-                "• **Himalayan Rescue Association (HRA):** `+977-1-4440292` (Helicopter evacuation & AMS)\n"
-                "• **TUTH Teaching Hospital:** `+977-1-4412404` (Maharajgunj, Kathmandu)\n"
-                "• **CIWEC Travel Hospital:** `+977-1-4424111` (Lazimpat, Kathmandu & Pokhara)"
+                "🚨 **Nepal national emergency hotlines**\n\n"
+                "• **Tourist Police Nepal:** `1144`\n"
+                "• **Nepal Police:** `100`\n"
+                "• **Ambulance:** `102`\n"
+                "• **Fire Brigade:** `101`\n"
+                "• **Traffic Police:** `103`\n\n"
+                "Facility cards below use stored directory phones only. "
+                "If a local number is missing, the national 102 / 100 line is shown instead. "
+                "This assistant does not invent hospital or pharmacy numbers."
             )
+        elif is_package_intent:
+            primaries = [offer for offer in package_cards if not offer.get("is_alternative")]
+            alt_offers = [offer for offer in package_cards if offer.get("is_alternative")]
+            if primaries:
+                constraint = []
+                if requested_days:
+                    constraint.append(f"{requested_days}-day")
+                if requested_budget:
+                    constraint.append(f"under NPR {int(requested_budget):,}")
+                heading = " and ".join(constraint) or "live"
+                lines = [
+                    f"🎒 **Published packages matching your {heading} request**",
+                    "These are live offers from approved partners. Use View or Add to trip. No payment is processed here.",
+                    "",
+                ]
+                for offer in primaries:
+                    lines.append(
+                        f"• **{offer['title']}** ({offer['duration_days']} day(s)) — NPR {offer['price_npr']} · {offer['partner_name']}"
+                    )
+                if alt_offers:
+                    lines.append("")
+                    lines.append("Nearby-duration published alternatives (not an exact match):")
+                    for offer in alt_offers:
+                        lines.append(
+                            f"• **{offer['title']}** ({offer['duration_days']} day(s), alternative) — NPR {offer['price_npr']}"
+                        )
+                lines.append("")
+                lines.append("Open /packages to add offers to a trip basket, or /collaborate if you run a hotel or tour.")
+                ai_text_reply = "\n".join(lines)
+            elif requested_budget or requested_days:
+                ai_text_reply = (
+                    "I couldn't find a published package matching those requirements right now."
+                )
+            else:
+                ai_text_reply = (
+                    "No published packages are live yet. An administrator can add them from "
+                    "Admin → Packages & partners, or a hotel can apply at /collaborate."
+                )
         elif is_budget_intent:
             ai_text_reply = (
                 "💰 **Nepal Travel Budget Tiers (Per Person / Day)**:\n\n"
@@ -387,4 +547,5 @@ def get_chatbot_reply(
         "itinerary_cards": itinerary_card,
         "distance_cards": distance_card,
         "emergency_cards": emergency_cards,
+        "package_cards": package_cards,
     }

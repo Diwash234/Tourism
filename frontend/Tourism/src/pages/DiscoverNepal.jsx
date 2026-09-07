@@ -1,253 +1,57 @@
-import { useState } from "react"
-import { motion } from "framer-motion"
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import { motion, AnimatePresence } from "framer-motion"
 import {
-  FiClock,
-  FiFeather,
-  FiMusic,
-  FiHome,
-  FiGlobe,
-  FiUsers,
-  FiCoffee,
-  FiTool,
-  FiTriangle,
-  FiMap,
   FiAward,
-  FiSun,
+  FiCoffee,
+  FiFeather,
+  FiHome,
   FiImage,
+  FiMap,
+  FiSun,
+  FiTriangle,
+  FiCheckCircle,
+  FiInfo,
+  FiBookOpen,
+  FiX,
+  FiCalendar,
 } from "react-icons/fi"
 
-import NationalSymbols from "../components/dashboard/NationalSymbols"
+import NationalSymbols, { ALL_26_NATIONAL_SYMBOLS, EIGHT_THOUSANDERS, HIMALAYAN_RANGES, DEFAULT_FOODS, DEFAULT_FESTIVALS } from "../components/dashboard/NationalSymbols"
+import destinationApi from "../api/destinationApi"
+import { NOT_RECORDED, UPDATE_SOON, recordedCity, recordedText } from "../utils/placeUtils"
 
-
-const ERAS = [
+const DEFAULT_CULTURE = [
   {
-    name: "Kirat Period",
-    range: "c. 800 BCE – 300 CE",
-    desc: "Nepal's earliest recorded rulers, centered in the Kathmandu Valley; the era credited with the valley's earliest urban settlements.",
+    title: "Newari Pagoda Architecture & Durbar Squares",
+    nepali: "नेवारी मल्लकालीन दरबार र वास्तुकला",
+    region: "Kathmandu, Patan & Bhaktapur",
+    desc: "Multi-tiered pagoda temples, 55-Window Palace, intricately carved peacock wooden windows, and golden torana arches built by Malla kings.",
+    image: "/images/destinations/stupa-DJFZCRbV.jfif",
   },
   {
-    name: "Licchavi Dynasty",
-    range: "c. 400 – 750 CE",
-    desc: "A golden age of stone inscriptions, temple-building, and trade links with Tibet and India that shaped early Newari culture.",
+    title: "Sacred Pilgrimage & Spiritual Traditions",
+    nepali: "धार्मिक तथा सांस्कृतिक तीर्थस्थल",
+    region: "Pashupatinath, Lumbini, Muktinath & Janakpur",
+    desc: "Holy Bagmati riverbank rituals, Maya Devi Temple in Buddha's birthplace, Janaki Mandir Mithila art, and sacred flame springs of Muktinath.",
+    image: "/images/destinations/flag_png-DqQuUnzj.jfif",
   },
   {
-    name: "Malla Dynasty",
-    range: "c. 1201 – 1769",
-    desc: "The era of the three Durbar Squares (Kathmandu, Patan, Bhaktapur) — pagoda architecture, art, and literature flourished.",
+    title: "Masked Lakhey & Sacred Charya Dances",
+    nepali: "लाखे, मारुनी र चर्या नृत्य",
+    region: "Indra Jatra, Patan & Mountain Villages",
+    desc: "Fierce demon-dispelling Lakhey mask dances during Indra Jatra, Kirat Maruni folk dances, and Vajrayana Buddhist Charya dance dramas performed by priests.",
+    image: "/images/destinations/images-DG4ceRrC.jfif",
   },
   {
-    name: "Shah Dynasty",
-    range: "1768 – 2008",
-    desc: "Prithvi Narayan Shah's unification campaign created modern Nepal's borders; the monarchy that followed lasted over two centuries.",
-  },
-  {
-    name: "Rana Era",
-    range: "1846 – 1951",
-    desc: "Hereditary prime ministers held real power while Shah kings became largely ceremonial; ended by a popular uprising.",
-  },
-  {
-    name: "Federal Nepal",
-    range: "2008 – present",
-    desc: "Nepal became a federal democratic republic, abolishing the monarchy and adopting a new constitution in 2015.",
+    title: "Buddhist Thangka Painting & Bronze Statuary",
+    nepali: "पौभाः, थङ्का र कास्य मूर्ति कला",
+    region: "Patan Craft Workshops & Bouddha",
+    desc: "Centuries-old lost-wax bronze casting, Paubha scroll paintings, and hand-woven Tibetan carpets crafted by master artisans.",
+    image: "/images/destinations/emblem-Q_w8OTwe.jfif",
   },
 ]
 
-
-const CULTURE_CARDS = [
-  {
-    title: "Kumari",
-    image: "/images/discover/culture/kumari.jfif",
-    desc: "A living goddess tradition unique to the Kathmandu Valley — a young girl worshipped as an incarnation of divine feminine energy.",
-  },
-  {
-    title: "Prayer Wheels",
-    image: "/images/discover/culture/prayer-wheels.jfif",
-    desc: "Cylindrical wheels inscribed with mantras, spun by Buddhist practitioners as a form of prayer.",
-  },
-  {
-    title: "Temples",
-    image: "/images/discover/culture/temples.jfif",
-    desc: "Pagoda-style Hindu temples and Buddhist stupas reflect centuries of religious harmony.",
-  },
-  {
-    title: "Traditional Dances",
-    image: "/images/discover/culture/traditional-dances.jfif",
-    desc: "Lakhe, Sakela, and other dances preserve Nepal's ethnic and spiritual traditions.",
-  },
-  {
-    title: "Traditional Music",
-    image: "/images/discover/culture/traditional-music.jfif",
-    desc: "Madal and Sarangi remain important instruments in Nepali folk music.",
-  },
-  {
-    title: "Architecture",
-    image: "/images/discover/culture/architectures.jfif",
-    desc: "Pagoda roofs, carved windows, and Newari brickwork define Nepal's heritage architecture.",
-  },
-  {
-    title: "Local Food",
-    image: "/images/discover/culture/nepali-food.jfif",
-    desc: "Dal Bhat, momo, sel roti, and Newari cuisine represent Nepal's diverse food culture.",
-  },
-  {
-    title: "Heritage Sites",
-    image: "/images/discover/culture/bhaktapur.jfif",
-    desc: "Nepal's UNESCO heritage sites preserve history, religion, and architecture.",
-  },
-]
-
-
-const FESTIVALS = [
-  {
-    name: "Dashain",
-    image: "/images/discover/festivals/dashain.jpg",
-    when: "Sept–Oct",
-    desc: "Nepal's biggest Hindu festival celebrated with family gatherings and tika blessings.",
-  },
-  {
-    name: "Tihar",
-    image: "/images/discover/festivals/tihar.jpg",
-    when: "Oct–Nov",
-    desc: "Festival of lights celebrating animals, family bonds, and prosperity.",
-  },
-  {
-    name: "Holi",
-    image: "/images/discover/festivals/holi.jfif",
-    when: "March",
-    desc: "Festival of colors celebrated across Nepal.",
-  },
-  {
-    name: "Indra Jatra",
-    image: "/images/discover/festivals/indra-jatra.jpg",
-    when: "Sept",
-    desc: "Kathmandu's historic festival featuring chariot processions and dances.",
-  },
-  {
-    name: "Bisket Jatra",
-    image: "/images/discover/festivals/biscuit-jatra.jfif",
-    when: "April",
-    desc: "Bhaktapur's famous New Year chariot festival.",
-  },
-  {
-    name: "Losar",
-    image: "/images/discover/festivals/losar.jfif",
-    when: "Feb",
-    desc: "Tibetan and Sherpa New Year celebrated with prayers and gatherings.",
-  },
-]
-
-
-const WILDLIFE = [
-  {
-    name: "Chitwan National Park",
-    image: "/images/discover/wildlife/chitwan.jfif",
-    desc: "Home to rhinos, Bengal tigers, elephants, and gharial crocodiles.",
-  },
-  {
-    name: "Bardia National Park",
-    image: "/images/discover/wildlife/bardia.jfif",
-    desc: "A remote wilderness area known for tigers and river wildlife.",
-  },
-  {
-    name: "Sagarmatha National Park",
-    image: "/images/discover/wildlife/sagarmatha.jfif",
-    desc: "Everest region with Himalayan wildlife including snow leopards.",
-  },  
-  { 
-    name: "Annapurna Conservation Area",
-    image: "/images/discover/wildlife/annapurna.jfif ",
-    desc: "A biodiversity hotspot covering multiple altitude zones.",
-  },
-]
-
-
-const UNESCO_SITES = [
-  "Kathmandu Durbar Square",
-  "Patan Durbar Square",
-  "Bhaktapur Durbar Square",
-  "Pashupatinath Temple",
-  "Swayambhunath Stupa",
-  "Boudhanath Stupa",
-  "Changu Narayan Temple",
-  "Lumbini",
-  "Sagarmatha National Park",
-  "Chitwan National Park",
-]
-
-
-const NATIONAL_PARKS = [
-  "Chitwan",
-  "Bardia",
-  "Sagarmatha",
-  "Langtang",
-  "Shivapuri Nagarjun",
-  "Rara",
-]
-
-
-const MOUNTAINS = [
-  "Everest (8,849m)",
-  "Kangchenjunga (8,586m)",
-  "Lhotse (8,516m)",
-  "Makalu (8,485m)",
-  "Cho Oyu (8,188m)",
-  "Dhaulagiri (8,167m)",
-  "Manaslu (8,163m)",
-  "Annapurna I (8,091m)",
-]
-
-
-const ETHNIC_GROUPS = [
-  "Newar",
-  "Sherpa",
-  "Gurung",
-  "Magar",
-  "Tamang",
-  "Tharu",
-  "Rai",
-  "Limbu",
-  "Chhetri",
-  "Brahmin",
-]
-
-
-const PROVINCES = [
-  {
-    name: "Koshi",
-    capital: "Biratnagar",
-    highlight: "Eastern hills, tea gardens, and Kanchenjunga views",
-  },
-  {
-    name: "Madhesh",
-    capital: "Janakpur",
-    highlight: "Terai culture and Janaki Temple",
-  },
-  {
-    name: "Bagmati",
-    capital: "Kathmandu",
-    highlight: "Capital region and Kathmandu Valley heritage",
-  },
-  {
-    name: "Gandaki",
-    capital: "Pokhara",
-    highlight: "Annapurna range and Phewa Lake",
-  },
-  {
-    name: "Lumbini",
-    capital: "Butwal/Deukhuri",
-    highlight: "Birthplace of Buddha",
-  },
-  {
-    name: "Karnali",
-    capital: "Surkhet",
-    highlight: "Rara Lake and remote Himalayan landscapes",
-  },
-  {
-    name: "Sudurpashchim",
-    capital: "Dhangadhi",
-    highlight: "Western Nepal wildlife corridor",
-  },
-]
 const Section = ({ id, icon: Icon, title, children }) => (
   <motion.section
     id={id}
@@ -260,457 +64,299 @@ const Section = ({ id, icon: Icon, title, children }) => (
       <Icon className="text-himalaya-500" />
       {title}
     </h2>
-
     {children}
   </motion.section>
 )
 
-
-const Chip = ({ children }) => (
-  <span className="text-xs font-medium bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full border border-gray-100">
-    {children}
-  </span>
+const DestChip = ({ dest }) => (
+  <Link
+    to={dest.slug ? `/destinations/${dest.slug}` : "/destinations"}
+    className="text-xs font-medium bg-gray-50 text-gray-700 px-3.5 py-2 rounded-full border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition"
+  >
+    {dest.name}
+    {dest.altitude ? ` · ${dest.altitude}` : ""}
+  </Link>
 )
 
-
-const CardImage = ({ src, alt, icon: Icon }) => {
-  const [failed, setFailed] = useState(false)
-
-  if (failed) {
-    return (
-      <div className="w-full h-28 rounded-lg mb-3 bg-himalaya-50 flex items-center justify-center text-himalaya-300">
-        {Icon ? <Icon size={26} /> : <FiImage size={26} />}
+const DestCard = ({ dest, icon: Icon }) => (
+  <Link to={dest.slug ? `/destinations/${dest.slug}` : "/destinations"} className="card-base p-4 hover:shadow-md transition bg-white border border-slate-200">
+    {dest.cover_image_url ? (
+      <img src={dest.cover_image_url} alt={dest.name} className="w-full h-32 rounded-xl mb-3 object-cover bg-gray-100" />
+    ) : (
+      <div className="w-full h-32 rounded-xl mb-3 bg-himalaya-50 flex items-center justify-center text-himalaya-300">
+        {Icon ? <Icon size={28} /> : <FiImage size={28} />}
       </div>
-    )
-  }
+    )}
+    <h3 className="font-bold text-sm text-slate-900 mb-1">{dest.name}</h3>
+    <p className="text-xs text-gray-500">{recordedCity(dest) || dest.district || NOT_RECORDED}</p>
+    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{recordedText(dest.short_description || dest.description)}</p>
+  </Link>
+)
+
+export default function DiscoverNepal() {
+  const [payload, setPayload] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showSymbolsModal, setShowSymbolsModal] = useState(false)
+
+  useEffect(() => {
+    destinationApi.discoverNepal()
+      .then(({ data }) => setPayload(data))
+      .catch(() => setPayload(null))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const wildlife = payload?.wildlife?.items || []
+  const heritage = payload?.heritage?.items || []
+  const mountains = payload?.mountains?.items || []
+  const culture = payload?.culture?.items || []
+  const cuisine = payload?.cuisine?.items?.length ? payload.cuisine.items : DEFAULT_FOODS
+  const festivals = payload?.festivals?.items?.length ? payload.festivals.items : DEFAULT_FESTIVALS
+  const provinces = payload?.provinces || []
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="w-full h-28 rounded-lg mb-3 object-cover bg-gray-100"
-    />
-  )
-}
+    <div className="container-app py-10 fade-in space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
+        <div>
+          <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
+            Himalayan Atlas & National Identity
+          </span>
+          <h1 className="text-3xl md:text-5xl font-black text-slate-900 mt-2 tracking-tight">
+            Discover Nepal — Beyond Everest
+          </h1>
+          <p className="text-gray-600 text-sm mt-1 max-w-2xl">
+            Explore Nepal's 26 national symbols, 8,000m Himalayan mountain ranges, UNESCO heritage, living cultural traditions, wildlife reserves, and culinary culture.
+          </p>
+        </div>
 
+        <button
+          onClick={() => setShowSymbolsModal(true)}
+          className="px-5 py-3 rounded-2xl bg-[#0B3D91] hover:bg-blue-900 text-white font-extrabold text-xs sm:text-sm shadow-lg flex items-center gap-2 shrink-0"
+        >
+          <FiBookOpen size={16} /> All 26 National Symbols Showcase ➔
+        </button>
+      </div>
 
+      {/* Top Banner: National Symbols Summary */}
+      <NationalSymbols />
 
-const DiscoverNepal = () => (
-  <div className="container-app py-10 fade-in">
+      {/* 8,000m PEAKS TABLE & HIMALAYAN RANGES */}
+      <section className="card-base p-6 sm:p-8 bg-white border border-slate-200 shadow-xl space-y-6">
+        <div>
+          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
+            Highest Mountains on Earth
+          </span>
+          <h2 className="text-2xl font-black text-slate-900 mt-2 flex items-center gap-2">
+            🏔️ Nepal's 8 Mountains Above 8,000 Meters
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Nepal contains 8 of the world's 14 mountains higher than 8,000 meters.
+          </p>
+        </div>
 
-    <div className="mb-8">
-      <h1 className="text-3xl md:text-4xl font-heading font-bold text-himalaya-500">
-        Discover Nepal
-      </h1>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-900 text-white uppercase font-black tracking-wider text-[11px]">
+              <tr>
+                <th className="p-3">Rank</th>
+                <th className="p-3">Mountain Peak</th>
+                <th className="p-3">Height (m)</th>
+                <th className="p-3">Himalayan Section</th>
+                <th className="p-3">District / Region</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {EIGHT_THOUSANDERS.map((m) => (
+                <tr key={m.rank} className="hover:bg-slate-50 font-medium">
+                  <td className="p-3 font-black text-amber-600">#{m.rank}</td>
+                  <td className="p-3 font-bold text-slate-900 text-sm">{m.name}</td>
+                  <td className="p-3 font-black text-emerald-700 font-mono text-sm">{m.height}</td>
+                  <td className="p-3 text-slate-600">{m.range}</td>
+                  <td className="p-3 text-slate-600">{m.region}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      <p className="text-gray-500 mt-2 max-w-2xl">
-        History, culture, wildlife, and heritage — everything that makes Nepal more than just a mountain.
-      </p>
-    </div>
+        {/* Major Himalayan Sections Grid */}
+        <div className="pt-4 border-t border-slate-100 space-y-3">
+          <h3 className="font-extrabold text-base text-slate-900">Major Himalayan Sections of Nepal</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {HIMALAYAN_RANGES.map((r, i) => (
+              <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <p className="font-black text-blue-900 text-sm">{r.range}</p>
+                <p className="text-emerald-700 font-bold">Highest: {r.highest}</p>
+                <p className="text-slate-600"><b>Peaks:</b> {r.peaks}</p>
+                <p className="text-slate-500 text-[11px]">📍 {r.area}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
+      {/* CULTURAL & LIVING HERITAGE SECTION */}
+      <Section id="cultural-heritage" icon={FiFeather} title="Nepali Cultural & Living Heritage">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+          {DEFAULT_CULTURE.map((item, idx) => (
+            <div key={idx} className="card-base p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
+              <div className="space-y-2">
+                <img src={item.image} alt={item.title} className="w-full h-36 object-cover rounded-xl bg-slate-100 border border-slate-100" />
+                <div>
+                  <span className="text-[10px] font-black uppercase text-amber-700 block">{item.nepali}</span>
+                  <h3 className="font-extrabold text-sm text-slate-900 mt-0.5">{item.title}</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">📍 {item.region}</p>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
 
-    <NationalSymbols />
-
-
-    <Section
-      id="history"
-      icon={FiClock}
-      title="History — Six Eras"
-    >
-      <div className="relative border-l border-gray-100 ml-3 mt-6">
-
-        {ERAS.map((era) => (
-          <div
-            key={era.name}
-            className="mb-6 ml-6 last:mb-0"
-          >
-
-            <span className="absolute w-3 h-3 rounded-full bg-himalaya-500 -ml-[31px] mt-1.5 ring-4 ring-white" />
-
-            <div className="card-base p-4">
-
-              <div className="flex justify-between gap-3 flex-wrap">
-
-                <h3 className="font-semibold text-dark">
-                  {era.name}
-                </h3>
-
-                <span className="text-xs text-gray-400">
-                  {era.range}
+      {/* FESTIVALS */}
+      <Section id="festivals" icon={FiSun} title="Vibrant Cultural Festivals">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+          {festivals.map((fest, idx) => (
+            <div key={idx} className="card-base p-5 bg-white border border-slate-200 space-y-2">
+              <div className="flex justify-between items-start">
+                <h3 className="font-black text-base text-slate-900">{fest.title || fest.name}</h3>
+                <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                  {fest.date || fest.kind || "Festival"}
                 </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">{fest.body || fest.desc}</p>
+              <p className="text-[11px] font-bold text-emerald-700 pt-1 border-t">
+                📍 {fest.city || fest.district || "All Nepal"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Section>
 
+      {/* WILDLIFE & PARKS */}
+      <Section id="wildlife" icon={FiAward} title="Wildlife Reserves & National Parks">
+        {wildlife.length ? (
+          <div className="grid sm:grid-cols-2 gap-4 mt-2">
+            {wildlife.map((dest) => <DestCard key={dest.id} dest={dest} icon={FiAward} />)}
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4 mt-2">
+            {[
+              { id: 1, name: "Chitwan National Park", district: "Chitwan", short_description: "UNESCO Heritage site famous for One-horned Rhinos and Bengal Tigers.", cover_image_url: "/images/destinations/chitwan/safari.jpg" },
+              { id: 2, name: "Bardiya National Park", district: "Bardiya", short_description: "Untouched wilderness with Royal Bengal Tigers, wild elephants, and Gangetic dolphins.", cover_image_url: "/images/destinations/bardiya/tiger-reserve.jpg" },
+            ].map((d) => <DestCard key={d.id} dest={d} icon={FiAward} />)}
+          </div>
+        )}
+      </Section>
+
+      {/* HERITAGE SITES */}
+      <Section id="unesco" icon={FiHome} title="UNESCO Heritage & Palaces">
+        {heritage.length ? (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {heritage.map((dest) => <DestChip key={dest.id} dest={dest} />)}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {["Pashupatinath Temple", "Boudhanath Stupa", "Swayambhunath", "Kathmandu Durbar Square", "Patan Durbar Square", "Bhaktapur Durbar Square", "Lumbini Sacred Garden", "Changu Narayan"].map((name, i) => (
+              <span key={i} className="px-3.5 py-2 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold">
+                🏛️ {name}
+              </span>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* LOCAL FOOD */}
+      <Section id="local-food" icon={FiCoffee} title="Authentic Nepali Culinary Heritage">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-2">
+          {DEFAULT_FOODS.map((food, i) => (
+            <div key={i} className="card-base p-4 bg-white border border-slate-200 space-y-3">
+              <img src={food.image} alt={food.name} className="w-full h-36 object-cover rounded-xl" />
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-700">{food.nepali}</span>
+                <h3 className="font-extrabold text-base text-slate-900">{food.name}</h3>
+                <p className="text-xs text-slate-500">📍 {food.region}</p>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">{food.desc}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* PROVINCE INFORMATION */}
+      <Section id="provinces" icon={FiMap} title="7 Provinces of Nepal">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+          {provinces.map((province) => (
+            <Link
+              key={province.name}
+              to={`/destinations?q=${encodeURIComponent(province.name)}`}
+              className="card-base p-4 hover:shadow-md transition bg-white border border-slate-200"
+            >
+              <h3 className="font-extrabold text-base text-slate-900">{province.name}</h3>
+              <p className="text-xs text-emerald-700 font-bold mt-1">
+                {province.destination_count != null
+                  ? `${province.destination_count.toLocaleString()} recorded places`
+                  : "Recorded places"}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {province.sample_name || NOT_RECORDED}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
+      {/* ALL 26 NATIONAL SYMBOLS SHOWCASE MODAL */}
+      <AnimatePresence>
+        {showSymbolsModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-start border-b pb-4">
+                <div>
+                  <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase">
+                    Official 26 National Symbols Showcase
+                  </span>
+                  <h3 className="text-2xl font-black text-slate-900 mt-2">Nepal National Symbols & Heritage Details</h3>
+                </div>
+                <button onClick={() => setShowSymbolsModal(false)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700">
+                  <FiX size={20} />
+                </button>
               </div>
 
-              <p className="text-sm text-gray-500 mt-1">
-                {era.desc}
-              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                {ALL_26_NATIONAL_SYMBOLS.map((s) => (
+                  <div key={s.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        {s.image ? (
+                          <img src={s.image} alt={s.title} className="w-12 h-12 rounded-full object-cover border-2 border-amber-500 shadow" />
+                        ) : (
+                          <span className="text-2xl">{s.icon}</span>
+                        )}
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">{s.nepali}</span>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-slate-900">{s.title}</h4>
+                      <p className="text-slate-600 leading-relaxed">{s.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-            </div>
-
+              <div className="flex justify-end pt-4 border-t">
+                <button onClick={() => setShowSymbolsModal(false)} className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs">
+                  Close Showcase
+                </button>
+              </div>
+            </motion.div>
           </div>
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="culture"
-      icon={FiFeather}
-      title="Culture"
-    >
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-
-        {CULTURE_CARDS.map((item) => (
-
-          <div
-            key={item.title}
-            className="card-base p-4"
-          >
-
-            <CardImage
-              src={item.image}
-              alt={item.title}
-              icon={FiFeather}
-            />
-
-            <h3 className="font-semibold text-sm mb-1">
-              {item.title}
-            </h3>
-
-            <p className="text-xs text-gray-500">
-              {item.desc}
-            </p>
-
-          </div>
-
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="festivals"
-      icon={FiSun}
-      title="Festivals"
-    >
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-        {FESTIVALS.map((festival)=>(
-
-          <div
-            key={festival.name}
-            className="card-base p-4"
-          >
-
-            <CardImage
-              src={festival.image}
-              alt={festival.name}
-              icon={FiSun}
-            />
-
-
-            <div className="flex justify-between mb-1">
-
-              <h3 className="font-semibold text-sm">
-                {festival.name}
-              </h3>
-
-              <span className="text-[10px] bg-saffron-50 text-saffron-600 px-2 py-1 rounded-full">
-                {festival.when}
-              </span>
-
-            </div>
-
-
-            <p className="text-xs text-gray-500">
-              {festival.desc}
-            </p>
-
-
-          </div>
-
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="wildlife"
-      icon={FiAward}
-      title="Wildlife"
-    >
-
-      <div className="grid sm:grid-cols-2 gap-4">
-
-        {WILDLIFE.map((animal)=>(
-
-          <div
-            key={animal.name}
-            className="card-base p-4"
-          >
-
-            <CardImage
-              src={animal.image}
-              alt={animal.name}
-              icon={FiAward}
-            />
-
-            <h3 className="font-semibold text-sm">
-              {animal.name}
-            </h3>
-
-            <p className="text-xs text-gray-500">
-              {animal.desc}
-            </p>
-
-          </div>
-
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="unesco"
-      icon={FiHome}
-      title="UNESCO World Heritage Sites"
-    >
-
-      <div className="flex flex-wrap gap-2">
-
-        {UNESCO_SITES.map(site=>(
-          <Chip key={site}>
-            {site}
-          </Chip>
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="national-parks"
-      icon={FiTriangle}
-      title="National Parks"
-    >
-
-      <div className="flex flex-wrap gap-2">
-
-        {NATIONAL_PARKS.map(item=>(
-          <Chip key={item}>
-            {item}
-          </Chip>
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="dress-music-architecture"
-      icon={FiMusic}
-      title="Traditional Dress, Music & Architecture"
-    >
-
-      <div className="grid sm:grid-cols-3 gap-4">
-
-        <div className="card-base p-4">
-          <h3 className="font-semibold text-sm">
-            Traditional Dress
-          </h3>
-
-          <p className="text-xs text-gray-500 mt-1">
-            Daura-Suruwal, Dhaka Topi, Gunyu Cholo and Haku Patasi represent Nepal's diverse clothing traditions.
-          </p>
-        </div>
-
-
-        <div className="card-base p-4">
-
-          <h3 className="font-semibold text-sm">
-            Music & Dance
-          </h3>
-
-          <p className="text-xs text-gray-500 mt-1">
-            Madal, Sarangi, Lakhe dance and Sakela preserve Nepal's cultural identity.
-          </p>
-
-        </div>
-
-
-        <div className="card-base p-4">
-
-          <h3 className="font-semibold text-sm">
-            Architecture
-          </h3>
-
-          <p className="text-xs text-gray-500 mt-1">
-            Pagoda temples, carved windows and Newari architecture define Nepal's heritage.
-          </p>
-
-        </div>
-
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="religion-languages"
-      icon={FiGlobe}
-      title="Religion & Languages"
-    >
-
-      <p className="text-sm text-gray-600 max-w-3xl">
-        Hinduism and Buddhism have coexisted in Nepal for centuries.
-        Nepal has more than 120 languages, with Nepali as the official language.
-      </p>
-
-    </Section>
-
-
-
-    <Section
-      id="ethnic-groups"
-      icon={FiUsers}
-      title="Ethnic Groups"
-    >
-
-      <div className="flex flex-wrap gap-2">
-
-        {ETHNIC_GROUPS.map(group=>(
-          <Chip key={group}>
-            {group}
-          </Chip>
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="local-food"
-      icon={FiCoffee}
-      title="Local Food"
-    >
-
-      <p className="text-sm text-gray-600">
-        Dal Bhat, momo, sel roti, thukpa and Newari cuisine represent Nepal's rich food culture.
-      </p>
-
-    </Section>
-
-
-
-    <Section
-      id="crafts"
-      icon={FiTool}
-      title="Traditional Crafts"
-    >
-
-      <div className="flex flex-wrap gap-2">
-
-        {[
-          "Lokta Paper",
-          "Thangka Painting",
-          "Pashmina Weaving",
-          "Wood Carving",
-          "Metal Statue Casting",
-          "Dhaka Weaving",
-        ].map(item=>(
-          <Chip key={item}>
-            {item}
-          </Chip>
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="mountains"
-      icon={FiTriangle}
-      title="Mountains"
-    >
-
-      <div className="flex flex-wrap gap-2">
-
-        {MOUNTAINS.map(mountain=>(
-          <Chip key={mountain}>
-            {mountain}
-          </Chip>
-        ))}
-
-      </div>
-
-    </Section>
-
-
-
-    <Section
-      id="provinces"
-      icon={FiMap}
-      title="Province Information"
-    >
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-        {PROVINCES.map(province=>(
-
-          <div
-            key={province.name}
-            className="card-base p-4"
-          >
-
-            <h3 className="font-semibold text-sm">
-              {province.name}
-            </h3>
-
-            <p className="text-xs text-gray-400">
-              Capital: {province.capital}
-            </p>
-
-            <p className="text-xs text-gray-500 mt-1">
-              {province.highlight}
-            </p>
-
-          </div>
-
-        ))}
-
-      </div>
-
-    </Section>
-
-
-  </div>
-)
-
-
-export default DiscoverNepal
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}

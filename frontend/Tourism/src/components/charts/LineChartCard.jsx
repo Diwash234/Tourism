@@ -8,7 +8,6 @@ const LineChartCard = ({ title, labels, data, label = "Value" }) => {
       {
         label,
         data,
-        // FIXED: was #FF5A5F (old coral brand color), same raw-hex
         // issue as BarChartCard.jsx.
         borderColor: "#0B3D91",
         backgroundColor: "rgba(11,61,145,0.15)",
