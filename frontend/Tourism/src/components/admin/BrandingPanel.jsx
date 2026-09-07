@@ -129,15 +129,35 @@ export default function BrandingPanel() {
         </button>
       </div>
 
-      {/* Live Brand Preview Card */}
-      <div className="p-6 rounded-3xl bg-slate-950 border border-amber-500/30 space-y-3 shadow-xl">
-        <span className="text-[10px] font-black uppercase text-amber-400 block tracking-wider">Live Logo & Header Preview</span>
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 flex items-center justify-between">
-          <TourismLogo size="lg" />
-          <div className="hidden md:flex gap-2">
-            <span className="px-3 py-1 rounded-xl bg-amber-400 text-slate-950 font-black text-xs">Live User Header</span>
+      {/* Live Brand Preview Card — mirrors the published traveller header using
+          the draft values below, so admins see exactly what will ship. */}
+      <div className="p-6 rounded-3xl bg-white border border-[#E5E0D5] space-y-3 shadow-xl">
+        <span className="text-[10px] font-black uppercase text-[#697675] block tracking-wider">Live Logo & Header Preview</span>
+        <div
+          className="p-5 rounded-2xl border border-[#E5E0D5] flex flex-wrap items-center justify-between gap-4"
+          style={{ background: "var(--brand-surface, #ffffff)" }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <TourismLogo size="md" />
+            <div className="min-w-0">
+              <p className="font-black text-lg leading-tight truncate" style={{ color: branding.secondary_color || "#0B3D91" }}>
+                {branding.site_title || "Nepal Yatra"}
+              </p>
+              <p className="text-xs text-[#697675] truncate">{branding.tagline || "Himalayan Journeys & Travel Planning"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1.5 rounded-xl text-white font-black text-xs" style={{ background: branding.primary_color || "#C8102E" }}>
+              Book Now
+            </span>
+            <span className="px-3 py-1.5 rounded-xl border font-black text-xs" style={{ color: branding.secondary_color || "#0B3D91", borderColor: branding.secondary_color || "#0B3D91" }}>
+              Explore
+            </span>
           </div>
         </div>
+        <p className="text-[11px] text-[#697675]">
+          Preview updates as you type and uses the same brand tokens (<code>--brand-primary</code>/<code>--brand-secondary</code>) the live site reads after you publish.
+        </p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
