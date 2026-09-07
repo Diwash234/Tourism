@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
 import { FiSearch } from "react-icons/fi"
 import hotelService from "../services/hotelService"
 import HotelCard from "../components/cards/HotelCard"
@@ -6,6 +8,7 @@ import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 
 const Hotels = () => {
+  const { block: cmsBlock } = usePublicConfig().pageCMS("hotels", ["intro", "page-intro"])
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -34,6 +37,7 @@ const Hotels = () => {
 
   return (
     <div className="space-y-6 fade-in theme-gold">
+      <CMSIntro section={cmsBlock("intro")} />
 
       <div>
         <h1 className="section-title mb-2">

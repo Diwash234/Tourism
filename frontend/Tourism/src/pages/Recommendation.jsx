@@ -9,6 +9,8 @@ import {
 import { Link } from "react-router-dom"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
 import { getDestinationImageUrl } from "../utils/imageUtils"
 import PlaceholderImage from "../components/common/PlaceholderImage"
 import Loader from "../components/common/Loader"
@@ -235,6 +237,7 @@ function riskColor(level) {
 }
 
 export default function Recommendation() {
+  const { block: cmsBlock } = usePublicConfig().pageCMS("recommendation", ["intro", "page-intro"])
   const [items, setItems] = useState([])
   const [selected, setSelected] = useState(["family", "cultural"])
   const [explorationMode, setExplorationMode] = useState("balanced")
@@ -296,6 +299,7 @@ export default function Recommendation() {
 
   return (
     <div className="min-h-screen bg-[#faf8f4]">
+      <CMSIntro section={cmsBlock("intro")} />
       <div className="container-app py-8 space-y-6">
         <Breadcrumbs items={[{ label: "Smart Recommendations", to: "/recommendation" }]} />
         <PageHeader

@@ -4,6 +4,8 @@ import { FiCheck, FiMapPin, FiPackage, FiShoppingBag } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import userApi from "../api/userApi"
 import useToast from "../hooks/useToast"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
 import { addToTripBasket, getTripBasket } from "../utils/tripBasket"
 
 const KINDS = [
@@ -16,6 +18,7 @@ const KINDS = [
 ]
 
 const Packages = () => {
+  const { block: cmsBlock } = usePublicConfig().pageCMS("packages", ["intro", "page-intro"])
   const { showToast } = useToast()
   const [kind, setKind] = useState("")
   const [query, setQuery] = useState("")
@@ -52,6 +55,7 @@ const Packages = () => {
 
   return (
     <div className="container-app py-10" data-testid="packages-page">
+      <CMSIntro section={cmsBlock("intro")} />
       <PageHeader
         title="Travel Packages"
         subtitle="Live offers from the admin desk and approved hotels, operators and guides. Add what you need to a trip, then request to book — we never take card numbers here."

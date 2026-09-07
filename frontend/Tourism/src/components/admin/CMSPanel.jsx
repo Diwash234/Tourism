@@ -4,7 +4,7 @@ import { FiClock, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, F
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
-import CMSBlock from "../cms/CMSBlock"
+import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
 const resources = ["settings", "pages", "sections", "navigation", "translations"]
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
@@ -344,16 +344,14 @@ export default function CMSPanel() {
                     <p className="text-xs text-slate-500">Draft CMS content. Live site uses the published traveller page. Search visibility: {preview.search_visible === false ? "hidden" : "allowed"}.</p>
                     {preview.meta_description && <p className="mt-2 text-slate-500">{preview.meta_description}</p>}
                     {preview.og_image_url && <img src={preview.og_image_url} alt="" className="mt-4 max-h-48 w-full rounded-xl object-cover" />}
-                    {preview.sections?.map(section => (
-                      <article key={section.id} className="border-b py-6">
-                        <p className="text-[10px] uppercase tracking-widest text-emerald-700">{section.section_type || "text"}</p>
-                        <h3 className="text-xl font-bold">{section.title}</h3>
-                        <p className="text-slate-500">{section.subtitle}</p>
-                        {section.image_url && <img src={section.image_url} alt="" className="mt-3 max-h-56 w-full rounded-xl object-cover" />}
-                        <div className="prose prose-sm mt-3" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
-                        {section.cta_text && <span className="mt-3 inline-block rounded-lg bg-emerald-700 px-4 py-2 text-white">{section.cta_text}</span>}
-                      </article>
-                    ))}
+                    {/* Rendered with the SAME component the public pages use
+                        (CMSExtras -> CMSBlock), so the preview cannot drift
+                        from what travellers actually see. */}
+                    {preview.sections?.length > 0 && (
+                      <div className="mt-4">
+                        <CMSExtras sections={preview.sections} />
+                      </div>
+                    )}
                     {!preview.sections && <div className="prose prose-sm mt-5" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
                   </div>
                 )}

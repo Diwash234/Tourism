@@ -2,9 +2,14 @@ import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 import { FiUsers, FiTarget, FiGlobe, FiArrowRight } from "react-icons/fi"
 import { APP_NAME } from "../utils/constants"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
 
-const About = () => (
+const About = () => {
+  const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
+  return (
   <div className="container-app py-16 fade-in theme-maroon">
+    <CMSIntro section={block("intro")} />
     <motion.h1
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -76,6 +81,7 @@ const About = () => (
     </div>
 
   </div>
-)
+  )
+}
 
 export default About

@@ -17,6 +17,8 @@ const CATEGORY_FILTERS = [
 ]
 
 import destinationApi from "../api/destinationApi"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
 import { getDestinationImageUrl } from "../utils/imageUtils"
 
 const normalizeGalleryCategory = (value = "") => {
@@ -30,6 +32,7 @@ const normalizeGalleryCategory = (value = "") => {
 }
 
 export default function Gallery() {
+  const { block: cmsBlock } = usePublicConfig().pageCMS("gallery", ["intro", "page-intro"])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [destinationsMedia, setDestinationsMedia] = useState([])
@@ -185,6 +188,7 @@ export default function Gallery() {
 
   return (
     <div className="container-app theme-indigo py-8 space-y-8 animate-fadeIn">
+      <CMSIntro section={cmsBlock("intro")} />
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-2">
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
