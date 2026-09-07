@@ -327,7 +327,7 @@ export default function CMSBlock({ section }) {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ subject: section.title || "Page form", message, category: "general" }),
                 })
-                setSent("Received. An administrator will review this submission.")
+                setSent(section.config?.success_message || "Received. An administrator will review this submission.")
                 event.target.reset()
               } catch {
                 setSent("Could not send the form.")

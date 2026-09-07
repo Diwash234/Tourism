@@ -2159,6 +2159,11 @@ class AdminCMSView(APIView):
                     field["options"] = [str(option)[:80] for option in item["options"][:12]]
                 fields.append(field)
             safe["fields"] = fields
+        # Custom confirmation message for form sections (spec: forms must let
+        # admins change the confirmation text). Sanitized like other free text.
+        success_message = str(config.get("success_message") or "").strip()
+        if success_message:
+            safe["success_message"] = re.sub(r"(?is)<script.*?>.*?</script>", "", success_message)[:200]
         return safe
 
     def _import_layout(self, request, page):

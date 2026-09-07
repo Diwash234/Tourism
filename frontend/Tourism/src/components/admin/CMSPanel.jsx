@@ -478,6 +478,13 @@ function SectionConfigFields({ value, set }) {
   if (type === "form") {
     const fields = Array.isArray(config.fields) ? config.fields : []
     const updateField = (index, patch) => setConfig({ fields: fields.map((field, i) => i === index ? { ...field, ...patch } : field) })
+    const moveField = (index, dir) => {
+      const target = index + dir
+      if (target < 0 || target >= fields.length) return
+      const next = [...fields]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      setConfig({ fields: next })
+    }
     return (
       <div className="sm:col-span-2 space-y-2 rounded-xl border border-emerald-200 bg-white p-3">
         <p className="text-xs font-black text-emerald-800">Form fields (no code). Allowed: text, email, tel, textarea, select, checkbox.</p>
@@ -489,13 +496,21 @@ function SectionConfigFields({ value, set }) {
               {["text", "email", "tel", "textarea", "select", "checkbox"].map((item) => <option key={item}>{item}</option>)}
             </select>
             <label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={Boolean(field.required)} onChange={(e) => updateField(index, { required: e.target.checked })} /> Required</label>
-            <button type="button" onClick={() => setConfig({ fields: fields.filter((_, i) => i !== index) })} className="rounded-lg bg-rose-100 text-xs font-bold text-rose-800">Remove</button>
+            <div className="flex gap-1">
+              <button type="button" onClick={() => moveField(index, -1)} disabled={index === 0} aria-label={`Move ${field.label || "field"} up`} className="rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 disabled:opacity-30">↑</button>
+              <button type="button" onClick={() => moveField(index, 1)} disabled={index === fields.length - 1} aria-label={`Move ${field.label || "field"} down`} className="rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 disabled:opacity-30">↓</button>
+              <button type="button" onClick={() => setConfig({ fields: fields.filter((_, i) => i !== index) })} className="flex-1 rounded-lg bg-rose-100 text-xs font-bold text-rose-800">Remove</button>
+            </div>
             {field.field_type === "select" && (
               <input className="input-field sm:col-span-5" value={(field.options || []).join(", ")} onChange={(e) => updateField(index, { options: e.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Select options, comma separated" />
             )}
           </div>
         ))}
         <button type="button" onClick={() => setConfig({ fields: [...fields, { name: `field_${fields.length + 1}`, label: "New field", field_type: "text", required: false }] })} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Add text field</button>
+        <label className="block text-xs font-semibold text-slate-700">
+          Confirmation message shown after a successful submit
+          <input className="input-field mt-1" value={config.success_message || ""} onChange={(e) => setConfig({ success_message: e.target.value })} placeholder="Received. An administrator will review this submission." />
+        </label>
       </div>
     )
   }
