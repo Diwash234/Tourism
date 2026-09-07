@@ -89,7 +89,13 @@ def predict_risk(
     incident_count=0,
 ):
     if model is None:
-        return {"risk": "unknown", "message": "Risk model not trained"}
+        return {
+            "risk": "unknown",
+            "risk_category": "unknown",
+            "degraded": True,
+            "data_note": "Risk model not trained on this deployment.",
+            "message": "Risk model not trained",
+        }
 
     place_row = _lookup_nearest_place(latitude, longitude, city)
 

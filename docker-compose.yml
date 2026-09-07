@@ -10,6 +10,26 @@ services:
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - DEBUG=${DEBUG:-0}
       - DATABASE_URL=${DATABASE_URL:-}
+      # Point Django at the ML container so itinerary/risk/recommendation work
+      # out of the box (fixes "ML service not running" on a fresh clone).
+      - ML_SERVICE_URL=${ML_SERVICE_URL:-http://ml:8001}
+    depends_on:
+      ml:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ml:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
 
   # Optional: Postgres for production

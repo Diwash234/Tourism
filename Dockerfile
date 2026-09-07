@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libjpeg-dev zlib1g-dev libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-COPY Tourism/requirements.txt /app/Tourism/
-RUN pip install --no-cache-dir -r /app/Tourism/requirements.txt gunicorn pillow
+COPY Tourism/requirement.txt /app/Tourism/
+RUN pip install --no-cache-dir -r /app/Tourism/requirement.txt gunicorn pillow
 
 COPY Tourism/ /app/Tourism/
 COPY --from=frontend /app/frontend/dist /app/Tourism/staticfiles/
