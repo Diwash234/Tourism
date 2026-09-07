@@ -456,6 +456,26 @@ code {
  --accent-solid:#4f46e5;
 }
 
+/* ---- Nepal Yatra consistency pass ----
+   Pages historically opted into per-page accent worlds (gold Hotels, orange
+   Budget, indigo Gallery/Contact, blue Navigation, green Nearby, undefined
+   "maroon" About), so the site changed personality on every navigation.
+   All legacy theme classes now resolve to the single brand accent; the class
+   names stay valid so no JSX changes, and a page can never drift again just
+   by picking a different theme-* name. */
+.theme-crimson,
+.theme-himalaya,
+.theme-forest,
+.theme-gold,
+.theme-orange,
+.theme-purple,
+.theme-indigo,
+.theme-maroon {
+ --accent-from:#059669;
+ --accent-to:#065f46;
+ --accent-solid:#047857;
+}
+
 
 
 /* ==========================================
