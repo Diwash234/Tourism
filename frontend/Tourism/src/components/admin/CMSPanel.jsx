@@ -41,6 +41,42 @@ export default function CMSPanel() {
   const [savedJson, setSavedJson] = useState("")
   const [history, setHistory] = useState([])
   const [health, setHealth] = useState(null)
+  const [seoPreview, setSeoPreview] = useState(false)
+  // ---- Editor undo/redo (client-side draft history, spec §16) ----
+  const pastRef = useRef([])
+  const futureRef = useRef([])
+  const prevJsonRef = useRef(json)
+  const skipHistoryRef = useRef(false)
+  const [histTick, setHistTick] = useState(0)
+  useEffect(() => {
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false
+    } else if (prevJsonRef.current !== json) {
+      pastRef.current.push(prevJsonRef.current)
+      if (pastRef.current.length > 50) pastRef.current.shift()
+      futureRef.current = []
+      setHistTick((t) => t + 1)
+    }
+    prevJsonRef.current = json
+  }, [json])
+  const undo = () => {
+    if (!pastRef.current.length) return
+    futureRef.current.push(json)
+    const prev = pastRef.current.pop()
+    skipHistoryRef.current = true
+    prevJsonRef.current = prev
+    setJson(prev)
+    setHistTick((t) => t + 1)
+  }
+  const redo = () => {
+    if (!futureRef.current.length) return
+    pastRef.current.push(json)
+    const next = futureRef.current.pop()
+    skipHistoryRef.current = true
+    prevJsonRef.current = next
+    setJson(next)
+    setHistTick((t) => t + 1)
+  }
   const [preview, setPreview] = useState(null)
   const [scheduleAt, setScheduleAt] = useState("")
   const [busy, setBusy] = useState(false)
@@ -62,6 +98,12 @@ export default function CMSPanel() {
 
   const applyRow = (row) => {
     const next = JSON.stringify(clean(row), null, 2)
+    // Loading a different record starts a fresh undo history.
+    pastRef.current = []
+    futureRef.current = []
+    skipHistoryRef.current = true
+    prevJsonRef.current = next
+    setHistTick((t) => t + 1)
     setSelected(row)
     setJson(next)
     setSavedJson(next)
@@ -317,6 +359,9 @@ export default function CMSPanel() {
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
                 <b className="mr-auto">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
+                <button type="button" onClick={undo} disabled={!pastRef.current.length} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
+                <button type="button" onClick={redo} disabled={!futureRef.current.length} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
+                {resource === "pages" && <button type="button" onClick={() => setSeoPreview(true)} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap"><FiEye /> SEO preview</button>}
                 <button disabled={busy} onClick={saveAndPublish} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-xs flex gap-1 shadow whitespace-nowrap"><FiSend /> Save & Publish Live</button>
                 <button disabled={busy} onClick={save} className="px-3 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-bold flex gap-1"><FiSave /> Save draft</button>
                 {selected.id && <button onClick={showPreview} className="px-3 py-2 bg-sky-700 text-white rounded-lg text-xs font-bold flex gap-1"><FiEye /> Preview</button>}
@@ -411,6 +456,52 @@ export default function CMSPanel() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {seoPreview && resource === "pages" && (
+        <div className="fixed inset-0 z-[80] bg-black/75 flex justify-end">
+          <aside className="bg-white border-l w-full max-w-lg p-5 overflow-y-auto">
+            <div className="flex justify-between">
+              <h3 className="text-xl font-black">SEO & social preview</h3>
+              <button onClick={() => setSeoPreview(false)} aria-label="Close SEO preview"><FiX /></button>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 mb-4">How this page is likely to appear. Uses the current draft values — nothing is published by previewing.</p>
+            {(() => {
+              const seoTitle = value.seo_title || value.title || ""
+              const desc = value.meta_description || ""
+              const route = value.route || "/"
+              const og = value.og_image_url || ""
+              return (
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Google search result</p>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs text-emerald-800">nepalyatra.com{route}</p>
+                      <p className="text-lg text-[#1a0dab] leading-snug">{seoTitle.length > 60 ? seoTitle.slice(0, 60) + "…" : seoTitle || "(no title)"}</p>
+                      <p className="text-sm text-slate-600">{desc.length > 155 ? desc.slice(0, 155) + "…" : desc || "(no meta description — Google will invent one)"}</p>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500">
+                      Title: {seoTitle.length}/60 chars {seoTitle.length > 60 ? "⚠ will be truncated" : "✓"} · Description: {desc.length}/155 {desc.length > 155 ? "⚠ will be truncated" : desc.length ? "✓" : "⚠ missing"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Social share card</p>
+                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                      {og
+                        ? <img src={og} alt="" className="aspect-[1.91/1] w-full object-cover" />
+                        : <div className="aspect-[1.91/1] w-full bg-slate-100 flex items-center justify-center text-xs text-slate-400">No OG image set — shares will look plain</div>}
+                      <div className="p-3">
+                        <p className="text-[10px] uppercase text-slate-400">nepalyatra.com</p>
+                        <p className="text-sm font-bold text-slate-900">{seoTitle || "(no title)"}</p>
+                        <p className="text-xs text-slate-500 line-clamp-2">{desc || "(no description)"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+          </aside>
         </div>
       )}
 
