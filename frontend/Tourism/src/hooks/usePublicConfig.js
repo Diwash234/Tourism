@@ -59,7 +59,16 @@ export default function usePublicConfig() {
   const branding = data.settings?.branding || {}
   useEffect(() => applyBranding(branding), [branding])
   const pageOf = (key) => data.pages?.find(item => item.key === key)
-  const section = (page, key) => pageOf(page)?.sections?.find(item => item.key === key)
+  // Tolerant section lookup: exact key first, then a `page-` prefix-insensitive
+  // match, so template rows like `page-intro` resolve for pages that read `intro`.
+  const section = (page, key) => {
+    const sections = pageOf(page)?.sections
+    if (!sections) return undefined
+    const exact = sections.find(item => item.key === key)
+    if (exact) return exact
+    const norm = (value) => String(value || "").replace(/^page-/, "")
+    return sections.find(item => norm(item.key) === norm(key))
+  }
   const pageCMS = (pageKey, knownKeys = []) => {
     const page = pageOf(pageKey)
     const managed = Boolean(page?.sections?.length)
