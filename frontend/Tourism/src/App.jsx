@@ -154,13 +154,7 @@ function App() {
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/itinerary" element={<Itinerary />} />
-        <Route path="/packages" element={<Packages />} />
-        <Route path="/packages/:slug" element={<PackageDetail />} />
-        <Route path="/collaborate" element={<Collaborate />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/trip/:reference?" element={<TripStatus />} />
-        <Route path="/trip" element={<TripStatus />} />
+        <Route path="/itinerary" element={<TripPlanner />} />
         <Route path="/trip-planner" element={<TripPlanner />} />
         <Route path="/chatbot" element={<Chatbot />} />
 

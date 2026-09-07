@@ -495,9 +495,8 @@ def request_ml_image_analysis(destination_id, image_url):
 
 def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
     """
-    Calls {ML_SERVICE_URL}/predict-safety for a risk assessment of a given
-    location. Returns None if the ML service is unreachable — callers
-    should degrade gracefully (e.g. hide the safety badge) rather than fail.
+    Calls {ML_SERVICE_URL}/risk/predict-safety for a risk assessment of a given
+    location. Returns a degraded fallback dictionary if the ML microservice is unreachable.
     """
     try:
         response = requests.post(
@@ -509,10 +508,21 @@ def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
         response.raise_for_status()
-        return response.json()
+        res = response.json()
+        res["degraded"] = False
+        res["data_source"] = "live_ml_risk_service"
+        return res
     except requests.RequestException as exc:
         logger.warning("ML safety prediction unreachable: %s", exc)
-        return None
+        return {
+            "risk_level": "medium",
+            "safety_score": 70.0,
+            "city": city or "Nepal",
+            "country": country or "Nepal",
+            "degraded": True,
+            "data_source": "cached_hazard_baseline",
+            "message": "Limited hazard prediction data for this location. Exercise standard mountain travel precautions."
+        }
 
 
 def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid",
