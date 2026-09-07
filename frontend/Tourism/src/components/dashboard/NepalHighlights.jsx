@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   FiTriangle, FiCompass, FiHome, FiFeather,
-  FiWind, FiDroplet, FiMusic, FiCoffee, FiMapPin
+  FiWind, FiDroplet, FiMusic, FiCoffee, FiMapPin, FiCheckCircle
 } from "react-icons/fi"
 import destinationApi from "../../api/destinationApi"
 
