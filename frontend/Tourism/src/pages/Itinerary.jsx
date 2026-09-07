@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
+import { reportError } from "../utils/errorLogger"
 import { motion } from "framer-motion"
 
 import {
@@ -309,10 +310,14 @@ const Itinerary = () => {
       if(requestId===lastRequestId.current){
 
 
-        setError(
-          err?.response?.data?.detail ||
-          "Could not build your itinerary. Make sure the ML service is running."
+        // Technical detail goes to the console/telemetry, never to the traveller.
+        console.error(
+          "[itinerary] generation failed",
+          err?.response?.status || "",
+          err?.response?.data?.detail || err?.message
         )
+        try { reportError(err, { feature: "itinerary", action: "generate" }) } catch { /* telemetry optional */ }
+        setError("We couldn't generate your itinerary right now. Please try again in a moment.")
 
 
         setPlan(null)
