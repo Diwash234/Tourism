@@ -1,0 +1,5 @@
+id,name,latitude,longitude,district,province,method,status
+5880,3-10,60.188371,24.964784,50-150,,district_map,unresolved_unknown_district
+5870,Destination,27.648022,85.371874,District,,district_map,unresolved_unknown_district
+5854,Clothing/Gear Cost (USD),,,Other Expenses (USD),,district_map,unresolved_unknown_district
+5766,Gaur,26.766096,85.274924,Rautahat,Madhesh,nearest_verified_18.3km,resolved
