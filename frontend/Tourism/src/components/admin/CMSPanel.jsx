@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
+import { diffSnapshots, formatSnapshotValue } from "../../utils/revisionDiff"
 import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
@@ -618,15 +619,37 @@ export default function CMSPanel() {
               <button onClick={() => setHistory([])}><FiX /></button>
             </div>
             <p className="text-xs text-slate-500 mt-1 mb-4">Restore creates a new revision and never destroys history.</p>
-            {history.map(revision => (
-              <div key={revision.id} className="bg-emerald-50 rounded-xl p-3 mb-2 text-xs">
-                <div className="flex justify-between">
-                  <b>Version {revision.revision_number} · {revision.action}</b>
-                  <button onClick={() => rollback(revision.id)} className="text-emerald-800 flex gap-1 font-bold"><FiRotateCcw /> Restore</button>
+            {history.map((revision, index) => {
+              const older = history[index + 1]
+              const changes = older ? diffSnapshots(revision.snapshot, older.snapshot) : null
+              const shown = (changes || []).slice(0, 6)
+              return (
+                <div key={revision.id} className="bg-emerald-50 rounded-xl p-3 mb-2 text-xs">
+                  <div className="flex justify-between">
+                    <b>Version {revision.revision_number} · {revision.action}</b>
+                    <button onClick={() => rollback(revision.id)} className="text-emerald-800 flex gap-1 font-bold"><FiRotateCcw /> Restore</button>
+                  </div>
+                  <p className="text-slate-500 mt-1">{new Date(revision.created_at).toLocaleString()} · {revision.created_by || "system"}</p>
+                  {!older && <p className="mt-1 font-bold text-emerald-800">First saved version of this record.</p>}
+                  {!!shown.length && (
+                    <ul className="mt-1.5 space-y-0.5">
+                      {shown.map((change) => (
+                        <li key={change.field} className="text-slate-600">
+                          <span className="font-bold text-slate-700">{change.label}</span>:{" "}
+                          <span className="text-rose-700 line-through">{formatSnapshotValue(change.from)}</span>
+                          {" → "}
+                          <span className="font-bold text-emerald-800">{formatSnapshotValue(change.to)}</span>
+                        </li>
+                      ))}
+                      {changes.length > shown.length && (
+                        <li className="text-slate-500">+{changes.length - shown.length} more field change{changes.length - shown.length === 1 ? "" : "s"}</li>
+                      )}
+                    </ul>
+                  )}
+                  {older && !changes.length && <p className="mt-1 text-slate-500">Workflow action only — no content fields changed.</p>}
                 </div>
-                <p className="text-slate-500 mt-1">{new Date(revision.created_at).toLocaleString()} · {revision.created_by || "system"}</p>
-              </div>
-            ))}
+              )
+            })}
           </aside>
         </div>
       )}
