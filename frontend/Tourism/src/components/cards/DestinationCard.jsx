@@ -103,7 +103,7 @@ const DestinationCard = ({
 
   const risk =
     RISK_STYLES[risk_level] ||
-    { label: "Risk not recorded", dot: "bg-gray-400", className: "text-gray-500" }
+    { label: "Information unavailable", dot: "bg-gray-400", className: "text-gray-500" }
 
 
   const categoryKey =
@@ -360,7 +360,7 @@ const DestinationCard = ({
           ?
           `NPR ${entry_fee}`
           :
-          "Not recorded"
+          "Information unavailable"
           }
 
 

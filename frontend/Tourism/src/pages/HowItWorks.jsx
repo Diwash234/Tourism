@@ -36,8 +36,8 @@ export default function HowItWorks() {
       content: `We enforce a strict Zero-Hallucination policy across the platform:`,
       highlights: [
         "Unmapped Places: Destinations lacking precise GPS coordinates do NOT get fake map pins placed in district centers. They are explicitly marked as 'Map location unavailable'.",
-        "Missing Costs / Schedules: If food, lodging, or transport rates are unverified, we display 'Not recorded' rather than generating speculative prices.",
-        "Opening Hours & Seasons: Unverified operational hours or best seasons are marked as 'Not recorded' to protect travelers from relying on invented information."
+        "Missing Costs / Schedules: If food, lodging, or transport rates are unverified, we display 'Information unavailable' rather than generating speculative prices.",
+        "Opening Hours & Seasons: Unverified operational hours or best seasons are marked as 'Information unavailable' to protect travelers from relying on invented information."
       ]
     },
     {
@@ -47,7 +47,7 @@ export default function HowItWorks() {
       content: `Himal AI is your intelligent Nepal travel companion grounded strictly on verified platform data.`,
       highlights: [
         "Grounding: Answers are derived from live destination profiles, emergency directories, and trained budget regressors.",
-        "Honesty First: When asked about details missing from our database, Himal AI explicitly responds that the information is 'Not recorded' rather than guessing.",
+        "Honesty First: When asked about details missing from our database, Himal AI explicitly responds that the information is 'Information unavailable' rather than guessing.",
         "Interactive Cards: Suggests real packages, trekking routes, and nearby police or hospital contacts."
       ]
     },
@@ -85,7 +85,7 @@ export default function HowItWorks() {
       content: `When adding or updating destination records, strictly follow our content integrity principles:`,
       highlights: [
         "Coordinates Rule: Leave Latitude and Longitude blank if verified GPS coordinates are unavailable. The destination will safely present as 'Map location unavailable' without creating misleading map pins.",
-        "Empty Fields: If opening hours, entry fees, or contact numbers are unknown, leave them empty. The system will cleanly display 'Not recorded'.",
+        "Empty Fields: If opening hours, entry fees, or contact numbers are unknown, leave them empty. The system will cleanly display 'Information unavailable'.",
         "City vs District: Do not copy district names into the 'City' field unless it is a recognized town/city center."
       ]
     },
@@ -119,8 +119,8 @@ export default function HowItWorks() {
       a: "Nepal's terrain includes remote alpine valleys and newly recognized heritage sites. If precise cartographic coordinates are not yet verified, we deliberately omit the map pin rather than showing a misleading fake location in the middle of a district center."
     },
     {
-      q: "Why do some costs or operating hours say 'Not recorded'?",
-      a: "Trekking permit fees, local lodge prices, and shrine opening hours can vary seasonally. To prevent travelers from relying on inaccurate or invented data, unverified fields display 'Not recorded' until confirmed by local authorities or site managers."
+      q: "Why do some costs or operating hours say 'Information unavailable'?",
+      a: "Trekking permit fees, local lodge prices, and shrine opening hours can vary seasonally. To prevent travelers from relying on inaccurate or invented data, unverified fields display 'Information unavailable' until confirmed by local authorities or site managers."
     },
     {
       q: "How does Himal AI handle questions about missing data?",
@@ -263,7 +263,7 @@ export default function HowItWorks() {
                   <FiAlertCircle /> Golden Rule for Admins
                 </div>
                 <p className="text-[11px] leading-snug">
-                  Never fabricate coordinates or costs. Empty fields gracefully render as "Not recorded" or "Map location unavailable", which protects travelers.
+                  Never fabricate coordinates or costs. Empty fields gracefully render as "Information unavailable" or "Map location unavailable", which protects travelers.
                 </p>
               </div>
             )}
@@ -313,13 +313,13 @@ export default function HowItWorks() {
               <tr className="hover:bg-slate-50/50">
                 <td className="py-3 px-4 font-bold text-slate-900">Best Time to Visit</td>
                 <td className="py-3 px-4 text-amber-700 font-medium">Season Unrecorded</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Not recorded</span></td>
+                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Information unavailable</span></td>
                 <td className="py-3 px-4 text-slate-500">Update seasonal details</td>
               </tr>
               <tr className="hover:bg-slate-50/50">
                 <td className="py-3 px-4 font-bold text-slate-900">Opening Hours & Entry Fees</td>
                 <td className="py-3 px-4 text-amber-700 font-medium">Hours / Fees Unrecorded</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Not recorded</span></td>
+                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Information unavailable</span></td>
                 <td className="py-3 px-4 text-slate-500">Fill in visitor desk hours</td>
               </tr>
               <tr className="hover:bg-slate-50/50">

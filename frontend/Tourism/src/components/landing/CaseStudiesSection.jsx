@@ -21,7 +21,7 @@ export default function CaseStudiesSection() {
             subtitle: offer.partner_name || offer.city || "Published package",
             desc: offer.summary || "",
             days: offer.duration_days,
-            cost: offer.price_npr != null ? `NPR ${Number(offer.price_npr).toLocaleString()}` : "Not recorded",
+            cost: offer.price_npr != null ? `NPR ${Number(offer.price_npr).toLocaleString()}` : "Information unavailable",
             image: offer.image_url,
             to: `/packages/${offer.slug}`,
             cta: "View published package",
@@ -34,10 +34,10 @@ export default function CaseStudiesSection() {
             setItems((Array.isArray(dests) ? dests : []).slice(0, 3).map((dest) => ({
               key: dest.id,
               title: dest.name,
-              subtitle: dest.display_city || dest.district || "Not recorded",
+              subtitle: dest.display_city || dest.district || "Information unavailable",
               desc: dest.short_description || "",
               days: dest.recommended_days,
-              cost: dest.entry_fee ? `NPR ${dest.entry_fee}` : "Not recorded",
+              cost: dest.entry_fee ? `NPR ${dest.entry_fee}` : "Information unavailable",
               image: getDestinationImageUrl(dest),
               to: dest.slug ? `/destinations/${dest.slug}` : "/destinations",
               cta: "View recorded destination",
@@ -81,7 +81,7 @@ export default function CaseStudiesSection() {
                 <div className="p-3.5 rounded-2xl bg-[#F7F8F5]/70 border border-[#E5E0D5] grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-gray-400 text-[10px] uppercase font-bold">Duration</span>
-                    <p className="font-extrabold text-gray-800">{exp.days ? `${exp.days} days` : "Not recorded"}</p>
+                    <p className="font-extrabold text-gray-800">{exp.days ? `${exp.days} days` : "Information unavailable"}</p>
                   </div>
                   <div>
                     <span className="text-gray-400 text-[10px] uppercase font-bold">Recorded cost</span>

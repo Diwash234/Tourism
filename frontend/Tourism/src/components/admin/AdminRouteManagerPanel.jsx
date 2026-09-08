@@ -243,7 +243,7 @@ export default function AdminRouteManagerPanel() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-300">
               <div><b>Distance:</b> {calcResult.distance_km != null ? `${calcResult.distance_km} km` : "Distance unavailable"}</div>
               <div><b>Duration:</b> {calcResult.estimated_duration}</div>
-              <div><b>Fare:</b> {calcResult.fare_npr != null ? `NPR ${calcResult.fare_npr}` : "Fare not recorded"}</div>
+              <div><b>Fare:</b> {calcResult.fare_npr != null ? `NPR ${calcResult.fare_npr}` : "Information unavailable"}</div>
               <div><b>Source:</b> {calcResult.fare_source}</div>
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function AdminRouteManagerPanel() {
                   <td className="p-3">{r.transport_mode}</td>
                   <td className="p-3">{r.distance_km ? `${r.distance_km} km` : "—"}</td>
                   <td className="p-3">{r.approx_duration || "—"}</td>
-                  <td className="p-3 font-mono text-amber-300">{r.estimated_fare_npr ? `NPR ${r.estimated_fare_npr}` : "Not recorded"}</td>
+                  <td className="p-3 font-mono text-amber-300">{r.estimated_fare_npr ? `NPR ${r.estimated_fare_npr}` : "Information unavailable"}</td>
                   <td className="p-3"><span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">{r.confidence_level || "CALCULATED"}</span></td>
                   <td className="p-3 text-right">
                     <button

@@ -33,6 +33,30 @@ NEPAL_LANDMARKS = {
 }
 
 
+
+def _safe_image_url(field):
+    """Return a URL string for an ImageField without ever opening the file.
+
+    A raw FieldFile in a JSON payload makes DRF read the file from storage
+    (500 when the media file is missing), and an empty field raises on .url.
+    Some legacy rows stored an external URL as the file name — restore those
+    to a usable absolute URL instead of a broken /media/https:/... path.
+    """
+    try:
+        if not field:
+            return ""
+        name = getattr(field, "name", "") or ""
+        if name.startswith(("http://", "https://")):
+            return name
+        if name.startswith("https:/"):
+            return "https://" + name[len("https:/"):]
+        if name.startswith("http:/"):
+            return "http://" + name[len("http:/"):]
+        return field.url or ""
+    except (ValueError, AttributeError):
+        return ""
+
+
 def compute_bearing(lat1, lng1, lat2, lng2):
     """Calculates compass bearing in degrees and 8-cardinal direction text."""
     try:
@@ -102,7 +126,7 @@ class LocationSearchService:
                 "address": f"{d.city or ''}, {d.district or 'Nepal'}".strip(", "),
                 "city": d.city or "Pokhara",
                 "slug": d.slug,
-                "image_url": d.cover_image or "",
+                "image_url": _safe_image_url(d.cover_image),
                 "source": "verified_database",
                 "is_destination": True,
             })
@@ -124,7 +148,7 @@ class LocationSearchService:
                 "address": s.address or f"{s.district or 'Nepal'}",
                 "city": s.district or "Pokhara",
                 "phone": s.phone or "",
-                "image_url": s.image.url if getattr(s, "image", None) else "",
+                "image_url": _safe_image_url(s.image),
                 "source": "osm_essential_service",
                 "is_destination": False,
             })
@@ -272,6 +296,21 @@ class LocationSearchService:
                 "city": v["city"], "address": f"{v['city']}, Nepal", "is_destination": True,
             }
 
+        # Check municipality index before fuzzy destination matches, so
+        # "Kathmandu" resolves to the city centre rather than whichever
+        # destination row happens to mention Kathmandu.
+        for suffix in ("", " municipality", " metropolitan city", " rural municipality"):
+            entry = MUNICIPALITY_COORDINATES.get(f"{q}{suffix}")
+            if entry:
+                return {
+                    "name": f"{q.title()}{suffix.title()}" if suffix else q.title(),
+                    "latitude": entry["lat"],
+                    "longitude": entry["lng"],
+                    "city": q.title(),
+                    "address": f"{entry.get('district', '')}, {entry.get('province', '')}, Nepal".strip(", "),
+                    "is_destination": False,
+                }
+
         # Check Destination table
         from tourist.models import Destination
         dest = Destination.objects.filter(
@@ -304,12 +343,7 @@ class LocationSearchService:
                 "is_destination": item.get("is_destination", True),
             }
 
-        # Fallback to Pokhara center
-        return {
-            "name": query_or_name.title(),
-            "latitude": POKHARA_CENTER[0],
-            "longitude": POKHARA_CENTER[1],
-            "city": "Pokhara",
-            "address": "Pokhara, Gandaki Province, Nepal",
-            "is_destination": True,
-        }
+        # No fabricated fallback: an unrecognized place resolves to None so
+        # callers surface "not found" instead of silently routing from/to
+        # Pokhara. (Golden rule: never present invented coordinates as fact.)
+        return None

@@ -317,11 +317,37 @@ class NavigationRouteView(APIView):
                     return data[key]
             return None
 
+        start_lat_raw = pick("start_latitude", "startLat", "start_lat", "originLat")
+        start_lon_raw = pick("start_longitude", "startLng", "start_lng", "originLng")
         try:
-            start_lat = _parse_float(pick("start_latitude", "startLat", "start_lat", "originLat"), "start latitude")
-            start_lon = _parse_float(pick("start_longitude", "startLng", "start_lng", "originLng"), "start longitude")
+            # Coordinates are optional when origin_name can supply the start.
+            start_lat = _parse_float(start_lat_raw, "start latitude") if start_lat_raw is not None else None
+            start_lon = _parse_float(start_lon_raw, "start longitude") if start_lon_raw is not None else None
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Origin by name (e.g. "From: Kathmandu") — lets travellers plan a
+        # route without GPS. Resolved through the same universal place index
+        # as destinations; a fabricated default origin is never substituted.
+        origin_name = pick("origin_name", "originName")
+        origin_label = None
+        if (start_lat is None or start_lon is None) and origin_name and origin_name.lower() not in {"current location", "my current location"}:
+            from .location.search_service import LocationSearchService
+            resolved_origin = LocationSearchService.resolve_single_place(origin_name)
+            if not (resolved_origin and resolved_origin.get("latitude") and resolved_origin.get("longitude")):
+                return Response(
+                    {"detail": f"No place with recorded coordinates matches origin '{origin_name}'. Share your GPS location or pick a known place."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            start_lat = float(resolved_origin["latitude"])
+            start_lon = float(resolved_origin["longitude"])
+            origin_label = resolved_origin.get("name") or origin_name
+
+        if start_lat is None or start_lon is None:
+            return Response(
+                {"detail": "Provide start coordinates (GPS) or a recognizable origin_name — routes are never calculated from an assumed city."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Your Navigation.jsx sends `destination_name` (free text) rather
         # than raw coordinates — resolve it against real Destination rows
@@ -426,6 +452,13 @@ class NavigationRouteView(APIView):
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data
         elif destination_dict:
             response_data["destination"] = destination_dict
+        if origin_label:
+            response_data["origin"] = {
+                "name": origin_label,
+                "latitude": start_lat,
+                "longitude": start_lon,
+                "resolved_from": "origin_name",
+            }
         return Response(response_data)
 
 

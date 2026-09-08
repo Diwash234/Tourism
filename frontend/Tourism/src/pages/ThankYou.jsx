@@ -38,7 +38,7 @@ export default function ThankYou() {
             <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
               <FiCompass className="text-[#102A2E]" /> Explore Destinations
             </h4>
-            <p className="text-xs text-gray-500 mt-1">Browse recorded destinations across Nepal. Empty fields stay Not recorded.</p>
+            <p className="text-xs text-gray-500 mt-1">Browse recorded destinations across Nepal. Empty fields stay "Information unavailable".</p>
             <Link to="/destinations" className="text-xs font-bold text-[#102A2E] hover:underline inline-block mt-2">
               Browse Places ➔
             </Link>

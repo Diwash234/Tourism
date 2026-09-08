@@ -13,7 +13,7 @@ import destinationApi from "../../api/destinationApi"
 import emergencyApi from "../../api/emergencyApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
-import { formatCoords, hasValidCoords, placeLocationLabel } from "../../utils/placeUtils"
+import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
 import { photoApi } from "../../services/api"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { CMSExtras } from "../../components/cms/CMSBlock"
@@ -197,9 +197,9 @@ export default function DestinationDetails() {
       url: heroUrl,
       caption: destination.name,
       category: "hero",
-      photographer: destination.gallery?.[0]?.photographer || "Not recorded",
+      photographer: destination.gallery?.[0]?.photographer || INFO_UNAVAILABLE,
       platform: destination.gallery?.[0]?.source_platform || destination.gallery?.[0]?.source || "Recorded destination media",
-      license: destination.gallery?.[0]?.license_type || "Not recorded",
+      license: destination.gallery?.[0]?.license_type || INFO_UNAVAILABLE,
     })
   }
 
@@ -211,9 +211,9 @@ export default function DestinationDetails() {
           url,
           caption: g.caption || `${destination.name} - View ${idx + 1}`,
           category: g.image_category || "recorded",
-          photographer: g.photographer || g.attribution || "Not recorded",
-          platform: g.source_platform || g.source || "Not recorded",
-          license: g.license_type || "Not recorded",
+          photographer: g.photographer || g.attribution || INFO_UNAVAILABLE,
+          platform: g.source_platform || g.source || INFO_UNAVAILABLE,
+          license: g.license_type || INFO_UNAVAILABLE,
         })
       }
     })
@@ -238,7 +238,7 @@ export default function DestinationDetails() {
   const riskAnalysis = destination.risk_analysis
   const budgetEst = destination.budget_estimation
   const riskCategory = (riskAnalysis?.risk_category || activeAlert?.severity || "").toUpperCase()
-  const level = RISK_LEVELS[riskCategory] || { label: "Not recorded", color: "bg-gray-100 text-gray-700" }
+  const level = RISK_LEVELS[riskCategory] || { label: INFO_UNAVAILABLE, color: "bg-gray-100 text-gray-700" }
 
   return (
     <div className="container-app py-8 space-y-8 animate-fadeIn">
@@ -262,19 +262,19 @@ export default function DestinationDetails() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
           <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiMapPin /> Nearest Major City</p>
-          <p className="font-bold text-slate-900 mt-1">{destination.nearest_major_city || "Not recorded"}</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.nearest_major_city || INFO_UNAVAILABLE}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
           <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiTruck /> Nearest Airport</p>
-          <p className="font-bold text-slate-900 mt-1">{destination.nearest_airport_name || "Not recorded"}</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.nearest_airport_name || INFO_UNAVAILABLE}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
           <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiClock /> Recommended Stay</p>
-          <p className="font-bold text-slate-900 mt-1">{destination.recommended_days ? `${destination.recommended_days} days` : "Not recorded"}</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.recommended_days ? `${destination.recommended_days} days` : INFO_UNAVAILABLE}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
           <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiSun /> Best Visiting Season</p>
-          <p className="font-bold text-slate-900 mt-1">{destination.best_time_to_visit || "Not recorded"}</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.best_time_to_visit || INFO_UNAVAILABLE}</p>
         </div>
       </div>
 
@@ -350,23 +350,23 @@ export default function DestinationDetails() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-3xl bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white shadow-xl">
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
-          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
-          <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || "Travel time not recorded"}</span>
+          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || INFO_UNAVAILABLE}</span>
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Major City</span>
-          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || "Not recorded"}</p>
-          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : "Distance not recorded"}</span>
+          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : INFO_UNAVAILABLE}</span>
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Airport</span>
-          <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || "Not recorded"}</p>
-          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km != null ? `${destination.distance_from_nearest_airport_km} km` : "Distance not recorded"}</span>
+          <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km != null ? `${destination.distance_from_nearest_airport_km} km` : INFO_UNAVAILABLE}</span>
         </div>
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">Recommended Stay</span>
-          <p className="text-xl font-black mt-0.5">{destination.recommended_days ? `${destination.recommended_days} Days` : "Not recorded"}</p>
-          <span className="text-[11px] text-emerald-300 font-bold">{destination.best_time_to_visit || "Season not recorded"}</span>
+          <p className="text-xl font-black mt-0.5">{destination.recommended_days ? `${destination.recommended_days} Days` : INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-emerald-300 font-bold">{destination.best_time_to_visit || INFO_UNAVAILABLE}</span>
         </div>
       </div>
 
@@ -380,7 +380,7 @@ export default function DestinationDetails() {
               <FiCompass className="text-primary-700" /> About {destination.name}
             </h2>
             <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-              {destination.description || "Not recorded — we will update soon"}
+              {destination.description || `${INFO_UNAVAILABLE} — we will update soon`}
             </p>
 
             {destination.tourism_importance && (
@@ -438,11 +438,11 @@ export default function DestinationDetails() {
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs sm:text-sm text-gray-900">{act.name}</h4>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-secondary-200 text-primary-900">
-                      {act.difficulty_level || "Not recorded"}
+                      {act.difficulty_level || INFO_UNAVAILABLE}
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{act.description}</p>
-                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || "Duration not recorded"}</p>
+                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || INFO_UNAVAILABLE}</p>
                 </div>
               ))}
               {!(destination.activities?.length) && (
@@ -710,15 +710,15 @@ export default function DestinationDetails() {
             </div>
             {budgetEst ? (
               <div className="space-y-2 text-sm text-gray-700">
-                <div className="flex justify-between"><span>Daily</span><b>{budgetEst.estimated_daily_budget != null ? `NPR ${budgetEst.estimated_daily_budget}` : "Not recorded"}</b></div>
-                <div className="flex justify-between"><span>Trip</span><b>{budgetEst.estimated_trip_budget != null ? `NPR ${budgetEst.estimated_trip_budget}` : "Not recorded"}</b></div>
-                <div className="flex justify-between"><span>Stay / night</span><b>{budgetEst.accommodation_per_night != null ? `NPR ${budgetEst.accommodation_per_night}` : "Not recorded"}</b></div>
-                <div className="flex justify-between"><span>Meals / day</span><b>{budgetEst.food_cost_per_day != null ? `NPR ${budgetEst.food_cost_per_day}` : "Not recorded"}</b></div>
-                <div className="flex justify-between"><span>Transit</span><b>{budgetEst.transport_cost != null ? `NPR ${budgetEst.transport_cost}` : "Not recorded"}</b></div>
-                <div className="flex justify-between"><span>Entry fee</span><b>{destination.entry_fee ? `NPR ${destination.entry_fee}` : "Not recorded"}</b></div>
+                <div className="flex justify-between"><span>Daily</span><b>{budgetEst.estimated_daily_budget != null ? `NPR ${budgetEst.estimated_daily_budget}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Trip</span><b>{budgetEst.estimated_trip_budget != null ? `NPR ${budgetEst.estimated_trip_budget}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Stay / night</span><b>{budgetEst.accommodation_per_night != null ? `NPR ${budgetEst.accommodation_per_night}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Meals / day</span><b>{budgetEst.food_cost_per_day != null ? `NPR ${budgetEst.food_cost_per_day}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Transit</span><b>{budgetEst.transport_cost != null ? `NPR ${budgetEst.transport_cost}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Entry fee</span><b>{destination.entry_fee ? `NPR ${destination.entry_fee}` : INFO_UNAVAILABLE}</b></div>
               </div>
             ) : (
-              <p className="text-sm text-slate-600">Not recorded — we will update soon. An administrator can add a budget row from the destination editor.</p>
+              <p className="text-sm text-slate-600">Information unavailable — we will update soon. An administrator can add a budget row from the destination editor.</p>
             )}
           </div>
 
@@ -736,11 +736,11 @@ export default function DestinationDetails() {
             <div className="space-y-2 text-xs text-gray-700">
               <div className="flex justify-between">
                 <span>Tourism Risk Index:</span>
-                <b className="text-primary-900">{riskAnalysis?.tourism_risk_index != null ? `${riskAnalysis.tourism_risk_index} / 100` : "Not recorded"}</b>
+                <b className="text-primary-900">{riskAnalysis?.tourism_risk_index != null ? `${riskAnalysis.tourism_risk_index} / 100` : INFO_UNAVAILABLE}</b>
               </div>
               <div className="flex justify-between">
                 <span>Risk category:</span>
-                <b className="text-emerald-700">{riskAnalysis?.risk_category || "Not recorded"}</b>
+                <b className="text-emerald-700">{riskAnalysis?.risk_category || INFO_UNAVAILABLE}</b>
               </div>
             </div>
 
@@ -816,7 +816,7 @@ export default function DestinationDetails() {
                     🎒 Offline Travel Kit & Safety Package
                   </span>
                   <h3 className="text-2xl font-black text-gray-900 mt-2">{destination.name}</h3>
-                  <p className="text-xs text-gray-500">{placeLocationLabel(destination)} · Elevation: {destination.altitude || "Not recorded"}</p>
+                  <p className="text-xs text-gray-500">{placeLocationLabel(destination)} · Elevation: {destination.altitude || INFO_UNAVAILABLE}</p>
                 </div>
                 <button
                   onClick={() => setShowOfflineKit(false)}
@@ -834,9 +834,9 @@ export default function DestinationDetails() {
                     <FiMapPin /> GPS Location & Visiting Season
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <div><b>GPS:</b> {formatCoords(destination.latitude, destination.longitude) || "Not recorded"}</div>
-                    <div><b>Altitude:</b> {destination.altitude || "Not recorded"}</div>
-                    <div><b>Best Months:</b> {destination.best_time_to_visit || "Not recorded"}</div>
+                    <div><b>GPS:</b> {formatCoords(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</div>
+                    <div><b>Altitude:</b> {destination.altitude || INFO_UNAVAILABLE}</div>
+                    <div><b>Best Months:</b> {destination.best_time_to_visit || INFO_UNAVAILABLE}</div>
                   </div>
                 </div>
 
@@ -869,7 +869,7 @@ export default function DestinationDetails() {
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
                       <span className="text-[10px] text-gray-500 block">Local rescue</span>
-                      <b className="text-rose-700 text-sm">{destination.nearest_hospital_info || "Not recorded"}</b>
+                      <b className="text-rose-700 text-sm">{destination.nearest_hospital_info || INFO_UNAVAILABLE}</b>
                     </div>
                   </div>
                 </div>
@@ -879,7 +879,7 @@ export default function DestinationDetails() {
                   <h4 className="font-bold text-sm text-amber-900 flex items-center gap-1.5">
                     <FiTruck /> Road Transit & Approximate Fares
                   </h4>
-                  <p><b>Distance from Kathmandu:</b> {destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
+                  <p><b>Distance from Kathmandu:</b> {destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
                   <p><b>Recorded transit fare:</b> {destination.transit_routes?.[0]?.estimated_fare_npr != null ? `NPR ${destination.transit_routes[0].estimated_fare_npr} (${destination.transit_routes[0].transport_mode || "recorded route"})` : "No transit fare is stored for this place"}</p>
                 </div>
 

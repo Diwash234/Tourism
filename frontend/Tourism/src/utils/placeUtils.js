@@ -1,4 +1,8 @@
-export const NOT_RECORDED = "Not recorded"
+// Spec wording: when data genuinely cannot be obtained, the UI says
+// "Information unavailable" (never "not recorded", and never a fabricated
+// value). Calculable values must be derived instead — see haversineKm /
+// straightLineFromKathmandu below.
+export const NOT_RECORDED = "Information unavailable"
 export const UPDATE_SOON = "We will update soon"
 
 const EMPTY_TOKENS = new Set(["", "undefined", "null", "nan", "none", "n/a", "—", "-"])
@@ -54,4 +58,71 @@ export function unwrapFavoriteDestination(row) {
   if (row.destination_detail && typeof row.destination_detail === "object") return row.destination_detail
   if (row.destination && typeof row.destination === "object" && row.destination.name) return row.destination
   return row.name ? row : null
+}
+
+// --- Golden-rule helpers (spec: never say "not recorded" when the value can
+// be calculated/retrieved/derived; "Information unavailable" only when the
+// data genuinely cannot be obtained) ------------------------------------------
+export const INFO_UNAVAILABLE = "Information unavailable"
+
+// Kathmandu Metropolitan City reference point (matches the internal geocoder
+// index) used to DERIVE straight-line distances when no curated road distance
+// is stored.
+export const KATHMANDU_COORDS = { lat: 27.7172, lng: 85.324 }
+
+export function haversineKm(lat1, lon1, lat2, lon2) {
+  if (!hasValidCoords(lat1, lon1) || !hasValidCoords(lat2, lon2)) return null
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+}
+
+// Labelled straight-line distance from Kathmandu, or null when coordinates
+// are missing (caller then falls back to INFO_UNAVAILABLE).
+export function straightLineFromKathmandu(lat, lng) {
+  const km = haversineKm(KATHMANDU_COORDS.lat, KATHMANDU_COORDS.lng, lat, lng)
+  return km == null ? null : `≈ ${km} km (straight line)`
+}
+
+// --- Sidebar / header identity helpers (spec item 12) ------------------------
+// The visible username must be a real display name — the email is a fallback
+// of last resort — and the role must be a human label, never a raw enum.
+const ROLE_LABELS = {
+  tourist: "Traveller",
+  traveller: "Traveller",
+  guide: "Local Guide",
+  local_guide: "Local Guide",
+  admin: "Administrator",
+  super_admin: "Administrator",
+  tourism_admin: "Tourism Admin",
+  content_moderator: "Content Moderator",
+  district_manager: "District Manager",
+  hotel_manager: "Hotel Manager",
+  staff: "Staff",
+  tourist_police: "Tourist Police",
+  police: "Police",
+  hospital_staff: "Hospital Staff",
+  rescue_team: "Rescue Team",
+  emergency_operator: "Emergency Operator",
+  qa_tester: "QA Tester",
+}
+
+export function userDisplayName(user) {
+  if (!user) return ""
+  const full = [user.first_name, user.last_name].filter(Boolean).join(" ").trim()
+  if (full) return full
+  if (user.full_name && !String(user.full_name).includes("@")) return String(user.full_name).trim()
+  if (user.username && !String(user.username).includes("@")) return String(user.username).trim()
+  // Email of last resort: show only the local part, never the full address.
+  if (user.email) return String(user.email).split("@")[0]
+  return "Traveller"
+}
+
+export function userRoleLabel(user) {
+  const raw = String(user?.role || "").toLowerCase()
+  return ROLE_LABELS[raw] || (raw ? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Traveller")
 }

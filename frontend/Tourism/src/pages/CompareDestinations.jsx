@@ -47,9 +47,19 @@ const PRESETS = [
   },
 ]
 
+// Kathmandu reference point (Kathmandu Metropolitan City, per the internal
+// geocoder index) used to DERIVE a straight-line distance when the curated
+// road-distance field is missing. Golden rule: never say "not recorded"
+// when the value can be calculated from coordinates.
+const KATHMANDU = { lat: 27.7172, lng: 85.324 }
+const UNAVAILABLE = "Information unavailable"
+
 function formatComparePlace(dest) {
   if (!dest) return null
   const budget = dest.budget_estimation
+  const lat = dest.latitude != null ? Number(dest.latitude) : null
+  const lng = dest.longitude != null ? Number(dest.longitude) : null
+  const straightFromKtm = calculateDistanceKm(KATHMANDU.lat, KATHMANDU.lng, lat, lng)
   return {
     id: dest.id,
     name: dest.name,
@@ -57,25 +67,27 @@ function formatComparePlace(dest) {
     image: dest.cover_image_url || dest.cover_image || "",
     province: dest.province || "",
     district: dest.district || "",
-    altitude: dest.altitude || "Not recorded",
+    altitude: dest.altitude || UNAVAILABLE,
     category: dest.category_name || dest.category?.name || dest.category || "Attraction",
-    difficulty: dest.feature_profile?.difficulty || "Not recorded",
+    difficulty: dest.feature_profile?.difficulty || UNAVAILABLE,
     daily_budget_npr: budget?.estimated_daily_budget != null
       ? `Recorded daily: ${budget.estimated_daily_budget}`
       : dest.budget_estimate != null
         ? `Recorded estimate: ${dest.budget_estimate}`
-        : "Budget not recorded",
+        : UNAVAILABLE,
     trip_budget_npr: budget?.estimated_trip_budget != null
       ? `Recorded trip: ${budget.estimated_trip_budget}`
-      : "Trip budget not recorded",
-    best_season: dest.recommended_season || dest.best_time_to_visit || "Not recorded",
+      : UNAVAILABLE,
+    best_season: dest.recommended_season || dest.best_time_to_visit || UNAVAILABLE,
     distance_ktm: dest.distance_from_kathmandu_km != null
-      ? `${dest.distance_from_kathmandu_km} km from Kathmandu`
-      : "Distance not recorded",
-    lat: dest.latitude != null ? Number(dest.latitude) : null,
-    lng: dest.longitude != null ? Number(dest.longitude) : null,
-    permits: dest.travel_safety_tips || "Permit rules not recorded",
-    highlight: dest.short_description || dest.description || "No description recorded",
+      ? `${dest.distance_from_kathmandu_km} km from Kathmandu (road)`
+      : straightFromKtm != null
+        ? `≈ ${straightFromKtm} km from Kathmandu (straight line)`
+        : UNAVAILABLE,
+    lat,
+    lng,
+    permits: dest.travel_safety_tips || UNAVAILABLE,
+    highlight: dest.short_description || dest.description || UNAVAILABLE,
     location: placeLocationLabel(dest),
   }
 }
@@ -166,7 +178,7 @@ export default function CompareDestinations() {
         </span>
         <PageHeader title="Compare recorded Nepal destinations" icon={FiColumns} />
         <p className="text-sm text-gray-500">
-          Only stored fields are shown. Empty values stay “Not recorded”.
+          Only stored fields are shown. Empty values stay “Information unavailable”.
         </p>
       </div>
 
@@ -312,8 +324,10 @@ export default function CompareDestinations() {
                   </span>
                   <p className="text-[11px] font-bold text-emerald-800">
                     {hasValidCoords(dest.lat, dest.lng) && position?.lat && position?.lng
-                      ? `${calculateDistanceKm(position.lat, position.lng, dest.lat, dest.lng)} km away from you`
-                      : formatCoords(dest.lat, dest.lng) || "Coordinates not recorded"}
+                      ? `≈ ${calculateDistanceKm(position.lat, position.lng, dest.lat, dest.lng)} km away from you (straight line)`
+                      : hasValidCoords(dest.lat, dest.lng)
+                        ? `Coordinates ${formatCoords(dest.lat, dest.lng)} — enable location to measure`
+                        : "Information unavailable"}
                   </p>
                 </div>
                 <div className="py-1.5 border-b border-gray-100 space-y-1">

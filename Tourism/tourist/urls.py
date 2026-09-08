@@ -108,6 +108,9 @@ urlpatterns = [
     path("nearby/hospitals", views_compat.NearbyHospitalsView.as_view(), name="compat-nearby-hospitals"),
     path("nearby/police", views_compat.NearbyPoliceView.as_view(), name="compat-nearby-police"),
     path("navigation/route", views_compat.NavigationRouteView.as_view(), name="compat-navigation-route"),
+    # Universal Navigation search (destinations + OSM services + landmarks)
+    path("places/search/", views_navigation.UniversalPlaceSearchView.as_view(), name="universal-place-search"),
+    path("places/nearby/", views_navigation.UniversalPlaceNearbyView.as_view(), name="universal-place-nearby"),
     path("weather/current/", views_compat.WeatherByCoordinatesView.as_view(), name="compat-weather-current"),
     path("places/osm-nearby/", views.OSMNearbyPlacesView.as_view(), name="osm-nearby-places"),
     path("osm/essential-services/sync/", views_osm.OSMEssentialServiceSyncView.as_view(), name="osm-essential-sync"),

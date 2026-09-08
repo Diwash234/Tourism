@@ -14,6 +14,7 @@ import useAuth from "../../hooks/useAuth"
 import useSidebarState, { closeSidebar } from "../../hooks/useSidebarState"
 import { useI18n } from "../../i18n"
 import configApi from "../../api/configApi"
+import { userDisplayName, userRoleLabel } from "../../utils/placeUtils"
 
 const GROUPS = [
   {
@@ -55,7 +56,7 @@ const GROUPS = [
       { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: BsExclamationTriangle, color: "red" },
       { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: BsBell, color: "nepalred" },
       { to: "/family-safety", label: "Family Safety", icon: BsPeople, color: "emerald" },
-      { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
+      { to: "/navigation", label: "Maps & Navigation", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
       { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: BsChatQuote, color: "emerald" },
       { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: BsTranslate, color: "cyan" },
       { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: BsRobot, color: "terracotta" },
@@ -223,12 +224,12 @@ export default function Sidebar() {
           {isAuthenticated ? (
             <div className={`p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-nav-tintStrong flex items-center gap-3 ${iconMode ? "lg:justify-center lg:p-2" : ""}`}>
               <div className="w-10 h-10 rounded-xl bg-nav-active text-white font-black flex items-center justify-center text-sm shadow shrink-0">
-                {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase()}
+                {userDisplayName(user)?.[0]?.toUpperCase() || "T"}
               </div>
               <div className={`min-w-0 ${iconMode ? "lg:hidden" : ""}`}>
-                <p className="font-bold text-xs text-gray-900 truncate">{user?.full_name || user?.email}</p>
+                <p className="font-bold text-xs text-gray-900 truncate">{userDisplayName(user)}</p>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-nav-tintStrong text-nav-deep">
-                  {user?.role || "Tourist"}
+                  {userRoleLabel(user)}
                 </span>
               </div>
             </div>

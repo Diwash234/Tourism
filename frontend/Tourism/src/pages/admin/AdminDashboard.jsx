@@ -720,7 +720,7 @@ const AdminDashboard = () => {
                   <p className="text-xs text-slate-300 uppercase font-medium">Total Data Views</p>
                   <p className="text-3xl font-black text-white">{stats?.totalDestinationViews ?? "—"}</p>
                   <span className="text-[11px] text-slate-300 font-medium">
-                    {stats?.totalVisitsLogged != null ? `${stats.totalVisitsLogged} visits tracked` : "Visits not recorded"}
+                    {stats?.totalVisitsLogged != null ? `${stats.totalVisitsLogged} visits tracked` : "No visits tracked yet"}
                   </span>
                 </div>
               </div>
@@ -924,11 +924,11 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <span className="text-slate-300 font-bold">Elevation (m)</span>
-                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "Not recorded"}</p>
+                        <p className="font-black text-cyan-300 text-sm mt-0.5">{researchResult.destination.altitude || "Information unavailable"}</p>
                       </div>
                       <div>
                         <span className="text-slate-300 font-bold">Distance from KTM</span>
-                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km != null ? `${researchResult.destination.distance_from_kathmandu_km} km` : "Not recorded"}</p>
+                        <p className="font-black text-emerald-300 text-sm mt-0.5">{researchResult.destination.distance_from_kathmandu_km != null ? `${researchResult.destination.distance_from_kathmandu_km} km` : "Information unavailable"}</p>
                       </div>
                     </div>
 
@@ -2210,7 +2210,7 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-900/80 border border-slate-600/50 text-xs">
                 <div>
                   <span className="text-slate-300">Province</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Not recorded"}</p>
+                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Information unavailable"}</p>
                 </div>
                 <div>
                   <span className="text-slate-300">District / City</span>

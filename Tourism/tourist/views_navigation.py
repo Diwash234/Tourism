@@ -153,11 +153,39 @@ class UserRouteCalculateView(APIView):
         })
 
 
+def _places_cache_key(prefix, q, category, lat, lng, radius_km):
+    """Cache key per spec item 19: normalized query + quantized coords.
+
+    Coordinates are quantized to ~100 m so neighbouring users share entries
+    without meaningfully changing results at the radii involved (>= 1 km).
+    """
+    import hashlib
+
+    def quant(value):
+        try:
+            return f"{round(float(value), 3):.3f}"
+        except (TypeError, ValueError):
+            return "-"
+
+    raw = "|".join([
+        (q or "").strip().lower(),
+        (category or "").strip().lower(),
+        quant(lat), quant(lng), f"{float(radius_km):.1f}",
+    ])
+    return f"{prefix}:" + hashlib.sha256(raw.encode()).hexdigest()
+
+
+# Cache lifetime for place search/nearby results (spec: store result +
+# timestamp; Django's cache stores the expiry for us).
+PLACES_CACHE_TTL = 900
+
+
 class UniversalPlaceSearchView(APIView):
     """
     GET /api/v1/places/search/?q=Lakeside&lat=28.2&lng=83.9
     Universal search for ANY place in Nepal: recorded destinations, banks, ATMs,
     pharmacies, stores, hospitals, police, restaurants, hotels, gas stations, landmarks.
+    Cached per (query, category, ~coords, radius).
     """
     permission_classes = [permissions.AllowAny]
 
@@ -171,17 +199,26 @@ class UniversalPlaceSearchView(APIView):
         except (TypeError, ValueError):
             radius_km = 50.0
 
+        from django.core.cache import cache
+        key = _places_cache_key("place-search", q, category, lat, lng, radius_km)
+        cached = cache.get(key)
+        if cached is not None:
+            return Response(cached)
+
         from .location.search_service import LocationSearchService
         results = LocationSearchService.search_places(
             query=q, user_lat=lat, user_lng=lng, category=category, radius_km=radius_km, limit=30
         )
-        return Response({"count": len(results), "query": q, "results": results})
+        payload = {"count": len(results), "query": q, "results": results}
+        cache.set(key, payload, PLACES_CACHE_TTL)
+        return Response(payload)
 
 
 class UniversalPlaceNearbyView(APIView):
     """
     GET /api/v1/places/nearby/?lat=28.2096&lng=83.9856&category=bank
     Nearby search for banks, ATMs, pharmacies, stores, hospitals, police, etc.
+    Cached per (category, ~coords, radius).
     """
     permission_classes = [permissions.AllowAny]
 
@@ -195,11 +232,19 @@ class UniversalPlaceNearbyView(APIView):
         except (TypeError, ValueError):
             radius_km = 30.0
 
+        from django.core.cache import cache
+        key = _places_cache_key("place-nearby", q, category, lat, lng, radius_km)
+        cached = cache.get(key)
+        if cached is not None:
+            return Response(cached)
+
         from .location.search_service import LocationSearchService
         results = LocationSearchService.search_places(
             query=q, user_lat=lat, user_lng=lng, category=category, radius_km=radius_km, limit=30
         )
-        return Response({"count": len(results), "items": results, "results": results})
+        payload = {"count": len(results), "items": results, "results": results}
+        cache.set(key, payload, PLACES_CACHE_TTL)
+        return Response(payload)
 
 
 class UserDataReportSubmitView(APIView):

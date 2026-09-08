@@ -47,7 +47,7 @@ const FEATURES = [
   {
     icon: FiMapPin,
     title: "Recorded destinations",
-    desc: "Browse places stored in the Nepal catalogue. Missing city, season, or budget fields stay Not recorded until an administrator adds them.",
+    desc: "Browse places stored in the Nepal catalogue. Missing city, season, or budget fields stay 'Information unavailable' until an administrator adds them.",
   },
   {
     icon: FiDollarSign,
@@ -69,11 +69,11 @@ const FEATURES = [
 const FAQ_ITEMS = [
   {
     question: "Why use this Nepal Tourism portal over generic search engines?",
-    answer: "This portal lists destinations, emergency contacts, and published packages that are stored in the database. If a field is empty it shows Not recorded instead of inventing a value."
+    answer: "This portal lists destinations, emergency contacts, and published packages that are stored in the database. If a field is empty it shows 'Information unavailable' instead of inventing a value."
   },
   {
     question: "How accurate are the travel budget estimates?",
-    answer: "Only recorded NPR amounts from destination entry fees, budget rows, or published packages are shown. Missing costs stay Not recorded until an administrator updates them."
+    answer: "Only recorded NPR amounts from destination entry fees, budget rows, or published packages are shown. Missing costs stay 'Information unavailable' until an administrator updates them."
   },
   {
     question: "What should I do during high-altitude or medical emergencies?",
@@ -85,7 +85,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "Does the navigation work for remote Himalayan trekking routes?",
-    answer: "Navigation uses recorded destination coordinates. If a place has no stored latitude and longitude, the map pin is Not recorded."
+    answer: "Navigation uses recorded destination coordinates. If a place has no stored latitude and longitude, the map pin is unavailable."
   }
 ]
 

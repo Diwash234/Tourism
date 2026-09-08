@@ -142,7 +142,7 @@ export default function DataHealthPanel() {
             <FiShield size={18} />
           </div>
           <p className="text-[11px] text-emerald-200/90 leading-relaxed">
-            All unrecorded distances, fares, or GPS coordinates explicitly display <i>"Not recorded"</i> across traveler views.
+            All unrecorded distances, fares, or GPS coordinates explicitly display <i>"Information unavailable"</i> across traveler views.
           </p>
         </div>
       </div>

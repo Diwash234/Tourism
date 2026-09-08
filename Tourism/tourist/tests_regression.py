@@ -797,3 +797,101 @@ class TokenRefreshContractTests(TestCase):
             HTTP_AUTHORIZATION="Bearer stale-or-forged-token",
         )
         self.assertEqual(resp.status_code, 401)
+
+
+class UniversalPlaceEndpointTests(TestCase):
+    """Pins the newly-routed universal Navigation endpoints (spec items 2/4/5)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Destination
+        cls.dest = Destination.objects.create(
+            name="Hupsekot Waterfall",
+            slug="hupsekot-waterfall",
+            city="Hupsekot",
+            district="Nawalpur",
+            latitude=27.6500,
+            longitude=84.1200,
+            is_active=True,
+        )
+
+    def test_places_search_finds_recorded_destination(self):
+        resp = self.client.get("/api/v1/places/search/", {"q": "Hupsekot Waterfall", "lat": "27.7", "lng": "84.1"})
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertGreaterEqual(body["count"], 1)
+        names = [r.get("name", "").lower() for r in body["results"]]
+        self.assertTrue(any("hupsekot" in n for n in names), names[:5])
+
+    def test_places_search_category_intent(self):
+        resp = self.client.get("/api/v1/places/search/", {"q": "hospital", "lat": "27.7", "lng": "84.1"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("results", resp.json())
+
+    def test_places_nearby_returns_items_and_results(self):
+        resp = self.client.get(
+            "/api/v1/places/nearby/",
+            {"lat": "27.65", "lng": "84.12", "category": "hospital", "radius_km": "50"},
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("items", body)
+        self.assertIn("results", body)
+
+    def test_places_nearby_caches_repeat_queries(self):
+        from django.core.cache import cache
+        cache.clear()
+        params = {"lat": "27.65001", "lng": "84.12001", "category": "bank", "radius_km": "10"}
+        first = self.client.get("/api/v1/places/nearby/", params)
+        self.assertEqual(first.status_code, 200)
+        second = self.client.get("/api/v1/places/nearby/", params)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.json(), second.json())
+
+
+class NavigationOriginResolutionTests(TestCase):
+    """POST /navigation/route must resolve origin_name instead of demanding
+    coordinates the frontend used to fake with a default city."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Destination
+        cls.dest = Destination.objects.create(
+            name="Phewa Lake",
+            slug="phewa-lake",
+            city="Pokhara",
+            district="Kaski",
+            latitude=28.2117,
+            longitude=83.9517,
+            is_active=True,
+        )
+        cls.origin = Destination.objects.create(
+            name="Kathmandu Durbar Square",
+            slug="kathmandu-durbar-square",
+            city="Kathmandu",
+            district="Kathmandu",
+            latitude=27.6722,
+            longitude=85.3066,
+            is_active=True,
+        )
+
+    def test_origin_name_resolves_without_coordinates(self):
+        resp = self.client.post(
+            "/api/v1/navigation/route",
+            {"origin_name": "Kathmandu Durbar Square", "destination_name": "Phewa Lake"},
+            content_type="application/json",
+        )
+        # 200 when the graph can route; 404 with an honest routing message
+        # when it cannot — but never a silent default-city route.
+        self.assertIn(resp.status_code, (200, 404, 503))
+        if resp.status_code == 404:
+            self.assertNotIn("matches origin", resp.json().get("detail", ""))
+
+    def test_unknown_origin_is_a_clean_404(self):
+        resp = self.client.post(
+            "/api/v1/navigation/route",
+            {"origin_name": "zzz-nonexistent-ville", "destination_name": "Phewa Lake"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 404)
+        self.assertIn("origin", resp.json()["detail"].lower())

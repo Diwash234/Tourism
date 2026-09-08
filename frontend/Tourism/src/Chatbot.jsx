@@ -29,7 +29,7 @@ export default function ChatBot() {
       role: "assistant",
       content:
         "Namaste! 🙏 I am **Himal AI**, your personal Nepal Travel Companion & Intelligent Visual Guide.\n\n" +
-        "I answer from recorded destinations, published packages, and the emergency directory. Missing fields stay Not recorded.",
+        "I answer from recorded destinations, published packages, and the emergency directory. Missing fields stay 'Information unavailable'.",
       destination_cards: [],
       image_cards: [],
       itinerary_cards: null,
@@ -154,7 +154,7 @@ export default function ChatBot() {
           </p>
           <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Grounded AI Guarantee: Answers strictly from verified dataset records — missing data stays "Not recorded".</span>
+            <span>Grounded AI Guarantee: Answers strictly from verified dataset records — missing data stays "Information unavailable".</span>
           </div>
         </div>
 
@@ -265,7 +265,7 @@ export default function ChatBot() {
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
                         <p className="text-[10px] text-gray-500">
-                          Total Budget: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Not recorded"}</b>
+                          Total Budget: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Information unavailable"}</b>
                         </p>
                       </div>
                       <Link

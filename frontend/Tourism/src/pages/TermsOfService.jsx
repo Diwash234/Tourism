@@ -30,7 +30,7 @@ export default function TermsOfService() {
 
           <section className="space-y-1">
             <h2 className="text-base font-bold text-slate-900">2. Travel Data & Honesty Policy</h2>
-            <p>Our platform displays verified tourism data from official administrative registries. Where coordinates, fares, or opening hours are unrecorded, they are marked as "Not recorded" or "Route unavailable". Users must exercise personal judgment when traveling in high-altitude Himalayan regions.</p>
+            <p>Our platform displays verified tourism data from official administrative registries. Where coordinates, fares, or opening hours are unrecorded, they are marked as "Information unavailable" or "Route unavailable". Users must exercise personal judgment when traveling in high-altitude Himalayan regions.</p>
           </section>
 
           <section className="space-y-1">

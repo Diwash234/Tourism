@@ -667,7 +667,7 @@ const Dashboard = () => {
               <h2 className="section-title">{block("safety")?.title || "Safety & Emergency Radar"}</h2>
               <SafetyOverview
                 score={scoreFromAlerts(alerts)}
-                weatherStatus={weather?.description || weather?.condition || "Not recorded"}
+                weatherStatus={weather?.description || weather?.condition || "Information unavailable"}
                 earthquakeRisk={alerts.some((a) => /earthquake|seismic/i.test(a.title || a.type || a.alert_type || "")) ? "Alert recorded" : "No recorded alert"}
                 hospitalsNearby={nearbySafety?.counts?.hospitals_within_radius != null ? nearbySafety.counts.hospitals_within_radius : "Enable GPS"}
                 policeNearby={nearbySafety?.counts?.police_within_radius != null ? nearbySafety.counts.police_within_radius : "Enable GPS"}
@@ -857,8 +857,8 @@ const Dashboard = () => {
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 text-xs text-slate-600 space-y-1">
-                      <p><b>Check-in:</b> {b.check_in_date || b.start_date || "Not recorded"}</p>
-                      <p><b>Check-out:</b> {b.check_out_date || b.end_date || "Not recorded"}</p>
+                      <p><b>Check-in:</b> {b.check_in_date || b.start_date || "Information unavailable"}</p>
+                      <p><b>Check-out:</b> {b.check_out_date || b.end_date || "Information unavailable"}</p>
                       <p><b>Guests / Rooms:</b> {b.num_guests || 1} Guests • {b.num_rooms || 1} Room(s)</p>
                     </div>
 

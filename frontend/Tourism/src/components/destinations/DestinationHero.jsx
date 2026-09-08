@@ -9,7 +9,7 @@ import {
   FiCompass,
   FiShield,
 } from "react-icons/fi"
-import { placeLocationLabel } from "../../utils/placeUtils"
+import { placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
 
 const FOCAL_CENTER = "center center"
 
@@ -125,9 +125,9 @@ export default function DestinationHero({
         {/* Quick Travel Metrics Bar */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
           {[
-            { label: "Recommended Stay", value: destination.recommended_days ? `${destination.recommended_days} Days` : "Not recorded", icon: FiClock, tint: "text-[#D99048]" },
-            { label: "Best Season", value: destination.best_time_to_visit || "Not recorded", icon: FiSun, tint: "text-amber-300" },
-            { label: "Distance from Kathmandu", value: destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : "Not recorded", icon: FiCompass, tint: "text-[#70B1AB]" },
+            { label: "Recommended Stay", value: destination.recommended_days ? `${destination.recommended_days} Days` : INFO_UNAVAILABLE, icon: FiClock, tint: "text-[#D99048]" },
+            { label: "Best Season", value: destination.best_time_to_visit || INFO_UNAVAILABLE, icon: FiSun, tint: "text-amber-300" },
+            { label: "Distance from Kathmandu", value: destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE, icon: FiCompass, tint: "text-[#70B1AB]" },
             { label: "Safety & Risk Level", value: destination.risk_analysis?.risk_category || "Moderate", icon: FiShield, tint: "text-emerald-300" },
           ].map(({ label, value, icon: Icon, tint }) => (
             <div key={label} className="p-3 rounded-2xl bg-[#0d1330]/55 backdrop-blur border border-white/15 text-xs">

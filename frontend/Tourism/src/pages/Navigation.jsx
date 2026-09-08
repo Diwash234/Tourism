@@ -16,6 +16,7 @@ import navigationApi from "../api/navigationApi"
 import emergencyApi from "../api/emergencyApi"
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
+import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import { formatCoords, hasValidCoords } from "../utils/placeUtils"
 
@@ -78,9 +79,9 @@ const getDistrictAltitude = (dest) => {
   if (dest?.altitude) return dest.altitude
   const key = (dest?.district || dest?.city || dest?.name || "").toLowerCase()
   for (const [k, v] of Object.entries(DISTRICT_ALTITUDES)) {
-    if (key.includes(k)) return v
+    if (key.includes(k)) return `${v} (district typical)`
   }
-  return "1,400 m"
+  return "Information unavailable"
 }
 
 const compassBearing = (lat1, lng1, lat2, lng2) => {
@@ -113,8 +114,8 @@ const toAmenityCard = (row, origin) => {
     name: row.name,
     category: row.category || row.type || "Service",
     address: row.address || row.district || "Address recorded",
-    distance: km == null ? "Distance calculated" : km < 0.1 ? "0 km (Here)" : `${km.toFixed(1)} km`,
-    bearing: bearing ? `${bearing} ${compassArrow(bearing)}` : "Recorded",
+    distance: km == null ? "Information unavailable" : km < 0.1 ? "0 km (Here)" : `≈ ${km.toFixed(1)} km (straight line)`,
+    bearing: bearing ? `${bearing} ${compassArrow(bearing)}` : "",
     coords: hasValidCoords(lat, lng) ? { lat, lng } : null,
     phone: row.phone_number || row.phone || "",
   }
@@ -131,7 +132,7 @@ const TURN_ICONS = {
 }
 
 export default function Navigation() {
-  const { position } = useGeolocation()
+  const { position, error: geoError, locating, retry: retryGeo } = useGeolocation()
   const [searchParams] = useSearchParams()
   const requestedDest = searchParams.get("dest") || searchParams.get("destination") || ""
   const requestedOrigin = searchParams.get("origin") || ""
@@ -144,13 +145,15 @@ export default function Navigation() {
   const [distance, setDistance] = useState(null)
   const [durationMin, setDurationMin] = useState(null)
   const [steps, setSteps] = useState([])
-  const [routeSafety, setRouteSafety] = useState(null)
+  const [routeAlerts, setRouteAlerts] = useState([])
+  const [alertsLoaded, setAlertsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [emergencyDir, setEmergencyDir] = useState(null)
   const [nearbyDests, setNearbyDests] = useState([])
   const [featuredDests, setFeaturedDests] = useState([])
   const [nearbyPlaces, setNearbyPlaces] = useState([])
+  const [nearbyLoading, setNearbyLoading] = useState(false)
 
   // HUD & Tools Drawer State
   // Standard turn-by-turn map is the default experience; the Game HUD is opt-in (brief item).
@@ -160,24 +163,50 @@ export default function Navigation() {
   const [showToolsDrawer, setShowToolsDrawer] = useState(false)
   const [amenityTab, setAmenityTab] = useState("hospitals")
 
+  // "My Current Location" is a symbolic origin: it resolves to the browser
+  // GPS fix at request time and is never silently replaced by a fixed city.
+  const usingMyLocation = originQuery.trim().toLowerCase() === "my current location"
+
+  const handleUseMyLocation = () => {
+    if (position) {
+      setOriginQuery("My Current Location")
+      return
+    }
+    retryGeo()
+    setOriginQuery("My Current Location")
+  }
+
   const handleGetRoute = async (targetDest = null, targetOrigin = null) => {
     const destName = typeof targetDest === "string" ? targetDest : destinationQuery.trim()
     const origName = typeof targetOrigin === "string" ? targetOrigin : originQuery.trim()
     if (!destName) return
 
+    // Honest origin: GPS fix, a named place the backend can resolve, or an
+    // explicit error — never a fabricated default city.
+    const useGpsOrigin = !origName || usingMyLocation
+    if (useGpsOrigin && !position) {
+      setError(
+        geoError
+          ? `Location unavailable (${geoError}). Type a starting place — e.g. Kathmandu — or enable GPS and press "Use My Location".`
+          : 'Press "Use My Location" to share your GPS position, or type a starting place — e.g. Kathmandu.'
+      )
+      return
+    }
+
     setLoading(true)
     setError("")
 
-    const startLat = position?.lat || 28.2096
-    const startLng = position?.lng || 83.9856
-
     try {
       const payload = {
-        start_latitude: startLat,
-        start_longitude: startLng,
-        origin_name: origName || "Current Location",
         destination_name: destName,
         transport_mode: transportMode,
+      }
+      if (useGpsOrigin) {
+        payload.start_latitude = position.lat
+        payload.start_longitude = position.lng
+        payload.origin_name = "Current Location"
+      } else {
+        payload.origin_name = origName
       }
 
       const response = await navigationApi.getRoute(payload)
@@ -191,22 +220,34 @@ export default function Navigation() {
       setDistance(response.data.distance_km ?? null)
       setCurrentStepIdx(0)
 
-      setRouteSafety({
-        road_status: "🟢 Open Highway Corridor (No active blockages reported)",
-        road_source: "Nepal Department of Roads - NAVIGATE",
-        weather_status: "🟡 Rain Possible in Afternoon",
-        weather_source: "Department of Hydrology & Meteorology (DHM)",
-        hydrology_station: "Karnali / Narayani River Monitoring Station: Water level normal",
-        emergency_status: "🟢 Verified Hospitals & Police Stations along route",
-        updated_at: "LIVE VERIFIED · Updated 10 minutes ago",
-      })
+      // Real safety data only: active verified alerts near the destination
+      // corridor. No fabricated "road open / rain possible" claims — when
+      // the alert feed has nothing, the UI says exactly that.
+      if (dest?.latitude != null && dest?.longitude != null) {
+        axiosClient
+          .get("/alerts/nearby/", {
+            params: { latitude: dest.latitude, longitude: dest.longitude, radius_km: 25 },
+          })
+          .then(({ data }) => {
+            const list = data.results || data || []
+            setRouteAlerts(Array.isArray(list) ? list.slice(0, 6) : [])
+            setAlertsLoaded(true)
+          })
+          .catch(() => {
+            setRouteAlerts([])
+            setAlertsLoaded(true)
+          })
+      } else {
+        setRouteAlerts([])
+        setAlertsLoaded(true)
+      }
     } catch (err) {
       setRoute([])
       setSteps([])
       setDistance(null)
       setDurationMin(null)
       setDestination(null)
-      setError(err.response?.data?.detail || "Route calculated using Nepal highway network curvature model.")
+      setError(err.response?.data?.detail || "Routing information unavailable for this pair of places. Check the place names and try again.")
     } finally {
       setLoading(false)
     }
@@ -242,25 +283,40 @@ export default function Navigation() {
     return () => clearTimeout(t)
   }, [])
 
+  // Nearby searches need a real centre: the GPS fix, or the routed
+  // destination. Never a silent default city.
+  const nearbyCenter = position
+    ? { lat: position.lat, lng: position.lng, label: "your GPS position" }
+    : destination?.latitude != null && destination?.longitude != null
+      ? { lat: Number(destination.latitude), lng: Number(destination.longitude), label: `around ${destination.name || "the destination"}` }
+      : null
+
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
-    const lat = position?.lat || 28.2096
-    const lng = position?.lng || 83.9856
-    emergencyApi.nearby(lat, lng, { radius_km: 50, limit: 8 })
+    if (!nearbyCenter) {
+      setNearbyPlaces([])
+      setEmergencyDir(null)
+      setNearbyLoading(false)
+      return
+    }
+    setNearbyLoading(true)
+    emergencyApi.nearby(nearbyCenter.lat, nearbyCenter.lng, { radius_km: 50, limit: 8 })
       .then(({ data }) => setEmergencyDir(data))
       .catch(() => setEmergencyDir(null))
 
-    nearbyApi.getNearbyPlaces({ lat, lng, category: amenityTab, radius_km: 25 })
+    nearbyApi.getNearbyPlaces({ lat: nearbyCenter.lat, lng: nearbyCenter.lng, category: amenityTab, radius_km: 25 })
       .then(({ data }) => {
         const list = data.items || data.results || data || []
         setNearbyPlaces(Array.isArray(list) ? list : [])
       })
       .catch(() => setNearbyPlaces([]))
+      .finally(() => setNearbyLoading(false))
     }, 0)
     return () => clearTimeout(t)
-  }, [position, amenityTab])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position, amenityTab, destination?.id])
 
   const currentStep = steps[currentStepIdx] || steps[0] || {
     turn: "straight",
@@ -282,7 +338,7 @@ export default function Navigation() {
             </span>
             <span className="text-xs text-gray-500 font-medium">Any Origin ➔ Any Destination in 7 Provinces</span>
           </div>
-          <PageHeader title="Universal Route Planner & Safety Radar" icon={FiNavigation} />
+          <PageHeader title="Maps & Navigation" icon={FiNavigation} />
         </div>
 
         {/* HUD & Map Tools Switcher */}
@@ -345,14 +401,24 @@ export default function Navigation() {
           className="space-y-3"
         >
           <div className="grid sm:grid-cols-2 gap-3 items-center">
-            <div className="relative">
-              <FiCompass className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600" />
-              <input
-                className="input-field pl-11 text-xs font-medium"
-                placeholder="Starting Origin (e.g. Karnali, Kathmandu, Pokhara, Ilam, Rara)..."
-                value={originQuery}
-                onChange={(e) => setOriginQuery(e.target.value)}
-              />
+            <div className="relative flex gap-2">
+              <div className="relative flex-1">
+                <FiCompass className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600" />
+                <input
+                  className="input-field pl-11 text-xs font-medium"
+                  placeholder="From: My Current Location, Kathmandu, Pokhara, Rara..."
+                  value={originQuery}
+                  onChange={(e) => setOriginQuery(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold whitespace-nowrap flex items-center gap-1.5"
+                title={position ? "GPS fix acquired — click to use it as the origin" : locating ? "Requesting GPS permission…" : "Request browser GPS and use it as the origin"}
+              >
+                <FiTarget size={13} /> {locating && !position ? "Locating…" : "📍 Use My Location"}
+              </button>
             </div>
 
             <div className="relative">
@@ -365,6 +431,16 @@ export default function Navigation() {
               />
             </div>
           </div>
+
+          <p className="text-[11px] text-slate-500" role="status">
+            {position
+              ? `📍 GPS fix acquired (${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}) — routes will start from your position.`
+              : locating
+                ? "Requesting your GPS position…"
+                : geoError
+                  ? `GPS unavailable: ${geoError}. Type a starting place instead — e.g. Kathmandu.`
+                  : "No GPS position yet. Press “Use My Location” or type a starting place."}
+          </p>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -399,41 +475,40 @@ export default function Navigation() {
         </form>
       </div>
 
-      {/* ROUTE SAFETY SUMMARY CARD */}
-      {routeSafety && (
+      {/* ROUTE SAFETY — real verified alerts only, never invented statuses */}
+      {alertsLoaded && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-3xl bg-slate-950 text-white border border-slate-800 space-y-3 shadow-xl">
           <div className="flex justify-between items-center border-b border-slate-800 pb-2">
             <span className="text-xs font-black uppercase text-amber-300 flex items-center gap-1.5">
-              <FiShield className="text-amber-400" /> Route Safety & Live Travel Summary
+              <FiShield className="text-amber-400" /> Route Safety Alerts
             </span>
-            <span className="text-[10px] text-emerald-400 font-extrabold">{routeSafety.updated_at}</span>
+            <span className="text-[10px] text-slate-400 font-extrabold">
+              {routeAlerts.length ? `${routeAlerts.length} active alert${routeAlerts.length > 1 ? "s" : ""} near destination` : "No active alerts recorded"}
+            </span>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Road Condition</span>
-              <p className="font-extrabold text-emerald-400">{routeSafety.road_status}</p>
-              <p className="text-[10px] text-slate-500">Source: {routeSafety.road_source}</p>
+          {routeAlerts.length === 0 ? (
+            <p className="text-xs text-slate-300 py-1">
+              No verified weather, landslide, flood, or transport alerts are currently recorded within 25 km of this
+              destination. Alerts appear here only when an administrator has published them from a real source.
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              {routeAlerts.map((alert) => (
+                <div key={alert.id} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                    {alert.alert_type} · {alert.severity}
+                  </span>
+                  <p className="font-extrabold text-amber-200">{alert.title}</p>
+                  <p className="text-[10px] text-slate-300 line-clamp-2">{alert.description}</p>
+                  <p className="text-[10px] text-slate-500">
+                    Source: {alert.source || "Information unavailable"}
+                    {alert.is_verified ? " · ✓ Verified" : " · Unverified"}
+                  </p>
+                </div>
+              ))}
             </div>
-
-            <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Weather & Rainfall</span>
-              <p className="font-extrabold text-amber-300">{routeSafety.weather_status}</p>
-              <p className="text-[10px] text-slate-500">Source: {routeSafety.weather_source}</p>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Hydrology & River Level</span>
-              <p className="font-extrabold text-sky-300">{routeSafety.hydrology_station}</p>
-              <p className="text-[10px] text-slate-500">Source: DHM Nepal Flood Monitoring</p>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Emergency Access</span>
-              <p className="font-extrabold text-emerald-400">{routeSafety.emergency_status}</p>
-              <p className="text-[10px] text-slate-500">Hospitals & Police in database</p>
-            </div>
-          </div>
+          )}
         </motion.div>
       )}
 
@@ -448,12 +523,12 @@ export default function Navigation() {
               Select a service category to discover nearest facilities with Haversine distance and compass heading
             </p>
           </div>
-          <div className="flex overflow-x-auto gap-1.5 no-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
             {AMENITY_TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setAmenityTab(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-center transition-all ${
                   amenityTab === tab.id
                     ? "bg-[#102A2E] text-white shadow"
                     : "bg-white text-gray-700 hover:bg-emerald-100 border border-[#E5E0D5]"
@@ -467,7 +542,7 @@ export default function Navigation() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {nearbyPlaces.slice(0, 8).map((place) => {
-            const card = toAmenityCard(place, position)
+            const card = toAmenityCard(place, nearbyCenter)
             return (
               <div key={card.id} className="p-3 rounded-2xl bg-white border border-[#E5E0D5] shadow-sm space-y-2 flex flex-col justify-between hover:shadow-md transition">
                 <div>
@@ -485,7 +560,13 @@ export default function Navigation() {
             )
           })}
           {!nearbyPlaces.length && (
-            <p className="sm:col-span-4 text-center py-4 text-xs text-slate-500">Loading nearby facilities for this region…</p>
+            <p className="sm:col-span-4 text-center py-4 text-xs text-slate-500">
+              {nearbyLoading
+                ? `Searching for ${amenityTab} ${nearbyCenter ? nearbyCenter.label : ""}…`
+                : nearbyCenter
+                  ? `No ${amenityTab} with recorded coordinates were found within 25 km of ${nearbyCenter.label}. Try a larger category or another location.`
+                  : 'Share your location ("Use My Location") or calculate a route first — nearby services are searched around a real position, never an assumed city.'}
+            </p>
           )}
         </div>
       </div>
@@ -528,7 +609,7 @@ export default function Navigation() {
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
                   <span className="text-[10px] text-slate-400 block font-bold">Est. Duration</span>
-                  <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "30 mins"}</span>
+                  <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "—"}</span>
                 </div>
               </div>
             )}
