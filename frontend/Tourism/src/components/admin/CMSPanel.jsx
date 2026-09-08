@@ -36,6 +36,11 @@ export default function CMSPanel() {
   const { showToast } = useToast()
   const [resource, setResource] = useState("pages")
   const [rows, setRows] = useState([])
+  // Record-list search / status filter / sort (brief §22/§88) — client-side
+  // over the loaded rows; reordering always operates on the FULL row order.
+  const [listQuery, setListQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [sortMode, setSortMode] = useState("default")
   const [selected, setSelected] = useState(null)
   const [json, setJson] = useState("")
   const [savedJson, setSavedJson] = useState("")
@@ -143,6 +148,9 @@ export default function CMSPanel() {
     setHistory([])
     setSavedJson("")
     setJson("")
+    setListQuery("")
+    setStatusFilter("all")
+    setSortMode("default")
     load()
     }, 0)
     return () => clearTimeout(t)
@@ -184,9 +192,10 @@ export default function CMSPanel() {
   // Section reordering: swaps the row with its neighbour and persists the
   // full ordered id list through the existing reorder action (one call, no
   // per-row display_order writes).
-  const moveSection = async (index, dir) => {
+  const moveSection = async (row, dir) => {
+    const index = rows.findIndex((r) => r.id === row.id)
     const target = index + dir
-    if (resource !== "sections" || target < 0 || target >= rows.length) return
+    if (resource !== "sections" || index < 0 || target < 0 || target >= rows.length) return
     const ids = rows.map((r) => r.id)
     ;[ids[index], ids[target]] = [ids[target], ids[index]]
     setBusy(true)
@@ -301,6 +310,24 @@ export default function CMSPanel() {
   }
 
   const supportsWorkflow = ["pages", "sections"].includes(resource) && selected?.id
+
+  // Filtered/sorted view of the record list (brief §22/§88). Reordering and
+  // saving always use the full `rows` array — this is display-only.
+  const statuses = ["all", ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))]
+  const visibleRows = rows
+    .filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false
+      const q = listQuery.trim().toLowerCase()
+      if (!q) return true
+      return [row.title, row.label, row.key, row.route, row.status, `#${row.id}`]
+        .some((value) => String(value || "").toLowerCase().includes(q))
+    })
+    .sort((a, b) => {
+      if (sortMode === "updated") return new Date(b.updated_at || 0) - new Date(a.updated_at || 0)
+      if (sortMode === "name") return String(displayName(a)).localeCompare(String(displayName(b)))
+      return 0
+    })
+
   return (
     <div className="space-y-4 text-slate-900">
       <header>
@@ -308,7 +335,7 @@ export default function CMSPanel() {
         <p className="text-xs text-slate-500">Edit website content without code. Draft, preview, publish, and restore previous versions.</p>
         {dirty && <p className="mt-2 text-xs font-bold text-amber-700">You have unsaved changes.</p>}
       </header>
-      <div className="grid xl:grid-cols-[220px_300px_1fr] gap-4">
+      <div className="grid lg:grid-cols-[180px_240px_1fr] xl:grid-cols-[220px_300px_1fr] gap-4">
         <aside className="bg-white border border-emerald-200 rounded-2xl p-3 h-fit">
           {resources.map(item => (
             <button
@@ -327,11 +354,34 @@ export default function CMSPanel() {
         <section className="bg-white border border-emerald-200 rounded-2xl overflow-hidden h-fit max-h-[72vh]">
           <div className="p-3 border-b border-emerald-100 flex justify-between">
             <b className="capitalize">{resource} <span className="ml-1 text-xs font-normal text-emerald-700">({rows.length})</span></b>
-            <button onClick={() => load()} title="Refresh"><FiRefreshCw /></button>
+            <button onClick={() => load()} title="Refresh" aria-label="Refresh list"><FiRefreshCw /></button>
           </div>
-          <div className="overflow-y-auto max-h-[65vh] p-2 space-y-1">
+          <div className="p-2 space-y-2 border-b border-emerald-100">
+            <input
+              value={listQuery}
+              onChange={(event) => setListQuery(event.target.value)}
+              placeholder={`Search ${resource}…`}
+              aria-label={`Search ${resource}`}
+              className="w-full rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
+            />
+            <div className="flex gap-1.5">
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status" className="flex-1 rounded-lg border border-emerald-200 px-1.5 py-1 text-[11px] capitalize">
+                {statuses.map((value) => <option key={value} value={value}>{value === "all" ? "All statuses" : value}</option>)}
+              </select>
+              <select value={sortMode} onChange={(event) => setSortMode(event.target.value)} aria-label="Sort records" className="flex-1 rounded-lg border border-emerald-200 px-1.5 py-1 text-[11px]">
+                <option value="default">Default order</option>
+                <option value="name">Name A–Z</option>
+                <option value="updated">Recently updated</option>
+              </select>
+            </div>
+            {(listQuery || statusFilter !== "all") && (
+              <p className="text-[10px] font-bold text-slate-500">Showing {visibleRows.length} of {rows.length}</p>
+            )}
+          </div>
+          <div className="overflow-y-auto max-h-[58vh] p-2 space-y-1">
             {rows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records found.</p>}
-            {rows.map((row, idx) => (
+            {rows.length > 0 && visibleRows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No records match the filter.</p>}
+            {visibleRows.map((row) => (
               <div key={row.id} className="flex items-stretch gap-1">
                 <button onClick={() => choose(row)} className={`block flex-1 min-w-0 text-left p-3 rounded-xl text-xs ${selected?.id === row.id ? "bg-emerald-50 ring-1 ring-emerald-600" : "bg-slate-50 hover:bg-emerald-50"}`}>
                   <span className="font-bold text-slate-900">{displayName(row)}</span>
@@ -343,15 +393,15 @@ export default function CMSPanel() {
                 {resource === "sections" && rows.length > 1 && (
                   <div className="flex flex-col justify-center gap-0.5">
                     <button
-                      onClick={() => moveSection(idx, -1)}
-                      disabled={idx === 0 || busy}
+                      onClick={() => moveSection(row, -1)}
+                      disabled={rows.findIndex((r) => r.id === row.id) === 0 || busy}
                       aria-label={`Move ${displayName(row)} up`}
                       title="Move up"
                       className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
                     >↑</button>
                     <button
-                      onClick={() => moveSection(idx, 1)}
-                      disabled={idx === rows.length - 1 || busy}
+                      onClick={() => moveSection(row, 1)}
+                      disabled={rows.findIndex((r) => r.id === row.id) === rows.length - 1 || busy}
                       aria-label={`Move ${displayName(row)} down`}
                       title="Move down"
                       className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-emerald-50 disabled:opacity-30"
@@ -368,8 +418,8 @@ export default function CMSPanel() {
             <p className="text-slate-500 py-20 text-center">Select a record or create a new draft.</p>
           ) : (
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-2 items-center">
-                <b className="mr-auto">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
+              <div className="sticky top-[4.25rem] z-20 -mx-4 -mt-4 flex flex-wrap gap-2 items-center rounded-t-2xl border-b border-emerald-100 bg-white/95 px-4 py-2.5 backdrop-blur">
+                <b className="mr-auto truncate">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
                 <button type="button" onClick={undo} disabled={!histCounts.past} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
                 <button type="button" onClick={redo} disabled={!histCounts.future} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
                 {resource === "pages" && <button type="button" onClick={() => setSeoPreview(true)} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex gap-1 whitespace-nowrap"><FiEye /> SEO preview</button>}
