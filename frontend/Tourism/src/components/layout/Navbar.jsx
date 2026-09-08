@@ -92,7 +92,7 @@ const Navbar = () => {
         {/* Search (visible on all screens; grows to fill space) */}
         <form
           onSubmit={handleSmartSearch}
-          className="flex flex-1 max-w-md relative items-center"
+          className="flex flex-1 min-w-0 max-w-md relative items-center"
         >
           <FiSearch
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -118,7 +118,7 @@ const Navbar = () => {
         </form>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-6 shrink-0">
+        <div className="hidden lg:flex items-center gap-4 xl:gap-6 shrink-0">
           {managedLinks.map((link, idx) => (
             <div key={link.id || `${link.path}-${idx}`} className="relative group" onMouseLeave={() => setOpenMenu(null)}>
               <div className="flex items-center gap-0.5">
