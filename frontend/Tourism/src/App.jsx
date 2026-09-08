@@ -115,7 +115,7 @@ function App() {
             return Promise.reject(err)
           },
         )
-      } catch {}
+      } catch { /* OAuth import interceptor is best-effort; app works without it */ }
     }
     importInterceptor()
   }, [])

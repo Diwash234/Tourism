@@ -47,6 +47,9 @@ export default function Gallery() {
 
   // Load real backend destinations into gallery
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     destinationApi.getDestinations({ page_size: 100 })
       .then(({ data }) => {
         const list = data.results || data.items || data || []
@@ -131,10 +134,15 @@ export default function Gallery() {
       })
       .catch(() => {})
       .finally(() => setGalleryLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   // Flatten all photos for lightbox navigation
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const all = []
     destinationsMedia.forEach((d) => {
       d.images.forEach((img) => {
@@ -149,6 +157,8 @@ export default function Gallery() {
       })
     })
     setFlatPhotoList(all)
+    }, 0)
+    return () => clearTimeout(t)
   }, [destinationsMedia])
 
   const districtMedia = destinationsMedia.filter((dest) => String(dest.key).startsWith("district-") && dest.images.length)

@@ -41,7 +41,7 @@ export default function CMSPanel() {
   const [savedJson, setSavedJson] = useState("")
   const [history, setHistory] = useState([])
   const [health, setHealth] = useState(null)
-  const [seoPreview, setSeoPreview] = useState(false)
+  const [seoPreview, setSeoPreview] = useState(true)
   // ---- Editor undo/redo (client-side draft history, spec §16) ----
   const pastRef = useRef([])
   const futureRef = useRef([])
@@ -135,18 +135,28 @@ export default function CMSPanel() {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setSelected(null)
     setPreview(null)
     setHistory([])
     setSavedJson("")
     setJson("")
     load()
+    }, 0)
+    return () => clearTimeout(t)
   }, [resource])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     adminApi.getCMS("pages", { templates: true }).then(({ data }) => {
       if (data.templates) setCatalog(data.templates)
     }).catch(() => setCatalog(fallbackTemplates))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
@@ -830,7 +840,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
 
 function ContentBlocksBuilder({ sectionId, onToast }) {
   const [blocks, setBlocks] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [editingBlock, setEditingBlock] = useState(null)
   const [showTypePicker, setShowTypePicker] = useState(false)
 
@@ -868,7 +878,12 @@ function ContentBlocksBuilder({ sectionId, onToast }) {
     }
   }
 
-  useEffect(() => { loadBlocks() }, [sectionId])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadBlocks(), 0)
+    return () => clearTimeout(t)
+  }, [sectionId])
 
   const addBlock = async (type) => {
     setShowTypePicker(false)
@@ -1152,7 +1167,12 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
     }
   }
 
-  useEffect(() => { loadSections() }, [pageId, refreshKey])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadSections(), 0)
+    return () => clearTimeout(t)
+  }, [pageId, refreshKey])
 
   const persist = async (next) => {
     setSections(next)

@@ -30,7 +30,10 @@ export default function ReviewModerationPanel() {
     finally { setBusy(false) }
   }, [type, status, q, page])
   useEffect(() => { const timer = setTimeout(load, 250); return () => clearTimeout(timer) }, [load])
-  useEffect(() => setPage(1), [type, status, q])
+  useEffect(() => {
+    const t = setTimeout(() => setPage(1), 0)
+    return () => clearTimeout(t)
+  }, [type, status, q])
 
   const moderate = async (action, targets) => {
     const chosen = targets || rows.filter(row => selected.includes(`${row.type}-${row.id}`))

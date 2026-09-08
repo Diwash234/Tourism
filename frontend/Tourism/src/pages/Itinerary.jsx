@@ -244,41 +244,12 @@ const Itinerary = () => {
   }
 
 
-  useEffect(()=>{
-
-    if(firstRun.current){
-      firstRun.current=false
-    }
-
-
-    if(debounceRef.current){
-      clearTimeout(debounceRef.current)
-    }
-
-
-    debounceRef.current=setTimeout(()=>{
-
-      fetchPlan(form)
-
-    },500)
-
-
-
-    return ()=>{
-
-      clearTimeout(debounceRef.current)
-
-    }
-
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[form])
 
 
 
 
 
-  const fetchPlan = async(payload)=>{
+  async function fetchPlan(payload) {
 
 
     const requestId = ++lastRequestId.current
@@ -341,6 +312,37 @@ const Itinerary = () => {
 
 
   }
+
+  useEffect(()=>{
+
+    if(firstRun.current){
+      firstRun.current=false
+    }
+
+
+    if(debounceRef.current){
+      clearTimeout(debounceRef.current)
+    }
+
+
+    debounceRef.current=setTimeout(()=>{
+
+      fetchPlan(form)
+
+    },500)
+
+
+
+    return ()=>{
+
+      clearTimeout(debounceRef.current)
+
+    }
+
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[form])
+
 
 
 

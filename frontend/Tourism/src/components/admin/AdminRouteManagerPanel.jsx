@@ -12,7 +12,7 @@ export default function AdminRouteManagerPanel() {
   const { showToast } = useToast()
 
   const [routes, setRoutes] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   // Admin Route Calculator Test Tool
@@ -49,14 +49,17 @@ export default function AdminRouteManagerPanel() {
   }
 
   useEffect(() => {
-    loadRoutes()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadRoutes(), 0)
+    return () => clearTimeout(t)
   }, [searchQuery])
 
   // Destination autocomplete search for calculator
   useEffect(() => {
     if (!calcDestSearch.trim() || calcDestSearch.length < 2) {
-      setCalcDestResults([])
-      return
+      const z = setTimeout(() => { setCalcDestResults([]) }, 0)
+      return () => clearTimeout(z)
     }
     const timer = setTimeout(() => {
       destinationApi.getDestinations({ search: calcDestSearch, page_size: 6 })

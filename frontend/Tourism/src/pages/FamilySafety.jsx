@@ -16,6 +16,16 @@ const PING_INTERVAL_MS = 30000
 // How often to refresh the family members' live status.
 const MEMBER_POLL_MS = 30000
 
+// Pure: relative time from an explicit `now` — no Date.now() during render
+// (react-hooks/purity); `now` is refreshed by an interval below.
+const timeAgo = (iso, now) => {
+  if (!iso) return "—"
+  const s = (now - new Date(iso).getTime()) / 1000
+  if (s < 60) return `${Math.max(0, Math.floor(s))}s ago`
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  return `${Math.floor(s / 3600)}h ago`
+}
+
 const FamilySafety = () => {
   const { position } = useGeolocation()
   const { showToast } = useToast()
@@ -34,6 +44,11 @@ const FamilySafety = () => {
   const [linkRelation, setLinkRelation] = useState("")
   const [linking, setLinking] = useState(false)
   const [loadingLinks, setLoadingLinks] = useState(true)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(t)
+  }, [])
 
   const pingIntervalRef = useRef(null)
 
@@ -59,10 +74,10 @@ const FamilySafety = () => {
   }, [])
 
   useEffect(() => {
-    loadLinks()
-    loadMembers()
+    const boot = setTimeout(() => { loadLinks(); loadMembers() }, 0)
     const timer = setInterval(loadMembers, MEMBER_POLL_MS)
     return () => {
+      clearTimeout(boot)
       clearInterval(timer)
       clearInterval(pingIntervalRef.current)
     }
@@ -183,13 +198,6 @@ const FamilySafety = () => {
   const pendingReceived = received.filter((l) => l.status === "pending")
   const accepted = links.filter((l) => l.status === "accepted")
 
-  const timeAgo = (iso) => {
-    if (!iso) return "—"
-    const s = (Date.now() - new Date(iso).getTime()) / 1000
-    if (s < 60) return `${Math.max(0, Math.floor(s))}s ago`
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`
-    return `${Math.floor(s / 3600)}h ago`
-  }
 
   return (
     <div className="container-app py-10 max-w-5xl theme-amber-alt">
@@ -359,7 +367,7 @@ const FamilySafety = () => {
                   {m.latest_ping && (
                     <p className="text-gray-600 font-mono">
                       {Number(m.latest_ping.latitude).toFixed(5)}, {Number(m.latest_ping.longitude).toFixed(5)}
-                      <span className="text-gray-400 ml-1">({timeAgo(m.latest_ping.recorded_at)})</span>
+                      <span className="text-gray-400 ml-1">({timeAgo(m.latest_ping.recorded_at, now)})</span>
                     </p>
                   )}
                 </div>

@@ -16,11 +16,16 @@ export default function PackageDetail() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setLoading(true)
     userApi.getMarketplaceListing(slug)
       .then(({ data }) => setListing(data))
       .catch(() => setListing(null))
       .finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [slug])
 
   if (loading) return <Loader fullScreen />

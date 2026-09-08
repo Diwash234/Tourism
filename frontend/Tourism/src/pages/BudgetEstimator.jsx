@@ -110,7 +110,7 @@ const BudgetEstimator = () => {
     watched?.style,
   ])
 
-  const calculate = async (data) => {
+  async function calculate(data) {
     const requestId = ++requestRef.current
     setLoading(true)
 

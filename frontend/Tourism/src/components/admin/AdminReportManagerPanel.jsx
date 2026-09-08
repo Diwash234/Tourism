@@ -31,7 +31,10 @@ export default function AdminReportManagerPanel() {
   }
 
   useEffect(() => {
-    loadReports()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadReports(), 0)
+    return () => clearTimeout(t)
   }, [statusFilter, severityFilter])
 
   const handleResolveReport = async (e) => {

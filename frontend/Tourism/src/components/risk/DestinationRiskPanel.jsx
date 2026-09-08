@@ -40,12 +40,18 @@ export default function DestinationRiskPanel() {
 
   useEffect(() => {
     const initial = params.get("destination")
-    if (initial) assess(initial)
+    if (initial) {
+      const z = setTimeout(() => assess(initial), 0)
+      return () => clearTimeout(z)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (query.length < 2 || risk?.destination?.name === query) return setSuggestions([])
+    if (query.length < 2 || risk?.destination?.name === query) {
+      const z = setTimeout(() => setSuggestions([]), 0)
+      return () => clearTimeout(z)
+    }
     const timer = setTimeout(() => {
       destinationApi.autocomplete(query).then(({ data }) => setSuggestions(data.results || data || [])).catch(() => setSuggestions([]))
     }, 220)

@@ -28,6 +28,9 @@ const HotelAssignments = () => {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     load()
     hotelApi.list({ limit: 500 }).then(({ data }) => {
       setHotels((data.results || data || []).map((h) => ({ id: h.id, label: h.name })))
@@ -37,6 +40,8 @@ const HotelAssignments = () => {
       setAdmins(users.filter((u) => u.is_staff || u.role === "admin" || u.role === "staff")
         .map((u) => ({ id: u.id, label: `${u.email} (${u.role})` })))
     }).catch(() => setAdmins([]))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   const handleAssign = async (e) => {

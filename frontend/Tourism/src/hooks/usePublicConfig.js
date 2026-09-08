@@ -22,7 +22,7 @@ if (typeof window !== "undefined") {
 }
 
 export const notifyCmsUpdated = () => {
-  try { localStorage.setItem("cms-updated-at", String(Date.now())) } catch {}
+  try { localStorage.setItem("cms-updated-at", String(Date.now())) } catch { /* private-mode storage — ignore */ }
   window.dispatchEvent(new Event("cms-updated"))
 }
 
@@ -57,11 +57,14 @@ export default function usePublicConfig() {
   const [data, setData] = useState(caches.get(lang) || fallback)
   useEffect(() => {
     const languageListeners = listeners.get(lang) || new Set(); listeners.set(lang, languageListeners); languageListeners.add(setData)
-    setData(caches.get(lang) || fallback); load(lang).then(setData)
-    return () => languageListeners.delete(setData)
+    const t = setTimeout(() => { setData(caches.get(lang) || fallback); load(lang).then(setData) }, 0)
+    return () => { languageListeners.delete(setData); clearTimeout(t) }
   }, [lang])
   const branding = data.settings?.branding || {}
-  useEffect(() => applyBranding(branding), [branding])
+  useEffect(() => {
+    const t = setTimeout(() => applyBranding(branding), 0)
+    return () => clearTimeout(t)
+  }, [branding])
   const pageOf = (key) => data.pages?.find(item => item.key === key)
   // Tolerant section lookup: exact key first, then a `page-` prefix-insensitive
   // match, so template rows like `page-intro` resolve for pages that read `intro`.

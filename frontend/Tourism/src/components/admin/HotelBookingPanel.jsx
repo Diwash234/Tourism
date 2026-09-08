@@ -7,7 +7,13 @@ import useToast from "../../hooks/useToast"
 export default function HotelBookingPanel(){
   const{showToast}=useToast();const[tab,setTab]=useState("hotels");const[rows,setRows]=useState([]);const[q,setQ]=useState("");const[loading,setLoading]=useState(false);const[page,setPage]=useState(1);const[pages,setPages]=useState(1);const[count,setCount]=useState(0)
   const load=async(targetPage=page)=>{setLoading(true);try{const response=tab==="hotels"?await adminApi.getHotels({search:q,page:targetPage,page_size:24}):await adminApi.getBookings({search:q,page:targetPage,page_size:24});const payload=response.data;setRows(payload.results||payload||[]);setCount(payload.count??(payload.results||payload||[]).length);setPages(payload.total_pages||(payload.count?Math.max(1,Math.ceil(payload.count/24)):1));setPage(targetPage)}catch(error){showToast(error.response?.data?.detail||"Could not load records","error")}finally{setLoading(false)}}
-  useEffect(()=>{setPage(1);load(1)},[tab])
+  useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {setPage(1);load(1)
+    }, 0)
+    return () => clearTimeout(t)
+  }, [tab])
   const status=async(row,value)=>{try{await adminApi.updateBooking(row.id,{status:value});showToast("Booking updated","success");load()}catch(error){showToast(error.response?.data?.detail||"Update failed","error")}}
   const externalImage=async row=>{const value=window.prompt("Verified hotel image URL (HTTPS). Leave blank to use the labelled destination-area fallback.",row.external_image_url||"");if(value===null)return;try{await adminApi.updateHotel(row.id,{external_image_url:value.trim()});showToast("Hotel image updated","success");load()}catch(error){showToast(error.response?.data?.external_image_url?.[0]||"Image URL was rejected","error")}}
   const uploadImage=async(row,file)=>{if(!file)return;const body=new FormData();body.append("cover_image",file);try{await adminApi.uploadHotelImage(row.id,body);showToast("Hotel cover uploaded","success");load()}catch(error){showToast(error.response?.data?.cover_image?.[0]||"Hotel image upload failed","error")}}

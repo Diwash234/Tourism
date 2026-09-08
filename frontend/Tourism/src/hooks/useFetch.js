@@ -18,7 +18,7 @@ const useFetch = (fetcher, deps = []) => {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo -- deps are caller-provided (dynamic by design), so no array literal is possible here
   }, deps)
 
   useEffect(() => {

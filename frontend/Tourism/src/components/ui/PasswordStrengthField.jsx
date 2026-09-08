@@ -25,9 +25,8 @@ const REQUIREMENTS = [
 const zxcvbnLikeScore = (pw) => {
   // Lightweight heuristic so we don't pull a 400kb zxcvbn bundle.
   if (!pw) return { score: 0, label: "", color: "stone" }
-  let score = 0
   const met = REQUIREMENTS.filter(r => r.test(pw))
-  score = Math.min(4, met.length - 1)
+  let score = Math.min(4, met.length - 1)
   if (pw.length >= 12) score = Math.min(4, score + 1)
   if (/^[a-z]+$/.test(pw)) score = Math.min(score, 1)
   if (/(.)\1{2,}/.test(pw)) score = Math.max(0, score - 1)   // repeated chars
@@ -61,7 +60,6 @@ const crackTimeEstimate = (pw) => {
   return "Centuries to crack"
 }
 
-// eslint-disable-next-line react/display-name
 const PasswordStrengthField = forwardRef((
   { value = "", onChange, label = "Password", placeholder = "Create a password", id = "password", autoComplete = "new-password", showRequirements = true, minLength = 8, className = "", name, ...rest }, ref,
 ) => {

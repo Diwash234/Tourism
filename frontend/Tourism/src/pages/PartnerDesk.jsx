@@ -47,7 +47,12 @@ export default function PartnerDesk() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [])
 
   const submit = async (event) => {
     event.preventDefault()

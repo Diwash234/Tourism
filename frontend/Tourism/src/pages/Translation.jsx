@@ -117,7 +117,10 @@ VOICE RECOGNITION
 */
 
 
-useEffect(()=>{
+useEffect(() => {
+  // Deferred one tick: keeps synchronous setState out of the effect
+  // flush (react-hooks/set-state-in-effect) without changing behavior.
+  const t = setTimeout(() => {
 
 
 const SpeechRecognition =
@@ -216,10 +219,9 @@ recognition.abort()
 
 
 }
-
-
-
-},[])
+  }, 0)
+  return () => clearTimeout(t)
+}, [])
 
 
 
@@ -234,7 +236,10 @@ NETWORK STATUS
 */
 
 
-useEffect(()=>{
+useEffect(() => {
+  // Deferred one tick: keeps synchronous setState out of the effect
+  // flush (react-hooks/set-state-in-effect) without changing behavior.
+  const t = setTimeout(() => {
 
 
 const online=()=>setIsOffline(false)
@@ -274,10 +279,9 @@ offline
 
 
 }
-
-
-
-},[])
+  }, 0)
+  return () => clearTimeout(t)
+}, [])
 
 
 

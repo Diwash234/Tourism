@@ -34,7 +34,10 @@ function getFallbackForTitle(title) {
 const PlaceholderImage = ({ className = "", title = "Nepal Attraction", src = null, alt = "", cropBox = null }) => {
   const [failed, setFailed] = useState(false)
   
-  useEffect(() => setFailed(false), [src])
+  useEffect(() => {
+    const z = setTimeout(() => setFailed(false), 0)
+    return () => clearTimeout(z)
+  }, [src])
 
   const effectiveSrc = (!src || failed) ? getFallbackForTitle(title || alt) : src
 

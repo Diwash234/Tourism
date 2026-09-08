@@ -43,7 +43,12 @@ const Packages = () => {
     }
   }
 
-  useEffect(() => { load() }, [kind])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [kind])
 
   const featured = useMemo(() => listings.filter((row) => row.is_featured), [listings])
 

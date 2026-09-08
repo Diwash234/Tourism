@@ -242,7 +242,7 @@ export default function Recommendation() {
   const [selected, setSelected] = useState(["family", "cultural"])
   const [explorationMode, setExplorationMode] = useState("balanced")
   const [form, setForm] = useState({ days: 5, budget: "any", difficulty: "any", season: "any", travelStyle: "family", province: "" })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [hasRun, setHasRun] = useState(false)
   const [meta, setMeta] = useState(null)
   const [interactionConsent, setInteractionConsent] = useState(false)
@@ -289,7 +289,12 @@ export default function Recommendation() {
     }
   }
 
-  useEffect(() => { loadRecommendations() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadRecommendations(), 0)
+    return () => clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const trackSelection = (item) => {
     if (!interactionConsent) return

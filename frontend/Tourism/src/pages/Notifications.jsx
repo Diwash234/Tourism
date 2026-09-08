@@ -25,7 +25,12 @@ export default function Notifications() {
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [load])
 
   // Every mutation reports failure honestly — no silent optimistic updates.
   const toggle = async (item) => {

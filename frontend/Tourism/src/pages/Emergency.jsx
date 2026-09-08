@@ -103,6 +103,9 @@ export default function Emergency() {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const selected = params.get("destination")
     if (selected && !loadedInitial) loadDestination(selected)
     else if (position && !loadedInitial) loadCoordinates(position.lat, position.lng)
@@ -111,10 +114,15 @@ export default function Emergency() {
       setLoadedInitial(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 0)
+    return () => clearTimeout(t)
   }, [position])
 
   useEffect(() => {
-    if (query.length < 2 || query === directory?.location?.destination_name) return setSuggestions([])
+    if (query.length < 2 || query === directory?.location?.destination_name) {
+      const z = setTimeout(() => setSuggestions([]), 0)
+      return () => clearTimeout(z)
+    }
     const timer = setTimeout(() => destinationApi.autocomplete(query)
       .then(({ data }) => setSuggestions(data.results || data || []))
       .catch(() => setSuggestions([])), 220)

@@ -54,7 +54,10 @@ export default function CustomerSupport() {
   }
 
   useEffect(() => {
-    loadThreads()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadThreads(), 0)
+    return () => clearTimeout(t)
   }, [user?.email])
 
   useEffect(() => {

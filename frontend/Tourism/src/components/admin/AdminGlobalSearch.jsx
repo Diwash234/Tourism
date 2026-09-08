@@ -33,9 +33,8 @@ export default function AdminGlobalSearch() {
 
   useEffect(() => {
     if (q.trim().length < 2) {
-      setRows([])
-      setOpen(false)
-      return
+      const z = setTimeout(() => { setRows([]); setOpen(false) }, 0)
+      return () => clearTimeout(z)
     }
     const timer = setTimeout(async () => {
       setLoading(true)

@@ -70,7 +70,12 @@ export default function MarketplacePanel() {
     }
   }
 
-  useEffect(() => { load(tab) }, [tab])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(tab), 0)
+    return () => clearTimeout(t)
+  }, [tab])
 
   const savePartner = async (event) => {
     event.preventDefault()

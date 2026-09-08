@@ -28,6 +28,9 @@ const OAuthCallback = () => {
   const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const code = searchParams.get("code")
     const oauthError = searchParams.get("error")
 
@@ -66,6 +69,8 @@ const OAuthCallback = () => {
 
     exchange()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   return (

@@ -42,7 +42,12 @@ export default function EmergencyDirectoryPanel() {
     }
   }
 
-  useEffect(() => { load() }, [kind])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [kind])
 
   const save = async (event) => {
     event.preventDefault()

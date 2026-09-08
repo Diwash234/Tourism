@@ -29,6 +29,9 @@ const Tasks = () => {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     load()
     adminApi.getUsers({ limit: 500 }).then(({ data }) => {
       const list = data.results || data || []
@@ -38,6 +41,8 @@ const Tasks = () => {
     hotelApi.list({ limit: 500 }).then(({ data }) => {
       setHotels((data.results || data || []).map((h) => ({ id: h.id, label: h.name })))
     }).catch(() => setHotels([]))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   const handleCreate = async (e) => {

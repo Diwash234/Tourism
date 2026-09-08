@@ -13,7 +13,7 @@ export default function FeaturedDestinationsPanel() {
   const { showToast } = useToast()
 
   const [cards, setCards] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   // Destination autocomplete search for adding new
@@ -50,14 +50,17 @@ export default function FeaturedDestinationsPanel() {
   }
 
   useEffect(() => {
-    loadFeatured()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadFeatured(), 0)
+    return () => clearTimeout(t)
   }, [searchQuery])
 
   // Destination search
   useEffect(() => {
     if (!destSearch.trim() || destSearch.length < 2) {
-      setDestSearchResults([])
-      return
+      const z = setTimeout(() => { setDestSearchResults([]) }, 0)
+      return () => clearTimeout(z)
     }
     const timer = setTimeout(() => {
       destinationApi.getDestinations({ search: destSearch, page_size: 8 })

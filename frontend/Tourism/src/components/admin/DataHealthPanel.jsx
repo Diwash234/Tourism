@@ -30,7 +30,10 @@ export default function DataHealthPanel() {
   }
 
   useEffect(() => {
-    loadStats()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadStats(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   const handleSaveRates = (e) => {

@@ -66,6 +66,9 @@ export default function DestinationDetails() {
   const { position } = useGeolocation()
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setLoading(true)
 
     const params = {}
@@ -95,9 +98,14 @@ export default function DestinationDetails() {
         })
       }
     }).finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [slug, position])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (!isAuthenticated || !destination?.id) return
     userApi.getFavorites()
       .then(({ data }) => {
@@ -109,6 +117,8 @@ export default function DestinationDetails() {
         }
       })
       .catch(() => {})
+    }, 0)
+    return () => clearTimeout(t)
   }, [isAuthenticated, destination?.id])
 
   const toggleFavorite = async () => {

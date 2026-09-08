@@ -39,11 +39,16 @@ export default function TripStatus() {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (routeRef && form.email) lookup()
     if (isAuthenticated) {
       userApi.listMarketplaceOrders().then(({ data }) => setMine(data.results || [])).catch(() => setMine([]))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 0)
+    return () => clearTimeout(t)
   }, [routeRef, isAuthenticated])
 
   const card = (row) => {

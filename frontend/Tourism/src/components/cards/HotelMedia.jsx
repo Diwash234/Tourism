@@ -14,7 +14,10 @@ export default function HotelMedia({ hotel, className = "", alt, showContextLabe
       .filter((value, index, all) => value && all.indexOf(value) === index)
   }, [hotel.cover_image, hotel.external_image_url, hotel.image_url, hotel.destination_context_image_url, hotel.destination_name, hotel.destinationName, hotel.destination_slug])
   const [index, setIndex] = useState(0)
-  useEffect(() => setIndex(0), [candidates.join("|")])
+  useEffect(() => {
+    const z = setTimeout(() => setIndex(0), 0)
+    return () => clearTimeout(z)
+  }, [candidates.join("|")])
   const src = candidates[index]
   if (!src) return <PlaceholderImage className={className} title={hotel.name || "hotel"}/>
   return <div className={`relative ${className}`}>

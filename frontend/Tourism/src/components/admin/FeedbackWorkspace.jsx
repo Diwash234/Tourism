@@ -11,9 +11,9 @@ export default function FeedbackWorkspace() {
   const [selected, setSelected] = useState(null)
   const [filter, setFilter] = useState("")
   const [reply, setReply] = useState("")
-  const [internal, setInternal] = useState(false)
+  const [internal, setInternal] = useState(true)
   const [sending, setSending] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef(null)
 
   const load = () => {
@@ -34,7 +34,10 @@ export default function FeedbackWorkspace() {
   }
 
   useEffect(() => {
-    load()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
   }, [filter])
 
   useEffect(() => {

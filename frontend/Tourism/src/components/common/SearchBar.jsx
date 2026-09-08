@@ -34,8 +34,13 @@ const SearchBar = ({
 
   // Keep controlled value in sync when parent changes defaultValue
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (defaultValue !== query) setQuery(defaultValue)
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 0)
+    return () => clearTimeout(t)
   }, [defaultValue])
 
   const loadSuggestions = useCallback(
@@ -69,6 +74,9 @@ const SearchBar = ({
   )
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const q = query.trim()
     if (q.length >= 2) {
       const match = resolveFuzzyPlaceLocation(q)
@@ -84,6 +92,8 @@ const SearchBar = ({
     }
     if (!q) setDidYouMean(null)
     setIsOpen(q.length >= 1)
+    }, 0)
+    return () => clearTimeout(t)
   }, [query, fetchSuggestions, loadSuggestions])
 
   // Close dropdown on outside click

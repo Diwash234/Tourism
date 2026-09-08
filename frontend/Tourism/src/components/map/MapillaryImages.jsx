@@ -34,16 +34,16 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
 
   useEffect(() => {
     if (!latitude || !longitude) {
-      setImages([])
-      return
+      const z = setTimeout(() => { setImages([]) }, 0)
+      return () => clearTimeout(z)
     }
     if (!token) {
-      setImages(NEPAL_STREET_FALLBACKS.slice(0, limit))
-      return
+      const z = setTimeout(() => { setImages(NEPAL_STREET_FALLBACKS.slice(0, limit)) }, 0)
+      return () => clearTimeout(z)
     }
 
     let ignore = false
-    setLoading(true)
+    const zt = setTimeout(() => setLoading(true), 0)
 
     const dLat = radiusM / 111320
     const dLon = radiusM / (111320 * Math.cos((latitude * Math.PI) / 180) || 1)
@@ -85,6 +85,7 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
 
     return () => {
       ignore = true
+      clearTimeout(zt)
     }
   }, [latitude, longitude, token, radiusM, limit])
 

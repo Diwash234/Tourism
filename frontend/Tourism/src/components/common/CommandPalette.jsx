@@ -128,7 +128,12 @@ export default function CommandPalette() {
   )
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setSelectedIndex(0)
+    }, 0)
+    return () => clearTimeout(t)
   }, [query])
 
   const handleSelect = (item) => {

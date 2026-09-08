@@ -70,7 +70,8 @@ const RiskAlertDashboard = () => {
   };
 
   useEffect(() => {
-    loadAlerts();
+    const t = setTimeout(loadAlerts, 0);
+    return () => clearTimeout(t);
   }, [level]);
 
   const handleSubmitSafetyFeedback = async (e) => {

@@ -80,8 +80,19 @@ export default function MediaLibraryPanel() {
     finally { setBusy(false) }
   }
 
-  useEffect(() => { setStatus(params.get("status") || "") }, [params])
-  useEffect(() => { load() }, [status])
+  useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => { setStatus(params.get("status") || "")
+    }, 0)
+    return () => clearTimeout(t)
+  }, [params])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [status])
 
   const update = async (image, patch) => {
     try {

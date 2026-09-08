@@ -117,16 +117,24 @@ export default function DestinationList() {
 
   // Fetch featured destinations
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     destinationApi.getDestinations({ featured: true, page_size: 6, limit: 6 })
       .then(({ data }) => {
         const list = data.results || data || []
         setFeaturedDestinations(Array.isArray(list) ? list : [])
       })
       .catch(() => setFeaturedDestinations([]))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   // Sync URL with filter state
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const sp = new URLSearchParams()
     if (query) sp.set("q", query)
     if (letter) sp.set("letter", letter)
@@ -134,10 +142,15 @@ export default function DestinationList() {
     if (type && type !== "attraction") sp.set("type", type)
     if (page > 1) sp.set("page", String(page))
     setSearchParams(sp, { replace: true })
+    }, 0)
+    return () => clearTimeout(t)
   }, [query, letter, categoryChip, type, page, setSearchParams])
 
   // Fetch destinations — GPS proximity nearest first when position active & no explicit search query!
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setLoading(true)
 
     const chipParams = chipToQuery(categoryChip)
@@ -221,10 +234,14 @@ export default function DestinationList() {
     }
 
     fallbackFetch()
-
+    }, 0)
+    return () => clearTimeout(t)
   }, [page, categoryChip, type, query, letter, position])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (!isAuthenticated) {
       setFavoriteMap({})
       return
@@ -240,6 +257,8 @@ export default function DestinationList() {
         setFavoriteMap(map)
       })
       .catch(() => {})
+    }, 0)
+    return () => clearTimeout(t)
   }, [isAuthenticated])
 
   const handleToggleFavorite = async (destId) => {

@@ -35,9 +35,12 @@ const PROVINCES = [
 const ExploreNepalMap = () => {
   const [selected, setSelected] = useState(null)
   const [destinations, setDestinations] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (!selected) return
     setLoading(true)
     destinationApi
@@ -45,6 +48,8 @@ const ExploreNepalMap = () => {
       .then(({ data }) => setDestinations(data.results || data || []))
       .catch(() => setDestinations([]))
       .finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [selected])
 
   return (

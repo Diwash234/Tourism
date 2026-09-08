@@ -180,7 +180,7 @@ const Dashboard = () => {
       if (savedPrefs) {
         try {
           setPreferencesForm(JSON.parse(savedPrefs))
-        } catch {}
+        } catch { /* stored prefs corrupted — fall back to defaults */ }
       }
     } catch (error) {
       console.log("Dashboard data load error:", error)
@@ -190,7 +190,10 @@ const Dashboard = () => {
   }
 
   useEffect(() => {
-    loadDashboardData()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadDashboardData(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {

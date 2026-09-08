@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react"
+import { useMemo } from "react"
 import "./ChartSetup"
 import { Bar, Line, Pie } from "react-chartjs-2"
 import ErrorBoundary from "../common/ErrorBoundary"
@@ -67,11 +67,12 @@ export default function ChartCard({
   // ref — that keeps `data`/`options` referentially stable and stops
   // react-chartjs-2 re-running its update/redraw effect on every render.
   const signature = signatureFor(type, labels, data, label)
-  const latest = useRef({ labels, data, label, colors })
-  latest.current = { labels, data, label, colors }
-
+  // No ref needed: when `signature` changes the memo recomputes during that
+  // render, and its closure already holds the current labels/data/label/colors.
   const chartData = useMemo(
-    () => makeChartData(type, latest.current.labels, latest.current.data, latest.current.label, latest.current.colors),
+    () => makeChartData(type, labels, data, label, colors),
+    // Recompute only when the CONTENT signature changes — callers pass inline
+    // array literals whose identity changes every render (intentional).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [signature, type]
   )

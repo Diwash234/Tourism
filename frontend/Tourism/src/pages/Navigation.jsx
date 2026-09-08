@@ -145,7 +145,7 @@ export default function Navigation() {
   const [durationMin, setDurationMin] = useState(null)
   const [steps, setSteps] = useState([])
   const [routeSafety, setRouteSafety] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [emergencyDir, setEmergencyDir] = useState(null)
   const [nearbyDests, setNearbyDests] = useState([])
@@ -221,20 +221,31 @@ export default function Navigation() {
   }
 
   useEffect(() => {
-    if (requestedDest) handleGetRoute(requestedDest, requestedOrigin)
+    if (requestedDest) {
+      const z = setTimeout(() => handleGetRoute(requestedDest, requestedOrigin), 0)
+      return () => clearTimeout(z)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedDest, requestedOrigin])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     destinationApi.getDestinations({ featured: true, page_size: 8, limit: 8 })
       .then(({ data }) => {
         const list = data.results || data || []
         setFeaturedDests(list.slice(0, 8))
       })
       .catch(() => setFeaturedDests([]))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const lat = position?.lat || 28.2096
     const lng = position?.lng || 83.9856
     emergencyApi.nearby(lat, lng, { radius_km: 50, limit: 8 })
@@ -247,6 +258,8 @@ export default function Navigation() {
         setNearbyPlaces(Array.isArray(list) ? list : [])
       })
       .catch(() => setNearbyPlaces([]))
+    }, 0)
+    return () => clearTimeout(t)
   }, [position, amenityTab])
 
   const currentStep = steps[currentStepIdx] || steps[0] || {

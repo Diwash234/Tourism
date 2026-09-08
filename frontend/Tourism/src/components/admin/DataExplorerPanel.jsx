@@ -17,7 +17,13 @@ export default function DataExplorerPanel() {
   const [resource,setResource]=useState("destinations"), [query,setQuery]=useState(""), [page,setPage]=useState(1), [data,setData]=useState({results:[],count:0,total_pages:1}), [loading,setLoading]=useState(false)
   const [detail,setDetail]=useState(null), [edit,setEdit]=useState({}), [upload,setUpload]=useState(null)
   const load=(targetPage=page)=>{setLoading(true);adminApi.exploreData({resource,q:query,page:targetPage,page_size:25}).then(({data})=>{setData(data);setPage(data.page||1)}).catch(()=>setData({results:[],count:0,total_pages:1})).finally(()=>setLoading(false))}
-  useEffect(()=>{load();setDetail(null)},[resource]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {load();setDetail(null)
+    }, 0)
+    return () => clearTimeout(t)
+  }, [resource]) // eslint-disable-line react-hooks/exhaustive-deps
   const openDestination=async(id)=>{if(resource!=="destinations")return;try{const{data}=await adminApi.getAdminDestination(id);setDetail(data);setEdit({name:data.name||"",short_description:data.short_description||"",description:data.description||"",city:data.city||"",district:data.district||"",province:data.province||"",municipality:data.municipality||"",latitude:data.latitude??"",longitude:data.longitude??"",altitude:data.altitude||"",best_time_to_visit:data.best_time_to_visit||"",opening_hours:data.opening_hours||"",entry_fee:data.entry_fee??"",history:data.history||"",cultural_significance:data.cultural_significance||"",food_cuisine_info:data.food_cuisine_info||""})}catch{showToast("Could not load destination details","error")}}
   const save=async()=>{try{await adminApi.updateAdminDestination(detail.id,edit);showToast("Database, dataset/data.json and destination_locations.json updated","success");await openDestination(detail.id);load()}catch(e){showToast(e.response?.data?.detail||"Update failed","error")}}
   const fillFromRecords=async()=>{try{const{data}=await adminApi.fillAdminDestinationLocation(detail.id);showToast(data.message||"Filled from recorded neighbours","success");await openDestination(detail.id);load()}catch(e){showToast(e.response?.data?.detail||"Fill failed","error")}}

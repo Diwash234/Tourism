@@ -20,7 +20,7 @@ export default function UserManagement() {
   const [role, setRole] = useState(params.get("role") || "")
   const [status, setStatus] = useState(params.get("status") || "")
   const [verified, setVerified] = useState(params.get("verified") || "")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -40,11 +40,19 @@ export default function UserManagement() {
 
   useEffect(() => { const timer = setTimeout(load, 250); return () => clearTimeout(timer) }, [load])
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setRole(params.get("role") || "")
     setStatus(params.get("status") || "")
     setVerified(params.get("verified") || "")
+    }, 0)
+    return () => clearTimeout(t)
   }, [params])
-  useEffect(() => setPage(1), [q, role, status, verified])
+  useEffect(() => {
+    const t = setTimeout(() => setPage(1), 0)
+    return () => clearTimeout(t)
+  }, [q, role, status, verified])
 
   const openDetail = async (id) => {
     setDetailLoading(true)

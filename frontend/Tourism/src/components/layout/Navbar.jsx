@@ -27,6 +27,9 @@ const Navbar = () => {
   const { isDark, toggleTheme } = useTheme()
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const role = user?.role || "tourist"
     const allowed = (navigation || []).filter(item => item.location === "navbar" && String(item.route).startsWith("/") && (!item.allowed_roles?.length || item.allowed_roles.includes(role)))
     if (!allowed.length) return setManagedLinks(NAV_LINKS)
@@ -34,10 +37,18 @@ const Navbar = () => {
     const roots = []
     allowed.forEach(item => { const node = nodes.get(item.id); const parent = nodes.get(item.parent_id); if (parent) parent.children.push(node); else roots.push(node) })
     setManagedLinks(roots)
+    }, 0)
+    return () => clearTimeout(t)
   }, [navigation, user?.role])
 
   // Close any open dropdown on route change or Escape key
-  useEffect(() => { setOpenMenu(null) }, [location.pathname])
+  useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => { setOpenMenu(null)
+    }, 0)
+    return () => clearTimeout(t)
+  }, [location.pathname])
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") setOpenMenu(null) }
     window.addEventListener("keydown", onKey)

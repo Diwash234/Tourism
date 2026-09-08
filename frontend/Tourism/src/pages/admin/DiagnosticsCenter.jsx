@@ -61,7 +61,7 @@ function CheckRow({ label, data }) {
 
 function HealthPanel() {
   const [health, setHealth] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
   const [sample, setSample] = useState(null)
   const [err, setErr] = useState(null)
@@ -94,7 +94,12 @@ function HealthPanel() {
     } finally { setRunning(false); setLoading(false) }
   }
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => refresh(), 0)
+    return () => clearTimeout(t)
+  }, [refresh])
 
   const overallOk = health?.ok
   const checks = health?.checks || {}
@@ -167,7 +172,7 @@ function HealthPanel() {
 
 function ErrorsPanel() {
   const [errors, setErrors] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState({})
   const [filter, setFilter] = useState("open")
 
@@ -182,7 +187,12 @@ function ErrorsPanel() {
     } finally { setLoading(false) }
   }, [filter])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => refresh(), 0)
+    return () => clearTimeout(t)
+  }, [refresh])
 
   // Group identical events (same source+type+message) so repeated backend
   // errors (e.g. the same 503) collapse into one row with a count, instead of
@@ -304,7 +314,7 @@ function ErrorsPanel() {
 
 function AuditPanel() {
   const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -314,7 +324,12 @@ function AuditPanel() {
     } finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => refresh(), 0)
+    return () => clearTimeout(t)
+  }, [refresh])
 
   return (
     <div className="card-base p-6">

@@ -50,7 +50,7 @@ export default function UserDashboardControlPanel() {
     loadConfig()
   }, [])
 
-  const loadConfig = async () => {
+  async function loadConfig() {
     setLoading(true)
     try {
       const { data } = await configApi.getPublicConfig()

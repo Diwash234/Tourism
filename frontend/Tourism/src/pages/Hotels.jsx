@@ -16,6 +16,9 @@ const Hotels = () => {
   const [sort, setSort] = useState("recommended")
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setLoading(true)
 
     const params = {}
@@ -33,6 +36,8 @@ const Hotels = () => {
       .then(({ data }) => setHotels(data.results || data || []))
       .catch(() => setHotels([]))
       .finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [search, sort])
 
 

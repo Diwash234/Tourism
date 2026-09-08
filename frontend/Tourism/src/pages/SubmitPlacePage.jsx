@@ -19,7 +19,7 @@ import {
 export default function SubmitPlacePage() {
   const { showToast } = useToast()
   const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState(null)
   const [autoGeocodeMatch, setAutoGeocodeMatch] = useState(null)
 
@@ -60,6 +60,9 @@ export default function SubmitPlacePage() {
   const [galleryPreviews, setGalleryPreviews] = useState([])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     destinationApi
       .getCategories()
       .then(({ data }) => {
@@ -70,10 +73,15 @@ export default function SubmitPlacePage() {
         }
       })
       .catch(() => setCategories([]))
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   // Auto-calculate coordinates when Administrative hierarchy changes
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const muniNameToUse = manualMuniMode ? manualMuniText : selectedMunicipality
     const geo = geocodeNepalPlace(selectedProvince, selectedDistrict, muniNameToUse, selectedWard)
     setForm((prev) => ({
@@ -87,6 +95,8 @@ export default function SubmitPlacePage() {
       longitude: geo.lng.toFixed(6),
       altitude: geo.alt,
     }))
+    }, 0)
+    return () => clearTimeout(t)
   }, [selectedProvince, selectedDistrict, selectedMunicipality, selectedWard, manualMuniMode, manualMuniText])
 
   function update(field, value) {

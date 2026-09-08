@@ -53,11 +53,16 @@ const LocalDashboard = () => {
   }, [])
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     load()
     destinationApi
       .getCategories()
       .then(({ data }) => setCategories(data.results || data || []))
       .catch(() => setCategoriesError(true))
+    }, 0)
+    return () => clearTimeout(t)
   }, [load])
 
   const onSubmit = async (data) => {

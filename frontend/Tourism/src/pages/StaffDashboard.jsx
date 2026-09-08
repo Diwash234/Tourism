@@ -14,7 +14,7 @@ const permits = (caps, module, action) => caps?.[module]?.includes(action) || ca
 export default function StaffDashboard({ module = "dashboard" }) {
   const { showToast } = useToast()
   const [data, setData] = useState({ results: [], tasks: [], task_summary: {}, queue_counts: {}, capabilities: {} })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const loadInFlight = useRef(false)
   const load = useCallback(async () => {
     if (loadInFlight.current) return
@@ -24,7 +24,12 @@ export default function StaffDashboard({ module = "dashboard" }) {
     catch (error) { showToast(error.response?.data?.detail || "This workspace is not assigned to you", "error") }
     finally { setLoading(false); loadInFlight.current = false }
   }, [module])
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [load])
 
   const act = async (payload, confirmation) => {
     if (confirmation && !window.confirm(confirmation)) return

@@ -14,6 +14,9 @@ const Risk = () => {
 
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
 
     if (!navigator.geolocation) {
       setLoading(false)
@@ -70,8 +73,8 @@ const Risk = () => {
       }
 
     )
-
-
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
 

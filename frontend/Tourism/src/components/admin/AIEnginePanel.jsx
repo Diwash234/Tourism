@@ -54,14 +54,17 @@ export default function AIEnginePanel() {
   }
 
   useEffect(() => {
-    loadAIConfig()
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => loadAIConfig(), 0)
+    return () => clearTimeout(t)
   }, [])
 
   // Destination Search for AI Overrides
   useEffect(() => {
     if (!destSearch.trim() || destSearch.length < 2) {
-      setDestSearchResults([])
-      return
+      const z = setTimeout(() => { setDestSearchResults([]) }, 0)
+      return () => clearTimeout(z)
     }
     const timer = setTimeout(() => {
       destinationApi.getDestinations({ search: destSearch, page_size: 8 })

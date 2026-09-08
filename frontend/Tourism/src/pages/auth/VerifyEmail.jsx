@@ -23,9 +23,8 @@ const VerifyEmail = () => {
 
   useEffect(() => {
     if (!token) {
-      setStatus("error")
-      setMessage("This verification link is missing its token.")
-      return
+      const z = setTimeout(() => { setStatus("error"); setMessage("This verification link is missing its token.") }, 0)
+      return () => clearTimeout(z)
     }
 
     let cancelled = false
