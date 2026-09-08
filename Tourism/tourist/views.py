@@ -329,14 +329,50 @@ class DiscoverNepalView(APIView):
             | Q(name__icontains="peak") | Q(type__icontains="mountain")
             | Q(category__slug__icontains="mountain") | Q(category__name__icontains="mountain")
         )
-        culture = qs.exclude(Q(cultural_significance__isnull=True) | Q(cultural_significance=""))
-        cuisine = qs.exclude(Q(food_cuisine_info__isnull=True) | Q(food_cuisine_info=""))
+        # Primary signal: curated text fields. Fallback signal: the real
+        # category taxonomy (Cultural & Ethnic Tourism / Food & Culinary /
+        # Festivals & Events) so recorded destinations surface even when the
+        # long-form fields are still empty.
+        # Exact slugs only: substring matching on "culture"/"cultural" also
+        # catches "agriculture" / "Agricultural & Farm Tourism", which put
+        # poultry farms in the heritage section.
+        culture_slugs = {"culture", "heritage-temples", "museums",
+                         "buddhist-sites", "pilgrimage", "religious-sites"}
+        culture = qs.filter(
+            (~Q(cultural_significance__isnull=True) & ~Q(cultural_significance=""))
+            | Q(category__slug__in=culture_slugs)
+        ).distinct()
+        cuisine = qs.filter(
+            (~Q(food_cuisine_info__isnull=True) & ~Q(food_cuisine_info=""))
+            | Q(category__slug__in={"food-culinary"})
+        ).distinct()
         featured = qs.filter(is_featured=True).order_by("-average_rating", "name")
         if not featured.exists():
             featured = qs.order_by("-average_rating", "-views_count", "name")
 
         notices = VisitorNotice.objects.filter(is_published=True, kind=VisitorNotice.Kind.FESTIVAL).order_by("-starts_at")[:12]
         festival_items = [serialize_notice(notice) for notice in notices]
+        if not festival_items:
+            # No curated festival notices yet: fall back to destinations in
+            # the recorded Festivals & Events category, in notice shape so the
+            # public page renders them identically.
+            from .location_sync import display_city
+            fallback_qs = qs.filter(
+                Q(category__slug__in={"festivals"})
+            ).order_by("-average_rating", "name")[:8]
+            festival_items = [{
+                "id": d.id,
+                "kind": "festival",
+                "title": d.name,
+                "body": d.short_description or (d.description or "")[:160],
+                "city": display_city(d) or "",
+                "district": d.district or "",
+                "destination_id": d.id,
+                "destination_name": d.name,
+                "destination_slug": d.slug,
+                "starts_at": None,
+                "ends_at": None,
+            } for d in fallback_qs]
 
         provinces = []
         for name in ("Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"):

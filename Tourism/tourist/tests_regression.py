@@ -554,3 +554,44 @@ class CategoryCrudRegressionTests(TestCase):
             "/api/v1/categories/", {"name": "Nope", "slug": "nope"}, format="json"
         )
         self.assertEqual(resp.status_code, 403)
+
+
+class DiscoverNepalCatalogRegressionTests(TestCase):
+    """culture/cuisine/festivals groups must surface destinations recorded in
+    the category taxonomy even when the long-form text fields and curated
+    festival notices are still empty — and "agriculture" must never leak into
+    the culture group via substring matching."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        approved = dict(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        self.museum_cat = Category.objects.create(name="Museums & Galleries", slug="museums")
+        self.farm_cat = Category.objects.create(name="Agricultural & Farm Tourism", slug="agriculture")
+        self.food_cat = Category.objects.create(name="Food & Culinary Tourism", slug="food-culinary")
+        self.festival_cat = Category.objects.create(name="Festivals & Events", slug="festivals")
+        Destination.objects.create(name="Test Heritage Museum", slug="test-heritage-museum",
+                                   category=self.museum_cat, **approved)
+        Destination.objects.create(name="Test Poultry Farm", slug="test-poultry-farm",
+                                   category=self.farm_cat, **approved)
+        Destination.objects.create(name="Test Momo House", slug="test-momo-house",
+                                   category=self.food_cat, **approved)
+        Destination.objects.create(name="Test Jatra Festival", slug="test-jatra-festival",
+                                   category=self.festival_cat, **approved)
+
+    def test_groups_serve_recorded_destinations(self):
+        resp = self.client.get("/api/v1/discover-nepal/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        culture_names = {i["name"] for i in data["culture"]["items"]}
+        self.assertIn("Test Heritage Museum", culture_names)
+        self.assertNotIn("Test Poultry Farm", culture_names)
+        self.assertFalse(data["culture"]["pending"])
+
+        cuisine_names = {i["name"] for i in data["cuisine"]["items"]}
+        self.assertIn("Test Momo House", cuisine_names)
+        self.assertFalse(data["cuisine"]["pending"])
+
+        festival_titles = {i["title"] for i in data["festivals"]["items"]}
+        self.assertIn("Test Jatra Festival", festival_titles)
+        self.assertFalse(data["festivals"]["pending"])

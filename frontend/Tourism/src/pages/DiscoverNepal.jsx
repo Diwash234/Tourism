@@ -282,15 +282,24 @@ export default function DiscoverNepal() {
       {/* LOCAL FOOD */}
       <Section id="local-food" icon={FiCoffee} title="Authentic Nepali Culinary Heritage">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-2">
-          {DEFAULT_FOODS.map((food, i) => (
-            <div key={i} className="card-base p-4 bg-white border border-slate-200 space-y-3">
-              <img src={food.image} alt={food.name} className="w-full h-36 object-cover rounded-xl" />
+          {cuisine.map((food, i) => (
+            <div key={food.slug || i} className="card-base p-4 bg-white border border-slate-200 space-y-3">
+              <PlaceholderImage
+                src={food.image || food.cover_image_url}
+                title={food.name || food.title}
+                alt={food.name || food.title}
+                className="w-full h-36 object-cover rounded-xl bg-slate-100 border border-slate-100"
+              />
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-700">{food.nepali}</span>
-                <h3 className="font-extrabold text-base text-slate-900">{food.name}</h3>
-                <p className="text-xs text-slate-500">📍 {food.region}</p>
+                {food.nepali && (
+                  <span className="text-[10px] font-black uppercase text-amber-700 block">{food.nepali}</span>
+                )}
+                <h3 className="font-extrabold text-base text-slate-900">{food.name || food.title}</h3>
+                {(food.region || food.district || food.city) && (
+                  <p className="text-xs text-slate-500">📍 {food.region || food.district || food.city}</p>
+                )}
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">{food.desc}</p>
+              <p className="text-xs text-slate-600 leading-relaxed">{food.desc || food.short_description}</p>
             </div>
           ))}
         </div>
