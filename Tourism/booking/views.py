@@ -18,7 +18,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrHotelAdminOrSuperAdmin]
-    filterset_fields = ["hotel", "status"]
+    filterset_fields = ["hotel", "status", "user"]
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):

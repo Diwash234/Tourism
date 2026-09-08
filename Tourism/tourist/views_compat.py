@@ -398,9 +398,30 @@ class NavigationRouteView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
+        # ADDED: best_route() returns {"error": "..."} (HTTP 200) rather
+        # than raising when it can't snap a coordinate to the road graph
+        # or find a path -- that was passing straight through as if it
+        # were a successful route (empty route/distance silently treated
+        # as real data by the frontend). Surface it as a real error
+        # instead so Navigation.jsx's honest "routing unavailable"
+        # fallback triggers, rather than showing a silently wrong distance.
+        if result.get("error"):
+            return Response({"detail": result["error"]}, status=status.HTTP_404_NOT_FOUND)
+
         response_data = dict(result)
         response_data["route"] = result.get("route", [])  # [{lat, lng}, ...] real coordinates, not graph node IDs
         response_data["note"] = result.get("note")  # surfaces the "cheapest == fastest" caveat when present
+
+        # ADDED: the ML engine returns distance_km but never duration_min
+        # -- Navigation.jsx always fell back to a crude `distance * 1.6`
+        # guess as a result. Estimate using an average speed appropriate
+        # to the route type (trekking is walking pace, not highway speed).
+        if not response_data.get("duration_min") and response_data.get("distance_km"):
+            avg_speed_kmh = {
+                "fastest": 45, "safest": 35, "cheapest": 30, "trekking": 3,
+            }.get(route_type, 40)
+            response_data["duration_min"] = round((response_data["distance_km"] / avg_speed_kmh) * 60)
+
         if destination_obj:
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data
         elif destination_dict:

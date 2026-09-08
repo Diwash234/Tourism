@@ -10,8 +10,6 @@ class ImageResolveView(APIView):
     """
     GET /api/v1/images/resolve/?query=Ruru+Kshetra
 
-    Moved from tourist/views_images.py -- same URL, same behavior.
-
     The image proxy -- the frontend calls THIS, never Unsplash/Pexels/
     Pixabay/Openverse/Wikimedia directly, so API keys stay server-side
     and every result has already passed the relevance check in
