@@ -25,6 +25,23 @@ export default {
           light: '#f9fafb', // gray-50 — page background (light theme)
           dark: '#0f172a',  // slate-900 — page background (dark theme)
         },
+        // ONE Nepal-Yatra nav palette — shared tokens for Navbar, Sidebar and
+        // nav-adjacent chrome. Hex values match the emerald shades these
+        // components already used; consolidating here means future re-theming
+        // happens in one place instead of ~30 scattered utility classes.
+        nav: {
+          base: '#022c22',       // emerald-950 — deepest nav surface
+          surface: '#064e3b',    // emerald-900 — panels, admin chips
+          active: '#047857',     // emerald-700 — active items, primary CTAs
+          hover: '#065f46',      // emerald-800 — hover/pressed
+          strong: '#059669',     // emerald-600 — secondary emphasis
+          tint: '#ecfdf5',       // emerald-50  — light hover tint
+          tintStrong: '#d1fae5', // emerald-100 — light active tint / borders
+          deep: '#065f46',       // emerald-800 — labels on light bg
+          darkText: '#6ee7b7',   // emerald-300 — text on dark bg
+          dark: '#0f172a',       // slate-900  — dark-mode surface
+          darkAlt: '#1e293b',    // slate-800  — dark-mode elevated
+        },
         danger: '#dc2626',  // red-600 — SOS/emergency/destructive ONLY
         ai: '#9333ea',      // purple-600 — genuinely AI-powered features ONLY
         // RE-THEMED: primary/secondary used to be coral/teal (the old

@@ -87,16 +87,16 @@ const GROUPS = [
 
 const COLOR_MAP = {
   himalaya: "text-blue-600 bg-blue-50 group-hover:bg-blue-100",
-  forest: "text-emerald-600 bg-emerald-50 group-hover:bg-emerald-100",
+  forest: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
   saffron: "text-amber-600 bg-amber-50 group-hover:bg-amber-100",
   nepalred: "text-rose-600 bg-rose-50 group-hover:bg-rose-100",
   red: "text-red-600 bg-red-50 group-hover:bg-red-100",
   orange: "text-orange-600 bg-orange-50 group-hover:bg-orange-100",
   pink: "text-pink-600 bg-pink-50 group-hover:bg-pink-100",
-  emerald: "text-emerald-600 bg-emerald-50 group-hover:bg-emerald-100",
+  emerald: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
   sky: "text-sky-600 bg-sky-50 group-hover:bg-sky-100",
-  violet: "text-emerald-700 bg-[#F7F8F5] group-hover:bg-emerald-100",
-  purple: "text-emerald-700 bg-[#F7F8F5] group-hover:bg-emerald-100",
+  violet: "text-nav-active bg-[#F7F8F5] group-hover:bg-nav-tintStrong",
+  purple: "text-nav-active bg-[#F7F8F5] group-hover:bg-nav-tintStrong",
   terracotta: "text-orange-700 bg-orange-50 group-hover:bg-orange-100",
   cyan: "text-cyan-600 bg-cyan-50 group-hover:bg-cyan-100",
   stone: "text-gray-600 bg-gray-50 group-hover:bg-gray-100",
@@ -148,7 +148,7 @@ export default function Sidebar() {
       />
 
       <aside
-        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white dark:bg-slate-900 border-r border-emerald-100 dark:border-slate-700 overflow-y-auto overscroll-contain
+        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white dark:bg-nav-dark border-r border-nav-tintStrong dark:border-slate-700 overflow-y-auto overscroll-contain
                    transform transition-[transform,width] duration-300 will-change-transform
                    shadow-xl lg:shadow-none lg:max-w-none ${collapsed ? "lg:w-16" : "lg:w-64"} ${open ? "translate-x-0" : "-translate-x-full"}`}
         style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
@@ -157,7 +157,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="hidden lg:flex w-full items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide text-emerald-800 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-slate-800"
+            className="hidden lg:flex w-full items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide text-nav-deep hover:bg-nav-tint dark:text-nav-darkText dark:hover:bg-nav-darkAlt"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -172,23 +172,23 @@ export default function Sidebar() {
           </div>
 
           {isAuthenticated ? (
-            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white font-black flex items-center justify-center text-sm shadow">
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-nav-tintStrong flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-nav-active text-white font-black flex items-center justify-center text-sm shadow">
                 {user?.first_name?.[0] || user?.email[0].toUpperCase()}
               </div>
               <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
                 <p className="font-bold text-xs text-gray-900 truncate">{user?.full_name || user?.email}</p>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-nav-tintStrong text-nav-deep">
                   {user?.role || "Tourist"}
                 </span>
               </div>
             </div>
           ) : (
             <div className={`p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2 ${collapsed ? "lg:hidden" : ""}`}>
-              <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800">
+              <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-nav-active text-white text-xs font-bold hover:bg-nav-hover">
                 <BsBoxArrowInRight size={13} /> Login
               </Link>
-              <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-50">
+              <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-200 text-nav-deep text-xs font-bold hover:bg-nav-tint">
                 <BsPersonPlus size={13} /> Sign up
               </Link>
             </div>
@@ -199,14 +199,14 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
-                className={`flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider ${collapsed ? "lg:hidden" : ""}`}
+                className={`flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-nav-deep uppercase tracking-wider ${collapsed ? "lg:hidden" : ""}`}
                 aria-expanded={expanded[grp.label] !== false}
               >
                 {grp.tk ? t(grp.tk) : grp.label}
                 {expanded[grp.label] !== false ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
               </button>
               {expanded[grp.label] !== false && (
-                <div className={`space-y-0.5 border-l-2 border-emerald-100 ml-3 pl-1 ${collapsed ? "lg:border-l-0 lg:ml-0 lg:pl-0" : ""}`}>
+                <div className={`space-y-0.5 border-l-2 border-nav-tintStrong ml-3 pl-1 ${collapsed ? "lg:border-l-0 lg:ml-0 lg:pl-0" : ""}`}>
                   {grp.links.map((link) => {
                     const Icon = link.icon
                     const colorClass = COLOR_MAP[link.color] || COLOR_MAP.stone
@@ -221,8 +221,8 @@ export default function Sidebar() {
                             collapsed ? "lg:justify-center lg:px-1" : ""
                           } ${
                             isActive
-                              ? "bg-emerald-700 text-white shadow-md"
-                              : "text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
+                              ? "bg-nav-active text-white shadow-md"
+                              : "text-gray-700 hover:bg-nav-tint hover:text-nav-surface"
                           }`
                         }
                         title={link.tk ? t(link.tk) : link.label}

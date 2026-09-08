@@ -69,7 +69,7 @@ const Footer = () => {
       <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400" />
 
       {showBlock("symbols") && <div className="container-app py-8 border-b border-emerald-900/60">
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-5">
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3 sm:gap-5">
           {NATIONAL_ITEMS.map((item) => (
             <div
               key={item.title}
@@ -98,7 +98,7 @@ const Footer = () => {
         <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
           <Link
             to="/discover-nepal"
-            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow flex items-center gap-2 transition-transform hover:scale-105"
+            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow flex items-center justify-center gap-2 text-center transition-transform hover:scale-105"
           >
             <FiBookOpen size={16} /> See More — Explore All 26 National Symbols & Country Profile ➔
           </Link>
@@ -109,7 +109,7 @@ const Footer = () => {
         </div>
       </div>}
 
-      <div className="container-app py-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+      <div className="container-app py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {showBlock("explore") && (
           <div>
             <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("explore", "title", "Explore")}</h4>

@@ -60,7 +60,7 @@ const Navbar = () => {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-emerald-100 dark:border-slate-700 shadow-sm w-full min-w-0">
+    <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 dark:bg-nav-dark/95 backdrop-blur border-b border-nav-tintStrong dark:border-slate-700 shadow-sm w-full min-w-0">
       <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0">
 
         {/* Sidebar Toggle */}
@@ -139,7 +139,7 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               {isAdmin && (
-                <Link to="/admin" className="text-xs font-black uppercase tracking-wide rounded-lg bg-emerald-900 text-white px-3 py-2">
+                <Link to="/admin" className="text-xs font-black uppercase tracking-wide rounded-lg bg-nav-surface text-white px-3 py-2">
                   Admin
                 </Link>
               )}
