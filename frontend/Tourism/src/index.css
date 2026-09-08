@@ -672,3 +672,70 @@ html.dark .container-app { color: #e2e8f0; }
   background: var(--surface);
 }
 .dark .section-title { color: var(--text-h); }
+
+/* ==========================================
+   Global dark-mode compatibility layer (spec item 15).
+   Pages were authored with hard-coded light utilities (bg-white,
+   text-gray-900, ...) and no dark: variants, producing the reported
+   "dark sidebar + white page + white text" bug. Rather than editing 1400+
+   call sites, this layer re-maps the common light patterns onto the dark
+   tokens above. Accent buttons keep their explicit pairs (they use
+   *-950/black/white text, which is intentionally NOT remapped).
+   ========================================== */
+
+/* Light card/page surfaces -> raised dark surface */
+html.dark .bg-white,
+html.dark .bg-gray-50,
+html.dark .bg-slate-50,
+html.dark .bg-stone-50,
+html.dark .bg-\[\#F7F8F5\] { background-color: var(--surface); }
+
+html.dark .bg-gray-100,
+html.dark .bg-slate-100,
+html.dark .bg-stone-100 { background-color: #1b2740; }
+
+/* Soft tinted panels -> dark tints (kept hue-familiar) */
+html.dark .bg-emerald-50 { background-color: #06281e; }
+html.dark .bg-green-50   { background-color: #06281a; }
+html.dark .bg-teal-50    { background-color: #062a28; }
+html.dark .bg-cyan-50    { background-color: #08283a; }
+html.dark .bg-sky-50     { background-color: #0d2233; }
+html.dark .bg-blue-50    { background-color: #0d2233; }
+html.dark .bg-indigo-50  { background-color: #141a38; }
+html.dark .bg-purple-50  { background-color: #1c1433; }
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/70 { background-color: #2c2208; }
+html.dark .bg-yellow-50  { background-color: #2c2708; }
+html.dark .bg-orange-50  { background-color: #2e1c0c; }
+html.dark .bg-rose-50,
+html.dark .bg-red-50     { background-color: #33131a; }
+html.dark .bg-pink-50    { background-color: #321324; }
+
+/* Gradient endpoints used by hero/feature cards */
+html.dark .from-white   { --tw-gradient-from: var(--surface) var(--tw-gradient-from-position); }
+html.dark .from-emerald-50 { --tw-gradient-from: #06281e var(--tw-gradient-from-position); }
+html.dark .from-amber-50 { --tw-gradient-from: #2c2208 var(--tw-gradient-from-position); }
+html.dark .from-purple-50 { --tw-gradient-from: #1c1433 var(--tw-gradient-from-position); }
+html.dark .to-green-50  { --tw-gradient-to: #06281a var(--tw-gradient-to-position); }
+html.dark .to-purple-50\/30 { --tw-gradient-to: rgb(28 20 51 / 0.3) var(--tw-gradient-to-position); }
+
+/* Dark ink -> light ink (950/black/white intentionally untouched) */
+html.dark .text-gray-900,
+html.dark .text-gray-800 { color: #e7e5e4; }
+html.dark .text-gray-700,
+html.dark .text-gray-600 { color: #d6d3d1; }
+html.dark .text-gray-500 { color: #a8a29e; }
+html.dark .text-slate-900,
+html.dark .text-slate-800 { color: #e2e8f0; }
+html.dark .text-slate-700,
+html.dark .text-slate-600 { color: #cbd5e1; }
+html.dark .text-slate-500 { color: #94a3b8; }
+html.dark .text-purple-950 { color: #ddd6fe; }
+
+/* Hairline light borders -> dark border token */
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-stone-100,
+html.dark .border-\[\#E5E0D5\] { border-color: var(--border); }

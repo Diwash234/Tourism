@@ -895,3 +895,68 @@ class NavigationOriginResolutionTests(TestCase):
         )
         self.assertEqual(resp.status_code, 404)
         self.assertIn("origin", resp.json()["detail"].lower())
+
+
+class TransportModeHonestyTests(TestCase):
+    """Spec item 8: modes without real schedule data must not fabricate ETAs."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Destination
+        cls.origin = Destination.objects.create(
+            name="Kathmandu Durbar Square", slug="kds-2", city="Kathmandu",
+            latitude=27.6722, longitude=85.3066, is_active=True,
+        )
+        cls.dest = Destination.objects.create(
+            name="Phewa Lake", slug="phewa-2", city="Pokhara",
+            latitude=28.2117, longitude=83.9517, is_active=True,
+        )
+
+    def _route(self, mode):
+        return self.client.post(
+            "/api/v1/navigation/route",
+            {
+                "start_latitude": "27.6722", "start_longitude": "85.3066",
+                "destination_name": "Phewa Lake", "transport_mode": mode,
+            },
+            content_type="application/json",
+        )
+
+    def test_tourist_bus_has_no_invented_eta(self):
+        resp = self._route("Tourist Bus")
+        self.assertIn(resp.status_code, (200, 404, 503))
+        if resp.status_code == 200:
+            body = resp.json()
+            self.assertIsNone(body.get("duration_min"))
+            self.assertEqual(body.get("duration_source"), "unavailable")
+            self.assertIn("transit", body.get("duration_note", "").lower())
+
+    def test_flight_has_no_invented_schedule(self):
+        resp = self._route("Flight")
+        self.assertIn(resp.status_code, (200, 404, 503))
+        if resp.status_code == 200:
+            body = resp.json()
+            self.assertIsNone(body.get("duration_min"))
+            self.assertEqual(body.get("duration_source"), "unavailable")
+            self.assertEqual(body.get("route"), [])
+            # Flight distance is the straight line, not the road graph.
+            self.assertLess(body.get("distance_km", 9999), 200)
+
+    def test_car_duration_carries_honest_source_label(self):
+        resp = self._route("Private Car / Taxi")
+        self.assertIn(resp.status_code, (200, 404, 503))
+        if resp.status_code == 200 and resp.json().get("duration_min"):
+            # Either the routing engine supplied it, or it is a labelled
+            # average-speed estimate — never an unexplained number.
+            self.assertIn(resp.json().get("duration_source"), ("estimated", "routing_engine"))
+            self.assertTrue(resp.json().get("duration_note"))
+
+    def test_walking_never_shows_driving_duration(self):
+        resp = self._route("Walking / Trek")
+        self.assertIn(resp.status_code, (200, 404, 503))
+        if resp.status_code == 200 and resp.json().get("distance_km"):
+            body = resp.json()
+            self.assertEqual(body.get("duration_source"), "estimated")
+            # Trekking pace (3.5 km/h) must dominate: 100+ km route = 1700+ min
+            if body["distance_km"] > 100:
+                self.assertGreater(body["duration_min"], 1500)

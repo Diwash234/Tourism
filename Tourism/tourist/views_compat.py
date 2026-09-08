@@ -417,7 +417,18 @@ class NavigationRouteView(APIView):
                 return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         route_type = request.data.get("route_type", "fastest")
-        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=route_type)
+        # Travel mode drives both the routing profile and whether an ETA can
+        # honestly be produced (spec item 8: no fabricated bus/flight times).
+        transport_mode = str(request.data.get("transport_mode") or "").strip().lower()
+        MODE_PROFILES = {
+            "private car / taxi": ("fastest", 45),
+            "motorcycle": ("fastest", 50),
+            "walking / trek": ("trekking", 3.5),
+            "tourist bus": ("fastest", None),   # road distance only; no transit schedule data
+            "flight": (None, None),             # no flight schedule data
+        }
+        mode_route_type, mode_speed = MODE_PROFILES.get(transport_mode, (route_type, 40))
+        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},
@@ -438,15 +449,36 @@ class NavigationRouteView(APIView):
         response_data["route"] = result.get("route", [])  # [{lat, lng}, ...] real coordinates, not graph node IDs
         response_data["note"] = result.get("note")  # surfaces the "cheapest == fastest" caveat when present
 
-        # ADDED: the ML engine returns distance_km but never duration_min
-        # -- Navigation.jsx always fell back to a crude `distance * 1.6`
-        # guess as a result. Estimate using an average speed appropriate
-        # to the route type (trekking is walking pace, not highway speed).
-        if not response_data.get("duration_min") and response_data.get("distance_km"):
-            avg_speed_kmh = {
+        # Duration honesty (spec item 8): modes without real schedule data
+        # (tourist bus, flights) must NOT get a fabricated ETA — the client
+        # shows "data unavailable" instead. Ground modes without an engine
+        # duration get a clearly-labelled average-speed estimate.
+        if transport_mode == "flight":
+            response_data["distance_km"] = round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2)
+            response_data["route"] = []
+            response_data["duration_min"] = None
+            response_data["duration_source"] = "unavailable"
+            response_data["duration_note"] = "Flight schedule data unavailable — no invented flight times."
+        elif transport_mode == "tourist bus":
+            response_data["duration_min"] = None
+            response_data["duration_source"] = "unavailable"
+            response_data["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
+        elif transport_mode == "walking / trek" and response_data.get("distance_km"):
+            # The road/tourism graph's own duration is a driving estimate —
+            # never present it as walking time. Recompute at trekking pace.
+            response_data["duration_min"] = round((response_data["distance_km"] / mode_speed) * 60)
+            response_data["duration_source"] = "estimated"
+            response_data["duration_note"] = f"Estimated at ~{mode_speed:g} km/h trekking pace over {response_data['distance_km']} km of route distance."
+        elif not response_data.get("duration_min") and response_data.get("distance_km"):
+            avg_speed_kmh = mode_speed or {
                 "fastest": 45, "safest": 35, "cheapest": 30, "trekking": 3,
-            }.get(route_type, 40)
+            }.get(mode_route_type or route_type, 40)
             response_data["duration_min"] = round((response_data["distance_km"] / avg_speed_kmh) * 60)
+            response_data["duration_source"] = "estimated"
+            response_data["duration_note"] = f"Estimated at ~{avg_speed_kmh:g} km/h average for this mode; not a live traffic prediction."
+        elif response_data.get("duration_min") and not response_data.get("duration_source"):
+            response_data["duration_source"] = "routing_engine"
+            response_data["duration_note"] = response_data.get("note") or "Duration supplied by the routing engine."
 
         if destination_obj:
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data

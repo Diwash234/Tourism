@@ -144,6 +144,8 @@ export default function Navigation() {
   const [transportMode, setTransportMode] = useState("Private Car / Taxi")
   const [distance, setDistance] = useState(null)
   const [durationMin, setDurationMin] = useState(null)
+  const [durationNote, setDurationNote] = useState("")
+  const [durationSource, setDurationSource] = useState("")
   const [steps, setSteps] = useState([])
   const [routeAlerts, setRouteAlerts] = useState([])
   const [alertsLoaded, setAlertsLoaded] = useState(false)
@@ -217,6 +219,8 @@ export default function Navigation() {
       setRoute(response.data.route || [])
       setSteps(recordedSteps)
       setDurationMin(response.data.duration_min ?? null)
+      setDurationNote(response.data.duration_note || "")
+      setDurationSource(response.data.duration_source || "")
       setDistance(response.data.distance_km ?? null)
       setCurrentStepIdx(0)
 
@@ -246,10 +250,29 @@ export default function Navigation() {
       setSteps([])
       setDistance(null)
       setDurationMin(null)
+      setDurationNote("")
+      setDurationSource("")
       setDestination(null)
       setError(err.response?.data?.detail || "Routing information unavailable for this pair of places. Check the place names and try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const [shareCopied, setShareCopied] = useState(false)
+  const handleShareRoute = async () => {
+    const dest = destinationQuery.trim()
+    if (!dest) return
+    const params = new URLSearchParams({ dest })
+    const orig = originQuery.trim()
+    if (orig) params.set("origin", orig)
+    const url = `${window.location.origin}/navigation?${params.toString()}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      window.prompt("Copy this route link:", url)
     }
   }
 
@@ -432,15 +455,22 @@ export default function Navigation() {
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-500" role="status">
-            {position
-              ? `📍 GPS fix acquired (${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}) — routes will start from your position.`
-              : locating
-                ? "Requesting your GPS position…"
-                : geoError
-                  ? `GPS unavailable: ${geoError}. Type a starting place instead — e.g. Kathmandu.`
-                  : "No GPS position yet. Press “Use My Location” or type a starting place."}
-          </p>
+          <div className="text-[11px] text-slate-500" role="status">
+            {position ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>📍 GPS fix acquired ({position.lat.toFixed(4)}, {position.lng.toFixed(4)})</span>
+                {position.accuracy != null && <span>Accuracy ±{Math.round(position.accuracy)} m</span>}
+                {position.altitude != null && <span>Altitude {Math.round(position.altitude)} m</span>}
+                {position.speed != null && <span>Speed {Math.round(position.speed * 3.6)} km/h</span>}
+              </div>
+            ) : locating ? (
+              <p>Requesting your GPS position…</p>
+            ) : geoError ? (
+              <p>GPS unavailable: {geoError}. Type a starting place instead — e.g. Kathmandu.</p>
+            ) : (
+              <p>No GPS position yet. Press “Use My Location” or type a starting place.</p>
+            )}
+          </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -464,13 +494,24 @@ export default function Navigation() {
               </select>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-lg transition-all whitespace-nowrap"
-            >
-              {loading ? "Calculating..." : "Find Route & Calculate Distance"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleShareRoute}
+                disabled={!destinationQuery.trim()}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs whitespace-nowrap disabled:opacity-40"
+                title="Copy a link that opens this exact route"
+              >
+                {shareCopied ? "✓ Copied" : "🔗 Copy route link"}
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-lg transition-all whitespace-nowrap"
+              >
+                {loading ? "Calculating..." : "Find Route & Calculate Distance"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -608,8 +649,16 @@ export default function Navigation() {
                   <span className="text-lg font-black text-amber-300">{distance} km</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-bold">Est. Duration</span>
-                  <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "—"}</span>
+                  <span className="text-[10px] text-slate-400 block font-bold">
+                    {durationSource === "estimated" ? "Est. Duration (avg speed)" : "Duration"}
+                  </span>
+                  {durationSource === "unavailable" ? (
+                    <span className="text-[11px] font-bold text-amber-300 leading-tight block">
+                      {durationNote || "Information unavailable"}
+                    </span>
+                  ) : (
+                    <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "—"}</span>
+                  )}
                 </div>
               </div>
             )}
