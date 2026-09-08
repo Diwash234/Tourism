@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom"
-import { FiMenu, FiUser, FiBell, FiHeart, FiSearch, FiChevronDown, FiSun, FiMoon } from "react-icons/fi"
+import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon } from "react-icons/fi"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
@@ -8,6 +8,7 @@ import { NAV_LINKS } from "../../utils/constants"
 import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 import LanguageSwitcher from "../common/LanguageSwitcher"
+import ProfileMenu from "./ProfileMenu"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import useTheme from "../../context/ThemeContext"
@@ -17,7 +18,7 @@ const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <di
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [sidebarOpen, , toggleSidebar] = useSidebarState()
-  const { isAuthenticated, user, logout, isAdmin, isStaff } = useAuth()
+  const { isAuthenticated, user, isAdmin, isStaff } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
   const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
@@ -54,11 +55,16 @@ const Navbar = () => {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [])
-
-  const handleLogout = async () => {
-    await logout()
-    navigate("/login")
-  }
+  // Close the open dropdown on any outside click (brief §36: menus must not
+  // stay floating over the page).
+  useEffect(() => {
+    if (openMenu === null) return undefined
+    const onDown = (e) => {
+      if (!e.target.closest?.("[data-nav-root]")) setOpenMenu(null)
+    }
+    document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [openMenu])
 
   const handleSmartSearch = (e) => {
     e.preventDefault()
@@ -72,7 +78,7 @@ const Navbar = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] bg-white/95 dark:bg-nav-dark/95 backdrop-blur border-b border-nav-tintStrong dark:border-slate-700 shadow-sm w-full min-w-0">
-      <nav className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0">
+      <nav data-nav-root className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0">
 
         {/* Sidebar Toggle */}
         <button
@@ -87,7 +93,7 @@ const Navbar = () => {
           <FiMenu size={20} />
         </button>
 
-        <TourismLogo size="md" showTagline={false} />
+        <TourismLogo size="md" showTagline={false} darkText />
 
         {/* Search (visible on all screens; grows to fill space) */}
         <form
@@ -136,7 +142,7 @@ const Navbar = () => {
                 )}
               </div>
               {!!link.children?.length && (
-                <div className={`absolute top-full left-0 pt-3 min-w-52 z-50 ${openMenu === idx ? "block" : "hidden group-hover:block group-focus-within:block"}`}>
+                <div className={`absolute top-full left-0 pt-3 min-w-52 z-50 ${openMenu === idx ? "block" : "hidden"}`}>
                   <div className="bg-white border border-gray-100 shadow-xl rounded-xl p-2">
                     <NavChildren items={link.children} onNavigate={() => setOpenMenu(null)} />
                   </div>
@@ -172,36 +178,13 @@ const Navbar = () => {
               </button>
               <Link
                 to="/notifications"
-                className="text-gray-600 hover:text-primary-600"
+                className="text-gray-600 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white"
                 aria-label="Notifications"
               >
                 <FiBell size={20} />
               </Link>
 
-              <Link
-                to="/favorites"
-                className="text-gray-600 hover:text-primary-600"
-                aria-label="Favorites"
-              >
-                <FiHeart size={20} />
-              </Link>
-
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 border border-gray-200 rounded-full px-3 py-1.5 hover:shadow-card"
-              >
-                <FiUser />
-                <span className="text-sm font-medium max-w-[120px] truncate">
-                  {user?.first_name || user?.name || t("nav.profile")}
-                </span>
-              </Link>
-
-              <button
-                onClick={handleLogout}
-                className="btn-outline text-sm py-1.5"
-              >
-                {t("nav.logout")}
-              </button>
+              <ProfileMenu />
             </>
           ) : (
             <>

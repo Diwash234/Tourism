@@ -618,28 +618,31 @@ const AdminDashboard = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 text-slate-900 -mx-4 sm:-mx-6 lg:-mx-8 -my-6 px-4 sm:px-8 py-8 transition-colors duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 text-slate-900 transition-colors duration-500">
       {/* Top Banner */}
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/60 pb-6"
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-emerald-900/15 pb-6"
         >
           <div>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-gray-950 shadow-md shadow-emerald-600/20">
                 RBAC Central Command
               </span>
-              <span className="text-xs text-slate-300">
-                Logged in as: <b className="text-amber-300">{user?.email}</b> ({user?.role})
+              {/* Dark-on-light: the page background is a light emerald
+                  gradient, so identity text must never be white (brief §14).
+                  The email itself now also lives in the navbar profile menu. */}
+              <span className="text-xs text-emerald-900/70">
+                Logged in as: <b className="text-emerald-800">{user?.email}</b> ({user?.role})
               </span>
             </div>
-            <h1 className="text-3xl font-extrabold text-white mt-1 tracking-tight">
+            <h1 className="text-3xl font-extrabold text-emerald-950 mt-1 tracking-tight">
               Nepal Tourism Admin & Moderation Sentinel
             </h1>
-            <p className="text-slate-300 text-sm">
+            <p className="text-emerald-900/60 text-sm">
               Role-Based Access Control • Destination Approval Desk • Multi-Image Verification • Live Traveler Safety Tracking
             </p>
           </div>
@@ -647,7 +650,7 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={fetchAllData}
-              className="px-4 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/50 flex items-center gap-2 text-sm font-medium transition-all"
+              className="px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-emerald-100 hover:text-white border border-emerald-700/50 flex items-center gap-2 text-sm font-medium transition-all"
             >
               <FiRefreshCw className={loading ? "animate-spin" : ""} size={14} /> Refresh
             </button>

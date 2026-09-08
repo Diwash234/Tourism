@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, NavLink } from "react-router-dom"
+import { Link, NavLink, useLocation } from "react-router-dom"
 import {
   BsHouseDoor, BsPerson, BsGeoAlt, BsHeart, BsClockHistory, BsBell, BsGear,
   BsWallet2, BsCalculator, BsCalendar3, BsExclamationTriangle, BsCompass,
@@ -102,18 +102,28 @@ const COLOR_MAP = {
   stone: "text-gray-600 bg-gray-50 group-hover:bg-gray-100",
 }
 
+const isDesktop = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(min-width: 1024px)").matches
+
 export default function Sidebar() {
   const { isAuthenticated, user, isAdmin, isStaff, isLocal } = useAuth()
   const { t } = useI18n()
+  const location = useLocation()
   const [managedItems, setManagedItems] = useState([])
-  const [expanded, setExpanded] = useState({ Explore: true, "My Trips": true, Hotels: false, Safety: false, Account: true, "Workspace portals": true })
-  const [open, , , , collapsed, , toggleCollapsed] = useSidebarState()
+  // Groups are click-controlled (brief §17): nothing auto-expands except the
+  // group that contains the active route, so the current page stays visible.
+  const [expanded, setExpanded] = useState({})
+  const [open] = useSidebarState()
+  // Icon-rail mode: desktop with the rail closed. On mobile !open simply
+  // means the drawer is off-screen, so the same flat icon rendering is inert.
+  const iconMode = !open
+
   useEffect(() => { configApi.getPublicConfig().then(({ data }) => setManagedItems((data.navigation || []).filter(item => item.location === "sidebar"))).catch(() => {}) }, [])
-  // On mobile the drawer starts closed; on desktop it stays open by default.
-  useEffect(() => { if (typeof window !== "undefined" && window.innerWidth < 1024) closeSidebar() }, [])
 
   const handleNav = () => {
-    if (window.innerWidth < 1024) closeSidebar()
+    if (!isDesktop()) closeSidebar()
   }
 
   const PUBLIC_ROUTES = new Set([
@@ -138,6 +148,51 @@ export default function Sidebar() {
       }),
   })).filter((g) => g.links.length > 0)
 
+  // Expand the group that owns the active route (brief §17/§20); other groups
+  // keep whatever the user last chose. Deferred one tick: keeps synchronous
+  // setState out of the effect flush (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const owner = visibleGroups.find((grp) =>
+        grp.links.some((link) => location.pathname === link.to || (!link.end && location.pathname.startsWith(`${link.to}/`)))
+      )
+      if (owner) setExpanded((prev) => (prev[owner.label] ? prev : { ...prev, [owner.label]: true }))
+    }, 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+
+  const linkClass = ({ isActive }) =>
+    `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group whitespace-nowrap ${
+      iconMode ? "lg:justify-center lg:px-1" : ""
+    } ${
+      isActive
+        ? "bg-nav-active text-white shadow-md"
+        : "text-gray-700 hover:bg-nav-tint hover:text-nav-surface"
+    }`
+
+  const renderLink = (link) => {
+    const Icon = link.icon
+    const colorClass = COLOR_MAP[link.color] || COLOR_MAP.stone
+    return (
+      <NavLink
+        key={link.to}
+        to={link.to}
+        end={!!link.end}
+        onClick={handleNav}
+        className={linkClass}
+        title={link.tk ? t(link.tk) : link.label}
+        aria-label={link.tk ? t(link.tk) : link.label}
+      >
+        <div className={`p-1.5 rounded-lg shrink-0 ${colorClass}`}>
+          <Icon size={14} />
+        </div>
+        {/* Label: never wraps vertically — hidden entirely in icon-rail mode */}
+        <span className={`truncate ${iconMode ? "lg:hidden" : ""}`}>{link.tk ? t(link.tk) : link.label}</span>
+      </NavLink>
+    )
+  }
+
   return (
     <>
       <div
@@ -150,35 +205,27 @@ export default function Sidebar() {
       <aside
         id="sidebar-drawer"
         aria-label="Main navigation"
-        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white dark:bg-nav-dark border-r border-nav-tintStrong dark:border-slate-700 overflow-y-auto overscroll-contain
+        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white dark:bg-nav-dark border-r border-nav-tintStrong dark:border-slate-700 overflow-y-auto overscroll-contain overflow-x-hidden
                    transform transition-[transform,width] duration-300 will-change-transform
-                   shadow-xl lg:shadow-none lg:max-w-none ${collapsed ? "lg:w-16" : "lg:w-64"} ${open ? "translate-x-0" : "-translate-x-full"}`}
+                   shadow-xl lg:shadow-none lg:max-w-none lg:translate-x-0 ${open ? "translate-x-0 lg:w-64" : "-translate-x-full lg:w-16"}`}
         style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       >
-        <div className={`space-y-5 ${collapsed ? "p-2 lg:p-1.5" : "p-4"}`}>
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            className="hidden lg:flex w-full items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide text-nav-deep hover:bg-nav-tint dark:text-nav-darkText dark:hover:bg-nav-darkAlt"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <BsChevronRight size={14} className={`transition-transform ${collapsed ? "" : "rotate-180"}`} />
-            {collapsed ? null : <span>Collapse</span>}
-          </button>
+        <div className={`space-y-5 ${iconMode ? "p-2 lg:p-1.5" : "p-4"}`}>
+          {/* Rail expand/collapse control — icon only, no visible word (brief §4/§18) */}
+          <RailToggle />
           <div className="flex items-center justify-between lg:hidden">
-            <span className="text-sm font-bold text-gray-900">Traveller menu</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white">Traveller menu</span>
             <button onClick={closeSidebar} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600" aria-label="Close menu">
               <BsX size={18} />
             </button>
           </div>
 
           {isAuthenticated ? (
-            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-nav-tintStrong flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-nav-active text-white font-black flex items-center justify-center text-sm shadow">
-                {user?.first_name?.[0] || user?.email[0].toUpperCase()}
+            <div className={`p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-nav-tintStrong flex items-center gap-3 ${iconMode ? "lg:justify-center lg:p-2" : ""}`}>
+              <div className="w-10 h-10 rounded-xl bg-nav-active text-white font-black flex items-center justify-center text-sm shadow shrink-0">
+                {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase()}
               </div>
-              <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
+              <div className={`min-w-0 ${iconMode ? "lg:hidden" : ""}`}>
                 <p className="font-bold text-xs text-gray-900 truncate">{user?.full_name || user?.email}</p>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-nav-tintStrong text-nav-deep">
                   {user?.role || "Tourist"}
@@ -186,7 +233,7 @@ export default function Sidebar() {
               </div>
             </div>
           ) : (
-            <div className={`p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2 ${collapsed ? "lg:hidden" : ""}`}>
+            <div className={`p-3 rounded-2xl bg-gray-50 border border-gray-100 flex gap-2 ${iconMode ? "lg:hidden" : ""}`}>
               <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-nav-active text-white text-xs font-bold hover:bg-nav-hover">
                 <BsBoxArrowInRight size={13} /> Login
               </Link>
@@ -196,52 +243,56 @@ export default function Sidebar() {
             </div>
           )}
 
-          {visibleGroups.map((grp) => (
-            <div key={grp.label} className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
-                className={`flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-nav-deep uppercase tracking-wider ${collapsed ? "lg:hidden" : ""}`}
-                aria-expanded={expanded[grp.label] !== false}
-              >
-                {grp.tk ? t(grp.tk) : grp.label}
-                {expanded[grp.label] !== false ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
-              </button>
-              {expanded[grp.label] !== false && (
-                <div className={`space-y-0.5 border-l-2 border-nav-tintStrong ml-3 pl-1 ${collapsed ? "lg:border-l-0 lg:ml-0 lg:pl-0" : ""}`}>
-                  {grp.links.map((link) => {
-                    const Icon = link.icon
-                    const colorClass = COLOR_MAP[link.color] || COLOR_MAP.stone
-                    return (
-                      <NavLink
-                        key={link.to}
-                        to={link.to}
-                        end={!!link.end}
-                        onClick={handleNav}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
-                            collapsed ? "lg:justify-center lg:px-1" : ""
-                          } ${
-                            isActive
-                              ? "bg-nav-active text-white shadow-md"
-                              : "text-gray-700 hover:bg-nav-tint hover:text-nav-surface"
-                          }`
-                        }
-                        title={link.tk ? t(link.tk) : link.label}
-                      >
-                        <div className={`p-1.5 rounded-lg ${colorClass}`}>
-                          <Icon size={14} />
-                        </div>
-                        <span className={collapsed ? "lg:hidden" : ""}>{link.tk ? t(link.tk) : link.label}</span>
-                      </NavLink>
-                    )
-                  })}
+          {iconMode ? (
+            /* Icon-rail mode: flat list of every visible link, icons only,
+               grouped with subtle dividers (brief §5/§6/§34) */
+            <div className="space-y-2">
+              {visibleGroups.map((grp, gi) => (
+                <div key={grp.label} className="space-y-0.5">
+                  {gi > 0 && <div className="mx-2 my-1.5 border-t border-nav-tintStrong dark:border-slate-700" aria-hidden="true" />}
+                  {grp.links.map(renderLink)}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          ) : (
+            /* Expanded mode: click-controlled collapsible groups (brief §17) */
+            visibleGroups.map((grp) => (
+              <div key={grp.label} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
+                  className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-nav-deep dark:text-nav-darkText uppercase tracking-wider whitespace-nowrap"
+                  aria-expanded={expanded[grp.label] === true}
+                >
+                  {grp.tk ? t(grp.tk) : grp.label}
+                  {expanded[grp.label] === true ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
+                </button>
+                {expanded[grp.label] === true && (
+                  <div className="space-y-0.5 border-l-2 border-nav-tintStrong ml-3 pl-1">
+                    {grp.links.map(renderLink)}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </aside>
     </>
+  )
+}
+
+/** Desktop-only rail width toggle. Icon + accessible label, no visible word. */
+function RailToggle() {
+  const [open, , , , , , toggleCollapsed] = useSidebarState()
+  return (
+    <button
+      type="button"
+      onClick={toggleCollapsed}
+      className="hidden lg:flex w-full items-center justify-center py-1.5 rounded-lg text-nav-deep hover:bg-nav-tint dark:text-nav-darkText dark:hover:bg-nav-darkAlt transition-colors"
+      aria-label={open ? "Collapse sidebar to icons" : "Expand sidebar"}
+      title={open ? "Collapse sidebar" : "Expand sidebar"}
+    >
+      <BsChevronRight size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+    </button>
   )
 }

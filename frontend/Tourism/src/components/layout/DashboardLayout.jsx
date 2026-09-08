@@ -9,8 +9,10 @@ import { ElevationScrollProgress } from "../common/MotionSystem"
 
 const DashboardLayout = () => {
   const location = useLocation()
-  const [sidebarOpen, , , , sidebarCollapsed] = useSidebarState()
-  const desktopPad = sidebarOpen ? (sidebarCollapsed ? "lg:pl-16" : "lg:pl-64") : "lg:pl-0"
+  const [sidebarOpen] = useSidebarState()
+  // The desktop rail is always present — expanded (64) or icon-only (16) —
+  // so content padding must always match the visible rail width (brief §12/§24).
+  const desktopPad = sidebarOpen ? "lg:pl-64" : "lg:pl-16"
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 w-full overflow-x-hidden">

@@ -104,17 +104,19 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = fal
 
       <div className="leading-tight flex flex-col justify-center min-w-0">
         <div className="flex items-center gap-1 font-heading font-black tracking-tight whitespace-nowrap">
-          <span className={darkText ? "text-slate-900" : "text-white drop-shadow-sm"}>
+          {/* darkText: for light surfaces (navbar). Stays readable in dark
+              mode via the dark: variant — brand never disappears (brief §2). */}
+          <span className={darkText ? "text-slate-900 dark:text-white" : "text-white drop-shadow-sm"}>
             {siteTitle.includes("Nepal") ? "Nepal" : siteTitle}
           </span>
           {siteTitle.includes("Nepal") && (
-            <span className="text-amber-400 font-extrabold">
+            <span className={`font-extrabold ${darkText ? "text-amber-600 dark:text-amber-400" : "text-amber-400"}`}>
               {siteTitle.replace("Nepal", "").trim() || "Yatra"}
             </span>
           )}
         </div>
         {showTagline && (
-          <p className={`${dims.tagline} font-medium text-slate-300/90 tracking-wide truncate max-w-xs`}>
+          <p className={`${dims.tagline} font-medium tracking-wide truncate max-w-xs ${darkText ? "text-slate-500 dark:text-slate-300/90" : "text-slate-300/90"}`}>
             {tagline}
           </p>
         )}
