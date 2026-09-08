@@ -379,6 +379,93 @@ async function main() {
     !!n5.container.querySelector('a[href="/destinations/world-peace-stupa"]'))
   n5.unmount()
 
+  // --- F. Hotels tab renders real hotel cards from /hotels/nearby/ -------------
+  const hotelRow = (id, name, lat, lng, km) => ({
+    id, name, address: "Lakeside Road", latitude: lat, longitude: lng,
+    price_per_night: "4500.00", currency: "NPR", rating: "4.50",
+    booking_status: "available", booking_url: "", image_url: null,
+    destination: 1, destination_name: "Lakeside Hub", destination_slug: "lakeside-hub",
+    distance_km: km,
+  })
+  const tabButton = (container, label) =>
+    [...container.querySelectorAll('button[role="tab"]')].find((b) => b.textContent.trim() === label)
+
+  entry.setGeolocation("success", { lat: 28.2096, lng: 83.9856 })
+  entry.setNearbyFixture({ results: [], count: 0 })
+  entry.setHotelFixture({
+    results: [
+      hotelRow(501, "Lakeside Inn", 28.205, 83.98, 0.8),
+      hotelRow(502, "Mountain View Resort", 28.3, 84.1, 15.2),
+    ],
+  })
+  const n6 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  const hotelsTab = tabButton(n6.container, "Hotels")
+  check("nearby: Hotels tab is available", !!hotelsTab)
+  await click(hotelsTab)
+  await settle()
+  await settle()
+  const txt6 = n6.container.textContent
+  check("nearby: hotels tab renders hotel cards from the API",
+    /Lakeside Inn/.test(txt6) && /Mountain View Resort/.test(txt6))
+  check("nearby: hotels show distance from the origin", /0\.8 km from/.test(txt6))
+  check("nearby: hotels summary counts the type", /Found 2 hotels within 25 km/.test(txt6))
+  const calls6 = entry.getHotelCalls()
+  check("nearby: hotels query uses latitude/longitude/radius_km",
+    calls6.length >= 1 &&
+    calls6[0].params.latitude === 28.2096 &&
+    calls6[0].params.longitude === 83.9856 &&
+    calls6[0].params.radius_km === 25)
+  n6.unmount()
+
+  // --- G. Hospitals tab renders distance-ranked hospital rows ------------------
+  entry.setGeolocation("success", { lat: 27.7172, lng: 85.324 })
+  entry.setEmergencyFixture({
+    hospitals: [{
+      id: 71, type: "hospital", name: "Ciwec Hospital", address: "Hattisar",
+      district: "Kathmandu", phone_number: "01-4424111",
+      latitude: 27.7131, longitude: 85.3218, distance_km: 0.5,
+    }],
+  })
+  const n7 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  const hospTab = tabButton(n7.container, "Hospitals")
+  check("nearby: Hospitals tab is available", !!hospTab)
+  await click(hospTab)
+  await settle()
+  await settle()
+  const txt7 = n7.container.textContent
+  check("nearby: hospitals tab renders real hospital rows",
+    /Ciwec Hospital/.test(txt7) && /0\.5 km away/.test(txt7))
+  check("nearby: hospital rows expose a callable phone link",
+    !!n7.container.querySelector('a[href="tel:01-4424111"]'))
+  check("nearby: hospital rows offer directions from recorded coordinates",
+    n7.container.querySelectorAll('a[href*="destination=27.7131,85.3218"]').length >= 1)
+  const calls7 = entry.getEmergencyCalls()
+  check("nearby: hospitals query sends latitude/longitude/radius_km",
+    calls7.length >= 1 &&
+    calls7[0].params.latitude === 27.7172 &&
+    calls7[0].params.longitude === 85.324 &&
+    calls7[0].params.radius_km === 25)
+  n7.unmount()
+
+  // --- H. empty wording is per-type ---------------------------------------------
+  entry.setGeolocation("success", { lat: 27.7172, lng: 85.324 })
+  entry.setNearbyFixture({ results: [], count: 0 })
+  entry.setHotelFixture({ results: [], count: 0 })
+  const n8 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  await click(tabButton(n8.container, "Hotels"))
+  await settle()
+  await settle()
+  check("nearby: hotel empty state names the type and radius",
+    /No hotels found within 25 km/.test(n8.container.textContent) &&
+    !/No nearby places found/i.test(n8.container.textContent))
+  n8.unmount()
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)

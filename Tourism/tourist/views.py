@@ -815,6 +815,39 @@ class HotelViewSet(viewsets.ModelViewSet):
         instance.is_active=False;instance.archived_at=timezone.now();instance.booking_status=Hotel.BookingStatus.UNAVAILABLE
         instance.save(update_fields=["is_active","archived_at","booking_status","updated_at"])
 
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
+    def nearby(self, request):
+        """Hotels within `radius_km` of the given coordinates, nearest first.
+
+        Same contract family as /destinations/nearby/: latitude/longitude/
+        radius_km query params (validated), haversine on stored coordinates,
+        distance_km injected per row. No separate nearby dataset.
+        """
+        query_serializer = NearbyDestinationQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        lat = query_serializer.validated_data["latitude"]
+        lon = query_serializer.validated_data["longitude"]
+        radius_km = query_serializer.validated_data["radius_km"]
+
+        try:
+            page_size = max(1, min(int(request.query_params.get("page_size", 24)), 100))
+        except (TypeError, ValueError):
+            page_size = 24
+
+        results = []
+        queryset = self.get_queryset().exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        for hotel in queryset:
+            distance = haversine_distance(lat, lon, hotel.latitude, hotel.longitude)
+            if distance <= radius_km:
+                results.append((distance, hotel))
+        results.sort(key=lambda pair: pair[0])
+
+        page = results[:page_size]
+        data = self.get_serializer([h for _, h in page], many=True, context={"request": request}).data
+        for row, (distance, _hotel) in zip(data, page):
+            row["distance_km"] = round(float(distance), 2)
+        return Response({"count": len(results), "results": data})
+
 
 class RestaurantViewSet(viewsets.ModelViewSet):
     serializer_class = RestaurantSerializer

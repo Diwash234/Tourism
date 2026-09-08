@@ -26,6 +26,10 @@ let publicConfigFixture = { settings: {}, pages: [], navigation: [] }
 let nearbyFixture = { results: [], count: 0, fail: false, failOnce: false }
 let nearbyCalls = []
 let searchFixture = []
+let hotelFixture = { results: [], count: 0 }
+let hotelCalls = []
+let emergencyFixture = { hospitals: [], police: [], specialized_contacts: [], national_hotlines: [] }
+let emergencyCalls = []
 axiosClient.defaults.adapter = async (config) => {
   const url = String(config.url || "")
   const ok = (data) => ({ data, status: 200, statusText: "OK", headers: {}, config, request: {} })
@@ -49,6 +53,28 @@ axiosClient.defaults.adapter = async (config) => {
       next: null,
       previous: null,
       results,
+    })
+  }
+  if (url.includes("/hotels/nearby/")) {
+    hotelCalls.push({ url, params: { ...config.params } })
+    const results = hotelFixture.results
+    return ok({
+      count: typeof hotelFixture.count === "number" ? hotelFixture.count : results.length,
+      results,
+    })
+  }
+  if (url.includes("/emergency/nearby/")) {
+    emergencyCalls.push({ url, params: { ...config.params } })
+    return ok({
+      location: { latitude: 0, longitude: 0, source: "coordinates" },
+      radius_km: config.params?.radius_km ?? 25,
+      counts: { hospitals_within_radius: emergencyFixture.hospitals.length },
+      hospitals: emergencyFixture.hospitals,
+      police: emergencyFixture.police,
+      specialized_contacts: emergencyFixture.specialized_contacts,
+      national_hotlines: emergencyFixture.national_hotlines,
+      coverage_gap: false,
+      notice: "",
     })
   }
   if (url.includes("/destinations/")) {
@@ -81,6 +107,20 @@ export function setSearchFixture(rows) {
 }
 export function getNearbyCalls() {
   return nearbyCalls
+}
+export function setHotelFixture(f) {
+  hotelFixture = { results: [], count: 0, ...f }
+  hotelCalls = []
+}
+export function getHotelCalls() {
+  return hotelCalls
+}
+export function setEmergencyFixture(f) {
+  emergencyFixture = { hospitals: [], police: [], specialized_contacts: [], national_hotlines: [], ...f }
+  emergencyCalls = []
+}
+export function getEmergencyCalls() {
+  return emergencyCalls
 }
 
 // jsdom has no geolocation — install a controllable stub on the navigator the

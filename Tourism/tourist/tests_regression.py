@@ -405,3 +405,58 @@ class NearbyResultsRegressionTests(TestCase):
             "latitude": "999", "longitude": "85.3300",
         }, format="json")
         self.assertEqual(resp.status_code, 400, resp.content)
+
+
+class HotelNearbyRegressionTests(TestCase):
+    """Nearby hotels derive from the real Hotel table via /hotels/nearby/ —
+    haversine on stored coordinates, nearest-first with distance_km, radius
+    honoured, inactive rows hidden, out-of-range coordinates rejected."""
+
+    def setUp(self):
+        from .models import Category, Destination, Hotel
+        cat = Category.objects.create(name="Hotel Nearby Test", slug="hotel-nearby-test")
+        dest = Destination.objects.create(
+            name="Lakeside Hub", category=cat, latitude=28.2096, longitude=83.9856,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            description="Hotel nearby fixture destination.",
+        )
+
+        def hotel(name, lat, lng, active=True):
+            return Hotel.objects.create(
+                destination=dest, name=name, latitude=lat, longitude=lng,
+                address="Fixture address", is_active=active,
+            )
+
+        self.near_hotel = hotel("Lakeside Inn", 28.2050, 83.9800)         # ~0.8 km
+        self.far_hotel = hotel("Mountain View Resort", 28.3000, 84.1000)  # ~15 km
+        self.closed_hotel = hotel("Closed Lodge", 28.2100, 83.9900, active=False)
+
+    def _nearby(self, lat, lng, radius_km):
+        resp = self.client.get("/api/v1/hotels/nearby/", {
+            "latitude": lat, "longitude": lng, "radius_km": radius_km,
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return resp.data
+
+    def test_hotels_nearby_sorted_with_distance(self):
+        data = self._nearby(28.2096, 83.9856, 25)
+        names = [r["name"] for r in data["results"]]
+        self.assertEqual(names[:2], ["Lakeside Inn", "Mountain View Resort"])
+        distances = [r["distance_km"] for r in data["results"]]
+        self.assertEqual(distances, sorted(distances))
+        self.assertLess(distances[0], 1.0)
+
+    def test_hotels_nearby_excludes_inactive_and_honours_radius(self):
+        wide = self._nearby(28.2096, 83.9856, 25)
+        self.assertNotIn("Closed Lodge", [r["name"] for r in wide["results"]])
+        self.assertEqual(wide["count"], 2)
+        tight = self._nearby(28.2096, 83.9856, 5)
+        tight_names = [r["name"] for r in tight["results"]]
+        self.assertIn("Lakeside Inn", tight_names)
+        self.assertNotIn("Mountain View Resort", tight_names)
+        self.assertEqual(tight["count"], 1)
+
+    def test_hotels_nearby_rejects_out_of_range_coordinates(self):
+        resp = self.client.get("/api/v1/hotels/nearby/", {
+            "latitude": 999, "longitude": 83.98, "radius_km": 25})
+        self.assertEqual(resp.status_code, 400, resp.content)

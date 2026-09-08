@@ -1,6 +1,9 @@
-// Nearby = nearby *destinations*, derived from the live Destination table via
-// GET /destinations/nearby/ (haversine on the DB side, nearest-first, with
-// distance_km annotated server-side). There is no separate nearby dataset.
+// Nearby = nearby *records from the live database*, derived per type:
+//  - Destinations: GET /destinations/nearby/  (haversine on Destination)
+//  - Hotels:       GET /hotels/nearby/        (haversine on Hotel)
+//  - Hospitals:    GET /emergency/nearby/     (distance-ranked Hospital rows)
+// All three are nearest-first with server-computed distance_km. There is no
+// separate nearby dataset and nothing is hardcoded in this component.
 //
 // Location states are kept strictly distinct — "finding your location",
 // "location blocked", "service error", "loading" and a genuine "nothing
@@ -15,6 +18,8 @@ import {
   FiRefreshCw,
   FiNavigation,
   FiX,
+  FiActivity,
+  FiPhone,
 } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
@@ -22,15 +27,24 @@ import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import DestinationCard from "../components/cards/DestinationCard"
+import HotelCard from "../components/cards/HotelCard"
 import useGeolocation from "../hooks/useGeolocation"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import destinationApi from "../api/destinationApi"
+import hotelApi from "../api/hotelApi"
+import emergencyApi from "../api/emergencyApi"
 import userApi from "../api/userApi"
 
 const RADIUS_OPTIONS_KM = [5, 10, 25, 50, 100, 250]
 const DEFAULT_RADIUS_KM = 25
 const PAGE_SIZE = 24
+
+const RESULT_TYPES = [
+  { key: "destinations", label: "Destinations", noun: "destinations" },
+  { key: "hotels", label: "Hotels", noun: "hotels" },
+  { key: "hospitals", label: "Hospitals", noun: "hospitals" },
+]
 
 const NearbyPlaces = () => {
   const { position, error: geoError, code: geoCode, locating, retry: retryGeo } = useGeolocation()
@@ -45,6 +59,9 @@ const NearbyPlaces = () => {
       (position ? { lat: position.lat, lng: position.lng, label: "Your location" } : null),
     [manualOrigin, position]
   )
+
+  const [activeType, setActiveType] = useState("destinations")
+  const activeMeta = RESULT_TYPES.find((t) => t.key === activeType)
 
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM)
   const [reloadNonce, setReloadNonce] = useState(0)
@@ -71,31 +88,53 @@ const NearbyPlaces = () => {
     Promise.resolve().then(() => {
       if (id !== requestId.current) return
       setFetchState("loading")
+
+      const settle = (list, count) => {
+        if (id !== requestId.current) return
+        setPlaces(list)
+        setTotal(count)
+        setFetchState("done")
+      }
+      const fail = () => {
+        if (id !== requestId.current) return
+        setPlaces([])
+        setTotal(0)
+        setFetchState("error")
+      }
+
+      if (activeType === "hotels") {
+        hotelApi
+          .nearby({ latitude: origin.lat, longitude: origin.lng, radius_km: radiusKm, page_size: PAGE_SIZE })
+          .then(({ data }) => {
+            const list = Array.isArray(data?.results) ? data.results : []
+            settle(list, typeof data?.count === "number" ? data.count : list.length)
+          })
+          .catch(fail)
+        return
+      }
+      if (activeType === "hospitals") {
+        emergencyApi
+          .nearby(origin.lat, origin.lng, { radius_km: radiusKm, limit: PAGE_SIZE })
+          .then(({ data }) => {
+            const list = Array.isArray(data?.hospitals) ? data.hospitals : []
+            settle(list, typeof data?.counts?.hospitals_within_radius === "number" ? data.counts.hospitals_within_radius : list.length)
+          })
+          .catch(fail)
+        return
+      }
       destinationApi
-        .getNearby({
-          latitude: origin.lat,
-          longitude: origin.lng,
-          radius_km: radiusKm,
-          page_size: PAGE_SIZE,
-        })
+        .getNearby({ latitude: origin.lat, longitude: origin.lng, radius_km: radiusKm, page_size: PAGE_SIZE })
         .then(({ data }) => {
-          if (id !== requestId.current) return
           const list = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : []
           // The chosen starting point is not "nearby" to itself.
-          setPlaces(list.filter((p) => p.id !== origin.destinationId))
-          setTotal(typeof data?.count === "number" ? data.count : list.length)
-          setFetchState("done")
+          const filtered = list.filter((p) => p.id !== origin.destinationId)
+          settle(filtered, typeof data?.count === "number" ? data.count : list.length)
         })
-        .catch(() => {
-          if (id !== requestId.current) return
-          setPlaces([])
-          setTotal(0)
-          setFetchState("error")
-        })
+        .catch(fail)
     })
-  }, [origin, radiusKm, reloadNonce])
+  }, [origin, radiusKm, activeType, reloadNonce])
 
-  // --- favorites (same contract as DestinationList)
+  // --- favorites (same contract as DestinationList; destinations tab only)
   useEffect(() => {
     if (!isAuthenticated) return
     userApi
@@ -191,6 +230,8 @@ const NearbyPlaces = () => {
   }
 
   const nextRadius = RADIUS_OPTIONS_KM.find((r) => r > radiusKm)
+  const noun = activeMeta.noun
+  const label = activeMeta.label
 
   const locationActions = (
     <div className="flex flex-wrap items-center justify-center gap-3">
@@ -213,13 +254,36 @@ const NearbyPlaces = () => {
 
   const resultsSummary =
     total > places.length
-      ? `Showing the ${places.length} nearest of ${total} destinations within ${radiusKm} km — nearest first`
-      : `Found ${places.length} destination${places.length === 1 ? "" : "s"} within ${radiusKm} km — nearest first`
+      ? `Showing the ${places.length} nearest of ${total} ${noun} within ${radiusKm} km — nearest first`
+      : `Found ${places.length} ${noun} within ${radiusKm} km — nearest first`
+
+  const directionsHref = (item) =>
+    `https://www.google.com/maps/dir/?api=1&destination=${item.latitude},${item.longitude}`
 
   return (
     <div className="container-app py-10 fade-in theme-forest">
       <CMSPageIntro pageKey="nearby-places" />
       <PageHeader title="Nearby Places" icon={FiMapPin} />
+
+      {/* Result type tabs — all backed by real, distance-ranked DB queries */}
+      <div className="flex flex-wrap gap-2 mb-4" role="tablist" aria-label="Nearby result types">
+        {RESULT_TYPES.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={activeType === t.key}
+            onClick={() => setActiveType(t.key)}
+            className={
+              activeType === t.key
+                ? "px-4 py-2 rounded-xl text-sm font-semibold bg-himalaya-600 text-white shadow-premium"
+                : "px-4 py-2 rounded-xl text-sm font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition-colors"
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {/* Search controls: origin + radius drive both the map and the list */}
       <div className="card-base p-4 mb-6 flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -277,9 +341,9 @@ const NearbyPlaces = () => {
 
       {/* Status panels — each failure mode gets its own message + recovery */}
       <div aria-live="polite">
-        {panel === "locating" && <Loader text="Finding nearby destinations…" />}
+        {panel === "locating" && <Loader text={`Finding nearby ${noun}…`} />}
 
-        {panel === "loading" && <Loader text="Finding nearby destinations…" />}
+        {panel === "loading" && <Loader text={`Finding nearby ${noun}…`} />}
 
         {panel === "denied" && (
           <EmptyState
@@ -302,8 +366,8 @@ const NearbyPlaces = () => {
         {panel === "error" && (
           <EmptyState
             icon={FiRefreshCw}
-            title="Nearby destinations couldn't be loaded."
-            subtitle="The destination service didn't respond. Please retry — if it keeps failing, try again in a moment."
+            title={`${label} couldn't be loaded.`}
+            subtitle="The service didn't respond. Please retry — if it keeps failing, try again in a moment."
             action={
               <button
                 type="button"
@@ -319,8 +383,8 @@ const NearbyPlaces = () => {
         {panel === "empty" && (
           <EmptyState
             icon={FiSearch}
-            title={`No destinations found within ${radiusKm} km.`}
-            subtitle={`Nothing in our destination database is within ${radiusKm} km of ${origin?.label}. Try a larger radius or a different starting point.`}
+            title={`No ${noun} found within ${radiusKm} km.`}
+            subtitle={`Nothing in our database is within ${radiusKm} km of ${origin?.label}. Try a larger radius or a different starting point.`}
             action={
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {nextRadius && (
@@ -347,27 +411,87 @@ const NearbyPlaces = () => {
         {panel === "results" && (
           <>
             <p className="text-sm text-gray-500 mb-4">{resultsSummary}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {places.map((p) => (
-                <div key={p.id} className="flex flex-col">
-                  <DestinationCard
-                    destination={p}
-                    onToggleFavorite={handleToggleFavorite}
-                    isFavorite={!!favoriteMap[p.id]}
-                  />
-                  {p.latitude != null && p.longitude != null && (
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1.5 self-start inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline"
-                    >
-                      <FiNavigation className="w-3 h-3" /> Get directions
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
+
+            {activeType === "destinations" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {places.map((p) => (
+                  <div key={p.id} className="flex flex-col">
+                    <DestinationCard
+                      destination={p}
+                      onToggleFavorite={handleToggleFavorite}
+                      isFavorite={!!favoriteMap[p.id]}
+                    />
+                    {p.latitude != null && p.longitude != null && (
+                      <a
+                        href={directionsHref(p)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1.5 self-start inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline"
+                      >
+                        <FiNavigation className="w-3 h-3" /> Get directions
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeType === "hotels" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {places.map((h) => (
+                  <div key={h.id} className="flex flex-col">
+                    <HotelCard hotel={h} />
+                    {h.distance_km != null && (
+                      <p className="mt-1.5 self-start text-xs font-medium text-emerald-700">
+                        {h.distance_km} km from {origin?.label}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeType === "hospitals" && (
+              <div className="space-y-3">
+                {places.map((h) => (
+                  <div key={h.id} className="card-base p-4 flex items-start gap-3">
+                    <FiActivity className="text-himalaya-500 mt-1 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm text-emerald-900">{h.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {[
+                          h.distance_km != null ? `${h.distance_km} km away` : null,
+                          h.district,
+                          h.address,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                        {h.phone_number && (
+                          <a
+                            href={`tel:${h.phone_number}`}
+                            className="text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline inline-flex items-center gap-1"
+                          >
+                            <FiPhone className="w-3 h-3" /> {h.phone_number}
+                          </a>
+                        )}
+                        {h.latitude != null && h.longitude != null && (
+                          <a
+                            href={directionsHref(h)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline inline-flex items-center gap-1"
+                          >
+                            <FiNavigation className="w-3 h-3" /> Get directions
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
