@@ -200,6 +200,7 @@ urlpatterns = [
 
     # Additional endpoints
     path("config/public/", views.PublicConfigView.as_view(), name="public-config"),
+    path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter-subscribe"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),

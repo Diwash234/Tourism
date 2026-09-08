@@ -2706,6 +2706,19 @@ class ManagedNavigationItem(TimeStampedModel):
         ordering = ["location", "display_order", "id"]
 
 
+class NewsletterSignup(TimeStampedModel):
+    """Footer newsletter signups. Admins browse/export via the Data Explorer."""
+
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.email
+
+
 class RedirectRule(TimeStampedModel):
     """Admin-managed URL redirects (old path -> new path).
 

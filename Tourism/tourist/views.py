@@ -20,7 +20,7 @@ from .models import (
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
-    TravelerDocument, RedirectRule,
+    TravelerDocument, RedirectRule, NewsletterSignup,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -269,6 +269,25 @@ class PublicConfigView(APIView):
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
             "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog,
             "hero_slides": hero_slides, "redirects": redirects})
+
+
+class NewsletterSubscribeView(APIView):
+    """Public footer newsletter signup — stores the email, never fakes success."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        import re
+        email = str(request.data.get("email", "")).strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email) or len(email) > 254:
+            return Response({"detail": "Enter a valid email address"}, status=status.HTTP_400_BAD_REQUEST)
+        _, created = NewsletterSignup.objects.get_or_create(email=email)
+        if not created:
+            NewsletterSignup.objects.filter(email=email, is_active=False).update(is_active=True)
+        return Response(
+            {"message": "Subscribed — thank you!" if created else "You're already on the list."},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class DiscoverNepalView(APIView):

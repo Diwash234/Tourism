@@ -286,3 +286,26 @@ class RedirectRulesRegressionTests(TestCase):
         self.assertEqual(dup.status_code, 400)
         bad = self.client_admin.post("/api/v1/admin/redirects/", {"old_path": "no-slash", "new_path": "/c"}, format="json")
         self.assertEqual(bad.status_code, 400)
+
+
+class FooterSettingsRegressionTests(TestCase):
+    """Footer (§6): branding contact_address whitelist + newsletter store."""
+
+    def test_branding_accepts_contact_address(self):
+        client = APIClient()
+        client.force_authenticate(user=make_superuser())
+        resp = client.patch("/api/v1/admin/branding/", {"branding": {"contact_address": "Kathmandu, Nepal"}}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.data["branding"]["contact_address"], "Kathmandu, Nepal")
+        public = APIClient().get("/api/v1/config/public/").json()
+        self.assertEqual(public["settings"]["branding"]["contact_address"], "Kathmandu, Nepal")
+
+    def test_newsletter_signup_dedupes_and_validates(self):
+        from tourist.models import NewsletterSignup
+        first = APIClient().post("/api/v1/newsletter/subscribe/", {"email": "Hiker@Example.com"}, format="json")
+        self.assertEqual(first.status_code, 201, first.content)
+        second = APIClient().post("/api/v1/newsletter/subscribe/", {"email": "hiker@example.com"}, format="json")
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(NewsletterSignup.objects.count(), 1)
+        bad = APIClient().post("/api/v1/newsletter/subscribe/", {"email": "not-an-email"}, format="json")
+        self.assertEqual(bad.status_code, 400)

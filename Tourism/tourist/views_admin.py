@@ -1382,6 +1382,7 @@ class AdminDataExplorerView(APIView):
         "audit_logs": ("audit.AuditLog", ["action","message","object_type","user_email","endpoint"]),
         "error_events": ("audit.ErrorEvent", ["error_type","error_message","endpoint","component"]),
         "marketplace_listings": ("tourist.MarketplaceListing", ["title","city","kind","status","partner__name"]),
+        "newsletter_signups": ("tourist.NewsletterSignup", ["email","is_active"]),
         "marketplace_partners": ("tourist.MarketplacePartner", ["name","email","city","status"]),
         "marketplace_orders": ("tourist.MarketplaceOrder", ["reference","guest_email","guest_name","status"]),
     }
@@ -1704,7 +1705,7 @@ class AdminBrandingView(APIView):
         "heritage": {"primary_color": "#8B1E3F", "secondary_color": "#D97706", "background_color": "#FFFBEB", "surface_color": "#FFFFFF", "border_radius": "soft", "density": "comfortable", "sidebar_style": "heritage"},
         "forest": {"primary_color": "#166534", "secondary_color": "#C2410C", "background_color": "#F0FDF4", "surface_color": "#FFFFFF", "border_radius": "rounded", "density": "compact", "sidebar_style": "dark"},
     }
-    TEXT_FIELDS = {"site_title", "tagline", "footer_text", "contact_email", "contact_phone"}
+    TEXT_FIELDS = {"site_title", "tagline", "footer_text", "contact_email", "contact_phone", "contact_address"}
     SOCIAL_FIELDS = {"facebook_url", "instagram_url", "twitter_url", "youtube_url"}
 
     def _setting(self):

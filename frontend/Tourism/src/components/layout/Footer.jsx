@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FiFacebook,
   FiInstagram,
   FiTwitter,
+  FiYoutube,
   FiMapPin,
   FiMail,
   FiPhone,
@@ -11,6 +13,7 @@ import {
 
 import { APP_NAME } from "../../utils/constants";
 import usePublicConfig from "../../hooks/usePublicConfig";
+import configApi from "../../api/configApi";
 import { CMSExtras } from "../cms/CMSBlock";
 
 import {
@@ -47,7 +50,7 @@ const NATIONAL_ITEMS = [
 
 const Footer = () => {
   const { branding, navigation, pageCMS } = usePublicConfig()
-  const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact"])
+  const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "newsletter"])
   const footerNav = (navigation || []).filter(item => item.location === "footer" && String(item.route || "").startsWith("/"))
   
   const filteredExtras = (extras || []).filter(
@@ -63,6 +66,50 @@ const Footer = () => {
   const contactAddress = branding.contact_address || "Pokhara, Nepal"
   const contactEmail = branding.contact_email || "support@tourists.app"
   const contactPhone = branding.contact_phone || "+977-000-0000"
+
+  // Footer links are admin-managed (navigation rows with location "footer");
+  // the fallback keeps the column populated before any are created. The
+  // Company column skips routes already shown in Explore so nothing doubles.
+  const exploreLinks = footerNav.length
+    ? footerNav
+    : [
+        { label: "Destinations", route: "/destinations" },
+        { label: "Recommendations", route: "/recommendation" },
+        { label: "Budget Estimator", route: "/budget-estimator" },
+        { label: "Risk Alerts", route: "/risk-alerts" },
+      ]
+  const exploreRoutes = new Set(exploreLinks.map((item) => item.route))
+  const companyLinks = [
+    { label: "How It Works", route: "/how-it-works", bold: true },
+    { label: "Customer Support", route: "/support", bold: true },
+    { label: "About Us", route: "/about" },
+    { label: "Contact", route: "/contact" },
+    { label: "Privacy Policy", route: "/privacy" },
+    { label: "Terms of Service", route: "/terms" },
+    { label: "Emergency", route: "/emergency" },
+  ].filter((link) => !exploreRoutes.has(link.route))
+
+  // Newsletter signup (brief §6) — real backend store, message comes from
+  // the API response, never faked.
+  const [newsletterEmail, setNewsletterEmail] = useState("")
+  const [newsletterBusy, setNewsletterBusy] = useState(false)
+  const [newsletterMessage, setNewsletterMessage] = useState("")
+
+  const handleNewsletter = async (e) => {
+    e.preventDefault()
+    if (newsletterBusy) return
+    setNewsletterBusy(true)
+    setNewsletterMessage("")
+    try {
+      const res = await configApi.subscribeNewsletter(newsletterEmail.trim())
+      setNewsletterMessage(res.data?.message || "Subscribed — thank you!")
+      setNewsletterEmail("")
+    } catch (err) {
+      setNewsletterMessage(err.response?.data?.detail || "Could not subscribe — please try again.")
+    } finally {
+      setNewsletterBusy(false)
+    }
+  }
 
   return (
     <footer className="bg-slate-950 text-emerald-100 mt-16 border-t border-emerald-500/30">
@@ -114,15 +161,7 @@ const Footer = () => {
           <div>
             <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("explore", "title", "Explore")}</h4>
             <ul className="space-y-2 text-sm">
-              {(footerNav.length
-                ? footerNav.filter((item) => ["/destinations", "/recommendation", "/budget-estimator", "/risk-alerts"].includes(item.route))
-                : [
-                    { label: "Destinations", route: "/destinations" },
-                    { label: "Recommendations", route: "/recommendation" },
-                    { label: "Budget Estimator", route: "/budget-estimator" },
-                    { label: "Risk Alerts", route: "/risk-alerts" },
-                  ]
-              ).map((item) => (
+              {exploreLinks.map((item) => (
                 <li key={item.route}><Link to={item.route} className="text-emerald-200 hover:text-white transition-colors">{item.label}</Link></li>
               ))}
             </ul>
@@ -146,13 +185,11 @@ const Footer = () => {
           <div>
             <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("company", "title", "Company")}</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/how-it-works" className="text-emerald-300 font-bold hover:text-white">How It Works</Link></li>
-              <li><Link to="/support" className="text-emerald-300 font-bold hover:text-white">Customer Support</Link></li>
-              <li><Link to="/about" className="text-emerald-200 hover:text-white transition-colors">About Us</Link></li>
-              <li><Link to="/contact" className="text-emerald-200 hover:text-white transition-colors">Contact</Link></li>
-              <li><Link to="/privacy" className="text-emerald-200 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="text-emerald-200 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><Link to="/emergency" className="text-emerald-200 hover:text-white transition-colors">Emergency</Link></li>
+              {companyLinks.map((link) => (
+                <li key={link.route}>
+                  <Link to={link.route} className={link.bold ? "text-emerald-300 font-bold hover:text-white" : "text-emerald-200 hover:text-white transition-colors"}>{link.label}</Link>
+                </li>
+              ))}
             </ul>
             <div className="mt-4 text-xs space-y-1 text-emerald-300 font-medium">
               <p>🚓 Police:<a href="tel:100" className="text-white font-bold ml-1">100</a></p>
@@ -174,15 +211,47 @@ const Footer = () => {
               {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Facebook"><FiFacebook /></a>}
               {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Instagram"><FiInstagram /></a>}
               {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="X or Twitter"><FiTwitter /></a>}
+              {branding.youtube_url && <a href={branding.youtube_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="YouTube"><FiYoutube /></a>}
             </div>
           </div>
         )}
       </div>
 
+      {showBlock("newsletter") && (
+        <div className="container-app pb-10">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-900/40 p-6 flex flex-col md:flex-row md:items-center gap-4">
+            <div className="mr-auto">
+              <h4 className="text-emerald-300 font-bold text-sm uppercase tracking-wider">{copy("newsletter", "title", "Travel Newsletter")}</h4>
+              <p className="text-sm text-emerald-200 mt-1">{copy("newsletter", "subtitle", "Trip ideas, festivals and safety updates — straight to your inbox.")}</p>
+            </div>
+            <form onSubmit={handleNewsletter} className="flex gap-2 w-full md:w-auto">
+              <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
+              <input
+                id="footer-newsletter-email"
+                type="email"
+                required
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="rounded-xl bg-slate-900 border border-emerald-500/40 px-3 py-2 text-sm text-emerald-100 placeholder:text-emerald-200/50 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-full md:w-64"
+              />
+              <button
+                type="submit"
+                disabled={newsletterBusy}
+                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-sm px-4 py-2 whitespace-nowrap"
+              >
+                {newsletterBusy ? "Signing up…" : "Subscribe"}
+              </button>
+            </form>
+          </div>
+          {newsletterMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-300">{newsletterMessage}</p>}
+        </div>
+      )}
+
       {filteredExtras?.length > 0 && <div className="container-app pb-8 text-emerald-100"><CMSExtras sections={filteredExtras} /></div>}
 
       <div className="border-t border-emerald-900/60 py-4 text-center text-xs text-emerald-300">
-        © {new Date().getFullYear()} {siteTitle}. All rights reserved.
+        © {new Date().getFullYear()} {siteTitle}. {branding.footer_text || "All rights reserved."}
         <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="ml-4 font-bold text-emerald-400 hover:text-white hover:underline">Back to top</button>
       </div>
     </footer>
