@@ -586,7 +586,7 @@ class AdminDestinationsView(APIView):
     # whitelist so unknown keys are ignored instead of raising TypeError/500.
     CREATABLE_FIELDS = {
         "name", "description", "short_description", "city", "city_english", "city_nepali",
-        "district", "province", "municipality", "address", "aliases",
+        "district", "province", "municipality", "ward_number", "address", "aliases",
         "latitude", "longitude", "entry_fee", "opening_hours", "altitude",
         "best_time_to_visit", "history", "cultural_significance", "religious_significance",
         "food_cuisine_info", "travel_safety_tips", "website",
@@ -625,6 +625,14 @@ class AdminDestinationsView(APIView):
             except (TypeError, ValueError):
                 return Response(
                     {"detail": "Recommended days must be a whole number or left empty."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        if "ward_number" in fields:
+            try:
+                fields["ward_number"] = int(fields["ward_number"])
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "Ward number must be a whole number or left empty."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         destination = Destination.objects.create(**fields)
@@ -687,6 +695,7 @@ class AdminDestinationDetailView(APIView):
             "district": destination.district,
             "province": destination.province,
             "municipality": destination.municipality,
+            "ward_number": destination.ward_number,
             "nearest_major_city": destination.nearest_major_city,
             "nearest_hospital_info": destination.nearest_hospital_info,
             "nearest_hotel_info": destination.nearest_hotel_info,
@@ -752,7 +761,7 @@ class AdminDestinationDetailView(APIView):
 
         editable = {
             "name", "description", "short_description", "city", "city_english", "city_nepali",
-            "district", "province", "municipality", "address", "aliases",
+            "district", "province", "municipality", "ward_number", "address", "aliases",
             "latitude", "longitude", "entry_fee", "opening_hours", "altitude",
             "best_time_to_visit", "history", "cultural_significance", "religious_significance",
             "food_cuisine_info", "travel_safety_tips", "website",
@@ -780,8 +789,11 @@ class AdminDestinationDetailView(APIView):
                 payload["entry_fee"] = _parse_optional_number(payload.get("entry_fee"))
             if "recommended_days" in payload and payload.get("recommended_days") not in ("", None):
                 payload["recommended_days"] = int(payload["recommended_days"])
+            if "ward_number" in payload:
+                raw_ward = payload.get("ward_number")
+                payload["ward_number"] = None if raw_ward in ("", None) else int(raw_ward)
         except (TypeError, ValueError):
-            return Response({"detail": "Latitude, longitude, entry fee and recommended days must be numbers."}, status=400)
+            return Response({"detail": "Latitude, longitude, entry fee, ward number and recommended days must be numbers."}, status=400)
 
         next_lat = payload.get("latitude", destination.latitude)
         next_lng = payload.get("longitude", destination.longitude)

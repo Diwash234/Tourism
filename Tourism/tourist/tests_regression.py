@@ -661,3 +661,66 @@ class AdminDestinationCrudRegressionTests(TestCase):
     def test_anonymous_cannot_create_or_archive(self):
         resp = self.api.post("/api/v1/admin/destinations", {"name": "Anon Place"}, format="json")
         self.assertIn(resp.status_code, (401, 403))
+
+
+class WardNumberRegressionTests(TestCase):
+    """§21 ward tier: the recorded ward_number must round-trip through the
+    admin destination API and reject junk without a 500."""
+
+    def setUp(self):
+        from .models import Destination
+        self.Destination = Destination
+        self.api = APIClient()
+        self.admin = make_superuser()
+        self.dest = Destination.objects.create(
+            name="Ward Test Place", slug="ward-test-place",
+            province="Bagmati", district="Kathmandu",
+            municipality="Kathmandu Metropolitan City",
+        )
+
+    def test_put_persists_and_get_returns_ward(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.put(
+            f"/api/v1/admin/destinations/{self.dest.id}",
+            {"ward_number": "7"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.ward_number, 7)
+        detail = self.api.get(f"/api/v1/admin/destinations/{self.dest.id}")
+        self.assertEqual(detail.json()["ward_number"], 7)
+
+    def test_blank_ward_clears_it(self):
+        self.api.force_authenticate(self.admin)
+        self.dest.ward_number = 5
+        self.dest.save(update_fields=["ward_number"])
+        resp = self.api.put(
+            f"/api/v1/admin/destinations/{self.dest.id}",
+            {"ward_number": ""},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.dest.refresh_from_db()
+        self.assertIsNone(self.dest.ward_number)
+
+    def test_junk_ward_is_clean_400(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.put(
+            f"/api/v1/admin/destinations/{self.dest.id}",
+            {"ward_number": "not-a-number"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("ward", resp.json()["detail"].lower())
+
+    def test_create_accepts_ward(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.post(
+            "/api/v1/admin/destinations",
+            {"name": "Ward Created Place", "ward_number": "12"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        created = self.Destination.objects.get(id=resp.json()["id"])
+        self.assertEqual(created.ward_number, 12)

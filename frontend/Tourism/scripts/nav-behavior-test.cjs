@@ -478,6 +478,7 @@ async function main() {
       id: 77, name: "Cascade Test Temple", city: "Kathmandu",
       province: "Bagmati", district: "Kathmandu",
       municipality: "Kathmandu Metropolitan City",
+      ward_number: 3,
       latitude: "27.7172", longitude: "85.3240",
     },
   })
@@ -522,6 +523,10 @@ async function main() {
     distSel2.value === "" && distOpts2.includes("Kaski") && !distOpts2.includes("Kathmandu"))
   check("geo: municipality cleared along with the invalid district",
     fieldFor("municipality").value === "")
+  const wardField = fieldFor("ward number")
+  check("geo: ward number field offered (§21 ward tier)", !!wardField)
+  check("geo: recorded ward loads into the form",
+    !!wardField && wardField.value === "3", wardField && wardField.value)
   n9.unmount()
 
   // --- admin category CRUD rides the slug detail route (§22) ---------------
