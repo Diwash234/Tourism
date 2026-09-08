@@ -17,3 +17,5 @@ playwright-report/
 blob-report/
 playwright/.cache
 tests-nav/nav-test-bundle.cjs
+.layout-failed
+test-results.json

@@ -29,6 +29,9 @@ jobs:
   frontend:
     name: Frontend build + e2e layout tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,6 +51,20 @@ jobs:
         run: npx playwright install chromium
       - name: Run e2e layout/overlap tests
         working-directory: frontend/Tourism
-        run: npx playwright test e2e/layout.spec.js
+        continue-on-error: true
+        run: npx playwright test e2e/layout.spec.js --reporter=list,json
         env:
           CI: true
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results.json
+      # GitHub's raw-log CDN is unreachable from some networks; publish the
+      # results as a pinned PR comment so they are always retrievable.
+      - name: Report layout results to PR
+        if: always()
+        working-directory: frontend/Tourism
+        run: node scripts/ci-layout-report.mjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fail job if layout tests failed
+        if: always()
+        working-directory: frontend/Tourism
+        run: '! test -f .layout-failed'
