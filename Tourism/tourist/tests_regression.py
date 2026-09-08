@@ -309,3 +309,99 @@ class FooterSettingsRegressionTests(TestCase):
         self.assertEqual(NewsletterSignup.objects.count(), 1)
         bad = APIClient().post("/api/v1/newsletter/subscribe/", {"email": "not-an-email"}, format="json")
         self.assertEqual(bad.status_code, 400)
+
+
+class NearbyResultsRegressionTests(TestCase):
+    """§23/§24: nearby results derive from the real Destination table —
+    nearest-first with distance_km, radius honoured, out-of-range coordinates
+    rejected, origin switch changes the cluster, and an admin coordinate edit
+    moves a destination between result sets (no separate nearby dataset)."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        cat = Category.objects.create(name="Nearby Test", slug="nearby-test")
+
+        def place(name, lat, lng):
+            return Destination.objects.create(
+                name=name, category=cat, latitude=lat, longitude=lng,
+                status=Destination.SubmissionStatus.APPROVED, is_active=True,
+                description=f"{name} regression fixture.",
+            )
+
+        # Kathmandu valley cluster (origin 27.7172, 85.3240)
+        self.ktm_center = place("KTM Center Temple", 27.7172, 85.3240)      # 0 km
+        self.ktm_near = place("Patan Durbar Test", 27.6710, 85.3160)        # ~5 km
+        self.ktm_far = place("Nagarkot Viewpoint Test", 27.7100, 85.5200)   # ~19 km
+        # Pokhara cluster (origin 28.2096, 83.9856)
+        self.pkr_lakeside = place("Phewa Lakeside Test", 28.2096, 83.9856)  # 0 km
+        self.pkr_stupa = place("World Peace Stupa Test", 28.1910, 83.9400)  # ~5 km
+
+    def _nearby(self, lat, lng, radius_km):
+        resp = self.client.get("/api/v1/destinations/nearby/", {
+            "latitude": lat, "longitude": lng, "radius_km": radius_km,
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return resp.data["results"]
+
+    def test_origin_switch_returns_different_clusters(self):
+        ktm_slugs = [r["slug"] for r in self._nearby(27.7172, 85.3240, 25)]
+        self.assertIn(self.ktm_near.slug, ktm_slugs)
+        self.assertNotIn(self.pkr_lakeside.slug, ktm_slugs)
+
+        pkr_slugs = [r["slug"] for r in self._nearby(28.2096, 83.9856, 25)]
+        self.assertIn(self.pkr_stupa.slug, pkr_slugs)
+        self.assertNotIn(self.ktm_near.slug, pkr_slugs)
+        self.assertNotEqual(ktm_slugs, pkr_slugs)
+
+    def test_results_sorted_nearest_first_with_distance(self):
+        rows = self._nearby(27.7172, 85.3240, 25)
+        distances = [float(r["distance_km"]) for r in rows]
+        self.assertEqual(distances, sorted(distances))
+        names = [r["name"] for r in rows]
+        self.assertLess(names.index(self.ktm_center.name), names.index(self.ktm_near.name))
+        self.assertLess(names.index(self.ktm_near.name), names.index(self.ktm_far.name))
+        for row in rows:
+            self.assertTrue(row["slug"], "nearby rows must carry slug for detail links")
+
+    def test_radius_expands_results(self):
+        tight_slugs = {r["slug"] for r in self._nearby(27.7172, 85.3240, 10)}
+        wide_slugs = {r["slug"] for r in self._nearby(27.7172, 85.3240, 25)}
+        self.assertIn(self.ktm_near.slug, tight_slugs)       # ~5 km inside 10 km
+        self.assertNotIn(self.ktm_far.slug, tight_slugs)     # ~19 km outside 10 km
+        self.assertIn(self.ktm_far.slug, wide_slugs)         # inside 25 km
+        self.assertTrue(tight_slugs.issubset(wide_slugs))
+
+    def test_out_of_range_coordinates_rejected(self):
+        bad_lat = self.client.get("/api/v1/destinations/nearby/", {
+            "latitude": 999, "longitude": 85.324, "radius_km": 25})
+        self.assertEqual(bad_lat.status_code, 400, bad_lat.content)
+        bad_lng = self.client.get("/api/v1/destinations/nearby/", {
+            "latitude": 27.7172, "longitude": -200, "radius_km": 25})
+        self.assertEqual(bad_lng.status_code, 400, bad_lng.content)
+
+    def test_admin_coordinate_edit_moves_destination_between_origins(self):
+        """§24: the admin edit path writes the same Destination row the nearby
+        query reads — moving coords moves the row across result sets."""
+        # Sanity: Pokhara origin sees the stupa, Kathmandu origin does not.
+        self.assertNotIn(self.pkr_stupa.slug,
+                         [r["slug"] for r in self._nearby(27.7172, 85.3240, 25)])
+
+        client = APIClient()
+        client.force_authenticate(make_superuser())
+        upd = client.put(f"/api/v1/admin/destinations/{self.pkr_stupa.id}", {
+            "latitude": "27.7000", "longitude": "85.3300",
+        }, format="json")
+        self.assertEqual(upd.status_code, 200, upd.content)
+
+        ktm_slugs = [r["slug"] for r in self._nearby(27.7172, 85.3240, 25)]
+        self.assertIn(self.pkr_stupa.slug, ktm_slugs)
+        self.assertNotIn(self.pkr_stupa.slug,
+                         [r["slug"] for r in self._nearby(28.2096, 83.9856, 25)])
+
+    def test_admin_rejects_out_of_range_coordinate_edit(self):
+        client = APIClient()
+        client.force_authenticate(make_superuser())
+        resp = client.put(f"/api/v1/admin/destinations/{self.ktm_near.id}", {
+            "latitude": "999", "longitude": "85.3300",
+        }, format="json")
+        self.assertEqual(resp.status_code, 400, resp.content)

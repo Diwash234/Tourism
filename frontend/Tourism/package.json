@@ -14,7 +14,7 @@
     "test:e2e:install": "playwright install chromium",
     "verify:charts": "esbuild scripts/verify-charts.test.jsx --bundle --format=cjs --platform=node --jsx=automatic --outfile=node_modules/.charts-verify.cjs --log-level=error --external:react --external:react-dom && node node_modules/.charts-verify.cjs",
     "test": "node scripts/run-logic-tests.mjs",
-    "test:nav": "esbuild tests-nav/nav-test-entry.jsx --bundle --outfile=tests-nav/nav-test-bundle.cjs --format=cjs --platform=node --jsx=automatic --define:import.meta.env='{\"VITE_API_BASE_URL\":\"/api/v1\",\"MODE\":\"test\",\"DEV\":false,\"PROD\":true}' --log-level=error && node scripts/nav-behavior-test.cjs"
+    "test:nav": "esbuild tests-nav/nav-test-entry.jsx --bundle --outfile=tests-nav/nav-test-bundle.cjs --format=cjs --platform=node --jsx=automatic --loader:.css=empty --loader:.svg=dataurl --loader:.png=dataurl --loader:.jpg=dataurl --loader:.jpeg=dataurl --loader:.webp=dataurl --loader:.gif=dataurl --define:import.meta.env='{\"VITE_API_BASE_URL\":\"/api/v1\",\"MODE\":\"test\",\"DEV\":false,\"PROD\":true}' --log-level=error && node scripts/nav-behavior-test.cjs"
   },
   "dependencies": {
     "axios": "^1.7.9",

@@ -176,8 +176,8 @@ class VerifyEmailSerializer(serializers.Serializer):
 class UpdateLocationSerializer(serializers.Serializer):
     """Used by the browser-GPS endpoint; falls back to GeoIP server-side if omitted."""
 
-    latitude = CoordinateField(required=False, allow_null=True)
-    longitude = CoordinateField(required=False, allow_null=True)
+    latitude = CoordinateField(required=False, allow_null=True, min_value=Decimal("-90"), max_value=Decimal("90"))
+    longitude = CoordinateField(required=False, allow_null=True, min_value=Decimal("-180"), max_value=Decimal("180"))
 
 
 # ---------------------------------------------------------------------------
@@ -1132,8 +1132,8 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
     is accepted directly in the same multipart request (no separate gallery
     upload call needed for the main photo).
     """
-    latitude = CoordinateField(required=False, allow_null=True)
-    longitude = CoordinateField(required=False, allow_null=True)
+    latitude = CoordinateField(required=False, allow_null=True, min_value=Decimal("-90"), max_value=Decimal("90"))
+    longitude = CoordinateField(required=False, allow_null=True, min_value=Decimal("-180"), max_value=Decimal("180"))
 
     class Meta:
         model = Destination
@@ -1201,8 +1201,8 @@ class DestinationApprovalSerializer(serializers.Serializer):
 
 
 class NearbyDestinationQuerySerializer(serializers.Serializer):
-    latitude = CoordinateField()
-    longitude = CoordinateField()
+    latitude = CoordinateField(min_value=Decimal("-90"), max_value=Decimal("90"))
+    longitude = CoordinateField(min_value=Decimal("-180"), max_value=Decimal("180"))
     radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=500)
 
 
@@ -1395,8 +1395,8 @@ class BestRouteRequestSerializer(serializers.Serializer):
     point is always explicit — it's wherever the tourist currently is.
     """
 
-    start_latitude = CoordinateField()
-    start_longitude = CoordinateField()
+    start_latitude = CoordinateField(min_value=Decimal("-90"), max_value=Decimal("90"))
+    start_longitude = CoordinateField(min_value=Decimal("-180"), max_value=Decimal("180"))
     destination = serializers.PrimaryKeyRelatedField(queryset=Destination.objects.all(), required=False)
     end_latitude = CoordinateField(required=False)
     end_longitude = CoordinateField(required=False)

@@ -49,6 +49,9 @@ global.window = window
 global.document = window.document
 global.navigator = window.navigator
 global.HTMLElement = window.HTMLElement
+global.SVGElement = window.SVGElement
+global.AbortController = window.AbortController
+global.AbortSignal = window.AbortSignal
 global.Element = window.Element
 global.Node = window.Node
 global.Event = window.Event
@@ -241,6 +244,140 @@ async function main() {
   check("cookie: stays hidden after a prior Accept", !$(c5.container, consentSel))
   c5.unmount()
   consentStorage.removeItem("tourism_cookie_consent")
+
+  // =========================================================================
+  // NEARBY PLACES PAGE (real component, stubbed transport + geolocation).
+  // Traces API data -> component state -> rendered cards, and pins that no
+  // failure mode ever renders the old generic "No nearby places found".
+  // =========================================================================
+  const nearbyRow = (id, name, slug, lat, lng, km) => ({
+    id, name, slug, latitude: lat, longitude: lng, distance_km: km,
+    city: "Kathmandu", district: "Kathmandu", province: "Bagmati Province",
+    category_name: "Heritage", average_rating: 4.5, ratings_count: 10,
+    views_count: 100, cover_image_url: null, status: "APPROVED",
+    is_user_submitted: false, is_active: true,
+  })
+
+  // --- A. GPS fix renders real cards with distance + detail links ------------
+  entry.setGeolocation("success", { lat: 27.7172, lng: 85.324 })
+  entry.setNearbyFixture({
+    results: [
+      nearbyRow(11, "Patan Durbar Square", "patan-durbar-square", 27.671, 85.316, 5.2),
+      nearbyRow(12, "Swayambhunath Stupa", "swayambhunath-stupa", 27.7149, 85.2904, 3.4),
+    ],
+  })
+  const n1 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  const txt1 = n1.container.textContent
+  check("nearby: renders destination cards from the API result set",
+    /Patan Durbar Square/.test(txt1) && /Swayambhunath Stupa/.test(txt1))
+  check("nearby: shows server-computed distance", /5\.2 km/.test(txt1) && /3\.4 km/.test(txt1))
+  check("nearby: cards link to existing detail routes",
+    !!n1.container.querySelector('a[href="/destinations/patan-durbar-square"]'))
+  check("nearby: directions links use recorded coordinates",
+    n1.container.querySelectorAll('a[href*="google.com/maps/dir/?api=1&destination="]').length >= 2)
+  check("nearby: summary reports count and radius", /Found 2 destinations within 25 km/.test(txt1))
+  check("nearby: never shows the generic no-places copy", !/No nearby places found/i.test(txt1))
+  const calls1 = entry.getNearbyCalls()
+  check("nearby: sends backend param names latitude/longitude/radius_km",
+    calls1.length >= 1 &&
+    calls1[0].params.latitude === 27.7172 &&
+    calls1[0].params.longitude === 85.324 &&
+    calls1[0].params.radius_km === 25)
+  check("nearby: map markers come from the same result set",
+    n1.container.querySelectorAll(".leaflet-marker-icon").length >= 2)
+  n1.unmount()
+
+  // --- B. permission denial is its own state, not "empty" ---------------------
+  entry.setGeolocation("denied")
+  entry.setNearbyFixture({ results: [] })
+  const n2 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  const txt2 = n2.container.textContent
+  check("nearby: denial says location is off, never 'no nearby places'",
+    /Location access is turned off/.test(txt2) && !/No nearby places found/i.test(txt2))
+  check("nearby: denial offers Try Again and Choose Location",
+    /Try Again/.test(txt2) && /Choose Location/.test(txt2))
+  check("nearby: denial fires no nearby query", entry.getNearbyCalls().length === 0)
+  n2.unmount()
+
+  // --- C. API failure has a Retry that recovers --------------------------------
+  entry.setGeolocation("success", { lat: 27.7172, lng: 85.324 })
+  entry.setNearbyFixture({
+    failOnce: true,
+    results: [nearbyRow(11, "Patan Durbar Square", "patan-durbar-square", 27.671, 85.316, 5.2)],
+  })
+  const n3 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  check("nearby: API failure gets its own message",
+    /couldn't be loaded/.test(n3.container.textContent))
+  const retryBtn = [...n3.container.querySelectorAll("button")].find((b) => /Retry/.test(b.textContent))
+  check("nearby: API failure offers Retry", !!retryBtn)
+  await click(retryBtn)
+  await settle()
+  await settle()
+  check("nearby: Retry recovers and renders cards",
+    /Patan Durbar Square/.test(n3.container.textContent))
+  n3.unmount()
+
+  // --- D. genuine empty offers radius expansion, which refetches ---------------
+  entry.setGeolocation("success", { lat: 27.7172, lng: 85.324 })
+  entry.setNearbyFixture({ results: [], count: 0 })
+  const n4 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  const txt4 = n4.container.textContent
+  check("nearby: true empty states the radius, not a generic message",
+    /No destinations found within 25 km/.test(txt4) && !/No nearby places found/i.test(txt4))
+  const expandBtn = [...n4.container.querySelectorAll("button")].find((b) => /Expand to 50 km/.test(b.textContent))
+  check("nearby: empty offers radius expansion", !!expandBtn)
+  await click(expandBtn)
+  await settle()
+  await settle()
+  const calls4 = entry.getNearbyCalls()
+  check("nearby: expansion refetches with radius_km=50",
+    calls4.length >= 2 && calls4[calls4.length - 1].params.radius_km === 50)
+  n4.unmount()
+
+  // --- E. manual origin picker drives the query and excludes the origin --------
+  entry.setGeolocation("denied")
+  entry.setNearbyFixture({
+    results: [
+      nearbyRow(999, "Phewa Lakeside Test", "phewa-lakeside", 28.2096, 83.9856, 0.0),
+      nearbyRow(1000, "World Peace Stupa Test", "world-peace-stupa", 28.191, 83.94, 4.9),
+    ],
+  })
+  entry.setSearchFixture([nearbyRow(999, "Phewa Lakeside Test", "phewa-lakeside", 28.2096, 83.9856, 0)])
+  const n5 = entry.mountNearbyPage()
+  await settle()
+  await settle()
+  const chooseBtn = [...n5.container.querySelectorAll("button")].find((b) => /Choose Location/.test(b.textContent))
+  check("nearby: Choose Location opens the picker", !!chooseBtn)
+  await click(chooseBtn)
+  const pickerInput = n5.container.querySelector('input[aria-label="Search destinations to use as a starting point"]')
+  check("nearby: picker offers destination search", !!pickerInput)
+  const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set
+  await act(async () => {
+    valueSetter.call(pickerInput, "phewa")
+    pickerInput.dispatchEvent(new window.Event("input", { bubbles: true }))
+    await new Promise((r) => setTimeout(r, 450)) // debounce is 350ms
+  })
+  const optBtn = [...n5.container.querySelectorAll("button")].find((b) => /Phewa Lakeside Test/.test(b.textContent))
+  check("nearby: picker lists real destinations from the API", !!optBtn)
+  await click(optBtn)
+  await settle()
+  await settle()
+  const calls5 = entry.getNearbyCalls()
+  const last5 = calls5[calls5.length - 1]
+  check("nearby: chosen origin coordinates drive the query",
+    !!last5 && last5.params.latitude === 28.2096 && last5.params.longitude === 83.9856)
+  check("nearby: origin destination excluded from its own results",
+    !n5.container.querySelector('a[href="/destinations/phewa-lakeside"]') &&
+    !!n5.container.querySelector('a[href="/destinations/world-peace-stupa"]'))
+  n5.unmount()
 
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
