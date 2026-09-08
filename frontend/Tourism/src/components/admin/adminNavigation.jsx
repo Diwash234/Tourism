@@ -17,6 +17,7 @@ export const ADMIN_NAV_GROUPS = [
   { label: "Content & CMS", items: [
     ["cms_overview", "CMS Overview", BsSpeedometer2],
     ["cms", "Pages, Sections & Menus", BsFileEarmarkText],
+    ["homepage_manager", "Homepage Manager", BsHouseDoor],
     ["visitor_desk", "Announcements & Notices", BsMegaphone],
     ["featured_destinations", "Featured Content Studio", BsStar],
     ["media_library", "Central Media Library", BsCollection, [

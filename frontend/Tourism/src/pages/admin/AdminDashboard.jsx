@@ -19,6 +19,7 @@ import ServicePhotosPanel from "../../components/admin/ServicePhotosPanel"
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 import CMSPanel from "../../components/admin/CMSPanel"
 import CMSOverviewPanel from "../../components/admin/CMSOverviewPanel"
+import HomepageManagerPanel from "../../components/admin/HomepageManagerPanel"
 import StaffPermissionsPanel from "../../components/admin/StaffPermissionsPanel"
 import DestinationFeaturesPanel from "../../components/admin/DestinationFeaturesPanel"
 import CategoryTranslationPanel from "../../components/admin/CategoryTranslationPanel"
@@ -667,7 +668,7 @@ const AdminDashboard = () => {
         <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
           <label className="text-xs font-black uppercase text-emerald-800">Admin section
             <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
-              {[["overview","Overview & Stats"],["cms_overview","CMS Overview"],["user_dashboard_control","User Dashboard Controls"],["ai_engine","Central AI Engine Studio"],["data_health","Data Health & Provenance"],["transport_routes","Transportation & Routes"],["data_reports","User Reports & Corrections"],["featured_destinations","Featured Destinations Studio"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
+              {[["overview","Overview & Stats"],["cms_overview","CMS Overview"],["homepage_manager","Homepage Manager"],["user_dashboard_control","User Dashboard Controls"],["ai_engine","Central AI Engine Studio"],["data_health","Data Health & Provenance"],["transport_routes","Transportation & Routes"],["data_reports","User Reports & Corrections"],["featured_destinations","Featured Destinations Studio"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
             </select>
           </label>
         </div>
@@ -794,6 +795,7 @@ const AdminDashboard = () => {
         {activeTab === "visitor_desk" && <OwnerDeskPanel />}
         {activeTab === "cms" && <CMSPanel />}
         {activeTab === "cms_overview" && <CMSOverviewPanel />}
+        {activeTab === "homepage_manager" && <HomepageManagerPanel />}
         {activeTab === "staff_permissions" && <StaffPermissionsPanel />}
         {activeTab === "destination_features" && <DestinationFeaturesPanel />}
         {activeTab === "category_translations" && <CategoryTranslationPanel />}
