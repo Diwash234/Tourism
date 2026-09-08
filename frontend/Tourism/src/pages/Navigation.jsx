@@ -14,6 +14,8 @@ import {
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
 import emergencyApi from "../api/emergencyApi"
+import useAuth from "../hooks/useAuth"
+import { savedRoutesApi } from "../services/api"
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
@@ -224,6 +226,23 @@ export default function Navigation() {
       setDistance(response.data.distance_km ?? null)
       setCurrentStepIdx(0)
 
+      // Navigation history (spec item 16): silently log each successful
+      // calculation for signed-in travellers. Failures never disturb the map.
+      if (isAuthenticated) {
+        savedRoutesApi.create({
+          origin_name: response.data.origin?.name || (usingMyLocation ? "Current Location" : origName),
+          origin_latitude: response.data.origin?.latitude ?? (useGpsOrigin ? position.lat : null),
+          origin_longitude: response.data.origin?.longitude ?? (useGpsOrigin ? position.lng : null),
+          destination_name: dest?.name || destName,
+          destination_latitude: dest?.latitude ?? null,
+          destination_longitude: dest?.longitude ?? null,
+          transport_mode: transportMode,
+          distance_km: response.data.distance_km ?? null,
+          duration_min: response.data.duration_min ?? null,
+          duration_source: response.data.duration_source || "",
+        }).catch(() => {})
+      }
+
       // Real safety data only: active verified alerts near the destination
       // corridor. No fabricated "road open / rain possible" claims — when
       // the alert feed has nothing, the UI says exactly that.
@@ -260,6 +279,44 @@ export default function Navigation() {
   }
 
   const [shareCopied, setShareCopied] = useState(false)
+  const { isAuthenticated } = useAuth() || {}
+  const [routesOpen, setRoutesOpen] = useState(false)
+  const [routesTab, setRoutesTab] = useState("history")
+  const [myRoutes, setMyRoutes] = useState([])
+  const loadMyRoutes = (tab) => {
+    savedRoutesApi
+      .list(tab === "saved")
+      .then((res) => setMyRoutes(Array.isArray(res.data) ? res.data : res.data?.results || []))
+      .catch(() => setMyRoutes([]))
+  }
+
+  const toggleRoutesPanel = () => {
+    const next = !routesOpen
+    setRoutesOpen(next)
+    if (next) loadMyRoutes(routesTab)
+  }
+
+  const handleSaveCurrentRoute = () => {
+    if (!destination) return
+    savedRoutesApi
+      .create({
+        origin_name: originQuery.trim() || "Current Location",
+        origin_latitude: position?.lat ?? null,
+        origin_longitude: position?.lng ?? null,
+        destination_name: destination.name || destinationQuery.trim(),
+        destination_latitude: destination.latitude ?? null,
+        destination_longitude: destination.longitude ?? null,
+        transport_mode: transportMode,
+        distance_km: distance,
+        duration_min: durationMin,
+        duration_source: durationSource,
+        is_saved: true,
+        label: `${originQuery.trim() || "Current Location"} \u2192 ${destination.name || destinationQuery.trim()}`,
+      })
+      .then(() => { if (routesOpen) loadMyRoutes(routesTab) })
+      .catch(() => {})
+  }
+
   const handleShareRoute = async () => {
     const dest = destinationQuery.trim()
     if (!dest) return
@@ -495,6 +552,16 @@ export default function Navigation() {
             </div>
 
             <div className="flex items-center gap-2">
+              {isAuthenticated && destination && (
+                <button
+                  type="button"
+                  onClick={handleSaveCurrentRoute}
+                  title="Keep this route in your Saved Routes"
+                  className="px-3.5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs whitespace-nowrap border border-amber-300"
+                >
+                  ⭐ Save
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleShareRoute}
@@ -515,6 +582,95 @@ export default function Navigation() {
           </div>
         </form>
       </div>
+
+      {/* MY ROUTES — saved routes + navigation history (spec items 15/16) */}
+      {isAuthenticated && (
+        <div className="p-4 rounded-3xl bg-white border border-[#E5E0D5] shadow-md space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={toggleRoutesPanel}
+              aria-expanded={routesOpen}
+              className="text-xs font-black uppercase text-slate-700 flex items-center gap-1.5 hover:text-emerald-700"
+            >
+              🕘 My routes {routesOpen ? "▲" : "▼"}
+            </button>
+            {routesOpen && (
+              <div className="flex gap-1.5" role="tablist" aria-label="Route lists">
+                {["history", "saved"].map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={routesTab === tab}
+                    onClick={() => { setRoutesTab(tab); loadMyRoutes(tab) }}
+                    className={`px-3 py-1 rounded-full text-[11px] font-bold transition ${routesTab === tab ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                  >
+                    {tab === "history" ? "History" : "⭐ Saved"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {routesOpen && (
+            myRoutes.length === 0 ? (
+              <p className="text-xs text-slate-500">
+                {routesTab === "history"
+                  ? "Routes you calculate while signed in appear here."
+                  : "Press “⭐ Save” on a calculated route to keep it here."}
+              </p>
+            ) : (
+              <ul className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+                {myRoutes.map((r) => (
+                  <li key={r.id} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs">
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      title="Open this route"
+                      onClick={() => {
+                        const namedOrigin = r.origin_name && r.origin_name !== "Current Location" ? r.origin_name : null
+                        if (namedOrigin) setOriginQuery(namedOrigin)
+                        setDestinationQuery(r.destination_name)
+                        const modeMatch = TRANSPORT_MODES.find((m) => m.id === r.transport_mode)
+                        if (modeMatch) setTransportMode(modeMatch.id)
+                        setRoutesOpen(false)
+                        handleGetRoute(r.destination_name, namedOrigin)
+                      }}
+                    >
+                      <span className="block truncate font-bold text-slate-800">
+                        {r.label || `${r.origin_name || "Current Location"} → ${r.destination_name}`}
+                      </span>
+                      <span className="block text-[10px] text-slate-500">
+                        {r.transport_mode}
+                        {r.distance_km != null ? ` · ${Number(r.distance_km).toFixed(1)} km` : ""}
+                        {r.duration_min != null ? ` · ${Math.floor(r.duration_min / 60)}h ${r.duration_min % 60}m` : ""}
+                        {r.duration_source ? ` · ${r.duration_source}` : ""}
+                        {" · "}{new Date(r.created_at).toLocaleDateString()}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={r.is_saved ? "Remove from saved" : "Save this route"}
+                      onClick={() => savedRoutesApi.update(r.id, { is_saved: !r.is_saved }).then(() => loadMyRoutes(routesTab)).catch(() => {})}
+                      className="text-sm"
+                    >
+                      {r.is_saved ? "⭐" : "☆"}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete route"
+                      onClick={() => savedRoutesApi.remove(r.id).then(() => loadMyRoutes(routesTab)).catch(() => {})}
+                      className="text-sm text-slate-400 hover:text-red-500"
+                    >
+                      🗑
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+        </div>
+      )}
 
       {/* ROUTE SAFETY — real verified alerts only, never invented statuses */}
       {alertsLoaded && (

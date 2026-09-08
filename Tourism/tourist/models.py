@@ -842,6 +842,35 @@ class VisitHistory(models.Model):
         verbose_name_plural = "Visit history"
 
 
+class UserRoute(TimeStampedModel):
+    """A calculated route for a traveller: navigation history + saved routes.
+
+    Every successfully calculated route by a signed-in user is logged here
+    (history); starring a route flips `is_saved` so it persists in the
+    traveller's Saved Routes list (spec items 15/16). Distances/durations
+    store what the routing layer actually returned, with its source label —
+    never a re-derived or invented number.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="routes")
+    origin_name = models.CharField(max_length=200, blank=True)
+    origin_latitude = models.FloatField(null=True, blank=True)
+    origin_longitude = models.FloatField(null=True, blank=True)
+    destination_name = models.CharField(max_length=200)
+    destination_latitude = models.FloatField(null=True, blank=True)
+    destination_longitude = models.FloatField(null=True, blank=True)
+    transport_mode = models.CharField(max_length=60, blank=True)
+    distance_km = models.FloatField(null=True, blank=True)
+    duration_min = models.IntegerField(null=True, blank=True)
+    duration_source = models.CharField(max_length=20, blank=True, help_text="routing_engine | estimated | unavailable")
+    label = models.CharField(max_length=200, blank=True, help_text="Optional traveller label, e.g. 'Home → Work'")
+    is_saved = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "is_saved"])]
+
+
 class Hotel(TimeStampedModel):
     """
     Accommodation options near a destination. Populated either from your

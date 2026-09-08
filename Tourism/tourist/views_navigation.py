@@ -3,14 +3,15 @@ from django.utils import timezone
 from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, viewsets
 
 from .models import (
     Destination, DestinationTransitRoute, RouteSegment, DataReport,
-    DestinationAuditLog,
+    DestinationAuditLog, UserRoute,
 )
 from .serializers import (
     DestinationTransitRouteSerializer, RouteSegmentSerializer, DataReportSerializer,
+    UserRouteSerializer,
 )
 from .permissions import IsAdminOrStaff
 from .views_admin import _require_capability
@@ -442,3 +443,34 @@ class AdminCoordinateVerificationView(APIView):
             })
 
         return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserRouteViewSet(viewsets.ModelViewSet):
+    """Saved routes + navigation history (spec items 15/16).
+
+    GET    /navigation/routes/          the caller's route history (newest first)
+    GET    /navigation/routes/?saved=1  only starred/saved routes
+    POST   /navigation/routes/          log a calculated route (optionally saved)
+    PATCH  /navigation/routes/<id>/     star/unstar or relabel
+    DELETE /navigation/routes/<id>/     remove an entry
+
+    Strictly per-user: querysets are scoped to request.user, so no route
+    record of another traveller is ever visible or mutable.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserRouteSerializer
+    pagination_class = None  # capped by the history cleanup in perform_create
+
+    def get_queryset(self):
+        qs = UserRoute.objects.filter(user=self.request.user)
+        if self.request.query_params.get("saved") in ("1", "true", "True"):
+            qs = qs.filter(is_saved=True)
+        return qs
+
+    def perform_create(self, serializer):
+        # Cap history at 100 rows per user so the table cannot grow unbounded.
+        serializer.save(user=self.request.user)
+        stale = UserRoute.objects.filter(user=self.request.user, is_saved=False).order_by("-created_at")[100:]
+        if stale:
+            UserRoute.objects.filter(id__in=[r.id for r in stale]).delete()

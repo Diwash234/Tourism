@@ -960,3 +960,72 @@ class TransportModeHonestyTests(TestCase):
             # Trekking pace (3.5 km/h) must dominate: 100+ km route = 1700+ min
             if body["distance_km"] > 100:
                 self.assertGreater(body["duration_min"], 1500)
+
+
+class UserRouteHistoryTests(TestCase):
+    """Saved routes + navigation history (spec items 15/16)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="traveler@nepaltourism.com", password="Traveler@12345", role="tourist"
+        )
+        self.other = User.objects.create_user(
+            email="other@nepaltourism.com", password="Traveler@12345", role="tourist"
+        )
+        self.client = APIClient()
+
+    def _auth(self, user=None):
+        self.client.force_authenticate(user or self.user)
+
+    def _payload(self, **over):
+        base = {
+            "origin_name": "Kathmandu", "origin_latitude": 27.7172, "origin_longitude": 85.3240,
+            "destination_name": "Phewa Lake", "destination_latitude": 28.2096, "destination_longitude": 83.9561,
+            "transport_mode": "Private Car / Taxi", "distance_km": 253.08,
+            "duration_min": 434, "duration_source": "routing_engine",
+        }
+        base.update(over)
+        return base
+
+    def test_requires_auth(self):
+        for method, url in [("get", "/api/v1/navigation/routes/"), ("post", "/api/v1/navigation/routes/")]:
+            resp = getattr(self.client, method)(url, self._payload() if method == "post" else None,
+                                                format="json" if method == "post" else None)
+            self.assertIn(resp.status_code, (401, 403))
+
+    def test_log_and_list_own_history_only(self):
+        self._auth()
+        resp = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json")
+        self.assertEqual(resp.status_code, 201, resp.content[:200])
+        # Another user's private log stays invisible.
+        self._auth(self.other)
+        self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="Sarangkot"), format="json")
+        self._auth()
+        resp = self.client.get("/api/v1/navigation/routes/")
+        names = [r["destination_name"] for r in resp.json()]
+        self.assertEqual(names, ["Phewa Lake"])
+
+    def test_star_saved_filter_and_delete(self):
+        self._auth()
+        rid = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json").json()["id"]
+        self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="Nagarkot"), format="json")
+        resp = self.client.patch(f"/api/v1/navigation/routes/{rid}/", {"is_saved": True, "label": "Home → Lakeside"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["label"], "Home → Lakeside")
+        saved = self.client.get("/api/v1/navigation/routes/?saved=1").json()
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0]["destination_name"], "Phewa Lake")
+        self.assertEqual(self.client.delete(f"/api/v1/navigation/routes/{rid}/").status_code, 204)
+        self.assertEqual(self.client.get("/api/v1/navigation/routes/?saved=1").json(), [])
+
+    def test_cannot_touch_other_users_route(self):
+        self._auth(self.other)
+        rid = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json").json()["id"]
+        self._auth()
+        self.assertEqual(self.client.patch(f"/api/v1/navigation/routes/{rid}/", {"is_saved": True}, format="json").status_code, 404)
+        self.assertEqual(self.client.delete(f"/api/v1/navigation/routes/{rid}/").status_code, 404)
+
+    def test_destination_name_required(self):
+        self._auth()
+        resp = self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="  "), format="json")
+        self.assertEqual(resp.status_code, 400)

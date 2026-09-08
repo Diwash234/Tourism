@@ -542,6 +542,32 @@ export default function DestinationDetails() {
               </div>
             )}
 
+            {/* DATA PROVENANCE — where this record's coordinates came from (spec item 20).
+                Honest labels only: never claim verification that isn't recorded. */}
+            <div className="mt-3 rounded-2xl border border-gray-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <span className="font-bold text-slate-700">📋 Coordinate provenance:</span>{" "}
+              {(() => {
+                const STATUS_LABELS = {
+                  VERIFIED: "Verified",
+                  OFFICIAL: "Official",
+                  COMMUNITY_VERIFIED: "Community verified",
+                  APPROXIMATE: "Approximate",
+                  UNVERIFIED: "Unverified",
+                }
+                const status = destination.coordinate_status
+                const parts = []
+                if (status && STATUS_LABELS[status]) parts.push(STATUS_LABELS[status])
+                if (destination.coordinate_source) parts.push(`Source: ${destination.coordinate_source}`)
+                if (destination.coordinate_accuracy) parts.push(`Accuracy: ${destination.coordinate_accuracy}`)
+                return parts.length
+                  ? parts.join(" · ")
+                  : "The origin of these coordinates is not recorded in the curated database."
+              })()}
+              {destination.location_notes ? (
+                <span className="block mt-0.5 italic">Note: {destination.location_notes}</span>
+              ) : null}
+            </div>
+
             {/* Street-level Mapillary imagery (Google-Street-View style) */}
             {hasValidCoords(destination.latitude, destination.longitude) && (
               <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">

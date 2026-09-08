@@ -50,6 +50,7 @@ from .models import (
     InfrastructureMedia,
     RiskNewsReport, DestinationFeatureProfile, RiskIncident, CurrentHazard, RiskObservation,
     MarketplaceListing,
+    UserRoute,
 )
 from .image_server import image_server_url
 from .utils import (
@@ -1649,3 +1650,22 @@ class TravelerDocumentSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+
+
+class UserRouteSerializer(serializers.ModelSerializer):
+    """Saved routes + navigation history entries (spec items 15/16)."""
+
+    class Meta:
+        model = UserRoute
+        fields = [
+            "id", "origin_name", "origin_latitude", "origin_longitude",
+            "destination_name", "destination_latitude", "destination_longitude",
+            "transport_mode", "distance_km", "duration_min", "duration_source",
+            "label", "is_saved", "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_destination_name(self, value):
+        if not (value or "").strip():
+            raise serializers.ValidationError("A destination name is required.")
+        return value.strip()[:200]
