@@ -15,4 +15,5 @@ GEONAMES_USERNAME=
 test-results/
 playwright-report/
 blob-report/
-playwright/.cache/
+playwright/.cache
+tests-nav/nav-test-bundle.cjs
