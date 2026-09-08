@@ -9,6 +9,7 @@ import MainLayout from "./components/layout/MainLayout"
 import DashboardLayout from "./components/layout/DashboardLayout"
 import AuthLayout from "./components/auth/AuthLayout"
 import ScrollToTop from "./components/layout/ScrollToTop"
+import RedirectRules from "./components/layout/RedirectRules"
 
 // Route Guards
 import ProtectedRoute from "./routes/ProtectedRoute"
@@ -122,6 +123,7 @@ function App() {
   return (
     <ErrorBoundary name="App">
       <ScrollToTop />
+      <RedirectRules />
       <CommandPalette />
       <Routes>
 

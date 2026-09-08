@@ -249,3 +249,40 @@ class PlaceSubmissionFlowRegressionTests(TestCase):
 
         # Submitter can delete their own pending submission.
         self.assertEqual(client.delete(f"/api/v1/destinations/{slug}/").status_code, 204)
+
+
+class RedirectRulesRegressionTests(TestCase):
+    """Redirects & URLs (CMS brief §14): admin CRUD + public exposure."""
+
+    def setUp(self):
+        self.client_admin = APIClient()
+        self.client_admin.force_authenticate(user=make_superuser())
+
+    def test_anonymous_cannot_manage_redirects(self):
+        self.assertEqual(APIClient().get("/api/v1/admin/redirects/").status_code, 401)
+
+    def test_redirect_lifecycle_and_public_exposure(self):
+        created = self.client_admin.post("/api/v1/admin/redirects/", {
+            "old_path": "/old-page", "new_path": "/new-page", "note": "renamed"}, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        rule_id = created.data["data"]["id"]
+
+        public = self.client.get("/api/v1/config/public/")
+        rules = public.json().get("redirects", [])
+        self.assertIn({"old_path": "/old-page", "new_path": "/new-page", "permanent": True}, rules)
+
+        # Pausing removes it from the public config without deleting it.
+        paused = self.client_admin.patch("/api/v1/admin/redirects/", {"id": rule_id, "is_active": False}, format="json")
+        self.assertEqual(paused.status_code, 200)
+        self.assertNotIn("/old-page", [r["old_path"] for r in self.client.get("/api/v1/config/public/").json()["redirects"]])
+
+        self.assertEqual(self.client_admin.delete(f"/api/v1/admin/redirects/?id={rule_id}").status_code, 200)
+
+    def test_loops_and_duplicates_rejected(self):
+        self.client_admin.post("/api/v1/admin/redirects/", {"old_path": "/a", "new_path": "/b"}, format="json")
+        loop = self.client_admin.post("/api/v1/admin/redirects/", {"old_path": "/b", "new_path": "/a"}, format="json")
+        self.assertEqual(loop.status_code, 400)
+        dup = self.client_admin.post("/api/v1/admin/redirects/", {"old_path": "/a", "new_path": "/c"}, format="json")
+        self.assertEqual(dup.status_code, 400)
+        bad = self.client_admin.post("/api/v1/admin/redirects/", {"old_path": "no-slash", "new_path": "/c"}, format="json")
+        self.assertEqual(bad.status_code, 400)

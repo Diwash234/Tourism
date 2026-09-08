@@ -2706,6 +2706,26 @@ class ManagedNavigationItem(TimeStampedModel):
         ordering = ["location", "display_order", "id"]
 
 
+class RedirectRule(TimeStampedModel):
+    """Admin-managed URL redirects (old path -> new path).
+
+    Exposed through the public config so the SPA can move visitors from
+    renamed/retired URLs to their new home without a redeploy."""
+
+    old_path = models.CharField(max_length=240, unique=True, help_text="Path to redirect from, e.g. /destinations/everest-old")
+    new_path = models.CharField(max_length=240, help_text="Path (or https:// URL) to redirect to")
+    is_permanent = models.BooleanField(default=True, help_text="Permanent (301-style) vs temporary redirect")
+    is_active = models.BooleanField(default=True)
+    note = models.CharField(max_length=240, blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="redirect_rules_updated")
+
+    class Meta:
+        ordering = ["-updated_at", "id"]
+
+    def __str__(self):
+        return f"{self.old_path} -> {self.new_path}"
+
+
 class CMSRevision(models.Model):
     """Immutable snapshots for safe CMS preview, audit, and rollback."""
     resource = models.CharField(max_length=20, choices=[("pages", "Pages"), ("sections", "Sections"), ("navigation", "Navigation"), ("settings", "Settings"), ("translations", "Translations")])

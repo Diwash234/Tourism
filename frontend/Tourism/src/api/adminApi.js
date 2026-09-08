@@ -89,6 +89,11 @@ const adminApi = {
   getTranslations: (params) => axiosClient.get("/admin/destination-translations/", { params }),
   createTranslation: (payload) => axiosClient.post("/admin/destination-translations/", payload),
   updateTranslation: (id, payload) => axiosClient.patch(`/admin/destination-translations/${id}/`, payload),
+  // Redirects & URLs (CMS brief §14)
+  getRedirects: () => axiosClient.get("/admin/redirects/"),
+  createRedirect: (payload) => axiosClient.post("/admin/redirects/", payload),
+  updateRedirect: (id, payload) => axiosClient.patch("/admin/redirects/", { id, ...payload }),
+  deleteRedirect: (id) => axiosClient.delete("/admin/redirects/", { params: { id } }),
   deleteTranslation: (id) => axiosClient.delete(`/admin/destination-translations/${id}/`),
   getCategories: (params) => axiosClient.get("/categories/", { params }),
   createCategory: (payload) => axiosClient.post("/categories/", payload),

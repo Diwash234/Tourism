@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.exceptions import ValidationError
 
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
@@ -13,7 +14,7 @@ from .models import (
     Hospital, PoliceStation, OSMEssentialService, TravelExpenseFeedback, TravelRiskFeedback,
     DestinationAuditLog, FeedbackEvidence, UserFeedback, InfrastructureSubmission, MLTrainingRun,
     SiteSetting, DataRetentionPolicy, BrandingAsset, CMSContentTranslation, ManagedPage, ContentSection, ContentBlock, ManagedNavigationItem, CMSRevision, FeedbackMessage, StaffCapabilityProfile, Notification, NotificationPreference,
-    CurrentHazard, VisitorNotice, MarketplaceListing, MarketplacePartner, FeaturedDestination,
+    CurrentHazard, VisitorNotice, MarketplaceListing, MarketplacePartner, FeaturedDestination, RedirectRule,
 )
 from .permissions import IsAdminOrStaff
 from .serializers import InfrastructureSubmissionSerializer, FeaturedDestinationSerializer
@@ -3915,3 +3916,104 @@ class PublicFeaturedDestinationView(APIView):
         return Response({"count": len(items), "results": items})
 
 
+
+
+class AdminRedirectsView(APIView):
+    """CRUD for URL redirect rules (old path -> new path).
+
+    Admin-only; every rule is exposed through the public config so the SPA
+    can apply it immediately without a redeploy."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    @staticmethod
+    def _serialize(rule):
+        return {"id": rule.id, "old_path": rule.old_path, "new_path": rule.new_path,
+            "is_permanent": rule.is_permanent, "is_active": rule.is_active,
+            "note": rule.note, "updated_at": rule.updated_at.isoformat()}
+
+    @staticmethod
+    def _clean_old_path(value):
+        value = str(value or "").strip()
+        if not value.startswith("/"):
+            raise ValidationError("Redirect-from must be a path starting with /.")
+        if " " in value or len(value) > 240:
+            raise ValidationError("Redirect-from contains invalid characters or is too long.")
+        return value
+
+    @staticmethod
+    def _clean_new_path(value):
+        value = str(value or "").strip()
+        if not (value.startswith("/") or value.startswith("https://") or value.startswith("http://")):
+            raise ValidationError("Redirect-to must be a path starting with / or a full https:// URL.")
+        if " " in value or len(value) > 240:
+            raise ValidationError("Redirect-to contains invalid characters or is too long.")
+        return value
+
+    def _detect_loop(self, old_path, new_path, exclude_id=None):
+        """Follow the chain from new_path; fail before a rule can loop."""
+        seen = {old_path.lower()}
+        current = new_path.lower()
+        for _ in range(10):
+            if current in seen:
+                raise ValidationError("This redirect would create a loop with an existing rule.")
+            seen.add(current)
+            nxt = RedirectRule.objects.filter(old_path__iexact=current).exclude(id=exclude_id).values_list("new_path", flat=True).first()
+            if not nxt:
+                return
+            current = nxt.lower()
+
+    def get(self, request):
+        _require_capability(request, "navigation", "view")
+        rules = RedirectRule.objects.all()
+        return Response({"count": rules.count(), "results": [self._serialize(r) for r in rules]})
+
+    def post(self, request):
+        _require_capability(request, "navigation", "update")
+        old_path = self._clean_old_path(request.data.get("old_path"))
+        new_path = self._clean_new_path(request.data.get("new_path"))
+        if old_path.lower() == new_path.lower():
+            raise ValidationError("Redirect-from and redirect-to must be different.")
+        if RedirectRule.objects.filter(old_path__iexact=old_path).exists():
+            raise ValidationError("A redirect for this path already exists.")
+        self._detect_loop(old_path, new_path)
+        rule = RedirectRule.objects.create(
+            old_path=old_path, new_path=new_path,
+            is_permanent=bool(request.data.get("is_permanent", True)),
+            is_active=bool(request.data.get("is_active", True)),
+            note=str(request.data.get("note", ""))[:240],
+            updated_by=request.user,
+        )
+        return Response({"message": "Redirect created", "data": self._serialize(rule)}, status=status.HTTP_201_CREATED)
+
+    def patch(self, request):
+        _require_capability(request, "navigation", "update")
+        rule = RedirectRule.objects.filter(id=request.data.get("id")).first()
+        if not rule:
+            return Response({"error": "Redirect not found"}, status=status.HTTP_404_NOT_FOUND)
+        old_path = self._clean_old_path(request.data.get("old_path", rule.old_path))
+        new_path = self._clean_new_path(request.data.get("new_path", rule.new_path))
+        if old_path.lower() == new_path.lower():
+            raise ValidationError("Redirect-from and redirect-to must be different.")
+        if RedirectRule.objects.filter(old_path__iexact=old_path).exclude(id=rule.id).exists():
+            raise ValidationError("A redirect for this path already exists.")
+        self._detect_loop(old_path, new_path, exclude_id=rule.id)
+        rule.old_path = old_path
+        rule.new_path = new_path
+        if "is_permanent" in request.data:
+            rule.is_permanent = bool(request.data.get("is_permanent"))
+        if "is_active" in request.data:
+            rule.is_active = bool(request.data.get("is_active"))
+        if "note" in request.data:
+            rule.note = str(request.data.get("note", ""))[:240]
+        rule.updated_by = request.user
+        rule.save()
+        return Response({"message": "Redirect updated", "data": self._serialize(rule)})
+
+    def delete(self, request):
+        _require_capability(request, "navigation", "update")
+        rule = RedirectRule.objects.filter(id=request.query_params.get("id")).first()
+        if not rule:
+            return Response({"error": "Redirect not found"}, status=status.HTTP_404_NOT_FOUND)
+        rule.delete()
+        return Response({"message": "Redirect deleted"})

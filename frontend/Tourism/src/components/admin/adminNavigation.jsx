@@ -1,7 +1,7 @@
 import {
   BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
   BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
-  BsHouseDoor, BsImage, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
+  BsHouseDoor, BsImage, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
   BsSliders, BsTools, BsTranslate, BsTruck, BsSpeedometer2,
 } from "react-icons/bs"
 
@@ -18,6 +18,7 @@ export const ADMIN_NAV_GROUPS = [
     ["cms_overview", "CMS Overview", BsSpeedometer2],
     ["cms", "Pages, Sections & Menus", BsFileEarmarkText],
     ["homepage_manager", "Homepage Manager", BsHouseDoor],
+    ["redirects", "Redirects & URLs", BsLink45Deg],
     ["visitor_desk", "Announcements & Notices", BsMegaphone],
     ["featured_destinations", "Featured Content Studio", BsStar],
     ["media_library", "Central Media Library", BsCollection, [

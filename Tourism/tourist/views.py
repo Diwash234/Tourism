@@ -20,7 +20,7 @@ from .models import (
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
     SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
-    TravelerDocument,
+    TravelerDocument, RedirectRule,
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace, HasCapability, HasCapabilityOrReadOnly
 from .serializers import (
@@ -263,10 +263,12 @@ class PublicConfigView(APIView):
             }
             for s in HeroSlide.objects.filter(is_active=True).order_by("order", "id")
         ]
+        redirects = [{"old_path": r.old_path, "new_path": r.new_path, "permanent": r.is_permanent}
+            for r in RedirectRule.objects.filter(is_active=True)]
         return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
             "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog,
-            "hero_slides": hero_slides})
+            "hero_slides": hero_slides, "redirects": redirects})
 
 
 class DiscoverNepalView(APIView):
