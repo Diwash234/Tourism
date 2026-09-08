@@ -98,6 +98,22 @@ const f3 = mod.resolveNavbarFeatures("garbage")
 check("non-object setting falls back to all shown", mod.NAVBAR_FEATURES.every(({ key }) => f3[key] === true))
 check("covers the five brief features", mod.NAVBAR_FEATURES.map((f) => f.key).join(",") === "search,language_switcher,profile,notifications,theme_toggle")
 
+console.log("cookieConsent (utils/cookieConsent.js):")
+const cc1 = mod.resolveCookieConsent(null)
+check("missing setting shows the notice with default message", cc1.enabled === true && cc1.message === mod.DEFAULT_COOKIE_MESSAGE)
+const cc2 = mod.resolveCookieConsent({ enabled: false })
+check("explicit false hides the notice", cc2.enabled === false)
+const cc3 = mod.resolveCookieConsent({ enabled: true, message: "  Custom wording  " })
+check("custom message is trimmed", cc3.message === "Custom wording")
+const cc4 = mod.resolveCookieConsent({ message: "   " })
+check("blank message falls back to default", cc4.message === mod.DEFAULT_COOKIE_MESSAGE)
+const fakeStore = { map: {}, getItem(k) { return this.map[k] ?? null }, setItem(k, v) { this.map[k] = String(v) } }
+check("fresh browser has not dismissed", mod.isCookieConsentDismissed(fakeStore) === false)
+mod.dismissCookieConsent(fakeStore)
+check("accepting persists under the storage key", fakeStore.map[mod.COOKIE_CONSENT_KEY] === "accepted" && mod.isCookieConsentDismissed(fakeStore) === true)
+const brokenStore = { getItem() { throw new Error("blocked") }, setItem() { throw new Error("blocked") } }
+check("private-mode storage never crashes", mod.isCookieConsentDismissed(brokenStore) === false && mod.dismissCookieConsent(brokenStore) === undefined)
+
 console.log("Pagination (components/common/Pagination.jsx source scan):")
 const pg = readFileSync("src/components/common/Pagination.jsx", "utf8")
 check("has direct jump input", pg.includes('placeholder="Jump to…"'))

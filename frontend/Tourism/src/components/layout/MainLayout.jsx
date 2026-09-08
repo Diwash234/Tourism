@@ -5,6 +5,7 @@ import Navbar from "./Navbar"
 import Sidebar from "./Sidebar"
 import Footer from "./Footer"
 import FloatingChatbot from "../common/FloatingChatbot"
+import CookieConsentBanner from "../common/CookieConsentBanner"
 import MobileBottomNav from "./MobileBottomNav"
 import { ElevationScrollProgress } from "../common/MotionSystem"
 import usePublicConfig from "../../hooks/usePublicConfig"
@@ -54,6 +55,7 @@ const MainLayout = () => {
       </div>
       <MobileBottomNav />
       <FloatingChatbot />
+      <CookieConsentBanner />
     </div>
   )
 }
