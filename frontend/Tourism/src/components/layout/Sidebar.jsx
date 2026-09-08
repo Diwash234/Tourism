@@ -148,6 +148,8 @@ export default function Sidebar() {
       />
 
       <aside
+        id="sidebar-drawer"
+        aria-label="Main navigation"
         className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-white dark:bg-nav-dark border-r border-nav-tintStrong dark:border-slate-700 overflow-y-auto overscroll-contain
                    transform transition-[transform,width] duration-300 will-change-transform
                    shadow-xl lg:shadow-none lg:max-w-none ${collapsed ? "lg:w-16" : "lg:w-64"} ${open ? "translate-x-0" : "-translate-x-full"}`}

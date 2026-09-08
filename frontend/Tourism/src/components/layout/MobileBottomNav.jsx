@@ -14,7 +14,10 @@ export default function MobileBottomNav() {
   ]
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur border-t border-emerald-500/30 text-slate-300 px-2 py-1.5 shadow-2xl flex items-center justify-around">
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur border-t border-emerald-500/30 text-slate-300 px-2 py-1.5 shadow-2xl flex items-center justify-around"
+      style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}
+    >
       {navItems.map((item) => {
         const Icon = item.icon
         return (

@@ -92,7 +92,7 @@ const FloatingChatbot = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.9 }}
             data-testid="himal-float-panel"
-            className="card-base w-[360px] sm:w-[400px] h-[520px] shadow-2xl flex flex-col overflow-hidden border border-[#E5E0D5] mb-3 bg-white"
+            className="card-base w-[min(360px,calc(100vw-2rem))] sm:w-[400px] h-[min(520px,70dvh)] shadow-2xl flex flex-col overflow-hidden border border-[#E5E0D5] mb-3 bg-white"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-purple-700 text-white px-4 py-3 flex items-center justify-between shadow-md">

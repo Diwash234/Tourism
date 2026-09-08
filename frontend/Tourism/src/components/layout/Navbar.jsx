@@ -16,7 +16,7 @@ const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <di
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
-  const [, , toggleSidebar] = useSidebarState()
+  const [sidebarOpen, , toggleSidebar] = useSidebarState()
   const { isAuthenticated, user, logout, isAdmin, isStaff } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
@@ -78,8 +78,10 @@ const Navbar = () => {
         <button
           type="button"
           onClick={toggleSidebar}
-          className="p-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors shrink-0 flex items-center justify-center"
-          aria-label="Toggle sidebar menu"
+          className="p-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
+          aria-label={sidebarOpen ? "Close sidebar menu" : "Open sidebar menu"}
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar-drawer"
           title="Toggle sidebar menu"
         >
           <FiMenu size={20} />

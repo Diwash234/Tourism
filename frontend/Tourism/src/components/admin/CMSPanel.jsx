@@ -454,7 +454,7 @@ export default function CMSPanel() {
               <button onClick={() => setPreview(null)}><FiX size={22} /></button>
             </div>
             <div className="flex min-h-0 flex-1 justify-center overflow-hidden">
-              <div className={`overflow-hidden rounded-[1.5rem] border-8 border-slate-900 bg-white shadow-2xl ${previewMode === "mobile" ? "h-full w-[390px]" : previewMode === "tablet" ? "h-full w-[768px]" : "h-full w-full"}`}>
+              <div className={`overflow-hidden rounded-[1.5rem] border-8 border-slate-900 bg-white shadow-2xl max-w-full ${previewMode === "mobile" ? "h-full w-[390px]" : previewMode === "tablet" ? "h-full w-[768px]" : "h-full w-full"}`}>
                 {previewKind === "live" && preview.route ? (
                   <iframe title="Logged-out traveller preview" src={travellerPreviewSrc()} className="h-full w-full bg-white" />
                 ) : (
