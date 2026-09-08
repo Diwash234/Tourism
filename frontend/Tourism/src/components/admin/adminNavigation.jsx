@@ -1,7 +1,7 @@
 import {
   BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
   BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
-  BsHouseDoor, BsImage, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
+  BsGlobe, BsHouseDoor, BsImage, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
   BsSliders, BsTools, BsTranslate, BsTruck, BsSpeedometer2,
 } from "react-icons/bs"
 
@@ -34,6 +34,7 @@ export const ADMIN_NAV_GROUPS = [
     ["image_pipeline", "Image Acquisition Pipeline", BsTools],
     ["branding", "Branding & Theme", BsPalette],
     ["category_translations", "Categories & Translations", BsTranslate],
+    ["content_translations", "Content Translations", BsGlobe],
     ["user_dashboard_control", "User Dashboard Controls", BsSliders],
     ["ai_engine", "Central AI Engine Studio", BsStar],
   ]},

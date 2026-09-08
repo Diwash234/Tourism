@@ -67,6 +67,28 @@ check("formats objects without JSON jargon", mod.formatSnapshotValue({ a: 1 }) =
 check("truncates long strings", mod.formatSnapshotValue("x".repeat(80)).length === 61)
 check("humanizes unknown snake_case keys", mod.revisionFieldLabel("layout_variant_x") === "Layout variant x")
 
+console.log("translationHelpers (utils/translationHelpers.js):")
+const c1 = mod.cleanTranslationContent({ title: "नमस्ते", body: "  ", cta_text: "", route: "/hack", icon: 42 }, "sections")
+check("keeps only whitelisted non-empty fields", JSON.stringify(c1) === JSON.stringify({ title: "नमस्ते" }))
+const c2 = mod.cleanTranslationContent({ title: "x", meta_description: "y" }, "pages")
+check("page fields allowed", Object.keys(c2).length === 2)
+const c3 = mod.cleanTranslationContent({ label: "मेनु" }, "navigation")
+check("navigation label allowed", c3.label === "मेनु")
+check("key format stable", mod.buildTranslationKey("sections", 7, "ne") === "sections:7:ne")
+const rows = [
+  { target_resource: "sections", object_id: 1, language_code: "ne", content: { title: "शीर्षक" } },
+  { target_resource: "sections", object_id: 2, language_code: "ne", content: { title: "   " } },
+  { target_resource: "pages", object_id: 3, language_code: "hi", content: { title: "पृष्ठ" } },
+]
+const keys = mod.translatedKeySet(rows, "ne")
+check("counts only rows with real text in the active language", keys.size === 1 && keys.has("sections:1:ne"))
+const cov = mod.translationCoverage(
+  [ { type: "sections", id: 1, lang: "ne" }, { type: "sections", id: 2, lang: "ne" }, { type: "pages", id: 3, lang: "ne" } ],
+  keys
+)
+check("coverage done/total", cov.done === 1 && cov.total === 3)
+check("field whitelist matches backend", JSON.stringify(mod.TRANSLATION_FIELDS.sections.map((f) => f.name)) === JSON.stringify(["title","subtitle","body","cta_text"]))
+
 console.log("Pagination (components/common/Pagination.jsx source scan):")
 const pg = readFileSync("src/components/common/Pagination.jsx", "utf8")
 check("has direct jump input", pg.includes('placeholder="Jump to…"'))
