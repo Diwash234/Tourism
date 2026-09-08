@@ -31,6 +31,24 @@ def _has_capability(request, module, action="view"):
     return bool(profile and profile.allows(module, action))
 
 
+def _media_public_url(image):
+    """Public URL for a media record with cache-busting for local files.
+
+    Replacing the stored file keeps the same media id (references survive)
+    but browsers/CDNs may cache the old bytes at the same path, so local
+    Django-served files carry ?v=<updated_at epoch>. External URLs are
+    returned untouched (their hosts may reject unknown query strings)."""
+    if image.external_url:
+        return image.external_url
+    if image.image:
+        try:
+            version = int(image.updated_at.timestamp())
+        except Exception:
+            version = 0
+        return f"{image.image.url}?v={version}" if version else image.image.url
+    return ""
+
+
 def _require_capability(request, module, action="view"):
     if not _has_capability(request, module, action):
         from rest_framework.exceptions import PermissionDenied
@@ -2937,7 +2955,7 @@ class AdminMediaLibraryView(APIView):
         except ValueError:return Response({"detail":"Invalid pagination"},status=400)
         count=qs.count();items=[]
         for image in qs[(page-1)*size:page*size]:
-            url=image.external_url or (image.image.url if image.image else "")
+            url=_media_public_url(image)
             used_on=[{"type":"destination","label":image.destination.name,"id":image.destination_id}]
             if url:
                 for section in ContentSection.objects.filter(image_url=url).select_related("page")[:8]:
@@ -2989,8 +3007,27 @@ class AdminMediaLibraryView(APIView):
             try:
                 _write_cropped_image(image)
             except Exception:
-                pass
-        image.save();return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {},"url":image.external_url or (image.image.url if image.image else "")})
+                import logging
+                logging.getLogger(__name__).warning("Crop rewrite failed for DestinationImage %s", image.pk, exc_info=True)
+        image.save()
+        # Keep the destination's duplicated cover field in sync (single source
+        # of truth): the public serializer prefers Destination.cover_image, so
+        # replacing the media that IS the cover must update it too — otherwise
+        # admin shows the new image while the public site keeps the old one.
+        if image.is_cover and image.destination_id:
+            dest = image.destination
+            if uploaded:
+                uploaded.seek(0)
+                dest.cover_image = uploaded
+            elif image.external_url:
+                # Matches the existing seed-data convention: cover_image may
+                # hold an external http(s) URL, which resolve_image_url
+                # returns verbatim.
+                dest.cover_image = image.external_url
+            else:
+                dest.cover_image = ""
+            dest.save(update_fields=["cover_image", "updated_at"])
+        return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {},"url":_media_public_url(image)})
     def delete(self, request):
         _require_capability(request,"images","delete")
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()

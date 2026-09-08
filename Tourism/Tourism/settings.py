@@ -177,12 +177,35 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # ------------------------------------------------------------------
 # CORS
 # ------------------------------------------------------------------
-CORS_ALLOW_ALL_ORIGINS = True
+# Dev convenience flag; production should set CORS_ALLOW_ALL_ORIGINS=False in
+# the environment and rely on the explicit origins/regexes below.
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=True, cast=bool)
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173",
+    default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000",
     cast=Csv(),
 )
+# Sandbox/browser previews are served from dynamic HTTPS hosts.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://\w+-\w+\.e2b\.app$",
+    r"^https://[\w.-]+\.arena\.site$",
+]
+# The public-config client sends "Cache-Control: no-cache" to bypass stale
+# caches; the preflight must therefore allow it (django-cors-headers' default
+# header list does not include it, which made browsers reject the request).
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "cache-control",
+    "content-type",
+    "dnt",
+    "origin",
+    "pragma",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # Browser previews use dynamic HTTPS hosts. Django supports wildcard trusted
