@@ -195,6 +195,53 @@ async function main() {
 
   a.unmount()
 
+  // =========================================================================
+  // COOKIE CONSENT BANNER (§17) — real component, fixture-driven public config
+  // =========================================================================
+  const consentSel = '[aria-label="Cookie consent"]'
+  const consentStorage = window.localStorage
+
+  // --- no setting saved yet: banner shows with privacy link ------------------
+  consentStorage.removeItem("tourism_cookie_consent")
+  entry.setPublicConfigFixture({ settings: {}, pages: [], navigation: [] })
+  const c1 = entry.mountCookieBanner()
+  await settle()
+  check("cookie: shown by default when no setting saved", !!$(c1.container, consentSel))
+  check("cookie: links the privacy policy", !!$(c1.container, 'a[href="/privacy"]'))
+  c1.unmount()
+
+  // --- CMS disables it: hidden ------------------------------------------------
+  entry.setPublicConfigFixture({ settings: { cookie_consent: { enabled: false, message: "x" } }, pages: [], navigation: [] })
+  const c2 = entry.mountCookieBanner()
+  await settle()
+  check("cookie: hidden when the CMS setting disables it", !$(c2.container, consentSel))
+  c2.unmount()
+
+  // --- custom CMS message reaches the visitor --------------------------------
+  entry.setPublicConfigFixture({ settings: { cookie_consent: { enabled: true, message: "Custom wording here" } }, pages: [], navigation: [] })
+  const c3 = entry.mountCookieBanner()
+  await settle()
+  check("cookie: custom CMS message rendered", /Custom wording here/.test(c3.container.textContent))
+  c3.unmount()
+
+  // --- Accept hides it and persists the choice --------------------------------
+  entry.setPublicConfigFixture({ settings: { cookie_consent: { enabled: true } }, pages: [], navigation: [] })
+  const c4 = entry.mountCookieBanner()
+  await settle()
+  const acceptBtn = [...c4.container.querySelectorAll("button")].find((b) => /Accept/.test(b.textContent))
+  check("cookie: Accept button present", !!acceptBtn)
+  await click(acceptBtn)
+  check("cookie: Accept hides the banner", !$(c4.container, consentSel))
+  check("cookie: Accept persisted to localStorage", consentStorage.getItem("tourism_cookie_consent") === "accepted")
+  c4.unmount()
+
+  // --- a visitor who already accepted never sees it again ---------------------
+  const c5 = entry.mountCookieBanner()
+  await settle()
+  check("cookie: stays hidden after a prior Accept", !$(c5.container, consentSel))
+  c5.unmount()
+  consentStorage.removeItem("tourism_cookie_consent")
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)
