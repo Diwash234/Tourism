@@ -4,6 +4,11 @@
  * Runs without a GUI browser so it works when Playwright Chromium
  * cannot download or is missing system libraries.
  */
+import { readFileSync } from "node:fs"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
+
+const here = dirname(fileURLToPath(import.meta.url))
 const API = process.env.E2E_API || "http://127.0.0.1:8000/api/v1"
 const WEB = process.env.E2E_BASE_URL || "http://127.0.0.1:5173"
 const DEMO = {
@@ -39,6 +44,18 @@ async function request(url, options = {}) {
   let data = null
   try { data = text ? JSON.parse(text) : null } catch { data = text }
   return { res, data, text }
+}
+
+// Source assertions: a dev server transforms /src/*.jsx on the fly, while
+// `vite preview` answers with the SPA fallback HTML. Read through HTTP when a
+// dev server answers with real source; otherwise verify the file on disk —
+// same assertion either way, never a false red from the serving mode.
+async function sourceFile(relPath) {
+  const { res, text } = await request(`${WEB}/src/${relPath}`)
+  const body = String(text ?? "")
+  const isHtmlFallback = /^\s*<!doctype html/i.test(body)
+  if (res.ok && body && !isHtmlFallback) return body
+  return readFileSync(join(here, "..", "src", relPath), "utf8")
 }
 
 async function login(role) {
@@ -87,15 +104,15 @@ async function run() {
   }
 
   {
-    const { res, text } = await request(`${WEB}/src/pages/Checkout.jsx`)
-    if (res.ok && text.includes("Review & Request Booking") && !/name=["']card_number["']/.test(text)) {
+    const text = await sourceFile("pages/Checkout.jsx")
+    if (text.includes("Review & Request Booking") && !/name=["']card_number["']/.test(text)) {
       ok("checkout source is Review & Request Booking without card fields")
     } else fail("checkout source", "missing title or still has card fields")
   }
 
   {
-    const { res, text } = await request(`${WEB}/src/Chatbot.jsx`)
-    if (res.ok && text.includes("package_cards: data.package_cards")) ok("Himal AI page wires package_cards")
+    const text = await sourceFile("Chatbot.jsx")
+    if (text.includes("package_cards: data.package_cards")) ok("Himal AI page wires package_cards")
     else fail("Himal AI page wires package_cards")
   }
 
