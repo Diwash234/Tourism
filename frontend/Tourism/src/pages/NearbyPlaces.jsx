@@ -13,6 +13,7 @@ import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import { FiMapPin } from "react-icons/fi"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const NearbyPlaces = () => {
   const { position } = useGeolocation()
@@ -45,6 +46,7 @@ const NearbyPlaces = () => {
 
   return (
     <div className="container-app py-10 fade-in theme-forest">
+      <CMSPageIntro pageKey="nearby-places" />
       <PageHeader title="Nearby Places" icon={ FiMapPin } />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

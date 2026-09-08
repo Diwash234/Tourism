@@ -6,6 +6,7 @@ import PageHeader from "../components/common/PageHeader"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const emptyForm = {
   fullName: "",
@@ -94,6 +95,7 @@ const PersonalDetails = () => {
 
   return (
     <div>
+      <CMSPageIntro pageKey="personal-details" />
       <PageHeader
         title="Personal Details"
         subtitle="Keep travel documents and emergency contacts for yourself and traveling relatives up to date."

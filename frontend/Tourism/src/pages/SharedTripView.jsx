@@ -5,6 +5,7 @@ import { FiMapPin, FiClock } from "react-icons/fi"
 import safetyApi from "../api/safetyApi"
 import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 // How often this page re-fetches the latest position. Polling, matching
 // the backend's design (see safety/views.py) -- not a WebSocket.
@@ -64,6 +65,7 @@ const SharedTripView = () => {
 
   return (
     <div className="container-app py-10 max-w-2xl">
+      <CMSPageIntro pageKey="shared-trip" />
       <PageHeader title={<>{trip.label || "Shared Trip"}</>} icon={ FiMapPin } />
 
       {ping ? (

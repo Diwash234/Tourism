@@ -3,6 +3,7 @@ import { FiFileText } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function TermsOfService() {
   return (
@@ -17,6 +18,7 @@ export default function TermsOfService() {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-bold uppercase">
             Legal Terms & Conditions
           </span>
+          <CMSPageIntro pageKey="terms-of-service" />
           <PageHeader title="Terms of Service" subtitle="Effective Date: August 2026 · Official Nepal Yatra Platform" icon={FiFileText} />
         </div>
 

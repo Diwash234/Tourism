@@ -6,6 +6,7 @@ import Loader from "../components/common/Loader"
 import userApi from "../api/userApi"
 import useToast from "../hooks/useToast"
 import { addToTripBasket } from "../utils/tripBasket"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function PackageDetail() {
   const { slug } = useParams()
@@ -43,6 +44,7 @@ export default function PackageDetail() {
 
   return (
     <div className="container-app py-10 space-y-6">
+      <CMSPageIntro pageKey="package-detail" />
       <PageHeader title={listing.title} subtitle={`${listing.partner_name} · ${listing.kind} · ${listing.city || listing.destination_name || "Nepal"}`} icon={FiPackage} theme="amber" />
       <Link to="/packages" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-800"><FiArrowLeft /> All packages</Link>
       <div className="grid lg:grid-cols-[2fr_1fr] gap-6">

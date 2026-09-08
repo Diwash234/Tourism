@@ -11,6 +11,7 @@ import UserFeedbackModal from "../components/user/UserFeedbackModal"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function CustomerSupport() {
   const { showToast } = useToast()
@@ -129,6 +130,7 @@ export default function CustomerSupport() {
           <span className="px-3.5 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-400/30">
             24/7 Traveler Help Desk & Admin Support
           </span>
+          <CMSPageIntro pageKey="customer-support" />
           <PageHeader title="Customer Support & Admin Chat Center" subtitle="Talk to the support desk — real people, real tickets." icon={FiLifeBuoy} />
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             Direct real-time communication channel with Nepal Yatra Admin and Field Support Staff. Ask questions, report trip issues, or request itinerary assistance.

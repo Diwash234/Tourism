@@ -5,6 +5,7 @@ import PageHeader from "../components/common/PageHeader"
 import userApi from "../api/userApi"
 import destinationApi from "../api/destinationApi"
 import useToast from "../hooks/useToast"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const LISTING_KINDS = [
   ["package", "Travel package"],
@@ -70,6 +71,7 @@ export default function PartnerDesk() {
   if (missing) {
     return (
       <div className="container-app py-10">
+        <CMSPageIntro pageKey="partner-desk" />
         <PageHeader title="Partner desk" subtitle="Apply first. After an administrator approves your business you can add packages here." icon={FiBriefcase} theme="forest" />
         <div data-testid="partner-desk-missing" />
         <div className="card-base p-6 max-w-xl space-y-3">

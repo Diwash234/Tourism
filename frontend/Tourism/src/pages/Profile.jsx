@@ -10,6 +10,7 @@ import bookingApi from "../api/bookingApi"
 import { favoriteApi } from "../services/api.js"
 import Loader from "../components/common/Loader"
 import MandalaBackground from "../components/branding/MandalaBackground"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 // NEW: "traveler stats, badges, travel points" from the brief. There is
 // no backend model for any of this (checked tourist/models.py — no
@@ -97,6 +98,7 @@ const Profile = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl fade-in space-y-6">
+      <CMSPageIntro pageKey="profile" />
       <PageHeader title="My Profile" />
 
       <div className="card-base p-6 relative overflow-hidden">

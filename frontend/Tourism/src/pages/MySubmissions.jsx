@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import PageHeader from "../components/common/PageHeader"
 import { FiMapPin, FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function MySubmissions() {
   const [submissions, setSubmissions] = useState([])
@@ -15,6 +16,7 @@ export default function MySubmissions() {
   return (
     <div className="container-app py-8 space-y-6 animate-fadeIn">
       <div>
+        <CMSPageIntro pageKey="my-submissions" />
         <PageHeader title="My Place Submissions & Status" icon={FiMapPin} />
         <p className="text-gray-500 text-sm mt-1">
           Review places you suggested to the community and track their Admin Verification status.

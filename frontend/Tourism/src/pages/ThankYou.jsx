@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { FiCheckCircle, FiCompass, FiPhoneCall, FiArrowRight, FiShield } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { FadeIn, HoverCard } from "../components/common/MotionSystem"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function ThankYou() {
   return (
@@ -19,6 +20,7 @@ export default function ThankYou() {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-bold uppercase tracking-wider">
             Submission Received
           </span>
+          <CMSPageIntro pageKey="thank-you" />
           <PageHeader title="Dhanyabad! Your Submission is in Good Hands 🙏" subtitle="Our team reviews every submission before it goes live." icon={FiCheckCircle} />
           <p className="text-gray-600 text-sm max-w-lg mx-auto mt-2 leading-relaxed">
             Thank you for contributing to the Nepal Tourism portal. Your submission has been securely queued in the Admin Moderation & Verification Sentinel.

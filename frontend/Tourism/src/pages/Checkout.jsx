@@ -6,6 +6,7 @@ import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import { basketTotal, clearTripBasket, getTripBasket, removeFromTripBasket } from "../utils/tripBasket"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function Checkout() {
   const { user, isAuthenticated } = useAuth()
@@ -51,6 +52,7 @@ export default function Checkout() {
 
   return (
     <div className="container-app py-10" data-testid="checkout-page">
+      <CMSPageIntro pageKey="checkout" />
       <PageHeader
         title="Review & Request Booking"
         subtitle="No payment is being processed on Nepal Tourism at this stage. Card numbers are never accepted here."

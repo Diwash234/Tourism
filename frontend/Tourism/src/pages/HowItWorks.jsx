@@ -9,6 +9,7 @@ import {
   FiLock, FiSliders, FiFileText, FiCalendar, FiArrowRight, FiChevronDown
 } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function HowItWorks() {
   const [activeRole, setActiveRole] = useState("traveller") // 'traveller' or 'admin'
@@ -156,6 +157,8 @@ export default function HowItWorks() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600/20 border border-purple-400/30 text-purple-300 text-xs font-semibold uppercase tracking-wider">
             <FiBookOpen size={14} /> Knowledge Base & System Transparency
           </div>
+
+          <CMSPageIntro pageKey="how-it-works" />
 
           <PageHeader title="How Nepal Yatra Works" subtitle="From discovery to a planned trip — the whole journey." icon={FiInfo} />
 

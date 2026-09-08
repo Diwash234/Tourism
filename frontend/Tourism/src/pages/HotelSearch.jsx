@@ -6,6 +6,7 @@ import { FiSearch, FiStar } from "react-icons/fi";
 import hotelApi from "../api/hotelApi";
 import EmptyState from "../components/common/EmptyState";
 import HotelMedia from "../components/cards/HotelMedia";
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const HotelSearch = () => {
   const [query, setQuery] = useState("");
@@ -33,6 +34,7 @@ const HotelSearch = () => {
 
   return (
     <div className="container-app py-10 fade-in">
+      <CMSPageIntro pageKey="hotel-search" />
       <PageHeader title="Find a Hotel" />
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-2xl">

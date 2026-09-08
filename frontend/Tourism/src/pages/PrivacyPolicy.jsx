@@ -3,6 +3,7 @@ import { FiShield } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function PrivacyPolicy() {
   return (
@@ -17,6 +18,7 @@ export default function PrivacyPolicy() {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold uppercase">
             Data Protection & Privacy
           </span>
+          <CMSPageIntro pageKey="privacy-policy" />
           <PageHeader title="Privacy Policy" subtitle="Last updated: August 2026 · Official Nepal Yatra Platform" icon={FiShield} />
         </div>
 

@@ -4,6 +4,7 @@ import { FiBriefcase } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import userApi from "../api/userApi"
 import useToast from "../hooks/useToast"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const KINDS = [
   ["hotel", "Hotel"],
@@ -48,6 +49,7 @@ export default function Collaborate() {
 
   return (
     <div className="container-app py-10" data-testid="collaborate-page">
+      <CMSPageIntro pageKey="collaborate" />
       <PageHeader
         title="Partner with Nepal Tourism"
         subtitle="Submit your hotel or tour business for review. After approval you can add packages from the partner desk — an administrator still publishes each offer."

@@ -5,6 +5,7 @@ import PageHeader from "../components/common/PageHeader"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([])
@@ -61,6 +62,7 @@ export default function Notifications() {
 
   return (
     <div className="theme-amber-alt space-y-5">
+      <CMSPageIntro pageKey="notifications" />
       <PageHeader
         title="Notifications"
         subtitle={`${unread} unread · delivery status is shown honestly for each channel.`}
