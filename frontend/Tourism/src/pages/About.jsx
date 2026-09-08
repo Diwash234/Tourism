@@ -17,13 +17,13 @@ const About = () => {
       icon={FiGlobe}
     />
 
-    <p className="max-w-2xl mx-auto text-center text-gray-500 mb-12">
+    <p className="max-w-2xl mx-auto text-center text-gray-500 mb-8 sm:mb-10">
       {APP_NAME} is a local tourism information portal built to help travelers
       discover Nepal's destinations, plan budgets, stay safe, and navigate
       confidently — all from a single platform.
     </p>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 sm:mb-10">
       {[
         {
           icon: FiTarget,

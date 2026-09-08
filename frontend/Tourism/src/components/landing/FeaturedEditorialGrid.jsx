@@ -46,7 +46,7 @@ export default function FeaturedEditorialGrid({ destinations = [], featuredCards
 
   return (
     <section className="section-space container-app max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 section-head">
         <div>
           <span className="px-3.5 py-1 rounded-full bg-[#D9C7A3] text-[#102A2E] text-xs font-black uppercase tracking-widest">
             HANDPICKED WONDERS

@@ -94,7 +94,7 @@ export default function ProvinceMarquee() {
   const items = [...PROVINCES, ...PROVINCES]
   return (
     <section className="section-space overflow-hidden bg-gradient-to-b from-white to-[#F7F8F5] border-t border-[#E5E0D5]">
-      <div className="container-app max-w-6xl mx-auto px-4 mb-8 text-center">
+      <div className="container-app max-w-6xl mx-auto px-4 section-head text-center">
         <span className="px-3.5 py-1 rounded-full bg-[#E5E0D5] text-[#102A2E] text-xs font-black uppercase tracking-widest">
           SEVEN PROVINCES OF NEPAL
         </span>

@@ -48,7 +48,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-[80svh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       <NepalSceneBackground />
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl">
         <TourismLogo size="sm" />
