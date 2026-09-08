@@ -1,4 +1,4 @@
-import { FiMapPin, FiStar, FiWifi, FiWind, FiNavigation, FiImage, FiGlobe, FiPhoneCall } from "react-icons/fi"
+import { FiMapPin, FiStar, FiWifi, FiNavigation, FiImage, FiGlobe, FiPhoneCall } from "react-icons/fi"
 import HotelMedia from "./HotelMedia"
 
 const STATUS_STYLE = {
@@ -49,6 +49,7 @@ const HotelCard = ({ hotel, destinationName }) => {
     latitude,
     longitude,
     images,
+    facilities,
   } = hotel
 
   const tier = getPriceTier(price_per_night, currency)
@@ -93,10 +94,19 @@ const HotelCard = ({ hotel, destinationName }) => {
           <p className="text-xs text-himalaya-500 mt-1">Near {destinationName}</p>
         )}
 
-        <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
-          <span className="flex items-center gap-1"><FiWifi size={12} /> WiFi</span>
-          <span className="flex items-center gap-1"><FiWind size={12} /> Mountain View</span>
-        </div>
+        {Array.isArray(facilities) && facilities.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 mt-2">
+            {facilities.slice(0, 3).map((f) => (
+              <span
+                key={f}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 border border-gray-100 capitalize"
+              >
+                {String(f).toLowerCase() === "wifi" && <FiWifi size={11} />}
+                {String(f).replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center justify-between mt-4 gap-2">
           <p className="font-bold text-forest-600">

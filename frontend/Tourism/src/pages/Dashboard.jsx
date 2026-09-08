@@ -154,7 +154,7 @@ const Dashboard = () => {
         hotelService.recommended({ limit: 4 }),
         itineraryApi.listPlans(),
         bookingApi.getMyBookings(),
-        axiosClient.get("/reports/submit/").catch(() => ({ data: [] })),
+        axiosClient.get("/reports/submit/"),
       ])
 
       if (recRes.status === "fulfilled") setRecommendations(unwrapList(recRes.value))

@@ -177,9 +177,10 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # ------------------------------------------------------------------
 # CORS
 # ------------------------------------------------------------------
-# Dev convenience flag; production should set CORS_ALLOW_ALL_ORIGINS=False in
-# the environment and rely on the explicit origins/regexes below.
-CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=True, cast=bool)
+# Explicit-origin CORS. The whitelist below (plus the preview-host regexes)
+# covers every real caller; blanket allow-all is opt-in via the environment
+# for ad-hoc development only, never the default.
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
     default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000",
@@ -190,9 +191,10 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://\w+-\w+\.e2b\.app$",
     r"^https://[\w.-]+\.arena\.site$",
 ]
-# The public-config client sends "Cache-Control: no-cache" to bypass stale
-# caches; the preflight must therefore allow it (django-cors-headers' default
-# header list does not include it, which made browsers reject the request).
+# Explicit allowed request headers for preflighted cross-origin calls. The
+# public-config client no longer sends Cache-Control (its _ts cache-buster
+# keeps requests "simple"); cache-control stays whitelisted for other API
+# consumers that legitimately send it.
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",

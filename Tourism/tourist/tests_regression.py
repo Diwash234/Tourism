@@ -442,6 +442,7 @@ class HotelNearbyRegressionTests(TestCase):
         data = self._nearby(28.2096, 83.9856, 25)
         names = [r["name"] for r in data["results"]]
         self.assertEqual(names[:2], ["Lakeside Inn", "Mountain View Resort"])
+        self.assertIn("facilities", data["results"][0], "HotelCard renders real facilities")
         distances = [r["distance_km"] for r in data["results"]]
         self.assertEqual(distances, sorted(distances))
         self.assertLess(distances[0], 1.0)
@@ -460,3 +461,33 @@ class HotelNearbyRegressionTests(TestCase):
         resp = self.client.get("/api/v1/hotels/nearby/", {
             "latitude": 999, "longitude": 83.98, "radius_km": 25})
         self.assertEqual(resp.status_code, 400, resp.content)
+
+
+class UserDataReportsRegressionTests(TestCase):
+    """The Dashboard's My-reports panel GETs /reports/submit/ — that used to
+    405 (submit-only view) and the frontend swallowed it. GET now returns the
+    caller's own reports; anonymous callers get 401; POST stays the write path."""
+
+    def test_get_requires_authentication(self):
+        resp = self.client.get("/api/v1/reports/submit/")
+        self.assertEqual(resp.status_code, 401, resp.content)
+
+    def test_get_returns_only_own_reports(self):
+        from .models import DataReport
+        me = User.objects.create_user(email="reporter@test.local", password="Report!Pass123")
+        other = User.objects.create_user(email="bystander@test.local", password="Report!Pass123")
+        DataReport.objects.create(user=me, report_type="other", severity="medium", status="new", description="mine")
+        DataReport.objects.create(user=other, report_type="other", severity="medium", status="new", description="theirs")
+
+        client = APIClient()
+        client.force_authenticate(me)
+        resp = client.get("/api/v1/reports/submit/")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        descriptions = [r["description"] for r in resp.data]
+        self.assertEqual(descriptions, ["mine"])
+
+    def test_post_still_creates_report(self):
+        resp = self.client.post("/api/v1/reports/submit/", {
+            "report_type": "wrong_info", "severity": "low", "description": "regression",
+        }, format="json")
+        self.assertEqual(resp.status_code, 201, resp.content)

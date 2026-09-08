@@ -645,6 +645,7 @@ class HotelSerializer(serializers.ModelSerializer):
             "currency",
             "rating",
             "booking_status",
+            "facilities",
             "booking_url", "cover_image", "external_image_url",
             "image_url", "image_is_hotel_specific", "image_source", "destination_context_image_url",
             "source", "source_url", "is_verified", "verified_at", "is_active", "archived_at", "updated_at",

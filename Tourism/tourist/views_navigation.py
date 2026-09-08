@@ -203,8 +203,28 @@ class UniversalPlaceNearbyView(APIView):
 
 
 class UserDataReportSubmitView(APIView):
-    """User error reporting endpoint for submitting data corrections."""
+    """User error reporting endpoint for submitting data corrections.
+
+    POST (public): file a report — the only write path.
+    GET (authenticated): the caller's own report history, newest first, so
+    the Dashboard's "My reports" panel has a real endpoint instead of
+    GETting a submit-only URL and swallowing a 405.
+    """
     permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        from .serializers import DataReportSerializer
+        reports = (
+            DataReport.objects.filter(user=request.user)
+            .select_related("destination", "user")
+            .order_by("-created_at")[:50]
+        )
+        return Response(DataReportSerializer(reports, many=True).data)
 
     def post(self, request):
         data = request.data
