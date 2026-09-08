@@ -37,7 +37,7 @@ const MainLayout = () => {
   }, [location.pathname, pages, branding])
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-white overflow-x-hidden">
+    <div className="flex flex-col min-h-screen w-full bg-white dark:bg-[#0c1220] dark:text-stone-300 overflow-x-hidden">
       <ElevationScrollProgress />
       <Navbar />
       <Sidebar />

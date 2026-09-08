@@ -605,3 +605,58 @@ html.dark .input-field { background-color: #1e293b; border-color: #475569; color
 html.dark .input-field::placeholder { color: #94a3b8; }
 html.dark .btn-secondary { background-color: #334155; border-color: #475569; color: #f1f5f9; }
 html.dark .container-app { color: #e2e8f0; }
+
+/* ==========================================
+   Dark theme — shared variable overrides (Tailwind class strategy).
+   The design system is variable-driven (body, .card-base, .input-field,
+   .btn-outline, .section-title all read these tokens), so this single
+   block re-skins the app chrome and every primitive-based surface.
+   ========================================== */
+.dark {
+  --brand-background: #0c1220;
+  --text: #d6d3d1;            /* stone-300 */
+  --text-h: #fafaf9;          /* stone-50 */
+  --text-muted: #a8a29e;      /* stone-400 */
+  --bg: #0c1220;              /* deep slate base */
+  --surface: #131c2e;         /* raised slate surface */
+  --border: #27344a;
+  --code-bg: #0f172a;
+
+  --primary: #34d399;         /* emerald-400 — brighter for dark contrast */
+  --primary-dark: #10b981;
+  --primary-light: #052e22;
+  --primary-bg: rgba(52, 211, 153, 0.1);
+  --primary-border: rgba(52, 211, 153, 0.35);
+
+  --secondary: #e88a63;
+  --secondary-dark: #c2603a;
+  --secondary-bg: rgba(232, 138, 99, 0.12);
+
+  --accent: #e0b45c;
+  --accent-bg: rgba(224, 180, 92, 0.12);
+  --accent-border: rgba(224, 180, 92, 0.45);
+
+  --success: #4ade80; --success-bg: #052e16;
+  --warning: #fbbf24; --warning-bg: #3a2a05;
+  --danger: #f87171;  --danger-bg: #3f1212;
+  --info: #7fb2d9;    --info-bg: #0d2233;
+}
+.dark body { color: var(--text); }
+.dark .card-base {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+.dark .input-field {
+  background: var(--surface);
+  color: #e2e8f0;
+  border-color: var(--border);
+}
+.dark .input-field::placeholder { color: #64748b; }
+.dark .btn-outline {
+  color: var(--text-h);
+  border-color: var(--border);
+  background: var(--surface);
+}
+.dark .section-title { color: var(--text-h); }
