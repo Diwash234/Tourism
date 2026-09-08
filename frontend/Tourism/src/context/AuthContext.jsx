@@ -21,6 +21,31 @@ export const AuthProvider = ({ children }) => {
 
   const [loading, setLoading] = useState(true)
 
+  // "Session expired, sign in again" UX. axiosClient dispatches these when a
+  // token refresh fails ("session-expired") or a stale session was silently
+  // dropped while public data recovered ("session-downgraded"). "auth-logout"
+  // is kept for backwards compatibility.
+  const [sessionNotice, setSessionNotice] = useState(null)
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null)
+      setSessionNotice("expired")
+    }
+    const onDowngraded = () => {
+      setUser(null)
+      setSessionNotice("downgraded")
+    }
+    window.addEventListener("session-expired", onExpired)
+    window.addEventListener("session-downgraded", onDowngraded)
+    window.addEventListener("auth-logout", onExpired)
+    return () => {
+      window.removeEventListener("session-expired", onExpired)
+      window.removeEventListener("session-downgraded", onDowngraded)
+      window.removeEventListener("auth-logout", onExpired)
+    }
+  }, [])
+  const dismissSessionNotice = () => setSessionNotice(null)
+
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
@@ -205,10 +230,44 @@ export const AuthProvider = ({ children }) => {
         isStaff,
         isLocal,
         loading,
+        sessionNotice,
+        dismissSessionNotice,
       }}
     >
 
       {children}
+
+      {sessionNotice && (
+        <div
+          role="alert"
+          className="fixed bottom-4 left-1/2 z-[120] w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-amber-300 bg-white p-4 shadow-2xl dark:border-amber-500/40 dark:bg-slate-900"
+        >
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {sessionNotice === "expired"
+              ? "Your session has expired. Please sign in again."
+              : "You were signed out because your session became invalid."}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Public information remains available while you browse as a guest.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <a
+              href="/login"
+              onClick={dismissSessionNotice}
+              className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+            >
+              Sign in
+            </a>
+            <button
+              type="button"
+              onClick={dismissSessionNotice}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Keep browsing
+            </button>
+          </div>
+        </div>
+      )}
 
     </AuthContext.Provider>
 

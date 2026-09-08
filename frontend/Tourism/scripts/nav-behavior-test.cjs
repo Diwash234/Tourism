@@ -55,6 +55,7 @@ global.AbortSignal = window.AbortSignal
 global.Element = window.Element
 global.Node = window.Node
 global.Event = window.Event
+global.CustomEvent = window.CustomEvent
 global.MouseEvent = window.MouseEvent
 global.KeyboardEvent = window.KeyboardEvent
 global.getComputedStyle = window.getComputedStyle
@@ -616,6 +617,116 @@ async function main() {
   check("explorer: archive deletes via the in-app API",
     !!delCall && /\/admin\/destinations\/77$/.test(delCall.url), delCall && delCall.url)
   n11.unmount()
+
+  // =========================================================================
+  // AUTH RECOVERY (real axiosClient interceptors + real AuthContext)
+  // =========================================================================
+  const store = window.localStorage
+  const sessionEvents = []
+  const onExpiredEvt = () => sessionEvents.push("expired")
+  const onDowngradedEvt = () => sessionEvents.push("downgraded")
+  window.addEventListener("session-expired", onExpiredEvt)
+  window.addEventListener("session-downgraded", onDowngradedEvt)
+  const resetSession = ({ access, refresh, user }) => {
+    store.clear()
+    if (access) store.setItem("access", access)
+    if (refresh) store.setItem("refresh", refresh)
+    if (user) store.setItem("user", JSON.stringify(user))
+    sessionEvents.length = 0
+  }
+
+  // --- A) stale access + stale refresh -> public data recovers anonymously --
+  entry.setAuthFixture({ staleToken: "STALE", refreshStatus: 401 })
+  resetSession({ access: "STALE", refresh: "DEAD_REFRESH", user: { username: "a" } })
+  let resA = null
+  let errA = null
+  await entry.axiosClient.get("/destinations/").then((r) => { resA = r }).catch((e) => { errA = e })
+  await settle()
+  const callsA = entry.getAuthCalls()
+  check("auth A: public list recovers after failed refresh", !!resA && resA.status === 200, errA && String(errA))
+  check("auth A: exactly one refresh attempt", callsA.refresh === 1, `refresh=${callsA.refresh}`)
+  check("auth A: retried once WITHOUT Authorization",
+    JSON.stringify(callsA.destAuth) === JSON.stringify(["Bearer STALE", null]), JSON.stringify(callsA.destAuth))
+  check("auth A: session storage cleared", !store.getItem("access") && !store.getItem("refresh") && !store.getItem("user"))
+  check("auth A: downgraded event fired (user was signed in)", sessionEvents.includes("downgraded"), sessionEvents.join(","))
+  check("auth A: no expired event for recoverable public read", !sessionEvents.includes("expired"), sessionEvents.join(","))
+
+  // --- B) refresh success: one refresh for concurrent 401s, rotation kept ---
+  entry.setAuthFixture({ staleToken: "STALE", refreshStatus: 200 })
+  resetSession({ access: "STALE", refresh: "GOOD_REFRESH", user: { username: "a" } })
+  const resB = await Promise.all([
+    entry.axiosClient.get("/destinations/"),
+    entry.axiosClient.get("/destinations/"),
+    entry.axiosClient.get("/destinations/"),
+  ])
+  await settle()
+  const callsB = entry.getAuthCalls()
+  check("auth B: all three requests resolve", resB.every((r) => r.status === 200))
+  check("auth B: single-flight -> exactly ONE refresh call", callsB.refresh === 1, `refresh=${callsB.refresh}`)
+  check("auth B: rotated access token persisted", store.getItem("access") === "NEW_ACCESS", store.getItem("access"))
+  check("auth B: rotated refresh token persisted (rotation+blacklist safe)",
+    store.getItem("refresh") === "NEW_REFRESH", store.getItem("refresh"))
+  check("auth B: queued retries carry the new token",
+    callsB.destAuth.filter((a) => a === "Bearer NEW_ACCESS").length === 3, JSON.stringify(callsB.destAuth))
+  check("auth B: no session events on healthy refresh", sessionEvents.length === 0, sessionEvents.join(","))
+
+  // --- C) server rejects even the new token -> anonymous fallback, no loop --
+  entry.setAuthFixture({ staleToken: "STALE", rejectNewToken: true, refreshStatus: 200 })
+  resetSession({ access: "STALE", refresh: "GOOD_REFRESH", user: { username: "a" } })
+  let resC = null
+  await entry.axiosClient.get("/destinations/").then((r) => { resC = r }).catch(() => {})
+  await settle()
+  const callsC = entry.getAuthCalls()
+  check("auth C: recovers anonymously when new token also rejected", !!resC && resC.status === 200)
+  check("auth C: no refresh loop (one refresh, three attempts total)",
+    callsC.refresh === 1 && callsC.destAuth.length === 3, `refresh=${callsC.refresh} attempts=${callsC.destAuth.length}`)
+  check("auth C: attempt order stale -> new -> anonymous",
+    JSON.stringify(callsC.destAuth) === JSON.stringify(["Bearer STALE", "Bearer NEW_ACCESS", null]), JSON.stringify(callsC.destAuth))
+
+  // --- D) genuinely protected endpoint -> expired event + clean rejection --
+  entry.setAuthFixture({ staleToken: "STALE", refreshStatus: 401 })
+  resetSession({ access: "STALE", refresh: "DEAD_REFRESH", user: { username: "a" } })
+  let errD = null
+  await entry.axiosClient.get("/protected-probe/").then(() => {}, (e) => { errD = e })
+  await settle()
+  const callsD = entry.getAuthCalls()
+  check("auth D: protected request rejects with 401", !!errD && errD.response && errD.response.status === 401)
+  check("auth D: expired event fired for protected failure", sessionEvents.includes("expired"), sessionEvents.join(","))
+  check("auth D: bounded retries (authed + one anonymous attempt)",
+    callsD.destAuth.length === 2, JSON.stringify(callsD.destAuth))
+  check("auth D: storage cleared for expired session", !store.getItem("access") && !store.getItem("user"))
+
+  // --- E) anonymous 401: no storage churn, no events, no retry storm --------
+  entry.setAuthFixture({ refreshStatus: 401 })
+  resetSession({})
+  let errE = null
+  await entry.axiosClient.get("/protected-probe/").then(() => {}, (e) => { errE = e })
+  await settle()
+  check("auth E: anonymous protected 401 rejects", !!errE && errE.response.status === 401)
+  check("auth E: no refresh attempted without a refresh token", entry.getAuthCalls().refresh === 0)
+  check("auth E: no spurious session events for guests", sessionEvents.length === 0, sessionEvents.join(","))
+
+  // --- F) AuthContext renders the session-expired banner --------------------
+  resetSession({})
+  entry.setAuthFixture({ refreshStatus: 401 })
+  const auth = entry.mountAuthProvider()
+  await settle()
+  check("auth F: no banner initially", !auth.container.querySelector('[role="alert"]'))
+  await act(async () => {
+    window.dispatchEvent(new window.CustomEvent("session-expired"))
+    await new Promise((r) => setTimeout(r, 10))
+  })
+  const banner = auth.container.querySelector('[role="alert"]')
+  check("auth F: expired banner shown", !!banner && /session has expired/i.test(banner.textContent), banner && banner.textContent)
+  check("auth F: banner offers sign-in", !!banner && !!banner.querySelector('a[href="/login"]'))
+  const keepBrowsing = banner && [...banner.querySelectorAll("button")].find((b) => /Keep browsing/.test(b.textContent))
+  check("auth F: dismiss button offered", !!keepBrowsing)
+  if (keepBrowsing) await click(keepBrowsing)
+  check("auth F: banner dismissible", !auth.container.querySelector('[role="alert"]'))
+  auth.unmount()
+  window.removeEventListener("session-expired", onExpiredEvt)
+  window.removeEventListener("session-downgraded", onDowngradedEvt)
+  store.clear()
 
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)

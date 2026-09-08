@@ -14,8 +14,11 @@ import NearbyPlaces from "../src/pages/NearbyPlaces"
 import DataExplorerPanel from "../src/components/admin/DataExplorerPanel"
 import CategoryTranslationPanel from "../src/components/admin/CategoryTranslationPanel"
 import { ToastProvider } from "../src/context/ToastContext"
-import axiosClient from "../src/api/axiosClient"
+import axios from "axios"
+import axiosClient, { clearAuthStorage } from "../src/api/axiosClient"
 import { invalidatePublicConfigCache } from "../src/hooks/usePublicConfig"
+
+export { axiosClient, clearAuthStorage }
 
 const NullPage = () => React.createElement("div", { id: "page-probe" }, "page")
 
@@ -39,9 +42,30 @@ let dataExplorerFixtures = {
   list: { results: [], count: 0, total_pages: 1, page: 1, columns: ["id", "name"] },
   detail: {},
 }
-axiosClient.defaults.adapter = async (config) => {
+// Auth-flow fixture: which token the list endpoint rejects, and how the
+// refresh endpoint responds. destAuth records the Authorization header of
+// every /destinations/ attempt so tests can assert the exact retry sequence.
+let authFixture = { staleToken: null, rejectNewToken: false, refreshStatus: 401, newAccess: "NEW_ACCESS", newRefresh: "NEW_REFRESH" }
+let authCalls = { refresh: 0, destAuth: [] }
+const stubAdapter = async (config) => {
   const url = String(config.url || "")
   const ok = (data) => ({ data, status: 200, statusText: "OK", headers: {}, config, request: {} })
+  const httpError = (status, message) => {
+    const err = new Error(message)
+    err.config = config
+    err.response = { status, data: { detail: message } }
+    return err
+  }
+  // --- auth-flow fixtures (stale token -> 401 -> refresh -> retry) ---------
+  if (url.includes("/auth/token/refresh/")) {
+    authCalls.refresh += 1
+    if (authFixture.refreshStatus >= 400) throw httpError(authFixture.refreshStatus, "Token is invalid or expired")
+    return ok({ access: authFixture.newAccess, refresh: authFixture.newRefresh })
+  }
+  if (url.includes("/protected-probe/")) {
+    authCalls.destAuth.push(config.headers?.Authorization || null)
+    throw httpError(401, "Authentication credentials were not provided.")
+  }
   if (url.includes("/config/public/")) {
     return ok(publicConfigFixture)
   }
@@ -119,6 +143,14 @@ axiosClient.defaults.adapter = async (config) => {
     return ok({})
   }
   if (url.includes("/destinations/")) {
+    const auth = config.headers?.Authorization || null
+    authCalls.destAuth.push(auth)
+    if (authFixture.staleToken && auth === `Bearer ${authFixture.staleToken}`) {
+      throw httpError(401, "Token is invalid or expired")
+    }
+    if (authFixture.rejectNewToken && auth === `Bearer ${authFixture.newAccess}`) {
+      throw httpError(401, "Token is invalid or expired")
+    }
     return ok({
       count: searchFixture.length,
       total_pages: 1,
@@ -132,6 +164,18 @@ axiosClient.defaults.adapter = async (config) => {
   err.config = config
   err.response = { status: 404, data: {} }
   throw err
+}
+// axiosClient handles app requests; the interceptor's refresh call uses the
+// bare axios instance, so both must route through the stub.
+axiosClient.defaults.adapter = stubAdapter
+axios.defaults.adapter = stubAdapter
+
+export function setAuthFixture(f) {
+  authFixture = { staleToken: null, rejectNewToken: false, refreshStatus: 401, newAccess: "NEW_ACCESS", newRefresh: "NEW_REFRESH", ...f }
+  authCalls = { refresh: 0, destAuth: [] }
+}
+export function getAuthCalls() {
+  return authCalls
 }
 export function setPublicConfigFixture(fixture) {
   publicConfigFixture = fixture
@@ -244,6 +288,24 @@ export function mountCookieBanner() {
   React.act(() => {
     root.render(
       React.createElement(MemoryRouter, null, React.createElement(CookieConsentBanner))
+    )
+  })
+  return {
+    container,
+    unmount: () => React.act(() => root.render(null)),
+  }
+}
+
+export function mountAuthProvider() {
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  React.act(() => {
+    root.render(
+      React.createElement(
+        MemoryRouter, null,
+        React.createElement(AuthProvider, null, React.createElement(NullPage))
+      )
     )
   })
   return {

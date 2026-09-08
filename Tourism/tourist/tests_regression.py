@@ -724,3 +724,76 @@ class WardNumberRegressionTests(TestCase):
         self.assertEqual(resp.status_code, 201)
         created = self.Destination.objects.get(id=resp.json()["id"])
         self.assertEqual(created.ward_number, 12)
+
+
+class TokenRefreshContractTests(TestCase):
+    """Pins the JWT refresh contract the axios interceptor relies on:
+    a valid refresh yields a fresh access AND a rotated refresh (the client
+    must persist the rotation because the old token gets blacklisted)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="refresh-user@test.local",
+            password="Refresh!Pass123",
+            role="TRAVELLER",
+        )
+
+    def _obtain(self):
+        resp = self.client.post(
+            "/api/v1/auth/login/",
+            {"email": "refresh-user@test.local", "password": "Refresh!Pass123"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        return resp.json()
+
+    def test_valid_refresh_returns_new_access_and_rotated_refresh(self):
+        tokens = self._obtain()
+        resp = self.client.post(
+            "/api/v1/auth/token/refresh/",
+            {"refresh": tokens["refresh"]},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("access", body)
+        self.assertTrue(body["access"])
+        # ROTATE_REFRESH_TOKENS=True: a new refresh comes back and differs.
+        self.assertIn("refresh", body)
+        self.assertNotEqual(body["refresh"], tokens["refresh"])
+
+    def test_used_refresh_token_is_blacklisted_after_rotation(self):
+        tokens = self._obtain()
+        first = self.client.post(
+            "/api/v1/auth/token/refresh/",
+            {"refresh": tokens["refresh"]},
+            content_type="application/json",
+        )
+        self.assertEqual(first.status_code, 200)
+        replay = self.client.post(
+            "/api/v1/auth/token/refresh/",
+            {"refresh": tokens["refresh"]},
+            content_type="application/json",
+        )
+        self.assertEqual(replay.status_code, 401)
+
+    def test_garbage_refresh_rejected_401(self):
+        resp = self.client.post(
+            "/api/v1/auth/token/refresh/",
+            {"refresh": "not-a-jwt"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_destinations_list_is_public_read(self):
+        resp = self.client.get("/api/v1/destinations/?page=1&limit=12&ordering=name")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_destinations_list_rejects_invalid_bearer(self):
+        # Documents the sharp edge the client-side interceptor handles: DRF
+        # rejects an invalid Authorization header before permission checks.
+        resp = self.client.get(
+            "/api/v1/destinations/?page=1&limit=12",
+            HTTP_AUTHORIZATION="Bearer stale-or-forged-token",
+        )
+        self.assertEqual(resp.status_code, 401)
