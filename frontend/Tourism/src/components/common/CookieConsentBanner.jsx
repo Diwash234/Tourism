@@ -28,7 +28,7 @@ export default function CookieConsentBanner() {
     <div
       role="region"
       aria-label="Cookie consent"
-      className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 sm:max-w-md z-[70] rounded-2xl border border-emerald-500/40 bg-slate-900/95 backdrop-blur p-4 shadow-2xl"
+      className="fixed bottom-24 left-3 right-3 sm:left-auto sm:right-5 sm:max-w-md lg:bottom-3 z-[70] rounded-2xl border border-emerald-500/40 bg-slate-900/95 backdrop-blur p-4 shadow-2xl"
     >
       <div className="flex items-start gap-3">
         <p className="text-xs leading-relaxed text-emerald-100 flex-1">

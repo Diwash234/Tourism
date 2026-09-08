@@ -49,6 +49,22 @@ async function countOverlaps(page) {
       .filter(isTextual)
       .filter(visible)
       .filter((el) => !el.querySelector("h1,h2,h3,h4,p,button")) // skip wrappers
+    // Overlap is only a layout bug WITHIN one stacking layer. Fixed chrome
+    // (cookie banner, mobile bottom nav, floating SOS/chat button) floats
+    // above scrolled content by design, so skip pairs whose elements live in
+    // different fixed layers — but keep counting pairs inside the same layer
+    // (including plain in-flow content, layer === null).
+    const layerCache = new Map()
+    const layerOf = (el) => {
+      if (layerCache.has(el)) return layerCache.get(el)
+      let node = el, layer = null
+      while (node && node !== document.documentElement) {
+        if (getComputedStyle(node).position === "fixed") { layer = node; break }
+        node = node.parentElement
+      }
+      layerCache.set(el, layer)
+      return layer
+    }
     const rects = els.map((el) => el.getBoundingClientRect())
     let overlaps = 0
     const samples = []
@@ -67,6 +83,7 @@ async function countOverlaps(page) {
         const a = rects[i], b = rects[j]
         const elA = els[i], elB = els[j]
         if (elA.contains(elB) || elB.contains(elA)) continue // nested is fine
+        if (layerOf(elA) !== layerOf(elB)) continue // different stacking layers (fixed overlay vs content) is by design
         const o = inter(a, b)
         if (o <= 0) continue
         const smaller = Math.min(area(a), area(b))

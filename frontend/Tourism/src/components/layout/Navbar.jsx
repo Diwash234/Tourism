@@ -119,7 +119,7 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-            className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
             title="Open Command Palette (Ctrl+K)"
           >
             <span>Ctrl</span>
