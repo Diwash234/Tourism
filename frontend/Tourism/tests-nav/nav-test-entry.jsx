@@ -12,6 +12,7 @@ import AdminLayout from "../src/components/admin/AdminLayout"
 import CookieConsentBanner from "../src/components/common/CookieConsentBanner"
 import NearbyPlaces from "../src/pages/NearbyPlaces"
 import DataExplorerPanel from "../src/components/admin/DataExplorerPanel"
+import CategoryTranslationPanel from "../src/components/admin/CategoryTranslationPanel"
 import { ToastProvider } from "../src/context/ToastContext"
 import axiosClient from "../src/api/axiosClient"
 import { invalidatePublicConfigCache } from "../src/hooks/usePublicConfig"
@@ -31,6 +32,8 @@ let hotelFixture = { results: [], count: 0 }
 let hotelCalls = []
 let emergencyFixture = { hospitals: [], police: [], specialized_contacts: [], national_hotlines: [] }
 let emergencyCalls = []
+let categoryFixture = []
+let categoryCalls = []
 let dataExplorerFixtures = {
   list: { results: [], count: 0, total_pages: 1, page: 1, columns: ["id", "name"] },
   detail: {},
@@ -87,6 +90,21 @@ axiosClient.defaults.adapter = async (config) => {
   }
   if (url.includes("/admin/destinations/")) {
     return ok(dataExplorerFixtures.detail)
+  }
+  if (url.includes("/categories/")) {
+    const method = (config.method || "get").toLowerCase()
+    categoryCalls.push({ method, url, data: config.data })
+    if (method === "get") {
+      return ok({
+        count: categoryFixture.length,
+        total_pages: 1,
+        current_page: 1,
+        next: null,
+        previous: null,
+        results: categoryFixture,
+      })
+    }
+    return ok({})
   }
   if (url.includes("/destinations/")) {
     return ok({
@@ -267,6 +285,36 @@ export function mountAdminShell() {
               )
             )
           )
+        )
+      )
+    )
+  })
+  return {
+    container,
+    unmount: () => React.act(() => root.render(null)),
+  }
+}
+
+export function setCategoryFixture(rows) {
+  categoryFixture = rows
+  categoryCalls = []
+}
+
+export function getCategoryCalls() {
+  return categoryCalls
+}
+
+export function mountCategoryPanel() {
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  React.act(() => {
+    root.render(
+      React.createElement(
+        MemoryRouter, null,
+        React.createElement(
+          ToastProvider, null,
+          React.createElement(CategoryTranslationPanel)
         )
       )
     )

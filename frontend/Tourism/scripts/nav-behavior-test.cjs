@@ -524,6 +524,39 @@ async function main() {
     fieldFor("municipality").value === "")
   n9.unmount()
 
+  // --- admin category CRUD rides the slug detail route (§22) ---------------
+  // CategoryViewSet uses lookup_field="slug"; the panel must never send the
+  // numeric id to PATCH/DELETE or every edit/delete silently 404s.
+  window.confirm = () => true
+  global.confirm = window.confirm
+  entry.setCategoryFixture([
+    { id: 7, slug: "lakes", name: "Lakes", icon: "water", description: "" },
+    { id: 8, slug: "museums", name: "Museums", icon: "museum", description: "" },
+  ])
+  const n10 = entry.mountCategoryPanel()
+  await settle()
+  await settle()
+  const catButtons = (label) =>
+    [...n10.container.querySelectorAll("button")].filter((b) => b.textContent.trim() === label)
+  check("categories: panel lists fixture rows", catButtons("Edit").length === 2,
+    `edit buttons=${catButtons("Edit").length}`)
+  await click(catButtons("Edit")[0])
+  const catNameInput = n10.container.querySelector("input.input-field")
+  check("categories: edit populates the form",
+    !!catNameInput && catNameInput.value === "Lakes", catNameInput && catNameInput.value)
+  check("categories: edit switches the button to Update", catButtons("Update").length === 1)
+  await click(catButtons("Update")[0])
+  const catPatch = entry.getCategoryCalls().find((c) => c.method === "patch")
+  check("categories: PATCH targets the slug detail route",
+    !!catPatch && catPatch.url.includes("/categories/lakes/"), catPatch && catPatch.url)
+  check("categories: PATCH never targets the numeric id",
+    !entry.getCategoryCalls().some((c) => /\/categories\/7\/?$/.test(c.url)))
+  await click(catButtons("Delete")[0])
+  const catDelete = entry.getCategoryCalls().find((c) => c.method === "delete")
+  check("categories: DELETE targets the slug detail route",
+    !!catDelete && catDelete.url.includes("/categories/lakes/"), catDelete && catDelete.url)
+  n10.unmount()
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)

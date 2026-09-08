@@ -491,3 +491,66 @@ class UserDataReportsRegressionTests(TestCase):
             "report_type": "wrong_info", "severity": "low", "description": "regression",
         }, format="json")
         self.assertEqual(resp.status_code, 201, resp.content)
+
+
+class CategoryCrudRegressionTests(TestCase):
+    """§22: admin category CRUD rides the slug detail route and stays admin-only.
+
+    CategoryViewSet uses lookup_field="slug", so the admin UI must address
+    PATCH/DELETE by slug; a numeric id must NOT resolve (that mismatch was a
+    real bug where every category edit/delete 404'd).
+    """
+
+    def setUp(self):
+        from .models import Category
+        self.category = Category.objects.create(name="Lakes", slug="lakes")
+        self.api = APIClient()
+        self.admin = make_superuser()
+
+    def test_admin_patch_by_slug_persists(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.patch(
+            f"/api/v1/categories/{self.category.slug}/",
+            {"description": "Alpine lakes"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.description, "Alpine lakes")
+
+    def test_numeric_id_detail_route_is_not_the_contract(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.patch(
+            f"/api/v1/categories/{self.category.id}/",
+            {"description": "nope"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_admin_create_and_delete_by_slug(self):
+        self.api.force_authenticate(self.admin)
+        created = self.api.post(
+            "/api/v1/categories/",
+            {"name": "Monasteries", "slug": "monasteries"},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201)
+        resp = self.api.delete("/api/v1/categories/monasteries/")
+        self.assertEqual(resp.status_code, 204)
+
+    def test_public_read_allowed_public_write_rejected(self):
+        self.assertEqual(self.api.get("/api/v1/categories/").status_code, 200)
+        resp = self.api.post(
+            "/api/v1/categories/", {"name": "Hack", "slug": "hack"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_plain_user_write_forbidden(self):
+        plain = User.objects.create_user(
+            email="plain-cat@test.local", password="Plain!Pass123"
+        )
+        self.api.force_authenticate(plain)
+        resp = self.api.post(
+            "/api/v1/categories/", {"name": "Nope", "slug": "nope"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 403)
