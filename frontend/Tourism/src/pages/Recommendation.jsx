@@ -57,7 +57,7 @@ const EDUCATIONAL_CRAFT_FALLBACKS = [
     difficulty: "easy",
     budget_level: "budget",
     recommended_days: 1,
-    cover_image_url: "/images/destinations/stupa-DJFZCRbV.jfif",
+    cover_image_url: "/images/destinations/patan/durbar.jpg",
     why_recommended: ["Silkworm house & organic silk yarn spinning", "Traditional Newari weaving craft & research"],
     safety_context: { nearest_hospital: { distance_km: 4.2 }, nearest_police: { distance_km: 2.5 }, route_condition: "Verified Highway & Local Access" },
     risk_summary: { level: "low" },

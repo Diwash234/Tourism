@@ -12,7 +12,7 @@ const THEMES = [
   { icon: FiCompass, title: "Featured Places", key: "featured", bgImg: "/images/destinations/pokhara/fewatal.jpg" },
   { icon: FiHome, title: "UNESCO Heritage", key: "heritage", bgImg: "/images/destinations/kathmandu/durbar-square.jpg" },
   { icon: FiFeather, title: "Wildlife Reserves", key: "wildlife", bgImg: "/images/destinations/chitwan/safari.jpg" },
-  { icon: FiWind, title: "Culture & Living Art", key: "culture", bgImg: "/images/destinations/stupa-DJFZCRbV.jfif" },
+  { icon: FiWind, title: "Culture & Living Art", key: "culture", bgImg: "/images/destinations/boudhanath/stupa.jpg" },
   { icon: FiDroplet, title: "Local Culinary Heritage", key: "cuisine", bgImg: "/images/destinations/food/momo.jpg" },
   { icon: FiMusic, title: "Cultural Festivals", key: "festivals", bgImg: "/images/destinations/festivals/dashain-tika.jpg" },
   { icon: FiCoffee, title: "7 Provinces of Nepal", key: "provinces", bgImg: "/images/destinations/ilam/tea-gardens.jpg" },

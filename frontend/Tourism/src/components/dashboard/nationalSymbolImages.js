@@ -76,10 +76,6 @@ export const SYMBOL_VISUALS = {
   mountain: "/images/destinations/everest/base-camp.jpg",
   heritage: "/images/destinations/lumbini/garden.jpg",
   dance: "/images/destinations/festivals/dashain-tika.jpg",
-  poet: "/images/destinations/dhaka-topi-Bwa1r-wM.jfif",
   gemstone: "/images/destinations/tilicho/himalayan-lake.jpg",
   plant: "/images/destinations/gosaikunda/glacial-lake.jpg",
-  insect: "/images/destinations/images-DG4ceRrC.jfif",
-  weapon: "/images/destinations/dhaka-topi-Bwa1r-wM.jfif",
-  instrument: "/images/destinations/stupa-DJFZCRbV.jfif",
 }

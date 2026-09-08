@@ -218,11 +218,13 @@ const NationalSymbols = () => {
               className="bg-white/10 backdrop-blur rounded-2xl p-3.5 text-center border border-white/15 hover:bg-white/20 transition-all cursor-pointer"
               onClick={() => setShowFullModal(true)}
             >
-              <img
-                src={image}
-                alt={label}
-                className="w-20 h-20 rounded-full object-cover mx-auto mb-2 bg-white shadow-md border-2 border-white/40"
-              />
+              {image && (
+                <img
+                  src={image}
+                  alt={label}
+                  className="w-20 h-20 rounded-full object-cover mx-auto mb-2 bg-white shadow-md border-2 border-white/40"
+                />
+              )}
               <h3 className="text-sm font-extrabold text-white">{label}</h3>
               <p className="text-xs text-white/80 mt-0.5 leading-snug">{fact}</p>
             </motion.div>

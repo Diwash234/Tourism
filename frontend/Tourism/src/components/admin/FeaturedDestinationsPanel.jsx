@@ -307,7 +307,7 @@ export default function FeaturedDestinationsPanel() {
               {/* Card Image & Header Badges */}
               <div className="relative h-48 bg-slate-900 overflow-hidden">
                 <img
-                  src={card.effective_image_url || "/images/destinations/annapurna/img1.jpg"}
+                  src={card.effective_image_url || "/images/destinations/annapurna/trek.jpg"}
                   alt={card.effective_title}
                   className="w-full h-full object-cover"
                 />
@@ -611,7 +611,7 @@ export default function FeaturedDestinationsPanel() {
                   <div className="p-4 rounded-2xl bg-white text-slate-900 space-y-2 shadow-lg">
                     <div className="h-32 rounded-xl bg-slate-100 overflow-hidden relative">
                       <img
-                        src={form.featured_media_url || selectedDest?.cover_image_url || "/images/destinations/annapurna/img1.jpg"}
+                        src={form.featured_media_url || selectedDest?.cover_image_url || "/images/destinations/annapurna/trek.jpg"}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />

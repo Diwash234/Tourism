@@ -67,7 +67,7 @@ const LOCAL_NEPAL_PHOTOS = {
   "annapurna base camp": "/images/destinations/annapurna/trek.jpg",
   abc:             "/images/destinations/annapurna/trek.jpg",
   ghandruk:        "/images/destinations/ghandruk/village.jpg",
-  sarangkot:       "/images/destinations/sarangkot/view.jpg",
+  sarangkot:       "/images/destinations/annapurna/trek.jpg",
   "poon hill":     "/images/destinations/annapurna/trek.jpg",
   // Mustang / Muktinath
   mustang:         "/images/destinations/mustang/lo-manthang.jpg",
@@ -87,7 +87,7 @@ const LOCAL_NEPAL_PHOTOS = {
   bandipur:        "/images/destinations/bandipur/hilltop-village.jpg",
   gorkha:          "/images/destinations/gorkha/durbar.jpg",
   "gorkha durbar": "/images/destinations/gorkha/durbar.jpg",
-  dhulikhel:       "/images/destinations/dhulikhel/town.jpg",
+  dhulikhel:       "/images/destinations/bandipur/hilltop-village.jpg",
   tansen:          "/images/destinations/rani-mahal/palace.jpg",
   "rani mahal":    "/images/destinations/rani-mahal/palace.jpg",
   // Bardiya / Chitwan wildlife
@@ -124,7 +124,7 @@ const LOCAL_NEPAL_PHOTOS = {
   // Rivers / adventure
   "bhote koshi":   "/images/destinations/bhote-koshi/rafting.jpg",
   // Chandragiri
-  chandragiri:     "/images/destinations/chandragiri/view.jpg",
+  chandragiri:     "/images/destinations/nagarkot/sunrise-view.jpg",
   // Manakamana
   manakamana:      "/images/destinations/manakamana/temple.jpg",
   // Caves / falls
@@ -154,10 +154,10 @@ const EXTRA_LOCAL_PHOTOS = {
   pashupati: "/images/destinations/pashupatinath/main-temple.jpg",
   "pashupatinath temple": "/images/destinations/pashupatinath/main-temple.jpg",
   guhyeshwari: "/images/destinations/pashupatinath/main-temple.jpg",
-  "chandragiri hill": "/images/destinations/chandragiri/view.jpg",
-  "chandragiri cable": "/images/destinations/chandragiri/view.jpg",
+  "chandragiri hill": "/images/destinations/nagarkot/sunrise-view.jpg",
+  "chandragiri cable": "/images/destinations/nagarkot/sunrise-view.jpg",
   nagarkot: "/images/destinations/nagarkot/sunrise-view.jpg",
-  dhulikhel: "/images/destinations/dhulikhel/town.jpg",
+  dhulikhel: "/images/destinations/bandipur/hilltop-village.jpg",
   // Bhaktapur / Patan
   "bhaktapur durbar square": "/images/destinations/bhaktapur/durbar.jpg",
   nyatapola: "/images/destinations/bhaktapur/durbar.jpg",
@@ -170,7 +170,7 @@ const EXTRA_LOCAL_PHOTOS = {
   "devi's falls": "/images/destinations/davis-falls/waterfall.jpg",
   "patale chhango": "/images/destinations/davis-falls/waterfall.jpg",
   "mahendra cave": "/images/destinations/mahendra-cave/interior.jpg",
-  sarangkot: "/images/destinations/sarangkot/view.jpg",
+  sarangkot: "/images/destinations/annapurna/trek.jpg",
   "poon hill": "/images/destinations/annapurna/trek.jpg",
   ghorepani: "/images/destinations/annapurna/trek.jpg",
   ghandruk: "/images/destinations/ghandruk/village.jpg",

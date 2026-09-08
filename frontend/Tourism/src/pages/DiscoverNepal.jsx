@@ -20,6 +20,7 @@ import {
   FiCompass,
 } from "react-icons/fi"
 
+import PlaceholderImage from "../components/common/PlaceholderImage"
 import NationalSymbols, { ALL_26_NATIONAL_SYMBOLS, EIGHT_THOUSANDERS, HIMALAYAN_RANGES, DEFAULT_FOODS, DEFAULT_FESTIVALS } from "../components/dashboard/NationalSymbols"
 import destinationApi from "../api/destinationApi"
 import { NOT_RECORDED, UPDATE_SOON, recordedCity, recordedText } from "../utils/placeUtils"
@@ -30,28 +31,28 @@ const DEFAULT_CULTURE = [
     nepali: "नेवारी मल्लकालीन दरबार र वास्तुकला",
     region: "Kathmandu, Patan & Bhaktapur",
     desc: "Multi-tiered pagoda temples, 55-Window Palace, intricately carved peacock wooden windows, and golden torana arches built by Malla kings.",
-    image: "/images/destinations/stupa-DJFZCRbV.jfif",
+    image: "/images/destinations/kathmandu/durbar-square.jpg",
   },
   {
     title: "Sacred Pilgrimage & Spiritual Traditions",
     nepali: "धार्मिक तथा सांस्कृतिक तीर्थस्थल",
     region: "Pashupatinath, Lumbini, Muktinath & Janakpur",
     desc: "Holy Bagmati riverbank rituals, Maya Devi Temple in Buddha's birthplace, Janaki Mandir Mithila art, and sacred flame springs of Muktinath.",
-    image: "/images/destinations/flag_png-DqQuUnzj.jfif",
+    image: "/images/destinations/lumbini/garden.jpg",
   },
   {
     title: "Masked Lakhey & Sacred Charya Dances",
     nepali: "लाखे, मारुनी र चर्या नृत्य",
     region: "Indra Jatra, Patan & Mountain Villages",
     desc: "Fierce demon-dispelling Lakhey mask dances during Indra Jatra, Kirat Maruni folk dances, and Vajrayana Buddhist Charya dance dramas performed by priests.",
-    image: "/images/destinations/images-DG4ceRrC.jfif",
+    image: "/images/destinations/culture/tharu-dance.jpg",
   },
   {
     title: "Buddhist Thangka Painting & Bronze Statuary",
     nepali: "पौभाः, थङ्का र कास्य मूर्ति कला",
     region: "Patan Craft Workshops & Bouddha",
     desc: "Centuries-old lost-wax bronze casting, Paubha scroll paintings, and hand-woven Tibetan carpets crafted by master artisans.",
-    image: "/images/destinations/emblem-Q_w8OTwe.jfif",
+    image: "/images/destinations/patan/durbar.jpg",
   },
 ]
 
@@ -111,7 +112,7 @@ export default function DiscoverNepal() {
   const wildlife = payload?.wildlife?.items || []
   const heritage = payload?.heritage?.items || []
   const mountains = payload?.mountains?.items || []
-  const culture = payload?.culture?.items || []
+  const culture = payload?.culture?.items?.length ? payload.culture.items : DEFAULT_CULTURE
   const cuisine = payload?.cuisine?.items?.length ? payload.cuisine.items : DEFAULT_FOODS
   const festivals = payload?.festivals?.items?.length ? payload.festivals.items : DEFAULT_FESTIVALS
   const provinces = payload?.provinces || []
@@ -200,16 +201,25 @@ export default function DiscoverNepal() {
       {/* CULTURAL & LIVING HERITAGE SECTION */}
       <Section id="cultural-heritage" icon={FiFeather} title="Nepali Cultural & Living Heritage">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-          {DEFAULT_CULTURE.map((item, idx) => (
-            <div key={idx} className="card-base p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
+          {culture.map((item, idx) => (
+            <div key={item.slug || idx} className="card-base p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
               <div className="space-y-2">
-                <img src={item.image} alt={item.title} className="w-full h-36 object-cover rounded-xl bg-slate-100 border border-slate-100" />
+                <PlaceholderImage
+                  src={item.image || item.cover_image_url}
+                  title={item.title || item.name}
+                  alt={item.title || item.name}
+                  className="w-full h-36 object-cover rounded-xl bg-slate-100 border border-slate-100"
+                />
                 <div>
-                  <span className="text-[10px] font-black uppercase text-amber-700 block">{item.nepali}</span>
-                  <h3 className="font-extrabold text-sm text-slate-900 mt-0.5">{item.title}</h3>
-                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">📍 {item.region}</p>
+                  {(item.nepali || item.nepali_title) && (
+                    <span className="text-[10px] font-black uppercase text-amber-700 block">{item.nepali || item.nepali_title}</span>
+                  )}
+                  <h3 className="font-extrabold text-sm text-slate-900 mt-0.5">{item.title || item.name}</h3>
+                  {(item.region || item.district || item.city) && (
+                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">📍 {item.region || item.district || item.city}</p>
+                  )}
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc || item.short_description}</p>
               </div>
             </div>
           ))}
