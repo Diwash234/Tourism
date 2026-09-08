@@ -31,7 +31,7 @@ const walk = (suites) => {
       if (spec.ok) passed += 1
       else {
         const last = spec.tests?.[0]?.results?.at(-1)
-        const err = (last?.error?.message || "unknown error").split("\n")[0].slice(0, 180)
+        const err = (last?.error?.message || "unknown error").split("\n")[0].slice(0, 600)
         failed.push(`- \`${spec.title}\` — ${err}`)
       }
     }

@@ -51,12 +51,17 @@ async function countOverlaps(page) {
       .filter((el) => !el.querySelector("h1,h2,h3,h4,p,button")) // skip wrappers
     const rects = els.map((el) => el.getBoundingClientRect())
     let overlaps = 0
+    const samples = []
     const inter = (a, b) => {
       const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
       const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
       return x * y
     }
     const area = (r) => r.width * r.height
+    const desc = (el) => {
+      const cls = (el.className && String(el.className).split(/\s+/)[0]) || ""
+      return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}["${(el.innerText || "").trim().slice(0, 24).replace(/\n/g, " ")}"]`
+    }
     for (let i = 0; i < rects.length; i++) {
       for (let j = i + 1; j < rects.length; j++) {
         const a = rects[i], b = rects[j]
@@ -65,10 +70,13 @@ async function countOverlaps(page) {
         const o = inter(a, b)
         if (o <= 0) continue
         const smaller = Math.min(area(a), area(b))
-        if (smaller > 0 && o / smaller > 0.5) overlaps++ // >50% of the smaller is covered
+        if (smaller > 0 && o / smaller > 0.5) {
+          overlaps++
+          if (samples.length < 8) samples.push(`${desc(elA)} X ${desc(elB)}`)
+        }
       }
     }
-    return overlaps
+    return { count: overlaps, samples }
   })
 }
 
@@ -86,7 +94,11 @@ for (const route of ROUTES) {
       expect(overflow, `horizontal overflow of ${overflow}px at ${width}px`).toBeLessThanOrEqual(1)
 
       const overlaps = await countOverlaps(page)
-      expect(overlaps, `${overlaps} overlapping text pairs at ${width}px`).toBe(0)
+      expect(
+        overlaps.count,
+        `${overlaps.count} overlapping text pairs at ${width}px` +
+          (overlaps.samples.length ? ` | ${overlaps.samples.join(" ; ")}` : "")
+      ).toBe(0)
     })
   }
 }
