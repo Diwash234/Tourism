@@ -55,7 +55,7 @@ const SharedTripView = () => {
 
   if (error) {
     return (
-      <div className="container-app py-16 text-center">
+      <div className="container-app section-space text-center">
         <p className="text-gray-500">{error}</p>
       </div>
     )

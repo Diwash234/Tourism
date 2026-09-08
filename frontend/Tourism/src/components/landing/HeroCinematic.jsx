@@ -62,7 +62,7 @@ export default function HeroCinematic() {
 
   return (
     <section
-      className="relative w-full min-h-[88vh] sm:min-h-[92vh] bg-[#070c20] text-white overflow-hidden"
+      className="relative w-full min-h-[72svh] sm:min-h-[80svh] lg:min-h-[88svh] bg-[#070c20] text-white overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-roledescription="carousel"
@@ -97,7 +97,7 @@ export default function HeroCinematic() {
       </div>
 
       {/* Headline + side index cards */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-end px-6 sm:px-10 lg:px-14 pt-10 pb-8 my-auto max-w-7xl mx-auto min-h-[58vh]">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-end px-6 sm:px-10 lg:px-14 pt-10 pb-8 my-auto max-w-7xl mx-auto min-h-[46svh] sm:min-h-[52svh]">
         <div className="lg:col-span-7 space-y-5">
           <AnimatePresence mode="wait">
             <motion.div

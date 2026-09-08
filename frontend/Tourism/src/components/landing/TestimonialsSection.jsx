@@ -40,9 +40,9 @@ export default function TestimonialsSection() {
   const displayReviews = reviews.length ? reviews : DEFAULT_VERIFIED_REVIEWS
 
   return (
-    <section className="container-app py-16 bg-gradient-to-b from-transparent via-purple-50/40 to-transparent">
+    <section className="container-app section-space bg-gradient-to-b from-transparent via-purple-50/40 to-transparent">
       <SlideUp>
-        <div className="text-center max-w-2xl mx-auto mb-10">
+        <div className="text-center max-w-2xl mx-auto section-head">
           <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
             Traveler Experience
           </span>

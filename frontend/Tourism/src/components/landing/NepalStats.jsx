@@ -10,9 +10,9 @@ const STATS = [
 
 export default function NepalStats() {
   return (
-    <section className="py-16 bg-[#F7F8F5] border-y border-[#E5E0D5]">
+    <section className="section-space bg-[#F7F8F5] border-y border-[#E5E0D5]">
       <div className="container-app max-w-6xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-12">
+        <div className="text-center max-w-2xl mx-auto section-head">
           <span className="px-3.5 py-1 rounded-full bg-[#E5E0D5] text-[#102A2E] text-xs font-black uppercase tracking-widest">
             NEPAL, IN NUMBERS
           </span>

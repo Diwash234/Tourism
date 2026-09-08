@@ -31,7 +31,7 @@ export default function PackageDetail() {
   if (loading) return <Loader fullScreen />
   if (!listing) {
     return (
-      <div className="container-app py-16 text-center space-y-3">
+      <div className="container-app section-space text-center space-y-3">
         <h2 className="text-2xl font-black">Offer not found</h2>
         <p className="text-slate-600">It may be unpublished. Browse live packages instead.</p>
         <Link to="/packages" className="btn-primary">Back to packages</Link>

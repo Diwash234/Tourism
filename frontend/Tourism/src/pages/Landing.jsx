@@ -142,9 +142,9 @@ export default function Landing() {
         <HeroCinematic />
       )}
 
-      {showBlock("features") && <section className="container-app py-20 relative z-10">
+      {showBlock("features") && <section className="container-app section-space relative z-10">
         <SlideUp>
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="text-center max-w-2xl mx-auto section-head">
             <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
               Engineered for Himalayan Explorers
             </span>
@@ -182,7 +182,7 @@ export default function Landing() {
 
       {notices.length > 0 && <section className="container-app pt-10"><VisitorNoticeBanner notices={notices} /></section>}
 
-      {packages.length > 0 && <section className="container-app py-12">
+      {packages.length > 0 && <section className="container-app section-space">
         <div className="flex items-end justify-between gap-4 mb-6">
           <div>
             <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">Live catalogue</span>
@@ -215,13 +215,13 @@ export default function Landing() {
 
       {showBlock("case-studies") && <CaseStudiesSection />}
       {showBlock("highlights") && <NepalHighlights />}
-      {(showBlock("symbols") || showBlock("culture")) && <section className="container-app py-10">
+      {(showBlock("symbols") || showBlock("culture")) && <section className="container-app section-space">
         {showBlock("symbols") && <NationalSymbols />}
         {showBlock("culture") && <NepalExperienceSection />}
       </section>}
 
-      {showBlock("provinces") && <section className="container-app py-16">
-        <div className="text-center max-w-2xl mx-auto mb-10">
+      {showBlock("provinces") && <section className="container-app section-space">
+        <div className="text-center max-w-2xl mx-auto section-head">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Explore Destinations by Province
           </h2>
@@ -247,8 +247,8 @@ export default function Landing() {
       {showBlock("marquee") && <ProvinceMarquee />}
       {showBlock("testimonials") && <TestimonialsSection />}
 
-      {showBlock("faq") && <section className="container-app py-16">
-        <div className="text-center max-w-2xl mx-auto mb-10">
+      {showBlock("faq") && <section className="container-app section-space">
+        <div className="text-center max-w-2xl mx-auto section-head">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             {copy("faq", "title", "Frequently Asked Questions")}
           </h2>
@@ -262,7 +262,7 @@ export default function Landing() {
       </section>}
 
       {showBlock("cta") && <StickyCTA />}
-      {extras?.length > 0 && <section className="container-app py-12"><CMSExtras sections={extras} /></section>}
+      {extras?.length > 0 && <section className="container-app section-space"><CMSExtras sections={extras} /></section>}
     </div>
   )
 }

@@ -46,7 +46,7 @@ const Contact = () => {
   }
 
   return (
-    <div className="container-app py-16 grid grid-cols-1 md:grid-cols-2 gap-10 fade-in theme-indigo">
+    <div className="container-app section-space grid grid-cols-1 md:grid-cols-2 gap-10 fade-in theme-indigo">
       <CMSPageIntro pageKey="contact" />
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
         <div>

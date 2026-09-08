@@ -50,9 +50,9 @@ export default function CaseStudiesSection() {
   if (!items.length) return null
 
   return (
-    <section className="container-app py-20 relative z-10">
+    <section className="container-app section-space relative z-10">
       <SlideUp>
-        <div className="text-center max-w-3xl mx-auto mb-14">
+        <div className="text-center max-w-3xl mx-auto section-head">
           <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
             Recorded journeys
           </span>

@@ -384,8 +384,20 @@ code {
    Section Title
    ========================================== */
 
+/* Shared section rhythm (design-system §3/§4). Sections previously used
+   blanket py-16/py-20 + mb-10/mb-14 header margins at every viewport, which
+   stacked into huge empty bands on phones, split-screen and quarter-window
+   layouts. These tokens keep the heading -> description -> content flow but
+   scale the whitespace with the viewport instead of removing any content. */
+.section-space {
+  @apply py-8 sm:py-10 lg:py-14;
+}
+.section-head {
+  @apply mb-6 sm:mb-8 lg:mb-10;
+}
+
 .section-title {
-  @apply font-heading text-2xl md:text-3xl font-bold mb-6 pb-2 relative inline-block;
+  @apply font-heading text-2xl md:text-3xl font-bold mb-4 sm:mb-5 lg:mb-6 pb-2 relative inline-block;
   color: var(--text-h);
 }
 

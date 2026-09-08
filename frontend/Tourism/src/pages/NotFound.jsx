@@ -5,7 +5,7 @@ import { FadeIn } from "../components/common/MotionSystem"
 
 export default function NotFound() {
   return (
-    <div className="min-h-[75vh] flex items-center justify-center container-app py-16 px-4">
+    <div className="min-h-[75vh] flex items-center justify-center container-app section-space px-4">
       <FadeIn className="card-base p-8 sm:p-14 max-w-xl text-center space-y-6 rounded-3xl shadow-2xl border border-[#E5E0D5] bg-white">
         <div className="relative inline-block">
           <span className="text-8xl font-black bg-gradient-to-r from-purple-700 via-rose-600 to-amber-500 bg-clip-text text-transparent">

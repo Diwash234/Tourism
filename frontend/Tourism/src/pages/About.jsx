@@ -9,7 +9,7 @@ import PageHeader from "../components/common/PageHeader"
 const About = () => {
   const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
   return (
-  <div className="container-app py-16 fade-in theme-maroon">
+  <div className="container-app section-space fade-in theme-maroon">
     <CMSIntro section={block("intro")} />
     <PageHeader
       title={<>About {APP_NAME}</>}

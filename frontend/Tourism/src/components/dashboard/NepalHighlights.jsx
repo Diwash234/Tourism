@@ -89,8 +89,8 @@ const NepalHighlights = ({ bare = false }) => {
   }
 
   return (
-    <section className={bare ? "" : "container-app py-12"}>
-      <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
+    <section className={bare ? "" : "container-app section-space"}>
+      <div className="text-center max-w-2xl mx-auto section-head space-y-2">
         <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
           Himalayan Highlights & Culture
         </span>
