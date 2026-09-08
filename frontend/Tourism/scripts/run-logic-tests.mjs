@@ -89,6 +89,15 @@ const cov = mod.translationCoverage(
 check("coverage done/total", cov.done === 1 && cov.total === 3)
 check("field whitelist matches backend", JSON.stringify(mod.TRANSLATION_FIELDS.sections.map((f) => f.name)) === JSON.stringify(["title","subtitle","body","cta_text"]))
 
+console.log("navbarFeatures (utils/navbarFeatures.js):")
+const f1 = mod.resolveNavbarFeatures(null)
+check("missing setting shows every feature", mod.NAVBAR_FEATURES.every(({ key }) => f1[key] === true))
+const f2 = mod.resolveNavbarFeatures({ search: false, theme_toggle: false })
+check("explicit false hides that feature only", f2.search === false && f2.theme_toggle === false && f2.language_switcher === true && f2.profile === true && f2.notifications === true)
+const f3 = mod.resolveNavbarFeatures("garbage")
+check("non-object setting falls back to all shown", mod.NAVBAR_FEATURES.every(({ key }) => f3[key] === true))
+check("covers the five brief features", mod.NAVBAR_FEATURES.map((f) => f.key).join(",") === "search,language_switcher,profile,notifications,theme_toggle")
+
 console.log("Pagination (components/common/Pagination.jsx source scan):")
 const pg = readFileSync("src/components/common/Pagination.jsx", "utf8")
 check("has direct jump input", pg.includes('placeholder="Jump to…"'))

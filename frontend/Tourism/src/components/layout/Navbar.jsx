@@ -12,6 +12,7 @@ import ProfileMenu from "./ProfileMenu"
 import { useI18n } from "../../i18n"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import useTheme from "../../context/ThemeContext"
+import { resolveNavbarFeatures } from "../../utils/navbarFeatures"
 
 const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)
 
@@ -24,7 +25,10 @@ const Navbar = () => {
   const [managedLinks, setManagedLinks] = useState(NAV_LINKS)
   const [openMenu, setOpenMenu] = useState(null)
   const location = useLocation()
-  const { navigation } = usePublicConfig()
+  const { navigation, settings } = usePublicConfig()
+  // Header feature switches (brief §5) — every flag defaults to shown, so a
+  // missing setting never hides anything.
+  const features = resolveNavbarFeatures(settings?.navbar_features)
   const { isDark, toggleTheme } = useTheme()
 
   useEffect(() => {
@@ -96,7 +100,7 @@ const Navbar = () => {
         <TourismLogo size="md" showTagline={false} darkText />
 
         {/* Search (visible on all screens; grows to fill space) */}
-        <form
+        {features.search && <form
           onSubmit={handleSmartSearch}
           className="flex flex-1 min-w-0 max-w-md relative items-center"
         >
@@ -121,7 +125,7 @@ const Navbar = () => {
             <span>Ctrl</span>
             <span>K</span>
           </button>
-        </form>
+        </form>}
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-4 xl:gap-6 shrink-0">
@@ -154,7 +158,7 @@ const Navbar = () => {
 
         {/* Desktop User Actions */}
         <div className="hidden md:flex items-center gap-3 shrink-0 ml-auto">
-          <LanguageSwitcher compact />
+          {features.language_switcher && <LanguageSwitcher compact />}
           {isAuthenticated ? (
             <>
               {isAdmin && (
@@ -167,7 +171,7 @@ const Navbar = () => {
                   Staff
                 </Link>
               )}
-              <button
+              {features.theme_toggle && <button
                 type="button"
                 onClick={toggleTheme}
                 className="text-gray-600 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white"
@@ -175,16 +179,16 @@ const Navbar = () => {
                 title={isDark ? "Light mode" : "Dark mode"}
               >
                 {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
-              </button>
-              <Link
+              </button>}
+              {features.notifications && <Link
                 to="/notifications"
                 className="text-gray-600 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white"
                 aria-label="Notifications"
               >
                 <FiBell size={20} />
-              </Link>
+              </Link>}
 
-              <ProfileMenu />
+              {features.profile && <ProfileMenu />}
             </>
           ) : (
             <>
