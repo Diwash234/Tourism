@@ -128,7 +128,16 @@ export default function Emergency() {
 
   const handleSOS = async () => {
     const location = directory?.location
-    if (!location) return
+    if (!location) {
+      // No silent no-op: an SOS must carry coordinates to be locatable.
+      if (position) {
+        showToast("Loading your GPS position so the SOS includes coordinates…", "info")
+        loadCoordinates(position.lat, position.lng)
+      } else {
+        showToast("Search a destination or tap “Use my GPS” first — an SOS needs coordinates so responders can locate you.", "error")
+      }
+      return
+    }
     setSosStatus("sending")
     try {
       await safetyApi.triggerSos({ latitude: location.latitude, longitude: location.longitude, message: `Emergency assistance requested${location.destination_name ? ` near ${location.destination_name}` : ""}.` })
