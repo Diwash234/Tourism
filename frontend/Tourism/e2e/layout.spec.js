@@ -44,11 +44,40 @@ async function countOverlaps(page) {
       const st = getComputedStyle(el)
       return r.width > 1 && r.height > 1 && st.visibility !== "hidden" && st.display !== "none"
     }
+    // An element scrolled out of (or clipped by) an overflow container is not
+    // visible to the user even though getBoundingClientRect still reports its
+    // layout position — e.g. welcome-message cards pushed above the chat
+    // viewport by auto-scroll-to-bottom. Return the rect actually visible
+    // after intersecting every clipping ancestor, or null if fully clipped.
+    const clippedRect = (el) => {
+      let r = el.getBoundingClientRect()
+      const fullArea = r.width * r.height
+      let node = el.parentElement
+      while (node && node !== document.documentElement) {
+        const st = getComputedStyle(node)
+        if (st.overflow !== "visible" || st.overflowX !== "visible" || st.overflowY !== "visible") {
+          const nr = node.getBoundingClientRect()
+          r = {
+            left: Math.max(r.left, nr.left), top: Math.max(r.top, nr.top),
+            right: Math.min(r.right, nr.right), bottom: Math.min(r.bottom, nr.bottom),
+            get width() { return Math.max(0, this.right - this.left) },
+            get height() { return Math.max(0, this.bottom - this.top) },
+          }
+          if (r.width <= 1 || r.height <= 1) return null
+        }
+        node = node.parentElement
+      }
+      return r.width * r.height > fullArea * 0.5 ? r : null
+    }
     // Only sample leaf-ish textual elements to keep the pair count tractable.
-    const els = Array.from(document.querySelectorAll("h1,h2,h3,h4,p,span,button,a,label"))
+    const candidates = Array.from(document.querySelectorAll("h1,h2,h3,h4,p,span,button,a,label"))
       .filter(isTextual)
       .filter(visible)
       .filter((el) => !el.querySelector("h1,h2,h3,h4,p,button")) // skip wrappers
+    const els = []
+    for (const el of candidates) {
+      if (clippedRect(el)) els.push(el) // drop elements clipped out of view
+    }
     // Overlap is only a layout bug WITHIN one stacking layer. Fixed chrome
     // (cookie banner, mobile bottom nav, floating SOS/chat button) floats
     // above scrolled content by design, so skip pairs whose elements live in
@@ -65,7 +94,7 @@ async function countOverlaps(page) {
       layerCache.set(el, layer)
       return layer
     }
-    const rects = els.map((el) => el.getBoundingClientRect())
+    const rects = els.map((el) => clippedRect(el))
     let overlaps = 0
     const samples = []
     const inter = (a, b) => {
