@@ -20,7 +20,7 @@ from .models import (
 )
 from .permissions import (
     IsAdminOrReadOnly, IsOwnerOrReadOnly, IsOwner, CanSubmitPlace,
-    IsRoleOrAbove, IsDistrictManagerForOwnDistrict,
+    IsRoleOrAbove, IsRoleOrAboveForWriteOnly, IsDistrictManagerForOwnDistrict,
 )
 from .serializers import (
     LanguageSerializer, CategorySerializer, DestinationListSerializer,
@@ -321,7 +321,7 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
+    @action(detail=True, methods=["get", "post", "delete"], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def photos(self, request, slug=None):
         """
         GET  — the destination's photo gallery: local uploads (community +
@@ -335,9 +335,25 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
                un-promoted; if it becomes popular (crosses
                PHOTO_PROMOTION_IMPRESSION_THRESHOLD views), it's
                automatically promoted to the official cover photo — see
-               tourist/utils.py::maybe_promote_photo().
+               tourist/utils.py::maybe_promote_photo(). Staff/superusers
+               may instead pass `external_url` + `is_cover` to attach a
+               verified photo directly as the cover image.
+        DELETE — ADDED. Staff/superusers only (community uploads have no
+               way to remove someone else's photo through this endpoint).
+               Pass `?photo_id=123`. Removes one gallery image.
         """
         destination = self.get_object()
+
+        if request.method == "DELETE":
+            if not (request.user.is_staff or request.user.is_superuser):
+                return Response({"detail": "Staff access required."}, status=status.HTTP_403_FORBIDDEN)
+            photo_id = request.query_params.get("photo_id")
+            if not photo_id:
+                return Response({"detail": "photo_id query param is required."}, status=status.HTTP_400_BAD_REQUEST)
+            deleted, _ = destination.gallery.filter(id=photo_id).delete()
+            if not deleted:
+                return Response({"detail": "Photo not found on this destination."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         if request.method == "POST":
             serializer = PhotoUploadSerializer(data={**request.data, "destination": destination.id}, context={"request": request})
@@ -351,6 +367,36 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
 
         return Response({
             "photos": DestinationImageSerializer(photos, many=True, context={"request": request}).data,
+        })
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def history(self, request, slug=None):
+        """
+        ADDED. GET /api/v1/destinations/{slug}/history/ — staff only.
+        Returns this destination's moderation audit trail (submitted /
+        approved / rejected / edited), using the DestinationAuditLog model
+        that already existed but had no API endpoint reading from it.
+        """
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({"detail": "Staff access required."}, status=status.HTTP_403_FORBIDDEN)
+        destination = self.get_object()
+        entries = destination.audit_log.select_related("actor").all()
+        return Response({
+            "history": [
+                {
+                    "id": e.id,
+                    "action": e.action,
+                    "actor": (
+                        (f"{e.actor.first_name} {e.actor.last_name}".strip() or e.actor.email)
+                        if e.actor else None
+                    ),
+                    "note": e.note,
+                    "previous_status": e.previous_status,
+                    "new_status": e.new_status,
+                    "created_at": e.created_at,
+                }
+                for e in entries
+            ]
         })
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.AllowAny])
@@ -412,7 +458,7 @@ class HotelViewSet(viewsets.ModelViewSet):
 
     queryset = Hotel.objects.select_related("destination")
     serializer_class = HotelSerializer
-    permission_classes = [IsRoleOrAbove(User.Role.HOTEL_MANAGER)]
+    permission_classes = [IsRoleOrAboveForWriteOnly(User.Role.HOTEL_MANAGER)]
     filterset_fields = ["destination", "booking_status", "source"]
     ordering_fields = ["price_per_night", "rating"]
     search_fields = ["name", "address"]
@@ -463,6 +509,17 @@ class FavoriteViewSet(UserScopedQuerysetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Favorite.objects.none()
+        # FIXED: this used to hard-scope to self.request.user with no
+        # exception at all -- an admin had zero way to see any user's
+        # favorites through this endpoint, staff or not. Matches the
+        # pattern already used correctly elsewhere (BookingViewSet,
+        # DestinationsMissingImagesView): staff can pass ?user=<id> to
+        # look at a specific account (e.g. from the User Management
+        # admin page); everyone else -- including staff with no param
+        # -- still only ever sees their own, unchanged default behavior.
+        user_id = self.request.query_params.get("user")
+        if user_id and self.request.user.is_staff:
+            return Favorite.objects.filter(user_id=user_id).select_related("destination")
         return Favorite.objects.filter(user=self.request.user).select_related("destination")
 
     def perform_create(self, serializer):
@@ -477,6 +534,11 @@ class VisitHistoryViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return VisitHistory.objects.none()
+        # See FavoriteViewSet.get_queryset for why this staff+?user=
+        # override was added.
+        user_id = self.request.query_params.get("user")
+        if user_id and self.request.user.is_staff:
+            return VisitHistory.objects.filter(user_id=user_id).select_related("destination")
         return VisitHistory.objects.filter(user=self.request.user).select_related("destination")
 
 
@@ -489,6 +551,11 @@ class BudgetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Budget.objects.none()
+        # See FavoriteViewSet.get_queryset for why this staff+?user=
+        # override was added.
+        user_id = self.request.query_params.get("user")
+        if user_id and self.request.user.is_staff:
+            return Budget.objects.filter(user_id=user_id).select_related("destination")
         return Budget.objects.filter(user=self.request.user).select_related("destination")
 
     def perform_create(self, serializer):

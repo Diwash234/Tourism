@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Avg, Count
 
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -631,4 +631,49 @@ class AdminAnalyticsView(APIView):
                 "alerts_fired":
                     alerts_this_period,
             }
+        )
+
+# ============================================================
+# DESTINATION MEDIA MANAGEMENT
+# ADDED: supports the admin "Destination Media Manager" page —
+# triaging which destinations need real photos, without paging through
+# all ~5,900 rows by hand. Confirmed live against the real database:
+# most "no images" destinations are actually miscategorized hotels/
+# guesthouses (category_id in ACCOMMODATION_CATEGORY_IDS below), so
+# this excludes those by default — an admin fixing "missing images"
+# almost certainly means genuine attractions, not business listings.
+# ============================================================
+
+# Category IDs that are accommodation/business, not tourist
+# destinations (matches tourist_category table: hotel, guest_house,
+# hostel, motel, resort, home_stay, homestay, chalet, apartment,
+# wilderness_hut, caravan_site, travel_agency). Kept as a constant here
+# rather than a DB flag since recategorizing ~3,600 rows is a bigger,
+# separate data-cleanup decision — this view just doesn't surface them
+# as "destinations needing photos".
+ACCOMMODATION_CATEGORY_IDS = [1, 2, 8, 10, 11, 14, 18, 20, 21, 26, 29, 31, 32, 33]
+
+
+class DestinationsMissingImagesView(generics.ListAPIView):
+    """
+    GET /api/v1/admin-panel/destinations-missing-images/
+    Staff-only. Paginated list of genuine destinations (excludes
+    accommodation-category rows) that have neither a cover_image nor
+    any gallery image — the admin's actual to-do list for photos.
+    """
+    permission_classes = [IsSuperAdminOrAssignedAdmin]
+    serializer_class = None  # set dynamically below to avoid a circular import at module load
+
+    def get_serializer_class(self):
+        from tourist.serializers import DestinationListSerializer
+        return DestinationListSerializer
+
+    def get_queryset(self):
+        return (
+            Destination.objects.filter(is_active=True)
+            .exclude(category_id__in=ACCOMMODATION_CATEGORY_IDS)
+            .filter(models.Q(cover_image="") | models.Q(cover_image__isnull=True))
+            .annotate(gallery_count=Count("gallery"))
+            .filter(gallery_count=0)
+            .order_by("name")
         )

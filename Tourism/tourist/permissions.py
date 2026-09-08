@@ -69,6 +69,29 @@ class IsRoleOrAbove(BasePermission):
         )
 
 
+class IsRoleOrAboveForWriteOnly(IsRoleOrAbove):
+    """
+    ADDED: same role gate as IsRoleOrAbove, but GET/HEAD/OPTIONS are
+    always allowed through, for anyone (including anonymous visitors).
+
+    Fixes a real bug: HotelViewSet's own docstring says "Public read;
+    admin write", but it was using plain IsRoleOrAbove, which has no
+    read/write distinction at all -- has_permission() rejects everyone
+    below the minimum role regardless of HTTP method. That meant an
+    anonymous tourist browsing hotels (the actual public-facing
+    Hotels/HotelSearch pages) got a 401 trying to just list them,
+    confirmed live against the real API. Kept as a separate class
+    rather than changing IsRoleOrAbove itself, since the other two
+    call sites (destination approval, emergency-role actions) are
+    legitimately gated for both read and write by design.
+    """
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return super().has_permission(request, view)
+
+
 class IsEmergencyRole(BasePermission):
     """
     Emergency-related roles only.

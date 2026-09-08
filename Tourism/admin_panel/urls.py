@@ -12,5 +12,6 @@ urlpatterns = [
     path("dashboard-summary/", views.AdminDashboardSummaryView.as_view(), name="admin-panel-dashboard-summary"),
     path("analytics/",views.AdminAnalyticsView.as_view(), name="admin-panel-analytics",
 ),
+    path("destinations-missing-images/", views.DestinationsMissingImagesView.as_view(), name="admin-panel-destinations-missing-images"),
     path("", include(router.urls)),
 ]

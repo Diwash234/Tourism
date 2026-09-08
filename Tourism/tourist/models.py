@@ -249,6 +249,19 @@ class Destination(TimeStampedModel):
         default=False, help_text="True if description/best_time_to_visit were filled by AI generation rather than typed by a human."
     )
 
+    # ADDED: this column already exists in the real database (added by
+    # some earlier, unrecorded change) but was never declared on this
+    # model class -- confirmed live: DestinationWriteSerializer couldn't
+    # even reference it ("Field name `history` is not valid for model
+    # `Destination`"), a 500 error on every attempt, caught while
+    # building the admin "Add Destination" form. Matches the DB
+    # column's actual type (nullable TEXT) exactly, so no migration is
+    # needed -- Django just wasn't told this column exists.
+    history = models.TextField(
+        blank=True, null=True,
+        help_text="Historical background of this destination, shown on its detail page."
+    )
+
 
     district = models.CharField(
         max_length=100,
@@ -413,7 +426,17 @@ class Destination(TimeStampedModel):
     def save(self, *args, **kwargs):
 
         if not self.slug:
-            base_slug = slugify(self.name)
+            # FIXED: slugify() defaults to ASCII-only, which strips
+            # every character from a name written entirely in a
+            # non-Latin script (Nepali/Devanagari, Chinese, etc.) --
+            # base_slug came out as "" for any such name. The collision
+            # loop below then just appended an incrementing counter to
+            # nothing, producing slugs like "-6", "-9", "-17"... found
+            # live on 166 real destinations, including major places
+            # like Muktinath ("मुक्तिनाथ" -> slug "-6"). Falls back to
+            # allow_unicode=True so these get real, readable,
+            # Nepali-script slugs instead of a meaningless number.
+            base_slug = slugify(self.name) or slugify(self.name, allow_unicode=True) or f"destination-{self.pk or 'new'}"
             slug = base_slug
             counter = 1
 
@@ -494,6 +517,22 @@ class DestinationImage(TimeStampedModel):
         default=False, help_text="Auto-set true once a community upload crosses the popularity threshold"
     )
     view_count = models.PositiveIntegerField(default=0)
+
+    # ADDED: these two columns already exist in the real database (an
+    # earlier migration -- 0002_alter_destinationimage_options_and_more
+    # -- added them, and NOTHING ever dropped them from the table) but
+    # had been removed from this model class at some point, with no
+    # compensating migration. Django then had no default to supply for
+    # them on INSERT, so every single photo upload through the real API
+    # -- community or admin -- crashed with "NOT NULL constraint failed:
+    # tourist_destinationimage.is_verified", confirmed live while
+    # testing the admin photo-add endpoint. Re-declaring them (same
+    # column names/types, matching what's actually in the DB) fixes it
+    # with no migration needed, since the columns are already there.
+    is_verified = models.BooleanField(
+        default=True, help_text="Legacy moderation flag; new admin/system-added photos are auto-verified."
+    )
+    verification_status = models.CharField(max_length=20, blank=True, default="approved")
 
     class Meta:
         ordering = ["-is_cover", "-is_promoted", "-view_count", "-created_at"]
@@ -961,7 +1000,19 @@ class Budget(TimeStampedModel):
     category = models.CharField(max_length=20, choices=ExpenseCategory.choices, default=ExpenseCategory.OTHER)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=10, default="NPR")
-    date = models.DateField(default=timezone.now)
+    # FIXED: was `default=timezone.now`, which returns a timezone-aware
+    # *datetime*, not a date -- Django's DateField happily stores that
+    # at the DB level (SQLite doesn't enforce column types strictly),
+    # but the in-memory value on a freshly-created object stays a
+    # datetime. DRF's DateField then correctly refuses to serialize it
+    # ("Expected a `date`, but got a `datetime`... Refusing to coerce")
+    # -- confirmed live: every budget entry created via the API without
+    # an explicit date actually saved successfully, then crashed with a
+    # 500 trying to return the confirmation response, so the user saw
+    # a failure for something that had actually worked.
+    # timezone.localdate is Django's own utility for exactly this: a
+    # real `date` object, respecting settings.TIME_ZONE.
+    date = models.DateField(default=timezone.localdate)
     notes = models.TextField(blank=True)
 
     class Meta:

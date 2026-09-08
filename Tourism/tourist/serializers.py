@@ -169,15 +169,34 @@ class PhotoUploadSerializer(serializers.ModelSerializer):
     submit a photo for a destination; it's tagged `source=user_upload` and
     starts un-promoted — see utils.py::maybe_promote_photo() for how it can
     later become the official cover image based on popularity.
+
+    ADDED: `external_url` + `caption` fields, and admin-tagged source. This
+    endpoint previously only accepted a file upload (`image`), so there was
+    no way for an admin to attach a verified external photo (e.g. a
+    Wikimedia Commons link) through the API at all — the only way to do
+    that was direct DB access. Staff/superusers posting an `external_url`
+    (no `image` file) get tagged `source=admin` instead of `user_upload`,
+    and can immediately set `is_cover`.
     """
 
     class Meta:
         model = DestinationImage
-        fields = ["id", "destination", "image", "caption"]
+        fields = ["id", "destination", "image", "external_url", "caption", "is_cover"]
+
+    def validate(self, attrs):
+        if not attrs.get("image") and not attrs.get("external_url"):
+            raise serializers.ValidationError("Provide either an image file or an external_url.")
+        return attrs
 
     def create(self, validated_data):
-        validated_data["uploaded_by"] = self.context["request"].user
-        validated_data["source"] = DestinationImage.Source.USER_UPLOAD
+        request = self.context["request"]
+        validated_data["uploaded_by"] = request.user
+        is_staff_admin = request.user.is_staff or request.user.is_superuser
+        if is_staff_admin and validated_data.get("external_url") and not validated_data.get("image"):
+            validated_data["source"] = DestinationImage.Source.ADMIN
+        else:
+            validated_data.setdefault("is_cover", False)  # community uploads never auto-become cover
+            validated_data["source"] = DestinationImage.Source.USER_UPLOAD
         return super().create(validated_data)
 
 
@@ -280,7 +299,15 @@ class DestinationListSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
-        if not cover:
+        # FIXED: this used to auto-fetch a stock photo for ANY
+        # destination missing one, including pending/unreviewed
+        # submissions -- an admin on the Place Approvals page could see
+        # a photo next to a submission and reasonably assume the
+        # tourist submitted it, when it was actually auto-fetched stock
+        # imagery. Now only approved (live) destinations get the
+        # background auto-fetch; a pending submission with no photo
+        # correctly shows no photo until it's actually approved.
+        if not cover and obj.status == Destination.SubmissionStatus.APPROVED:
             # PERF FIX: this used to call ensure_cover_photo() directly,
             # blocking the whole request on live Unsplash/Wikimedia calls
             # -- across a list page, this caused multi-minute loads.
@@ -361,7 +388,9 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             return request.build_absolute_uri(obj.cover_image.url) if request else obj.cover_image.url
         cover = obj.gallery.filter(is_cover=True).first() or obj.gallery.first()
-        if not cover:
+        # See DestinationListSerializer.get_cover_image_url for why this
+        # is gated to approved destinations only.
+        if not cover and obj.status == Destination.SubmissionStatus.APPROVED:
             queue_cover_photo_fetch(obj)
         if cover:
             if cover.image:
@@ -422,6 +451,14 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
             "id", "name", "category", "description", "short_description", "cover_image",
             "latitude", "longitude", "address", "city", "country", "opening_hours",
             "entry_fee", "contact_phone", "contact_email", "website", "is_active",
+            # ADDED: these already exist on the Destination model but were
+            # missing from the writable API entirely -- meant an admin
+            # adding a place through the normal endpoint could never set
+            # district/province (used across the site for province/district
+            # browsing) or history/best_time_to_visit (shown on every
+            # destination detail page). Confirmed missing while building
+            # the admin "Add Destination" form.
+            "district", "province", "history", "best_time_to_visit",
         ]
 
     def validate(self, attrs):
@@ -433,9 +470,21 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
         longitude = attrs.get("longitude")
 
         if name and latitude is not None and longitude is not None:
-            min_lat, max_lat, min_lon, max_lon = bounding_box(float(latitude), float(longitude), radius_km=1)
+            # FIXED: bounding_box() returns a dict ({"min_lat": ..., ...}),
+            # but this used to destructure it as if it were a 4-tuple --
+            # `a, b, c, d = some_dict` actually unpacks the dict's KEYS
+            # (in insertion order), not its values. So min_lat ended up
+            # literally holding the string "min_lat", which is exactly
+            # why the ORM range filter below failed with "'min_lat'
+            # value must be a decimal number" -- confirmed live while
+            # testing the admin "Add Destination" form's duplicate
+            # detection. views.py/views_compat.py already use this
+            # function correctly via dict access (box["min_lat"]) --
+            # matching that same pattern here.
+            box = bounding_box(float(latitude), float(longitude), radius_km=1)
             nearby_candidates = Destination.objects.filter(
-                latitude__range=(min_lat, max_lat), longitude__range=(min_lon, max_lon),
+                latitude__range=(box["min_lat"], box["max_lat"]),
+                longitude__range=(box["min_lon"], box["max_lon"]),
             ).exclude(status=Destination.SubmissionStatus.REJECTED)
 
             for candidate in nearby_candidates:
@@ -529,9 +578,23 @@ class HotelSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         """
-        Hotel has no image field of its own.
-        Reuse the destination's cover photo.
+        FIXED: this used to skip the Hotel's own image fields entirely
+        and always fall back to the destination's cover photo -- so
+        every hotel at the same destination rendered the exact same
+        image, which is the "hotels don't show the correct/accurate
+        image" bug. Hotel.cover_image / Hotel.external_image_url exist
+        on the model (see migration 0007) and are populated by
+        tourist.image_pipeline.resolve_place_image via
+        backfill_hotel_images -- just checked here in the wrong order.
+        Real per-hotel photo now takes priority; destination photo is
+        only used as a last-resort fallback, same as before.
         """
+        if obj.cover_image:
+            return obj.cover_image.url
+
+        if obj.external_image_url:
+            return obj.external_image_url
+
         if obj.destination and obj.destination.cover_image:
             return obj.destination.cover_image.url
 

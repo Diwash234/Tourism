@@ -7,6 +7,7 @@ Utility helpers used across the tourist app:
   - Email / SMS / Push notification senders
 """
 import logging
+import re
 from math import radians, cos, sin, asin, sqrt
 from django.db.models import Q
 
@@ -830,35 +831,23 @@ def fetch_wikimedia_photos(queries, limit=5):
                     page.get("imageinfo") or [{}]
                 )[0]
 
-
                 url = image.get("url")
 
                 if not url:
                     continue
 
-
-                artist = (
-                    image
-                    .get("extmetadata", {})
-                    .get("Artist", {})
-                    .get("value", "Wikimedia contributor")
-                )
-
-                page = next(iter(pages.values()), {})
-
-                image = (
-                    page.get("imageinfo") or [{}]
-                )[0]
-
-                url = image.get("url")
-
-                if not url:
-                    continue
-
-                # Skip SVG drawings and obvious non-photo files
+                # FIXED: this used to only block .svg by extension, plus
+                # a title-text keyword check (bad_keywords, above) --
+                # neither catches a file whose *title* looks fine but
+                # is actually a PDF. Confirmed live against the real
+                # database: 147 rows across dozens of destinations had
+                # a PDF (mostly "Wiki Loves Earth jury report" documents
+                # whose text happened to mention a place name) stored as
+                # that destination's "photo". Now allow-lists real image
+                # extensions instead of block-listing one bad one.
                 url_lower = url.lower()
 
-                if url_lower.endswith(".svg"):
+                if not re.search(r"\.(jpe?g|png|webp|gif)(?:$|\?)", url_lower):
                     continue
 
                 if any(keyword in url_lower for keyword in ("map", "flag", "logo", "icon")):
@@ -900,6 +889,16 @@ def fetch_wikimedia_photos(queries, limit=5):
 def _photo_search_queries(destination):
     """
     Build clean Wikimedia search queries without adding None values.
+
+    FIXED: the fallback queries used to drop destination.name entirely,
+    searching only "{district} Nepal" or "{province} Nepal" once the
+    full query came up empty. Confirmed live: for "Arun Valley"
+    (district="Makalu Region", no city/province), that fell back to
+    searching just "Makalu Region Nepal" and matched an 1921 geological
+    survey illustration of the *Everest* region -- topically nearby,
+    completely wrong place. Every query now keeps destination.name, so
+    a broader fallback can widen the geographic context but can never
+    drop the actual place being searched for.
     """
 
     queries = []
@@ -923,16 +922,221 @@ def _photo_search_queries(destination):
     queries.append(" ".join(parts))
 
     if getattr(destination, "city", None):
-        queries.append(f"{destination.city} Nepal")
+        queries.append(f"{destination.name} {destination.city} Nepal")
 
     if getattr(destination, "district", None):
-        queries.append(f"{destination.district} Nepal")
+        queries.append(f"{destination.name} {destination.district} Nepal")
 
     if getattr(destination, "province", None):
-        queries.append(f"{destination.province} Nepal")
+        queries.append(f"{destination.name} {destination.province} Nepal")
+
+    queries.append(f"{destination.name} Nepal")
 
     return list(dict.fromkeys(queries))
 
+
+
+import threading
+
+# ADDED: this function was called from serializers.py (get_cover_image_url,
+# both DestinationListSerializer and the detail serializer) and even had
+# an explanatory comment above the call site describing exactly what it
+# should do -- but it was never actually defined anywhere in this file.
+# That's not a small bug: `from .utils import ... queue_cover_photo_fetch`
+# in serializers.py raised ImportError at Django startup, which means
+# tourist/urls.py (which imports views.py -> serializers.py) failed to
+# load at all, taking down every single API endpoint under /api/v1/ --
+# not just images, ALL destinations, hotels, everything, on every page
+# that hits the API. This is the actual root cause behind "no destination
+# or images shown despite having API keys in .env" -- the keys were
+# never the problem, the backend wasn't serving anything at all.
+#
+# Implementation: fire-and-forget background thread that calls the
+# existing synchronous ensure_cover_photo() off the request thread, so
+# a list-page request returns immediately (this destination just won't
+# have a photo on THIS response) while the fetch completes in the
+# background and is picked up on the next request, exactly as the
+# removed comment already promised. Deduplicates concurrent calls for
+# the same destination (a list endpoint can serialize the same
+# destination via multiple overlapping requests) with a simple guarded
+# in-process set -- intentionally not Celery/Redis, since no task queue
+# is configured anywhere in this project (checked settings.py); adding
+# one is a bigger, separate infrastructure decision.
+_pending_cover_photo_fetches = set()
+_pending_cover_photo_fetches_lock = threading.Lock()
+
+
+def queue_cover_photo_fetch(destination):
+    """
+    Non-blocking version of ensure_cover_photo(): schedules the fetch on
+    a background thread and returns immediately. Safe to call many times
+    for the same destination -- duplicate concurrent calls are skipped.
+    """
+    destination_id = destination.pk
+    if destination_id is None:
+        return
+
+    with _pending_cover_photo_fetches_lock:
+        if destination_id in _pending_cover_photo_fetches:
+            return
+        _pending_cover_photo_fetches.add(destination_id)
+
+    def _run():
+        from django.db import close_old_connections
+        try:
+            # Background threads need their own DB connection state --
+            # reusing the request thread's connection here would be a
+            # real (if intermittent) source of "database is locked" /
+            # threading errors under load.
+            close_old_connections()
+            ensure_cover_photo(destination)
+        except Exception:  # noqa: BLE001 -- a failed background fetch must never surface as a 500 on some unrelated later request
+            logger.exception("Background cover photo fetch failed for destination id=%s", destination_id)
+        finally:
+            close_old_connections()
+            with _pending_cover_photo_fetches_lock:
+                _pending_cover_photo_fetches.discard(destination_id)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+import csv
+import os
+import sys
+
+# ADDED: mirrors the sys.path setup already used successfully in
+# chatbot/views.py to import from the sibling ml_service package
+# (Tourism/tourist/utils.py -> .. -> ml_service).
+_ML_SERVICE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _ML_SERVICE_ROOT not in sys.path:
+    sys.path.append(_ML_SERVICE_ROOT)
+
+_risk_rows_cache = None
+
+
+def _load_risk_rows():
+    """
+    Lazily loads dataset/risk_features.csv once per process. Same dataset
+    ml_service/training/train_risk_model.py trains on -- this just reads
+    it directly rather than requiring a live model call, since the ask
+    here is "nearest known risk data point", not a prediction.
+    """
+    global _risk_rows_cache
+    if _risk_rows_cache is not None:
+        return _risk_rows_cache
+
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "dataset", "risk_features.csv")
+    rows = []
+    try:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                try:
+                    lat = row.get("Latitude")
+                    lon = row.get("Longitude")
+                    if not lat or not lon:
+                        continue
+                    rows.append({**row, "Latitude": float(lat), "Longitude": float(lon)})
+                except (KeyError, ValueError, TypeError):
+                    continue
+    except FileNotFoundError:
+        logger.warning("risk_features.csv not found at %s -- get_local_risk_summary will return None", csv_path)
+    _risk_rows_cache = rows
+    return rows
+
+
+def get_local_risk_summary(destination, max_distance_km=50):
+    """
+    ADDED: called from DestinationDetailSerializer.get_risk_summary(),
+    but never actually implemented (see queue_cover_photo_fetch's
+    docstring above for the wider story -- several functions were
+    referenced and called from serializers.py without ever being
+    written, which broke Django's startup entirely).
+
+    Finds the nearest row in dataset/risk_features.csv to this
+    destination's coordinates and returns it as a plain dict, or None
+    if nothing is within max_distance_km (avoids attaching, say,
+    Everest Base Camp's earthquake risk to a destination 300km away
+    just because it was the closest row in the file).
+    """
+    if destination.latitude is None or destination.longitude is None:
+        return None
+
+    rows = _load_risk_rows()
+    if not rows:
+        return None
+
+    best_row, best_distance = None, None
+    for row in rows:
+        distance = haversine_distance(
+            float(destination.latitude), float(destination.longitude),
+            row["Latitude"], row["Longitude"],
+        )
+        if distance is None:
+            continue
+        if best_distance is None or distance < best_distance:
+            best_row, best_distance = row, distance
+
+    if best_row is None or best_distance > max_distance_km:
+        return None
+
+    return {
+        "nearest_reference_place": best_row.get("Place"),
+        "district": best_row.get("District"),
+        "distance_km": round(best_distance, 1),
+        "landslide": best_row.get("landslide"),
+        "avalanche": best_row.get("avalanche"),
+        "flood": best_row.get("flood"),
+        "earthquake_damage": best_row.get("earthquake_damage"),
+        "emergency_risk": best_row.get("Emergency_Risk"),
+        "natural_disaster_risk": best_row.get("Natural_Disaster_Risk"),
+        "tourism_risk_index": best_row.get("Tourism_Risk_Index"),
+        "risk_category": best_row.get("Risk_Category"),
+    }
+
+
+def get_nearby_emergency_services(destination, limit=5):
+    """
+    ADDED: called from DestinationDetailSerializer.get_nearby_emergency_services(),
+    same missing-implementation story as get_local_risk_summary() above.
+
+    Wraps the already-working ml_service.services.emergency_service.nearest_facilities()
+    (the same function chatbot/views.py already imports and uses
+    successfully) rather than duplicating hospital/police CSV-loading
+    logic a second time here.
+    """
+    if destination.latitude is None or destination.longitude is None:
+        return []
+
+    try:
+        from ml_service.services.emergency_service import nearest_facilities
+    except ImportError:
+        logger.exception("Could not import ml_service.services.emergency_service.nearest_facilities")
+        return []
+
+    try:
+        results = nearest_facilities(
+            float(destination.latitude), float(destination.longitude), limit=limit
+        )
+        # DEFENSIVE: nearest_facilities() reads hospital/police CSVs via
+        # pandas, which leaves NaN in any column outside lat/lon that's
+        # blank in the source CSV (only lat/lon get pandas.dropna()'d in
+        # emergency_service.py). A raw NaN float can't be JSON-encoded
+        # ("Out of range float values are not JSON compliant: nan"),
+        # confirmed against a real record while testing this. Not
+        # touching emergency_service.py itself since chatbot/views.py
+        # already depends on its current behavior; just sanitizing the
+        # copy returned through this new endpoint.
+        import math
+
+        def _clean(value):
+            if isinstance(value, float) and math.isnan(value):
+                return None
+            return value
+
+        return [{k: _clean(v) for k, v in record.items()} for record in results]
+    except Exception:  # noqa: BLE001 -- a broken CSV/lookup must not 500 a destination detail page
+        logger.exception("get_nearby_emergency_services failed for destination id=%s", destination.pk)
+        return []
 
 
 def ensure_cover_photo(destination):
@@ -1018,17 +1222,32 @@ def ensure_cover_photo(destination):
 
         source = (
             DestinationImage.Source.UNSPLASH
-            if "Unsplash" in external.get(
-                "attribution",
-                ""
-            )
+            if "Unsplash" in external.get("attribution", "")
             else DestinationImage.Source.WIKIMEDIA
         )
 
+        # ADDED: Wikimedia file titles are contributor-written
+        # descriptions of the actual photographed subject -- a
+        # reasonably reliable signal that the photo genuinely depicts
+        # the named place. Unsplash search is keyword/semantic
+        # similarity over generic stock photography with no location
+        # verification at all -- for a well-known place ("Everest Base
+        # Camp") that's usually fine, but for a hyperlocal, obscure
+        # name ("Pame Picnic Site", "balbalika picnic side") Unsplash
+        # has no possibility of a genuine photo of that exact spot, so
+        # whatever it returns is a generic stand-in at best. Labeling
+        # this honestly in the caption itself (not just relying on a
+        # frontend badge) means it stays correct even if queried
+        # directly or shown somewhere the frontend badge logic doesn't
+        # reach.
+        caption = external.get("caption", "")
+        if source == DestinationImage.Source.UNSPLASH and not caption:
+            caption = f"Representative photo -- {destination.name} area"
 
         photo = DestinationImage.objects.create(
             destination=destination,
             external_url=external["url"],
+            caption=caption,
             attribution=external.get(
                 "attribution",
                 ""
