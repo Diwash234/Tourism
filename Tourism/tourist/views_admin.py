@@ -582,13 +582,66 @@ class AdminDestinationsView(APIView):
             for d in destinations
         ])
 
+    # Fields the in-app Database Explorer may set on create. Mirrors the PUT
+    # whitelist so unknown keys are ignored instead of raising TypeError/500.
+    CREATABLE_FIELDS = {
+        "name", "description", "short_description", "city", "city_english", "city_nepali",
+        "district", "province", "municipality", "address", "aliases",
+        "latitude", "longitude", "entry_fee", "opening_hours", "altitude",
+        "best_time_to_visit", "history", "cultural_significance", "religious_significance",
+        "food_cuisine_info", "travel_safety_tips", "website",
+        "nearest_major_city", "nearest_hospital_info", "nearest_hotel_info",
+        "nearest_police_info", "recommended_days",
+    }
+
     def post(self, request):
-        data = request.data.copy()
-        category_id = data.pop("category_id", None)
-        destination = Destination.objects.create(**data)
+        from decimal import Decimal, InvalidOperation
+
+        data = request.data
+        name = str(data.get("name") or "").strip()
+        if not name:
+            return Response(
+                {"detail": "Destination name is required. Nothing was created."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        fields = {}
+        for key in self.CREATABLE_FIELDS:
+            value = data.get(key)
+            if value not in ("", None):
+                fields[key] = value
+        fields["name"] = name
+        for key in ("latitude", "longitude", "entry_fee"):
+            if key in fields:
+                try:
+                    fields[key] = Decimal(str(fields[key]))
+                except (InvalidOperation, TypeError, ValueError):
+                    return Response(
+                        {"detail": f"{key.replace('_', ' ')} must be a number or left empty."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+        if "recommended_days" in fields:
+            try:
+                fields["recommended_days"] = int(fields["recommended_days"])
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "Recommended days must be a whole number or left empty."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        destination = Destination.objects.create(**fields)
+        category_id = data.get("category_id")
         if category_id:
-            destination.category_id = category_id
-            destination.save()
+            try:
+                destination.category_id = int(category_id)
+                destination.save(update_fields=["category", "updated_at"])
+            except (TypeError, ValueError):
+                pass
+        DestinationAuditLog.objects.create(
+            destination=destination,
+            actor=request.user if request.user.is_authenticated else None,
+            action=DestinationAuditLog.Action.SUBMITTED,
+            note="Created via Database Explorer",
+        )
+        _sync_destination_json(destination)
         return Response({
             "id": destination.id,
             "slug": destination.slug,

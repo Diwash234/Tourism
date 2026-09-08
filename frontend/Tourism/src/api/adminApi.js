@@ -206,6 +206,8 @@ const adminApi = {
   sendUserFeedbackMessage: (id, payload) => axiosClient.post(`/feedback/${id}/message`, payload),
 
   // Admin destination detail (data, gallery, edit history)
+  createAdminDestination: (payload) => axiosClient.post("/admin/destinations", payload),
+  archiveAdminDestination: (id) => axiosClient.delete(`/admin/destinations/${id}`),
   getAdminDestination: (id) => axiosClient.get(`/admin/destinations/${id}`),
   updateAdminDestination: (id, payload) => axiosClient.put(`/admin/destinations/${id}`, payload),
   fillAdminDestinationLocation: (id) => axiosClient.post(`/admin/destinations/${id}`, { action: "fill_location" }),

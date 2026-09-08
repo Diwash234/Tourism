@@ -595,3 +595,69 @@ class DiscoverNepalCatalogRegressionTests(TestCase):
         festival_titles = {i["title"] for i in data["festivals"]["items"]}
         self.assertIn("Test Jatra Festival", festival_titles)
         self.assertFalse(data["festivals"]["pending"])
+
+
+class AdminDestinationCrudRegressionTests(TestCase):
+    """§33: routine destination create/archive must stay inside the custom
+    admin API — no raw Django admin, no mass-assignment 500s, soft archive
+    that retains related records."""
+
+    def setUp(self):
+        from .models import Destination, DestinationAuditLog
+        self.Destination = Destination
+        self.DestinationAuditLog = DestinationAuditLog
+        self.api = APIClient()
+        self.admin = make_superuser()
+
+    def test_create_requires_name(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.post("/api/v1/admin/destinations", {"city": "Pokhara"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("name", resp.json()["detail"].lower())
+        self.assertFalse(self.Destination.objects.filter(city="Pokhara", name="").exists())
+
+    def test_create_whitelists_fields_and_audits(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.post("/api/v1/admin/destinations", {
+            "name": "Harness Viewpoint",
+            "district": "Kaski",
+            "province": "Gandaki",
+            "latitude": "28.2",
+            "longitude": "83.9",
+            "status": "hacked",      # not creatable -> ignored
+            "views_count": 9999,     # not creatable -> ignored
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+        dest = self.Destination.objects.get(id=resp.json()["id"])
+        self.assertEqual(dest.name, "Harness Viewpoint")
+        self.assertTrue(dest.slug)
+        self.assertNotEqual(dest.status, "hacked")
+        self.assertNotEqual(dest.views_count, 9999)
+        self.assertTrue(self.DestinationAuditLog.objects.filter(destination=dest).exists())
+
+    def test_create_rejects_bad_number_without_creating(self):
+        self.api.force_authenticate(self.admin)
+        resp = self.api.post(
+            "/api/v1/admin/destinations",
+            {"name": "Bad Coords", "latitude": "abc"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(self.Destination.objects.filter(name="Bad Coords").exists())
+
+    def test_archive_soft_deletes_and_keeps_relations(self):
+        from .models import Review
+        self.api.force_authenticate(self.admin)
+        dest = self.Destination.objects.create(name="Archive Target", slug="archive-target")
+        reviewer = User.objects.create_user(email="reviewer@test.local", password="Review!Pass1")
+        Review.objects.create(destination=dest, user=reviewer, comment="Loved it")
+        resp = self.api.delete(f"/api/v1/admin/destinations/{dest.id}")
+        self.assertEqual(resp.status_code, 200)
+        dest.refresh_from_db()
+        self.assertFalse(dest.is_active)
+        self.assertEqual(dest.status, self.Destination.SubmissionStatus.ARCHIVED)
+        self.assertEqual(Review.objects.filter(destination=dest).count(), 1)
+
+    def test_anonymous_cannot_create_or_archive(self):
+        resp = self.api.post("/api/v1/admin/destinations", {"name": "Anon Place"}, format="json")
+        self.assertIn(resp.status_code, (401, 403))

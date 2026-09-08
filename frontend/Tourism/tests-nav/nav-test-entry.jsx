@@ -32,6 +32,7 @@ let hotelFixture = { results: [], count: 0 }
 let hotelCalls = []
 let emergencyFixture = { hospitals: [], police: [], specialized_contacts: [], national_hotlines: [] }
 let emergencyCalls = []
+let adminDestinationCalls = []
 let categoryFixture = []
 let categoryCalls = []
 let dataExplorerFixtures = {
@@ -87,6 +88,17 @@ axiosClient.defaults.adapter = async (config) => {
   }
   if (url.includes("/admin/data-explorer/")) {
     return ok(dataExplorerFixtures.list)
+  }
+  if (url.includes("/admin/destinations")) {
+    const method = (config.method || "get").toLowerCase()
+    if (method === "post" && !/\/admin\/destinations\/\d+/.test(url)) {
+      adminDestinationCalls.push({ method, url, data: config.data })
+      return ok({ id: 777, slug: "harness-created-place", message: "Destination created successfully" })
+    }
+    if (method === "delete") {
+      adminDestinationCalls.push({ method, url })
+      return ok({ message: "Destination archived; related records were retained", id: 77 })
+    }
   }
   if (url.includes("/admin/destinations/")) {
     return ok(dataExplorerFixtures.detail)
@@ -298,6 +310,10 @@ export function mountAdminShell() {
 export function setCategoryFixture(rows) {
   categoryFixture = rows
   categoryCalls = []
+}
+
+export function getAdminDestinationCalls() {
+  return adminDestinationCalls
 }
 
 export function getCategoryCalls() {

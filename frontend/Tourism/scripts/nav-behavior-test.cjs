@@ -557,6 +557,61 @@ async function main() {
     !!catDelete && catDelete.url.includes("/categories/lakes/"), catDelete && catDelete.url)
   n10.unmount()
 
+  // --- database explorer: in-app CRUD, no raw Django admin (§33) ----------
+  // The brief's most-important rule: routine add/edit/delete must never send
+  // the administrator to the raw Django admin.
+  window.confirm = () => true
+  global.confirm = window.confirm
+  entry.setDataExplorerFixtures({
+    list: {
+      results: [{ id: 77, name: "Cascade Test Temple" }],
+      count: 1, total_pages: 1, page: 1, columns: ["id", "name"],
+    },
+    detail: {
+      id: 77, name: "Cascade Test Temple", city: "Kathmandu",
+      province: "Bagmati", district: "Kathmandu",
+      municipality: "Kathmandu Metropolitan City",
+      latitude: "27.7172", longitude: "85.3240",
+    },
+  })
+  const n11 = entry.mountDataExplorer()
+  await settle()
+  await settle()
+  check("explorer: no raw Django admin redirect link",
+    !n11.container.querySelector('a[href="/django-admin/"]'))
+  const addBtn = [...n11.container.querySelectorAll("button")].find((b) => /Add Destination/.test(b.textContent))
+  check("explorer: in-app Add Destination button", !!addBtn)
+  await click(addBtn)
+  const createHeading = [...n11.container.querySelectorAll("h3")].find((h) => /Add Destination/.test(h.textContent))
+  check("explorer: create form opens in-app", !!createHeading)
+  const nameInput = n11.container.querySelector("input.input-field")
+  check("explorer: create form has a name field", !!nameInput)
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set
+    setter.call(nameInput, "Harness Created Place")
+    nameInput.dispatchEvent(new window.Event("input", { bubbles: true }))
+    await new Promise((r) => setTimeout(r, 10))
+  })
+  const createBtn = [...n11.container.querySelectorAll("button")].find((b) => /Create Destination/.test(b.textContent))
+  check("explorer: create button offered", !!createBtn)
+  await click(createBtn)
+  const createCall = entry.getAdminDestinationCalls().find((c) => c.method === "post")
+  check("explorer: create posts to the in-app API",
+    !!createCall && /\/admin\/destinations\/?$/.test(createCall.url), createCall && createCall.url)
+  check("explorer: create payload carries the name",
+    !!createCall && String(createCall.data).includes("Harness Created Place"))
+  const row11 = [...n11.container.querySelectorAll("tr")].find((tr) => /Cascade Test Temple/.test(tr.textContent))
+  check("explorer: record row still listed", !!row11)
+  await click(row11)
+  await settle()
+  const archiveBtn = [...n11.container.querySelectorAll("button")].find((b) => /Archive destination/.test(b.textContent))
+  check("explorer: in-app archive offered", !!archiveBtn)
+  await click(archiveBtn)
+  const delCall = entry.getAdminDestinationCalls().find((c) => c.method === "delete")
+  check("explorer: archive deletes via the in-app API",
+    !!delCall && /\/admin\/destinations\/77$/.test(delCall.url), delCall && delCall.url)
+  n11.unmount()
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)
