@@ -153,7 +153,8 @@ export default function Navigation() {
   const [nearbyPlaces, setNearbyPlaces] = useState([])
 
   // HUD & Tools Drawer State
-  const [gameMode, setGameMode] = useState(true)
+  // Standard turn-by-turn map is the default experience; the Game HUD is opt-in (brief item).
+  const [gameMode, setGameMode] = useState(false)
   const [currentStepIdx, setCurrentStepIdx] = useState(0)
   const [satelliteView, setSatelliteView] = useState(false)
   const [showToolsDrawer, setShowToolsDrawer] = useState(false)

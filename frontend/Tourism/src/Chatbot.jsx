@@ -158,8 +158,8 @@ export default function ChatBot() {
           </div>
         </div>
 
-        {/* Quick prompt badges */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        {/* Quick prompt grid — one card per suggestion, prompt preview included */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-3xl mx-auto">
           {QUICK_COMMANDS.map((qp, idx) => (
             <button
               key={idx}
@@ -167,9 +167,10 @@ export default function ChatBot() {
               data-testid={qp.prompt.includes("under $500") ? "himal-quick-budget" : `himal-quick-${idx}`}
               onClick={() => handleSend(qp.prompt)}
               disabled={sending}
-              className="text-xs font-bold bg-white text-primary-900 hover:bg-primary-50 border border-primary-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 transition-all shadow-sm hover:border-primary-400"
+              className="text-left bg-white hover:bg-primary-50 border border-primary-200/80 rounded-2xl px-4 py-3 transition-all shadow-sm hover:border-primary-400 hover:shadow"
             >
-              {qp.label}
+              <span className="block text-xs font-bold text-primary-900">{qp.label}</span>
+              <span className="block text-[11px] text-gray-500 mt-0.5 line-clamp-1">{qp.prompt}</span>
             </button>
           ))}
         </div>

@@ -210,14 +210,14 @@ const Language = () => {
           <button
             key={d.id}
             onClick={() => setSelectedDialect(d.id)}
-            className={`p-3.5 rounded-2xl border text-left transition-all ${
+            className={`min-w-0 p-3.5 rounded-2xl border text-left transition-all ${
               selectedDialect === d.id
-                ? "bg-[#1D5146] text-white border-purple-800 shadow-lg shadow-[#102A2E]/20 scale-105"
+                ? "bg-[#1D5146] text-white border-[#1D5146] shadow-lg shadow-[#102A2E]/20 ring-2 ring-[#1D5146]/30"
                 : "bg-white border-gray-200 hover:border-[#2E6B5A] text-gray-800"
             }`}
           >
-            <p className="font-bold text-xs">{d.name}</p>
-            <p className={`text-[10px] mt-1 ${selectedDialect === d.id ? "text-amber-300" : "text-gray-400"}`}>
+            <p className="font-bold text-xs break-words">{d.name}</p>
+            <p className={`text-[10px] mt-1 break-words ${selectedDialect === d.id ? "text-amber-300" : "text-gray-400"}`}>
               {d.region}
             </p>
           </button>
