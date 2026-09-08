@@ -11,6 +11,7 @@ import Sidebar from "../src/components/layout/Sidebar"
 import AdminLayout from "../src/components/admin/AdminLayout"
 import CookieConsentBanner from "../src/components/common/CookieConsentBanner"
 import NearbyPlaces from "../src/pages/NearbyPlaces"
+import DataExplorerPanel from "../src/components/admin/DataExplorerPanel"
 import { ToastProvider } from "../src/context/ToastContext"
 import axiosClient from "../src/api/axiosClient"
 import { invalidatePublicConfigCache } from "../src/hooks/usePublicConfig"
@@ -30,6 +31,10 @@ let hotelFixture = { results: [], count: 0 }
 let hotelCalls = []
 let emergencyFixture = { hospitals: [], police: [], specialized_contacts: [], national_hotlines: [] }
 let emergencyCalls = []
+let dataExplorerFixtures = {
+  list: { results: [], count: 0, total_pages: 1, page: 1, columns: ["id", "name"] },
+  detail: {},
+}
 axiosClient.defaults.adapter = async (config) => {
   const url = String(config.url || "")
   const ok = (data) => ({ data, status: 200, statusText: "OK", headers: {}, config, request: {} })
@@ -77,6 +82,12 @@ axiosClient.defaults.adapter = async (config) => {
       notice: "",
     })
   }
+  if (url.includes("/admin/data-explorer/")) {
+    return ok(dataExplorerFixtures.list)
+  }
+  if (url.includes("/admin/destinations/")) {
+    return ok(dataExplorerFixtures.detail)
+  }
   if (url.includes("/destinations/")) {
     return ok({
       count: searchFixture.length,
@@ -122,6 +133,12 @@ export function setEmergencyFixture(f) {
 export function getEmergencyCalls() {
   return emergencyCalls
 }
+export function setDataExplorerFixtures(f) {
+  dataExplorerFixtures = {
+    list: { results: [], count: 0, total_pages: 1, page: 1, columns: ["id", "name"], ...(f.list || {}) },
+    detail: f.detail || {},
+  }
+}
 
 // jsdom has no geolocation — install a controllable stub on the navigator the
 // component reads. "unsupported" models browsers without the API at all.
@@ -143,6 +160,27 @@ export function setGeolocation(mode, coords = {}) {
     },
   }
   Object.defineProperty(nav, "geolocation", { value: stub, configurable: true })
+}
+
+export function mountDataExplorer() {
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  React.act(() => {
+    root.render(
+      React.createElement(
+        MemoryRouter, null,
+        React.createElement(
+          ToastProvider, null,
+          React.createElement(DataExplorerPanel)
+        )
+      )
+    )
+  })
+  return {
+    container,
+    unmount: () => React.act(() => root.render(null)),
+  }
 }
 
 export function mountNearbyPage() {

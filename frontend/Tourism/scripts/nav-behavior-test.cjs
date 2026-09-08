@@ -466,6 +466,64 @@ async function main() {
     !/No nearby places found/i.test(n8.container.textContent))
   n8.unmount()
 
+  // =========================================================================
+  // ADMIN DATA EXPLORER — §21 province -> district -> municipality cascade
+  // =========================================================================
+  entry.setDataExplorerFixtures({
+    list: {
+      results: [{ id: 77, name: "Cascade Test Temple" }],
+      count: 1, total_pages: 1, page: 1, columns: ["id", "name"],
+    },
+    detail: {
+      id: 77, name: "Cascade Test Temple", city: "Kathmandu",
+      province: "Bagmati", district: "Kathmandu",
+      municipality: "Kathmandu Metropolitan City",
+      latitude: "27.7172", longitude: "85.3240",
+    },
+  })
+  const n9 = entry.mountDataExplorer()
+  await settle()
+  await settle()
+  const row = [...n9.container.querySelectorAll("tr")].find((tr) => /Cascade Test Temple/.test(tr.textContent))
+  check("geo: data explorer lists destination rows", !!row)
+  await click(row)
+  await settle()
+
+  const fieldFor = (name) => {
+    const label = [...n9.container.querySelectorAll("label")]
+      .find((l) => l.textContent.trim().toLowerCase().startsWith(name))
+    return label ? (label.querySelector("select") || label.querySelector("input")) : null
+  }
+  const optValues = (sel) => (sel && sel.tagName === "SELECT" ? [...sel.options].map((o) => o.value) : [])
+
+  const provSel = fieldFor("province")
+  const distSel = fieldFor("district")
+  const muniSel = fieldFor("municipality")
+  check("geo: province renders as a select of the 7 provinces",
+    !!provSel && provSel.tagName === "SELECT" && provSel.options.length === 8 && provSel.value === "Bagmati")
+  const distOpts = optValues(distSel)
+  check("geo: district options are filtered to the selected province",
+    distOpts.includes("Kathmandu") && distOpts.includes("Bhaktapur") && !distOpts.includes("Kaski"))
+  check("geo: municipality options come from the district's recorded list",
+    optValues(muniSel).includes("Kathmandu Metropolitan City") &&
+    muniSel.value === "Kathmandu Metropolitan City")
+
+  // Changing the province must drop child values that would be invalid.
+  const selectSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value").set
+  await act(async () => {
+    selectSetter.call(provSel, "Gandaki")
+    provSel.dispatchEvent(new window.Event("change", { bubbles: true }))
+    await new Promise((r) => setTimeout(r, 10))
+  })
+  await settle()
+  const distSel2 = fieldFor("district")
+  const distOpts2 = optValues(distSel2)
+  check("geo: changing province clears an invalid district and refilters options",
+    distSel2.value === "" && distOpts2.includes("Kaski") && !distOpts2.includes("Kathmandu"))
+  check("geo: municipality cleared along with the invalid district",
+    fieldFor("municipality").value === "")
+  n9.unmount()
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)

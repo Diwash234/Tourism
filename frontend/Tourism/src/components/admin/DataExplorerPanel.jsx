@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { FiDatabase, FiExternalLink, FiImage, FiSave, FiSearch, FiUpload, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
+import { NEPAL_ALL_PROVINCES, NEPAL_ALL_DISTRICTS, DISTRICT_DEFAULTS } from "../../utils/nepalGeocoder"
 import useToast from "../../hooks/useToast"
 
 const GROUPS = [
@@ -16,6 +17,21 @@ export default function DataExplorerPanel() {
   const { showToast } = useToast()
   const [resource,setResource]=useState("destinations"), [query,setQuery]=useState(""), [page,setPage]=useState(1), [data,setData]=useState({results:[],count:0,total_pages:1}), [loading,setLoading]=useState(false)
   const [detail,setDetail]=useState(null), [edit,setEdit]=useState({}), [upload,setUpload]=useState(null)
+  // §21: province -> district -> municipality cascade. Changing a parent drops
+  // child values that would form an invalid combination; legacy free-text
+  // values stay selectable so existing rows remain editable.
+  const geoChange=(key,value)=>setEdit(prev=>{
+    const next={...prev,[key]:value}
+    if(key==="province"){
+      const districts=NEPAL_ALL_DISTRICTS[value]||[]
+      if(next.district&&!districts.includes(next.district)){next.district="";next.municipality=""}
+    }
+    if(key==="district"){
+      const munis=DISTRICT_DEFAULTS[value]?.munis||[]
+      if(next.municipality&&munis.length&&!munis.includes(next.municipality))next.municipality=""
+    }
+    return next
+  })
   const load=(targetPage=page)=>{setLoading(true);adminApi.exploreData({resource,q:query,page:targetPage,page_size:25}).then(({data})=>{setData(data);setPage(data.page||1)}).catch(()=>setData({results:[],count:0,total_pages:1})).finally(()=>setLoading(false))}
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
@@ -33,7 +49,25 @@ export default function DataExplorerPanel() {
     <section className="rounded-2xl bg-slate-950 border border-slate-700 p-5 overflow-hidden"><div className="flex flex-wrap gap-2 justify-between mb-4"><div><h2 className="text-xl text-white font-black flex items-center gap-2"><FiDatabase/>Database Explorer</h2><p className="text-xs text-slate-400">{data.count} records · click destinations for details</p></div><div className="flex"><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&load()} className="rounded-l-xl bg-slate-800 border border-slate-600 px-3 text-sm text-white" placeholder="Search records…"/><button onClick={load} className="rounded-r-xl bg-amber-400 px-4"><FiSearch/></button></div></div>
       <a href="/django-admin/" target="_blank" rel="noreferrer" className="text-xs text-amber-300 inline-flex items-center gap-1 mb-3">Open full add/edit/delete administration <FiExternalLink/></a>
       <div className="overflow-auto max-h-[45vh]"><table className="min-w-full text-xs"><thead className="sticky top-0 bg-slate-900"><tr>{data.columns?.map(c=><th key={c} className="text-left text-slate-400 px-3 py-2 whitespace-nowrap">{c}</th>)}</tr></thead><tbody>{loading?<tr><td className="text-slate-400 p-5">Loading…</td></tr>:data.results.map((row,i)=><tr onClick={()=>openDestination(row.id)} key={row.id||i} className={`border-t border-slate-800 ${resource==='destinations'?'cursor-pointer hover:bg-slate-800':''}`}>{data.columns?.map(c=><td key={c} className="text-slate-300 px-3 py-2 max-w-72 truncate">{row[c]===null?'—':String(row[c]??'')}</td>)}</tr>)}</tbody></table></div><div className="flex items-center justify-between mt-3 text-xs text-slate-400"><button disabled={page<=1} onClick={()=>load(page-1)} className="px-3 py-2 bg-slate-800 rounded disabled:opacity-30">Previous</button><span>Page {page} of {data.total_pages||1}</span><button disabled={page>=(data.total_pages||1)} onClick={()=>load(page+1)} className="px-3 py-2 bg-slate-800 rounded disabled:opacity-30">Next</button></div>
-      {detail&&<div className="mt-5 rounded-2xl bg-slate-900 border border-amber-500/30 p-5"><div className="flex justify-between"><h3 className="text-white text-lg font-black">Edit {detail.name}</h3><button onClick={()=>setDetail(null)} className="text-slate-400"><FiX/></button></div><div className="grid md:grid-cols-2 gap-3 mt-4">{["name","city","district","province","municipality","latitude","longitude","altitude","best_time_to_visit","opening_hours","entry_fee","short_description"].map(key=><label key={key} className="text-[10px] uppercase text-slate-400 font-bold">{key.replace('_',' ')}<input value={edit[key]??""} onChange={e=>setEdit({...edit,[key]:e.target.value})} className="input-field mt-1"/></label>)}<label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Description<textarea rows="4" value={edit.description??""} onChange={e=>setEdit({...edit,description:e.target.value})} className="input-field mt-1"/></label>
+      {detail&&<div className="mt-5 rounded-2xl bg-slate-900 border border-amber-500/30 p-5"><div className="flex justify-between"><h3 className="text-white text-lg font-black">Edit {detail.name}</h3><button onClick={()=>setDetail(null)} className="text-slate-400"><FiX/></button></div><div className="grid md:grid-cols-2 gap-3 mt-4">{["name","city","province","district","municipality","latitude","longitude","altitude","best_time_to_visit","opening_hours","entry_fee","short_description"].map(key=>{
+                const cls="text-[10px] uppercase text-slate-400 font-bold"
+                if(key==="province"){
+                  const opts=NEPAL_ALL_PROVINCES.includes(edit.province)||!edit.province?NEPAL_ALL_PROVINCES:[edit.province,...NEPAL_ALL_PROVINCES]
+                  return <label key={key} className={cls}>province<select value={edit.province??""} onChange={e=>geoChange("province",e.target.value)} className="input-field mt-1"><option value="">— Select province —</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
+                }
+                if(key==="district"){
+                  const list=NEPAL_ALL_DISTRICTS[edit.province]||[]
+                  const opts=list.includes(edit.district)||!edit.district?list:[edit.district,...list]
+                  return <label key={key} className={cls}>district<select value={edit.district??""} onChange={e=>geoChange("district",e.target.value)} className="input-field mt-1" disabled={!edit.province}><option value="">— Select district —</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
+                }
+                if(key==="municipality"){
+                  const munis=DISTRICT_DEFAULTS[edit.district]?.munis||[]
+                  if(!munis.length)return <label key={key} className={cls}>municipality<input value={edit.municipality??""} onChange={e=>geoChange("municipality",e.target.value)} className="input-field mt-1"/></label>
+                  const opts=munis.includes(edit.municipality)||!edit.municipality?munis:[edit.municipality,...munis]
+                  return <label key={key} className={cls}>municipality<select value={edit.municipality??""} onChange={e=>geoChange("municipality",e.target.value)} className="input-field mt-1" disabled={!edit.district}><option value="">— Select municipality —</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
+                }
+                return <label key={key} className={cls}>{key.replace('_',' ')}<input value={edit[key]??""} onChange={e=>setEdit({...edit,[key]:e.target.value})} className="input-field mt-1"/></label>
+              })}<label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Description<textarea rows="4" value={edit.description??""} onChange={e=>setEdit({...edit,description:e.target.value})} className="input-field mt-1"/></label>
         <label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">History<textarea rows="3" value={edit.history??""} onChange={e=>setEdit({...edit,history:e.target.value})} className="input-field mt-1"/></label>
         <label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Culture / food<textarea rows="3" value={edit.cultural_significance??""} onChange={e=>setEdit({...edit,cultural_significance:e.target.value})} className="input-field mt-1"/></label>
         <div className="md:col-span-2 p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[11px] space-y-1">
