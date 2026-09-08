@@ -62,6 +62,7 @@ import HotelAssignments from "./pages/admin/HotelAssignments"
 import AdminTasks from "./pages/admin/Tasks"
 import PlaceApprovals from "./pages/admin/PlaceApprovals"
 import UserManagement from "./pages/admin/UserManagement"
+import DestinationMediaManager from "./pages/admin/DestinationMediaManager"
 
 
 function App() {
@@ -79,13 +80,32 @@ function App() {
 
           {/* Home / General */}
           <Route path="/" element={<Landing />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
+
+          <Route
+            path="/about"
+            element={<About />}
+          />
+
+          <Route
+            path="/contact"
+            element={<Contact />}
+          />
 
           {/* Authentication */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/register"
+            element={<Register />}
+          />
+
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
 
           {/* OAuth callback */}
           <Route
@@ -123,6 +143,7 @@ function App() {
             PROTECTED USER ROUTES
         ===================================================== */}
         <Route element={<ProtectedRoute />}>
+
           <Route element={<DashboardLayout />}>
 
             {/* Dashboard */}
@@ -167,7 +188,6 @@ function App() {
               element={<MyBooking />}
             />
 
-
             {/* =================================================
                 DESTINATIONS / EXPLORATION
             ================================================= */}
@@ -196,7 +216,6 @@ function App() {
               path="/navigation"
               element={<Navigation />}
             />
-
 
             {/* =================================================
                 TRAVEL FEATURES
@@ -231,7 +250,6 @@ function App() {
               path="/chatbot"
               element={<Chatbot />}
             />
-
 
             {/* =================================================
                 USER ACCOUNT
@@ -279,56 +297,100 @@ function App() {
 
         {/* =====================================================
             ADMIN ROUTES
+            =====================================================
+
+            React Admin:
+                http://localhost:5173/admin
+
+            Django Admin:
+                http://localhost:8000/admin/
+
+            These are different servers/ports, so both can use
+            the /admin path safely during development.
+
+            Admin access requires:
+                1. User authentication
+                2. AdminRoute permission check
         ===================================================== */}
+
         <Route element={<ProtectedRoute />}>
+
           <Route element={<AdminRoute />}>
+
             <Route element={<DashboardLayout />}>
 
-              {/* Main Admin Dashboard */}
+              {/* =================================================
+                  MAIN ADMIN DASHBOARD
+              ================================================= */}
+
               <Route
                 path="/admin"
                 element={<AdminDashboard />}
               />
 
-              {/* Hotel Assignments */}
+              {/* =================================================
+                  HOTEL ASSIGNMENTS
+              ================================================= */}
+
               <Route
                 path="/admin/hotel-assignments"
                 element={<HotelAssignments />}
               />
 
-              {/* Admin Tasks */}
+              {/* =================================================
+                  ADMIN TASKS
+              ================================================= */}
+
               <Route
                 path="/admin/tasks"
                 element={<AdminTasks />}
               />
 
-              {/* Place Approvals */}
+              {/* =================================================
+                  PLACE APPROVALS
+              ================================================= */}
+
               <Route
                 path="/admin/place-approvals"
                 element={<PlaceApprovals />}
               />
 
-              {/* User Management */}
+              {/* =================================================
+                  USER MANAGEMENT
+              ================================================= */}
+
               <Route
                 path="/admin/users"
                 element={<UserManagement />}
               />
 
+              {/* =================================================
+                  DESTINATION MEDIA MANAGER
+              ================================================= */}
+
+              <Route
+                path="/admin/media"
+                element={<DestinationMediaManager />}
+              />
+
             </Route>
+
           </Route>
+
         </Route>
 
 
         {/* =====================================================
             404 NOT FOUND
-            Wrapped in MainLayout so Navbar, Sidebar, Footer
-            and FloatingChatbot remain available.
         ===================================================== */}
+
         <Route element={<MainLayout />}>
+
           <Route
             path="*"
             element={<NotFound />}
           />
+
         </Route>
 
       </Routes>

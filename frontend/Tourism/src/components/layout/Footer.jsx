@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   FiFacebook,
   FiInstagram,
@@ -46,6 +47,8 @@ const NATIONAL_ITEMS = [
 
 
 const Footer = () => {
+
+  const { t } = useTranslation()
 
   return (
 
@@ -95,7 +98,7 @@ const Footer = () => {
 
 
         <p className="mt-6 text-right text-sm italic text-saffron-400">
-          Discover Nepal — Beyond Everest
+          {t("footer.discoverBeyondEverest")}
         </p>
 
 
@@ -117,8 +120,7 @@ const Footer = () => {
 
 
           <p className="text-sm text-gray-400">
-            Discover destinations, plan budgets,
-            and travel safely through Nepal.
+            {t("footer.tagline")}
           </p>
 
         </div>
@@ -129,7 +131,7 @@ const Footer = () => {
         <div>
 
           <h4 className="text-white font-semibold mb-3">
-            Explore
+            {t("footer.explore")}
           </h4>
 
 
@@ -140,7 +142,7 @@ const Footer = () => {
                 to="/destinations"
                 className="hover:text-white"
               >
-                Destinations
+                {t("nav.destinations")}
               </Link>
             </li>
 
@@ -160,7 +162,7 @@ const Footer = () => {
                 to="/budget-estimator"
                 className="hover:text-white"
               >
-                Budget Estimator
+                {t("nav.budgetPlanner")}
               </Link>
             </li>
 
@@ -170,7 +172,7 @@ const Footer = () => {
                 to="/risk-alerts"
                 className="hover:text-white"
               >
-                Risk Alerts
+                {t("nav.riskAnalysis")}
               </Link>
             </li>
 
@@ -185,7 +187,7 @@ const Footer = () => {
         <div>
 
           <h4 className="text-white font-semibold mb-3">
-            Provinces
+            {t("footer.provinces")}
           </h4>
 
 
@@ -218,7 +220,7 @@ const Footer = () => {
         <div>
 
           <h4 className="text-white font-semibold mb-3">
-            Company
+            {t("footer.company")}
           </h4>
 
 
@@ -229,7 +231,7 @@ const Footer = () => {
                 to="/about"
                 className="hover:text-white"
               >
-                About Us
+                {t("footer.aboutUs")}
               </Link>
             </li>
 
@@ -239,7 +241,7 @@ const Footer = () => {
                 to="/contact"
                 className="hover:text-white"
               >
-                Contact
+                {t("footer.contact")}
               </Link>
             </li>
 
@@ -249,7 +251,7 @@ const Footer = () => {
                 to="/emergency"
                 className="hover:text-white"
               >
-                Emergency
+                {t("footer.emergency")}
               </Link>
             </li>
 
@@ -261,7 +263,7 @@ const Footer = () => {
           <div className="mt-4 text-xs space-y-1 text-gray-400">
 
             <p>
-              🚓 Police:
+              🚓 {t("footer.police")}:
               <a href="tel:100" className="text-white ml-1">
                 100
               </a>
@@ -269,7 +271,7 @@ const Footer = () => {
 
 
             <p>
-              🚑 Ambulance:
+              🚑 {t("footer.ambulance")}:
               <a href="tel:102" className="text-white ml-1">
                 102
               </a>
@@ -277,7 +279,7 @@ const Footer = () => {
 
 
             <p>
-              🔥 Fire:
+              🔥 {t("footer.fire")}:
               <a href="tel:101" className="text-white ml-1">
                 101
               </a>
@@ -296,7 +298,7 @@ const Footer = () => {
         <div>
 
           <h4 className="text-white font-semibold mb-3">
-            Contact
+            {t("footer.contact")}
           </h4>
 
 
@@ -366,7 +368,7 @@ const Footer = () => {
 
       <div className="border-t border-gray-700 py-4 text-center text-xs text-gray-500">
 
-        © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+        © {new Date().getFullYear()} {APP_NAME}. {t("footer.allRightsReserved")}
 
       </div>
 

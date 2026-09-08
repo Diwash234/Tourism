@@ -1,184 +1,177 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiCheck, FiX, FiInfo, FiMapPin, FiCalendar, FiDollarSign } from "react-icons/fi"
+import { FiCheck, FiX, FiMapPin, FiUser, FiImage, FiZoomIn } from "react-icons/fi"
+import adminPanelApi from "../../api/adminPanelApi"
+import Loader from "../../components/common/Loader"
+import EmptyState from "../../components/common/EmptyState"
+import useToast from "../../hooks/useToast"
 
-export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject }) {
-  const [inspectingPlace, setInspectingPlace] = useState(null)
+/**
+ * PlaceApprovals — real, working feature. Confirmed by reading
+ * tourist/views.py directly: DestinationViewSet.approve() is a genuine
+ * admin-only endpoint (POST /destinations/{slug}/approve/) that writes
+ * an audit log and emails the submitter. Staff accounts see ALL
+ * destinations (including pending) via the normal list endpoint's own
+ * get_queryset() — there's no server-side ?status=pending filter yet
+ * (see BACKEND_IMPROVEMENTS.md), so pending items are filtered here.
+ *
+ * ADDED: full-size clickable image preview before approving/rejecting
+ * -- was a small 128x96 thumbnail with no way to actually inspect the
+ * photo before making a moderation decision. Also fixed a real bug
+ * server-side (serializers.py) so this reliably shows exactly what
+ * the tourist submitted, never an auto-fetched stock photo standing
+ * in for it (that auto-fetch is now gated to approved destinations
+ * only, so an unreviewed pending submission never gets one).
+ */
+const PlaceApprovals = () => {
+  const [destinations, setDestinations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [reviewNotes, setReviewNotes] = useState({}) // { [slug]: note }
+  const [actingOn, setActingOn] = useState(null)
+  const [lightboxUrl, setLightboxUrl] = useState(null)
+  const { showToast } = useToast()
 
-  if (!pendingPlaces || pendingPlaces.length === 0) {
-    return (
-      <div className="p-12 text-center bg-purple-950/40 rounded-3xl border border-purple-800/40">
-        <FiCheck className="mx-auto text-emerald-400 mb-2" size={32} />
-        <p className="font-bold text-lg text-white">All submissions reviewed!</p>
-        <p className="text-sm text-purple-300">No pending destination submissions waiting for review.</p>
-      </div>
-    )
+  const load = () => {
+    setLoading(true)
+    adminPanelApi
+      .getPendingDestinations()
+      .then(({ data }) => {
+        const list = data.results || data || []
+        setDestinations(list.filter((d) => d.status === "pending"))
+      })
+      .catch(() => showToast("Could not load pending places — you may not have admin access.", "error"))
+      .finally(() => setLoading(false))
   }
 
+  useEffect(load, [])
+
+  const handleDecision = async (slug, decision) => {
+    setActingOn(slug)
+    try {
+      await adminPanelApi.approveDestination(slug, decision, reviewNotes[slug] || "")
+      setDestinations((prev) => prev.filter((d) => d.slug !== slug))
+      showToast(decision === "approved" ? "Place approved" : "Place rejected", "success")
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Action failed", "error")
+    } finally {
+      setActingOn(null)
+    }
+  }
+
+  if (loading) return <Loader />
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {pendingPlaces.map((p) => (
-          <motion.div
-            key={p.id}
-            whileHover={{ y: -4 }}
-            className="bg-purple-950/70 border border-purple-700/50 rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between"
-          >
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-gray-950">
-                    {p.category_name}
-                  </span>
-                  <h4 className="text-xl font-bold text-white mt-1">{p.name}</h4>
-                  <p className="text-xs text-purple-300">
-                    📍 {p.municipality || p.district} {p.ward_number ? `(Ward ${p.ward_number})` : ""}, {p.province}
-                  </p>
-                </div>
-                <span className="text-[11px] text-purple-300 font-medium">By: {p.created_by}</span>
-              </div>
+    <div className="container-app py-10 fade-in">
+      <h1 className="section-title">Place Approvals</h1>
+      <p className="text-gray-500 text-sm mb-6">
+        Review tourist-submitted places before they go live. Approving or rejecting notifies the submitter automatically.
+      </p>
 
-              {p.cover_image_url && (
-                <div className="h-44 rounded-xl overflow-hidden border border-purple-800">
-                  <img src={p.cover_image_url} alt={p.name} className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              <div className="p-3.5 rounded-xl bg-purple-900/40 border border-purple-800/40 text-xs text-purple-100 space-y-1.5">
-                <p><b>Description:</b> {p.description || "No description provided."}</p>
-                <p><b>Coordinates:</b> {p.latitude?.toFixed(4)}, {p.longitude?.toFixed(4)} ({p.altitude || "Altitude N/A"})</p>
-                {p.history && <p><b>History:</b> {p.history}</p>}
-                {p.nearest_hospital_info && <p><b>Hospital:</b> {p.nearest_hospital_info}</p>}
-                {p.nearest_hotel_info && <p><b>Hotel:</b> {p.nearest_hotel_info}</p>}
-              </div>
-            </div>
-
-            {/* GREEN Accept & RED Reject Buttons */}
-            <div className="flex items-center justify-between gap-2 pt-3 border-t border-purple-800/40">
-              <button
-                onClick={() => setInspectingPlace(p)}
-                className="px-3.5 py-2 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-semibold flex items-center gap-1.5 border border-purple-700"
+      {destinations.length ? (
+        <AnimatePresence>
+          <div className="space-y-4">
+            {destinations.map((d) => (
+              <motion.div
+                key={d.slug}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="card-base p-5"
               >
-                <FiInfo size={13} /> View All Details
-              </button>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onReject(p.id)}
-                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/30 transition-all"
-                >
-                  <FiX size={15} /> Reject (Red)
-                </button>
-                <button
-                  onClick={() => onApprove(p.id)}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/30 transition-all"
-                >
-                  <FiCheck size={16} /> Accept & Publish (Green)
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Full inspection modal */}
-      <AnimatePresence>
-        {inspectingPlace && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-gradient-to-br from-[#1d0626] via-[#320a3d] to-[#4c0d38] border border-purple-500/60 rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-start justify-between border-b border-purple-700/60 pb-4">
-                <div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-400 text-gray-950">
-                    {inspectingPlace.category_name}
-                  </span>
-                  <h2 className="text-2xl font-black text-white mt-1">{inspectingPlace.name}</h2>
-                  <p className="text-xs text-purple-300">
-                    Submitted by: <b>{inspectingPlace.created_by}</b> · {new Date(inspectingPlace.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <button onClick={() => setInspectingPlace(null)} className="p-2 rounded-full bg-purple-900/60 hover:bg-purple-800 text-purple-200">
-                  <FiX size={20} />
-                </button>
-              </div>
-
-              {inspectingPlace.cover_image_url && (
-                <div className="h-64 rounded-2xl overflow-hidden border border-purple-700 shadow-lg">
-                  <img src={inspectingPlace.cover_image_url} alt={inspectingPlace.name} className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-purple-950/80 border border-purple-700/50 text-xs">
-                <div>
-                  <span className="text-purple-300">Province</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.province || "Gandaki"}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">District</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.district}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">Municipality</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.municipality || "N/A"}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">Ward Number</span>
-                  <p className="font-bold text-white mt-0.5">{inspectingPlace.ward_number ? `Ward ${inspectingPlace.ward_number}` : "N/A"}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">Latitude</span>
-                  <p className="font-bold text-amber-300 mt-0.5">{inspectingPlace.latitude?.toFixed(6)}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">Longitude</span>
-                  <p className="font-bold text-amber-300 mt-0.5">{inspectingPlace.longitude?.toFixed(6)}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">Altitude</span>
-                  <p className="font-bold text-cyan-300 mt-0.5">{inspectingPlace.altitude || "N/A"}</p>
-                </div>
-                <div>
-                  <span className="text-purple-300">Entry Fee</span>
-                  <p className="font-bold text-emerald-300 mt-0.5">NPR {inspectingPlace.entry_fee || 0}</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800">
-                  <h4 className="font-bold text-amber-300 mb-1">Full Description:</h4>
-                  <p className="text-purple-100 leading-relaxed whitespace-pre-line">{inspectingPlace.description}</p>
-                </div>
-
-                {inspectingPlace.history && (
-                  <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800">
-                    <h4 className="font-bold text-amber-300 mb-1">Historical & Cultural Heritage:</h4>
-                    <p className="text-purple-100 leading-relaxed whitespace-pre-line">{inspectingPlace.history}</p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <FiMapPin className="text-himalaya-500 shrink-0" /> {d.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">{d.short_description || d.description}</p>
+                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><FiUser size={12} /> {d.city}, {d.country}</span>
+                      {d.category_name && <span className="badge-risk-moderate">{d.category_name}</span>}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-700/60">
-                <button
-                  onClick={() => onReject(inspectingPlace.id)}
-                  className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-rose-600/30"
-                >
-                  <FiX size={16} /> Reject Place (Red)
-                </button>
-                <button
-                  onClick={() => onApprove(inspectingPlace.id)}
-                  className="px-8 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-500/30"
-                >
-                  <FiCheck size={18} /> Accept & Publish to Database (Green)
-                </button>
-              </div>
-            </motion.div>
+                  {/* ADDED: proper-sized, clickable preview instead of a
+                      tiny 128x96 thumbnail -- an admin needs to actually
+                      see the submitted photo clearly before approving
+                      or rejecting it, not squint at a postage stamp. */}
+                  {d.cover_image_url ? (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxUrl(d.cover_image_url)}
+                      className="relative w-full sm:w-48 h-36 shrink-0 rounded-xl overflow-hidden group"
+                    >
+                      <img src={d.cover_image_url} alt={d.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                        <FiZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={22} />
+                      </div>
+                    </button>
+                  ) : (
+                    <div className="w-full sm:w-48 h-36 shrink-0 rounded-xl bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 gap-1">
+                      <FiImage size={20} />
+                      <span className="text-xs">No photo submitted</span>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  placeholder="Review note (optional, sent to submitter)"
+                  className="input-field mt-3 text-sm"
+                  value={reviewNotes[d.slug] || ""}
+                  onChange={(e) => setReviewNotes((prev) => ({ ...prev, [d.slug]: e.target.value }))}
+                />
+
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={() => handleDecision(d.slug, "approved")}
+                    disabled={actingOn === d.slug}
+                    className="flex-1 flex items-center justify-center gap-2 bg-forest-500 hover:bg-forest-600 text-white font-semibold py-2 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <FiCheck /> Approve
+                  </button>
+                  <button
+                    onClick={() => handleDecision(d.slug, "rejected")}
+                    disabled={actingOn === d.slug}
+                    className="flex-1 flex items-center justify-center gap-2 bg-nepalred-500 hover:bg-nepalred-600 text-white font-semibold py-2 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <FiX /> Reject
+                  </button>
+                </div>
+              </motion.div>
+            ))}
           </div>
+        </AnimatePresence>
+      ) : (
+        <EmptyState title="Nothing pending" subtitle="All caught up — no submissions waiting for review." />
+      )}
+
+      {/* ADDED: full-size lightbox for inspecting a submitted photo
+          before making a decision. */}
+      <AnimatePresence>
+        {lightboxUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxUrl(null)}
+            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6 cursor-zoom-out"
+          >
+            <img
+              src={lightboxUrl}
+              alt="Full preview"
+              className="max-w-full max-h-full rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-5 right-5 text-white bg-black/40 rounded-full p-2 hover:bg-black/60"
+            >
+              <FiX size={20} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
   )
 }
+
+export default PlaceApprovals

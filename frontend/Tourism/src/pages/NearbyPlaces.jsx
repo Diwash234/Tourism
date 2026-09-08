@@ -10,6 +10,7 @@ import nearbyApi from "../api/nearbyApi"
 import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
+import SmartImage from "../components/common/SmartImage"
 import { FiMapPin } from "react-icons/fi"
 
 const NearbyPlaces = () => {
@@ -70,7 +71,23 @@ const NearbyPlaces = () => {
                   transition={{ delay: Math.min(i * 0.04, 0.4) }}
                   className="card-base p-4 flex items-center gap-3"
                 >
-                  <FiMapPin className="text-himalaya-500" />
+                  {/* ADDED: this used to be a plain FiMapPin icon for
+                      every single place regardless of category (hotel,
+                      shop, ATM, bank, restaurant...) -- zero images
+                      anywhere on this page. SmartImage live-fetches a
+                      real photo per place/category and falls back to
+                      the original pin icon if nothing relevant is
+                      found, so this never looks worse than before. */}
+                  <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-himalaya-50 flex items-center justify-center">
+                    <SmartImage
+                      name={p.name}
+                      context={p.category ? `${p.category} Nepal` : "Nepal"}
+                      seed={i}
+                      alt={p.name}
+                      showAttribution={false}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
                   <div>
                     <p className="font-medium text-sm">

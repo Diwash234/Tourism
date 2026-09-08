@@ -296,13 +296,14 @@ export const AuthProvider = ({ children }) => {
 
 
   // ADMIN ONLY
-  // superuser OR explicit admin role
+  // superuser OR explicit admin role values used by the backend RBAC
+  const normalizedRole = String(user?.role || "").toLowerCase()
+  const adminRoles = new Set(["admin", "super_admin", "tourism_admin"])
 
   const isAdmin =
       user?.is_admin === true ||
       user?.is_superuser === true ||
-      user?.role === "admin"
-
+      adminRoles.has(normalizedRole)
 
 
 

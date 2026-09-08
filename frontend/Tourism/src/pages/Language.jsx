@@ -7,7 +7,7 @@ import DestinationCard from "../components/cards/DestinationCard"
 import SearchBar from "../components/common/SearchBar"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
-import PlaceholderImage from "../components/common/PlaceholderImage"
+import SmartImage from "../components/common/SmartImage"
 
 const Language = () => {
   const [query, setQuery] = useState("")
@@ -142,18 +142,14 @@ const Language = () => {
                   className="card-base overflow-hidden group block"
                 >
                   <div className="relative h-56 overflow-hidden">
-                    {district.cover_image_url ? (
-                      <img
-                        src={district.cover_image_url}
-                        alt={district.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <PlaceholderImage
-                        seed={district.name.length}
-                        className="w-full h-full group-hover:scale-105 transition-transform duration-500"
-                      />
-                    )}
+                    <SmartImage
+                      src={district.cover_image_url}
+                      name={district.name}
+                      context="Nepal district"
+                      seed={district.name.length}
+                      alt={district.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                   </div>
 
                   <div className="p-4">

@@ -1,5 +1,5 @@
 import { FiMapPin, FiStar, FiWifi, FiWind, FiNavigation, FiImage } from "react-icons/fi"
-import PlaceholderImage from "../common/PlaceholderImage"
+import SmartImage from "../common/SmartImage"
 
 const STATUS_STYLE = {
   available: "badge-risk-low",
@@ -57,11 +57,14 @@ const HotelCard = ({ hotel, destinationName }) => {
   return (
     <div className="card-base overflow-hidden">
       <div className="relative h-40">
-        {gallery?.[0] ? (
-          <img src={gallery[0]} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          <PlaceholderImage seed={hotel.id} className="w-full h-full" />
-        )}
+        <SmartImage
+          src={gallery?.[0]}
+          name={name}
+          context={destinationName ? `${destinationName} Nepal hotel` : "Nepal hotel"}
+          seed={hotel.id}
+          alt={name}
+          className="w-full h-full object-cover"
+        />
         {gallery && gallery.length > 1 && (
           <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
             <FiImage size={11} /> +{gallery.length - 1}

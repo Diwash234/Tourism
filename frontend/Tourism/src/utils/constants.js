@@ -86,20 +86,20 @@ export const PAGE_SIZE = 12
 // Main Navigation
 // -----------------------------------------
 export const NAV_LINKS = [
-  { label: "Destinations", path: "/destinations" },
-  { label: "Budget Planner", path: "/budget-estimator" },
-  { label: "Itinerary", path: "/itinerary" },
-  { label: "Risk Analysis", path: "/risk-alerts" },
-  { label: "Navigation", path: "/navigation" },
-  { label: "Emergency", path: "/emergency" },
-  { label: "Translation", path: "/translation" },
+  { labelKey: "nav.destinations", label: "Destinations", path: "/destinations" },
+  { labelKey: "nav.budgetPlanner", label: "Budget Planner", path: "/budget-estimator" },
+  { labelKey: "nav.itinerary", label: "Itinerary", path: "/itinerary" },
+  { labelKey: "nav.riskAnalysis", label: "Risk Analysis", path: "/risk-alerts" },
+  { labelKey: "nav.navigation", label: "Navigation", path: "/navigation" },
+  { labelKey: "nav.emergency", label: "Emergency", path: "/emergency" },
+  { labelKey: "nav.translation", label: "Translation", path: "/translation" },
 ]
 
 // -----------------------------------------
 // Authenticated User Navigation
 // -----------------------------------------
 export const USER_NAV_LINKS = [
-  { label: "Favorites", path: "/favorites" },
-  { label: "Notifications", path: "/notifications" },
-  { label: "Settings", path: "/settings" },
+  { labelKey: "nav.favorites", label: "Favorites", path: "/favorites" },
+  { labelKey: "nav.notifications", label: "Notifications", path: "/notifications" },
+  { labelKey: "nav.settings", label: "Settings", path: "/settings" },
 ]

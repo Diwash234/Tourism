@@ -1,7 +1,14 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi"
 import PlaceholderImage from "../../components/common/PlaceholderImage"
+import { resolvePlaceImages } from "../../utils/imageProviders"
+
+// Minimum photos we want visible in the gallery grid before topping up
+// with live-fetched ones (cover + 5 grid tiles = 6 total). Raised from
+// the original 6 so well-photographed destinations show more variety.
+const TARGET_TOTAL_IMAGES = 8
+
 /**
  * DestinationGallery
  *
@@ -10,17 +17,57 @@ import PlaceholderImage from "../../components/common/PlaceholderImage"
  * photos still only ever showed 2. This renders every image actually
  * present: the cover photo large, up to 5 more in a grid, and a
  * "+N more" tile + click-through lightbox for anything beyond that.
+ *
+ * ADDED: when the backend has fewer than TARGET_TOTAL_IMAGES photos for
+ * this destination (or none at all -- the common case until
+ * `manage.py backfill_destination_images` has been run), this now tops
+ * the gallery up with live-fetched, verified Unsplash/Wikimedia photos
+ * (see utils/imageProviders.js) so the page never looks empty while
+ * still preferring real backend photos first, in original order.
  */
 const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destinationName }) => {
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [liveImages, setLiveImages] = useState([])
 
-  const galleryUrls = gallery
+  const backendGalleryUrls = gallery
     .map((g) => g.image || g.external_url)
     .filter(Boolean)
+  const backendTotal = (coverImageUrl ? 1 : 0) + backendGalleryUrls.length
+
+  useEffect(() => {
+    let cancelled = false
+    const needed = TARGET_TOTAL_IMAGES - backendTotal
+    if (needed <= 0 || !destinationName) return
+    resolvePlaceImages(destinationName, { count: needed }).then((results) => {
+      if (!cancelled) setLiveImages(results)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationName, backendTotal])
+
+  const liveUrls = liveImages.map((img) => img.url)
+  const liveSourceByUrl = new Map(liveImages.map((img) => [img.url, img.source]))
+  // See SmartImage.jsx for why only Wikimedia is labeled as a specific
+  // source -- stock-photo sources are keyword-matched, not location-
+  // verified, so they're labeled honestly as representative.
+  const SOURCE_LABELS = {
+    wikimedia: "Wikimedia",
+    unsplash: "Representative photo", pexels: "Representative photo",
+    pixabay: "Representative photo", openverse: "Representative photo",
+  }
+  // Live photos only fill in where the backend has nothing -- if there's
+  // no real cover image, the first live photo becomes the cover instead
+  // of a gradient, and the rest top up the grid.
+  const effectiveCoverImageUrl = coverImageUrl || liveUrls[0] || null
+  const remainingLiveUrls = coverImageUrl ? liveUrls : liveUrls.slice(1)
+  const galleryUrls = [...backendGalleryUrls, ...remainingLiveUrls]
+  const liveUrlSet = new Set(liveUrls)
 
   // Cover image counts as the first slide too, so the lightbox can page
   // through everything including it, not just the grid thumbnails.
-  const allImages = coverImageUrl ? [coverImageUrl, ...galleryUrls] : galleryUrls
+  const allImages = effectiveCoverImageUrl ? [effectiveCoverImageUrl, ...galleryUrls] : galleryUrls
   const visibleGridImages = galleryUrls.slice(0, 5)
   const remainingCount = galleryUrls.length - visibleGridImages.length
 
@@ -32,13 +79,20 @@ const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destin
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-8 rounded-xl2 overflow-hidden">
-        {coverImageUrl ? (
-          <img
-            src={coverImageUrl}
-            alt={destinationName}
-            onClick={() => openLightbox(0)}
-            className="lg:col-span-2 h-80 w-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
-          />
+        {effectiveCoverImageUrl ? (
+          <div className="relative lg:col-span-2 h-80 w-full">
+            <img
+              src={effectiveCoverImageUrl}
+              alt={destinationName}
+              onClick={() => openLightbox(0)}
+              className="h-full w-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+            />
+            {liveUrlSet.has(effectiveCoverImageUrl) && (
+              <span className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                {SOURCE_LABELS[liveSourceByUrl.get(effectiveCoverImageUrl)] || "Live photo"}
+              </span>
+            )}
+          </div>
         ) : (
           <PlaceholderImage seed={destinationId} className="lg:col-span-2 h-80 w-full" iconSize={40} />
         )}
@@ -46,7 +100,7 @@ const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destin
         <div className="grid grid-cols-2 lg:grid-cols-1 grid-rows-2 gap-3">
           {visibleGridImages.length > 0 ? (
             visibleGridImages.slice(0, 2).map((url, i) => {
-              const allImagesIndex = coverImageUrl ? i + 1 : i
+              const allImagesIndex = effectiveCoverImageUrl ? i + 1 : i
               const isLastVisibleTile = i === 1 && remainingCount > 0
               return (
                 <div
@@ -59,6 +113,11 @@ const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destin
                     alt={`${destinationName} ${i + 2}`}
                     className="h-full w-full object-cover group-hover:opacity-90 transition-opacity"
                   />
+                  {liveUrlSet.has(url) && !isLastVisibleTile && (
+                    <span className="absolute bottom-1.5 right-1.5 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      {SOURCE_LABELS[liveSourceByUrl.get(url)] || "Live photo"}
+                    </span>
+                  )}
                   {isLastVisibleTile && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-semibold text-lg">
                       +{remainingCount} more

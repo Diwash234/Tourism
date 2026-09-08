@@ -7,7 +7,7 @@ import {
   FiDollarSign,
 } from "react-icons/fi"
 import { motion } from "framer-motion"
-import PlaceholderImage from "../common/PlaceholderImage"
+import SmartImage from "../common/SmartImage"
 
 const RISK_STYLES = {
   low: {
@@ -145,38 +145,20 @@ const DestinationCard = ({
 
       <div className="relative h-48 overflow-hidden">
 
-        {
-          cover_image_url ?
-
-          (
-
-          <img
-            src={cover_image_url}
-            alt={name}
-            className="
-            w-full
-            h-full
-            object-cover
-            group-hover:scale-110
-            transition-transform
-            duration-500
-            "
-          />
-
-          )
-
-          :
-
-          (
-
-          <PlaceholderImage
-            seed={id}
-            className="w-full h-full"
-          />
-
-          )
-
-        }
+        <SmartImage
+          src={cover_image_url}
+          name={name}
+          seed={id}
+          alt={name}
+          className="
+          w-full
+          h-full
+          object-cover
+          group-hover:scale-110
+          transition-transform
+          duration-500
+          "
+        />
 
 
 

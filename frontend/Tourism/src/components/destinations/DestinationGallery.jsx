@@ -1,110 +1,195 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiMaximize2, FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi"
+import { FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi"
+import PlaceholderImage from "../../components/common/PlaceholderImage"
+import { resolvePlaceImages } from "../../utils/imageProviders"
 
-export default function DestinationGallery({ images = [], name = "Destination" }) {
-  const [activeIdx, setActiveIdx] = useState(0)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
+// Minimum photos we want visible in the gallery grid before topping up
+// with live-fetched ones (cover + 5 grid tiles = 6 total). Raised from
+// the original 6 so well-photographed destinations show more variety.
+const TARGET_TOTAL_IMAGES = 8
 
-  if (!images || images.length === 0) return null
+/**
+ * DestinationGallery
+ *
+ * Was previously hardcoded in DestinationDetails.jsx to show exactly
+ * gallery[0] and gallery[1] -- meaning a destination with 5-10 real
+ * photos still only ever showed 2. This renders every image actually
+ * present: the cover photo large, up to 5 more in a grid, and a
+ * "+N more" tile + click-through lightbox for anything beyond that.
+ *
+ * ADDED: when the backend has fewer than TARGET_TOTAL_IMAGES photos for
+ * this destination (or none at all -- the common case until
+ * `manage.py backfill_destination_images` has been run), this now tops
+ * the gallery up with live-fetched, verified Unsplash/Wikimedia photos
+ * (see utils/imageProviders.js) so the page never looks empty while
+ * still preferring real backend photos first, in original order.
+ */
+const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destinationName }) => {
+  const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [liveImages, setLiveImages] = useState([])
+
+  const backendGalleryUrls = gallery
+    .map((g) => g.image || g.external_url)
+    .filter(Boolean)
+  const backendTotal = (coverImageUrl ? 1 : 0) + backendGalleryUrls.length
+
+  useEffect(() => {
+    let cancelled = false
+    const needed = TARGET_TOTAL_IMAGES - backendTotal
+    if (needed <= 0 || !destinationName) return
+    resolvePlaceImages(destinationName, { count: needed }).then((results) => {
+      if (!cancelled) setLiveImages(results)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationName, backendTotal])
+
+  const liveUrls = liveImages.map((img) => img.url)
+  const liveSourceByUrl = new Map(liveImages.map((img) => [img.url, img.source]))
+  // See SmartImage.jsx for why only Wikimedia is labeled as a specific
+  // source -- stock-photo sources are keyword-matched, not location-
+  // verified, so they're labeled honestly as representative.
+  const SOURCE_LABELS = {
+    wikimedia: "Wikimedia",
+    unsplash: "Representative photo", pexels: "Representative photo",
+    pixabay: "Representative photo", openverse: "Representative photo",
+  }
+  // Live photos only fill in where the backend has nothing -- if there's
+  // no real cover image, the first live photo becomes the cover instead
+  // of a gradient, and the rest top up the grid.
+  const effectiveCoverImageUrl = coverImageUrl || liveUrls[0] || null
+  const remainingLiveUrls = coverImageUrl ? liveUrls : liveUrls.slice(1)
+  const galleryUrls = [...backendGalleryUrls, ...remainingLiveUrls]
+  const liveUrlSet = new Set(liveUrls)
+
+  // Cover image counts as the first slide too, so the lightbox can page
+  // through everything including it, not just the grid thumbnails.
+  const allImages = effectiveCoverImageUrl ? [effectiveCoverImageUrl, ...galleryUrls] : galleryUrls
+  const visibleGridImages = galleryUrls.slice(0, 5)
+  const remainingCount = galleryUrls.length - visibleGridImages.length
+
+  const openLightbox = (indexInAllImages) => setLightboxIndex(indexInAllImages)
+  const closeLightbox = () => setLightboxIndex(null)
+  const showNext = () => setLightboxIndex((i) => (i + 1) % allImages.length)
+  const showPrev = () => setLightboxIndex((i) => (i - 1 + allImages.length) % allImages.length)
 
   return (
-    <div className="space-y-3">
-      <div className="relative h-[380px] sm:h-[480px] rounded-3xl overflow-hidden shadow-2xl bg-black group">
-        <img
-          src={images[activeIdx] || images[0]}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 cursor-pointer"
-          onClick={() => setLightboxOpen(true)}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => setLightboxOpen(true)}
-            className="p-2.5 rounded-xl bg-black/60 hover:bg-black/80 text-white backdrop-blur flex items-center gap-1.5 text-xs font-semibold"
-          >
-            <FiMaximize2 size={14} /> Fullscreen ({images.length} Photos)
-          </button>
-        </div>
-
-        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
-          <div>
-            <span className="px-3 py-1 rounded-full bg-amber-400 text-gray-950 font-bold text-xs uppercase">
-              {name}
-            </span>
-            <p className="text-xs text-white/80 mt-1">Photo {activeIdx + 1} of {images.length}</p>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-8 rounded-xl2 overflow-hidden">
+        {effectiveCoverImageUrl ? (
+          <div className="relative lg:col-span-2 h-80 w-full">
+            <img
+              src={effectiveCoverImageUrl}
+              alt={destinationName}
+              onClick={() => openLightbox(0)}
+              className="h-full w-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+            />
+            {liveUrlSet.has(effectiveCoverImageUrl) && (
+              <span className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                {SOURCE_LABELS[liveSourceByUrl.get(effectiveCoverImageUrl)] || "Live photo"}
+              </span>
+            )}
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveIdx((p) => (p === 0 ? images.length - 1 : p - 1))}
-              className="p-3 rounded-full bg-white/30 hover:bg-white text-gray-900 backdrop-blur transition-all"
-            >
-              <FiChevronLeft size={18} />
-            </button>
-            <button
-              onClick={() => setActiveIdx((p) => (p === images.length - 1 ? 0 : p + 1))}
-              className="p-3 rounded-full bg-white/30 hover:bg-white text-gray-900 backdrop-blur transition-all"
-            >
-              <FiChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
+        ) : (
+          <PlaceholderImage seed={destinationId} className="lg:col-span-2 h-80 w-full" iconSize={40} />
+        )}
 
-      <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-        {images.map((imgUrl, idx) => (
-          <button
-            key={idx}
-            onClick={() => setActiveIdx(idx)}
-            className={`relative w-24 sm:w-28 h-16 sm:h-20 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${
-              activeIdx === idx
-                ? "border-amber-400 ring-2 ring-amber-400 scale-105"
-                : "border-transparent opacity-60 hover:opacity-100"
-            }`}
-          >
-            <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
-          </button>
-        ))}
+        <div className="grid grid-cols-2 lg:grid-cols-1 grid-rows-2 gap-3">
+          {visibleGridImages.length > 0 ? (
+            visibleGridImages.slice(0, 2).map((url, i) => {
+              const allImagesIndex = effectiveCoverImageUrl ? i + 1 : i
+              const isLastVisibleTile = i === 1 && remainingCount > 0
+              return (
+                <div
+                  key={url}
+                  onClick={() => openLightbox(allImagesIndex)}
+                  className="relative h-full w-full cursor-pointer group"
+                >
+                  <img
+                    src={url}
+                    alt={`${destinationName} ${i + 2}`}
+                    className="h-full w-full object-cover group-hover:opacity-90 transition-opacity"
+                  />
+                  {liveUrlSet.has(url) && !isLastVisibleTile && (
+                    <span className="absolute bottom-1.5 right-1.5 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      {SOURCE_LABELS[liveSourceByUrl.get(url)] || "Live photo"}
+                    </span>
+                  )}
+                  {isLastVisibleTile && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-semibold text-lg">
+                      +{remainingCount} more
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          ) : (
+            <>
+              <PlaceholderImage seed={destinationId + 1} className="h-full w-full" />
+              <PlaceholderImage seed={destinationId + 2} className="h-full w-full" />
+            </>
+          )}
+        </div>
       </div>
 
       <AnimatePresence>
-        {lightboxOpen && (
-          <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md">
-            <div className="flex items-center justify-between text-white border-b border-white/10 pb-3">
-              <span className="font-bold text-base text-amber-300">
-                {name} · Photo {activeIdx + 1} of {images.length}
-              </span>
-              <button
-                onClick={() => setLightboxOpen(false)}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/40 text-white"
-              >
-                <FiX size={24} />
-              </button>
-            </div>
+        {lightboxIndex !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            onClick={closeLightbox}
+          >
+            <button
+              onClick={closeLightbox}
+              className="absolute top-5 right-5 text-white/80 hover:text-white p-2"
+              aria-label="Close"
+            >
+              <FiX size={28} />
+            </button>
 
-            <div className="flex-1 flex items-center justify-center relative my-4">
-              <img
-                src={images[activeIdx]}
-                alt="Fullscreen"
-                className="max-h-[78vh] max-w-full object-contain rounded-2xl shadow-2xl"
-              />
+            {allImages.length > 1 && (
               <button
-                onClick={() => setActiveIdx((p) => (p === 0 ? images.length - 1 : p - 1))}
-                className="absolute left-4 p-4 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur"
+                onClick={(e) => { e.stopPropagation(); showPrev() }}
+                className="absolute left-4 text-white/80 hover:text-white p-2"
+                aria-label="Previous image"
               >
-                <FiChevronLeft size={28} />
+                <FiChevronLeft size={32} />
               </button>
+            )}
+
+            <motion.img
+              key={lightboxIndex}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              src={allImages[lightboxIndex]}
+              alt={`${destinationName} full size`}
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
+            />
+
+            {allImages.length > 1 && (
               <button
-                onClick={() => setActiveIdx((p) => (p === images.length - 1 ? 0 : p + 1))}
-                className="absolute right-4 p-4 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur"
+                onClick={(e) => { e.stopPropagation(); showNext() }}
+                className="absolute right-4 text-white/80 hover:text-white p-2"
+                aria-label="Next image"
               >
-                <FiChevronRight size={28} />
+                <FiChevronRight size={32} />
               </button>
-            </div>
-          </div>
+            )}
+
+            <span className="absolute bottom-5 text-white/70 text-sm">
+              {lightboxIndex + 1} / {allImages.length}
+            </span>
+          </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   )
 }
+
+export default DestinationGallery

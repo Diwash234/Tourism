@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, NavLink, useNavigate } from "react-router-dom"
 import { FiMenu, FiX, FiUser, FiBell, FiHeart, FiSearch } from "react-icons/fi"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslation } from "react-i18next"
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
 import { NAV_LINKS } from "../../utils/constants"
@@ -9,6 +10,7 @@ import { resolveSmartSearch } from "../../utils/smartSearch"
 import TourismLogo from "../branding/TourismLogo"
 
 const Navbar = () => {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [, , toggleSidebar] = useSidebarState()
   const [searchQuery, setSearchQuery] = useState("")
@@ -41,7 +43,7 @@ const Navbar = () => {
           onClick={toggleSidebar}
           className="p-2 rounded-lg text-gray-600 hover:text-himalaya-600 hover:bg-gray-100 transition-colors shrink-0 flex items-center justify-center"
           aria-label="Toggle sidebar menu"
-          title="Toggle sidebar menu"
+          title={t("common.toggleSidebar")}
         >
           <FiMenu size={20} />
         </button>
@@ -61,7 +63,7 @@ const Navbar = () => {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search destinations, hotels, emergency, budget..."
+            placeholder={t("common.searchPlaceholderDesktop")}
             className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-himalaya-500 focus:border-transparent"
           />
         </form>
@@ -80,7 +82,7 @@ const Navbar = () => {
                 }`
               }
             >
-              {link.label}
+              {link.labelKey ? t(link.labelKey) : link.label}
             </NavLink>
           ))}
         </div>
@@ -109,7 +111,7 @@ const Navbar = () => {
               >
                 <FiUser />
                 <span className="text-sm font-medium">
-                  {user?.name || "Profile"}
+                  {user?.name || t("common.profileFallback")}
                 </span>
               </Link>
 
@@ -117,17 +119,17 @@ const Navbar = () => {
                 onClick={handleLogout}
                 className="btn-outline text-sm py-1.5"
               >
-                Logout
+                {t("common.logout")}
               </button>
             </>
           ) : (
             <>
               <Link to="/login" className="btn-outline text-sm py-1.5">
-                Login
+                {t("common.login")}
               </Link>
 
               <Link to="/register" className="btn-primary text-sm py-1.5">
-                Sign Up
+                {t("common.signUp")}
               </Link>
             </>
           )}
@@ -165,7 +167,7 @@ const Navbar = () => {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search anything..."
+                  placeholder={t("common.searchPlaceholderMobile")}
                   className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-himalaya-500"
                 />
               </form>
@@ -176,29 +178,29 @@ const Navbar = () => {
                   to={link.path}
                   onClick={() => setOpen(false)}
                 >
-                  {link.label}
+                  {link.labelKey ? t(link.labelKey) : link.label}
                 </Link>
               ))}
 
               {isAuthenticated ? (
                 <>
                   <Link to="/dashboard" onClick={() => setOpen(false)}>
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
 
                   <Link to="/profile" onClick={() => setOpen(false)}>
-                    Profile
+                    {t("nav.profile")}
                   </Link>
 
                   <Link to="/notifications" onClick={() => setOpen(false)}>
-                    Notifications
+                    {t("nav.notifications")}
                   </Link>
 
                   <button
                     onClick={handleLogout}
                     className="btn-outline"
                   >
-                    Logout
+                    {t("common.logout")}
                   </button>
                 </>
               ) : (
@@ -208,7 +210,7 @@ const Navbar = () => {
                     onClick={() => setOpen(false)}
                     className="btn-outline text-center"
                   >
-                    Login
+                    {t("common.login")}
                   </Link>
 
                   <Link
@@ -216,7 +218,7 @@ const Navbar = () => {
                     onClick={() => setOpen(false)}
                     className="btn-primary text-center"
                   >
-                    Sign Up
+                    {t("common.signUp")}
                   </Link>
                 </>
               )}

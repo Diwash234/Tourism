@@ -22,11 +22,14 @@ const Login = () => {
     try {
       const userData = await login(data)
       showToast("Welcome back!", "success")
-      // NEW: previously this always navigated to /dashboard, even for
-      // admin accounts, and there was no "Admin Login" entry point
-      // anywhere. Rather than a second login form, one login now
-      // branches by role — matches how AdminRoute/isAdmin already work.
-      const fallback = userData?.role === "admin" ? "/admin" : "/dashboard"
+
+      const normalizedRole = String(userData?.role || "").toLowerCase()
+      const isAdminUser =
+        userData?.is_admin === true ||
+        userData?.is_superuser === true ||
+        ["admin", "super_admin", "tourism_admin"].includes(normalizedRole)
+
+      const fallback = isAdminUser ? "/admin" : "/dashboard"
       navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
       showToast(err?.response?.data?.message || "Invalid credentials", "error")

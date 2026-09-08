@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form"
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
 import {
   FiBell,
   FiGlobe,
@@ -13,6 +14,8 @@ import userApi from "../api/userApi"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 
+import { SUPPORTED_LANGUAGES } from "../i18n"
+
 import {
   TRANSLATION_PROVIDERS,
   getTranslationProvider,
@@ -21,6 +24,8 @@ import {
 
 
 const Settings = () => {
+
+  const { t, i18n } = useTranslation()
 
   const {
     register,
@@ -176,7 +181,7 @@ const Settings = () => {
 
 
       <h1 className="section-title">
-        Settings
+        {t("settings.title")}
       </h1>
 
 
@@ -193,6 +198,80 @@ const Settings = () => {
 
 
 
+        {/* Website Language -- ADDED. This is the piece that was
+            actually missing: the "Language" dropdown further down
+            saves a preference to the backend for translating
+            destination CONTENT (descriptions etc, a separate existing
+            feature -- see Translation.jsx), but nothing previously
+            read any preference back to change the SITE'S OWN text.
+            This one calls i18n.changeLanguage() directly, so the
+            navbar/sidebar/footer (and this page) switch language
+            immediately, and persists via localStorage so it's still
+            set next time you visit -- no page reload needed. */}
+
+        <div>
+
+          <h3 className="font-semibold mb-1 flex items-center gap-2">
+
+            <FiGlobe className="text-himalaya-500"/>
+
+            {t("settings.websiteLanguage")}
+
+          </h3>
+
+          <p className="text-xs text-gray-400 mb-3">
+            {t("settings.websiteLanguageDescription")}
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+
+            {SUPPORTED_LANGUAGES.map((lang) => (
+
+              <button
+
+                key={lang.code}
+
+                type="button"
+
+                onClick={() => {
+                  i18n.changeLanguage(lang.code)
+                  showToast(`${lang.nativeLabel} / ${lang.label}`, "success")
+                }}
+
+                className={`
+                  text-sm px-3 py-2 rounded-xl border text-left transition-colors
+                  ${
+                    i18n.language === lang.code
+                      ? "border-himalaya-400 bg-himalaya-50 font-medium"
+                      : "border-gray-200 hover:border-gray-300"
+                  }
+                `}
+
+              >
+                {lang.nativeLabel}
+                <span className="block text-[11px] text-gray-400">{lang.label}</span>
+              </button>
+
+            ))}
+
+          </div>
+
+        </div>
+
+
+
+
+        {/* Content Translation -- unchanged feature, just relabeled
+            to distinguish it from Website Language above. */}
+
+        <div className="border-t border-gray-100 pt-6">
+
+          <h3 className="font-semibold mb-1 flex items-center gap-2 text-gray-500">
+            {t("settings.contentTranslation")}
+          </h3>
+
+        </div>
+
 
         {/* Language */}
 
@@ -203,7 +282,7 @@ const Settings = () => {
 
             <FiGlobe className="text-himalaya-500"/>
 
-            Language
+            {t("settings.language")}
 
           </h3>
 
@@ -288,7 +367,7 @@ const Settings = () => {
             <FiCpu className="text-himalaya-500"/>
 
 
-            Translation Provider
+            {t("settings.translationProvider")}
 
 
           </h3>
@@ -297,7 +376,7 @@ const Settings = () => {
 
           <p className="text-xs text-gray-400 mb-3">
 
-            Select your preferred AI translation service.
+            {t("settings.translationProviderDescription")}
 
           </p>
 
@@ -403,7 +482,7 @@ const Settings = () => {
 
             <FiInfo size={11}/>
 
-            Saved locally on this device.
+            {t("settings.savedLocally")}
 
           </p>
 
@@ -427,12 +506,12 @@ const Settings = () => {
 
             <FiBell size={16}/>
 
-            Notification Preferences
+            {t("settings.notifications")}
 
 
             <span className="ml-auto text-[11px] text-saffron-600 bg-saffron-50 px-2 py-1 rounded-full">
 
-              Not saved yet
+              {t("settings.notSavedYet")}
 
             </span>
 
@@ -506,12 +585,12 @@ const Settings = () => {
 
             <FiDollarSign size={16}/>
 
-            Currency
+            {t("settings.currency")}
 
 
             <span className="ml-auto text-[11px] text-saffron-600 bg-saffron-50 px-2 py-1 rounded-full">
 
-              Not saved yet
+              {t("settings.notSavedYet")}
 
             </span>
 
@@ -558,9 +637,9 @@ const Settings = () => {
           {
             saving
             ?
-            "Saving..."
+            t("settings.saving")
             :
-            "Save Language"
+            t("settings.saveLanguage")
           }
 
 

@@ -27,9 +27,30 @@ import {
 } from "react-icons/fi"
 
 import { AnimatePresence, motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
+
+// ADDED: maps this sidebar's existing English labels onto the shared
+// i18n keys already used by Navbar/Footer/Settings, so switching
+// website language (see Settings.jsx) updates these links too instead
+// of only the top navbar. Entries not listed here (the long list of
+// "Discover Nepal" sub-topics, etc.) still render their plain English
+// label -- translating those is the same mechanical step, just not
+// done yet for all ~35 of them; nothing breaks either way since this
+// falls back to the original label whenever a key isn't mapped.
+const LABEL_KEY_MAP = {
+  Dashboard: "nav.dashboard",
+  Profile: "nav.profile",
+  Destinations: "nav.destinations",
+  Favorites: "nav.favorites",
+  Notifications: "nav.notifications",
+  Settings: "nav.settings",
+  Navigation: "nav.navigation",
+  Emergency: "nav.emergency",
+  Translation: "nav.translation",
+}
 
 
 const GROUPS = [
@@ -389,6 +410,9 @@ const SidebarLink = ({
   onClick
 })=>{
 
+  const { t } = useTranslation()
+  const displayLabel = LABEL_KEY_MAP[label] ? t(LABEL_KEY_MAP[label]) : label
+
   const classes =
     COLOR_CLASSES[color] || COLOR_CLASSES.himalaya
 
@@ -439,7 +463,7 @@ const SidebarLink = ({
         }
 
 
-        {label}
+        {displayLabel}
 
 
         </>
@@ -617,7 +641,7 @@ pt-4 space-y-1
 
 <NavLink
 
-to="/admin"
+to="/panel"
 
 onClick={onLinkClick}
 
@@ -644,7 +668,7 @@ Admin Dashboard
 
 <NavLink
 
-to="/admin/hotel-assignments"
+to="/panel/hotel-assignments"
 
 onClick={onLinkClick}
 
@@ -669,7 +693,32 @@ Hotel Assignments
 
 <NavLink
 
-to="/admin/tasks"
+to="/panel/media"
+
+onClick={onLinkClick}
+
+className="
+flex items-center gap-3
+px-3 py-2.5 rounded-lg
+text-sm text-gray-500
+hover:bg-nepalred-50
+"
+
+>
+
+<span className="w-[18px]" />
+
+Destination Media
+
+
+</NavLink>
+
+
+
+
+<NavLink
+
+to="/panel/tasks"
 
 onClick={onLinkClick}
 
@@ -837,16 +886,24 @@ return (
 <>
 
 
-{/* Desktop */}
+{/* Desktop -- FIXED: was `fixed left-0 top-16 w-60 xl:w-64`, a
+    hardcoded width that DashboardLayout also had to hardcode as a
+    matching `ml-60 xl:ml-64` on the content column. The two could
+    silently drift out of sync (that was the "extra space next to the
+    sidebar" bug). Now this is a normal grid child: DashboardLayout's
+    `lg:grid-cols-[15rem_1fr]` track defines the width, this just fills
+    it, and `sticky` keeps it pinned in the viewport while the page
+    scrolls, same visual result as `fixed` but without owning its own
+    width/position independently of the content column. */}
 
 <aside
 
 className="
 hidden lg:flex
-fixed left-0 top-16
+sticky top-16
 z-40
 
-w-60 xl:w-64
+w-full
 
 h-[calc(100vh-4rem)]
 
