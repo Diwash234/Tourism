@@ -436,6 +436,16 @@ export default function DestinationList() {
         </div>
       ) : destinations.length > 0 ? (
         <div className="space-y-8">
+          {/* Section heading completes the page hierarchy:
+              breadcrumb -> h1 (page) -> h2 (results) -> cards -> h2 (featured) */}
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <h2 className="text-xl sm:text-2xl font-black" style={{ color: INK }}>
+              {query ? `Results for “${query}”` : letter ? `Destinations starting with “${letter}”` : "All Nepal destinations"}
+            </h2>
+            <p className="text-xs text-gray-500 font-bold">
+              {destinations.length} shown{isGpsSorted ? " · nearest first" : ""}
+            </p>
+          </div>
           <motion.div
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -472,9 +482,9 @@ export default function DestinationList() {
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-extrabold text-2xl" style={{ color: INK }}>
+            <h2 className="font-extrabold text-2xl" style={{ color: INK }}>
               Destination Not Found
-            </h3>
+            </h2>
             <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
               No matching attractions yet. Try the AI Discovery to research and verify{` `}
               <b style={{ color: TERRACOTTA }}>"{query || letter || "this destination"}"</b>?
