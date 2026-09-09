@@ -1212,7 +1212,7 @@ class DestinationApprovalSerializer(serializers.Serializer):
 class NearbyDestinationQuerySerializer(serializers.Serializer):
     latitude = CoordinateField(min_value=Decimal("-90"), max_value=Decimal("90"))
     longitude = CoordinateField(min_value=Decimal("-180"), max_value=Decimal("180"))
-    radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=500)
+    radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=2000)
 
 
 class TranslateRequestSerializer(serializers.Serializer):

@@ -8,6 +8,11 @@ const destinationApi = {
   getDestinations: (params = {}) =>
     axiosClient.get("/destinations/", { params }),
 
+  // All destinations within radius_km of a point, nearest-first, paginated,
+  // each row annotated with distance_km (straight-line).
+  getNearbyDestinations: (params = {}) =>
+    axiosClient.get("/destinations/nearby/", { params }),
+
 
   // NEW: needed to find the "Culture & Heritage" / "Local Experience"
   // categories used by NepalExperienceSection — the CategoryViewSet was

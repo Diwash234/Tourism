@@ -48,6 +48,45 @@ export default function DestinationDetails() {
   const [videoBusy, setVideoBusy] = useState(false)
 
   const [destination, setDestination] = useState(null)
+  // Nearby & all destinations — nearest-first, paginated (radius covers all of Nepal)
+  const [nearbyDests, setNearbyDests] = useState([])
+  const [nearbyHasMore, setNearbyHasMore] = useState(false)
+  const [nearbyTotal, setNearbyTotal] = useState(0)
+  const [nearbyPage, setNearbyPage] = useState(1)
+  const [nearbyBusy, setNearbyBusy] = useState(false)
+
+  const fetchNearbyDestinations = async (page, dest) => {
+    if (!dest || !hasValidCoords(dest.latitude, dest.longitude)) return
+    try {
+      const { data } = await destinationApi.getNearbyDestinations({
+        latitude: dest.latitude,
+        longitude: dest.longitude,
+        radius_km: 2000,
+        page,
+        page_size: 12,
+      })
+      const rows = data.results || []
+      setNearbyDests((prev) => (page === 1 ? rows : [...prev, ...rows]))
+      setNearbyHasMore(Boolean(data.next))
+      setNearbyTotal(data.count || 0)
+      setNearbyPage(page)
+    } catch {
+      /* nearby list is an enhancement — never block the page on it */
+    }
+  }
+
+  useEffect(() => {
+    if (!destination) return
+    const t = setTimeout(() => { fetchNearbyDestinations(1, destination) }, 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination?.id])
+
+  const loadMoreNearby = async () => {
+    setNearbyBusy(true)
+    await fetchNearbyDestinations(nearbyPage + 1, destination)
+    setNearbyBusy(false)
+  }
   const [budget, setBudget] = useState(null)
   const [essentials, setEssentials] = useState(null)
   const [emergency, setEmergency] = useState(null)
@@ -825,6 +864,57 @@ export default function DestinationDetails() {
       </div>
 
       {extras?.length > 0 && <CMSExtras sections={extras} />}
+
+      {/* NEARBY & ALL DESTINATIONS — every destination, nearest first, with photos */}
+      {nearbyDests.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 mt-12">
+          <div className="mb-5">
+            <h2 className="text-2xl md:text-3xl font-black text-primary-950">Destinations Near {destination.name}</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              {nearbyTotal > 0 ? `${nearbyTotal.toLocaleString()} places, ` : "Every destination, "}
+              ranked by closeness to {destination.name} — nearest first, with photos. Straight-line distances.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {nearbyDests.filter((d) => d.slug !== destination.slug).map((d) => (
+              <Link
+                key={d.id}
+                to={`/destinations/${d.slug}`}
+                className="group rounded-2xl overflow-hidden bg-white border border-primary-100 shadow-sm hover:shadow-xl transition-all"
+              >
+                <div className="relative h-32 overflow-hidden bg-primary-100">
+                  <img
+                    src={getDestinationImageUrl(d)}
+                    alt={d.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  {d.distance_km != null && (
+                    <span className="absolute top-2 left-2 bg-slate-900/85 text-amber-300 text-[10px] font-black px-2 py-1 rounded-full">
+                      ≈ {d.distance_km} km
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="font-bold text-sm text-slate-900 truncate">{d.name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{d.display_city || d.city || d.district || "Nepal"}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          {nearbyHasMore && (
+            <div className="text-center mt-6">
+              <button
+                onClick={loadMoreNearby}
+                disabled={nearbyBusy}
+                className="px-6 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 text-white font-black text-sm shadow-lg disabled:opacity-50"
+              >
+                {nearbyBusy ? "Loading…" : `Show more destinations${nearbyTotal > nearbyDests.length ? ` (${(nearbyTotal - nearbyDests.length).toLocaleString()} remaining)` : ""}`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* OFFLINE TRAVEL KIT MODAL */}
       <AnimatePresence>

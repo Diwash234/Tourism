@@ -269,6 +269,35 @@ async function run() {
   }
 
   {
+    // Destination pages list ALL destinations nearest-first (not only a small radius)
+    const first = await request(`${API}/destinations/?limit=1`)
+    const row = (first.data?.results || [])[0]
+    if (row?.latitude != null && row?.longitude != null) {
+      const nearby = await request(`${API}/destinations/nearby/?latitude=${row.latitude}&longitude=${row.longitude}&radius_km=2000&page_size=5`)
+      const rows = nearby.data?.results || []
+      const sorted = rows.every((r, i) => i === 0 || (rows[i - 1].distance_km ?? 0) <= (r.distance_km ?? 0))
+      const total = nearby.data?.count || 0
+      if (nearby.res.ok && rows.length && sorted && total > rows.length && rows.every((r) => r.slug)) {
+        ok("destinations/nearby ranks ALL destinations nearest-first beyond any city radius")
+      } else fail("nearby ranking", `status=${nearby.res.status} rows=${rows.length} total=${total} sorted=${sorted}`)
+    } else fail("nearby ranking", "no seeded destination with coordinates")
+  }
+
+  {
+    const src = await sourceFile("pages/destinations/DestinationDetails.jsx")
+    if (src.includes("Destinations Near") && src.includes("getNearbyDestinations") && src.includes("Show more destinations")) {
+      ok("destination page renders the full nearby-destinations section")
+    } else fail("destination page nearby section source")
+  }
+
+  {
+    const src = await sourceFile("components/admin/HotelBookingPanel.jsx")
+    if (src.includes("Add Hotel") && src.includes("createHotel")) {
+      ok("admin hotels tab can create hotels")
+    } else fail("admin add-hotel source")
+  }
+
+  {
     const listed = await request(`${API}/destinations/?limit=1`)
     const slug = listed.data?.results?.[0]?.slug
     const emergency = slug
