@@ -2185,3 +2185,39 @@ class WorkforceOverviewStatsTests(TestCase):
         # single-day completed trip also counts: 1 × 2000 = 2000
         self.assertEqual(data["completed_earnings_estimate_npr"], 12000.0)
 
+
+class DestinationCoverImagePriorityTests(TestCase):
+    """Admin cover changes must be visible: detail `images[]` lists the
+    admin-designated cover FIRST, and cover_image_url reflects the cover."""
+
+    def setUp(self):
+        from tourist.models import Destination, DestinationImage
+        self.dest = Destination.objects.create(name="Bandipur", slug="bandipur-cover-test")
+        self.first = DestinationImage.objects.create(
+            destination=self.dest, external_url="https://old.example/first.jpg",
+            verification_status="approved", is_verified=True, is_cover=False)
+        self.cover = DestinationImage.objects.create(
+            destination=self.dest, external_url="https://new.example/cover.jpg",
+            verification_status="approved", is_verified=True, is_cover=True)
+        self.client = APIClient()
+
+    def test_detail_images_lists_cover_first(self):
+        data = self.client.get("/api/v1/destinations/bandipur-cover-test/").json()
+        self.assertEqual(data["images"][0], "https://new.example/cover.jpg")
+        self.assertIn("https://old.example/first.jpg", data["images"])
+
+    def test_cover_image_url_falls_back_to_cover_photo(self):
+        data = self.client.get("/api/v1/destinations/bandipur-cover-test/").json()
+        # No Destination.cover_image set → cover photo drives cover_image_url
+        self.assertEqual(data["cover_image_url"], "https://new.example/cover.jpg")
+
+    def test_admin_cover_url_update_visible_in_detail(self):
+        admin = User.objects.create_superuser("cover-admin@test.local", "Sup!Pass123")
+        self.client.force_authenticate(admin)
+        resp = self.client.patch(f"/api/v1/admin/destinations/{self.dest.id}/images",
+                                 {"image_url": "https://admin.example/changed.jpg"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.client.force_authenticate(None)
+        data = self.client.get("/api/v1/destinations/bandipur-cover-test/").json()
+        self.assertEqual(data["cover_image_url"], "https://admin.example/changed.jpg")
+

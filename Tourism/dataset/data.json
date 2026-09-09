@@ -1,0 +1,39 @@
+{
+  "destinations": {
+    "8526": {
+      "id": 8526,
+      "name": "Mukundeshwari Temple",
+      "slug": "mukundeshwari-temple",
+      "city": "Bandipur",
+      "city_english": "Bandipur",
+      "city_nepali": "",
+      "district": "Tanahun",
+      "province": "Gandaki",
+      "municipality": "",
+      "ward_number": null,
+      "latitude": 27.92,
+      "longitude": 84.36,
+      "distance_from_kathmandu_km": 97.45,
+      "description": "Temple of Tanahun.",
+      "short_description": "Temple of Tanahun.",
+      "status": "approved",
+      "updated_at": "2026-08-24T11:24:04.725293+00:00",
+      "images": [
+        {
+          "id": 554276,
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Palanchok_Bhagawati.jpg/960px-Palanchok_Bhagawati.jpg",
+          "caption": "Mukundeshwari Temple",
+          "is_cover": true,
+          "status": "verified"
+        },
+        {
+          "id": 548897,
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Dhanushadham_Govindapur_Janakpur_Dhanusha_Nepal_Rajesh_Dhungana_%2814%29.jpg/960px-Dhanushadham_Govindapur_Janakpur_Dhanusha_Nepal_Rajesh_Dhungana_%2814%29.jpg",
+          "caption": "Mukundeshwari Temple - View 2",
+          "is_cover": false,
+          "status": "approved"
+        }
+      ]
+    }
+  }
+}

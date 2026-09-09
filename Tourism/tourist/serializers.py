@@ -1083,10 +1083,17 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField(), allow_empty=True))
     def get_images(self, obj):
-        """Ordered list of absolute image URLs (standalone image server first, then other sources)."""
+        """Ordered list of absolute image URLs.
+
+        The admin-designated cover photo comes first so that clients reading
+        images[0] always see the admin's current choice, then the remaining
+        verified gallery photos in their stored order."""
         urls = []
         seen = set()
-        for photo in verified_destination_photos(obj):
+        photos = sorted(verified_destination_photos(obj),
+                        key=lambda p: (0 if getattr(p, "is_cover", False) else 1,
+                                       getattr(p, "ordering", 0) or 0, p.id))
+        for photo in photos:
             url = None
             if photo.image_path:
                 url = image_server_url(photo.image_path)

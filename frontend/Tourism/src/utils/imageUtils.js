@@ -5,9 +5,9 @@
  *
  * Multi-source fallback chain (each tier only used when the previous one
  * has no usable image):
- *  1. Backend-provided cover_image_url / external_url (real verified
- *     Wikimedia Commons / Flickr / WordPress.org photos + curated AI
- *     landmark photos) and the API `images[]` array.
+ *  1. Backend-provided cover_image_url / cover (the admin-controlled field —
+ *     updated by the media dashboard's set-cover/replace-cover flows), then
+ *     the API `images[]` gallery array as the next tier.
  *  2. First APPROVED gallery image.
  *  3. Local curated /images/destinations/... JPEGs for known landmarks.
  *  4. Deterministic multi-source fallback pool (Unsplash landscape photos
@@ -624,12 +624,16 @@ export const getDestinationImageUrl = (destination) => {
   if (!destination) return "/images/destinations/kathmandu/durbar-square.jpg"
   const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
   if (corrected) return corrected
+  // The cover field is what the admin sets (set-cover / replace-cover flows
+  // update it), so it MUST win over the gallery `images[]` array — otherwise
+  // admin cover changes never appear because the first (oldest) gallery
+  // photo keeps taking precedence.
+  const cover = destination.cover_image_url || destination.cover_image || destination.image_url || destination.image
+  if (isUsable(cover)) return cover
   if (Array.isArray(destination.images)) {
     const first = destination.images.find(isUsable)
     if (first) return first
   }
-  const cover = destination.cover_image_url || destination.cover_image || destination.image_url || destination.image
-  if (isUsable(cover)) return cover
   if (Array.isArray(destination.gallery)) {
     for (const media of destination.gallery) {
       if (media.verification_status === "rejected") continue
