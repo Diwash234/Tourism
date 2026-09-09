@@ -102,24 +102,28 @@ const Navbar = () => {
         {/* Search (visible on all screens; grows to fill space) */}
         {features.search && <form
           onSubmit={handleSmartSearch}
-          className="flex flex-1 min-w-0 max-w-md relative items-center"
+          className="flex flex-1 min-w-0 max-w-md items-center gap-1.5"
         >
-          <FiSearch
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
+          <div className="relative flex-1 min-w-0">
+            <FiSearch
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={16}
+            />
 
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search destinations, map, safety... (Ctrl+K)"
-            className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-14 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search destinations, map, safety... (Ctrl+K)"
+              className="w-full text-sm rounded-full border border-gray-200 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
 
+          {/* In normal flow (not absolute) so the badge can never bleed over
+              the brand when the form is squeezed at xl widths — layout e2e. */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-            className="absolute right-2 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
+            className="hidden xl:flex shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
             title="Open Command Palette (Ctrl+K)"
           >
             <span>Ctrl</span>
