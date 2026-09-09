@@ -1361,3 +1361,130 @@ class MediaActionView(APIView):
                    message=f"Image #{img.id} on '{img.destination.name}': {previous} → {img.verification_status}",
                    object_type="DestinationImage", object_id=str(img.id))
         return Response(_image_payload(img))
+
+
+# ============================================================
+# SAFETY OPERATIONS (Staff Ops spec §16)
+# Unified staff queue over the existing Alert / CurrentHazard /
+# DataReport models. 'safety' capability; every action audited.
+# ============================================================
+
+def _alert_payload(a):
+    return {"kind": "alert", "id": a.id, "title": a.title, "severity": a.severity,
+            "type": a.alert_type, "location": a.city or a.district or "Nepal",
+            "is_active": a.is_active, "is_verified": a.is_verified,
+            "source": a.source, "created_at": a.created_at}
+
+
+def _hazard_payload(h):
+    return {"kind": "hazard", "id": h.id, "title": h.title, "severity": h.severity,
+            "type": h.hazard_type, "location": h.affected_area or h.destination.name,
+            "is_active": h.is_active, "is_verified": h.verified,
+            "source": h.source_name, "created_at": h.observed_at or h.created_at}
+
+
+def _report_payload(r):
+    return {"kind": "report", "id": r.id, "title": r.description[:120] or f"{r.get_report_type_display()} report",
+            "severity": r.severity, "type": r.report_type,
+            "location": r.destination.name if r.destination else "General",
+            "status": r.status, "reporter": r.user.email if r.user else "anonymous",
+            "created_at": r.created_at}
+
+
+class SafetyOpsView(APIView):
+    """GET /api/v1/admin-panel/safety/ — alerts, hazards and user reports in one queue."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from tourist.views_admin import _require_capability as require_cap
+        from tourist.models import Alert, CurrentHazard, DataReport
+
+        require_cap(request, "safety", "view")
+        alerts = Alert.objects.order_by("-created_at")[:10]
+        hazards = CurrentHazard.objects.filter(is_active=True).select_related("destination").order_by("-observed_at")[:10]
+        reports = DataReport.objects.filter(status__in=["new", "under_review", "needs_verification"]).select_related("user", "destination").order_by("-created_at")[:10]
+        return Response({
+            "counts": {
+                "active_alerts": Alert.objects.filter(is_active=True).count(),
+                "unverified_alerts": Alert.objects.filter(is_active=True, is_verified=False).count(),
+                "active_hazards": CurrentHazard.objects.filter(is_active=True).count(),
+                "open_reports": DataReport.objects.filter(status__in=["new", "under_review", "needs_verification"]).count(),
+            },
+            "alerts": [_alert_payload(a) for a in alerts],
+            "hazards": [_hazard_payload(h) for h in hazards],
+            "reports": [_report_payload(r) for r in reports],
+        })
+
+
+class SafetyActionView(APIView):
+    """POST /api/v1/admin-panel/safety/<kind>/<pk>/action/ — verify/deactivate/resolve/review/fix/reject."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, kind, pk):
+        from tourist.views_admin import _require_capability as require_cap
+        from tourist.models import Alert, CurrentHazard, DataReport
+
+        require_cap(request, "safety", "change")
+        action = (request.data.get("action") or "").strip()
+        note = (request.data.get("note") or "").strip()
+
+        if kind == "alert":
+            if action not in {"verify", "deactivate"}:
+                return Response({"detail": "Alert actions: verify, deactivate."}, status=400)
+            try:
+                obj = Alert.objects.get(pk=pk)
+            except Alert.DoesNotExist:
+                return Response({"detail": "Alert not found."}, status=404)
+            if action == "verify":
+                obj.is_verified = True
+                obj.save(update_fields=["is_verified"])
+            else:
+                obj.is_active = False
+                obj.save(update_fields=["is_active"])
+            detail = f"Alert '{obj.title}' {'verified' if action == 'verify' else 'deactivated'}"
+        elif kind == "hazard":
+            if action not in {"verify", "resolve"}:
+                return Response({"detail": "Hazard actions: verify, resolve."}, status=400)
+            try:
+                obj = CurrentHazard.objects.get(pk=pk)
+            except CurrentHazard.DoesNotExist:
+                return Response({"detail": "Hazard not found."}, status=404)
+            if action == "verify":
+                obj.verified = True
+                obj.save(update_fields=["verified"])
+            else:
+                obj.is_active = False
+                obj.save(update_fields=["is_active"])
+            detail = f"Hazard '{obj.title}' {'verified' if action == 'verify' else 'resolved'}"
+        elif kind == "report":
+            if action not in {"review", "fix", "reject"}:
+                return Response({"detail": "Report actions: review, fix, reject."}, status=400)
+            try:
+                obj = DataReport.objects.get(pk=pk)
+            except DataReport.DoesNotExist:
+                return Response({"detail": "Report not found."}, status=404)
+            if action == "review":
+                obj.status = DataReport.Status.UNDER_REVIEW
+                obj.save(update_fields=["status"])
+            elif action == "fix":
+                obj.status = DataReport.Status.FIXED
+                obj.resolved_by = request.user
+                obj.resolved_at = timezone.now()
+                obj.save(update_fields=["status", "resolved_by", "resolved_at"])
+            else:
+                if not note:
+                    return Response({"detail": "A note is required to reject a user report."}, status=400)
+                obj.status = DataReport.Status.REJECTED
+                obj.internal_notes = (obj.internal_notes + "\n" if obj.internal_notes else "") + f"Rejected by {request.user.email}: {note}"
+                obj.save(update_fields=["status", "internal_notes"])
+            detail = f"Data report #{obj.id} → {obj.status}"
+        else:
+            return Response({"detail": f"Unknown kind '{kind}'. Allowed: alert, hazard, report."}, status=400)
+
+        log_action(request=request, action=f"safety.{kind}.{action}", category="safety",
+                   message=detail + (f" ({note})" if note else ""),
+                   object_type={"alert": "Alert", "hazard": "CurrentHazard", "report": "DataReport"}[kind],
+                   object_id=str(pk))
+        return Response({"ok": True, "detail": detail})

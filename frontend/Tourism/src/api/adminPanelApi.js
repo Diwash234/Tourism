@@ -30,6 +30,10 @@ const adminPanelApi = {
     axiosClient.get("/admin-panel/media/", status ? { params: { status } } : {}),
   mediaAdd: (payload) => axiosClient.post("/admin-panel/media/", payload),
   mediaAction: (id, action) => axiosClient.post(`/admin-panel/media/${id}/action/`, { action }),
+  // Safety operations (Staff Ops spec §16)
+  safetyQueue: () => axiosClient.get("/admin-panel/safety/"),
+  safetyAction: (kind, id, action, note = "") =>
+    axiosClient.post(`/admin-panel/safety/${kind}/${id}/action/`, { action, note }),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>

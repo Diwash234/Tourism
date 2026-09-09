@@ -19,6 +19,8 @@ urlpatterns = [
     path("data-entry/<int:pk>/action/", views.DataEntryActionView.as_view(), name="admin-panel-data-entry-action"),
     path("media/", views.MediaQueueView.as_view(), name="admin-panel-media"),
     path("media/<int:pk>/action/", views.MediaActionView.as_view(), name="admin-panel-media-action"),
+    path("safety/", views.SafetyOpsView.as_view(), name="admin-panel-safety"),
+    path("safety/<str:kind>/<int:pk>/action/", views.SafetyActionView.as_view(), name="admin-panel-safety-action"),
     path("dashboard-summary/", views.AdminDashboardSummaryView.as_view(), name="admin-panel-dashboard-summary"),
     path("analytics/",views.AdminAnalyticsView.as_view(), name="admin-panel-analytics",
 ),

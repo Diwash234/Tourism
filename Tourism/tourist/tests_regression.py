@@ -13,6 +13,7 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
   9. CMS PATCH -> publish -> public config serves the new content
 """
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .location.search_service import LocationSearchService
@@ -1589,4 +1590,61 @@ class MediaQueueTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["status"], "rejected")
         self.assertTrue(AuditLog.objects.filter(action="image.reject").exists())
+
+
+class SafetyOpsTests(TestCase):
+    """Unified safety queue over Alert / CurrentHazard / DataReport (spec §16)."""
+
+    def setUp(self):
+        from tourist.models import Alert, CurrentHazard, DataReport, Destination
+        self.admin = User.objects.create_superuser("so-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="so-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"safety": ["view", "change"], "dashboard": ["view"]})
+        self.reporter = User.objects.create_user(email="so-reporter@test.local", password="Tour!Pass123", role="tourist")
+        self.dest = Destination.objects.create(name="Safety Test Dest", slug="safety-test-dest", latitude=27.8, longitude=85.4)
+        self.alert = Alert.objects.create(alert_type="weather", title="Heavy rain warning", description="Landslide risk", severity="high", city="Pokhara")
+        self.hazard = CurrentHazard.objects.create(destination=self.dest, hazard_type="landslide", title="Trail blocked", source_name="Local police", observed_at=timezone.now())
+        self.report = DataReport.objects.create(user=self.reporter, destination=self.dest, report_type="safety", severity="high", description="Wrong emergency number shown")
+        self.client = APIClient()
+
+    def test_capability_required(self):
+        plain = User.objects.create_user(email="so-noperm@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.client.force_authenticate(plain)
+        self.assertEqual(self.client.get("/api/v1/admin-panel/safety/").status_code, 403)
+
+    def test_staff_queue_has_all_sections(self):
+        self.client.force_authenticate(self.staff)
+        data = self.client.get("/api/v1/admin-panel/safety/").json()
+        self.assertEqual(data["counts"]["active_alerts"], 1)
+        self.assertEqual(data["counts"]["unverified_alerts"], 1)
+        self.assertEqual(data["counts"]["active_hazards"], 1)
+        self.assertEqual(data["counts"]["open_reports"], 1)
+        self.assertEqual(data["alerts"][0]["title"], "Heavy rain warning")
+        self.assertEqual(data["hazards"][0]["title"], "Trail blocked")
+        self.assertEqual(data["reports"][0]["reporter"], "so-reporter@test.local")
+
+    def test_verify_alert_and_fix_report(self):
+        from audit.models import AuditLog
+        from tourist.models import DataReport
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/admin-panel/safety/alert/{self.alert.id}/action/", {"action": "verify"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.alert.refresh_from_db()
+        self.assertTrue(self.alert.is_verified)
+        resp = self.client.post(f"/api/v1/admin-panel/safety/report/{self.report.id}/action/", {"action": "fix"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.status, DataReport.Status.FIXED)
+        self.assertEqual(self.report.resolved_by, self.staff)
+        self.assertTrue(AuditLog.objects.filter(action="safety.alert.verify").exists())
+        self.assertTrue(AuditLog.objects.filter(action="safety.report.fix").exists())
+
+    def test_report_reject_requires_note_and_unknown_kind_400(self):
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/admin-panel/safety/report/{self.report.id}/action/", {"action": "reject"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        resp = self.client.post(f"/api/v1/admin-panel/safety/report/{self.report.id}/action/", {"action": "reject", "note": "Already correct"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.post(f"/api/v1/admin-panel/safety/bridge/1/action/", {"action": "verify"}, format="json")
+        self.assertEqual(resp.status_code, 400)
 
