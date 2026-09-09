@@ -2221,3 +2221,102 @@ class DestinationCoverImagePriorityTests(TestCase):
         data = self.client.get("/api/v1/destinations/bandipur-cover-test/").json()
         self.assertEqual(data["cover_image_url"], "https://admin.example/changed.jpg")
 
+
+class HomepageCMSDraftPublishTests(TestCase):
+    """Draft/publish isolation for the homepage CMS (prompt §13/§32/§51):
+    editing a published section must NOT change the public homepage until
+    Publish; preview serves the draft; legacy sections keep working."""
+
+    def setUp(self):
+        from tourist.models import ManagedPage, ContentSection
+        from tourist.cms_publishing import sync_published_snapshot
+        self.admin = User.objects.create_superuser("cms-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="cms-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"content": ["view", "add", "change"]})
+        self.page, _ = ManagedPage.objects.get_or_create(
+            key="home", defaults={"route": "/", "title": "Nepal Yatra", "status": "published"})
+        self.page.status = "published"
+        self.page.is_enabled = True
+        self.page.save(update_fields=["status", "is_enabled"])
+        self.section, _ = ContentSection.objects.get_or_create(
+            page=self.page, key="features",
+            defaults={"title": "Why travel with Nepal Portal", "body": "Everything you need.",
+                      "section_type": "cards", "status": "published"})
+        self.section.title = "Why travel with Nepal Portal"
+        self.section.body = "Everything you need."
+        self.section.status = "published"
+        self.section.is_visible = True
+        self.section.save()
+        sync_published_snapshot(self.section)
+        self.client = APIClient()
+
+    def _public_section(self, key="features"):
+        data = self.client.get("/api/v1/config/public/").json()
+        for page in data.get("pages", []):
+            for sec in page.get("sections", []):
+                if sec["key"] == key:
+                    return sec
+        return None
+
+    def _patch(self, payload):
+        self.client.force_authenticate(self.admin)
+        return self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id, **payload}, format="json")
+
+    def test_edit_is_draft_until_publish(self):
+        # Save Draft: plain update → public unchanged
+        resp = self._patch({"title": "Plan Your Complete Nepal Adventure"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._public_section()["title"], "Why travel with Nepal Portal")
+        # Admin preview endpoint shows the draft
+        self.client.force_authenticate(self.admin)
+        preview = self.client.get(f"/api/v1/admin/cms/?resource=sections&id={self.section.id}&preview=1").json()["preview"]
+        self.assertEqual(preview["title"], "Plan Your Complete Nepal Adventure")
+        # Publish → public updates
+        self._patch({"action": "publish"})
+        self.assertEqual(self._public_section()["title"], "Plan Your Complete Nepal Adventure")
+
+    def test_visibility_and_status_still_gate_public(self):
+        self._patch({"is_visible": False})
+        self.assertIsNone(self._public_section())
+        self._patch({"is_visible": True})
+        self.assertIsNotNone(self._public_section())
+        self._patch({"action": "unpublish"})
+        self.assertIsNone(self._public_section())
+
+    def test_legacy_section_without_snapshot_serves_live_fields(self):
+        from tourist.models import ContentSection
+        legacy, _ = ContentSection.objects.get_or_create(
+            page=self.page, key="legacy-text",
+            defaults={"title": "Legacy live title", "section_type": "text", "status": "published"})
+        legacy.title = "Legacy live title"
+        legacy.status = "published"
+        legacy.is_visible = True
+        legacy.published_snapshot = None
+        legacy.save()
+        self.assertEqual(self._public_section("legacy-text")["title"], "Legacy live title")
+        # editing a legacy section keeps the old (pre-snapshot) behaviour
+        self._patch = lambda payload: (self.client.force_authenticate(self.admin),
+            self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": legacy.id, **payload}, format="json"))[1]
+        self._patch({"title": "Legacy edited"})
+        self.assertEqual(self._public_section("legacy-text")["title"], "Legacy edited")
+
+    def test_blocks_flow_through_snapshot(self):
+        from tourist.models import ContentBlock
+        ContentBlock.objects.create(section=self.section, block_type="heading", title="Itinerary", position=1)
+        self._patch({"action": "publish"})
+        self.assertEqual(len(self._public_section()["blocks"]), 1)
+        # a new block is a draft until the next publish
+        self.client.force_authenticate(self.admin)
+        self.client.post(f"/api/v1/admin/sections/{self.section.id}/blocks/",
+                         {"block_type": "button", "title": "Budget", "data": {"url": "/budget-estimator"}}, format="json")
+        self.assertEqual(len(self._public_section()["blocks"]), 1)
+        self._patch({"action": "publish"})
+        self.assertEqual(len(self._public_section()["blocks"]), 2)
+
+    def test_non_staff_cannot_touch_cms(self):
+        tourist = User.objects.create_user(email="cms-tourist@test.local", password="Tour!Pass123", role="tourist")
+        self.client.force_authenticate(tourist)
+        self.assertEqual(self.client.get("/api/v1/admin/cms/?resource=sections").status_code, 403)
+        self.assertEqual(self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id, "title": "Hacked"}, format="json").status_code, 403)
+        self.assertEqual(self._public_section()["title"], "Why travel with Nepal Portal")
+

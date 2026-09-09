@@ -1982,6 +1982,7 @@ class AdminCMSView(APIView):
             row[field] = getattr(obj, field, getattr(obj, key, None))
         if resource == "sections":
             page = getattr(obj, "page", None)
+            row["published_snapshot"] = obj.published_snapshot
             row["page_title"] = getattr(page, "title", None)
             row["page_key"] = getattr(page, "key", None)
             row["page_route"] = getattr(page, "route", None)
@@ -2006,10 +2007,11 @@ class AdminCMSView(APIView):
             snapshot=self._snapshot(resource, obj), action=action, created_by=user)
 
     def _publish_due(self):
+        from .cms_publishing import publish_due_sections
         now = timezone.now()
-        for model in (ManagedPage, ContentSection):
-            model.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-                status="published", published_at=now, scheduled_publish_at=None)
+        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
+            status="published", published_at=now, scheduled_publish_at=None)
+        publish_due_sections(now)
 
     @staticmethod
     def _template_catalog():
@@ -2420,6 +2422,12 @@ class AdminCMSView(APIView):
             obj.save()
         except ValidationError as exc:
             return Response({"detail": "; ".join(exc.messages)}, status=400)
+        if resource == "sections" and action_name in {"publish", "rollback"} and obj.status == "published":
+            # Publishing refreshes the frozen copy the public site serves; a
+            # plain "update" leaves it untouched — that is the draft state
+            # admins preview before pressing Publish.
+            from .cms_publishing import sync_published_snapshot
+            sync_published_snapshot(obj)
         revision = self._revision(resource, obj, request.user, action_name)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, category="admin", severity="info",

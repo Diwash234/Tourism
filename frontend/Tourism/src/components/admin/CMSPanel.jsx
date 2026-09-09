@@ -911,7 +911,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
   return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-300">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
 
-function ContentBlocksBuilder({ sectionId, onToast }) {
+export function ContentBlocksBuilder({ sectionId, onToast }) {
   const [blocks, setBlocks] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingBlock, setEditingBlock] = useState(null)

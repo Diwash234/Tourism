@@ -199,8 +199,8 @@ class PublicConfigView(APIView):
         now = timezone.now()
         ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
             status="published", published_at=now, scheduled_publish_at=None)
-        ContentSection.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None)
+        from .cms_publishing import publish_due_sections
+        publish_due_sections(now)
         language = request.query_params.get("lang", "en")
         if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
             language = "en"
@@ -212,24 +212,40 @@ class PublicConfigView(APIView):
             page_translation = translations.get(("pages", page.id), {})
             sections = []
             for section in page.sections.filter(is_visible=True, status="published"):
-                section_config = section.config if isinstance(section.config, dict) else {}
+                # Snapshot isolation: once a section has been published through
+                # the CMS, the public serves the frozen snapshot; later edits
+                # stay drafts until the next Publish. Sections that predate
+                # snapshots fall back to their live fields.
+                snap = section.published_snapshot if isinstance(section.published_snapshot, dict) else None
+                content = snap or {
+                    "title": section.title, "subtitle": section.subtitle, "body": section.body,
+                    "image_url": section.image_url, "cta_text": section.cta_text, "cta_url": section.cta_url,
+                    "icon": section.icon, "section_type": section.section_type,
+                    "layout_variant": section.layout_variant,
+                    "config": section.config if isinstance(section.config, dict) else {},
+                    "display_order": section.display_order,
+                }
+                section_config = content.get("config") or {}
                 if not _section_visible_for(section_config.get("visibility"), request.user, now):
                     continue
                 translated = translations.get(("sections", section.id), {})
-                blocks = [
-                    {
-                        "id": b.id, "block_type": b.block_type, "title": b.title,
-                        "position": b.position, "data": b.data, "is_visible": b.is_visible
-                    }
-                    for b in section.blocks.filter(is_visible=True).order_by("position", "id")
-                ]
+                if snap:
+                    blocks = snap.get("blocks") or []
+                else:
+                    blocks = [
+                        {
+                            "id": b.id, "block_type": b.block_type, "title": b.title,
+                            "position": b.position, "data": b.data, "is_visible": b.is_visible
+                        }
+                        for b in section.blocks.filter(is_visible=True).order_by("position", "id")
+                    ]
                 sections.append({"id": section.id, "key": section.key,
-                    "title": translated.get("title", section.title), "subtitle": translated.get("subtitle", section.subtitle),
-                    "body": translated.get("body", section.body), "image_url": section.image_url,
-                    "cta_text": translated.get("cta_text", section.cta_text), "cta_url": section.cta_url,
-                    "icon": section.icon, "section_type": section.section_type,
-                    "layout_variant": section.layout_variant, "config": section.config,
-                    "display_order": section.display_order,
+                    "title": translated.get("title", content["title"]), "subtitle": translated.get("subtitle", content["subtitle"]),
+                    "body": translated.get("body", content["body"]), "image_url": content["image_url"],
+                    "cta_text": translated.get("cta_text", content["cta_text"]), "cta_url": content["cta_url"],
+                    "icon": content["icon"], "section_type": content["section_type"],
+                    "layout_variant": content["layout_variant"], "config": content["config"],
+                    "display_order": content["display_order"],
                     "blocks": blocks})
             page_rows.append({"id": page.id, "key": page.key, "route": page.route,
                 "title": page_translation.get("title", page.title),

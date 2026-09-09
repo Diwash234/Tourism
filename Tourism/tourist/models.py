@@ -2690,6 +2690,10 @@ class ContentSection(TimeStampedModel):
     status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    published_snapshot = models.JSONField(
+        null=True, blank=True,
+        help_text="Frozen content the public site serves. Edits write the live "
+                  "(draft) fields; Publish copies them here so drafts never leak.")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_sections_updated")
 
     class Meta:
