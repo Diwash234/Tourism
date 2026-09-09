@@ -37,6 +37,7 @@ class Command(BaseCommand):
         caps["destinations"] = ["view", "add", "change"]
         caps["images"] = ["view", "add"]
         caps["safety"] = ["view", "change"]
+        caps["marketplace"] = ["view", "add", "change"]
         profile.capabilities = caps
         profile.save()
 

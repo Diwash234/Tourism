@@ -319,3 +319,247 @@ class AdminGuideProfileActionView(APIView):
                    message=f"Guide profile {profile.user.email}: {previous} → {profile.verification_status}" + (f" ({note})" if note else ""),
                    object_type="GuideProfile", object_id=str(profile.id))
         return Response(_profile_payload(profile, include_private=True))
+
+
+# ============================================================
+# TOURISM JOBS MARKETPLACE (workforce spec §9)
+# ============================================================
+
+def _job_payload(job, include_stats=False):
+    data = {
+        "id": job.id,
+        "title": job.title,
+        "role_type": job.role_type,
+        "role_type_label": job.get_role_type_display(),
+        "description": job.description,
+        "requirements": job.requirements,
+        "skills": job.skills,
+        "city": job.city,
+        "employment_type": job.employment_type,
+        "employment_type_label": job.get_employment_type_display(),
+        "compensation": job.compensation,
+        "start_date": job.start_date,
+        "application_deadline": job.application_deadline,
+        "status": job.status,
+        "posted_by": job.posted_by.email if job.posted_by else None,
+        "created_at": job.created_at,
+    }
+    if include_stats:
+        data["application_count"] = job.applications.count()
+    return data
+
+
+def _job_application_payload(a):
+    return {
+        "id": a.id,
+        "job_id": a.job_id,
+        "job_title": a.job.title,
+        "role_type": a.job.role_type,
+        "user_email": a.user.email,
+        "applicant_name": a.user.full_name,
+        "cover_letter": a.cover_letter,
+        "experience_summary": a.experience_summary,
+        "skills": a.skills,
+        "cv_url": a.cv_url,
+        "portfolio_url": a.portfolio_url,
+        "availability": a.availability,
+        "status": a.status,
+        "admin_note": a.admin_note,
+        "reviewed_by": a.reviewed_by.email if a.reviewed_by else None,
+        "reviewed_at": a.reviewed_at,
+        "created_at": a.created_at,
+    }
+
+
+class TourismJobListView(APIView):
+    """GET public open jobs; POST creates a job (marketplace capability)."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .models import TourismJob
+        qs = TourismJob.objects.filter(status="open")
+        q = (request.query_params.get("q") or "").strip()
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(city__icontains=q))
+        role = (request.query_params.get("role_type") or "").strip()
+        if role:
+            qs = qs.filter(role_type=role)
+        employment = (request.query_params.get("employment_type") or "").strip()
+        if employment:
+            qs = qs.filter(employment_type=employment)
+        return Response({"count": qs.count(), "role_types": TourismJob.RoleType.choices,
+                         "results": [_job_payload(j, include_stats=True) for j in qs[:60]]})
+
+    def post(self, request):
+        from .models import TourismJob
+        if not request.user.is_authenticated:
+            return Response({"detail": "Authentication required."}, status=401)
+        _require_capability(request, "marketplace", "add")
+        from audit.logging_services import log_action
+        title = (request.data.get("title") or "").strip()
+        description = (request.data.get("description") or "").strip()
+        if not title or not description:
+            return Response({"detail": "title and description are required."}, status=400)
+        role_type = request.data.get("role_type") or "other"
+        if role_type not in TourismJob.RoleType.values:
+            return Response({"detail": f"Unknown role_type '{role_type}'."}, status=400)
+        job = TourismJob.objects.create(
+            posted_by=request.user,
+            title=title[:200],
+            role_type=role_type,
+            description=description,
+            requirements=(request.data.get("requirements") or "").strip(),
+            skills=request.data.get("skills") if isinstance(request.data.get("skills"), list) else [],
+            city=(request.data.get("city") or "").strip()[:120],
+            employment_type=request.data.get("employment_type") if request.data.get("employment_type") in TourismJob.EmploymentType.values else "contract",
+            compensation=(request.data.get("compensation") or "").strip()[:160],
+            start_date=request.data.get("start_date") or None,
+            application_deadline=request.data.get("application_deadline") or None,
+        )
+        log_action(request=request, action="workforce.job.create", category="workforce",
+                   message=f"Tourism job '{job.title}' posted", object_type="TourismJob", object_id=str(job.id))
+        return Response(_job_payload(job), status=201)
+
+
+class TourismJobAdminView(APIView):
+    """GET all jobs incl. non-open; PATCH <id> via POST action — pause/reopen/close/fill."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        from .models import TourismJob
+        _require_capability(request, "marketplace", "view")
+        qs = TourismJob.objects.select_related("posted_by")
+        status = (request.query_params.get("status") or "").strip()
+        if status:
+            qs = qs.filter(status=status)
+        counts = {choice: TourismJob.objects.filter(status=choice).count()
+                  for choice, _label in TourismJob.Status.choices}
+        counts["all"] = sum(counts.values())
+        return Response({"counts": counts, "results": [_job_payload(j, include_stats=True) for j in qs[:100]]})
+
+
+class TourismJobStatusView(APIView):
+    """POST /api/v1/workforce/admin/jobs/<pk>/action/ — pause/reopen/close/fill/update."""
+
+    permission_classes = [IsAdminOrStaff]
+    NEXT = {"pause": "paused", "reopen": "open", "close": "closed", "fill": "filled"}
+
+    def post(self, request, pk):
+        from .models import TourismJob
+        _require_capability(request, "marketplace", "change")
+        from audit.logging_services import log_action
+        job = TourismJob.objects.filter(pk=pk).first()
+        if not job:
+            return Response({"detail": "Job not found."}, status=404)
+        action = (request.data.get("action") or "").strip()
+        if action not in self.NEXT:
+            return Response({"detail": f"Allowed actions: {', '.join(sorted(self.NEXT))}."}, status=400)
+        previous = job.status
+        job.status = self.NEXT[action]
+        job.save(update_fields=["status", "updated_at"])
+        log_action(request=request, action=f"workforce.job.{action}", category="workforce",
+                   message=f"Tourism job '{job.title}': {previous} → {job.status}",
+                   object_type="TourismJob", object_id=str(job.id))
+        return Response(_job_payload(job, include_stats=True))
+
+
+class TourismJobApplicationView(APIView):
+    """POST apply to a job; GET own applications."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import TourismJobApplication
+        qs = TourismJobApplication.objects.filter(user=request.user).select_related("job", "reviewed_by")
+        return Response({"results": [_job_application_payload(a) for a in qs[:30]]})
+
+    def post(self, request):
+        from .models import TourismJob, TourismJobApplication
+        from audit.logging_services import log_action
+        from .notification_delivery import queue_notification
+        job_id = request.data.get("job")
+        cover_letter = (request.data.get("cover_letter") or "").strip()
+        if not cover_letter:
+            return Response({"detail": "cover_letter is required."}, status=400)
+        job = TourismJob.objects.filter(pk=job_id).first()
+        if not job:
+            return Response({"detail": "Job not found."}, status=404)
+        if job.status != "open":
+            return Response({"detail": f"This job is {job.status} and no longer accepting applications."}, status=400)
+        if TourismJobApplication.objects.filter(job=job, user=request.user).exists():
+            return Response({"detail": "You have already applied to this job."}, status=400)
+        app = TourismJobApplication.objects.create(
+            job=job, user=request.user,
+            cover_letter=cover_letter,
+            experience_summary=(request.data.get("experience_summary") or "").strip(),
+            skills=request.data.get("skills") if isinstance(request.data.get("skills"), list) else [],
+            cv_url=(request.data.get("cv_url") or "").strip()[:600],
+            portfolio_url=(request.data.get("portfolio_url") or "").strip()[:600],
+            availability=(request.data.get("availability") or "").strip()[:160],
+        )
+        log_action(request=request, action="workforce.job.apply", category="workforce",
+                   message=f"{request.user.email} applied to '{job.title}'",
+                   object_type="TourismJobApplication", object_id=str(app.id))
+        if job.posted_by and job.posted_by != request.user:
+            queue_notification(job.posted_by, "New job application",
+                               f"{request.user.full_name} applied to '{job.title}'.", category="workforce")
+        return Response(_job_application_payload(app), status=201)
+
+
+class AdminJobApplicationListView(APIView):
+    """GET /api/v1/workforce/admin/job-applications/ — review queue."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        from .models import TourismJobApplication
+        _require_capability(request, "marketplace", "view")
+        qs = TourismJobApplication.objects.select_related("job", "user", "reviewed_by")
+        status = (request.query_params.get("status") or "").strip()
+        if status:
+            qs = qs.filter(status=status)
+        job = (request.query_params.get("job") or "").strip()
+        if job.isdigit():
+            qs = qs.filter(job_id=int(job))
+        counts = {choice: TourismJobApplication.objects.filter(status=choice).count()
+                  for choice, _label in TourismJobApplication.Status.choices}
+        counts["all"] = sum(counts.values())
+        return Response({"counts": counts, "results": [_job_application_payload(a) for a in qs[:100]]})
+
+
+class AdminJobApplicationActionView(APIView):
+    """POST /api/v1/workforce/admin/job-applications/<pk>/action/ — shortlist/hire/reject."""
+
+    permission_classes = [IsAdminOrStaff]
+    NEXT = {"shortlist": "shortlisted", "hire": "hired", "reject": "rejected"}
+
+    def post(self, request, pk):
+        from .models import TourismJobApplication
+        _require_capability(request, "marketplace", "change")
+        from audit.logging_services import log_action
+        from .notification_delivery import queue_notification
+        action = (request.data.get("action") or "").strip()
+        note = (request.data.get("note") or "").strip()
+        if action not in self.NEXT:
+            return Response({"detail": "Allowed actions: shortlist, hire, reject."}, status=400)
+        if action == "reject" and not note:
+            return Response({"detail": "A note is required to reject an application."}, status=400)
+        app = TourismJobApplication.objects.select_related("job", "user").filter(pk=pk).first()
+        if not app:
+            return Response({"detail": "Application not found."}, status=404)
+        previous = app.status
+        app.status = self.NEXT[action]
+        app.admin_note = note[:1000]
+        app.reviewed_by = request.user
+        app.reviewed_at = timezone.now()
+        app.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at", "updated_at"])
+        queue_notification(app.user, f"Job application {self.NEXT[action]}",
+                           note or f"Your application to '{app.job.title}' is now {self.NEXT[action]}.",
+                           category="workforce")
+        log_action(request=request, action=f"workforce.job.{action}", category="workforce",
+                   message=f"Application to '{app.job.title}' by {app.user.email}: {previous} → {app.status}" + (f" ({note})" if note else ""),
+                   object_type="TourismJobApplication", object_id=str(app.id))
+        return Response(_job_application_payload(app))

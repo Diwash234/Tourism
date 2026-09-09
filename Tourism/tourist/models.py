@@ -3267,3 +3267,87 @@ class GuideApplication(TimeStampedModel):
     def __str__(self):
         return f"Guide application {self.full_name} ({self.status})"
 
+
+class TourismJob(TimeStampedModel):
+    """Tourism work/gig listing (workforce spec §9): guides, assistants,
+    photographers, translators, hosts, event staff, data contributors…"""
+
+    class RoleType(models.TextChoices):
+        GUIDE = "guide", "Tour Guide"
+        TREK_ASSISTANT = "trek_assistant", "Trek Assistant"
+        PHOTOGRAPHER = "photographer", "Photographer"
+        CONTENT_CREATOR = "content_creator", "Content Creator"
+        TRANSLATOR = "translator", "Translator"
+        CUSTOMER_SUPPORT = "customer_support", "Customer Support"
+        HOTEL_STAFF = "hotel_staff", "Hotel Staff"
+        TRAVEL_COORDINATOR = "travel_coordinator", "Travel Coordinator"
+        EXPERIENCE_HOST = "experience_host", "Local Experience Host"
+        EVENT_STAFF = "event_staff", "Event Staff"
+        DATA_CONTRIBUTOR = "data_contributor", "Data / Content Contributor"
+        OTHER = "other", "Other"
+
+    class EmploymentType(models.TextChoices):
+        FULL_TIME = "full_time", "Full time"
+        PART_TIME = "part_time", "Part time"
+        SEASONAL = "seasonal", "Seasonal"
+        CONTRACT = "contract", "Contract / gig"
+        VOLUNTEER = "volunteer", "Volunteer"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        PAUSED = "paused", "Paused"
+        FILLED = "filled", "Filled"
+        CLOSED = "closed", "Closed"
+
+    posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name="tourism_jobs_posted")
+    title = models.CharField(max_length=200)
+    role_type = models.CharField(max_length=24, choices=RoleType.choices, default=RoleType.OTHER, db_index=True)
+    description = models.TextField()
+    requirements = models.TextField(blank=True)
+    skills = models.JSONField(default=list, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    employment_type = models.CharField(max_length=16, choices=EmploymentType.choices, default=EmploymentType.CONTRACT)
+    compensation = models.CharField(max_length=160, blank=True, help_text="e.g. NPR 2,500/day or stipend")
+    start_date = models.DateField(null=True, blank=True)
+    application_deadline = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "role_type"])]
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+
+
+class TourismJobApplication(TimeStampedModel):
+    """Application to a tourism job with a shortlist/hire review flow."""
+
+    class Status(models.TextChoices):
+        APPLIED = "applied", "Applied"
+        SHORTLISTED = "shortlisted", "Shortlisted"
+        HIRED = "hired", "Hired"
+        REJECTED = "rejected", "Rejected"
+
+    job = models.ForeignKey(TourismJob, on_delete=models.CASCADE, related_name="applications")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="job_applications")
+    cover_letter = models.TextField()
+    experience_summary = models.TextField(blank=True)
+    skills = models.JSONField(default=list, blank=True)
+    cv_url = models.URLField(max_length=600, blank=True)
+    portfolio_url = models.URLField(max_length=600, blank=True)
+    availability = models.CharField(max_length=160, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.APPLIED, db_index=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="job_applications_reviewed")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("job", "user")
+
+    def __str__(self):
+        return f"{self.user.email} → {self.job.title} ({self.status})"
+

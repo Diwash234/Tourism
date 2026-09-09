@@ -1937,3 +1937,83 @@ class WorkforceGuideTests(TestCase):
         self.assertEqual(resp.json()["verification_status"], "unverified")  # server-controlled
         self.assertEqual(resp.json()["headline"], "Self verified")          # benign field saved
 
+
+class TourismJobsTests(TestCase):
+    """Tourism work/gig marketplace (workforce spec §9)."""
+
+    def setUp(self):
+        from tourist.models import TourismJob
+        self.admin = User.objects.create_superuser("tj-admin@test.local", "Sup!Pass123")
+        self.poster = User.objects.create_user(email="tj-poster@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.poster, capabilities={"marketplace": ["view", "add", "change"]})
+        self.worker = User.objects.create_user(email="tj-worker@test.local", password="Work!Pass123", role="tourist", first_name="Job", last_name="Seeker")
+        self.job = TourismJob.objects.create(
+            posted_by=self.poster, title="Trek Assistant — Annapurna Circuit", role_type="trek_assistant",
+            description="Carry equipment and assist guides on the Annapurna Circuit.",
+            city="Pokhara", employment_type="seasonal", compensation="NPR 2,500/day",
+        )
+        self.client = APIClient()
+
+    def _apply(self, user=None, job_id=None):
+        self.client.force_authenticate(user or self.worker)
+        return self.client.post("/api/v1/workforce/job-applications/", {
+            "job": job_id or self.job.id, "cover_letter": "I have trekked the circuit 6 times.",
+            "skills": ["high-altitude", "first-aid"], "availability": "Oct-Nov 2026",
+        }, format="json")
+
+    def test_public_list_shows_only_open_jobs(self):
+        from tourist.models import TourismJob
+        TourismJob.objects.create(posted_by=self.poster, title="Closed Gig", description="x", status="closed")
+        resp = self.client.get("/api/v1/workforce/jobs/")
+        titles = [row["title"] for row in resp.json()["results"]]
+        self.assertIn("Trek Assistant — Annapurna Circuit", titles)
+        self.assertNotIn("Closed Gig", titles)
+
+    def test_apply_and_duplicate_guard(self):
+        from tourist.models import Notification
+        resp = self._apply()
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()["status"], "applied")
+        self.assertTrue(Notification.objects.filter(user=self.poster, title="New job application").exists())
+        self.assertEqual(self._apply().status_code, 400)
+
+    def test_apply_requires_auth_and_open_job(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.post("/api/v1/workforce/job-applications/", {"job": self.job.id, "cover_letter": "x"}, format="json").status_code, 401)
+        self.job.status = "filled"
+        self.job.save(update_fields=["status"])
+        self.assertEqual(self._apply().status_code, 400)
+
+    def test_job_creation_requires_capability(self):
+        payload = {"title": "Content Creator", "description": "Write destination stories", "role_type": "content_creator"}
+        plain = User.objects.create_user(email="tj-noperm@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.client.force_authenticate(plain)
+        self.assertEqual(self.client.post("/api/v1/workforce/jobs/", payload, format="json").status_code, 403)
+        self.client.force_authenticate(self.poster)
+        resp = self.client.post("/api/v1/workforce/jobs/", payload, format="json")
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()["status"], "open")
+
+    def test_review_flow_shortlist_hire_notifies_and_audits(self):
+        from audit.models import AuditLog
+        from tourist.models import Notification
+        app_id = self._apply().json()["id"]
+        self.client.force_authenticate(self.admin)
+        base = "/api/v1/workforce/admin/job-applications"
+        resp = self.client.post(f"{base}/{app_id}/action/", {"action": "shortlist"}, format="json")
+        self.assertEqual(resp.json()["status"], "shortlisted")
+        resp = self.client.post(f"{base}/{app_id}/action/", {"action": "reject"}, format="json")
+        self.assertEqual(resp.status_code, 400)  # note required
+        resp = self.client.post(f"{base}/{app_id}/action/", {"action": "hire", "note": "Start Oct 1"}, format="json")
+        self.assertEqual(resp.json()["status"], "hired")
+        self.assertTrue(Notification.objects.filter(user=self.worker, title="Job application hired").exists())
+        self.assertTrue(AuditLog.objects.filter(action="workforce.job.hire").exists())
+
+    def test_job_status_actions_and_filters(self):
+        self.client.force_authenticate(self.poster)
+        resp = self.client.post(f"/api/v1/workforce/admin/jobs/{self.job.id}/action/", {"action": "pause"}, format="json")
+        self.assertEqual(resp.json()["status"], "paused")
+        self.assertEqual(self.client.get("/api/v1/workforce/admin/jobs/?status=paused").json()["counts"]["paused"], 1)
+        resp = self.client.post(f"/api/v1/workforce/admin/jobs/{self.job.id}/action/", {"action": "bogus"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
