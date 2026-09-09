@@ -206,6 +206,8 @@ class Category(models.Model):
 class Destination(TimeStampedModel):
 
     class SubmissionStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SUBMITTED = "submitted", "Submitted for Review"
         PENDING = "pending", "Pending Review"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
@@ -594,6 +596,12 @@ class Destination(TimeStampedModel):
         blank=True,
         null=True,
         help_text="Admin note, e.g. reason for rejection"
+    )
+
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="destination_submissions",
+        help_text="Staff member who created/submitted this entry for review."
     )
 
 

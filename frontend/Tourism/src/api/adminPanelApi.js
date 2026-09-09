@@ -20,6 +20,16 @@ const adminPanelApi = {
     axiosClient.get("/admin-panel/my-bookings/", status ? { params: { status } } : {}),
   bookingAction: (id, action, note = "") =>
     axiosClient.post(`/admin-panel/my-bookings/${id}/action/`, { action, note }),
+  // Destination data entry + media manager (Staff Ops spec §13-15)
+  dataEntries: (status = "") =>
+    axiosClient.get("/admin-panel/data-entry/", status ? { params: { status } } : {}),
+  dataEntryCreate: (payload) => axiosClient.post("/admin-panel/data-entry/", payload),
+  dataEntryAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/data-entry/${id}/action/`, { action, note }),
+  mediaQueue: (status = "") =>
+    axiosClient.get("/admin-panel/media/", status ? { params: { status } } : {}),
+  mediaAdd: (payload) => axiosClient.post("/admin-panel/media/", payload),
+  mediaAction: (id, action) => axiosClient.post(`/admin-panel/media/${id}/action/`, { action }),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>

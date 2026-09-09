@@ -1129,3 +1129,235 @@ class BookingActionView(APIView):
                            + (f" ({note})" if note else ""),
                    object_type="Booking", object_id=str(booking.id))
         return Response(_booking_payload(booking))
+
+
+# ============================================================
+# DESTINATION DATA ENTRY + MEDIA MANAGER
+# (Staff Ops spec §13-15; DRAFT → SUBMITTED → REVIEW → APPROVED
+# on the existing Destination model, image queue on the existing
+# DestinationImage pipeline. No new permission systems.)
+# ============================================================
+
+def _is_reviewer(user):
+    return user.is_superuser or getattr(user, "role", None) in {"admin", "super_admin", "tourism_admin"}
+
+
+def _entry_payload(d):
+    return {
+        "id": d.id,
+        "name": d.name,
+        "slug": d.slug,
+        "district": d.district,
+        "city": d.city_english,
+        "status": d.status,
+        "review_note": d.review_note,
+        "short_description": d.short_description,
+        "submitted_by": d.submitted_by.email if d.submitted_by else None,
+        "created_at": d.created_at,
+        "updated_at": d.updated_at,
+    }
+
+
+class DataEntryListView(APIView):
+    """GET/POST /api/v1/admin-panel/data-entry/ — staff drafts + submissions."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from tourist.views_admin import _require_capability as require_cap
+
+        require_cap(request, "destinations", "view")
+        qs = Destination.objects.all()
+        if not _is_reviewer(request.user):
+            qs = qs.filter(submitted_by=request.user)
+        status = (request.query_params.get("status") or "").strip()
+        if status:
+            qs = qs.filter(status=status)
+        else:
+            qs = qs.filter(status__in=["draft", "submitted", "pending", "rejected"])
+        counts = {
+            choice: (qs if status else Destination.objects.filter(submitted_by=request.user) if not _is_reviewer(request.user) else Destination.objects.all()).filter(status=choice).count()
+            for choice, _label in Destination.SubmissionStatus.choices
+        }
+        return Response({"counts": counts, "results": [_entry_payload(d) for d in qs.order_by("-updated_at")[:100]]})
+
+    def post(self, request):
+        from tourist.views_admin import _require_capability as require_cap
+
+        require_cap(request, "destinations", "add")
+        name = (request.data.get("name") or "").strip()
+        if not name:
+            return Response({"detail": "A destination name is required."}, status=400)
+        dest = Destination.objects.create(
+            name=name[:200],
+            district=(request.data.get("district") or "").strip()[:100],
+            city_english=(request.data.get("city") or "").strip()[:100],
+            short_description=(request.data.get("short_description") or "").strip()[:500],
+            description=(request.data.get("description") or "").strip(),
+            status=Destination.SubmissionStatus.DRAFT,
+            submitted_by=request.user,
+        )
+        lat, lng = request.data.get("latitude"), request.data.get("longitude")
+        if lat not in (None, "") and lng not in (None, ""):
+            try:
+                dest.latitude, dest.longitude = float(lat), float(lng)
+                dest.save(update_fields=["latitude", "longitude"])
+            except (TypeError, ValueError):
+                pass
+        log_action(request=request, action="dataentry.create", category="destinations",
+                   message=f"Draft destination '{dest.name}' created", object_type="Destination", object_id=str(dest.id))
+        return Response(_entry_payload(dest), status=201)
+
+
+class DataEntryActionView(APIView):
+    """POST /api/v1/admin-panel/data-entry/<pk>/action/ — submit/approve/reject/reopen."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    ALLOWED = {"submit", "approve", "reject", "reopen"}
+
+    def post(self, request, pk):
+        from tourist.views_admin import _require_capability as require_cap
+        from tourist.models import DestinationAuditLog
+
+        require_cap(request, "destinations", "change")
+        action = (request.data.get("action") or "").strip()
+        if action not in self.ALLOWED:
+            return Response({"detail": f"Unknown action '{action}'. Allowed: {', '.join(sorted(self.ALLOWED))}."}, status=400)
+        try:
+            dest = Destination.objects.get(pk=pk)
+        except Destination.DoesNotExist:
+            return Response({"detail": "Destination not found."}, status=404)
+
+        note = (request.data.get("note") or "").strip()
+        previous = dest.status
+        actor = request.user
+
+        if action in {"approve", "reject"}:
+            require_cap(request, "destinations", "approve")
+            if previous in {"approved", "archived"}:
+                return Response({"detail": f"Cannot {action} a destination that is already {previous}."}, status=400)
+            if action == "reject" and not note:
+                return Response({"detail": "A rejection note is required so the author knows what to fix."}, status=400)
+            dest.status = Destination.SubmissionStatus.APPROVED if action == "approve" else Destination.SubmissionStatus.REJECTED
+            dest.review_note = note[:255] or None
+        elif action == "submit":
+            if not _is_reviewer(actor) and dest.submitted_by_id and dest.submitted_by_id != actor.id:
+                return Response({"detail": "You can only submit entries you authored."}, status=403)
+            if previous not in {"draft", "rejected"}:
+                return Response({"detail": f"Only draft or rejected entries can be submitted (currently '{previous}')."}, status=400)
+            dest.status = Destination.SubmissionStatus.SUBMITTED
+            if not dest.submitted_by_id:
+                dest.submitted_by = actor
+            # let reviewers know there is something in the queue
+            from tourist.models import User as _User
+            for reviewer in _User.objects.filter(is_superuser=True)[:10]:
+                _notify(reviewer, "Destination awaiting review",
+                        f"'{dest.name}' was submitted by {actor.email} and needs review.",
+                        metadata={"destination_id": dest.id})
+        elif action == "reopen":
+            require_cap(request, "destinations", "approve")
+            dest.status = Destination.SubmissionStatus.SUBMITTED
+            dest.review_note = None
+
+        dest.save(update_fields=["status", "review_note", "submitted_by", "updated_at"])
+
+        audit_map = {"submit": DestinationAuditLog.Action.SUBMITTED, "approve": DestinationAuditLog.Action.APPROVED,
+                     "reject": DestinationAuditLog.Action.REJECTED, "reopen": DestinationAuditLog.Action.SUBMITTED}
+        DestinationAuditLog.objects.create(destination=dest, action=audit_map[action], actor=actor,
+                                           note=note or f"{action} from '{previous}'",
+                                           previous_status=previous, new_status=dest.status)
+        if action in {"approve", "reject"} and dest.submitted_by:
+            _notify(dest.submitted_by, f"Destination {action}d: {dest.name}",
+                    note or ("Your submission was approved and is now published." if action == "approve" else "See the review note."),
+                    metadata={"destination_id": dest.id})
+        log_action(request=request, action=f"dataentry.{action}", category="destinations",
+                   message=f"Destination '{dest.name}': {previous} → {dest.status}" + (f" ({note})" if note else ""),
+                   object_type="Destination", object_id=str(dest.id))
+        return Response(_entry_payload(dest))
+
+
+def _image_payload(img):
+    return {
+        "id": img.id,
+        "destination_id": img.destination_id,
+        "destination_name": img.destination.name,
+        "caption": img.caption,
+        "alt_text": img.alt_text,
+        "external_url": img.external_url,
+        "image_url": img.image.url if img.image else (img.external_url or ""),
+        "status": img.verification_status,
+        "created_at": img.created_at,
+    }
+
+
+class MediaQueueView(APIView):
+    """GET/POST /api/v1/admin-panel/media/ — destination image review queue."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from tourist.views_admin import _require_capability as require_cap
+        from tourist.models import DestinationImage
+
+        require_cap(request, "images", "view")
+        qs = DestinationImage.objects.select_related("destination")
+        status = (request.query_params.get("status") or "").strip()
+        if status:
+            qs = qs.filter(verification_status=status)
+        counts = {choice: DestinationImage.objects.filter(verification_status=choice).count()
+                  for choice, _label in DestinationImage.ImageStatus.choices}
+        counts["all"] = sum(counts.values())
+        return Response({"counts": counts, "results": [_image_payload(i) for i in qs.order_by("-created_at")[:100]]})
+
+    def post(self, request):
+        from tourist.views_admin import _require_capability as require_cap
+        from tourist.models import DestinationImage
+
+        require_cap(request, "images", "add")
+        destination_id = request.data.get("destination")
+        url = (request.data.get("external_url") or "").strip()
+        try:
+            dest = Destination.objects.get(pk=destination_id)
+        except (Destination.DoesNotExist, TypeError, ValueError):
+            return Response({"detail": "A valid destination id is required."}, status=400)
+        file = request.FILES.get("image")
+        if not file and not url:
+            return Response({"detail": "Provide an image file or an external_url."}, status=400)
+        img = DestinationImage.objects.create(
+            destination=dest,
+            external_url=url[:600],
+            caption=(request.data.get("caption") or "").strip()[:255],
+            alt_text=(request.data.get("alt_text") or "").strip()[:255],
+            verification_status=DestinationImage.ImageStatus.PENDING if not _is_reviewer(request.user) else DestinationImage.ImageStatus.APPROVED,
+            **({"image": file} if file else {}),
+        )
+        log_action(request=request, action="image.add", category="images",
+                   message=f"Image added to '{dest.name}' (status {img.verification_status})",
+                   object_type="DestinationImage", object_id=str(img.id))
+        return Response(_image_payload(img), status=201)
+
+
+class MediaActionView(APIView):
+    """POST /api/v1/admin-panel/media/<pk>/action/ — approve/reject an image."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from tourist.views_admin import _require_capability as require_cap
+        from tourist.models import DestinationImage
+
+        require_cap(request, "images", "approve")
+        action = (request.data.get("action") or "").strip()
+        if action not in {"approve", "reject"}:
+            return Response({"detail": "Allowed actions: approve, reject."}, status=400)
+        try:
+            img = DestinationImage.objects.select_related("destination").get(pk=pk)
+        except DestinationImage.DoesNotExist:
+            return Response({"detail": "Image not found."}, status=404)
+        previous = img.verification_status
+        img.verification_status = DestinationImage.ImageStatus.APPROVED if action == "approve" else DestinationImage.ImageStatus.REJECTED
+        img.save(update_fields=["verification_status", "updated_at"])
+        log_action(request=request, action=f"image.{action}", category="images",
+                   message=f"Image #{img.id} on '{img.destination.name}': {previous} → {img.verification_status}",
+                   object_type="DestinationImage", object_id=str(img.id))
+        return Response(_image_payload(img))

@@ -1484,3 +1484,109 @@ class HotelBookingScopeTests(TestCase):
         resp = self.client.post(f"/api/v1/admin-panel/my-bookings/{self.my_booking.id}/action/",
                                 {"action": "refund"}, format="json")
         self.assertEqual(resp.status_code, 400)
+
+
+class DataEntryPipelineTests(TestCase):
+    """Destination data entry DRAFT → SUBMITTED → REVIEW → APPROVED (spec §13-14)."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser("de-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="de-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={
+            "destinations": ["view", "add", "change"], "dashboard": ["view"]})
+        self.client = APIClient()
+
+    def _post(self, url, payload, as_user):
+        self.client.force_authenticate(as_user)
+        return self.client.post(url, payload, format="json")
+
+    def test_staff_creates_and_submits_draft(self):
+        from tourist.models import Notification
+        resp = self._post("/api/v1/admin-panel/data-entry/",
+                          {"name": "Tilicho Lake Trek", "district": "Manang", "short_description": "High-altitude lake trek"},
+                          self.staff)
+        self.assertEqual(resp.status_code, 201)
+        body = resp.json()
+        self.assertEqual(body["status"], "draft")
+        self.assertEqual(body["submitted_by"], "de-staff@test.local")
+        resp = self._post(f"/api/v1/admin-panel/data-entry/{body['id']}/action/", {"action": "submit"}, self.staff)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "submitted")
+        self.assertTrue(Notification.objects.filter(user=self.admin, title="Destination awaiting review").exists())
+
+    def test_staff_cannot_self_approve(self):
+        from tourist.models import Destination
+        d = Destination.objects.create(name="Self Approve Test", status="submitted", submitted_by=self.staff)
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/admin-panel/data-entry/{d.id}/action/", {"action": "approve"}, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_admin_approve_notifies_and_audits(self):
+        from tourist.models import Destination, DestinationAuditLog, Notification
+        d = Destination.objects.create(name="Approve Me", status="submitted", submitted_by=self.staff)
+        resp = self._post(f"/api/v1/admin-panel/data-entry/{d.id}/action/", {"action": "approve", "note": "Great entry"}, self.admin)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "approved")
+        self.assertTrue(DestinationAuditLog.objects.filter(destination=d, action="approved", actor=self.admin).exists())
+        self.assertTrue(Notification.objects.filter(user=self.staff, title__contains="approved").exists())
+
+    def test_reject_requires_note(self):
+        from tourist.models import Destination
+        d = Destination.objects.create(name="Reject Me", status="submitted", submitted_by=self.staff)
+        resp = self._post(f"/api/v1/admin-panel/data-entry/{d.id}/action/", {"action": "reject"}, self.admin)
+        self.assertEqual(resp.status_code, 400)
+        resp = self._post(f"/api/v1/admin-panel/data-entry/{d.id}/action/", {"action": "reject", "note": "Add coordinates"}, self.admin)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "rejected")
+        self.assertEqual(resp.json()["review_note"], "Add coordinates")
+
+    def test_staff_sees_only_own_entries(self):
+        from tourist.models import Destination
+        Destination.objects.create(name="My Draft", status="draft", submitted_by=self.staff)
+        Destination.objects.create(name="Other Draft", status="draft")
+        self.client.force_authenticate(self.staff)
+        names = {row["name"] for row in self.client.get("/api/v1/admin-panel/data-entry/").json()["results"]}
+        self.assertIn("My Draft", names)
+        self.assertNotIn("Other Draft", names)
+
+
+class MediaQueueTests(TestCase):
+    """Destination image review queue (spec §15)."""
+
+    def setUp(self):
+        from tourist.models import Destination
+        self.admin = User.objects.create_superuser("mq-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="mq-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"images": ["view", "add"], "dashboard": ["view"]})
+        self.dest = Destination.objects.create(name="Media Test Dest", slug="media-test-dest", latitude=27.7, longitude=85.3)
+        self.client = APIClient()
+
+    def test_staff_upload_lands_pending(self):
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post("/api/v1/admin-panel/media/",
+                                {"destination": self.dest.id, "external_url": "https://example.com/a.jpg", "caption": "Sunrise"},
+                                format="json")
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()["status"], "pending")
+
+    def test_approve_requires_capability(self):
+        from tourist.models import DestinationImage
+        img = DestinationImage.objects.create(destination=self.dest, external_url="https://example.com/b.jpg", verification_status="pending")
+        self.client.force_authenticate(self.staff)  # only images view+add
+        resp = self.client.post(f"/api/v1/admin-panel/media/{img.id}/action/", {"action": "approve"}, format="json")
+        self.assertEqual(resp.status_code, 403)
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(f"/api/v1/admin-panel/media/{img.id}/action/", {"action": "approve"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "approved")
+
+    def test_reject_audited(self):
+        from audit.models import AuditLog
+        from tourist.models import DestinationImage
+        img = DestinationImage.objects.create(destination=self.dest, external_url="https://example.com/c.jpg", verification_status="pending")
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(f"/api/v1/admin-panel/media/{img.id}/action/", {"action": "reject"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "rejected")
+        self.assertTrue(AuditLog.objects.filter(action="image.reject").exists())
+
