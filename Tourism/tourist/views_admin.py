@@ -1938,7 +1938,7 @@ class AdminCMSView(APIView):
         if resource == "sections" and payload.get("cta_url") and not str(payload["cta_url"]).startswith("/"):
             raise ValueError("CTA links must be validated internal routes beginning with /")
         if resource == "sections" and payload.get("section_type"):
-            allowed_types = {"text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"}
+            allowed_types = {"text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search", "blocks"}
             if payload["section_type"] not in allowed_types:
                 raise ValueError("Unknown section type")
         if resource == "sections" and payload.get("layout_variant"):
@@ -2342,6 +2342,29 @@ class AdminCMSView(APIView):
             section.save(update_fields=["display_order", "updated_by", "updated_at"])
         return Response({"id": page.pk, "message": "Section order updated", "section_ids": ids})
 
+    def delete(self, request):
+        """Admin can remove whole pages (with their sections) or single sections."""
+        _require_capability(request, "content", "delete")
+        resource = request.data.get("resource") or request.query_params.get("resource")
+        if resource not in {"pages", "sections"}:
+            return Response({"detail": "Only pages and sections can be deleted here."}, status=400)
+        model = self.MODELS.get(resource)
+        obj = model.objects.filter(pk=request.data.get("id") or request.query_params.get("id")).first()
+        if not obj:
+            return Response({"detail": "CMS record not found"}, status=404)
+        if resource == "pages" and obj.route == "/":
+            return Response({"detail": "The homepage cannot be deleted — unpublish or hide its sections instead."}, status=400)
+        label = getattr(obj, "title", None) or getattr(obj, "key", str(obj.pk))
+        cascade = obj.sections.count() if resource == "pages" else 0
+        obj.delete()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""),
+                                category="content", severity="warning", source="backend",
+                                action=f"cms.{resource[:-1]}.delete",
+                                message=f"Deleted {resource[:-1]} “{label}”" + (f" with {cascade} section(s)" if cascade else ""),
+                                object_type=resource, object_id=str(obj.pk))
+        return Response({"message": f"Deleted “{label}”" + (f" and its {cascade} section(s)" if cascade else "")})
+
     def patch(self, request):
         _require_capability(request, "content", "change")
         resource = request.data.get("resource")
@@ -2481,6 +2504,9 @@ class AdminContentBlockView(APIView):
                 url = str(item.get("url") or "").strip()
                 if url and not url.startswith("/"):
                     return False, "Card links must be internal routes beginning with /."
+                img = str(item.get("image") or "").strip()
+                if img and not (img.startswith("https://") or img.startswith("/")):
+                    return False, "Card images must be HTTPS URLs or site paths beginning with /."
         elif block_type == "packages":
             limit = data.get("limit", 6)
             if not isinstance(limit, int) or not 1 <= limit <= 12:

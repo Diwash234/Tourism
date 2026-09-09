@@ -1658,6 +1658,127 @@ class NearbyEmergencyServicesView(APIView):
         return Response(build_emergency_directory(latitude, longitude, radius_km=radius_km, limit=limit))
 
 
+class DestinationNearbyPOIsView(APIView):
+    """Real nearby places around a destination from OpenStreetMap (Overpass).
+
+    Location-based, NOT limited to our own Destination table: hotels,
+    hospitals, temples, viewpoints, restaurants, banks, ATMs, peaks, police
+    and pharmacies within radius_km, nearest first, each with straight-line
+    distance_km. Results are cached per rounded location so hot pages never
+    hammer the free Overpass API. Provenance is always disclosed.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    CATEGORIES = {
+        "hotels": ('node["tourism"~"^(hotel|guest_house|hostel)$"]', "Hotels & lodges"),
+        "hospitals": ('node["amenity"~"^(hospital|clinic)$"]', "Hospitals & clinics"),
+        "temples": ('node["amenity"="place_of_worship"]', "Temples & shrines"),
+        "viewpoints": ('node["tourism"="viewpoint"]', "Viewpoints"),
+        "restaurants": ('node["amenity"~"^(restaurant|cafe)$"]', "Restaurants & cafés"),
+        "banks": ('node["amenity"~"^(bank|bureau_de_change)$"]', "Banks & exchange"),
+        "atms": ('node["amenity"="atm"]', "ATMs"),
+        "peaks": ('node["natural"="peak"]', "Peaks & hills"),
+        "police": ('node["amenity"="police"]', "Police"),
+        "pharmacies": ('node["amenity"="pharmacy"]', "Pharmacies"),
+    }
+    DEFAULT_CATEGORIES = ["hotels", "hospitals", "temples", "viewpoints", "restaurants", "banks"]
+
+    @staticmethod
+    def _categorize(tags):
+        tourism = tags.get("tourism", "")
+        amenity = tags.get("amenity", "")
+        natural = tags.get("natural", "")
+        if tourism in {"hotel", "guest_house", "hostel"}:
+            return "hotels"
+        if amenity in {"hospital", "clinic"}:
+            return "hospitals"
+        if amenity == "place_of_worship":
+            return "temples"
+        if tourism == "viewpoint":
+            return "viewpoints"
+        if amenity in {"restaurant", "cafe"}:
+            return "restaurants"
+        if amenity in {"bank", "bureau_de_change"}:
+            return "banks"
+        if amenity == "atm":
+            return "atms"
+        if natural == "peak":
+            return "peaks"
+        if amenity == "police":
+            return "police"
+        if amenity == "pharmacy":
+            return "pharmacies"
+        return None
+
+    def get(self, request, destination_ref):
+        import requests as http_requests
+        from django.core.cache import cache
+        from .emergency_service import resolve_destination
+
+        destination = resolve_destination(destination_ref)
+        if destination is None:
+            return Response({"detail": "Approved destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        lat, lon = destination.latitude, destination.longitude
+        if lat is None or lon is None:
+            return Response({"detail": "This destination has no recorded coordinates, so a live nearby lookup is impossible."}, status=422)
+        try:
+            radius_km = max(1.0, min(float(request.query_params.get("radius_km", 5)), 25))
+        except (TypeError, ValueError):
+            radius_km = 5.0
+        wanted = [c.strip() for c in str(request.query_params.get("categories", "")).split(",") if c.strip() in self.CATEGORIES]
+        if not wanted:
+            wanted = list(self.DEFAULT_CATEGORIES)
+        radius_m = int(radius_km * 1000)
+
+        cache_key = f"osm-pois:{round(float(lat), 3)}:{round(float(lon), 3)}:{radius_m}:{','.join(wanted)}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        parts = "".join(f"{self.CATEGORIES[key][0]}(around:{radius_m},{lat},{lon});" for key in wanted)
+        query = f"[out:json][timeout:15];({parts});out body 300;"
+        try:
+            upstream = http_requests.post(settings.OVERPASS_API_URL, data={"data": query}, timeout=18)
+            upstream.raise_for_status()
+            elements = upstream.json().get("elements", [])
+        except Exception:
+            return Response({"detail": "Live map data (OpenStreetMap) is unavailable right now — please try again shortly."},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        grouped = {key: [] for key in wanted}
+        for element in elements:
+            tags = element.get("tags") or {}
+            name = tags.get("name") or tags.get("name:en") or tags.get("operator")
+            key = self._categorize(tags)
+            if not name or key not in grouped:
+                continue
+            distance = haversine_distance(lat, lon, element.get("lat"), element.get("lon"))
+            grouped[key].append({
+                "name": name,
+                "distance_km": round(distance, 2),
+                "latitude": element.get("lat"),
+                "longitude": element.get("lon"),
+                "osm_id": element.get("id"),
+                "source": "OpenStreetMap (Overpass API)",
+            })
+        categories = {}
+        for key in wanted:
+            rows = sorted(grouped[key], key=lambda row: row["distance_km"])[:10]
+            categories[key] = {"label": self.CATEGORIES[key][1], "results": rows}
+        payload = {
+            "destination": destination.name,
+            "latitude": lat,
+            "longitude": lon,
+            "radius_km": radius_km,
+            "distance_note": "Straight-line distances from the destination coordinates.",
+            "source": "OpenStreetMap (Overpass API)",
+            "categories": categories,
+        }
+        cache.set(cache_key, payload, 900)
+        return Response(payload)
+
+
 class DestinationEmergencyServicesView(APIView):
     """Nearest services plus destination risk for any approved Nepal place."""
 

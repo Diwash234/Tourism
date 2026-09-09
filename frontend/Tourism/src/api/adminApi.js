@@ -162,6 +162,7 @@ const adminApi = {
   getStaffCapabilities: () => axiosClient.get("/admin/staff-capabilities/"),
   updateStaffCapabilities: (payload) => axiosClient.put("/admin/staff-capabilities/", payload),
   createCMS: (payload) => axiosClient.post("/admin/cms/", payload),
+  deleteCMS: (payload) => axiosClient.delete("/admin/cms/", { data: payload }),
   updateCMS: (payload) => axiosClient.patch("/admin/cms/", payload),
   getSectionBlocks: (sectionId) => axiosClient.get(`/admin/sections/${sectionId}/blocks/`),
   createContentBlock: (sectionId, payload) => axiosClient.post(`/admin/sections/${sectionId}/blocks/`, payload),

@@ -268,11 +268,18 @@ export function ContentBlockItem({ block }) {
       return (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-4">
           {items.map((card, i) => (
-            <Link key={i} to={card.url || "#"} className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-emerald-300 transition text-left">
-              {card.emoji && <span className="text-2xl block mb-2">{card.emoji}</span>}
+            <Link key={i} to={card.url || "#"} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-emerald-300 transition text-left">
+              {card.image && (
+                <div className="h-36 overflow-hidden bg-slate-100">
+                  <img src={card.image} alt={card.title} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                </div>
+              )}
+              <div className="p-5">
+              {!card.image && card.emoji && <span className="text-2xl block mb-2">{card.emoji}</span>}
               <h4 className="font-black text-slate-900 text-sm">{card.title}</h4>
               {card.description && <p className="text-xs text-slate-500 mt-1 leading-relaxed">{card.description}</p>}
               <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 mt-3 group-hover:gap-2 transition-all">Open →</span>
+              </div>
             </Link>
           ))}
         </div>

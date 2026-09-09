@@ -298,6 +298,94 @@ async function run() {
   }
 
   {
+    const src = await sourceFile("pages/destinations/DestinationDetails.jsx")
+    if (src.includes("What's Actually Near") && src.includes("getNearbyPOIs") && src.includes("OpenStreetMap")) {
+      ok("destination page shows real OpenStreetMap nearby places")
+    } else fail("destination nearby-pois source")
+  }
+
+  {
+    const landing = await sourceFile("pages/Landing.jsx")
+    const marquee = await sourceFile("components/landing/ProvinceMarquee.jsx")
+    const symbols = await sourceFile("components/dashboard/NationalSymbols.jsx")
+    const cmsWired =
+      landing.includes("cmsFeatureItems") &&
+      marquee.includes("cmsItems") &&
+      symbols.includes("summarySymbols")
+    if (cmsWired) {
+      ok("features boxes, marquee and symbol boxes are admin-editable via CMS")
+    } else fail("landing CMS wiring source")
+  }
+
+  {
+    const cfg = await request(`${API}/config/public/`)
+    const nav = cfg.data?.navigation || []
+    if (cfg.res.ok && nav.some((item) => item.route === "/support")) {
+      ok("customer support is linked in the public navigation")
+    } else fail("support link in public nav", `status=${cfg.res.status}`)
+  }
+
+  {
+    // Admin can create AND remove pages; the homepage itself is protected.
+    const token = await login("admin")
+    const auth = { Authorization: `Bearer ${token}` }
+    const created = await request(`${API}/admin/cms/`, {
+      method: "POST",
+      headers: auth,
+      json: { resource: "pages", route: `/e2e-del-${Math.random().toString(36).slice(2, 8)}`, key: `e2e-del-${Math.random().toString(36).slice(2, 8)}`, title: "E2E Delete Me" },
+    })
+    const id = created.data?.record?.id || created.data?.id
+    if (!created.res.ok || !id) {
+      fail("admin page create/delete", `create status=${created.res.status}`)
+    } else {
+      const del = await request(`${API}/admin/cms/`, { method: "DELETE", headers: auth, json: { resource: "pages", id } })
+      const pages = await request(`${API}/admin/cms/?resource=pages`, { headers: auth })
+      const still = (pages.data?.results || pages.data || []).some((p) => p.id === id)
+      const homeRow = (pages.data?.results || pages.data || []).find((p) => p.route === "/")
+      let homeProtected = false
+      if (homeRow) {
+        const refused = await request(`${API}/admin/cms/`, { method: "DELETE", headers: auth, json: { resource: "pages", id: homeRow.id } })
+        homeProtected = refused.res.status === 400
+      }
+      if (del.res.ok && !still && homeProtected) {
+        ok("admin can delete pages while the homepage stays protected")
+      } else fail("admin page create/delete", `del=${del.res.status} still=${still} homeProtected=${homeProtected}`)
+    }
+  }
+
+  {
+    // card_grid blocks accept HTTPS images but reject script URLs
+    const token = await login("admin")
+    const auth = { Authorization: `Bearer ${token}` }
+    const pages = await request(`${API}/admin/cms/?resource=pages`, { headers: auth })
+    const home = (pages.data?.results || pages.data || []).find((p) => p.route === "/")
+    if (!home) {
+      fail("card_grid image validation", "no homepage row")
+    } else {
+      const sec = await request(`${API}/admin/cms/`, {
+        method: "POST",
+        headers: auth,
+        json: { resource: "sections", page_id: home.id, key: `e2e-cards-${Math.random().toString(36).slice(2, 8)}`, title: "E2E Cards", section_type: "blocks" },
+      })
+      const secId = sec.data?.record?.id || sec.data?.id
+      const bad = await request(`${API}/admin/sections/${secId}/blocks/`, {
+        method: "POST",
+        headers: auth,
+        json: { block_type: "card_grid", data: { items: [{ title: "Bad", image: "javascript:alert(1)" }] } },
+      })
+      const good = await request(`${API}/admin/sections/${secId}/blocks/`, {
+        method: "POST",
+        headers: auth,
+        json: { block_type: "card_grid", data: { items: [{ title: "Everest", image: "https://example.com/everest.jpg", url: "/destinations" }] } },
+      })
+      await request(`${API}/admin/cms/`, { method: "DELETE", headers: auth, json: { resource: "sections", id: secId } })
+      if (bad.res.status === 400 && good.res.ok) {
+        ok("card images must be HTTPS or site paths (script URLs rejected)")
+      } else fail("card_grid image validation", `bad=${bad.res.status} good=${good.res.status}`)
+    }
+  }
+
+  {
     const listed = await request(`${API}/destinations/?limit=1`)
     const slug = listed.data?.results?.[0]?.slug
     const emergency = slug

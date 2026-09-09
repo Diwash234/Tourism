@@ -99,6 +99,24 @@ export default function CompareDestinations() {
   const [selectedDestinations, setSelectedDestinations] = useState([])
   const [availablePlaces, setAvailablePlaces] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
+  // All-Nepal search: when the loaded list has no match, ask the live catalogue
+  const [serverMatches, setServerMatches] = useState(null)
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (q.length < 2) {
+      const t0 = setTimeout(() => setServerMatches(null), 0)
+      return () => clearTimeout(t0)
+    }
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await destinationApi.getDestinations({ search: q, page_size: 12 })
+        setServerMatches(data.results || [])
+      } catch {
+        setServerMatches(null)
+      }
+    }, 350)
+    return () => clearTimeout(t)
+  }, [searchQuery])
   const [showAddDropdown, setShowAddDropdown] = useState(false)
   const [loading, setLoading] = useState(true)
   const [presetError, setPresetError] = useState("")
@@ -121,7 +139,7 @@ export default function CompareDestinations() {
     const bootstrap = async () => {
       setLoading(true)
       try {
-        const { data } = await destinationApi.getDestinations({ page_size: 50 })
+        const { data } = await destinationApi.getDestinations({ page_size: 200 })
         const list = data.results || data || []
         setAvailablePlaces(list)
         const fromQuery = requestedSlug ? await loadBySlugs([requestedSlug]) : []
@@ -221,9 +239,10 @@ export default function CompareDestinations() {
                   autoFocus
                 />
                 <div className="max-h-48 overflow-y-auto space-y-1">
-                  {availablePlaces
-                    .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .slice(0, 8)
+                  {[...availablePlaces
+                    .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+                   ...(serverMatches || []).filter((sp) => !availablePlaces.some((ap) => ap.slug === sp.slug))]
+                    .slice(0, 12)
                     .map((p) => (
                       <button
                         key={p.id}

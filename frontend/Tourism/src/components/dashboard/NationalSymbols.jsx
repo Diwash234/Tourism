@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import usePublicConfig from "../../hooks/usePublicConfig";
 import { Link } from "react-router-dom";
 import {
   FiBookOpen, FiX, FiAward, FiCoffee, FiMap, FiSun,
@@ -164,6 +165,16 @@ const MARQUEE_ITEMS = [
 ];
 
 const NationalSymbols = () => {
+  const publicConfig = usePublicConfig();
+  // Admin-editable symbol boxes: a published card_grid block on the
+  // discover-nepal page's `symbols` section replaces the built-in 8 boxes —
+  // any count, own names, images and facts, live after Publish.
+  const symbolsSection = publicConfig.section("discover-nepal", "symbols");
+  const symbolsGrid = (symbolsSection?.blocks || []).find((b) => b.type === "card_grid");
+  const cmsSymbolItems = Array.isArray(symbolsGrid?.data?.items) && symbolsGrid.data.items.length
+    ? symbolsGrid.data.items.map((c) => ({ image: c.image, label: c.title, fact: c.description }))
+    : null;
+  const summarySymbols = cmsSymbolItems || SUMMARY_SYMBOLS;
   const [showFullModal, setShowFullModal] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState("symbols");
 
@@ -209,7 +220,7 @@ const NationalSymbols = () => {
 
         {/* Inline Grid Preview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {SUMMARY_SYMBOLS.map(({ image, label, fact }, index) => (
+          {summarySymbols.map(({ image, label, fact }, index) => (
             <motion.div
               key={label}
               initial={{ opacity: 0, y: 10 }}

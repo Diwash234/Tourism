@@ -54,6 +54,11 @@ export default function DestinationDetails() {
   const [nearbyTotal, setNearbyTotal] = useState(0)
   const [nearbyPage, setNearbyPage] = useState(1)
   const [nearbyBusy, setNearbyBusy] = useState(false)
+  // Real nearby places from OpenStreetMap (location-based, not database-limited)
+  const [pois, setPois] = useState(null)
+  const [poiRadius, setPoiRadius] = useState(5)
+  const [poiTab, setPoiTab] = useState("hotels")
+  const [poiError, setPoiError] = useState("")
 
   const fetchNearbyDestinations = async (page, dest) => {
     if (!dest || !hasValidCoords(dest.latitude, dest.longitude)) return
@@ -81,6 +86,25 @@ export default function DestinationDetails() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination?.id])
+
+  const fetchNearbyPOIs = async (slug, radius) => {
+    setPoiError("")
+    try {
+      const { data } = await destinationApi.getNearbyPOIs(slug, { radius_km: radius })
+      setPois(data)
+      const firstWithResults = Object.entries(data.categories || {}).find(([, v]) => v.results?.length)
+      setPoiTab(firstWithResults ? firstWithResults[0] : Object.keys(data.categories || {})[0] || "hotels")
+    } catch (error) {
+      setPois(null)
+      setPoiError(error.response?.data?.detail || "Live map data (OpenStreetMap) is unavailable right now.")
+    }
+  }
+
+  useEffect(() => {
+    if (!destination?.slug) return
+    const t = setTimeout(() => { fetchNearbyPOIs(destination.slug, poiRadius) }, 0)
+    return () => clearTimeout(t)
+  }, [destination?.slug, poiRadius])
 
   const loadMoreNearby = async () => {
     setNearbyBusy(true)
@@ -864,6 +888,69 @@ export default function DestinationDetails() {
       </div>
 
       {extras?.length > 0 && <CMSExtras sections={extras} />}
+
+      {/* REAL NEARBY PLACES — OpenStreetMap, location-based, nearest first */}
+      <section className="max-w-7xl mx-auto px-4 mt-12">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black text-primary-950">What's Actually Near {destination.name}</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Real places on the ground from OpenStreetMap — not limited to our database. Straight-line distances, nearest first.
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-xl bg-primary-50 p-1">
+            {[2, 5, 10].map((r) => (
+              <button
+                key={r}
+                onClick={() => setPoiRadius(r)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-black ${poiRadius === r ? "bg-primary-600 text-white" : "text-primary-800 hover:bg-primary-100"}`}
+              >
+                {r} km
+              </button>
+            ))}
+          </div>
+        </div>
+        {poiError && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{poiError}</p>}
+        {pois && (
+          <>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {Object.entries(pois.categories || {}).map(([key, group]) => (
+                <button
+                  key={key}
+                  onClick={() => setPoiTab(key)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${poiTab === key ? "bg-primary-600 text-white shadow" : "bg-white border border-primary-200 text-primary-800 hover:bg-primary-50"}`}
+                >
+                  {group.label} ({group.results?.length || 0})
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(pois.categories?.[poiTab]?.results || []).map((row) => (
+                <a
+                  key={`${row.osm_id}-${row.name}`}
+                  href={`https://www.openstreetmap.org/?mlat=${row.latitude}&mlon=${row.longitude}#map=17/${row.latitude}/${row.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-sm text-slate-900">{row.name}</p>
+                    <p className="text-[11px] text-slate-500">{pois.categories[poiTab].label} · OpenStreetMap</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-primary-600 px-2.5 py-1 text-[11px] font-black text-white">
+                    {row.distance_km} km
+                  </span>
+                </a>
+              ))}
+              {!(pois.categories?.[poiTab]?.results || []).length && !poiError && (
+                <p className="col-span-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  No {pois.categories?.[poiTab]?.label?.toLowerCase() || "places"} recorded on OpenStreetMap within {pois.radius_km} km — try a wider radius.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+      </section>
 
       {/* NEARBY & ALL DESTINATIONS — every destination, nearest first, with photos */}
       {nearbyDests.length > 0 && (

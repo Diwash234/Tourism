@@ -13,6 +13,11 @@ const destinationApi = {
   getNearbyDestinations: (params = {}) =>
     axiosClient.get("/destinations/nearby/", { params }),
 
+  // Real on-the-ground places (hotels/hospitals/temples/viewpoints/…) around a
+  // destination, straight from OpenStreetMap via the backend proxy.
+  getNearbyPOIs: (slugOrId, params = {}) =>
+    axiosClient.get(`/destinations/${slugOrId}/nearby-pois/`, { params }),
+
 
   // NEW: needed to find the "Culture & Heritage" / "Local Experience"
   // categories used by NepalExperienceSection — the CategoryViewSet was

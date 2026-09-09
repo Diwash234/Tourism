@@ -2455,3 +2455,112 @@ class MediaLibraryCoverPropagationTests(TestCase):
         self.assertEqual(self.client.get("/api/v1/admin/media-library/").status_code, 403)
         self.assertEqual(self.client.patch("/api/v1/admin/media-library/", {"id": self.new.id, "action": "set_cover"}, format="json").status_code, 403)
 
+
+class NearbyPOIsOverpassTests(TestCase):
+    """Location-based nearby places (OpenStreetMap/Overpass proxy)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        from tourist.models import Destination
+        cache.clear()  # POI payloads are cached per location — isolate tests
+        self.dest = Destination.objects.create(name="POI Town", slug="poi-town", latitude=28.2, longitude=83.99)
+
+    def _fake_elements(self):
+        return {"elements": [
+            {"id": 1, "lat": 28.210, "lon": 83.995, "tags": {"name": "Far Hotel", "tourism": "hotel"}},
+            {"id": 2, "lat": 28.201, "lon": 83.991, "tags": {"name": "Near Hotel", "tourism": "guest_house"}},
+            {"id": 3, "lat": 28.205, "lon": 83.992, "tags": {"name": "City Hospital", "amenity": "hospital"}},
+            {"id": 4, "lat": 28.202, "lon": 83.990, "tags": {"name": "Shiva Mandir", "amenity": "place_of_worship"}},
+            {"id": 5, "lat": 28.203, "lon": 83.993, "tags": {"name": "Lake View Point", "tourism": "viewpoint"}},
+            {"id": 6, "lat": 28.300, "lon": 84.100, "tags": {"name": "Unnamed Node", "amenity": "atm"}},
+        ]}
+
+    def test_groups_sorts_and_computes_distances(self):
+        from unittest.mock import patch, MagicMock
+        fake = MagicMock()
+        fake.raise_for_status.return_value = None
+        fake.json.return_value = self._fake_elements()
+        with patch("requests.post", return_value=fake):
+            resp = self.client.get("/api/v1/destinations/poi-town/nearby-pois/?radius_km=5")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["source"], "OpenStreetMap (Overpass API)")
+        hotels = data["categories"]["hotels"]["results"]
+        self.assertEqual([h["name"] for h in hotels], ["Near Hotel", "Far Hotel"])  # nearest first
+        self.assertLess(hotels[0]["distance_km"], hotels[1]["distance_km"])
+        self.assertEqual(data["categories"]["temples"]["results"][0]["name"], "Shiva Mandir")
+        self.assertEqual(len(data["categories"]["hospitals"]["results"]), 1)
+        # nameless nodes are skipped, banks empty but present
+        self.assertEqual(data["categories"]["banks"]["results"], [])
+
+    def test_overpass_outage_is_honest_503(self):
+        from unittest.mock import patch
+        with patch("requests.post", side_effect=Exception("network down")):
+            resp = self.client.get("/api/v1/destinations/poi-town/nearby-pois/")
+        self.assertEqual(resp.status_code, 503)
+        self.assertIn("unavailable", resp.json()["detail"])
+
+    def test_unknown_destination_404_and_missing_coords_422(self):
+        from tourist.models import Destination
+        Destination.objects.create(name="No Coords", slug="poi-no-coords")
+        self.assertEqual(self.client.get("/api/v1/destinations/does-not-exist/nearby-pois/").status_code, 404)
+        self.assertEqual(self.client.get("/api/v1/destinations/poi-no-coords/nearby-pois/").status_code, 422)
+
+
+class CMSAdminControlTests(TestCase):
+    """Admin full-control additions: page/section deletion, card images, support links."""
+
+    def setUp(self):
+        from tourist.models import ManagedPage, ContentSection
+        self.admin = User.objects.create_superuser("cmsctl-admin@test.local", "Sup!Pass123")
+        self.page = ManagedPage.objects.create(route="/ctl-test", key="ctl-test", title="CTL Test", status="published")
+        self.section = ContentSection.objects.create(page=self.page, key="intro", title="Intro", section_type="text", status="published")
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def test_admin_can_delete_section_and_page_with_cascade(self):
+        resp = self.client.delete("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        from tourist.models import ContentSection
+        self.assertFalse(ContentSection.objects.filter(pk=self.section.pk).exists())
+        resp = self.client.delete("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.id}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        from tourist.models import ManagedPage
+        self.assertFalse(ManagedPage.objects.filter(pk=self.page.pk).exists())
+
+    def test_homepage_delete_is_refused(self):
+        from tourist.models import ManagedPage
+        home, _ = ManagedPage.objects.get_or_create(route="/", defaults={"key": "home", "title": "Home", "status": "published"})
+        resp = self.client.delete("/api/v1/admin/cms/", {"resource": "pages", "id": home.id}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertTrue(ManagedPage.objects.filter(pk=home.pk).exists())
+
+    def test_tourist_cannot_delete_pages(self):
+        tourist = User.objects.create_user(email="cmsctl-tourist@test.local", password="Tour!Pass123", role="tourist")
+        self.client.force_authenticate(tourist)
+        resp = self.client.delete("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.id}, format="json")
+        self.assertIn(resp.status_code, (401, 403))
+
+    def test_card_grid_accepts_https_images_and_rejects_javascript_urls(self):
+        resp = self.client.post("/api/v1/admin/sections/%d/blocks/" % self.section.id, {
+            "block_type": "card_grid",
+            "data": {"items": [{"title": "Flag", "image": "https://cdn.example/flag.jpg", "url": "/about"}]},
+        }, format="json")
+        self.assertEqual(resp.status_code, 201, resp.content[:200])
+        resp = self.client.post("/api/v1/admin/sections/%d/blocks/" % self.section.id, {
+            "block_type": "card_grid",
+            "data": {"items": [{"title": "Bad", "image": "javascript:alert(1)"}]},
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("image", resp.json()["detail"].lower())
+
+    def test_support_links_seeded_in_navigation(self):
+        from tourist.models import ManagedNavigationItem
+        self.assertTrue(ManagedNavigationItem.objects.filter(location="navbar", route="/support").exists())
+        self.assertTrue(ManagedNavigationItem.objects.filter(location="footer", route="/support").exists())
+        public = self.client.get("/api/v1/config/public/")
+        self.assertEqual(public.status_code, 200)
+        nav = public.json().get("navigation") or []
+        routes = [item.get("route") for item in nav]
+        self.assertIn("/support", routes)
+

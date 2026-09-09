@@ -96,6 +96,14 @@ export default function Landing() {
   const navigate = useNavigate()
   const publicConfig = usePublicConfig()
   const { showBlock, copy, extras } = publicConfig.pageCMS("home", HOME_KEYS)
+  // Admin-editable feature boxes: a published card_grid block on the `features`
+  // section replaces the built-in boxes (any count, own titles/images/links).
+  const cmsFeatureItems = (() => {
+    const sec = publicConfig.section("home", "features")
+    const grid = (sec?.blocks || []).find((b) => b.type === "card_grid")
+    const items = grid?.data?.items
+    return Array.isArray(items) && items.length ? items : null
+  })()
   const notices = publicConfig.notices || []
   const destCount = publicConfig.catalog?.destination_count
   const destCountLabel = destCount != null ? destCount.toLocaleString() : null
@@ -158,7 +166,32 @@ export default function Landing() {
         </SlideUp>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
+          {cmsFeatureItems ? cmsFeatureItems.map((card) => (
+            <HoverCard
+              key={card.title}
+              className="card-base rounded-3xl border border-emerald-100/80 shadow-xl bg-gradient-to-br from-white to-emerald-50/20 flex flex-col justify-between overflow-hidden"
+            >
+              {card.image && (
+                <div className="h-40 overflow-hidden bg-emerald-50">
+                  <img src={card.image} alt={card.title} loading="lazy" className="h-full w-full object-cover" />
+                </div>
+              )}
+              <div className="p-7 space-y-3 flex-1">
+                {!card.image && (
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shadow-sm text-xl">
+                    {card.emoji || "★"}
+                  </div>
+                )}
+                <h3 className="font-bold text-base text-gray-900 leading-snug">{card.title}</h3>
+                {card.description && <p className="text-xs text-gray-500 leading-relaxed">{card.description}</p>}
+              </div>
+              <div className="pt-2 border-t border-gray-100 px-7 pb-5">
+                <Link to={card.url || "/destinations"} className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 hover:gap-2 transition-all">
+                  Learn more <FiArrowRight size={12} />
+                </Link>
+              </div>
+            </HoverCard>
+          )) : FEATURES.map(({ icon: Icon, title, desc }) => (
             <HoverCard
               key={title}
               className="card-base p-7 rounded-3xl border border-emerald-100/80 shadow-xl bg-gradient-to-br from-white to-emerald-50/20 flex flex-col justify-between space-y-4"
@@ -171,9 +204,9 @@ export default function Landing() {
                 <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
               </div>
               <div className="pt-2 border-t border-gray-100">
-                <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                <Link to="/destinations" className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 hover:gap-2 transition-all">
                   Learn more <FiArrowRight size={12} />
-                </span>
+                </Link>
               </div>
             </HoverCard>
           ))}

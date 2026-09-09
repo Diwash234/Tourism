@@ -188,6 +188,22 @@ export default function HomepageManagerPanel() {
 
   const pendingSections = sections.filter((sct) => sct.status === "published" ? hasPendingChanges(sct) : sct.status !== "published")
 
+  const deletePage = async () => {
+    if (!homePage || homePage.route === "/") return
+    if (!window.confirm(`Delete the page "${homePage.title || homePage.route}" and ALL of its sections? This cannot be undone.`)) return
+    setBusy("delete-page")
+    try {
+      const { data } = await adminApi.deleteCMS({ resource: "pages", id: homePage.id })
+      showToast(data.message || "Page deleted", "success")
+      setSelectedPageId(null)
+      const t = setTimeout(() => { load(false); clearTimeout(t) }, 0)
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Could not delete page", "error")
+    } finally {
+      setBusy("")
+    }
+  }
+
   const publishAll = async () => {
     setBusy("publish-all")
     let ok = 0
@@ -253,6 +269,16 @@ export default function HomepageManagerPanel() {
                 ))}
               </select>
               <span className="text-xs text-emerald-800/60">{sections.filter((sec) => sec.status === "draft").length} draft(s) on this page</span>
+              {homePage && homePage.route !== "/" && (
+                <button
+                  type="button"
+                  onClick={deletePage}
+                  disabled={busy !== ""}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                >
+                  Delete page
+                </button>
+              )}
             </label>
           )}
         </div>
