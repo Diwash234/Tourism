@@ -3074,6 +3074,30 @@ class AdminMediaLibraryView(APIView):
                     ordered[index].ordering,ordered[target].ordering=ordered[target].ordering,ordered[index].ordering
                     DestinationImage.objects.bulk_update([ordered[index],ordered[target]],["ordering"])
             return Response({"message":"Image order updated","id":image.id,"ordering":ordered[index].ordering if index is not None else image.ordering})
+        if action == "set_cover":
+            # Promote this image to the destination's public cover. Moderation is
+            # respected: only approved images can become the cover.
+            if image.verification_status != "approved":
+                return Response({"detail": "Only approved images can be set as the cover — approve it in the verification queue first."}, status=400)
+            from django.db import transaction
+            with transaction.atomic():
+                DestinationImage.objects.filter(destination=image.destination, is_cover=True).exclude(pk=image.pk).update(is_cover=False)
+                image.is_cover = True
+                image.save(update_fields=["is_cover", "updated_at"])
+                dest = image.destination
+                dest.cover_image = _media_public_url(image) or image.external_url or ""
+                dest.save(update_fields=["cover_image", "updated_at"])
+            _sync_destination_json(dest)
+            return Response({"message": f"Cover updated for “{image.destination.name}” — visible on the public site", "id": image.id, "url": _media_public_url(image)})
+        old_needles = []
+        if image.image:
+            old_needles.append(image.image.name.rsplit("/", 1)[-1])
+            try:
+                old_needles.append(image.image.url)
+            except Exception:
+                pass
+        if image.external_url:
+            old_needles.append(image.external_url)
         for field in ("caption", "alt_text", "external_url", "source_url", "photographer", "license_type", "ordering", "verification_status", "is_verified"):
             if field in request.data: setattr(image, field, request.data[field])
         uploaded = request.FILES.get("file")
@@ -3116,7 +3140,34 @@ class AdminMediaLibraryView(APIView):
             else:
                 dest.cover_image = ""
             dest.save(update_fields=["cover_image", "updated_at"])
-        return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {},"url":_media_public_url(image)})
+        # Propagate the replacement to every string reference (CMS sections,
+        # page OG images, hero slides) that pointed at the OLD url — otherwise
+        # pages keep showing the previous image after a library replace.
+        new_url = _media_public_url(image)
+        propagated = 0
+        if new_url and (uploaded or "external_url" in request.data or "crop_box" in request.data):
+            stale = [n for n in old_needles if n and n not in new_url]
+            if stale:
+                def _matches(value):
+                    return isinstance(value, str) and any(n in value for n in stale)
+                from .models import HeroSlide
+                for section in ContentSection.objects.exclude(image_url=""):
+                    if _matches(section.image_url):
+                        section.image_url = new_url
+                        section.save(update_fields=["image_url", "updated_at"])
+                        propagated += 1
+                for page in ManagedPage.objects.exclude(og_image_url=""):
+                    if _matches(page.og_image_url):
+                        page.og_image_url = new_url
+                        page.save(update_fields=["og_image_url", "updated_at"])
+                        propagated += 1
+                for slide in HeroSlide.objects.all():
+                    if _matches(slide.image_url):
+                        slide.image_url = new_url
+                        slide.save(update_fields=["image_url", "updated_at"])
+                        propagated += 1
+        return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {},"url":new_url,
+                         "propagated_references":propagated,"is_cover":image.is_cover})
     def delete(self, request):
         _require_capability(request,"images","delete")
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()

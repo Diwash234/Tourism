@@ -2392,3 +2392,66 @@ class HomepageCMSBlockTypesTests(TestCase):
         self.assertEqual(self.client.post(f"/api/v1/admin/sections/{tp.id}/blocks/", {
             "block_type": "card_grid", "title": "Hack", "data": {"items": []}}, format="json").status_code, 403)
 
+
+class MediaLibraryCoverPropagationTests(TestCase):
+    """Central Media Library fixes: set-cover promotes any approved image to
+    the public cover, and replacements propagate to string references."""
+
+    def setUp(self):
+        from tourist.models import Destination, DestinationImage
+        self.admin = User.objects.create_superuser("mlib-admin@test.local", "Sup!Pass123")
+        self.dest = Destination.objects.create(name="Bandipur", slug="bandipur-mlib")
+        self.old = DestinationImage.objects.create(
+            destination=self.dest, external_url="https://cdn.example/old-bandipur.jpg",
+            verification_status="approved", is_verified=True, is_cover=True)
+        self.new = DestinationImage.objects.create(
+            destination=self.dest, external_url="https://cdn.example/new-bandipur.jpg",
+            verification_status="approved", is_verified=True, is_cover=False)
+        self.pending = DestinationImage.objects.create(
+            destination=self.dest, external_url="https://cdn.example/pending.jpg",
+            verification_status="pending", is_cover=False)
+        self.dest.cover_image = "https://cdn.example/old-bandipur.jpg"
+        self.dest.save(update_fields=["cover_image"])
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def _public_cover(self):
+        data = self.client.get("/api/v1/destinations/bandipur-mlib/").json()
+        return data.get("cover_image_url")
+
+    def test_set_cover_updates_public_site(self):
+        self.assertEqual(self._public_cover(), "https://cdn.example/old-bandipur.jpg")
+        resp = self.client.patch("/api/v1/admin/media-library/", {"id": self.new.id, "action": "set_cover"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._public_cover(), "https://cdn.example/new-bandipur.jpg")
+        self.old.refresh_from_db()
+        self.assertFalse(self.old.is_cover)
+
+    def test_pending_image_cannot_become_cover(self):
+        resp = self.client.patch("/api/v1/admin/media-library/", {"id": self.pending.id, "action": "set_cover"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("approved", resp.json()["detail"])
+        self.assertEqual(self._public_cover(), "https://cdn.example/old-bandipur.jpg")
+
+    def test_replacement_propagates_to_cms_references(self):
+        from tourist.models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/mlib-test", key="mlib-test", title="MLib Test", status="published")
+        section = ContentSection.objects.create(
+            page=page, key="banner", title="Banner", section_type="image",
+            image_url="https://cdn.example/old-bandipur.jpg", status="published")
+        resp = self.client.patch("/api/v1/admin/media-library/", {
+            "id": self.old.id, "external_url": "https://cdn.example/replaced-bandipur.jpg",
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(resp.json()["propagated_references"], 1)
+        section.refresh_from_db()
+        self.assertIn("replaced-bandipur", section.image_url)
+        # cover follows the replaced cover image too
+        self.assertIn("replaced-bandipur", self._public_cover())
+
+    def test_non_staff_cannot_touch_media_library(self):
+        tourist = User.objects.create_user(email="mlib-tourist@test.local", password="Tour!Pass123", role="tourist")
+        self.client.force_authenticate(tourist)
+        self.assertEqual(self.client.get("/api/v1/admin/media-library/").status_code, 403)
+        self.assertEqual(self.client.patch("/api/v1/admin/media-library/", {"id": self.new.id, "action": "set_cover"}, format="json").status_code, 403)
+

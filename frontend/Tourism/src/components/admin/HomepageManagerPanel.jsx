@@ -39,6 +39,8 @@ const hasPendingChanges = (section) => {
 export default function HomepageManagerPanel() {
   const { showToast } = useToast()
   const [homePage, setHomePage] = useState(null)
+  const [pages, setPages] = useState([])
+  const [selectedPageId, setSelectedPageId] = useState(null)
   const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
@@ -63,7 +65,8 @@ export default function HomepageManagerPanel() {
         adminApi.getCMS("sections"),
       ])
       const pages = pagesRes.data.results || pagesRes.data || []
-      const home = pages.find((page) => page.route === "/") || null
+      setPages(pages)
+      const home = pages.find((page) => page.id === selectedPageId) || pages.find((page) => page.route === "/") || pages[0] || null
       const all = sectionsRes.data.results || sectionsRes.data || []
       const homeSections = all
         .filter((section) => home && section.page_id === home.id)
@@ -76,7 +79,7 @@ export default function HomepageManagerPanel() {
         setSelectedId(first ? first.id : null)
       }
     } catch (error) {
-      showToast(error.response?.data?.detail || "Could not load homepage content", "error")
+      showToast(error.response?.data?.detail || "Could not load page content", "error")
     } finally {
       setLoading(false)
     }
@@ -230,10 +233,28 @@ export default function HomepageManagerPanel() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-black text-emerald-950">Homepage Editor</h2>
+          <h2 className="text-2xl font-black text-emerald-950">Page Editor — Homepage & All Pages</h2>
           <p className="text-sm text-emerald-900/60">
-            Edit → Save Draft → Preview → Publish. Drafts never touch the public site; only Publish updates the homepage.
+            Edit → Save Draft → Preview → Publish. Drafts never touch the public site; only Publish updates the page.
           </p>
+          {pages.length > 0 && (
+            <label className="flex flex-wrap items-center gap-3 mt-3 text-sm font-semibold text-emerald-900/70">
+              Editing page
+              <select
+                value={homePage?.id || ""}
+                onChange={(e) => {
+                  setSelectedPageId(Number(e.target.value))
+                  setTimeout(() => { load(false) }, 0)
+                }}
+                className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-800"
+              >
+                {[...pages].sort((a, b) => (a.route === "/" ? -1 : b.route === "/" ? 1 : a.route.localeCompare(b.route))).map((p) => (
+                  <option key={p.id} value={p.id}>{p.route === "/" ? "/ (Homepage)" : p.route}{p.title ? ` — ${p.title}` : ""}</option>
+                ))}
+              </select>
+              <span className="text-xs text-emerald-800/60">{sections.filter((sec) => sec.status === "draft").length} draft(s) on this page</span>
+            </label>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start">
           {pendingSections.length > 0 && (
