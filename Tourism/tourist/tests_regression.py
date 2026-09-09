@@ -2117,3 +2117,71 @@ class GuideBookingReviewTests(TestCase):
         self.assertEqual(self.client.post("/api/v1/workforce/guide-bookings/", {"guide_id": self.guide.id}, format="json").status_code, 400)
         self.assertEqual(self.client.post("/api/v1/workforce/guide-bookings/", {"guide_id": self.guide.id, "start_date": "2026-10-09", "end_date": "2026-10-05"}, format="json").status_code, 400)
 
+
+class WorkforceOverviewStatsTests(TestCase):
+    """Workforce roll-up + guide earnings/stats (workforce spec §14)."""
+
+    def setUp(self):
+        from datetime import date
+        from tourist.models import GuideBookingRequest, GuideProfile, TourismJob
+        self.admin = User.objects.create_superuser("ov-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="ov-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"marketplace": ["view"]})
+        self.guide_user = User.objects.create_user(email="ov-guide@test.local", password="Guide!Pass123", role="tourist")
+        self.guide = GuideProfile.objects.create(user=self.guide_user, verification_status="verified",
+                                                 is_public=True, daily_rate_npr=2000)
+        self.tourist = User.objects.create_user(email="ov-tourist@test.local", password="Tour!Pass123", role="tourist")
+        TourismJob.objects.create(posted_by=self.admin, title="Photographer wanted", description="x")
+        GuideBookingRequest.objects.create(tourist=self.tourist, guide_profile=self.guide,
+                                           start_date=date(2026, 10, 1), end_date=date(2026, 10, 5), status="completed")
+        GuideBookingRequest.objects.create(tourist=self.tourist, guide_profile=self.guide,
+                                           start_date=date(2026, 11, 1), end_date=date(2026, 11, 3), status="accepted")
+        self.client = APIClient()
+
+    def test_overview_requires_capability_and_reports_counts(self):
+        plain = User.objects.create_user(email="ov-noperm@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.client.force_authenticate(plain)
+        self.assertEqual(self.client.get("/api/v1/workforce/admin/overview/").status_code, 403)
+        self.client.force_authenticate(self.staff)
+        data = self.client.get("/api/v1/workforce/admin/overview/").json()
+        self.assertEqual(data["jobs"]["open"], 1)
+        self.assertEqual(data["bookings"]["completed"], 1)
+        self.assertEqual(data["bookings"]["accepted"], 1)
+        self.assertEqual(data["bookings"]["requested"], 0)
+        self.assertEqual(data["guides"]["verified"], 1)
+        self.assertEqual(data["pending_work"], 0)
+        GuideBookingRequest = self.guide.booking_requests.model
+        GuideBookingRequest.objects.create(tourist=self.tourist, guide_profile=self.guide,
+                                           start_date="2026-12-01", status="requested")
+        data = self.client.get("/api/v1/workforce/admin/overview/").json()
+        self.assertEqual(data["pending_work"], 1)
+
+    def test_guide_stats_own_profile_only_with_earnings_estimate(self):
+        self.client.force_authenticate(self.tourist)
+        self.assertEqual(self.client.get("/api/v1/workforce/guide-stats/").status_code, 404)
+        self.client.force_authenticate(self.guide_user)
+        data = self.client.get("/api/v1/workforce/guide-stats/").json()
+        self.assertEqual(data["booking_counts"]["completed"], 1)
+        self.assertEqual(data["booking_counts"]["accepted"], 1)
+        # completed trip 10/01→10/05 = 5 days × 2000 = 10,000
+        self.assertEqual(data["completed_earnings_estimate_npr"], 10000.0)
+        # upcoming accepted trip 11/01→11/03 = 3 days × 2000 = 6,000
+        self.assertEqual(len(data["upcoming_trips"]), 1)
+        self.assertEqual(data["upcoming_earnings_estimate_npr"], 6000.0)
+        self.assertIn("does not process", data["estimate_basis"])
+        self.assertIsNone(data["rating_avg"])
+
+    def test_guide_stats_includes_reputation_after_review(self):
+        from datetime import date
+        from tourist.models import GuideBookingRequest, GuideReview
+        booking = GuideBookingRequest.objects.create(tourist=self.tourist, guide_profile=self.guide,
+                                                     start_date=date(2026, 9, 1), status="completed")
+        GuideReview.objects.create(booking=booking, user=self.tourist, guide_profile=self.guide,
+                                   rating=4, review="Solid guide")
+        self.client.force_authenticate(self.guide_user)
+        data = self.client.get("/api/v1/workforce/guide-stats/").json()
+        self.assertEqual(data["rating_avg"], 4.0)
+        self.assertEqual(data["review_count"], 1)
+        # single-day completed trip also counts: 1 × 2000 = 2000
+        self.assertEqual(data["completed_earnings_estimate_npr"], 12000.0)
+

@@ -30,6 +30,7 @@ export default function GuidePortal() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [requests, setRequests] = useState([])
+  const [stats, setStats] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [declineFor, setDeclineFor] = useState(null)
   const [declineNote, setDeclineNote] = useState("")
@@ -53,6 +54,9 @@ export default function GuidePortal() {
         workforceApi.myBookings("guide")
           .then(({ data: d }) => setRequests(d.results || []))
           .catch(() => setRequests([]))
+        workforceApi.guideStats()
+          .then(({ data: d }) => setStats(d))
+          .catch(() => setStats(null))
       } else if ((apps.data.results || []).length) {
         setTab("status")
       }
@@ -155,7 +159,7 @@ export default function GuidePortal() {
         </div>
 
         <div className="flex gap-1.5">
-          {[["apply", "Apply"], ["status", `My Applications${applications.length ? ` (${applications.length})` : ""}`], ["profile", profile ? "My Profile" : "Profile (after approval)"], ["requests", profile ? `Booking Requests${requests.filter((r) => r.status === "requested").length ? ` (${requests.filter((r) => r.status === "requested").length})` : ""}` : "Booking Requests"]].map(([id, label]) => (
+          {[["apply", "Apply"], ["status", `My Applications${applications.length ? ` (${applications.length})` : ""}`], ["profile", profile ? "My Profile" : "Profile (after approval)"], ["requests", profile ? `Booking Requests${requests.filter((r) => r.status === "requested").length ? ` (${requests.filter((r) => r.status === "requested").length})` : ""}` : "Booking Requests"], ["stats", "Earnings & Stats"]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} aria-pressed={tab === id}
               className={`px-4 py-2 rounded-full text-xs font-bold transition ${tab === id ? "bg-[#102A2E] text-white" : "bg-white border text-slate-600 hover:bg-slate-100"}`}>
               {label}
@@ -308,6 +312,56 @@ export default function GuidePortal() {
               ) : (
                 <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">
                   Booking requests become available once your guide application is approved.
+                </div>
+              )
+            )}
+            {tab === "stats" && (
+              profile ? (
+                stats ? (
+                  <div className="space-y-3">
+                    <div className="grid sm:grid-cols-4 gap-3">
+                      <div className="bg-white rounded-2xl border p-4">
+                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Reputation</p>
+                        <p className="text-2xl font-black text-amber-600 mt-1">{stats.rating_avg ? `${stats.rating_avg}★` : "—"}</p>
+                        <p className="text-[11px] text-slate-400">{stats.review_count} review{stats.review_count === 1 ? "" : "s"}</p>
+                      </div>
+                      <div className="bg-white rounded-2xl border p-4">
+                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Completed trips</p>
+                        <p className="text-2xl font-black text-slate-900 mt-1">{stats.booking_counts.completed}</p>
+                        <p className="text-[11px] text-slate-400">{stats.booking_counts.accepted} upcoming · {stats.booking_counts.requested} pending requests</p>
+                      </div>
+                      <div className="bg-white rounded-2xl border p-4">
+                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Earned (estimate)</p>
+                        <p className="text-2xl font-black text-emerald-600 mt-1">NPR {Number(stats.completed_earnings_estimate_npr).toLocaleString()}</p>
+                        <p className="text-[11px] text-slate-400">from completed trips</p>
+                      </div>
+                      <div className="bg-white rounded-2xl border p-4">
+                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Upcoming (estimate)</p>
+                        <p className="text-2xl font-black text-sky-600 mt-1">NPR {Number(stats.upcoming_earnings_estimate_npr).toLocaleString()}</p>
+                        <p className="text-[11px] text-slate-400">from accepted trips</p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Estimates are calculated as daily rate × trip days. The platform does not process guide payments — settle rates directly with travellers.</p>
+                    {stats.upcoming_trips.length > 0 && (
+                      <div className="bg-white rounded-3xl border divide-y">
+                        {stats.upcoming_trips.map((t) => (
+                          <div key={t.id} className="p-4 flex flex-wrap items-center gap-3">
+                            <div className="min-w-0 flex-1">
+                              <b className="text-sm text-slate-900">{t.tourist_name}</b>
+                              <p className="text-xs text-slate-500">{t.start_date}{t.end_date ? ` → ${t.end_date}` : ""} · {t.days} day{t.days === 1 ? "" : "s"} · group of {t.group_size}</p>
+                            </div>
+                            <span className="text-xs font-black text-sky-700">≈ NPR {Number(t.estimate_npr).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-400 animate-pulse">Loading your stats…</div>
+                )
+              ) : (
+                <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">
+                  Earnings and reputation unlock once your guide application is approved.
                 </div>
               )
             )}

@@ -35,8 +35,10 @@ export default function GuideVerificationPanel() {
   const [busyId, setBusyId] = useState(null)
   const [noteFor, setNoteFor] = useState(null)
   const [expanded, setExpanded] = useState(null)
+  const [overview, setOverview] = useState(null)
 
   const load = useCallback(async () => {
+    workforceApi.adminOverview().then(({ data: d }) => setOverview(d)).catch(() => setOverview(null))
     setLoading(true)
     try {
       const { data: d } = await workforceApi.applications(tab)
@@ -75,8 +77,34 @@ export default function GuideVerificationPanel() {
     }
   }
 
+  const ovCards = overview ? [
+    ["Guide applications", overview.guide_applications, ["applied", "under_review", "document_verification", "needs_info", "approved", "rejected"]],
+    ["Jobs", overview.jobs, ["open", "paused", "filled", "closed"]],
+    ["Job applications", overview.job_applications, ["applied", "shortlisted", "hired", "rejected"]],
+    ["Guide bookings", overview.bookings, ["requested", "accepted", "completed", "declined", "cancelled"]],
+  ] : []
+
   return (
     <div className="space-y-4">
+      {overview && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+          {ovCards.map(([label, counts]) => (
+            <div key={label} className="bg-white rounded-2xl border p-4">
+              <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">{label}</p>
+              {Object.entries(counts).filter(([k]) => label !== "Guide applications" || k !== "needs_info" || counts[k] > 0).slice(0, 6).map(([k, v]) => (
+                <p key={k} className="text-xs text-slate-600 flex justify-between mt-1">
+                  <span className="capitalize">{k.replaceAll("_", " ")}</span><b>{v}</b>
+                </p>
+              ))}
+            </div>
+          ))}
+          <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4">
+            <p className="text-[10px] uppercase tracking-wider font-black text-violet-400">Pending work</p>
+            <p className="text-3xl font-black text-violet-700 mt-1">{overview.pending_work}</p>
+            <p className="text-[10px] text-violet-500 mt-1">applications + job applications + booking requests awaiting action</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {TABS.map((t) => (

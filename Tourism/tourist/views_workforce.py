@@ -761,3 +761,86 @@ class GuideReviewListView(APIView):
             "results": [{"id": r.id, "rating": r.rating, "review": r.review,
                          "author": r.user.full_name, "created_at": r.created_at} for r in reviews],
         })
+
+
+# ============================================================
+# WORKFORCE ROLL-UP + GUIDE EARNINGS/STATS (spec §14)
+# ============================================================
+
+class WorkforceOverviewView(APIView):
+    """GET /api/v1/workforce/admin/overview/ — unified workforce roll-up
+    across guide applications, jobs, job applications, bookings and guides."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        from .models import (GuideApplication, GuideBookingRequest, GuideProfile,
+                             TourismJob, TourismJobApplication)
+        _require_capability(request, "marketplace", "view")
+        guide_apps = {choice: GuideApplication.objects.filter(status=choice).count()
+                      for choice, _l in GuideApplication.Status.choices}
+        jobs = {choice: TourismJob.objects.filter(status=choice).count()
+                for choice, _l in TourismJob.Status.choices}
+        job_apps = {choice: TourismJobApplication.objects.filter(status=choice).count()
+                    for choice, _l in TourismJobApplication.Status.choices}
+        bookings = {choice: GuideBookingRequest.objects.filter(status=choice).count()
+                    for choice, _l in GuideBookingRequest.Status.choices}
+        guides = {choice: GuideProfile.objects.filter(verification_status=choice).count()
+                  for choice, _l in GuideProfile.VerificationStatus.choices}
+        pending_work = (guide_apps.get("applied", 0) + guide_apps.get("under_review", 0)
+                        + guide_apps.get("document_verification", 0)
+                        + job_apps.get("applied", 0) + bookings.get("requested", 0))
+        return Response({
+            "guide_applications": guide_apps,
+            "jobs": jobs,
+            "job_applications": job_apps,
+            "bookings": bookings,
+            "guides": guides,
+            "pending_work": pending_work,
+        })
+
+
+class GuideStatsView(APIView):
+    """GET /api/v1/workforce/guide-stats/ — own guide stats: booking counts,
+    reputation and an earnings ESTIMATE (daily rate × trip days; the platform
+    does not process guide payments, so this is an estimate, clearly labelled)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Avg, Count
+        from .models import GuideBookingRequest, GuideProfile
+        profile = GuideProfile.objects.filter(user=request.user).first()
+        if not profile:
+            return Response({"detail": "You do not have a guide profile yet."}, status=404)
+        qs = GuideBookingRequest.objects.filter(guide_profile=profile)
+        counts = {choice: qs.filter(status=choice).count()
+                  for choice, _l in GuideBookingRequest.Status.choices}
+        counts["all"] = qs.count()
+        agg = profile.reviews.aggregate(avg=Avg("rating"), count=Count("id"))
+        rate = profile.daily_rate_npr or 0
+        estimate = 0
+        upcoming = []
+        for b in qs.filter(status__in=["accepted", "completed"]).select_related("tourist").order_by("start_date"):
+            days = 1
+            if b.end_date and b.start_date:
+                days = max(1, (b.end_date - b.start_date).days + 1)
+            if b.status == "completed":
+                estimate += float(rate) * days
+            if b.status == "accepted":
+                upcoming.append({
+                    "id": b.id, "start_date": b.start_date, "end_date": b.end_date,
+                    "days": days, "group_size": b.group_size,
+                    "tourist_name": b.tourist.full_name,
+                    "estimate_npr": float(rate) * days,
+                })
+        return Response({
+            "booking_counts": counts,
+            "rating_avg": round(agg["avg"], 2) if agg["avg"] else None,
+            "review_count": agg["count"] or 0,
+            "daily_rate_npr": str(rate) if rate else None,
+            "completed_earnings_estimate_npr": round(estimate, 2),
+            "upcoming_trips": upcoming,
+            "upcoming_earnings_estimate_npr": round(sum(t["estimate_npr"] for t in upcoming), 2),
+            "estimate_basis": "daily_rate_npr × trip days; platform does not process guide payments",
+        })

@@ -42,6 +42,8 @@ const workforceApi = {
   jobApplications: (params = {}) => axiosClient.get("/workforce/admin/job-applications/", { params }),
   jobApplicationAction: (id, action, note = "") =>
     axiosClient.post(`/workforce/admin/job-applications/${id}/action/`, { action, note }),
+  adminOverview: () => axiosClient.get("/workforce/admin/overview/"),
+  guideStats: () => axiosClient.get("/workforce/guide-stats/"),
 }
 
 export default workforceApi
