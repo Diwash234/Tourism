@@ -180,3 +180,12 @@ image-server/images/**/*
 downloads/nepal-tourism-database.sqlite3
 downloads/nepal-images-only.zip
 downloads/nepal-tourism-full-project.zip
+
+# Large generated data artifacts (regenerable at runtime — keep them out of
+# the branch diff; see tourist/location_sync.py export + photo catalog docs)
+Tourism/db.sqlite3
+Tourism/db.sqlite3.backup
+Tourism/db.sqlite3.before_0014_fix
+Tourism/tourist/verified_wikimedia_photos.json
+Tourism/dataset/destination_locations.json
+ml_service/model/destinations.csv
