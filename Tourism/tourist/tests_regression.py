@@ -1182,3 +1182,48 @@ class SearchPlacesRadiusSliceTests(TestCase):
         self.assertIn("Lakeside Pokhara Hotel", names)
         for r in results:
             self.assertLessEqual(r["distance_km"], 25.0)
+
+
+class ChatbotNavigationWiringTests(TestCase):
+    """The assistant must answer distance questions from the navigation
+    service — never from a hardcoded table or an LLM's imagination."""
+
+    def test_distance_answer_uses_routing_engine_not_hardcoded_table(self):
+        from chatbot.services import get_chatbot_reply
+        result = get_chatbot_reply([{"role": "user", "content": "How far is Pokhara from Kathmandu?"}])
+        reply = result["reply"]
+        card = result.get("distance_cards")
+        # The old implementation hardcoded 204.5 km / "6 – 7 hours" for this
+        # exact pair — those fabricated values must never appear again.
+        self.assertNotIn("204.5", reply)
+        self.assertNotIn("6 – 7 hours", reply)
+        self.assertNotIn("Domestic Flight Time", reply)
+        self.assertIn("Pokhara", reply)
+        self.assertIn("Kathmandu", reply)
+        # A real road distance with a labelled source (engine reachable in CI
+        # via the bundled GraphML), or an explicit unavailability statement.
+        self.assertTrue(
+            ("Road Distance:** `2" in reply or "Information unavailable" in reply),
+            reply[:400],
+        )
+
+    def test_unresolvable_place_gets_honest_answer(self):
+        from chatbot.services import get_chatbot_reply
+        result = get_chatbot_reply([{"role": "user", "content": "How far is Xylophonia from Kathmandu?"}])
+        reply = result["reply"]
+        self.assertIn("could not find recorded coordinates", reply)
+        self.assertNotIn("Road Distance", reply)
+
+    def test_compute_distance_card_fields(self):
+        from chatbot.services import compute_distance_and_transit
+        card = compute_distance_and_transit("Kathmandu", "Pokhara")
+        self.assertEqual(card["status"], "ok")
+        self.assertIsNotNone(card["straight_distance_km"])
+        # Straight-line KTM->Pokhara is ~146 km; a real road route is longer.
+        self.assertGreater(card["straight_distance_km"], 100)
+        if card["road_distance_km"] is not None:
+            self.assertGreaterEqual(card["road_distance_km"], card["straight_distance_km"])
+            self.assertIn(card["duration_source"], ("routing_engine", "estimated"))
+        else:
+            self.assertEqual(card["duration_source"], "unavailable")
+        self.assertIsNone(card["flight_time"])  # fabricated flight times are gone
