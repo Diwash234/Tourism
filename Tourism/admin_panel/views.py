@@ -861,3 +861,163 @@ class MyPerformanceView(APIView):
             "escalations": qs.filter(is_escalated=True).count(),
             "avg_completion_hours": round(sum(durations) / len(durations), 1) if durations else None,
         })
+
+
+# ============================================================
+# CUSTOMER SUPPORT CENTER — staff-scoped ticket operations
+# (Staff Ops spec §7-10; reuses the existing UserFeedback /
+# FeedbackMessage thread architecture and 'feedback' capability)
+# ============================================================
+
+def _is_support_admin(user):
+    return user.is_superuser or getattr(user, "role", None) in {"admin", "super_admin", "tourism_admin"}
+
+
+def _ticket_payload(fb, request):
+    return {
+        "id": fb.id,
+        "subject": fb.subject,
+        "message": fb.message,
+        "category": fb.category,
+        "status": fb.status,
+        "priority": fb.priority,
+        "customer_name": fb.name or (fb.user.full_name if fb.user else "") or "Guest",
+        "customer_email": fb.email or (fb.user.email if fb.user else ""),
+        "assigned_to": fb.assigned_to_id,
+        "assigned_to_email": fb.assigned_to.email if fb.assigned_to else None,
+        "is_escalated": fb.is_escalated,
+        "escalation_reason": fb.escalation_reason,
+        "created_at": fb.created_at,
+        "closed_at": fb.closed_at,
+        "messages": [{
+            "id": m.id,
+            "sender": m.sender.email if m.sender else "customer",
+            "sender_is_staff": bool(m.sender and (m.sender.is_staff or m.sender.is_superuser)),
+            "body": m.body, "is_internal": m.is_internal, "created_at": m.created_at,
+        } for m in fb.messages.all()],
+    }
+
+
+class SupportTicketListView(APIView):
+    """Ticket queue scoped to the caller.
+
+    Admins see every ticket. Staff see tickets assigned to them plus the
+    unassigned pool they may claim — never another staff member's tickets.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from tourist.views_admin import _require_capability as require_cap
+        require_cap(request, "feedback", "view")
+        from tourist.models import UserFeedback
+        qs = UserFeedback.objects.select_related("user", "assigned_to").prefetch_related("messages", "messages__sender")
+        if not _is_support_admin(request.user):
+            qs = qs.filter(models.Q(assigned_to=request.user) | models.Q(assigned_to__isnull=True))
+        status = request.query_params.get("status")
+        if status == "escalated":
+            qs = qs.filter(is_escalated=True)
+        elif status == "urgent":
+            qs = qs.filter(priority="urgent").exclude(status__in=["resolved", "closed", "archived"])
+        elif status == "open":
+            qs = qs.exclude(status__in=["resolved", "closed", "archived"])
+        elif status:
+            qs = qs.filter(status=status)
+        qs = qs.order_by("-priority", "-updated_at")[:200]
+
+        base = UserFeedback.objects.all() if _is_support_admin(request.user) else UserFeedback.objects.filter(
+            models.Q(assigned_to=request.user) | models.Q(assigned_to__isnull=True))
+        counts = {
+            "open": base.exclude(status__in=["resolved", "closed", "archived"]).count(),
+            "waiting_user": base.filter(status="waiting_user").count(),
+            "escalated": base.filter(is_escalated=True).exclude(status__in=["resolved", "closed"]).count(),
+            "resolved": base.filter(status__in=["resolved", "closed"]).count(),
+            "urgent": base.filter(priority="urgent").exclude(status__in=["resolved", "closed", "archived"]).count(),
+            "unassigned": base.filter(assigned_to__isnull=True).exclude(status__in=["resolved", "closed", "archived"]).count(),
+        }
+        return Response({"counts": counts, "results": [_ticket_payload(fb, request) for fb in qs]})
+
+
+class SupportTicketActionView(APIView):
+    """Ticket workflow actions: claim, escalate, waiting_user, resolve, reopen.
+
+    Staff may claim unassigned tickets and act on their own tickets only
+    (IDOR-guarded). Escalation notifies the admin team. Audited.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from tourist.views_admin import _require_capability as require_cap
+        require_cap(request, "feedback", "change")
+        from tourist.models import UserFeedback, FeedbackMessage
+        fb = UserFeedback.objects.select_related("assigned_to").filter(pk=pk).first()
+        if fb is None:
+            return Response({"detail": "Ticket not found."}, status=404)
+
+        action = (request.data.get("action") or "").strip().lower()
+        note = (request.data.get("note") or "").strip()
+        is_admin = _is_support_admin(request.user)
+        is_assignee = fb.assigned_to_id == request.user.id
+        error = None
+
+        if action == "claim":
+            if fb.assigned_to_id is not None:
+                error = "This ticket is already assigned."
+            else:
+                fb.assigned_to = request.user
+                if fb.status == UserFeedback.Status.NEW:
+                    fb.status = UserFeedback.Status.IN_PROGRESS
+        elif action == "escalate":
+            if not is_admin and not is_assignee:
+                error = "Only the assigned staff member may escalate this ticket."
+            elif not note:
+                error = "An escalation reason is required."
+            else:
+                fb.is_escalated = True
+                fb.escalation_reason = note
+                if fb.assigned_to_id is None:
+                    fb.assigned_to = request.user
+                FeedbackMessage.objects.create(feedback=fb, sender=request.user,
+                                               body=f"[Escalated] {note}", is_internal=True)
+                # Notify every admin/superuser so a supervisor picks it up.
+                from django.contrib.auth import get_user_model
+                for admin_user in get_user_model().objects.filter(
+                    models.Q(is_superuser=True) | models.Q(role__in=["admin", "super_admin", "tourism_admin"])
+                )[:10]:
+                    _notify(admin_user, f"Escalated ticket: {fb.subject}"[:200], note[:300], {"ticket_id": fb.id})
+        elif action == "waiting_user":
+            if not is_admin and not is_assignee:
+                error = "Only the assigned staff member may change this ticket."
+            else:
+                fb.status = UserFeedback.Status.WAITING_USER
+        elif action == "resolve":
+            if not is_admin and not is_assignee:
+                error = "Only the assigned staff member may resolve this ticket."
+            else:
+                if note:
+                    FeedbackMessage.objects.create(feedback=fb, sender=request.user, body=note, is_internal=False)
+                    fb.admin_reply = note
+                fb.status = UserFeedback.Status.RESOLVED
+                fb.is_escalated = False
+                fb.closed_at = timezone.now()
+                if fb.user_id:
+                    _notify(fb.user, f"Resolved: {fb.subject}"[:200], note or "Marked resolved by the support team.",
+                            {"ticket_id": fb.id})
+        elif action == "reopen":
+            if not is_admin and not is_assignee:
+                error = "Only the assigned staff member may reopen this ticket."
+            else:
+                fb.status = UserFeedback.Status.IN_PROGRESS
+                fb.closed_at = None
+        else:
+            return Response({"detail": "Unknown action."}, status=400)
+
+        if error:
+            return Response({"detail": error}, status=400)
+
+        fb.save()
+        log_action(request=request, action=f"support.{action}", category="content",
+                   message=f"Support ticket #{fb.id} '{fb.subject}' → {action} by {request.user.email}",
+                   object_type="UserFeedback", object_id=fb.id)
+        return Response(_ticket_payload(fb, request))

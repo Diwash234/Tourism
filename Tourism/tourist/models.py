@@ -2499,6 +2499,9 @@ class UserFeedback(TimeStampedModel):
     last_user_read_at = models.DateTimeField(null=True, blank=True)
     last_staff_read_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
+    # Escalation (Staff Ops spec §10): staff flag tickets they cannot solve.
+    is_escalated = models.BooleanField(default=False, db_index=True)
+    escalation_reason = models.TextField(blank=True)
     admin_reply = models.TextField(blank=True)
     replied_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

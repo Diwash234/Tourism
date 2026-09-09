@@ -3161,7 +3161,7 @@ class FeedbackListView(APIView):
         return Response([{
             "id": f.id,
             "user_id": f.user_id,
-            "name": f.name or (f.user.get_full_name() if f.user else ""),
+            "name": f.name or (f.user.full_name if f.user else ""),
             "email": f.email or (f.user.email if f.user else ""),
             "subject": f.subject,
             "message": f.message,
@@ -3247,7 +3247,7 @@ class PublicFeedbackCreateView(APIView):
 
         return Response([{
             "id": f.id,
-            "name": f.name or (f.user.get_full_name() if f.user else ""),
+            "name": f.name or (f.user.full_name if f.user else ""),
             "email": f.email or (f.user.email if f.user else ""),
             "subject": f.subject,
             "message": f.message,
@@ -3338,7 +3338,14 @@ class UserFeedbackMessageView(APIView):
             fb.status = UserFeedback.Status.IN_PROGRESS
         else:
             fb.status = UserFeedback.Status.NEW
+        fb.is_escalated = False  # a fresh customer reply returns it to the normal queue
         fb.save()
+
+        # Notify the assigned staff member (spec §17 "customer replied").
+        if fb.assigned_to_id and fb.assigned_to_id != getattr(request.user, "id", None):
+            from .notification_delivery import queue_notification
+            queue_notification(fb.assigned_to, f"Customer replied: {fb.subject}"[:200],
+                               str(body).strip()[:300], channel="in_app", category="feedback")
 
         return Response({
             "message": "Message sent to support team",

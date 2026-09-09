@@ -18,6 +18,7 @@ from rest_framework.test import APIClient
 from .location.search_service import LocationSearchService
 from .models import (
     User,
+    StaffCapabilityProfile,
     Category,
     Destination,
     Hospital,
@@ -1337,3 +1338,85 @@ class StaffTaskWorkflowTests(TestCase):
         self.assertEqual(data["tasks_completed"], 1)
         self.assertEqual(data["on_time_rate"], 100.0)
         self.assertEqual(data["tasks_total"], 1)
+
+
+class SupportTicketWorkflowTests(TestCase):
+    """Staff-scoped customer support center (Staff Ops spec §7-10)."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser("sup-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="sup-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.other = User.objects.create_user(email="sup-other@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.customer = User.objects.create_user(email="sup-customer@test.local", password="Cust!Pass123", role="tourist")
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"feedback": ["view", "change"], "dashboard": ["view"]})
+        StaffCapabilityProfile.objects.create(user=self.other, capabilities={"feedback": ["view", "change"], "dashboard": ["view"]})
+        self.client = APIClient()
+        from tourist.models import UserFeedback
+        self.ticket = UserFeedback.objects.create(
+            user=self.customer, subject="Cannot find my hotel booking", message="Booking BK10291 is missing.",
+            category="booking", priority="high",
+        )
+
+    def _list(self, as_user):
+        self.client.force_authenticate(as_user)
+        return self.client.get("/api/v1/admin-panel/support/tickets/")
+
+    def _action(self, ticket, action, note="", as_user=None):
+        self.client.force_authenticate(as_user or self.staff)
+        return self.client.post(f"/api/v1/admin-panel/support/tickets/{ticket.id}/action/",
+                                {"action": action, "note": note}, format="json")
+
+    def test_staff_see_only_assigned_and_unassigned(self):
+        from tourist.models import UserFeedback
+        UserFeedback.objects.create(user=self.customer, subject="Other staff ticket", message="x", assigned_to=self.other)
+        data = self._list(self.staff).json()
+        subjects = {row["subject"] for row in data["results"]}
+        self.assertIn("Cannot find my hotel booking", subjects)      # unassigned pool
+        self.assertNotIn("Other staff ticket", subjects)             # another staffer's ticket
+        admin_subjects = {row["subject"] for row in self._list(self.admin).json()["results"]}
+        self.assertIn("Other staff ticket", admin_subjects)          # admin sees all
+
+    def test_capability_required(self):
+        plain = User.objects.create_user(email="sup-noperm@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        resp = self._list(plain)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_claim_then_resolve_flow(self):
+        r = self._action(self.ticket, "claim")
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.assigned_to, self.staff)
+        self.assertEqual(self.ticket.status, "in_progress")
+        # second claim fails
+        self.assertEqual(self._action(self.ticket, "claim", as_user=self.other).status_code, 400)
+        # other staff cannot act on it
+        self.assertEqual(self._action(self.ticket, "resolve", as_user=self.other).status_code, 400)
+        r = self._action(self.ticket, "resolve", "Your booking is confirmed — see email.")
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, "resolved")
+        self.assertIsNotNone(self.ticket.closed_at)
+        self.assertTrue(self.customer.notifications.filter(title__startswith="Resolved:").exists())
+        from audit.models import AuditLog
+        self.assertTrue(AuditLog.objects.filter(object_type="UserFeedback", action="support.resolve").exists())
+
+    def test_escalation_requires_reason_and_notifies_admins(self):
+        self._action(self.ticket, "claim")
+        self.assertEqual(self._action(self.ticket, "escalate").status_code, 400)
+        r = self._action(self.ticket, "escalate", "Payment refund needed — finance must act.")
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.ticket.refresh_from_db()
+        self.assertTrue(self.ticket.is_escalated)
+        self.assertTrue(self.ticket.messages.filter(is_internal=True, body__contains="[Escalated]").exists())
+        self.assertTrue(self.admin.notifications.filter(title__startswith="Escalated ticket:").exists())
+        escalated = self.client.get("/api/v1/admin-panel/support/tickets/?status=escalated")
+        self.assertEqual(escalated.status_code, 200)
+
+    def test_customer_reply_notifies_assigned_staff(self):
+        self._action(self.ticket, "claim")
+        self.client.force_authenticate(self.customer)
+        r = self.client.post(f"/api/v1/feedback/{self.ticket.id}/message", {"message": "Any update?"}, format="json")
+        self.assertEqual(r.status_code, 201, r.content[:200])
+        self.assertTrue(self.staff.notifications.filter(title__startswith="Customer replied:").exists())
+        self.ticket.refresh_from_db()
+        self.assertFalse(self.ticket.is_escalated)  # fresh reply de-escalates

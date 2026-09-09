@@ -11,6 +11,8 @@ urlpatterns = [
     path("my-hotels/", views.MyHotelsView.as_view(), name="admin-panel-my-hotels"),
     path("tasks/<int:pk>/action/", views.AdminTaskActionView.as_view(), name="admin-panel-task-action"),
     path("my-performance/", views.MyPerformanceView.as_view(), name="admin-panel-my-performance"),
+    path("support/tickets/", views.SupportTicketListView.as_view(), name="admin-panel-support-tickets"),
+    path("support/tickets/<int:pk>/action/", views.SupportTicketActionView.as_view(), name="admin-panel-support-action"),
     path("dashboard-summary/", views.AdminDashboardSummaryView.as_view(), name="admin-panel-dashboard-summary"),
     path("analytics/",views.AdminAnalyticsView.as_view(), name="admin-panel-analytics",
 ),

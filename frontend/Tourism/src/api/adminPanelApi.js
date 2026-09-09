@@ -9,6 +9,11 @@ const adminPanelApi = {
   taskAction: (id, action, note = "") =>
     axiosClient.post(`/admin-panel/tasks/${id}/action/`, { action, note }),
   myPerformance: () => axiosClient.get("/admin-panel/my-performance/"),
+  // Customer Support Center (Staff Ops spec §7-10)
+  supportTickets: (status = "") =>
+    axiosClient.get("/admin-panel/support/tickets/", status ? { params: { status } } : {}),
+  supportAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/support/tickets/${id}/action/`, { action, note }),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>
