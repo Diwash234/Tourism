@@ -84,6 +84,24 @@ class LocationSearchService:
 
         # Detect category intents (e.g. "bank", "atm", "hospital", "pharmacy", "police", "store")
         cat_filter = (category or "").strip().lower()
+        # Normalize plural/UI tab ids to canonical provider keys, so a tab like
+        # "hospitals" reaches the curated Hospital provider instead of falling
+        # through to a generic destination dump (live regression, increment 6).
+        _CAT_ALIASES = {
+            "hospitals": "hospital", "clinics": "hospital",
+            "police stations": "police",
+            "hotels": "hotel", "lodges": "hotel",
+            "restaurants": "restaurant",
+            "cafes": "cafe",
+            "banks": "bank", "atms": "atm",
+            "pharmacies": "pharmacy",
+            "stores": "store", "marts": "store", "supermarkets": "store",
+            "gas": "gas_station", "fuel": "gas_station", "petrol pumps": "gas_station",
+            "bus": "bus_stop", "bus stops": "bus_stop",
+            "attractions": "attraction", "temples": "temple",
+            "waterfalls": "waterfall", "viewpoints": "viewpoint",
+        }
+        cat_filter = _CAT_ALIASES.get(cat_filter, cat_filter)
         if not cat_filter:
             if re.search(r"\b(bank|atm|money)\b", q): cat_filter = "bank"
             elif re.search(r"\b(hospital|clinic|doctor|medical|health)\b", q): cat_filter = "hospital"
@@ -99,6 +117,22 @@ class LocationSearchService:
         ref_lng = float(user_lng) if user_lng is not None else POKHARA_CENTER[1]
         has_gps = (user_lat is not None and user_lng is not None)
 
+        # Bounding-box prefilter for curated providers: without it the [:N]
+        # querysets slice in arbitrary DB order and can miss every row that
+        # is actually inside the radius (live bug: "hotels near Pokhara" -> 0
+        # results while 1600+ hotels exist).
+        import math as _math
+
+        def _in_radius(qs):
+            if not (has_gps and radius_km):
+                return qs
+            dlat = radius_km / 111.0
+            dlng = radius_km / (111.0 * max(0.05, _math.cos(_math.radians(ref_lat))))
+            return qs.filter(
+                latitude__gte=ref_lat - dlat, latitude__lte=ref_lat + dlat,
+                longitude__gte=ref_lng - dlng, longitude__lte=ref_lng + dlng,
+            )
+
         raw_results = []
 
         # 1. Search Destination model
@@ -108,13 +142,23 @@ class LocationSearchService:
         )
 
         dest_qs = Destination.objects.filter(is_active=True).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        # Destination-type categories filter the curated table by category name;
+        # any OTHER category filter must never leak arbitrary destinations into
+        # a "nearby hospitals/hotels" result list.
+        _DEST_CATS = {"attraction", "temple", "nature", "waterfall", "viewpoint", "heritage"}
         if search_term and not cat_filter:
             dest_qs = dest_qs.filter(
                 Q(name__icontains=search_term) | Q(city__icontains=search_term) |
                 Q(district__icontains=search_term) | Q(slug__icontains=search_term)
             )
+        elif cat_filter:
+            if cat_filter in _DEST_CATS:
+                dest_qs = dest_qs.filter(category__name__icontains=cat_filter)
+            else:
+                dest_qs = dest_qs.none()
 
-        for d in dest_qs[:30]:
+        dest_qs = _in_radius(dest_qs)
+        for d in dest_qs[:60]:
             raw_results.append({
                 "id": f"dest-{d.id}",
                 "destination_id": d.id,
@@ -138,7 +182,8 @@ class LocationSearchService:
         elif search_term:
             osm_qs = osm_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(category__icontains=search_term))
 
-        for s in osm_qs[:40]:
+        osm_qs = _in_radius(osm_qs)
+        for s in osm_qs[:60]:
             raw_results.append({
                 "id": f"osm-{s.id}",
                 "name": s.name,
@@ -158,7 +203,8 @@ class LocationSearchService:
             h_qs = Hospital.objects.all()
             if search_term and cat_filter != "hospital":
                 h_qs = h_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term))
-            for h in h_qs[:20]:
+            h_qs = _in_radius(h_qs)
+            for h in h_qs[:40]:
                 raw_results.append({
                     "id": f"hosp-{h.id}",
                     "name": h.name,
@@ -176,7 +222,8 @@ class LocationSearchService:
             p_qs = PoliceStation.objects.all()
             if search_term and cat_filter != "police":
                 p_qs = p_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term))
-            for p in p_qs[:20]:
+            p_qs = _in_radius(p_qs)
+            for p in p_qs[:40]:
                 raw_results.append({
                     "id": f"pol-{p.id}",
                     "name": p.name,
@@ -195,7 +242,8 @@ class LocationSearchService:
             ht_qs = Hotel.objects.filter(is_active=True).select_related("destination")
             if search_term and cat_filter != "hotel":
                 ht_qs = ht_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(destination__city__icontains=search_term))
-            for ht in ht_qs[:20]:
+            ht_qs = _in_radius(ht_qs)
+            for ht in ht_qs[:40]:
                 raw_results.append({
                     "id": f"ht-{ht.id}",
                     "name": ht.name,
@@ -264,6 +312,11 @@ class LocationSearchService:
             row["compass_text"] = f"{comp} {arrow}"
             row["distance_text"] = "0 km (Here)" if dist_km < 0.1 else f"{dist_km} km"
             processed.append(row)
+
+        # Honour the requested radius — previously accepted but never applied,
+        # so "nearby" lists could contain places hundreds of km away.
+        if radius_km:
+            processed = [row for row in processed if row["distance_km"] <= radius_km]
 
         # Sort nearest first if user provided GPS or category filter was selected
         if has_gps or cat_filter:

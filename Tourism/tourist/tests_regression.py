@@ -15,8 +15,13 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from .location.search_service import LocationSearchService
 from .models import (
     User,
+    Category,
+    Destination,
+    Hospital,
+    Hotel,
     UserFeedback,
     NotificationPreference,
     ManagedNavigationItem,
@@ -1077,3 +1082,103 @@ class NavigationAnalyticsTests(TestCase):
         self.assertEqual(data["total_calculations"], 0)
         self.assertIsNone(data["average_distance_km"])  # never a fabricated 0-distance claim
         self.assertEqual(data["top_destinations"], [])
+
+
+class SearchPlacesCategoryRadiusTests(TestCase):
+    """Nearby category filters must return that category, inside the radius.
+
+    Regression for two live bugs: plural tab ids ('hospitals') skipped the
+    curated provider branches and dumped 30 arbitrary destinations instead,
+    and radius_km was accepted but never applied (results 200+ km away).
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cat = Category.objects.create(name="Nature", slug="nature-spr")
+        Destination.objects.create(
+            name="Far Away Temple", slug="far-away-temple", category=cls.cat,
+            city="Dhangadhi", district="Kailali", province="Sudurpashchim",
+            latitude=28.7, longitude=80.6,  # ~500 km west of Kathmandu
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        )
+        ktm = Destination.objects.create(
+            name="Kathmandu Core", slug="kathmandu-core-spr", category=cls.cat,
+            city="Kathmandu", district="Kathmandu", province="Bagmati",
+            latitude=27.7172, longitude=85.324,
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        )
+        cls.hosp = Hospital.objects.create(
+            destination=ktm, name="Test City Hospital", address="Kathmandu", phone="102",
+            latitude=27.71, longitude=85.33,
+        )
+
+    def test_plural_hospitals_returns_only_hospitals(self):
+        results = LocationSearchService.search_places(
+            user_lat=27.7172, user_lng=85.324, category="hospitals", radius_km=25, limit=30
+        )
+        self.assertTrue(results, "expected hospital results near Kathmandu")
+        for r in results:
+            self.assertEqual(r["category"], "Hospital", f"non-hospital leaked: {r['name']} ({r['category']})")
+
+    def test_radius_is_applied(self):
+        results = LocationSearchService.search_places(
+            user_lat=27.7172, user_lng=85.324, category="", radius_km=25, limit=30, query="temple"
+        )
+        for r in results:
+            self.assertLessEqual(r["distance_km"], 25.0, f"{r['name']} at {r['distance_km']} km exceeds radius")
+
+    def test_unknown_category_returns_empty_not_random_destinations(self):
+        results = LocationSearchService.search_places(
+            user_lat=27.7172, user_lng=85.324, category="unicorn_stables", radius_km=25, limit=30
+        )
+        self.assertEqual(results, [])
+
+    def test_hotels_plural_maps_to_curated_hotels(self):
+        ktm = Destination.objects.get(slug="kathmandu-core-spr")
+        Hotel.objects.create(destination=ktm, name="Test Kathmandu Hotel", address="Kathmandu", latitude=27.71, longitude=85.32, is_active=True)
+        results = LocationSearchService.search_places(
+            user_lat=27.7172, user_lng=85.324, category="hotels", radius_km=25, limit=30
+        )
+        self.assertTrue(results)
+        for r in results:
+            self.assertEqual(r["category"], "Hotel & Lodge")
+
+
+class SearchPlacesRadiusSliceTests(TestCase):
+    """A place inside the radius must be found even when many out-of-radius
+    rows occupy the queryset slice (live bug: hotels near Pokhara -> 0)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cat = Category.objects.create(name="City", slug="city-slice")
+        hub = Destination.objects.create(
+            name="Pokhara Hub", slug="pokhara-hub-slice", category=cls.cat,
+            city="Pokhara", district="Kaski", province="Gandaki",
+            latitude=28.2096, longitude=83.9856,
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        )
+        # 25 far-away hotels fill any naive [:20] slice
+        far = Destination.objects.create(
+            name="Far Hub", slug="far-hub-slice", category=cls.cat,
+            city="Dhangadhi", district="Kailali", province="Sudurpashchim",
+            latitude=28.7, longitude=80.6,
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        )
+        for i in range(25):
+            Hotel.objects.create(
+                destination=far, name=f"Far Hotel {i}", address="Kailali",
+                latitude=28.7 + i * 0.001, longitude=80.6, is_active=True,
+            )
+        Hotel.objects.create(
+            destination=hub, name="Lakeside Pokhara Hotel", address="Lakeside",
+            latitude=28.2080, longitude=83.9580, is_active=True,
+        )
+
+    def test_hotel_inside_radius_found_despite_far_slice_fillers(self):
+        results = LocationSearchService.search_places(
+            user_lat=28.2096, user_lng=83.9856, category="hotels", radius_km=25, limit=40
+        )
+        names = [r["name"] for r in results]
+        self.assertIn("Lakeside Pokhara Hotel", names)
+        for r in results:
+            self.assertLessEqual(r["distance_km"], 25.0)

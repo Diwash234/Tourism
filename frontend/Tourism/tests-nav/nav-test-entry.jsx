@@ -404,3 +404,6 @@ export function mountCategoryPanel() {
 }
 
 export const act = React.act
+
+// Off-route helper under test (increment 6)
+export { minDistanceToPathKm } from "../src/utils/placeUtils"

@@ -728,6 +728,30 @@ async function main() {
   window.removeEventListener("session-downgraded", onDowngradedEvt)
   store.clear()
 
+  // --- off-route geometry: minDistanceToPathKm (increment 6) --------------
+  const { minDistanceToPathKm } = entry
+  const path2 = [
+    { lat: 27.7172, lng: 85.3240 },
+    { lat: 27.7272, lng: 85.3240 }, // ~1.11 km due north
+  ]
+  const onPath = minDistanceToPathKm(27.7222, 85.3240, path2)
+  check("offroute: point on segment ~0", onPath !== null && onPath < 0.01, `got ${onPath}`)
+  // ~0.01 deg lng at lat 27.7 ≈ 0.985 km east of the segment
+  const east = minDistanceToPathKm(27.7222, 85.3340, path2)
+  check("offroute: point 1 km east measured ~1 km", east !== null && east > 0.9 && east < 1.1, `got ${east}`)
+  // Beyond segment end: clamps to the end vertex (~0.55 km past the north end)
+  const past = minDistanceToPathKm(27.7322, 85.3240, path2)
+  check("offroute: point past end clamps to vertex", past !== null && past > 0.5 && past < 0.62, `got ${past}`)
+  check("offroute: null for empty path", minDistanceToPathKm(27.7, 85.3, []) === null)
+  check("offroute: null for bad coords", minDistanceToPathKm(null, null, path2) === null)
+  check("offroute: single-vertex path returns vertex distance", (() => {
+    const d = minDistanceToPathKm(27.7272, 85.3240, [{ lat: 27.7172, lng: 85.3240 }])
+    return d !== null && d > 1.0 && d < 1.2
+  })())
+  // Array-style [lat, lng] waypoints accepted too
+  const arr = minDistanceToPathKm(27.7222, 85.3240, [[27.7172, 85.3240], [27.7272, 85.3240]])
+  check("offroute: [lat,lng] arrays accepted", arr !== null && arr < 0.01, `got ${arr}`)
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)

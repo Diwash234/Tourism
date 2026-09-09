@@ -20,17 +20,30 @@ import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
-import { formatCoords, hasValidCoords } from "../utils/placeUtils"
+import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
-  { id: "hospitals", label: "🏥 Hospitals", icon: "🏥" },
-  { id: "police", label: "🚓 Police", icon: "🚓" },
-  { id: "atms", label: "🏦 Banks & ATMs", icon: "🏦" },
-  { id: "pharmacies", label: "💊 Pharmacies", icon: "💊" },
-  { id: "stores", label: "🛒 Stores & Marts", icon: "🛒" },
-  { id: "restaurants", label: "🍽 Restaurants", icon: "🍽️" },
-  { id: "hotels", label: "🏨 Hotels", icon: "🏨" },
+  { id: "hospitals", label: "🏥 Hospitals" },
+  { id: "police", label: "🚓 Police" },
+  { id: "hotels", label: "🏨 Hotels" },
+  { id: "restaurants", label: "🍽️ Restaurants" },
+  { id: "cafes", label: "☕ Cafés" },
+  { id: "banks", label: "🏦 Banks" },
+  { id: "atms", label: "💳 ATMs" },
+  { id: "pharmacies", label: "💊 Pharmacies" },
+  { id: "stores", label: "🛒 Stores & Marts" },
+  { id: "gas_station", label: "⛽ Fuel Stations" },
+  { id: "bus_stop", label: "🚌 Bus Stops" },
+  { id: "attraction", label: "🏞️ Attractions" },
+  { id: "temple", label: "🛕 Temples" },
+  { id: "nature", label: "🌳 Nature & Parks" },
+  { id: "waterfall", label: "💦 Waterfalls" },
+  { id: "viewpoint", label: "🔭 Viewpoints" },
 ]
+
+const NEARBY_RADII_KM = [1, 5, 10, 25, 50, 100]
+
+const OFF_ROUTE_THRESHOLD_KM = 0.3
 
 const TRANSPORT_MODES = [
   { id: "Private Car / Taxi", label: "🚗 Private Car / Taxi", avgSpeed: 40 },
@@ -167,6 +180,7 @@ export default function Navigation() {
   const [satelliteView, setSatelliteView] = useState(false)
   const [showToolsDrawer, setShowToolsDrawer] = useState(false)
   const [amenityTab, setAmenityTab] = useState("hospitals")
+  const [nearbyRadiusKm, setNearbyRadiusKm] = useState(25)
 
   // "My Current Location" is a symbolic origin: it resolves to the browser
   // GPS fix at request time and is never silently replaced by a fixed city.
@@ -387,7 +401,7 @@ export default function Navigation() {
       .then(({ data }) => setEmergencyDir(data))
       .catch(() => setEmergencyDir(null))
 
-    nearbyApi.getNearbyPlaces({ lat: nearbyCenter.lat, lng: nearbyCenter.lng, category: amenityTab, radius_km: 25 })
+    nearbyApi.getNearbyPlaces({ lat: nearbyCenter.lat, lng: nearbyCenter.lng, category: amenityTab, radius_km: nearbyRadiusKm })
       .then(({ data }) => {
         const list = data.items || data.results || data || []
         setNearbyPlaces(Array.isArray(list) ? list : [])
@@ -397,7 +411,7 @@ export default function Navigation() {
     }, 0)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [position, amenityTab, destination?.id])
+  }, [position, amenityTab, destination?.id, nearbyRadiusKm])
 
   const currentStep = steps[currentStepIdx] || steps[0] || {
     turn: "straight",
@@ -406,6 +420,13 @@ export default function Navigation() {
   }
 
   const TurnIcon = TURN_ICONS[currentStep.turn] || FiArrowUp
+
+  // Off-route detection: real GPS-to-polyline distance, recomputed as the
+  // position updates. Null (unknown) never counts as off-route.
+  const routeDeviationKm = position && route.length >= 2
+    ? minDistanceToPathKm(position.lat, position.lng, route)
+    : null
+  const isOffRoute = routeDeviationKm != null && routeDeviationKm > OFF_ROUTE_THRESHOLD_KM
 
   // Voice guidance: speak the current maneuver when enabled, re-speaking on
   // every step change. Cancels cleanly on toggle-off/unmount.
@@ -754,6 +775,20 @@ export default function Navigation() {
                 {tab.label}
               </button>
             ))}
+            <div className="flex flex-wrap items-center gap-1.5 w-full pt-1">
+              <span className="text-[10px] font-black uppercase text-slate-500 mr-1">Radius</span>
+              {NEARBY_RADII_KM.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={nearbyRadiusKm === r}
+                  onClick={() => setNearbyRadiusKm(r)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition ${nearbyRadiusKm === r ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                >
+                  {r} km
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -781,12 +816,27 @@ export default function Navigation() {
               {nearbyLoading
                 ? `Searching for ${amenityTab} ${nearbyCenter ? nearbyCenter.label : ""}…`
                 : nearbyCenter
-                  ? `No ${amenityTab} with recorded coordinates were found within 25 km of ${nearbyCenter.label}. Try a larger category or another location.`
+                  ? `No ${amenityTab} with recorded coordinates were found within ${nearbyRadiusKm} km of ${nearbyCenter.label}. Try a larger radius or another category.`
                   : 'Share your location ("Use My Location") or calculate a route first — nearby services are searched around a real position, never an assumed city.'}
             </p>
           )}
         </div>
       </div>
+
+      {isOffRoute && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-3xl bg-amber-50 border border-amber-300 text-amber-900">
+          <p className="text-sm font-bold">
+            ⚠️ You appear to be off route — about {Math.round(routeDeviationKm * 1000)} m from the calculated path.
+          </p>
+          <button
+            type="button"
+            onClick={() => handleGetRoute(destination?.name || destinationQuery, "")}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black whitespace-nowrap"
+          >
+            🔄 Recalculate from my position
+          </button>
+        </div>
+      )}
 
       {/* MAP & TURN-BY-TURN HUD DISPLAY */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -871,6 +921,34 @@ export default function Navigation() {
                     <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "—"}</span>
                   )}
                 </div>
+              </div>
+            )}
+
+            {destination?.slug && (
+              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-black text-white truncate">{destination.name}</span>
+                  {destination.average_rating != null && (
+                    <span className="text-amber-300 font-bold whitespace-nowrap">
+                      ★ {Number(destination.average_rating).toFixed(1)}
+                      {destination.ratings_count ? ` (${destination.ratings_count})` : ""}
+                    </span>
+                  )}
+                </div>
+                {destination.short_description ? (
+                  <p className="text-slate-300 line-clamp-2">{destination.short_description}</p>
+                ) : null}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                  {destination.entry_fee ? <span>🎟️ {destination.entry_fee}</span> : null}
+                  {destination.best_time_to_visit ? <span>🗓️ {destination.best_time_to_visit}</span> : null}
+                  {destination.altitude != null ? <span>⛰️ {destination.altitude} m</span> : null}
+                </div>
+                <Link
+                  to={`/destinations/${destination.slug}`}
+                  className="inline-block text-emerald-400 font-bold hover:underline"
+                >
+                  View full details →
+                </Link>
               </div>
             )}
           </div>

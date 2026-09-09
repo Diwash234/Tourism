@@ -550,7 +550,18 @@ class NearbyPlacesCompatView(APIView):
             else:
                 lat, lon = 28.2096, 83.9856
 
-        radius_m = max(int(request.query_params.get("radius", 15000) or 15000), 1000)
+        # Accept both radius (metres) and radius_km (kilometres, what the
+        # Navigation page sends) — previously radius_km was silently ignored
+        # and every nearby search ran at the 15 km default.
+        radius_km_param = request.query_params.get("radius_km")
+        if radius_km_param:
+            try:
+                radius_m = float(radius_km_param) * 1000.0
+            except (TypeError, ValueError):
+                return Response({"detail": "radius_km must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            radius_m = request.query_params.get("radius", 15000) or 15000
+        radius_m = max(int(radius_m), 1000)
         radius_km = radius_m / 1000.0
         category = request.query_params.get("category") or request.query_params.get("type") or ""
         q = request.query_params.get("q", "")

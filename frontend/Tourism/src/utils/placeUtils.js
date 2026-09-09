@@ -126,3 +126,44 @@ export function userRoleLabel(user) {
   const raw = String(user?.role || "").toLowerCase()
   return ROLE_LABELS[raw] || (raw ? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Traveller")
 }
+
+/**
+ * Minimum distance (km) from a point to a polyline of {lat, lng} waypoints.
+ * Uses a local equirectangular projection per segment so the result is a
+ * true point-to-segment distance, not just nearest-vertex distance.
+ * Returns null when inputs are unusable — never a fabricated 0.
+ */
+export function minDistanceToPathKm(lat, lng, path) {
+  if (!hasValidCoords(lat, lng)) return null
+  if (!Array.isArray(path) || path.length === 0) return null
+  const R = 6371
+  const lat0 = Number(lat)
+  const cosLat0 = Math.cos((lat0 * Math.PI) / 180)
+  const toXY = (la, ln) => [
+    (Number(ln) * Math.PI / 180) * R * cosLat0,
+    (Number(la) * Math.PI / 180) * R,
+  ]
+  const pts = path
+    .map((p) => {
+      const la = p?.lat ?? (Array.isArray(p) ? p[0] : null)
+      const ln = p?.lng ?? (Array.isArray(p) ? p[1] : null)
+      return hasValidCoords(la, ln) ? toXY(la, ln) : null
+    })
+    .filter(Boolean)
+  if (pts.length === 0) return null
+  const [px, py] = toXY(lat, lng)
+  if (pts.length === 1) return Math.hypot(px - pts[0][0], py - pts[0][1])
+  let best = null
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const [ax, ay] = pts[i]
+    const [bx, by] = pts[i + 1]
+    const dx = bx - ax
+    const dy = by - ay
+    const len2 = dx * dx + dy * dy
+    let t = len2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0
+    t = Math.max(0, Math.min(1, t))
+    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+    if (best === null || d < best) best = d
+  }
+  return best
+}
