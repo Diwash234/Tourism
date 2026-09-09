@@ -23,6 +23,30 @@ export default function AdminRouteManagerPanel() {
   const [calcTransport, setCalcTransport] = useState("Public Deluxe Bus")
   const [calcResult, setCalcResult] = useState(null)
   const [calculating, setCalculating] = useState(false)
+  const [rowBusy, setRowBusy] = useState(null)
+
+  // Curated-route deliberate actions (nav spec: manual distances must be
+  // verified with provenance; engine recalculation clears verification).
+  const verifyRoute = async (r) => {
+    setRowBusy(`verify-${r.id}`)
+    try {
+      await adminApi.verifyTransitRoute(r.id)
+      showToast(`Route stamped ADMIN_VERIFIED (${new Date().toLocaleDateString()})`, "success")
+      loadRoutes()
+    } catch (e) { showToast(e.response?.data?.detail || "Verify failed", "error") }
+    finally { setRowBusy(null) }
+  }
+
+  const recalcRoute = async (r) => {
+    setRowBusy(`recalc-${r.id}`)
+    try {
+      const { data } = await adminApi.recalculateTransitRoute(r.id)
+      const before = data.previous?.distance_km ? `${data.previous.distance_km} km` : "no stored distance"
+      showToast(`Recalculated: ${before} → ${data.current.distance_km} km (${data.routing_status}); needs re-verification`, "success")
+      loadRoutes()
+    } catch (e) { showToast(e.response?.data?.detail || "Recalculate failed", "error") }
+    finally { setRowBusy(null) }
+  }
 
   // Edit / Create Route Modal
   const [showModal, setShowModal] = useState(false)
@@ -306,6 +330,22 @@ export default function AdminRouteManagerPanel() {
                       className="px-2.5 py-1 rounded bg-amber-500 text-slate-950 font-bold text-[11px] mr-2"
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => recalcRoute(r)}
+                      disabled={rowBusy === `recalc-${r.id}`}
+                      title="Re-run the routing engine over this route's coordinates"
+                      className="px-2.5 py-1 rounded bg-blue-500 text-white font-bold text-[11px] mr-2 disabled:opacity-40"
+                    >
+                      {rowBusy === `recalc-${r.id}` ? "…" : "Recalculate"}
+                    </button>
+                    <button
+                      onClick={() => verifyRoute(r)}
+                      disabled={rowBusy === `verify-${r.id}` || (r.is_verified && r.confidence_level === "ADMIN_VERIFIED")}
+                      title="Stamp as admin-verified with provenance timestamp"
+                      className="px-2.5 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] disabled:opacity-40"
+                    >
+                      {r.is_verified && r.confidence_level === "ADMIN_VERIFIED" ? "✓ Verified" : rowBusy === `verify-${r.id}` ? "…" : "Verify"}
                     </button>
                   </td>
                 </tr>

@@ -1763,3 +1763,71 @@ class StaffPermissionLockdownTests(TestCase):
         self.assertIn(resp.status_code, {200, 201})
         self.assertEqual(User.objects.get(email="lock-ok@test.local").role, "tourist")
 
+
+class CuratedRouteVerifyTests(TestCase):
+    """Curated transit routes: deliberate verify + engine recalculate (nav spec)."""
+
+    def setUp(self):
+        from tourist.models import Destination, DestinationTransitRoute
+        self.admin = User.objects.create_superuser("tr-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="tr-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.dest = Destination.objects.create(name="Transit Dest", slug="transit-dest", latitude=28.2096, longitude=83.9856)
+        self.route = DestinationTransitRoute.objects.create(
+            destination=self.dest, origin="Kathmandu (Kalanki)",
+            origin_latitude=27.7172, origin_longitude=85.3240,
+            destination_latitude=28.2096, destination_longitude=83.9856,
+            transport_mode="Tourist Bus", distance_km=999.0, approx_duration="20 hours",
+            confidence_level="ESTIMATED",
+        )
+        self.no_coords = DestinationTransitRoute.objects.create(
+            destination=self.dest, origin="Somewhere", transport_mode="Local Jeep (4WD)",
+            distance_km=42.0, confidence_level="ESTIMATED",
+        )
+        self.client = APIClient()
+
+    def test_anonymous_cannot_verify(self):
+        resp = self.client.post(f"/api/v1/transit-routes/{self.route.id}/verify/")
+        self.assertEqual(resp.status_code, 401)
+
+    def test_staff_without_capability_cannot_verify(self):
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"dashboard": ["view"]})
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/transit-routes/{self.route.id}/verify/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_admin_verify_stamps_provenance(self):
+        from audit.models import AuditLog
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(f"/api/v1/transit-routes/{self.route.id}/verify/")
+        self.assertEqual(resp.status_code, 200)
+        self.route.refresh_from_db()
+        self.assertTrue(self.route.is_verified)
+        self.assertIsNotNone(self.route.verified_at)
+        self.assertEqual(self.route.confidence_level, "ADMIN_VERIFIED")
+        self.assertTrue(AuditLog.objects.filter(action="transit.verify").exists())
+
+    def test_recalculate_uses_engine_and_clears_verification(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(f"/api/v1/transit-routes/{self.route.id}/recalculate/")
+        if resp.status_code == 200:
+            data = resp.json()
+            self.assertIn(data["routing_status"], {"routed", "graph_routed"})
+            self.route.refresh_from_db()
+            self.assertEqual(self.route.confidence_level, "CALCULATED")
+            self.assertFalse(self.route.is_verified)          # engine output needs a human verify again
+            self.assertNotEqual(float(self.route.distance_km), 999.0)  # stale manual value replaced
+            self.assertEqual(data["previous"]["confidence_level"], "ESTIMATED")
+        else:
+            # Engine unavailable here: stored value must be untouched, honest 503
+            self.assertEqual(resp.status_code, 503)
+            self.route.refresh_from_db()
+            self.assertEqual(float(self.route.distance_km), 999.0)
+
+    def test_recalculate_without_coordinates_is_honest_400(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(f"/api/v1/transit-routes/{self.no_coords.id}/recalculate/")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("unavailable", resp.json()["detail"].lower())
+        self.no_coords.refresh_from_db()
+        self.assertEqual(float(self.no_coords.distance_km), 42.0)
+

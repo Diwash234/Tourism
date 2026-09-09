@@ -16,6 +16,8 @@ const adminApi = {
   getTransitRoute: (id) => axiosClient.get(`/transit-routes/${id}/`),
   createTransitRoute: (payload) => axiosClient.post("/transit-routes/", payload),
   updateTransitRoute: (id, payload) => axiosClient.patch(`/transit-routes/${id}/`, payload),
+  verifyTransitRoute: (id) => axiosClient.post(`/transit-routes/${id}/verify/`),
+  recalculateTransitRoute: (id) => axiosClient.post(`/transit-routes/${id}/recalculate/`),
   getTravelPlans: (params) => axiosClient.get("/travel-plans/", { params }),
   exportReports: (params) => axiosClient.get("/admin/reports/", { params: { ...params, format: "csv" }, responseType: "blob" }),
   globalSearch: (q, params = {}) => axiosClient.get("/admin/search/", { params: { q, ...params } }),

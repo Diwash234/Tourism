@@ -927,6 +927,63 @@ class TransitRouteViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.is_active=False;instance.updated_by=self.request.user;instance.save(update_fields=["is_active","updated_by","updated_at"])
 
+    @action(detail=True, methods=["post"])
+    def verify(self, request, pk=None):
+        """Deliberate curation act: stamp the route as admin-verified with provenance.
+
+        This is the ONLY sanctioned way to vouch for a manually recorded
+        distance — it records who verified it and when (spec: manual values
+        must be deliberate curated routes, never silent overrides).
+        """
+        from audit.logging_services import log_action
+        route = self.get_object()
+        route.is_verified = True
+        route.verified_at = timezone.now()
+        route.confidence_level = "ADMIN_VERIFIED"
+        route.updated_by = request.user
+        route.save(update_fields=["is_verified", "verified_at", "confidence_level", "updated_by", "updated_at"])
+        log_action(request=request, action="transit.verify", category="transportation",
+                   message=f"Transit route '{route.origin} → {route.destination.name}' admin-verified",
+                   object_type="DestinationTransitRoute", object_id=str(route.id))
+        return Response(self.get_serializer(route).data)
+
+    @action(detail=True, methods=["post"])
+    def recalculate(self, request, pk=None):
+        """Re-run the routing engine over the curated route's stored coordinates.
+
+        Engine output lands as confidence CALCULATED and clears is_verified —
+        a human must verify again. If the engine cannot route, the stored
+        distance is kept untouched and the failure is reported honestly.
+        """
+        from audit.logging_services import log_action
+        from .routing_service import route_metrics
+        route = self.get_object()
+        if None in (route.origin_latitude, route.origin_longitude, route.destination_latitude, route.destination_longitude):
+            return Response({"detail": "This route record has no stored coordinates — recalculation impossible. Add coordinates first; information unavailable until then."}, status=400)
+        metrics = route_metrics(float(route.origin_latitude), float(route.origin_longitude),
+                                float(route.destination_latitude), float(route.destination_longitude))
+        if metrics.get("route_distance_km") is None:
+            return Response({"detail": f"Routing engine could not produce a distance ({metrics.get('status')}). Stored value kept unchanged — information unavailable.",
+                             "routing_status": metrics.get("status")}, status=503)
+        before = {"distance_km": str(route.distance_km) if route.distance_km is not None else None,
+                  "approx_duration": route.approx_duration, "confidence_level": route.confidence_level}
+        route.distance_km = metrics["route_distance_km"]
+        if metrics.get("duration_min"):
+            mins = int(metrics["duration_min"])
+            route.approx_duration = f"{mins // 60} hours {mins % 60} mins" if mins >= 60 else f"{mins} mins"
+        route.confidence_level = "CALCULATED"
+        route.is_verified = False
+        route.updated_by = request.user
+        route.save(update_fields=["distance_km", "approx_duration", "confidence_level", "is_verified", "updated_by", "updated_at"])
+        log_action(request=request, action="transit.recalculate", category="transportation",
+                   message=f"Transit route '{route.origin} → {route.destination.name}' recalculated: {before['distance_km']} → {route.distance_km} km ({metrics.get('status')})",
+                   object_type="DestinationTransitRoute", object_id=str(route.id))
+        return Response({"previous": before,
+                         "current": {"distance_km": str(route.distance_km), "approx_duration": route.approx_duration,
+                                     "confidence_level": route.confidence_level, "is_verified": route.is_verified},
+                         "routing_status": metrics.get("status"), "note": metrics.get("note", ""),
+                         "route": self.get_serializer(route).data})
+
 
 class TravelPlanViewSet(viewsets.ModelViewSet):
     serializer_class = TravelPlanSerializer
