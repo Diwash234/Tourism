@@ -1648,3 +1648,70 @@ class SafetyOpsTests(TestCase):
         resp = self.client.post(f"/api/v1/admin-panel/safety/bridge/1/action/", {"action": "verify"}, format="json")
         self.assertEqual(resp.status_code, 400)
 
+
+class NavigationExtensionsTests(TestCase):
+    """Route options, saved-route recalculation and province navigation."""
+
+    def setUp(self):
+        from tourist.models import UserRoute
+        self.owner = User.objects.create_user(email="nav-owner@test.local", password="Nav!Pass123", role="tourist")
+        self.other = User.objects.create_user(email="nav-other@test.local", password="Nav!Pass123", role="tourist")
+        self.route = UserRoute.objects.create(
+            user=self.owner, origin_name="Kathmandu", origin_latitude=27.7172, origin_longitude=85.3240,
+            destination_name="Pokhara", destination_latitude=28.2096, destination_longitude=83.9856,
+            transport_mode="Private Car / Taxi", distance_km=150.0, duration_min=300, duration_source="estimated",
+        )
+        self.client = APIClient()
+
+    def test_route_options_requires_coordinates(self):
+        resp = self.client.post("/api/v1/navigation/route-options/", {}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_route_options_honest_when_no_road_service(self):
+        resp = self.client.post("/api/v1/navigation/route-options/", {
+            "origin_lat": 27.7172, "origin_lng": 85.3240, "dest_lat": 28.2096, "dest_lng": 83.9856,
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn(data["primary"]["status"], {"routed", "graph_routed", "routing_unconfigured", "routing_unavailable"})
+        # No fabricated alternatives: list is empty unless a real service returned them
+        self.assertIsInstance(data["alternatives"], list)
+        self.assertTrue(data["alternatives_note"])
+        if data["primary"]["status"] == "routing_unconfigured":
+            self.assertEqual(data["alternatives"], [])
+            self.assertIsNone(data["primary"]["route_distance_km"])
+
+    def test_recalculate_owner_only(self):
+        self.client.force_authenticate(self.other)
+        resp = self.client.post(f"/api/v1/navigation/routes/{self.route.id}/recalculate/")
+        self.assertEqual(resp.status_code, 404)  # not the owner → not found
+        self.client.force_authenticate(self.owner)
+        resp = self.client.post(f"/api/v1/navigation/routes/{self.route.id}/recalculate/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["previous"]["duration_source"], "estimated")
+        self.assertIn(data["routing_status"], {"routed", "graph_routed", "routing_unconfigured", "routing_unavailable"})
+        # stale estimate must never survive a failed recalculation
+        if data["routing_status"] in {"routing_unconfigured", "routing_unavailable"}:
+            self.assertIsNone(data["current"]["duration_min"])
+            self.assertEqual(data["current"]["duration_source"], "unavailable")
+
+    def test_provinces_payload(self):
+        from tourist.models import Destination
+        Destination.objects.create(name="Swayambhunath", slug="nav-swayambhunath", province="Bagmati Province",
+                                   latitude=27.7149, longitude=85.2904, status="approved")
+        resp = self.client.get("/api/v1/navigation/provinces/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["count"], 7)
+        bagmati = next(p for p in data["results"] if p["name"] == "Bagmati Province")
+        self.assertGreaterEqual(bagmati["destination_count"], 1)
+        self.assertIn("Swayambhunath", [d["name"] for d in bagmati["featured"]])
+
+    def test_unified_aliases_reachable(self):
+        # the same views answer under the unified /navigation/ prefix
+        resp = self.client.get("/api/v1/navigation/places/search/", {"q": "Kathmandu"})
+        self.assertIn(resp.status_code, {200, 400})
+        resp = self.client.get("/api/v1/navigation/provinces/")
+        self.assertEqual(resp.status_code, 200)
+

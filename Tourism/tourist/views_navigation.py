@@ -521,3 +521,160 @@ class AdminNavigationAnalyticsView(APIView):
             "top_destinations": top_destinations,
             "mode_split": mode_split,
         })
+
+
+# ============================================================
+# NAVIGATION EXTENSIONS — route options, saved-route recalculation
+# and province navigation data. Every distance carries provenance;
+# alternatives are only reported when a real road-routing service
+# can compute them (never fabricated).
+# ============================================================
+
+class RouteOptionsView(APIView):
+    """POST /api/v1/navigation/route-options/
+
+    Primary route metric plus genuine alternatives when the configured
+    OSRM-compatible routing service supports them. The bundled GraphML
+    tourism graph yields a single option; we say so instead of inventing
+    alternative paths.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from django.conf import settings
+        from .routing_service import route_metrics
+
+        def coord(*keys):
+            for k in keys:
+                v = request.data.get(k)
+                if v not in (None, ""):
+                    return float(v)
+            return None
+
+        try:
+            o_lat = coord("origin_lat", "start_latitude", "latitude")
+            o_lng = coord("origin_lng", "start_longitude", "longitude")
+            d_lat = coord("dest_lat", "end_latitude", "destination_latitude")
+            d_lng = coord("dest_lng", "end_longitude", "destination_longitude")
+        except (TypeError, ValueError):
+            return Response({"detail": "Coordinates must be numeric."}, status=400)
+        if None in (o_lat, o_lng, d_lat, d_lng):
+            return Response({"detail": "origin_lat/origin_lng and dest_lat/dest_lng are required."}, status=400)
+
+        primary = route_metrics(o_lat, o_lng, d_lat, d_lng)
+        alternatives = []
+        alternatives_note = ("Alternative routes are unavailable: no street-level road-routing service is "
+                             "configured, and the bundled tourism graph returns a single best path. "
+                             "Straight-line distance is not road distance.")
+
+        if settings.ROUTING_API_URL:
+            # Ask the road-routing service for genuine alternatives.
+            import hashlib
+            import requests
+            from django.core.cache import cache
+            values = [float(o_lat), float(o_lng), float(d_lat), float(d_lng)]
+            key_raw = ":".join(f"{v:.5f}" for v in values) + ":alt"
+            cache_key = "route-alternatives:" + hashlib.sha256(key_raw.encode()).hexdigest()
+            cached = cache.get(cache_key)
+            if cached is not None:
+                alternatives, alternatives_note = cached
+            else:
+                base = settings.ROUTING_API_URL.rstrip("/")
+                url = f"{base}/route/v1/driving/{values[1]},{values[0]};{values[3]},{values[2]}"
+                headers = {"Accept": "application/json", "User-Agent": "NepalTourismRouting/1.0"}
+                if settings.ROUTING_API_KEY:
+                    headers["Authorization"] = f"Bearer {settings.ROUTING_API_KEY}"
+                try:
+                    response = requests.get(url, params={"overview": "false", "steps": "false", "alternatives": "true"},
+                                            headers=headers, timeout=settings.EXTERNAL_SYNC_TIMEOUT)
+                    response.raise_for_status()
+                    routes = response.json().get("routes", [])[1:3]
+                    for r in routes:
+                        alternatives.append({
+                            "route_distance_km": round(float(r["distance"]) / 1000, 2),
+                            "duration_min": round(float(r["duration"]) / 60),
+                            "status": "routed",
+                        })
+                    alternatives_note = ("Alternatives supplied by the configured routing service."
+                                         if alternatives else
+                                         "The routing service found no distinct alternative route for this pair.")
+                except (requests.RequestException, IndexError, KeyError, TypeError, ValueError) as exc:
+                    alternatives_note = f"Alternatives unavailable — routing service error: {str(exc)[:120]}"
+                cache.set(cache_key, (alternatives, alternatives_note), timeout=1800)
+
+        return Response({
+            "origin": {"latitude": o_lat, "longitude": o_lng},
+            "destination": {"latitude": d_lat, "longitude": d_lng},
+            "primary": primary,
+            "alternatives": alternatives,
+            "alternatives_note": alternatives_note,
+        })
+
+
+class UserRouteRecalculateView(APIView):
+    """POST /api/v1/navigation/routes/<pk>/recalculate/
+
+    Re-runs the routing engine over a saved route's stored coordinates and
+    updates its distance/duration with fresh provenance. Owners only.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from .routing_service import route_metrics
+
+        try:
+            route = UserRoute.objects.get(pk=pk, user=request.user)
+        except UserRoute.DoesNotExist:
+            return Response({"detail": "Route not found."}, status=404)
+        if None in (route.origin_latitude, route.origin_longitude, route.destination_latitude, route.destination_longitude):
+            return Response({"detail": "This route is missing coordinates and cannot be recalculated. Information unavailable."}, status=400)
+
+        previous = {"distance_km": route.distance_km, "duration_min": route.duration_min, "duration_source": route.duration_source}
+        metrics = route_metrics(route.origin_latitude, route.origin_longitude,
+                                route.destination_latitude, route.destination_longitude)
+        route.distance_km = metrics.get("route_distance_km")
+        route.duration_min = metrics.get("duration_min")
+        route.duration_source = {"routed": "routing_engine", "graph_routed": "routing_engine"}.get(metrics.get("status"), "unavailable")
+        route.save(update_fields=["distance_km", "duration_min", "duration_source", "updated_at"])
+        return Response({
+            "id": route.id,
+            "previous": previous,
+            "current": {"distance_km": route.distance_km, "duration_min": route.duration_min, "duration_source": route.duration_source},
+            "routing_status": metrics.get("status"),
+            "note": metrics.get("note", ""),
+        })
+
+
+class ProvinceNavigationView(APIView):
+    """GET /api/v1/navigation/provinces/ — Nepal's provinces with destination counts
+    and a few navigable destinations each (province navigation data source)."""
+
+    permission_classes = [permissions.AllowAny]
+
+    # Canonical display names plus the province spellings found in the data
+    # (records use short names like "Bagmati" as well as "Bagmati Province").
+    PROVINCES = [
+        ("Koshi Province", ["Koshi Province", "Koshi", "Province No. 1", "Province 1"]),
+        ("Madhesh Province", ["Madhesh Province", "Madhesh", "Province No. 2", "Province 2"]),
+        ("Bagmati Province", ["Bagmati Province", "Bagmati", "Province No. 3", "Province 3"]),
+        ("Gandaki Province", ["Gandaki Province", "Gandaki", "Province No. 4", "Province 4"]),
+        ("Lumbini Province", ["Lumbini Province", "Lumbini", "Province No. 5", "Province 5"]),
+        ("Karnali Province", ["Karnali Province", "Karnali", "Province No. 6", "Province 6"]),
+        ("Sudurpashchim Province", ["Sudurpashchim Province", "Sudurpashchim", "Sudurpaschim", "Province No. 7", "Province 7"]),
+    ]
+
+    def get(self, request):
+        provinces = []
+        for display, aliases in self.PROVINCES:
+            qs = Destination.objects.filter(status="approved", province__in=aliases)
+            samples = (qs.exclude(latitude=None).exclude(longitude=None)
+                       .order_by("-views_count")[:6]
+                       .values("id", "name", "slug", "latitude", "longitude", "district"))
+            provinces.append({
+                "name": display,
+                "destination_count": qs.count(),
+                "featured": [dict(s) for s in samples],
+            })
+        return Response({"count": len(provinces), "results": provinces})

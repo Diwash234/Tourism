@@ -298,11 +298,68 @@ export default function Navigation() {
   const [routesOpen, setRoutesOpen] = useState(false)
   const [routesTab, setRoutesTab] = useState("history")
   const [myRoutes, setMyRoutes] = useState([])
+  const ROUTES_CACHE_KEY = "np-nav-cached-routes"
+  const [routeAlts, setRouteAlts] = useState(null)
+  const [provinces, setProvinces] = useState([])
+  const [openProvince, setOpenProvince] = useState(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      savedRoutesApi.provinces().then(({ data }) => setProvinces(data.results || [])).catch(() => {})
+    }, 0)
+    return () => clearTimeout(t)
+  }, [])
+  const [altsLoading, setAltsLoading] = useState(false)
+
+  const loadAlternatives = () => {
+    if (!position || !destination || destination.latitude == null) return
+    setAltsLoading(true)
+    savedRoutesApi.routeOptions({
+      origin_lat: position.lat, origin_lng: position.lng,
+      dest_lat: destination.latitude, dest_lng: destination.longitude,
+    })
+      .then(({ data }) => setRouteAlts(data))
+      .catch(() => setRouteAlts({ alternatives: [], alternatives_note: "Alternative routes could not be loaded." }))
+      .finally(() => setAltsLoading(false))
+  }
+  const [offlineMode, setOfflineMode] = useState(typeof navigator !== "undefined" && navigator.onLine === false)
+  const [recalcMsg, setRecalcMsg] = useState("")
   const loadMyRoutes = (tab) => {
     savedRoutesApi
       .list(tab === "saved")
-      .then((res) => setMyRoutes(Array.isArray(res.data) ? res.data : res.data?.results || []))
-      .catch(() => setMyRoutes([]))
+      .then((res) => {
+        const rows = Array.isArray(res.data) ? res.data : res.data?.results || []
+        setMyRoutes(rows)
+        try { localStorage.setItem(ROUTES_CACHE_KEY, JSON.stringify(rows)) } catch { /* storage full or blocked */ }
+      })
+      .catch(() => {
+        // Offline (or API down): fall back to the last cached list instead of an empty panel.
+        try {
+          const cached = JSON.parse(localStorage.getItem(ROUTES_CACHE_KEY) || "[]")
+          if (cached.length) { setMyRoutes(cached); setOfflineMode(true); return }
+        } catch { /* corrupted cache */ }
+        setMyRoutes([])
+      })
+  }
+
+  useEffect(() => {
+    const goOnline = () => setOfflineMode(false)
+    const goOffline = () => setOfflineMode(true)
+    window.addEventListener("online", goOnline)
+    window.addEventListener("offline", goOffline)
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline) }
+  }, [])
+
+  const recalculateRoute = (r) => {
+    setRecalcMsg("")
+    savedRoutesApi.recalculate(r.id)
+      .then(({ data }) => {
+        const before = data.previous?.distance_km != null ? `${Number(data.previous.distance_km).toFixed(1)} km` : "no stored distance"
+        const after = data.current?.distance_km != null ? `${Number(data.current.distance_km).toFixed(1)} km (${data.current.duration_source})` : "information unavailable"
+        setRecalcMsg(`Recalculated: ${before} → ${after} · engine status: ${data.routing_status}`)
+        loadMyRoutes(routesTab)
+      })
+      .catch((e) => setRecalcMsg(e.response?.data?.detail || "Recalculation failed"))
   }
 
   const toggleRoutesPanel = () => {
@@ -551,6 +608,50 @@ export default function Navigation() {
                 onChange={(e) => setDestinationQuery(e.target.value)}
               />
             </div>
+
+            {provinces.length > 0 && (
+              <div className="sm:col-span-2 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setOpenProvince(openProvince ? null : "__list")}
+                  aria-expanded={Boolean(openProvince)}
+                  className="font-bold text-[#1D5146] hover:underline"
+                >
+                  🗺️ Browse destinations by province {openProvince ? "▴" : "▾"}
+                </button>
+                {openProvince === "__list" && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {provinces.map((p) => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => setOpenProvince(p.name)}
+                        className="px-2 py-1 rounded-full bg-white border text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                      >
+                        {p.name} <span className="text-slate-400">({p.destination_count})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {openProvince && openProvince !== "__list" && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {(provinces.find((p) => p.name === openProvince)?.featured || []).map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => { setDestinationQuery(d.name); setOpenProvince(null) }}
+                        className="px-2 py-1 rounded-full bg-[#1D5146] text-white text-[10px] font-bold hover:opacity-90"
+                      >
+                        {d.name}
+                      </button>
+                    ))}
+                    {!provinces.find((p) => p.name === openProvince)?.featured?.length && (
+                      <span className="text-slate-400">No destinations with recorded coordinates yet for {openProvince}. Information unavailable.</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="text-[11px] text-slate-500" role="status">
@@ -624,6 +725,12 @@ export default function Navigation() {
         </form>
       </div>
 
+      {offlineMode && (
+        <div role="status" className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800">
+          📴 Offline mode — live route calculation and search need a connection. Showing your last cached routes so you can still review them.
+        </div>
+      )}
+
       {/* MY ROUTES — saved routes + navigation history (spec items 15/16) */}
       {isAuthenticated && (
         <div className="p-4 rounded-3xl bg-white border border-[#E5E0D5] shadow-md space-y-3">
@@ -653,6 +760,9 @@ export default function Navigation() {
               </div>
             )}
           </div>
+          {routesOpen && recalcMsg && (
+            <p role="status" className="text-xs font-bold text-[#1D5146] bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">{recalcMsg}</p>
+          )}
           {routesOpen && (
             myRoutes.length === 0 ? (
               <p className="text-xs text-slate-500">
@@ -688,6 +798,15 @@ export default function Navigation() {
                         {r.duration_source ? ` · ${r.duration_source}` : ""}
                         {" · "}{new Date(r.created_at).toLocaleDateString()}
                       </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Recalculate route with the routing engine"
+                      title="Re-verify this route against the routing engine"
+                      onClick={() => recalculateRoute(r)}
+                      className="text-sm"
+                    >
+                      🔄
                     </button>
                     <button
                       type="button"
@@ -919,6 +1038,26 @@ export default function Navigation() {
                     </span>
                   ) : (
                     <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "—"}</span>
+                  )}
+                </div>
+                <div className="col-span-2 text-left">
+                  <button
+                    type="button"
+                    onClick={loadAlternatives}
+                    disabled={altsLoading || !position || destination?.latitude == null}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-xs font-bold text-slate-200"
+                  >
+                    {altsLoading ? "Checking…" : "🔀 Check alternative routes"}
+                  </button>
+                  {routeAlts && (
+                    <div className="mt-2 space-y-1">
+                      {routeAlts.alternatives.map((alt, i) => (
+                        <p key={i} className="text-[11px] text-slate-300">
+                          Alternative {i + 1}: <b className="text-amber-300">{alt.route_distance_km} km</b> · {alt.duration_min} min · {alt.status}
+                        </p>
+                      ))}
+                      <p className="text-[10px] text-slate-400">{routeAlts.alternatives_note}</p>
+                    </div>
                   )}
                 </div>
               </div>

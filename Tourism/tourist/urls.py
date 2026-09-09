@@ -163,6 +163,13 @@ urlpatterns = [
     path("admin/navigation-analytics/", views_navigation.AdminNavigationAnalyticsView.as_view(), name="admin-navigation-analytics"),
     path("admin/data-reports/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports"),
     path("admin/data-reports/<int:pk>/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports-detail"),
+    # --- unified /api/v1/navigation/* surface ---
+    path("navigation/route-options/", views_navigation.RouteOptionsView.as_view(), name="navigation-route-options"),
+    path("navigation/routes/<int:pk>/recalculate/", views_navigation.UserRouteRecalculateView.as_view(), name="navigation-route-recalculate"),
+    path("navigation/provinces/", views_navigation.ProvinceNavigationView.as_view(), name="navigation-provinces"),
+    path("navigation/places/search/", views_navigation.UniversalPlaceSearchView.as_view(), name="navigation-places-search"),
+    path("navigation/places/nearby/", views_navigation.UniversalPlaceNearbyView.as_view(), name="navigation-places-nearby"),
+    path("navigation/reports/submit/", views_navigation.UserDataReportSubmitView.as_view(), name="navigation-reports-submit"),
     path("admin/coordinates/verify/", views_navigation.AdminCoordinateVerificationView.as_view(), name="admin-coordinates-verify"),
     path("admin/featured-destinations/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations"),
     path("admin/featured-destinations/<int:pk>/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations-detail"),

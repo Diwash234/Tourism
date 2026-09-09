@@ -175,6 +175,9 @@ export const savedRoutesApi = {
   create: (payload) => api.post("/navigation/routes/", payload),
   update: (id, payload) => api.patch(`/navigation/routes/${id}/`, payload),
   remove: (id) => api.delete(`/navigation/routes/${id}/`),
+  recalculate: (id) => api.post(`/navigation/routes/${id}/recalculate/`),
+  routeOptions: (payload) => api.post("/navigation/route-options/", payload),
+  provinces: () => api.get("/navigation/provinces/"),
 };
 
 export const alertApi = {
