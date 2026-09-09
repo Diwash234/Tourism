@@ -386,6 +386,25 @@ async function run() {
   }
 
   {
+    // Coordinate-first nearby POIs (spec §2) + admin category control (§4)
+    const missing = await request(`${API}/nearby/pois/`)
+    const invalid = await request(`${API}/nearby/pois/?latitude=200&longitude=1`)
+    const token = await login("admin")
+    const cats = await request(`${API}/admin/poi-categories/`, { headers: { Authorization: `Bearer ${token}` } })
+    const touristToken = await login("tourist")
+    const forbidden = await request(`${API}/admin/poi-categories/`, { method: "PUT", headers: { Authorization: `Bearer ${touristToken}` }, json: { categories: [] } })
+    const src = await sourceFile("pages/NearbyPlaces.jsx")
+    if (
+      missing.res.status === 400 && invalid.res.status === 400 &&
+      cats.res.ok && Array.isArray(cats.data?.categories) && cats.data.categories.length >= 20 &&
+      forbidden.res.status === 403 &&
+      src.includes("Real-world places") && src.includes("getPOIsByCoords")
+    ) {
+      ok("coordinate-first POI search with admin-configurable categories")
+    } else fail("coordinate POI system", `missing=${missing.res.status} invalid=${invalid.res.status} cats=${cats.res.status}/${cats.data?.categories?.length} forbidden=${forbidden.res.status}`)
+  }
+
+  {
     const listed = await request(`${API}/destinations/?limit=1`)
     const slug = listed.data?.results?.[0]?.slug
     const emergency = slug

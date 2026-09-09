@@ -15,6 +15,7 @@ import Loader from "../../components/common/Loader"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
+import POICategoryPanel from "../../components/admin/POICategoryPanel"
 import ServicePhotosPanel from "../../components/admin/ServicePhotosPanel"
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 import CMSPanel from "../../components/admin/CMSPanel"
@@ -2055,6 +2056,7 @@ const AdminDashboard = () => {
 
         {activeTab === "infrastructure" && (
           <div className="space-y-6">
+            <POICategoryPanel />
             <ServicePhotosPanel />
             <InfrastructureModerationPanel />
           </div>

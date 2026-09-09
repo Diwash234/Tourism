@@ -2564,3 +2564,85 @@ class CMSAdminControlTests(TestCase):
         routes = [item.get("route") for item in nav]
         self.assertIn("/support", routes)
 
+
+class CoordinateNearbyPOIsTests(TestCase):
+    """Coordinate-first nearby places + admin-configurable categories (§2/§4/§9/§60)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        from tourist.models import Destination, SiteSetting
+        cache.clear()
+        SiteSetting.objects.filter(key="poi_categories").delete()
+        self.dest = Destination.objects.create(name="Verified Viewpoint Camp", slug="verified-viewpoint-camp",
+                                               latitude=28.205, longitude=83.992)
+
+    def _mocked_elements(self):
+        return {"elements": [
+            {"type": "node", "id": 11, "lat": 28.208, "lon": 83.994, "tags": {"name": "Lakeview Hospital", "amenity": "hospital", "phone": "061-520111"}},
+            {"type": "node", "id": 12, "lat": 28.201, "lon": 83.990, "tags": {"name": "Potala Monastery", "amenity": "place_of_worship", "religion": "buddhist"}},
+            {"type": "node", "id": 13, "lat": 28.202, "lon": 83.991, "tags": {"name": "Machhapuchhre Lodge", "tourism": "guest_house"}},
+        ]}
+
+    def _fake_response(self):
+        from unittest.mock import MagicMock
+        fake = MagicMock()
+        fake.raise_for_status.return_value = None
+        fake.json.return_value = self._mocked_elements()
+        return fake
+
+    def test_coordinates_required(self):
+        self.assertEqual(self.client.get("/api/v1/nearby/pois/").status_code, 400)
+        self.assertEqual(self.client.get("/api/v1/nearby/pois/?latitude=200&longitude=1").status_code, 400)
+
+    def test_user_location_search_merges_verified_db_places(self):
+        from unittest.mock import patch
+        with patch("requests.post", return_value=self._fake_response()):
+            resp = self.client.get("/api/v1/nearby/pois/?latitude=28.2&longitude=83.99&radius_km=5")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        hospitals = data["categories"]["hospitals"]["results"]
+        self.assertEqual(hospitals[0]["name"], "Lakeview Hospital")
+        self.assertEqual(hospitals[0]["phone"], "061-520111")
+        self.assertTrue(hospitals[0]["source_url"].startswith("https://www.openstreetmap.org/"))
+        self.assertEqual(data["categories"]["temples"]["results"][0]["religion"], "buddhist")
+        db_names = [row["name"] for row in data["verified_database_places"]]
+        self.assertIn("Verified Viewpoint Camp", db_names)  # admin-added place surfaces
+        self.assertIsNone(data["provider_error"])
+
+    def test_provider_outage_still_serves_verified_database_places(self):
+        from unittest.mock import patch
+        with patch("requests.post", side_effect=Exception("osm down")):
+            resp = self.client.get("/api/v1/nearby/pois/?latitude=28.2&longitude=83.99&radius_km=5")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn("unavailable", data["provider_error"])
+        self.assertEqual(len(data["verified_database_places"]), 1)  # fallback works
+
+    def test_admin_can_configure_categories(self):
+        from unittest.mock import patch
+        self.admin = User.objects.create_superuser("poicat-admin@test.local", "Sup!Pass123")
+        client = APIClient()
+        client.force_authenticate(self.admin)
+        resp = client.put("/api/v1/admin/poi-categories/", {"categories": [
+            {"key": "hospitals", "label": "Medical centres", "enabled": True, "order": 1, "limit": 3},
+            {"key": "temples", "enabled": False},
+        ]}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        labels = {row["key"]: row for row in resp.json()["categories"]}
+        self.assertEqual(labels["hospitals"]["label"], "Medical centres")
+        self.assertFalse(labels["temples"]["enabled"])
+        with patch("requests.post", return_value=self._fake_response()) as posted:
+            search = self.client.get("/api/v1/nearby/pois/?latitude=28.2&longitude=83.99&radius_km=5")
+        self.assertEqual(search.status_code, 200)
+        cats = search.json()["categories"]
+        self.assertNotIn("temples", cats)  # disabled by admin
+        query_sent = posted.call_args.kwargs.get("data", {}).get("data", "") or (posted.call_args.args[1] if len(posted.call_args.args) > 1 else "")
+        self.assertNotIn("place_of_worship", str(posted.call_args))
+        self.assertIn("Medical centres", str({k: v["label"] for k, v in cats.items()}))
+
+    def test_tourist_cannot_configure_categories(self):
+        tourist = User.objects.create_user(email="poicat-tourist@test.local", password="Tour!Pass123", role="tourist")
+        client = APIClient()
+        client.force_authenticate(tourist)
+        self.assertEqual(client.put("/api/v1/admin/poi-categories/", {"categories": []}, format="json").status_code, 403)
+

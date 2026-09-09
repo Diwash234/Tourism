@@ -65,6 +65,183 @@ TOURISM_PLACE_TAGS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Public nearby-POI catalogue (master spec §4). One entry per admin-visible
+# category: OSM tag pairs stay code-managed (admins configure labels, icons,
+# ordering, limits and on/off — never raw Overpass strings, which would be an
+# injection vector).
+# ---------------------------------------------------------------------------
+POI_CATEGORY_TAGS = {
+    "hotels": [("tourism", "hotel"), ("tourism", "guest_house"), ("tourism", "hostel")],
+    "hospitals": [("amenity", "hospital")],
+    "clinics": [("amenity", "clinic"), ("amenity", "doctors")],
+    "pharmacies": [("amenity", "pharmacy")],
+    "temples": [("amenity", "place_of_worship")],  # religion kept per result
+    "viewpoints": [("tourism", "viewpoint")],
+    "attractions": [("tourism", "attraction")],
+    "restaurants": [("amenity", "restaurant")],
+    "cafes": [("amenity", "cafe")],
+    "banks": [("amenity", "bank"), ("amenity", "bureau_de_change")],
+    "atms": [("amenity", "atm")],
+    "police": [("amenity", "police")],
+    "fire_stations": [("amenity", "fire_station")],
+    "bus_stations": [("amenity", "bus_station")],
+    "airports": [("aeroway", "aerodrome")],
+    "fuel": [("amenity", "fuel")],
+    "supermarkets": [("shop", "supermarket"), ("shop", "mall")],
+    "markets": [("amenity", "marketplace")],
+    "museums": [("tourism", "museum")],
+    "parks": [("leisure", "park")],
+    "peaks": [("natural", "peak")],
+    "waterfalls": [("waterway", "waterfall"), ("natural", "waterfall")],
+    "lakes": [("natural", "water")],
+    "trailheads": [("highway", "trailhead")],
+    "parking": [("amenity", "parking")],
+    "toilets": [("amenity", "toilets")],
+    "embassies": [("amenity", "embassy")],
+}
+
+DEFAULT_POI_CATEGORIES = [
+    {"key": "hotels", "label": "Hotels & lodges", "icon": "🏨", "enabled": True, "order": 1, "limit": 10},
+    {"key": "hospitals", "label": "Hospitals", "icon": "🏥", "enabled": True, "order": 2, "limit": 10},
+    {"key": "clinics", "label": "Clinics", "icon": "🩺", "enabled": True, "order": 3, "limit": 8},
+    {"key": "pharmacies", "label": "Pharmacies", "icon": "💊", "enabled": True, "order": 4, "limit": 8},
+    {"key": "temples", "label": "Temples & shrines", "icon": "🛕", "enabled": True, "order": 5, "limit": 10},
+    {"key": "viewpoints", "label": "Viewpoints", "icon": "🔭", "enabled": True, "order": 6, "limit": 10},
+    {"key": "attractions", "label": "Tourist attractions", "icon": "📍", "enabled": True, "order": 7, "limit": 10},
+    {"key": "restaurants", "label": "Restaurants", "icon": "🍽️", "enabled": True, "order": 8, "limit": 10},
+    {"key": "cafes", "label": "Cafés", "icon": "☕", "enabled": False, "order": 9, "limit": 8},
+    {"key": "banks", "label": "Banks & exchange", "icon": "🏦", "enabled": True, "order": 10, "limit": 8},
+    {"key": "atms", "label": "ATMs", "icon": "🏧", "enabled": False, "order": 11, "limit": 8},
+    {"key": "police", "label": "Police", "icon": "🚓", "enabled": True, "order": 12, "limit": 5},
+    {"key": "fire_stations", "label": "Fire stations", "icon": "🚒", "enabled": False, "order": 13, "limit": 5},
+    {"key": "bus_stations", "label": "Bus stations", "icon": "🚌", "enabled": True, "order": 14, "limit": 5},
+    {"key": "airports", "label": "Airports", "icon": "✈️", "enabled": False, "order": 15, "limit": 5},
+    {"key": "fuel", "label": "Fuel stations", "icon": "⛽", "enabled": False, "order": 16, "limit": 8},
+    {"key": "supermarkets", "label": "Supermarkets & malls", "icon": "🛒", "enabled": False, "order": 17, "limit": 8},
+    {"key": "markets", "label": "Local markets", "icon": "🧺", "enabled": False, "order": 18, "limit": 8},
+    {"key": "museums", "label": "Museums", "icon": "🏛️", "enabled": True, "order": 19, "limit": 8},
+    {"key": "parks", "label": "Parks", "icon": "🌳", "enabled": False, "order": 20, "limit": 8},
+    {"key": "peaks", "label": "Peaks & hills", "icon": "⛰️", "enabled": True, "order": 21, "limit": 10},
+    {"key": "waterfalls", "label": "Waterfalls", "icon": "💧", "enabled": True, "order": 22, "limit": 8},
+    {"key": "lakes", "label": "Lakes", "icon": "🌊", "enabled": False, "order": 23, "limit": 8},
+    {"key": "trailheads", "label": "Trailheads", "icon": "🥾", "enabled": True, "order": 24, "limit": 8},
+    {"key": "parking", "label": "Parking", "icon": "🅿️", "enabled": False, "order": 25, "limit": 8},
+    {"key": "toilets", "label": "Public toilets", "icon": "🚻", "enabled": False, "order": 26, "limit": 8},
+    {"key": "embassies", "label": "Embassies", "icon": "🏳️", "enabled": False, "order": 27, "limit": 5},
+]
+
+
+def get_poi_category_config():
+    """Admin-editable POI category settings (SiteSetting key `poi_categories`).
+
+    Admins may rename, re-order, enable/disable, and set per-category result
+    limits. Overpass tag mappings stay code-managed for safety.
+    """
+    merged = {item["key"]: dict(item) for item in DEFAULT_POI_CATEGORIES}
+    try:
+        from tourist.models import SiteSetting
+        setting = SiteSetting.objects.filter(key="poi_categories").first()
+        stored = (setting.value if setting else None) or []
+        if isinstance(stored, list):
+            for row in stored:
+                if not isinstance(row, dict):
+                    continue
+                key = str(row.get("key") or "")
+                if key not in merged:
+                    continue
+                for field in ("label", "icon"):
+                    if isinstance(row.get(field), str) and row[field].strip():
+                        merged[key][field] = row[field].strip()[:60]
+                if isinstance(row.get("enabled"), bool):
+                    merged[key]["enabled"] = row["enabled"]
+                if isinstance(row.get("order"), int):
+                    merged[key]["order"] = row["order"]
+                if isinstance(row.get("limit"), int) and 1 <= row["limit"] <= 25:
+                    merged[key]["limit"] = row["limit"]
+    except Exception:  # pragma: no cover - settings must never break search
+        logger.warning("poi_categories setting unreadable; using defaults", exc_info=True)
+    return sorted(merged.values(), key=lambda item: (item["order"], item["key"]))
+
+
+def _poi_category_for_tags(tags):
+    """Maps one OSM element's tags to a POI catalogue key (worship keeps religion in payload)."""
+    if tags.get("amenity") == "place_of_worship":
+        return "temples"
+    for category, tag_pairs in POI_CATEGORY_TAGS.items():
+        if category == "temples":
+            continue
+        for key, value in tag_pairs:
+            if tags.get(key) == value:
+                return category
+    return None
+
+
+def search_pois(latitude, longitude, radius_m, categories=None):
+    """Coordinate-first nearby POI search (master spec §2).
+
+    Returns (groups, categories_meta, error). `groups` maps category key ->
+    list of place dicts sorted nearest-first; every place carries provenance
+    (source, source_url, OSM id) plus phone/website/hours/address when OSM
+    actually records them — never fabricated. On provider failure returns
+    empty groups with `error` set so callers can still serve verified
+    database places (fallback strategy, spec §60).
+    """
+    config = get_poi_category_config()
+    enabled = [item for item in config if item["enabled"] and item["key"] in POI_CATEGORY_TAGS]
+    if categories:
+        wanted = set(categories)
+        enabled = [item for item in enabled if item["key"] in wanted]
+    groups = {item["key"]: [] for item in enabled}
+    if not enabled:
+        return groups, config, None
+    clauses = []
+    for item in enabled:
+        for key, value in POI_CATEGORY_TAGS[item["key"]]:
+            clauses.append(f'nwr["{key}"="{value}"](around:{int(radius_m)},{latitude},{longitude});')
+    query = "[out:json][timeout:25];(\n" + "\n".join(clauses) + "\n);out center tags 400;"
+    try:
+        response = requests.post(settings.OVERPASS_API_URL, data={"data": query},
+                                 headers={"User-Agent": "TourismApp/1.0", "Accept": "application/json"}, timeout=25)
+        response.raise_for_status()
+        elements = response.json().get("elements", [])
+    except Exception as exc:  # any provider failure must degrade, never 500
+        logger.warning("Overpass POI search failed: %s", exc)
+        return groups, config, "Live map data (OpenStreetMap) is unavailable right now."
+    limits = {item["key"]: item["limit"] for item in enabled}
+    from tourist.utils import haversine_distance
+    for element in elements:
+        tags = element.get("tags") or {}
+        key = _poi_category_for_tags(tags)
+        if key not in groups:
+            continue
+        name = tags.get("name") or tags.get("name:en") or tags.get("operator")
+        if not name:
+            continue
+        lat = element.get("lat") or (element.get("center") or {}).get("lat")
+        lon = element.get("lon") or (element.get("center") or {}).get("lon")
+        if lat is None or lon is None:
+            continue
+        groups[key].append({
+            "name": name,
+            "latitude": lat,
+            "longitude": lon,
+            "distance_km": round(haversine_distance(latitude, longitude, lat, lon), 2),
+            "religion": tags.get("religion") if key == "temples" else None,
+            "phone": tags.get("phone") or tags.get("contact:phone") or None,
+            "website": tags.get("website") or tags.get("contact:website") or None,
+            "opening_hours": tags.get("opening_hours") or None,
+            "address": ", ".join(part for part in [tags.get("addr:street"), tags.get("addr:city")] if part) or None,
+            "osm_id": element.get("id"),
+            "osm_type": element.get("type"),
+            "source": "OpenStreetMap (Overpass API)",
+            "source_url": f"https://www.openstreetmap.org/{element.get('type')}/{element.get('id')}",
+        })
+    for key in groups:
+        groups[key] = sorted(groups[key], key=lambda row: row["distance_km"])[:limits.get(key, 10)]
+    return groups, config, None
+
+
 def _build_query(tag_map, latitude, longitude, radius_m):
     """Builds one combined Overpass QL query for every (key, value) pair in tag_map."""
     clauses = []

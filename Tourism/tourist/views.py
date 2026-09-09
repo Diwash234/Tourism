@@ -1658,6 +1658,90 @@ class NearbyEmergencyServicesView(APIView):
         return Response(build_emergency_directory(latitude, longitude, radius_km=radius_km, limit=limit))
 
 
+class NearbyPOIsView(APIView):
+    """Coordinate-first nearby places (master spec §2): USER location → real places.
+
+    Accepts any coordinates (device GPS, manually chosen place, itinerary
+    stop) — never limited to the destination database. Merges OpenStreetMap
+    results with verified database destinations so admin-added places appear
+    too (spec §9). Falls back honestly when the live provider is down (§60).
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.core.cache import cache
+        from .services.overpass import search_pois
+
+        try:
+            lat = float(request.query_params.get("latitude"))
+            lon = float(request.query_params.get("longitude"))
+        except (TypeError, ValueError):
+            return Response({"detail": "latitude and longitude are required — your current location or a chosen place."}, status=400)
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            return Response({"detail": "Coordinates are outside the valid range."}, status=400)
+        try:
+            radius_km = max(0.5, min(float(request.query_params.get("radius_km", 5)), 25))
+        except (TypeError, ValueError):
+            radius_km = 5.0
+        cats = [c.strip() for c in str(request.query_params.get("categories", "")).split(",") if c.strip()] or None
+
+        from .models import SiteSetting
+        config_version = ""
+        setting = SiteSetting.objects.filter(key="poi_categories").first()
+        if setting:
+            config_version = str(setting.updated_at.timestamp())
+        cache_key = f"osm-pois-c:{round(lat, 3)}:{round(lon, 3)}:{radius_km}:{','.join(cats or [])}:{config_version}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        groups, meta, error = search_pois(lat, lon, radius_km * 1000, cats)
+        meta_by_key = {item["key"]: item for item in meta}
+
+        # Verified database places (spec §9): admin-managed destinations near
+        # the search point, merged into results with clear provenance.
+        box = bounding_box(lat, lon, radius_km)
+        db_rows = []
+        qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
+            longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
+        )[:60]
+        for dest in qs:
+            distance = haversine_distance(lat, lon, dest.latitude, dest.longitude)
+            if distance <= radius_km:
+                db_rows.append({
+                    "name": dest.name,
+                    "latitude": float(dest.latitude),
+                    "longitude": float(dest.longitude),
+                    "distance_km": round(distance, 2),
+                    "slug": dest.slug,
+                    "source": "Tourism database (admin-verified)",
+                    "source_url": f"/destinations/{dest.slug}",
+                })
+        db_rows.sort(key=lambda row: row["distance_km"])
+
+        payload = {
+            "latitude": lat,
+            "longitude": lon,
+            "radius_km": radius_km,
+            "distance_note": "Straight-line distances from the search point.",
+            "categories": {
+                key: {
+                    "label": meta_by_key.get(key, {}).get("label", key),
+                    "icon": meta_by_key.get(key, {}).get("icon", ""),
+                    "results": groups.get(key, []),
+                }
+                for key in groups
+            },
+            "verified_database_places": db_rows[:15],
+            "provider_error": error,
+        }
+        cache.set(cache_key, payload, 900)
+        return Response(payload)
+
+
 class DestinationNearbyPOIsView(APIView):
     """Real nearby places around a destination from OpenStreetMap (Overpass).
 

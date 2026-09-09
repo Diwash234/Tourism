@@ -3023,6 +3023,47 @@ def _media_usage_references(image):
     return refs
 
 
+class AdminPOICategoriesView(APIView):
+    """Admin control for the nearby-places category catalogue (master spec §4)."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "settings", "view")
+        from tourist.services.overpass import get_poi_category_config
+        return Response({"categories": get_poi_category_config()})
+
+    def put(self, request):
+        _require_capability(request, "settings", "change")
+        from tourist.services.overpass import get_poi_category_config
+        rows = request.data.get("categories")
+        if not isinstance(rows, list):
+            return Response({"detail": "Send a list of category settings under 'categories'."}, status=400)
+        clean = []
+        for row in rows[:60]:
+            if not isinstance(row, dict) or not str(row.get("key") or "").strip():
+                continue
+            try:
+                order = int(row.get("order") or 0)
+                limit = min(25, max(1, int(row.get("limit") or 10)))
+            except (TypeError, ValueError):
+                continue
+            clean.append({
+                "key": str(row["key"]).strip()[:40],
+                "label": str(row.get("label") or "").strip()[:60],
+                "icon": str(row.get("icon") or "").strip()[:10],
+                "enabled": bool(row.get("enabled")),
+                "order": order,
+                "limit": limit,
+            })
+        SiteSetting.objects.update_or_create(key="poi_categories", defaults={"value": clean})
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""),
+                                category="settings", severity="info", source="backend", action="settings.poi_categories.update",
+                                message=f"Updated {len(clean)} nearby-place categories", object_type="SiteSetting", object_id="poi_categories")
+        return Response({"message": "Nearby-place categories updated", "categories": get_poi_category_config()})
+
+
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]

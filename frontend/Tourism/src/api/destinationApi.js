@@ -13,6 +13,10 @@ const destinationApi = {
   getNearbyDestinations: (params = {}) =>
     axiosClient.get("/destinations/nearby/", { params }),
 
+  // Coordinate-first nearby POIs (user location → real-world places, spec §2)
+  getPOIsByCoords: (params = {}) =>
+    axiosClient.get("/nearby/pois/", { params }),
+
   // Real on-the-ground places (hotels/hospitals/temples/viewpoints/…) around a
   // destination, straight from OpenStreetMap via the backend proxy.
   getNearbyPOIs: (slugOrId, params = {}) =>

@@ -151,6 +151,7 @@ urlpatterns = [
     path("admin/notifications/", views_admin.AdminNotificationManagementView.as_view(), name="admin-notifications"),
     path("admin/search/", views_admin.AdminGlobalSearchView.as_view(), name="admin-global-search"),
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
+    path("admin/poi-categories/", views_admin.AdminPOICategoriesView.as_view(), name="admin-poi-categories"),
     path("admin/service-media/", views_admin.AdminServiceMediaView.as_view(), name="admin-service-media"),
     path("admin/sections/<int:section_id>/blocks/", views_admin.AdminContentBlockView.as_view(), name="admin-section-blocks"),
     path("admin/blocks/<int:block_id>/", views_admin.AdminContentBlockView.as_view(), name="admin-block-detail"),
@@ -267,6 +268,7 @@ urlpatterns = [
     path("recommendation-events/", views.RecommendationEventView.as_view(), name="recommendation-events"),
     path("destinations/<str:destination_ref>/emergency/", views.DestinationEmergencyServicesView.as_view(), name="destination-emergency-services"),
     path("destinations/<str:destination_ref>/nearby-pois/", views.DestinationNearbyPOIsView.as_view(), name="destination-nearby-pois"),
+    path("nearby/pois/", views.NearbyPOIsView.as_view(), name="nearby-pois"),
     path("emergency/nearby/", views.NearbyEmergencyServicesView.as_view(), name="nearby-emergency-services"),
     path("routing/metrics/", views.RouteMetricsView.as_view(), name="route-metrics"),
     # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)

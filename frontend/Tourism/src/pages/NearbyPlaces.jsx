@@ -42,6 +42,7 @@ const PAGE_SIZE = 24
 
 const RESULT_TYPES = [
   { key: "destinations", label: "Destinations", noun: "destinations" },
+  { key: "pois", label: "Real-world places", noun: "places" },
   { key: "hotels", label: "Hotels", noun: "hotels" },
   { key: "hospitals", label: "Hospitals", noun: "hospitals" },
 ]
@@ -78,6 +79,9 @@ const NearbyPlaces = () => {
   const [searching, setSearching] = useState(false)
 
   const [favoriteMap, setFavoriteMap] = useState({})
+  // Real-world POIs (OpenStreetMap) — structured payload for the pois tab
+  const [poiData, setPoiData] = useState(null)
+  const [poiCat, setPoiCat] = useState("")
 
   // --- data fetch: frontend sends coordinates, backend runs the distance query
   useEffect(() => {
@@ -108,6 +112,18 @@ const NearbyPlaces = () => {
           .then(({ data }) => {
             const list = Array.isArray(data?.results) ? data.results : []
             settle(list, typeof data?.count === "number" ? data.count : list.length)
+          })
+          .catch(fail)
+        return
+      }
+      if (activeType === "pois") {
+        destinationApi
+          .getPOIsByCoords({ latitude: origin.lat, longitude: origin.lng, radius_km: Math.min(radiusKm, 25) })
+          .then(({ data }) => {
+            const all = Object.values(data?.categories || {}).flatMap((group) => group.results || [])
+            setPoiData(data)
+            setPoiCat((prev) => (prev && data?.categories?.[prev] ? prev : Object.keys(data?.categories || {})[0] || ""))
+            settle([...all, ...(data?.verified_database_places || [])], all.length + (data?.verified_database_places || []).length)
           })
           .catch(fail)
         return
@@ -411,6 +427,59 @@ const NearbyPlaces = () => {
         {panel === "results" && (
           <>
             <p className="text-sm text-gray-500 mb-4">{resultsSummary}</p>
+
+            {activeType === "pois" && poiData && (
+              <div className="space-y-5">
+                {poiData.provider_error && (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {poiData.provider_error} Verified database places below are still shown.
+                  </p>
+                )}
+                {(poiData.verified_database_places || []).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-emerald-900 mb-2">Verified destinations near you</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {poiData.verified_database_places.map((row) => (
+                        <a key={row.slug} href={row.source_url} className="card-base p-4 hover:shadow-md transition">
+                          <p className="font-semibold text-sm text-emerald-900">{row.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{row.distance_km} km · {row.source}</p>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(poiData.categories || {}).map(([key, group]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPoiCat(key)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${poiCat === key ? "bg-emerald-700 text-white shadow" : "bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50"}`}
+                    >
+                      {group.icon} {group.label} ({(group.results || []).length})
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {(poiData.categories?.[poiCat]?.results || []).map((row) => (
+                    <div key={`${row.osm_type}-${row.osm_id}`} className="card-base p-4">
+                      <p className="font-semibold text-sm text-emerald-900">{row.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {[row.distance_km != null ? `${row.distance_km} km` : null, row.religion, row.address].filter(Boolean).join(" · ")}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
+                        {row.phone && <a className="inline-flex items-center gap-1 text-emerald-700 hover:underline" href={`tel:${row.phone}`}><FiPhone className="w-3 h-3" /> {row.phone}</a>}
+                        {row.website && <a className="text-emerald-700 hover:underline" href={row.website} target="_blank" rel="noopener noreferrer">Website</a>}
+                        {row.opening_hours && <span className="text-gray-500">{row.opening_hours}</span>}
+                        <a className="text-emerald-700 hover:underline" href={row.source_url} target="_blank" rel="noopener noreferrer">OpenStreetMap ↗</a>
+                        <a className="text-emerald-700 hover:underline" href={directionsHref(row)} target="_blank" rel="noopener noreferrer"><FiNavigation className="w-3 h-3 inline" /> Directions</a>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-2">{row.source}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {activeType === "destinations" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
