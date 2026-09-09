@@ -1715,3 +1715,51 @@ class NavigationExtensionsTests(TestCase):
         resp = self.client.get("/api/v1/navigation/provinces/")
         self.assertEqual(resp.status_code, 200)
 
+
+class StaffPermissionLockdownTests(TestCase):
+    """Spec §36 hard rule: staff can never change their own permissions."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user(email="lock-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"feedback": ["view"], "dashboard": ["view"]})
+        self.client = APIClient()
+        self.client.force_authenticate(self.staff)
+
+    def test_staff_cannot_update_capability_profiles(self):
+        resp = self.client.put("/api/v1/admin/staff-capabilities/", {
+            "user_id": self.staff.id,
+            "capabilities": {"users": ["view", "change", "delete"], "settings": ["change"]},
+        }, format="json")
+        self.assertEqual(resp.status_code, 403)
+        self.staff.capability_profile.refresh_from_db()
+        self.assertEqual(self.staff.capability_profile.capabilities, {"feedback": ["view"], "dashboard": ["view"]})
+
+    def test_staff_cannot_list_capability_profiles(self):
+        self.assertEqual(self.client.get("/api/v1/admin/staff-capabilities/").status_code, 403)
+
+    def test_profile_patch_cannot_escalate_role(self):
+        resp = self.client.patch("/api/v1/auth/profile/", {
+            "role": "admin", "is_staff": False, "is_superuser": True, "is_verified": True,
+            "first_name": "Renamed",
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.staff.refresh_from_db()
+        self.assertEqual(self.staff.role, "staff")          # unchanged
+        self.assertTrue(self.staff.is_staff)                 # unchanged
+        self.assertFalse(self.staff.is_superuser)            # unchanged
+        self.assertFalse(self.staff.is_verified)             # unchanged
+        self.assertEqual(self.staff.first_name, "Renamed")   # benign field still works
+
+    def test_registration_cannot_self_assign_admin_role(self):
+        self.client.force_authenticate(None)
+        base = {"password": "Esc!Pass12345", "password_confirm": "Esc!Pass12345",
+                "first_name": "Esc", "last_name": "Alator"}
+        # 1) privileged role names are rejected outright at signup
+        resp = self.client.post("/api/v1/auth/register/", {**base, "email": "lock-esc@test.local", "role": "admin"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(User.objects.filter(email="lock-esc@test.local").exists())
+        # 2) a normal signup lands on the tourist role
+        resp = self.client.post("/api/v1/auth/register/", {**base, "email": "lock-ok@test.local"}, format="json")
+        self.assertIn(resp.status_code, {200, 201})
+        self.assertEqual(User.objects.get(email="lock-ok@test.local").role, "tourist")
+
