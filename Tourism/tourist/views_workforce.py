@@ -16,9 +16,13 @@ from .views_admin import _require_capability
 
 
 def _profile_payload(p, include_private=False):
+    from django.db.models import Avg, Count
+    agg = p.reviews.aggregate(avg=Avg("rating"), count=Count("id"))
     data = {
         "id": p.id,
         "name": p.user.full_name,
+        "rating_avg": round(agg["avg"], 2) if agg["avg"] else None,
+        "review_count": agg["count"] or 0,
         "headline": p.headline,
         "bio": p.bio,
         "years_experience": p.years_experience,
@@ -563,3 +567,197 @@ class AdminJobApplicationActionView(APIView):
                    message=f"Application to '{app.job.title}' by {app.user.email}: {previous} → {app.status}" + (f" ({note})" if note else ""),
                    object_type="TourismJobApplication", object_id=str(app.id))
         return Response(_job_application_payload(app))
+
+
+# ============================================================
+# TOURIST ↔ GUIDE BOOKINGS + REVIEWS (workforce spec §12/§13)
+# ============================================================
+
+def _booking_payload(b):
+    return {
+        "id": b.id,
+        "status": b.status,
+        "start_date": b.start_date,
+        "end_date": b.end_date,
+        "group_size": b.group_size,
+        "message": b.message,
+        "note": b.note,
+        "created_at": b.created_at,
+        "responded_at": b.responded_at,
+        "tourist_email": b.tourist.email,
+        "tourist_name": b.tourist.full_name,
+        "guide_id": b.guide_profile_id,
+        "guide_name": b.guide_profile.user.full_name,
+        "reviewed": hasattr(b, "review"),
+        "review": ({"rating": b.review.rating, "review": b.review.review, "created_at": b.review.created_at}
+                   if hasattr(b, "review") else None),
+    }
+
+
+class GuideBookingRequestView(APIView):
+    """GET own requests (as tourist or as guide); POST create a request."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import GuideBookingRequest, GuideProfile
+        side = request.query_params.get("side") or "tourist"
+        if side == "guide":
+            profile = GuideProfile.objects.filter(user=request.user).first()
+            if not profile:
+                return Response({"detail": "You do not have a guide profile yet — apply first."}, status=404)
+            qs = GuideBookingRequest.objects.filter(guide_profile=profile).select_related("tourist", "guide_profile__user")
+        else:
+            qs = GuideBookingRequest.objects.filter(tourist=request.user).select_related("guide_profile__user")
+        return Response({"results": [_booking_payload(b) for b in qs[:30]]})
+
+    def post(self, request):
+        from .models import GuideBookingRequest, GuideProfile
+        from .notification_delivery import queue_notification
+        from audit.logging_services import log_action
+        from datetime import date
+        guide_id = request.data.get("guide_id")
+        profile = GuideProfile.objects.select_related("user").filter(pk=guide_id).first()
+        if not profile:
+            return Response({"detail": "Guide not found."}, status=404)
+        if profile.verification_status != "verified" or not profile.is_public:
+            return Response({"detail": "This guide is not available for booking."}, status=400)
+        if profile.user_id == request.user.id:
+            return Response({"detail": "You cannot book your own guide profile."}, status=400)
+        try:
+            start = date.fromisoformat(str(request.data.get("start_date") or ""))
+        except ValueError:
+            return Response({"detail": "start_date (YYYY-MM-DD) is required."}, status=400)
+        end_raw = request.data.get("end_date")
+        end = None
+        if end_raw:
+            try:
+                end = date.fromisoformat(str(end_raw))
+            except ValueError:
+                return Response({"detail": "end_date must be YYYY-MM-DD."}, status=400)
+            if end < start:
+                return Response({"detail": "end_date is before start_date."}, status=400)
+        if GuideBookingRequest.objects.filter(tourist=request.user, guide_profile=profile,
+                                              status__in=["requested", "accepted"]).exists():
+            return Response({"detail": "You already have an active request with this guide."}, status=400)
+        try:
+            group_size = max(1, min(200, int(request.data.get("group_size") or 1)))
+        except (TypeError, ValueError):
+            group_size = 1
+        booking = GuideBookingRequest.objects.create(
+            tourist=request.user, guide_profile=profile,
+            start_date=start, end_date=end, group_size=group_size,
+            message=(request.data.get("message") or "").strip()[:2000],
+        )
+        queue_notification(profile.user, "New booking request",
+                           f"{request.user.full_name} requested you as a guide from {start.isoformat()}.",
+                           category="workforce")
+        log_action(request=request, action="workforce.booking.request", category="workforce",
+                   message=f"{request.user.email} requested guide {profile.user.email} from {start.isoformat()}",
+                   object_type="GuideBookingRequest", object_id=str(booking.id))
+        return Response(_booking_payload(booking), status=201)
+
+
+class GuideBookingActionView(APIView):
+    """POST /api/v1/workforce/guide-bookings/<pk>/action/ — accept/decline/complete/cancel."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    GUIDE_ACTIONS = {"accept": "accepted", "decline": "declined"}
+
+    def post(self, request, pk):
+        from .models import GuideBookingRequest
+        from .notification_delivery import queue_notification
+        from audit.logging_services import log_action
+        booking = GuideBookingRequest.objects.select_related("tourist", "guide_profile__user").filter(pk=pk).first()
+        if not booking:
+            return Response({"detail": "Booking request not found."}, status=404)
+        action = (request.data.get("action") or "").strip()
+        note = (request.data.get("note") or "").strip()
+        is_guide = booking.guide_profile.user_id == request.user.id
+        is_tourist = booking.tourist_id == request.user.id
+        if not is_guide and not is_tourist:
+            return Response({"detail": "Only the tourist or the guide may act on this request."}, status=403)
+        if action in self.GUIDE_ACTIONS:
+            if not is_guide:
+                return Response({"detail": "Only the guide may accept or decline."}, status=403)
+            if booking.status != "requested":
+                return Response({"detail": f"Only pending requests can be accepted or declined (status: {booking.status})."}, status=400)
+            if action == "decline" and not note:
+                return Response({"detail": "A note is required to decline a request."}, status=400)
+        elif action == "complete":
+            if booking.status != "accepted":
+                return Response({"detail": "Only accepted bookings can be marked completed."}, status=400)
+        elif action == "cancel":
+            if booking.status not in ("requested", "accepted"):
+                return Response({"detail": "This request can no longer be cancelled."}, status=400)
+        else:
+            return Response({"detail": "Allowed actions: accept, decline, complete, cancel."}, status=400)
+        previous = booking.status
+        booking.status = {"accept": "accepted", "decline": "declined",
+                          "complete": "completed", "cancel": "cancelled"}[action]
+        booking.note = note[:1000] or booking.note
+        booking.responded_at = timezone.now()
+        booking.save(update_fields=["status", "note", "responded_at", "updated_at"])
+        other = booking.tourist if is_guide else booking.guide_profile.user
+        queue_notification(other, f"Booking {booking.status}",
+                           note or f"Guide booking from {booking.start_date.isoformat()} is now {booking.status}.",
+                           category="workforce")
+        log_action(request=request, action=f"workforce.booking.{action}", category="workforce",
+                   message=f"Booking {booking.id}: {previous} → {booking.status}" + (f" ({note})" if note else ""),
+                   object_type="GuideBookingRequest", object_id=str(booking.id))
+        return Response(_booking_payload(booking))
+
+
+class GuideReviewCreateView(APIView):
+    """POST /api/v1/workforce/guide-bookings/<pk>/review/ — review a completed booking."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from .models import GuideBookingRequest, GuideReview
+        from .notification_delivery import queue_notification
+        booking = GuideBookingRequest.objects.select_related("tourist", "guide_profile__user").filter(pk=pk).first()
+        if not booking:
+            return Response({"detail": "Booking request not found."}, status=404)
+        if booking.tourist_id != request.user.id:
+            return Response({"detail": "Only the tourist on this booking may review it."}, status=403)
+        if booking.status != "completed":
+            return Response({"detail": "You can review a booking once it is completed."}, status=400)
+        if hasattr(booking, "review"):
+            return Response({"detail": "This booking has already been reviewed."}, status=400)
+        try:
+            rating = int(request.data.get("rating"))
+        except (TypeError, ValueError):
+            return Response({"detail": "rating (1-5) is required."}, status=400)
+        if not 1 <= rating <= 5:
+            return Response({"detail": "rating must be between 1 and 5."}, status=400)
+        review = GuideReview.objects.create(
+            booking=booking, user=request.user, guide_profile=booking.guide_profile,
+            rating=rating, review=(request.data.get("review") or "").strip()[:2000],
+        )
+        queue_notification(booking.guide_profile.user, "New guide review",
+                           f"You received a {rating}★ review for the trip starting {booking.start_date.isoformat()}.",
+                           category="workforce")
+        return Response({"id": review.id, "rating": review.rating, "review": review.review,
+                         "created_at": review.created_at}, status=201)
+
+
+class GuideReviewListView(APIView):
+    """GET /api/v1/workforce/guides/<pk>/reviews/ — public reviews + aggregate."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        from django.db.models import Avg, Count
+        from .models import GuideProfile, GuideReview
+        profile = GuideProfile.objects.filter(pk=pk).first()
+        if not profile:
+            return Response({"detail": "Guide not found."}, status=404)
+        agg = profile.reviews.aggregate(avg=Avg("rating"), count=Count("id"))
+        reviews = GuideReview.objects.filter(guide_profile=profile).select_related("user")[:20]
+        return Response({
+            "rating_avg": round(agg["avg"], 2) if agg["avg"] else None,
+            "review_count": agg["count"] or 0,
+            "results": [{"id": r.id, "rating": r.rating, "review": r.review,
+                         "author": r.user.full_name, "created_at": r.created_at} for r in reviews],
+        })

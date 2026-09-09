@@ -29,6 +29,10 @@ export default function GuidePortal() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [requests, setRequests] = useState([])
+  const [busyId, setBusyId] = useState(null)
+  const [declineFor, setDeclineFor] = useState(null)
+  const [declineNote, setDeclineNote] = useState("")
   const [form, setForm] = useState({
     full_name: user?.full_name || "", phone: user?.phone_number || "", base_city: "",
     experience_summary: "", languages: "", skills: "", destinations_covered: "",
@@ -36,7 +40,7 @@ export default function GuidePortal() {
   })
 
   const load = useCallback(() => {
-    if (!isAuthenticated) { setLoading(false); return }
+  if (!isAuthenticated) { setLoading(false); return }
     setLoading(true)
     Promise.all([
       workforceApi.myApplications().catch(() => ({ data: { results: [] } })),
@@ -44,8 +48,14 @@ export default function GuidePortal() {
     ]).then(([apps, prof]) => {
       setApplications(apps.data.results || [])
       setProfile(prof.data.exists ? prof.data : null)
-      if (prof.data.exists) setTab("profile")
-      else if ((apps.data.results || []).length) setTab("status")
+      if (prof.data.exists) {
+        setTab("profile")
+        workforceApi.myBookings("guide")
+          .then(({ data: d }) => setRequests(d.results || []))
+          .catch(() => setRequests([]))
+      } else if ((apps.data.results || []).length) {
+        setTab("status")
+      }
     }).finally(() => setLoading(false))
   }, [isAuthenticated])
 
@@ -110,6 +120,22 @@ export default function GuidePortal() {
     )
   }
 
+  const bookingAct = async (id, action, note = "") => {
+    setBusyId(id)
+    try {
+      await workforceApi.bookingAction(id, action, note)
+      showToast(`Request ${action}ed`, "success")
+      const { data } = await workforceApi.myBookings("guide")
+      setRequests(data.results || [])
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Action failed", "error")
+    } finally {
+      setBusyId(null)
+      setDeclineFor(null)
+      setDeclineNote("")
+    }
+  }
+
   const latest = applications[0]
   const meta = latest ? STATUS_META[latest.status] : null
   const hasOpen = latest && ["applied", "under_review", "document_verification", "needs_info"].includes(latest.status)
@@ -129,7 +155,7 @@ export default function GuidePortal() {
         </div>
 
         <div className="flex gap-1.5">
-          {[["apply", "Apply"], ["status", `My Applications${applications.length ? ` (${applications.length})` : ""}`], ["profile", profile ? "My Profile" : "Profile (after approval)"]].map(([id, label]) => (
+          {[["apply", "Apply"], ["status", `My Applications${applications.length ? ` (${applications.length})` : ""}`], ["profile", profile ? "My Profile" : "Profile (after approval)"], ["requests", profile ? `Booking Requests${requests.filter((r) => r.status === "requested").length ? ` (${requests.filter((r) => r.status === "requested").length})` : ""}` : "Booking Requests"]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} aria-pressed={tab === id}
               className={`px-4 py-2 rounded-full text-xs font-bold transition ${tab === id ? "bg-[#102A2E] text-white" : "bg-white border text-slate-600 hover:bg-slate-100"}`}>
               {label}
@@ -220,6 +246,68 @@ export default function GuidePortal() {
               ) : (
                 <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">
                   Your professional profile unlocks once your guide application is approved.
+                </div>
+              )
+            )}
+
+            {tab === "requests" && (
+              profile ? (
+                <div className="space-y-3">
+                  {requests.map((b) => (
+                    <div key={b.id} className="bg-white rounded-3xl border p-5 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <b className="text-slate-900">{b.tourist_name}</b>
+                          <span className="text-xs text-slate-500"> · {b.tourist_email}</span>
+                        </div>
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase ${
+                          b.status === "requested" ? "bg-sky-100 text-sky-700" :
+                          b.status === "accepted" ? "bg-emerald-100 text-emerald-700" :
+                          b.status === "completed" ? "bg-slate-200 text-slate-700" :
+                          b.status === "declined" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-400"
+                        }`}>{b.status}</span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        {b.start_date}{b.end_date ? ` → ${b.end_date}` : ""} · group of {b.group_size}
+                      </p>
+                      {b.message && <p className="text-xs text-slate-600 italic">“{b.message}”</p>}
+                      {b.review && (
+                        <p className="text-xs text-amber-600 font-bold">
+                          Rated {b.review.rating}★{b.review.review ? ` — “${b.review.review}”` : ""}
+                        </p>
+                      )}
+                      {b.status === "requested" && (
+                        declineFor === b.id ? (
+                          <div className="flex gap-2 pt-1">
+                            <input autoFocus className={field} placeholder="Reason for declining (required)" value={declineNote} onChange={(e) => setDeclineNote(e.target.value)} />
+                            <button onClick={() => bookingAct(b.id, "decline", declineNote)} disabled={!declineNote.trim() || busyId === b.id}
+                              className="px-4 py-2 bg-rose-600 disabled:opacity-40 text-white rounded-xl text-xs font-black whitespace-nowrap">Confirm Decline</button>
+                            <button onClick={() => setDeclineFor(null)} className="px-3 py-2 border rounded-xl text-xs font-bold text-slate-500">Back</button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 pt-1">
+                            <button onClick={() => bookingAct(b.id, "accept")} disabled={busyId === b.id}
+                              className="px-4 py-2 bg-[#1D5146] hover:bg-[#102A2E] disabled:opacity-40 text-white rounded-xl text-xs font-black">Accept</button>
+                            <button onClick={() => setDeclineFor(b.id)}
+                              className="px-4 py-2 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-black">Decline</button>
+                          </div>
+                        )
+                      )}
+                      {b.status === "accepted" && (
+                        <button onClick={() => bookingAct(b.id, "complete")} disabled={busyId === b.id}
+                          className="px-4 py-2 bg-slate-800 disabled:opacity-40 text-white rounded-xl text-xs font-black">Mark Trip Completed</button>
+                      )}
+                    </div>
+                  ))}
+                  {!requests.length && (
+                    <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">
+                      No booking requests yet — travellers will find you in the <Link to="/guides" className="text-[#1D5146] font-bold hover:underline">public directory</Link>.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">
+                  Booking requests become available once your guide application is approved.
                 </div>
               )
             )}

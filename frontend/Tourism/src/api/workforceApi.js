@@ -15,6 +15,14 @@ const workforceApi = {
   myApplications: () => axiosClient.get("/workforce/guide-applications/"),
   applyAsGuide: (payload) => axiosClient.post("/workforce/guide-applications/", payload),
 
+  // Tourist↔guide bookings + reviews (spec §12/§13)
+  guideReviews: (id) => axiosClient.get(`/workforce/guides/${id}/reviews/`),
+  myBookings: (side = "tourist") => axiosClient.get("/workforce/guide-bookings/", { params: { side } }),
+  createBooking: (payload) => axiosClient.post("/workforce/guide-bookings/", payload),
+  bookingAction: (id, action, note = "") =>
+    axiosClient.post(`/workforce/guide-bookings/${id}/action/`, { action, note }),
+  reviewBooking: (id, payload) => axiosClient.post(`/workforce/guide-bookings/${id}/review/`, payload),
+
   // Jobs marketplace (public + own applications)
   jobs: (params = {}) => axiosClient.get("/workforce/jobs/", { params }),
   postJob: (payload) => axiosClient.post("/workforce/jobs/", payload),

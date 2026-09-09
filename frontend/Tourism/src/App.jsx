@@ -81,6 +81,7 @@ import Packages from "./pages/Packages"
 import Guides from "./pages/Guides"
 import GuidePortal from "./pages/GuidePortal"
 import TourismJobs from "./pages/TourismJobs"
+import GuideBookings from "./pages/GuideBookings"
 import PackageDetail from "./pages/PackageDetail"
 import Collaborate from "./pages/Collaborate"
 import Checkout from "./pages/Checkout"
@@ -166,6 +167,7 @@ function App() {
         <Route path="/guides" element={<Guides />} />
         <Route path="/guide-portal" element={<GuidePortal />} />
         <Route path="/tourism-jobs" element={<TourismJobs />} />
+        <Route path="/guide-bookings" element={<GuideBookings />} />
         <Route path="/packages/:slug" element={<PackageDetail />} />
         <Route path="/collaborate" element={<Collaborate />} />
         <Route path="/checkout" element={<Checkout />} />

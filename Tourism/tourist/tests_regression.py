@@ -2017,3 +2017,103 @@ class TourismJobsTests(TestCase):
         resp = self.client.post(f"/api/v1/workforce/admin/jobs/{self.job.id}/action/", {"action": "bogus"}, format="json")
         self.assertEqual(resp.status_code, 400)
 
+
+class GuideBookingReviewTests(TestCase):
+    """Tourist↔guide booking requests + reviews/reputation (workforce spec §12/§13)."""
+
+    def setUp(self):
+        from tourist.models import GuideProfile
+        self.admin = User.objects.create_superuser("gb-admin@test.local", "Sup!Pass123")
+        self.guide_user = User.objects.create_user(email="gb-guide@test.local", password="Guide!Pass123", role="tourist", first_name="Pemba", last_name="Sherpa")
+        self.guide = GuideProfile.objects.create(user=self.guide_user, verification_status="verified", is_public=True,
+                                                 headline="Annapurna specialist", daily_rate_npr=3000)
+        self.tourist = User.objects.create_user(email="gb-tourist@test.local", password="Tour!Pass123", role="tourist", first_name="Trip", last_name="Planner")
+        self.client = APIClient()
+
+    def _create(self, start="2026-10-05", end="2026-10-09"):
+        self.client.force_authenticate(self.tourist)
+        return self.client.post("/api/v1/workforce/guide-bookings/", {
+            "guide_id": self.guide.id, "start_date": start, "end_date": end,
+            "group_size": 4, "message": "Annapurna base camp trek",
+        }, format="json")
+
+    def _act(self, booking_id, action, user, note=""):
+        self.client.force_authenticate(user)
+        return self.client.post(f"/api/v1/workforce/guide-bookings/{booking_id}/action/",
+                                {"action": action, "note": note}, format="json")
+
+    def test_unverified_or_suspended_guides_cannot_be_booked(self):
+        self.guide.verification_status = "suspended"
+        self.guide.save(update_fields=["verification_status"])
+        resp = self._create()
+        self.assertEqual(resp.status_code, 400)
+        self.guide.verification_status = "verified"
+        self.guide.is_public = False
+        self.guide.save(update_fields=["is_public"])
+        self.assertEqual(self._create().status_code, 400)
+
+    def test_full_lifecycle_request_accept_complete_review(self):
+        from tourist.models import Notification
+        booking_id = self._create().json()["id"]
+        # guide notified
+        self.assertTrue(Notification.objects.filter(user=self.guide_user, title="New booking request").exists())
+        # tourist cannot accept own request
+        self.assertEqual(self._act(booking_id, "accept", self.tourist).status_code, 403)
+        # review before completion → 400
+        self.client.force_authenticate(self.tourist)
+        self.assertEqual(self.client.post(f"/api/v1/workforce/guide-bookings/{booking_id}/review/", {"rating": 5}, format="json").status_code, 400)
+        # guide accepts → complete
+        self.assertEqual(self._act(booking_id, "accept", self.guide_user).json()["status"], "accepted")
+        self.assertEqual(self._act(booking_id, "complete", self.guide_user).json()["status"], "completed")
+        # tourist reviews once
+        self.client.force_authenticate(self.tourist)
+        resp = self.client.post(f"/api/v1/workforce/guide-bookings/{booking_id}/review/",
+                                {"rating": 5, "review": "Best guide ever"}, format="json")
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(self.client.post(f"/api/v1/workforce/guide-bookings/{booking_id}/review/", {"rating": 4}, format="json").status_code, 400)
+
+    def test_decline_requires_note_and_stranger_cannot_act(self):
+        booking_id = self._create().json()["id"]
+        self.assertEqual(self._act(booking_id, "decline", self.guide_user).status_code, 400)
+        stranger = User.objects.create_user(email="gb-stranger@test.local", password="Tour!Pass123", role="tourist")
+        self.assertEqual(self._act(booking_id, "accept", stranger).status_code, 403)
+        self.assertEqual(self._act(booking_id, "decline", self.guide_user, note="Fully booked").json()["status"], "declined")
+
+    def test_duplicate_active_request_blocked_and_cancel_frees(self):
+        self._create()
+        dup = self._create(start="2026-11-01", end="2026-11-05")
+        self.assertEqual(dup.status_code, 400)
+        self.assertIn("already have an active request", dup.json()["detail"])
+        bookings = self.client.get("/api/v1/workforce/guide-bookings/?side=tourist").json()["results"]
+        self.assertEqual(self._act(bookings[0]["id"], "cancel", self.tourist).json()["status"], "cancelled")
+        self.assertEqual(self._create(start="2026-11-01", end="2026-11-05").status_code, 201)
+
+    def test_public_reviews_and_directory_aggregate(self):
+        booking_id = self._create().json()["id"]
+        self._act(booking_id, "accept", self.guide_user)
+        self._act(booking_id, "complete", self.guide_user)
+        self.client.force_authenticate(self.tourist)
+        self.client.post(f"/api/v1/workforce/guide-bookings/{booking_id}/review/",
+                         {"rating": 4, "review": "Knowledgeable and punctual"}, format="json")
+        self.client.force_authenticate(None)
+        reviews = self.client.get(f"/api/v1/workforce/guides/{self.guide.id}/reviews/").json()
+        self.assertEqual(reviews["rating_avg"], 4.0)
+        self.assertEqual(reviews["review_count"], 1)
+        listing = self.client.get("/api/v1/workforce/guides/").json()["results"][0]
+        self.assertEqual(listing["rating_avg"], 4.0)
+        self.assertEqual(listing["review_count"], 1)
+
+    def test_guide_side_queue_requires_profile(self):
+        self.client.force_authenticate(self.tourist)
+        self.assertEqual(self.client.get("/api/v1/workforce/guide-bookings/?side=guide").status_code, 404)
+        self._create()
+        self.client.force_authenticate(self.guide_user)
+        results = self.client.get("/api/v1/workforce/guide-bookings/?side=guide").json()["results"]
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["tourist_email"], "gb-tourist@test.local")
+
+    def test_invalid_dates_rejected(self):
+        self.client.force_authenticate(self.tourist)
+        self.assertEqual(self.client.post("/api/v1/workforce/guide-bookings/", {"guide_id": self.guide.id}, format="json").status_code, 400)
+        self.assertEqual(self.client.post("/api/v1/workforce/guide-bookings/", {"guide_id": self.guide.id, "start_date": "2026-10-09", "end_date": "2026-10-05"}, format="json").status_code, 400)
+

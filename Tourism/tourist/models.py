@@ -3351,3 +3351,50 @@ class TourismJobApplication(TimeStampedModel):
     def __str__(self):
         return f"{self.user.email} → {self.job.title} ({self.status})"
 
+
+class GuideBookingRequest(TimeStampedModel):
+    """Tourist → guide booking request (workforce spec §12).
+
+    Lifecycle: REQUESTED → ACCEPTED/DECLINED → COMPLETED (or CANCELLED).
+    Only VERIFIED + public guide profiles can be booked; a review is allowed
+    once per completed booking (reputation source, spec §13)."""
+
+    class Status(models.TextChoices):
+        REQUESTED = "requested", "Requested"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    tourist = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="guide_booking_requests")
+    guide_profile = models.ForeignKey("GuideProfile", on_delete=models.CASCADE, related_name="booking_requests")
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    group_size = models.PositiveIntegerField(default=1)
+    message = models.TextField(blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.REQUESTED, db_index=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.tourist.email} → guide {self.guide_profile_id} ({self.status})"
+
+
+class GuideReview(TimeStampedModel):
+    """One review per completed booking (workforce spec §13)."""
+
+    booking = models.OneToOneField(GuideBookingRequest, on_delete=models.CASCADE, related_name="review")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="guide_reviews")
+    guide_profile = models.ForeignKey("GuideProfile", on_delete=models.CASCADE, related_name="reviews")
+    rating = models.PositiveSmallIntegerField()
+    review = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.rating}★ for guide {self.guide_profile_id} by {self.user.email}"
+
