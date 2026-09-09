@@ -867,6 +867,24 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
             <option value="spacious">Spacious (p-10)</option>
           </select>
         </label>
+        <label className="text-xs font-semibold text-slate-300">Text Size
+          <select className="input-field mt-1" value={value.config?.text_scale || "base"} onChange={e => set("config", { ...(value.config || {}), text_scale: e.target.value })}>
+            <option value="sm">Small</option>
+            <option value="base">Normal</option>
+            <option value="lg">Large</option>
+            <option value="xl">Extra large</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-300">Alignment
+          <select className="input-field mt-1" value={value.config?.align || "left"} onChange={e => set("config", { ...(value.config || {}), align: e.target.value })}>
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-300">Background Image (HTTPS, optional)
+          <input className="input-field mt-1" value={value.config?.bg_image || ""} onChange={e => set("config", { ...(value.config || {}), bg_image: e.target.value })} placeholder="https://…" />
+        </label>
         <label className="text-xs font-semibold text-slate-300">Animation
           <select className="input-field mt-1" value={value.config?.effect || "none"} onChange={e => set("config", { ...(value.config || {}), effect: e.target.value })}>
             {["none", "marquee", "fade", "slide"].map(item => <option key={item}>{item}</option>)}
@@ -1184,8 +1202,16 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
 
                   {editingBlock.block_type === "card_grid" && (
                     <div className="space-y-2">
-                      <label className="block font-semibold text-slate-300">Cards JSON (array of {"{ emoji, title, description, url }"} — url must start with /)
+                      <label className="block font-semibold text-slate-300">Cards JSON (array of {"{ emoji, title, description, url, image }"} — url must start with /, image must be HTTPS)
                         <textarea rows="6" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.items || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, items: JSON.parse(e.target.value) } }) } catch { /* keep until valid */ } }} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Columns on desktop
+                        <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.columns || 4} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, columns: Number(e.target.value) } })}>
+                          <option value={1}>1 column</option>
+                          <option value={2}>2 columns</option>
+                          <option value={3}>3 columns</option>
+                          <option value={4}>4 columns</option>
+                        </select>
                       </label>
                     </div>
                   )}

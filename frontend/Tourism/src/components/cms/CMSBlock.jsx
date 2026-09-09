@@ -265,8 +265,10 @@ export function ContentBlockItem({ block }) {
     case "card_grid": {
       const items = Array.isArray(data.items) ? data.items : []
       if (!items.length) return null
+      const COLS = { 1: "grid-cols-1", 2: "sm:grid-cols-2", 3: "sm:grid-cols-2 lg:grid-cols-3", 4: "sm:grid-cols-2 lg:grid-cols-4" }
+      const colClass = COLS[Number(data.columns)] || "sm:grid-cols-2 lg:grid-cols-4"
       return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-4">
+        <div className={`grid gap-4 mt-4 ${colClass}`}>
           {items.map((card, i) => (
             <Link key={i} to={card.url || "#"} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-emerald-300 transition text-left">
               {card.image && (
@@ -335,9 +337,18 @@ export default function CMSBlock({ section }) {
   const layout = section.layout_variant === "split"
     ? `grid gap-6 md:grid-cols-2 rounded-3xl border ${bgClass} ${padClass}`
     : `rounded-3xl border ${bgClass} ${padClass}`
+  // Admin style controls (spec §47): text scale, alignment, background image —
+  // structured values only, never raw CSS/JS.
+  const TEXT_SCALES = { sm: "text-sm", base: "text-base", lg: "text-lg", xl: "text-xl" }
+  const scaleClass = TEXT_SCALES[config.text_scale] || ""
+  const alignClass = config.align === "center" ? "text-center" : config.align === "right" ? "text-right" : ""
+  const bgImage = typeof config.bg_image === "string" && /^https:\/\//.test(config.bg_image) ? config.bg_image : ""
 
   return (
-    <article className={`${layout} ${effectClass(config.effect)}`}>
+    <article
+      className={`${layout} ${effectClass(config.effect)} ${scaleClass} ${alignClass}`}
+      style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+    >
       {section.title && <h2 className="text-2xl font-black tracking-tight">{section.title}</h2>}
       {section.subtitle && <p className="mt-1 text-sm opacity-80">{section.subtitle}</p>}
 

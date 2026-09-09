@@ -2213,6 +2213,24 @@ class AdminCMSView(APIView):
         safe["effect"] = effect if effect in allowed_effects else "none"
         placement = str(config.get("placement") or "main").strip().lower()
         safe["placement"] = placement if placement in allowed_placement else "main"
+        # Section styling keys (master spec §47): validated against the exact
+        # enums CMSBlock renders — anything else is dropped so stored config
+        # can never drift from what the frontend supports.
+        style_enums = {
+            "background_style": {"clean-white", "gradient-emerald", "dark-slate", "saffron-warm", "hero-dark", "border-accent"},
+            "padding_style": {"compact", "medium", "spacious"},
+            "text_scale": {"sm", "base", "lg", "xl"},
+            "align": {"left", "center", "right"},
+        }
+        for key, allowed in style_enums.items():
+            value = str(config.get(key) or "").strip().lower()
+            if value in allowed:
+                safe[key] = value
+        bg_image = str(config.get("bg_image") or "").strip()
+        if bg_image:
+            if not bg_image.startswith("https://"):
+                raise ValueError("Background images must use HTTPS")
+            safe["bg_image"] = bg_image[:600]
         if isinstance(config.get("items"), list):
             items = []
             for item in config["items"][:20]:
@@ -3021,6 +3039,54 @@ def _media_usage_references(image):
             if hit(value):
                 refs.append({"type": "Branding setting", "label": key, "id": setting.id})
     return refs
+
+
+class AdminTripInterestsView(APIView):
+    """Admin control for 'Build your trip' interest categories (master spec §22).
+
+    Stored as SiteSetting `trip_interests` (public), so the recommendation
+    page renders them without a code change. Keys double as the mood terms
+    sent to the recommendation engine — validated to safe slugs only.
+    """
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "settings", "view")
+        setting = SiteSetting.objects.filter(key="trip_interests").first()
+        rows = setting.value if setting and isinstance(setting.value, list) else []
+        return Response({"interests": rows, "configured": bool(setting)})
+
+    def put(self, request):
+        import re
+        _require_capability(request, "settings", "change")
+        rows = request.data.get("interests")
+        if not isinstance(rows, list):
+            return Response({"detail": "Send a list under 'interests'."}, status=400)
+        clean = []
+        seen = set()
+        for row in rows[:60]:
+            if not isinstance(row, dict):
+                continue
+            key = str(row.get("key") or "").strip().lower()
+            label = str(row.get("label") or "").strip()[:60]
+            if not re.fullmatch(r"[a-z0-9_]{2,40}", key) or not label or key in seen:
+                continue
+            seen.add(key)
+            clean.append({
+                "key": key,
+                "label": label,
+                "emoji": str(row.get("emoji") or "").strip()[:10],
+                "enabled": bool(row.get("enabled", True)),
+                "order": int(row.get("order") or 0) if str(row.get("order") or "0").lstrip("-").isdigit() else 0,
+            })
+        clean.sort(key=lambda item: (item["order"], item["key"]))
+        SiteSetting.objects.update_or_create(key="trip_interests", defaults={"value": clean, "is_public": True})
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""),
+                                category="settings", severity="info", source="backend", action="settings.trip_interests.update",
+                                message=f"Updated {len(clean)} trip interest categories", object_type="SiteSetting", object_id="trip_interests")
+        return Response({"message": "Trip interest categories updated", "interests": clean})
 
 
 class AdminPOICategoriesView(APIView):

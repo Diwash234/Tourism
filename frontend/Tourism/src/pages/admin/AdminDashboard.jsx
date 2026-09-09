@@ -16,6 +16,7 @@ import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"
 import POICategoryPanel from "../../components/admin/POICategoryPanel"
+import TripInterestsPanel from "../../components/admin/TripInterestsPanel"
 import ServicePhotosPanel from "../../components/admin/ServicePhotosPanel"
 import DataExplorerPanel from "../../components/admin/DataExplorerPanel"
 import CMSPanel from "../../components/admin/CMSPanel"
@@ -797,7 +798,7 @@ const AdminDashboard = () => {
 
         {activeTab === "reports" && <ReportsPanel />}
         {activeTab === "user_dashboard_control" && <UserDashboardControlPanel />}
-        {activeTab === "ai_engine" && <AIEnginePanel />}
+        {activeTab === "ai_engine" && <><AIEnginePanel /><TripInterestsPanel /></>}
         {activeTab === "data_health" && <DataHealthPanel />}
         {activeTab === "transport_routes" && <AdminRouteManagerPanel />}
         {activeTab === "guide_verification" && <GuideVerificationPanel />}

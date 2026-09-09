@@ -2646,3 +2646,50 @@ class CoordinateNearbyPOIsTests(TestCase):
         client.force_authenticate(tourist)
         self.assertEqual(client.put("/api/v1/admin/poi-categories/", {"categories": []}, format="json").status_code, 403)
 
+
+class TripInterestsAndSectionStyleTests(TestCase):
+    """Admin-configurable trip interests (§22) + section style config (§47)."""
+
+    def setUp(self):
+        from tourist.models import ManagedPage, ContentSection, SiteSetting
+        SiteSetting.objects.filter(key="trip_interests").delete()
+        self.admin = User.objects.create_superuser("trip-admin@test.local", "Sup!Pass123")
+        self.page = ManagedPage.objects.create(route="/trip-test", key="trip-test", title="Trip Test", status="published")
+        self.section = ContentSection.objects.create(page=self.page, key="intro", title="Intro", section_type="text", status="published")
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def test_admin_updates_interests_and_public_config_exposes_them(self):
+        resp = self.client.put("/api/v1/admin/trip-interests/", {"interests": [
+            {"key": "paragliding", "label": "Paragliding", "emoji": "🪂", "enabled": True, "order": 2},
+            {"key": " rafting ", "label": "Rafting", "emoji": "🚣", "enabled": True, "order": 1},  # trimmed -> valid
+            {"key": "yoga", "label": "", "emoji": "🧘"},  # missing label dropped
+        ]}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        saved = resp.json()["interests"]
+        self.assertEqual([row["key"] for row in saved], ["rafting", "paragliding"])
+        public = APIClient().get("/api/v1/config/public/")
+        self.assertEqual(public.status_code, 200)
+        interests = (public.json().get("settings") or {}).get("trip_interests")
+        self.assertEqual([row["key"] for row in interests], ["rafting", "paragliding"])
+
+    def test_tourist_cannot_update_interests(self):
+        tourist = User.objects.create_user(email="trip-tourist@test.local", password="Tour!Pass123", role="tourist")
+        self.client.force_authenticate(tourist)
+        self.assertEqual(self.client.put("/api/v1/admin/trip-interests/", {"interests": []}, format="json").status_code, 403)
+
+    def test_section_style_config_flows_to_public(self):
+        resp = self.client.patch("/api/v1/admin/cms/", {
+            "resource": "sections", "id": self.section.id, "action": "update",
+            "config": {"text_scale": "lg", "align": "center", "bg_image": "https://cdn.example/bg.jpg", "background_style": "dark-slate"},
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id, "action": "publish"}, format="json")
+        public = APIClient().get("/api/v1/config/public/")
+        page = next(p for p in public.json()["pages"] if p["key"] == "trip-test")
+        cfg = next(sec for sec in page["sections"] if sec["key"] == "intro")["config"]
+        self.assertEqual(cfg["text_scale"], "lg")
+        self.assertEqual(cfg["align"], "center")
+        self.assertEqual(cfg["bg_image"], "https://cdn.example/bg.jpg")
+        self.assertEqual(cfg["background_style"], "dark-slate")
+

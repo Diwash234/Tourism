@@ -398,6 +398,46 @@ export default function HomepageManagerPanel() {
                     </select>
                   </label>
                 </div>
+                <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3 space-y-2">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-amber-400">Design & styles</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <label className="block text-xs font-bold text-slate-300">Background
+                      <select className={`${field} mt-1`} value={draft.config?.background_style || "clean-white"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), background_style: e.target.value } })}>
+                        <option value="clean-white">Clean white</option>
+                        <option value="gradient-emerald">Gradient emerald</option>
+                        <option value="dark-slate">Dark slate</option>
+                        <option value="saffron-warm">Saffron gold</option>
+                        <option value="hero-dark">Hero dark</option>
+                        <option value="border-accent">Gold border</option>
+                      </select>
+                    </label>
+                    <label className="block text-xs font-bold text-slate-300">Padding
+                      <select className={`${field} mt-1`} value={draft.config?.padding_style || "medium"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), padding_style: e.target.value } })}>
+                        <option value="compact">Compact</option>
+                        <option value="medium">Medium</option>
+                        <option value="spacious">Spacious</option>
+                      </select>
+                    </label>
+                    <label className="block text-xs font-bold text-slate-300">Text size
+                      <select className={`${field} mt-1`} value={draft.config?.text_scale || "base"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), text_scale: e.target.value } })}>
+                        <option value="sm">Small</option>
+                        <option value="base">Normal</option>
+                        <option value="lg">Large</option>
+                        <option value="xl">Extra large</option>
+                      </select>
+                    </label>
+                    <label className="block text-xs font-bold text-slate-300">Alignment
+                      <select className={`${field} mt-1`} value={draft.config?.align || "left"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), align: e.target.value } })}>
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block text-xs font-bold text-slate-300">Background image (HTTPS, optional)
+                    <input className={`${field} mt-1`} value={draft.config?.bg_image || ""} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), bg_image: e.target.value } })} placeholder="https://…" />
+                  </label>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
                   <label className="block text-xs font-bold text-slate-300">Image URL
                     <input className={`${field} mt-1`} value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} placeholder="https://… or /media/…" />

@@ -237,7 +237,14 @@ function riskColor(level) {
 }
 
 export default function Recommendation() {
-  const { block: cmsBlock } = usePublicConfig().pageCMS("recommendation", ["intro", "page-intro"])
+  const publicConfig = usePublicConfig()
+  const { block: cmsBlock } = publicConfig.pageCMS("recommendation", ["intro", "page-intro"])
+  // Admin-editable interest categories (spec §22): published settings replace
+  // the built-in list; keys double as the mood terms sent to the engine.
+  const cmsInterests = (publicConfig.settings?.trip_interests || []).filter((row) => row && row.key && row.label && row.enabled !== false)
+  const interestList = cmsInterests.length
+    ? cmsInterests.map((row) => ({ key: row.key, label: row.label, emoji: row.emoji || "✨", icon: null }))
+    : INTERESTS
   const [items, setItems] = useState([])
   const [selected, setSelected] = useState(["family", "cultural"])
   const [explorationMode, setExplorationMode] = useState("balanced")
@@ -323,13 +330,13 @@ export default function Recommendation() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-            {INTERESTS.map(({ key, label, icon: Icon }) => {
+            {interestList.map(({ key, label, icon: Icon, emoji }) => {
               const active = selected.includes(key)
               return (
                 <button key={key} type="button" onClick={() => toggleInterest(key)}
                   className={`rounded-xl border px-3 py-3 flex items-center gap-2 text-xs font-bold transition ${active ? "text-white shadow" : "bg-white text-gray-600 hover:bg-gray-50"}`}
                   style={active ? { background: GREEN, borderColor: GREEN } : {}}>
-                  <Icon size={15} /> {label}
+                  {Icon ? <Icon size={15} /> : <span aria-hidden="true">{emoji}</span>} {label}
                 </button>
               )
             })}
