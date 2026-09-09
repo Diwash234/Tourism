@@ -1227,3 +1227,113 @@ class ChatbotNavigationWiringTests(TestCase):
         else:
             self.assertEqual(card["duration_source"], "unavailable")
         self.assertIsNone(card["flight_time"])  # fabricated flight times are gone
+
+
+class StaffTaskWorkflowTests(TestCase):
+    """Assignment-driven staff workflow (Staff Ops spec §29): admin assigns →
+    staff starts → submits for review → admin approves, with notifications,
+    audit entries, and IDOR guards at every step."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser("ops-admin@test.local", "Ops!Pass123")
+        self.staff = User.objects.create_user(email="ops-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.other_staff = User.objects.create_user(email="ops-other@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.client = APIClient()
+
+    def _task(self, **over):
+        from admin_panel.models import AdminTask
+        defaults = dict(title="Verify Pokhara hotel information", description="Check facilities",
+                        assigned_to=self.staff, assigned_by=self.admin, priority="high")
+        defaults.update(over)
+        return AdminTask.objects.create(**defaults)
+
+    def _act(self, task, action, note="", as_user=None):
+        self.client.force_authenticate(as_user or self.staff)
+        return self.client.post(f"/api/v1/admin-panel/tasks/{task.id}/action/",
+                                {"action": action, "note": note}, format="json")
+
+    def test_full_assignment_workflow(self):
+        from admin_panel.models import AdminTask
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post("/api/v1/admin-panel/tasks/", {
+            "title": "Verify Pokhara hotel information", "description": "Check facilities",
+            "assigned_to": self.staff.id, "priority": "high",
+        }, format="json")
+        self.assertEqual(resp.status_code, 201, resp.content[:200])
+        task = AdminTask.objects.get(pk=resp.json()["id"])
+        # assignment notification went to the staff member
+        self.assertTrue(self.staff.notifications.filter(title="New task assigned").exists())
+
+        # staff starts
+        r = self._act(task, "start")
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        task.refresh_from_db()
+        self.assertEqual(task.status, "in_progress")
+        self.assertIsNotNone(task.started_at)
+
+        # completion requires a note
+        r = self._act(task, "complete")
+        self.assertEqual(r.status_code, 400)
+
+        # submit for review instead → admin approves
+        r = self._act(task, "submit_review", "Updated description and facilities")
+        self.assertEqual(r.status_code, 200)
+        task.refresh_from_db()
+        self.assertEqual(task.status, "in_review")
+        self.assertTrue(self.admin.notifications.filter(title__icontains="submit review").exists())
+
+        r = self._act(task, "approve", "Looks good", as_user=self.admin)
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        task.refresh_from_db()
+        self.assertEqual(task.status, "completed")
+        self.assertEqual(task.reviewed_by, self.admin)
+        self.assertTrue(self.staff.notifications.filter(title__icontains="approved").exists())
+
+        # audited
+        from audit.models import AuditLog
+        actions = set(AuditLog.objects.filter(object_type="AdminTask", object_id=str(task.id)).values_list("action", flat=True))
+        self.assertIn("task.assign", actions)
+        self.assertIn("task.start", actions)
+        self.assertIn("task.approve", actions)
+
+    def test_reject_returns_to_in_progress_with_reason(self):
+        task = self._task(status="in_review")
+        r = self._act(task, "reject", "Facility list incomplete", as_user=self.admin)
+        self.assertEqual(r.status_code, 200)
+        task.refresh_from_db()
+        self.assertEqual(task.status, "in_progress")
+        self.assertEqual(task.review_note, "Facility list incomplete")
+        self.assertTrue(self.staff.notifications.filter(title__icontains="rejected").exists())
+
+    def test_idor_staff_cannot_act_on_others_tasks(self):
+        task = self._task()  # assigned to self.staff
+        r = self._act(task, "start", as_user=self.other_staff)
+        self.assertEqual(r.status_code, 403)
+        # staff cannot approve their own submission
+        task2 = self._task(status="in_review")
+        r = self._act(task2, "approve", as_user=self.staff)
+        self.assertEqual(r.status_code, 403)
+
+    def test_block_and_escalate(self):
+        task = self._task()
+        self._act(task, "start")
+        r = self._act(task, "block", "Hotel contact unreachable")
+        self.assertEqual(r.status_code, 200)
+        task.refresh_from_db()
+        self.assertEqual(task.status, "blocked")
+        r = self._act(task, "escalate", "Need supervisor to call owner")
+        self.assertEqual(r.status_code, 200)
+        task.refresh_from_db()
+        self.assertTrue(task.is_escalated)
+        self.assertEqual(task.escalation_reason, "Need supervisor to call owner")
+        self.assertTrue(self.admin.notifications.filter(title__icontains="escalate").exists())
+
+    def test_performance_endpoint(self):
+        task = self._task()
+        self._act(task, "start")
+        self._act(task, "complete", "Done and verified")
+        self.client.force_authenticate(self.staff)
+        data = self.client.get("/api/v1/admin-panel/my-performance/").json()
+        self.assertEqual(data["tasks_completed"], 1)
+        self.assertEqual(data["on_time_rate"], 100.0)
+        self.assertEqual(data["tasks_total"], 1)

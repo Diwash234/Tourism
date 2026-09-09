@@ -17,6 +17,14 @@ from tourist.models import (
 
 from .models import HotelAssignment, AdminTask
 from .permissions import IsSuperAdmin, IsSuperAdminOrAssignedAdmin
+from audit.logging_services import log_action
+from tourist.models import Notification
+
+
+def _notify(user, title, message, metadata=None):
+    if user is None:
+        return
+    Notification.objects.create(user=user, title=title, message=message, metadata=metadata or {})
 from .serializers import (
     HotelAssignmentSerializer,
     AdminTaskSerializer,
@@ -120,6 +128,15 @@ class AdminTaskViewSet(viewsets.ModelViewSet):
                 "related_hotel",
             )
         )
+
+    def perform_create(self, serializer):
+        task = serializer.save()
+        _notify(task.assigned_to, "New task assigned",
+                f"\"{task.title}\" was assigned to you"
+                + (f" (due {task.due_date})" if task.due_date else "") + ".",
+                {"task_id": task.id})
+        log_action(action="task.assign", category="content", message=f"Task '{task.title}' assigned to {task.assigned_to.email}",
+                   object_type="AdminTask", object_id=task.id, user=task.assigned_by)
 
     def perform_update(self, serializer):
         """
@@ -677,3 +694,170 @@ class DestinationsMissingImagesView(generics.ListAPIView):
             .filter(gallery_count=0)
             .order_by("name")
         )
+
+# ============================================================
+# TASK ACTIONS — assignment-driven workflow (Staff Ops spec)
+# ============================================================
+
+class AdminTaskActionView(APIView):
+    """Explicit task workflow actions with backend authorization.
+
+    Staff (assigned_to only — IDOR guarded): start, complete (note
+    required), block (reason required), submit_review, escalate.
+    Admins/superusers: approve / reject a submitted task.
+
+    Every action writes an audit entry and notifies the counterpart, so the
+    admin↔staff loop is fully traceable.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    STAFF_ACTIONS = {"start", "complete", "block", "submit_review", "escalate"}
+    ADMIN_ACTIONS = {"approve", "reject"}
+
+    def _is_admin(self, user):
+        return user.is_superuser or getattr(user, "role", None) in {"admin", "super_admin", "tourism_admin"}
+
+    def post(self, request, pk):
+        action = (request.data.get("action") or "").strip().lower()
+        note = (request.data.get("note") or "").strip()
+
+        task = AdminTask.objects.select_related("assigned_to", "assigned_by").filter(pk=pk).first()
+        if task is None:
+            return Response({"detail": "Task not found."}, status=404)
+
+        is_admin = self._is_admin(request.user)
+        is_assignee = task.assigned_to_id == request.user.id
+        if action in self.STAFF_ACTIONS:
+            if not is_assignee:
+                return Response({"detail": "Only the assigned staff member may perform this action."}, status=403)
+        elif action in self.ADMIN_ACTIONS:
+            if not is_admin:
+                return Response({"detail": "Only an administrator may approve or reject submitted work."}, status=403)
+        else:
+            return Response({"detail": "Unknown action."}, status=400)
+
+        S = AdminTask.Status
+        error = None
+        if action == "start":
+            if task.status not in {S.PENDING, S.BLOCKED}:
+                error = "Only pending or blocked tasks can be started."
+            else:
+                task.status = S.IN_PROGRESS
+                task.started_at = task.started_at or timezone.now()
+        elif action == "complete":
+            if not note:
+                error = "A completion note is required."
+            elif task.status in {S.COMPLETED, S.CANCELLED}:
+                error = "This task is already closed."
+            else:
+                task.status = S.COMPLETED
+                task.completion_note = note
+                task.completed_at = timezone.now()
+        elif action == "block":
+            if not note:
+                error = "A reason is required to block a task."
+            elif task.status in {S.COMPLETED, S.CANCELLED}:
+                error = "Closed tasks cannot be blocked."
+            else:
+                task.status = S.BLOCKED
+                task.blocked_reason = note
+        elif action == "submit_review":
+            if task.status not in {S.IN_PROGRESS, S.PENDING}:
+                error = "Only active tasks can be submitted for review."
+            else:
+                task.status = S.IN_REVIEW
+                if note:
+                    task.completion_note = note
+        elif action == "escalate":
+            if not note:
+                error = "A reason is required to escalate."
+            elif task.status in {S.COMPLETED, S.CANCELLED}:
+                error = "Closed tasks cannot be escalated."
+            else:
+                task.is_escalated = True
+                task.escalation_reason = note
+                if task.status == S.PENDING:
+                    task.status = S.IN_PROGRESS
+                    task.started_at = task.started_at or timezone.now()
+        elif action == "approve":
+            if task.status != S.IN_REVIEW:
+                error = "Only tasks submitted for review can be approved."
+            else:
+                task.status = S.COMPLETED
+                task.completed_at = task.completed_at or timezone.now()
+                task.reviewed_by = request.user
+                task.reviewed_at = timezone.now()
+                task.review_note = note
+        elif action == "reject":
+            if task.status != S.IN_REVIEW:
+                error = "Only tasks submitted for review can be rejected."
+            elif not note:
+                error = "A rejection reason is required."
+            else:
+                task.status = S.IN_PROGRESS
+                task.reviewed_by = request.user
+                task.reviewed_at = timezone.now()
+                task.review_note = note
+
+        if error:
+            return Response({"detail": error}, status=400)
+
+        task.save()
+
+        # Notify the counterpart so the loop closes both ways.
+        if action in {"complete", "submit_review", "escalate"} and task.assigned_by_id:
+            _notify(task.assigned_by, f"Task {action.replace('_', ' ')}: {task.title}",
+                    note or f"{request.user.email} updated task #{task.id}.", {"task_id": task.id})
+        elif action in {"approve", "reject"}:
+            _notify(task.assigned_to, f"Your submission was {'approved' if action == 'approve' else 'rejected'}: {task.title}",
+                    note or f"Reviewed by {request.user.email}.", {"task_id": task.id})
+
+        log_action(request=request, action=f"task.{action}", category="content",
+                   message=f"Task '{task.title}' → {action} by {request.user.email}" + (f" ({note[:120]})" if note else ""),
+                   object_type="AdminTask", object_id=task.id)
+
+        from .serializers import AdminTaskSerializer
+        return Response(AdminTaskSerializer(task, context={"request": request}).data)
+
+
+# ============================================================
+# MY PERFORMANCE — operational productivity, staff-scoped
+# ============================================================
+
+class MyPerformanceView(APIView):
+    """Aggregates the caller's own task record. Operational view only."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        qs = AdminTask.objects.filter(assigned_to=user)
+        today = timezone.now().date()
+        completed = qs.filter(status=AdminTask.Status.COMPLETED)
+        on_time = 0
+        overdue_completed = 0
+        for t in completed:
+            if t.due_date and t.completed_at and t.completed_at.date() > t.due_date:
+                overdue_completed += 1
+            else:
+                on_time += 1
+        total_completed = completed.count()
+        durations = [
+            (t.completed_at - t.started_at).total_seconds() / 3600.0
+            for t in completed if t.started_at and t.completed_at
+        ]
+        return Response({
+            "tasks_total": qs.count(),
+            "tasks_completed": total_completed,
+            "on_time_completed": on_time,
+            "late_completed": overdue_completed,
+            "on_time_rate": round(on_time / total_completed * 100, 1) if total_completed else None,
+            "in_progress": qs.filter(status=AdminTask.Status.IN_PROGRESS).count(),
+            "pending": qs.filter(status=AdminTask.Status.PENDING).count(),
+            "blocked": qs.filter(status=AdminTask.Status.BLOCKED).count(),
+            "in_review": qs.filter(status=AdminTask.Status.IN_REVIEW).count(),
+            "overdue_open": qs.filter(due_date__lt=today).exclude(status__in=["completed", "cancelled"]).count(),
+            "escalations": qs.filter(is_escalated=True).count(),
+            "avg_completion_hours": round(sum(durations) / len(durations), 1) if durations else None,
+        })

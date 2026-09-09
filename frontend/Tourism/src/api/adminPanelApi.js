@@ -5,6 +5,10 @@ const adminPanelApi = {
   assignHotel: (hotelId, adminId, notes) =>
     axiosClient.post("/admin-panel/hotel-assignments/", { hotel: hotelId, admin: adminId, notes }),
   removeAssignment: (id) => axiosClient.delete(`/admin-panel/hotel-assignments/${id}/`),
+  // Assignment-driven staff workflow (Staff Operations spec)
+  taskAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/tasks/${id}/action/`, { action, note }),
+  myPerformance: () => axiosClient.get("/admin-panel/my-performance/"),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>

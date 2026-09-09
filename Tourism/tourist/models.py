@@ -120,7 +120,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class StaffCapabilityProfile(TimeStampedModel):
     """Granular module/action permissions layered on the existing User role."""
-    MODULES = ["dashboard", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings", "marketplace"]
+    MODULES = ["dashboard", "tasks", "support", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings", "marketplace"]
     ACTIONS = ["view", "add", "change", "delete", "approve", "export", "train", "assign"]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_profile")
