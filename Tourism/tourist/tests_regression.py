@@ -1420,3 +1420,67 @@ class SupportTicketWorkflowTests(TestCase):
         self.assertTrue(self.staff.notifications.filter(title__startswith="Customer replied:").exists())
         self.ticket.refresh_from_db()
         self.assertFalse(self.ticket.is_escalated)  # fresh reply de-escalates
+
+class HotelBookingScopeTests(TestCase):
+    """Staff see only assigned hotels + their bookings (Staff Ops spec §11-12)."""
+
+    def setUp(self):
+        from tourist.models import Destination, Hotel
+        from admin_panel.models import HotelAssignment
+        from booking.models import Booking
+        self.admin = User.objects.create_superuser("hb-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="hb-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"hotels": ["view", "change"], "dashboard": ["view"]})
+        self.customer = User.objects.create_user(email="hb-customer@test.local", password="Cust!Pass123", role="tourist")
+        self.dest = Destination.objects.create(name="Pokhara", slug="pokhara-hb", latitude=28.2, longitude=83.9)
+        self.mine = Hotel.objects.create(destination=self.dest, name="My Assigned Lodge", address="Lakeside")
+        self.theirs = Hotel.objects.create(destination=self.dest, name="Unassigned Grand", address="Mahendrapool")
+        HotelAssignment.objects.create(hotel=self.mine, admin=self.staff)
+        self.my_booking = Booking.objects.create(user=self.customer, hotel=self.mine, check_in="2026-10-01", check_out="2026-10-03", guests=2)
+        self.other_booking = Booking.objects.create(user=self.customer, hotel=self.theirs, check_in="2026-10-01", check_out="2026-10-02", guests=1)
+        self.client = APIClient()
+
+    def _list(self, as_user):
+        self.client.force_authenticate(as_user)
+        return self.client.get("/api/v1/admin-panel/my-bookings/")
+
+    def test_staff_see_only_assigned_hotel_bookings(self):
+        data = self._list(self.staff).json()
+        ids = {row["id"] for row in data["results"]}
+        self.assertEqual(ids, {self.my_booking.id})
+        self.assertEqual(data["counts"]["pending"], 1)
+        admin_ids = {row["id"] for row in self._list(self.admin).json()["results"]}
+        self.assertEqual(admin_ids, {self.my_booking.id, self.other_booking.id})
+
+    def test_capability_required(self):
+        plain = User.objects.create_user(email="hb-noperm@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.assertEqual(self._list(plain).status_code, 403)
+        self.client.force_authenticate(plain)
+        resp = self.client.post(f"/api/v1/admin-panel/my-bookings/{self.my_booking.id}/action/", {"action": "confirm"}, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_out_of_scope_booking_denied(self):
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/admin-panel/my-bookings/{self.other_booking.id}/action/", {"action": "confirm"}, format="json")
+        self.assertEqual(resp.status_code, 403)
+        self.other_booking.refresh_from_db()
+        self.assertEqual(self.other_booking.status, "pending")
+
+    def test_confirm_notifies_and_audits(self):
+        from tourist.models import Notification
+        from audit.models import AuditLog
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/admin-panel/my-bookings/{self.my_booking.id}/action/",
+                                {"action": "confirm"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "confirmed")
+        self.my_booking.refresh_from_db()
+        self.assertEqual(self.my_booking.status, "confirmed")
+        self.assertTrue(Notification.objects.filter(user=self.customer, title="Booking confirmed").exists())
+        self.assertTrue(AuditLog.objects.filter(action="booking.confirm").exists())
+
+    def test_unknown_action_rejected(self):
+        self.client.force_authenticate(self.staff)
+        resp = self.client.post(f"/api/v1/admin-panel/my-bookings/{self.my_booking.id}/action/",
+                                {"action": "refund"}, format="json")
+        self.assertEqual(resp.status_code, 400)

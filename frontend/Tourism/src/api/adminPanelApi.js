@@ -14,6 +14,12 @@ const adminPanelApi = {
     axiosClient.get("/admin-panel/support/tickets/", status ? { params: { status } } : {}),
   supportAction: (id, action, note = "") =>
     axiosClient.post(`/admin-panel/support/tickets/${id}/action/`, { action, note }),
+  // Hotels & bookings scope-restricted ops (Staff Ops spec §11-12)
+  myHotels: () => axiosClient.get("/admin-panel/my-hotels/"),
+  myBookings: (status = "") =>
+    axiosClient.get("/admin-panel/my-bookings/", status ? { params: { status } } : {}),
+  bookingAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/my-bookings/${id}/action/`, { action, note }),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>

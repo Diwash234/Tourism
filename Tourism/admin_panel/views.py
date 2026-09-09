@@ -1021,3 +1021,111 @@ class SupportTicketActionView(APIView):
                    message=f"Support ticket #{fb.id} '{fb.subject}' → {action} by {request.user.email}",
                    object_type="UserFeedback", object_id=fb.id)
         return Response(_ticket_payload(fb, request))
+
+
+# ============================================================
+# HOTELS & BOOKINGS — scope-restricted operations
+# (Staff Ops spec §11-12; staff see only their assigned hotels
+# and the bookings attached to them. 'hotels' capability.)
+# ============================================================
+
+def _scoped_hotel_ids(user):
+    """Hotel ids this staff member manages; None means 'all' (admin)."""
+    if user.is_superuser or getattr(user, "role", None) in {"admin", "super_admin", "tourism_admin"}:
+        return None
+    return list(
+        HotelAssignment.objects.filter(admin=user).values_list("hotel_id", flat=True)
+    )
+
+
+def _booking_payload(b):
+    return {
+        "id": b.id,
+        "reference": getattr(b, "booking_reference", None) or f"#{b.id}",
+        "hotel_id": b.hotel_id,
+        "hotel_name": b.hotel.name,
+        "hotel_address": b.hotel.address,
+        "customer_name": b.user.full_name,
+        "customer_email": b.user.email,
+        "check_in": b.check_in,
+        "check_out": b.check_out,
+        "guests": b.guests,
+        "status": b.status,
+        "total_price": str(b.total_price) if b.total_price is not None else None,
+        "currency": b.currency,
+        "special_requests": b.special_requests,
+        "created_at": b.created_at,
+    }
+
+
+class MyBookingsView(APIView):
+    """GET /api/v1/admin-panel/my-bookings/ — bookings inside the caller's hotel scope."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from booking.models import Booking
+        from tourist.views_admin import _require_capability as require_cap
+
+        require_cap(request, "hotels", "view")
+        hotel_ids = _scoped_hotel_ids(request.user)
+        qs = Booking.objects.select_related("hotel", "user")
+        if hotel_ids is not None:
+            qs = qs.filter(hotel_id__in=hotel_ids)
+        status = (request.query_params.get("status") or "").strip()
+        if status:
+            qs = qs.filter(status=status)
+        counts = {
+            choice: Booking.objects.filter(hotel_id__in=hotel_ids).filter(status=choice).count() if hotel_ids is not None
+            else Booking.objects.filter(status=choice).count()
+            for choice, _label in Booking.Status.choices
+        }
+        counts["all"] = sum(counts.values())
+        return Response({"counts": counts, "results": [_booking_payload(b) for b in qs[:100]]})
+
+
+class BookingActionView(APIView):
+    """POST /api/v1/admin-panel/my-bookings/<pk>/action/ — confirm/cancel/complete within scope."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    ALLOWED = {"confirm", "cancel", "complete"}
+    NEXT = {"confirm": "confirmed", "cancel": "cancelled", "complete": "completed"}
+
+    def post(self, request, pk):
+        from booking.models import Booking
+        from tourist.views_admin import _require_capability as require_cap
+
+        require_cap(request, "hotels", "change")
+        action = (request.data.get("action") or "").strip()
+        if action not in self.ALLOWED:
+            return Response({"detail": f"Unknown action '{action}'. Allowed: {', '.join(sorted(self.ALLOWED))}."}, status=400)
+        try:
+            booking = Booking.objects.select_related("hotel", "user").get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({"detail": "Booking not found."}, status=404)
+
+        hotel_ids = _scoped_hotel_ids(request.user)
+        if hotel_ids is not None and booking.hotel_id not in hotel_ids:
+            return Response({"detail": "This booking belongs to a hotel outside your assignment."}, status=403)
+
+        previous = booking.status
+        booking.status = self.NEXT[action]
+        booking.save(update_fields=["status", "updated_at"])
+
+        note = (request.data.get("note") or "").strip()
+        if action == "cancel":
+            _notify(booking.user, "Booking cancelled",
+                    f"Your booking at {booking.hotel.name} ({booking.check_in} → {booking.check_out}) was cancelled."
+                    + (f" Reason: {note}" if note else ""),
+                    metadata={"booking_id": booking.id})
+        elif action == "confirm":
+            _notify(booking.user, "Booking confirmed",
+                    f"Your booking at {booking.hotel.name} ({booking.check_in} → {booking.check_out}) is confirmed.",
+                    metadata={"booking_id": booking.id})
+
+        log_action(request=request, action=f"booking.{action}", category="hotels",
+                   message=f"Booking #{booking.id} at {booking.hotel.name}: {previous} → {booking.status}"
+                           + (f" ({note})" if note else ""),
+                   object_type="Booking", object_id=str(booking.id))
+        return Response(_booking_payload(booking))
