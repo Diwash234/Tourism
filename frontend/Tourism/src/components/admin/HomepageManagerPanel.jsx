@@ -49,6 +49,10 @@ export default function HomepageManagerPanel() {
   const [historyFor, setHistoryFor] = useState(null)
   const [revisions, setRevisions] = useState([])
   const [mediaPicker, setMediaPicker] = useState(false)
+  const [fullPreview, setFullPreview] = useState(false)
+  const [scheduleAt, setScheduleAt] = useState("")
+  const [seoOpen, setSeoOpen] = useState(false)
+  const [seo, setSeo] = useState(null)
   const [mediaRows, setMediaRows] = useState([])
   const [mediaQ, setMediaQ] = useState("")
 
@@ -65,6 +69,7 @@ export default function HomepageManagerPanel() {
         .filter((section) => home && section.page_id === home.id)
         .sort((a, b) => (a.display_order || 0) - (b.display_order || 0) || a.id - b.id)
       setHomePage(home)
+      setSeo(home ? { title: home.title || "", meta_description: home.meta_description || "", seo_title: home.seo_title || "", og_image_url: home.og_image_url || "" } : null)
       setSections(homeSections)
       if (!keepSelection || !homeSections.some((s) => s.id === selectedId)) {
         const first = homeSections.find((s) => s.key === "hero") || homeSections[0] || null
@@ -178,6 +183,42 @@ export default function HomepageManagerPanel() {
     }
   }
 
+  const pendingSections = sections.filter((sct) => sct.status === "published" ? hasPendingChanges(sct) : sct.status !== "published")
+
+  const publishAll = async () => {
+    setBusy("publish-all")
+    let ok = 0
+    for (const sct of pendingSections) {
+      try {
+        await adminApi.updateCMS({ resource: "sections", id: sct.id, action: "publish" })
+        ok += 1
+      } catch (error) {
+        showToast(error.response?.data?.detail || `Could not publish “${sct.title || sct.key}”`, "error")
+      }
+    }
+    await load()
+    setBusy("")
+    showToast(`${ok} section${ok === 1 ? "" : "s"} published to the homepage`, "success")
+  }
+
+  const schedulePublish = () => {
+    if (!draft || !scheduleAt) return
+    return mutate({ resource: "sections", id: draft.id, action: "schedule", scheduled_publish_at: new Date(scheduleAt).toISOString() },
+      `Scheduled “${draft.title || draft.key}” to publish at ${new Date(scheduleAt).toLocaleString()}`, "schedule")
+  }
+
+  const unpublish = () => {
+    if (!draft) return
+    if (!window.confirm(`Unpublish “${draft.title || draft.key}”? It will disappear from the public homepage until published again.`)) return
+    return mutate({ resource: "sections", id: draft.id, action: "unpublish" },
+      `“${draft.title || draft.key}” unpublished — hidden from the public homepage`, "unpublish")
+  }
+
+  const saveSeo = () => {
+    if (!homePage || !seo) return
+    return mutate({ resource: "pages", id: homePage.id, ...seo }, "Homepage SEO settings saved", "seo")
+  }
+
   const field = "w-full rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
   const statusChip = (section) => {
     if (section.status !== "published") return <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-amber-300 flex items-center gap-1"><FiClock size={10} /> {section.status}</span>
@@ -194,15 +235,51 @@ export default function HomepageManagerPanel() {
             Edit → Save Draft → Preview → Publish. Drafts never touch the public site; only Publish updates the homepage.
           </p>
         </div>
-        <a href="/?as=traveller" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 self-start rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-600 whitespace-nowrap">
-          <FiExternalLink /> View public homepage
-        </a>
+        <div className="flex flex-wrap items-center gap-2 self-start">
+          {pendingSections.length > 0 && (
+            <button type="button" onClick={publishAll} disabled={busy !== ""} className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950 hover:bg-amber-400 disabled:opacity-50 whitespace-nowrap">
+              <FiSend size={14} /> {busy === "publish-all" ? "Publishing…" : `Publish All Changes (${pendingSections.length})`}
+            </button>
+          )}
+          <button type="button" onClick={() => setFullPreview(true)} className="inline-flex items-center gap-2 rounded-xl bg-sky-600/90 px-4 py-2.5 text-sm font-black text-white hover:bg-sky-500 whitespace-nowrap">
+            <FiEye size={14} /> Preview full page
+          </button>
+          <button type="button" onClick={() => setSeoOpen((v) => !v)} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-black text-slate-100 hover:bg-slate-600 whitespace-nowrap">
+            <FiSearch size={14} /> SEO
+          </button>
+          <a href="/?as=traveller" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-600 whitespace-nowrap">
+            <FiExternalLink /> View public homepage
+          </a>
+        </div>
       </div>
 
       {loading && <p className="text-sm text-slate-500">Loading homepage sections…</p>}
       {!loading && !homePage && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           No page with route <code>/</code> exists in the CMS yet. Create the Home page in <Link className="font-bold underline" to="/admin?section=cms">Pages, Sections &amp; Menus</Link> first.
+        </div>
+      )}
+
+      {!loading && homePage && seoOpen && seo && (
+        <div className="bg-slate-900/70 border border-slate-600/40 rounded-2xl p-5 space-y-3">
+          <h3 className="text-sm font-black uppercase tracking-wider text-slate-300">Homepage SEO &amp; sharing</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label className="block text-xs font-bold text-slate-300">Page title
+              <input className={`${field} mt-1`} value={seo.title} onChange={(e) => setSeo({ ...seo, title: e.target.value })} />
+            </label>
+            <label className="block text-xs font-bold text-slate-300">Search-result title (optional)
+              <input className={`${field} mt-1`} value={seo.seo_title} onChange={(e) => setSeo({ ...seo, seo_title: e.target.value })} />
+            </label>
+          </div>
+          <label className="block text-xs font-bold text-slate-300">Meta description
+            <textarea rows={2} className={`${field} mt-1`} value={seo.meta_description} onChange={(e) => setSeo({ ...seo, meta_description: e.target.value })} />
+          </label>
+          <label className="block text-xs font-bold text-slate-300">Social share (OG) image URL
+            <input className={`${field} mt-1`} value={seo.og_image_url} onChange={(e) => setSeo({ ...seo, og_image_url: e.target.value })} placeholder="https://…" />
+          </label>
+          <button type="button" onClick={saveSeo} disabled={busy !== ""} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white hover:bg-emerald-500 disabled:opacity-50">
+            <FiSave size={14} /> {busy === "seo" ? "Saving…" : "Save SEO settings"}
+          </button>
         </div>
       )}
 
@@ -299,6 +376,16 @@ export default function HomepageManagerPanel() {
                     Publish current draft
                   </button>
                 </div>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-700/50">
+                  <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)}
+                    className="rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none" aria-label="Schedule publish time" />
+                  <button type="button" onClick={schedulePublish} disabled={busy !== "" || !scheduleAt} className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-3 py-2 text-[11px] font-black text-slate-100 hover:bg-slate-600 disabled:opacity-40">
+                    <FiClock size={13} /> Schedule publish
+                  </button>
+                  <button type="button" onClick={unpublish} disabled={busy !== "" || draft.status !== "published"} className="inline-flex items-center gap-2 rounded-xl bg-rose-700/70 px-3 py-2 text-[11px] font-black text-rose-100 hover:bg-rose-600 disabled:opacity-40">
+                    <FiEyeOff size={13} /> Unpublish
+                  </button>
+                </div>
                 <p className="text-[11px] text-slate-500">
                   Hero visuals are driven by the hero slides system; the hero section&apos;s text fields still feed CMS-rendered hero blocks.
                 </p>
@@ -364,6 +451,31 @@ export default function HomepageManagerPanel() {
               ))}
             </ul>
             <p className="text-[11px] text-slate-500 mt-3">Rollback restores the revision as a DRAFT — press Publish afterwards to make it public.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Full-page draft preview: every visible section stacked in order ── */}
+      {fullPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
+          <div className="flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl bg-slate-950 border border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 p-4">
+              <h3 className="text-sm font-black text-white">Full homepage — draft state <span className="text-slate-400 font-normal">(specially-styled sections are approximated by the generic CMS renderer)</span></h3>
+              <div className="flex items-center gap-2">
+                {Object.keys(PREVIEW_WIDTHS).map((w) => (
+                  <button key={w} type="button" onClick={() => setPreviewWidth(w)}
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${previewWidth === w ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>{w}</button>
+                ))}
+                <button type="button" onClick={() => setFullPreview(false)} aria-label="Close full preview" className="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700"><FiX size={16} /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-white p-4">
+              <div className="mx-auto transition-all space-y-2" style={{ maxWidth: PREVIEW_WIDTHS[previewWidth] }}>
+                {sections.filter((sct) => sct.is_visible).map((sct) => (
+                  <CMSBlock key={sct.id} section={sct.id === draft?.id ? draft : sct} />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

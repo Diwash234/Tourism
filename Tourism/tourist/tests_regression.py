@@ -2320,3 +2320,75 @@ class HomepageCMSDraftPublishTests(TestCase):
         self.assertEqual(self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.section.id, "title": "Hacked"}, format="json").status_code, 403)
         self.assertEqual(self._public_section()["title"], "Why travel with Nepal Portal")
 
+
+class HomepageCMSBlockTypesTests(TestCase):
+    """card_grid + packages block types and the seeded draft homepage
+    sections (CMS prompt §8/§9): validation, draft gating, publish flow."""
+
+    def setUp(self):
+        from tourist.models import ManagedPage
+        self.admin = User.objects.create_superuser("blk-admin@test.local", "Sup!Pass123")
+        self.page, _ = ManagedPage.objects.get_or_create(
+            key="home", defaults={"route": "/", "title": "Nepal Yatra", "status": "published"})
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def _section(self, key):
+        from tourist.models import ContentSection
+        return ContentSection.objects.filter(page=self.page, key=key).first()
+
+    def test_seeded_sections_exist_as_drafts_and_are_not_public(self):
+        tp = self._section("travel-planning")
+        fp = self._section("featured-packages")
+        self.assertIsNotNone(tp)
+        self.assertIsNotNone(fp)
+        self.assertEqual(tp.status, "draft")
+        self.assertEqual(fp.status, "draft")
+        self.assertEqual(tp.blocks.filter(block_type="card_grid").count(), 1)
+        self.assertEqual(fp.blocks.filter(block_type="packages").count(), 1)
+        public = self.client.get("/api/v1/config/public/").json()
+        keys = [s["key"] for p in public.get("pages", []) if p.get("route") == "/" for s in p.get("sections", [])]
+        self.assertNotIn("travel-planning", keys)
+        self.assertNotIn("featured-packages", keys)
+        # publishing makes it public (snapshot path)
+        self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": tp.id, "action": "publish"}, format="json")
+        public = self.client.get("/api/v1/config/public/").json()
+        rows = [s for p in public.get("pages", []) if p.get("route") == "/" for s in p.get("sections", []) if s["key"] == "travel-planning"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(len(rows[0]["blocks"]), 1)
+        self.assertEqual(rows[0]["blocks"][0]["block_type"], "card_grid")
+        # cleanup: unpublish again so the public homepage stays unchanged
+        self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": tp.id, "action": "unpublish"}, format="json")
+
+    def test_card_grid_validation(self):
+        tp = self._section("travel-planning")
+        resp = self.client.post(f"/api/v1/admin/sections/{tp.id}/blocks/", {
+            "block_type": "card_grid", "title": "Bad cards",
+            "data": {"items": [{"title": "OK", "url": "/good"}, {"title": "Bad", "url": "https://evil.example"}]},
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("internal routes", resp.json()["detail"])
+        resp = self.client.post(f"/api/v1/admin/sections/{tp.id}/blocks/", {
+            "block_type": "card_grid", "title": "Good cards",
+            "data": {"items": [{"emoji": "🗺️", "title": "Itinerary", "description": "Plan it", "url": "/travel-planning"}]},
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+
+    def test_packages_limit_validation(self):
+        fp = self._section("featured-packages")
+        resp = self.client.post(f"/api/v1/admin/sections/{fp.id}/blocks/", {
+            "block_type": "packages", "title": "Too many", "data": {"limit": 50},
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        resp = self.client.post(f"/api/v1/admin/sections/{fp.id}/blocks/", {
+            "block_type": "packages", "title": "Just right", "data": {"limit": 3},
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+
+    def test_non_staff_cannot_create_blocks(self):
+        tourist = User.objects.create_user(email="blk-tourist@test.local", password="Tour!Pass123", role="tourist")
+        self.client.force_authenticate(tourist)
+        tp = self._section("travel-planning")
+        self.assertEqual(self.client.post(f"/api/v1/admin/sections/{tp.id}/blocks/", {
+            "block_type": "card_grid", "title": "Hack", "data": {"items": []}}, format="json").status_code, 403)
+

@@ -2719,6 +2719,7 @@ class ContentBlock(TimeStampedModel):
             ("restaurant_grid", "Restaurant Grid"), ("statistics", "Statistics"),
             ("list", "List"), ("quote", "Quote"), ("alert", "Alert / Callout"),
             ("divider", "Divider"), ("html", "Custom Safe HTML"),
+            ("card_grid", "Card Grid"), ("packages", "Travel Packages Grid"),
         ],
         default="rich_text",
     )

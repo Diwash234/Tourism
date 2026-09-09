@@ -936,6 +936,8 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
     { type: "alert", label: "Alert / Callout", icon: "⚠️", desc: "Notice, info or warning box" },
     { type: "divider", label: "Divider", icon: "➖", desc: "Horizontal section divider" },
     { type: "html", label: "Custom Safe HTML", icon: "💻", desc: "Sanitized HTML content" },
+    { type: "card_grid", label: "Card Grid", icon: "🗂️", desc: "Tool/feature cards with emoji, text & internal link" },
+    { type: "packages", label: "Travel Packages Grid", icon: "🎒", desc: "Live marketplace package cards" },
   ]
 
   const loadBlocks = async () => {
@@ -1176,6 +1178,25 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                       </label>
                       <label className="block font-semibold text-slate-300">Rows JSON (array of arrays)
                         <textarea rows="4" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.rows || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, rows: JSON.parse(e.target.value) } }) } catch { /* keep */ } }} />
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "card_grid" && (
+                    <div className="space-y-2">
+                      <label className="block font-semibold text-slate-300">Cards JSON (array of {"{ emoji, title, description, url }"} — url must start with /)
+                        <textarea rows="6" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.items || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, items: JSON.parse(e.target.value) } }) } catch { /* keep until valid */ } }} />
+                      </label>
+                    </div>
+                  )}
+
+                  {editingBlock.block_type === "packages" && (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <label className="block font-semibold text-slate-300">Max packages (1-12)
+                        <input type="number" min="1" max="12" className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.limit ?? 6} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, limit: parseInt(e.target.value, 10) || 6 } })} />
+                      </label>
+                      <label className="block font-semibold text-slate-300">Only kind (optional: package, hotel, tour…)
+                        <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.kind || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, kind: e.target.value } })} />
                       </label>
                     </div>
                   )}

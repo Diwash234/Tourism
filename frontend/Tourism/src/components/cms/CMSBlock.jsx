@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import axiosClient from "../../api/axiosClient"
 
 const embedUrl = (url = "") => {
   if (/youtube\.com\/watch\?v=/.test(url)) return url.replace("watch?v=", "embed/")
@@ -29,6 +31,44 @@ const PADDING_STYLES = {
 }
 
 const FIELD_TYPES = new Set(["text", "email", "tel", "textarea", "select", "checkbox"])
+
+function PackagesGridBlock({ data = {} }) {
+  const [listings, setListings] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    const t = setTimeout(() => {
+      axiosClient.get("/marketplace/listings/", { params: { kind: data.kind || "" } })
+        .then(({ data: d }) => { if (!cancelled) setListings((d.results || []).slice(0, data.limit || 6)) })
+        .catch(() => { if (!cancelled) setListings([]) })
+    }, 0)
+    return () => { cancelled = true; clearTimeout(t) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  if (!listings.length) return null
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+      {listings.map((listing) => (
+        <Link key={listing.id} to="/packages" className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition text-left">
+          <div className="h-36 bg-slate-100 overflow-hidden">
+            {listing.image_url ? (
+              <img src={listing.image_url} alt={listing.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">🎒</div>
+            )}
+          </div>
+          <div className="p-4">
+            <span className="text-[10px] font-black uppercase text-emerald-700">{listing.kind}</span>
+            <h4 className="font-black text-slate-900 text-sm leading-snug mt-0.5 line-clamp-2">{listing.title}</h4>
+            <p className="text-[11px] text-slate-500 mt-1">
+              {listing.duration_days ? `${listing.duration_days} day${listing.duration_days === 1 ? "" : "s"}` : "Flexible"}
+              {listing.price_npr != null ? ` · NPR ${Number(listing.price_npr).toLocaleString()}` : ""}
+            </p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  )
+}
 
 export function ContentBlockItem({ block }) {
   if (!block || block.is_visible === false) return null
@@ -221,6 +261,26 @@ export function ContentBlockItem({ block }) {
         </Tag>
       )
     }
+
+    case "card_grid": {
+      const items = Array.isArray(data.items) ? data.items : []
+      if (!items.length) return null
+      return (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-4">
+          {items.map((card, i) => (
+            <Link key={i} to={card.url || "#"} className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-emerald-300 transition text-left">
+              {card.emoji && <span className="text-2xl block mb-2">{card.emoji}</span>}
+              <h4 className="font-black text-slate-900 text-sm">{card.title}</h4>
+              {card.description && <p className="text-xs text-slate-500 mt-1 leading-relaxed">{card.description}</p>}
+              <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 mt-3 group-hover:gap-2 transition-all">Open →</span>
+            </Link>
+          ))}
+        </div>
+      )
+    }
+
+    case "packages":
+      return <PackagesGridBlock data={data} />
 
     case "divider":
       return <hr className="my-6 border-slate-200" />

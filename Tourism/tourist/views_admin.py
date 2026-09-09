@@ -2471,6 +2471,20 @@ class AdminContentBlockView(APIView):
             url = str(data.get("url") or "").strip()
             if url and not (url.startswith("http") or url.startswith("/")):
                 return False, "Button URL must be a relative path or valid absolute URL."
+        elif block_type == "card_grid":
+            items = data.get("items")
+            if items is not None and not isinstance(items, list):
+                return False, "Card grid items must be a list of cards."
+            for item in (items or []):
+                if not isinstance(item, dict) or not str(item.get("title") or "").strip():
+                    return False, "Every card needs a title."
+                url = str(item.get("url") or "").strip()
+                if url and not url.startswith("/"):
+                    return False, "Card links must be internal routes beginning with /."
+        elif block_type == "packages":
+            limit = data.get("limit", 6)
+            if not isinstance(limit, int) or not 1 <= limit <= 12:
+                return False, "Package grid limit must be a whole number between 1 and 12."
         elif block_type == "map":
             try:
                 if "latitude" in data and data["latitude"] is not None: float(data["latitude"])
