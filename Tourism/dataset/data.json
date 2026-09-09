@@ -34,41 +34,6 @@
           "status": "approved"
         }
       ]
-    },
-    "1987": {
-      "id": 1987,
-      "name": "\"Break the Chain\"",
-      "slug": "break-the-chain",
-      "city": "ललितपुर",
-      "city_english": "Lalitpur",
-      "city_nepali": "ललितपुर",
-      "district": "ललितपुर जिल्ला",
-      "province": "Bagmati",
-      "municipality": "",
-      "ward_number": null,
-      "latitude": 27.673685,
-      "longitude": 85.326178,
-      "distance_from_kathmandu_km": 4.84,
-      "description": "\"Break the Chain\" is a tourism destination, located in ललितपुर, in बागमती प्रदेश, Nepal. It is part of Nepal's network of mapped tourism places contributed by OpenStreetMap.",
-      "short_description": "\"Break the Chain\" is a tourism destination, located in ललितपुर, in बागमती प्रदेश, Nepal. It is part of Nepal's network of mapped tourism places contributed by OpenStreetMap.",
-      "status": "approved",
-      "updated_at": "2026-09-09T12:51:34.008814+00:00",
-      "images": [
-        {
-          "id": 528239,
-          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Water_Supply_in_Malangwa.jpg/960px-Water_Supply_in_Malangwa.jpg",
-          "caption": "Near \"Break the Chain\" — Patan",
-          "is_cover": true,
-          "status": "approved"
-        },
-        {
-          "id": 533647,
-          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Patan_museum-Patan_Durbar_Square-2054.jpg/960px-Patan_museum-Patan_Durbar_Square-2054.jpg",
-          "caption": "Near Lamo waterfall — Patan Museum",
-          "is_cover": false,
-          "status": "approved"
-        }
-      ]
     }
   }
 }
