@@ -1831,3 +1831,109 @@ class CuratedRouteVerifyTests(TestCase):
         self.no_coords.refresh_from_db()
         self.assertEqual(float(self.no_coords.distance_km), 42.0)
 
+
+class WorkforceGuideTests(TestCase):
+    """Tourism workforce: guide profiles, applications, verification center (spec §2/§3/§10/§11)."""
+
+    def setUp(self):
+        from tourist.models import GuideProfile
+        self.admin = User.objects.create_superuser("wf-admin@test.local", "Sup!Pass123")
+        self.staff = User.objects.create_user(email="wf-staff@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"marketplace": ["view", "change"]})
+        self.applicant = User.objects.create_user(email="wf-guide@test.local", password="Guide!Pass123", role="tourist", first_name="Pemba", last_name="Sherpa")
+        self.tourist = User.objects.create_user(email="wf-tourist@test.local", password="Tour!Pass123", role="tourist")
+        self.verified = GuideProfile.objects.create(
+            user=User.objects.create_user(email="wf-pro@test.local", password="Guide!Pass123", role="guide", first_name="Pro", last_name="Guide"),
+            headline="Everest region specialist", languages=["Nepali", "English"], regions=["Solukhumbu"],
+            base_city="Namche", verification_status="verified",
+        )
+        self.client = APIClient()
+
+    def _apply(self, payload=None):
+        self.client.force_authenticate(self.applicant)
+        return self.client.post("/api/v1/workforce/guide-applications/", payload or {
+            "full_name": "Pemba Sherpa", "experience_summary": "12 years trekking in Khumbu",
+            "languages": ["Nepali", "English"], "skills": ["trekking", "high-altitude"],
+            "destinations_covered": ["Everest Base Camp"], "base_city": "Namche",
+            "license_info": "MoCTCA 1234", "expected_daily_rate_npr": 4500,
+        }, format="json")
+
+    def test_directory_shows_only_verified_public_guides(self):
+        from tourist.models import GuideProfile
+        GuideProfile.objects.create(user=self.applicant, verification_status="pending")
+        resp = self.client.get("/api/v1/workforce/guides/")
+        self.assertEqual(resp.status_code, 200)
+        names = [row["name"] for row in resp.json()["results"]]
+        self.assertIn("Pro Guide", names)
+        self.assertNotIn("Pemba Sherpa", names)  # unverified never listed
+
+    def test_application_flow_and_duplicate_guard(self):
+        from tourist.models import Notification
+        resp = self._apply()
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()["status"], "applied")
+        self.assertTrue(Notification.objects.filter(user=self.admin, title="New guide application").exists())
+        dup = self._apply()
+        self.assertEqual(dup.status_code, 400)
+
+    def test_admin_queue_requires_capability(self):
+        plain = User.objects.create_user(email="wf-noperm@test.local", password="Staff!Pass123", role="staff", is_staff=True)
+        self.client.force_authenticate(plain)
+        self.assertEqual(self.client.get("/api/v1/workforce/admin/applications/").status_code, 403)
+        self.client.force_authenticate(self.staff)
+        self.assertEqual(self.client.get("/api/v1/workforce/admin/applications/").status_code, 200)
+
+    def test_full_verification_flow_approves_and_provisions_profile(self):
+        from audit.models import AuditLog
+        from tourist.models import GuideProfile, Notification
+        app_id = self._apply().json()["id"]
+        self.client.force_authenticate(self.admin)
+        base = "/api/v1/workforce/admin/applications"
+        self.assertEqual(self.client.post(f"{base}/{app_id}/action/", {"action": "review"}, format="json").json()["status"], "under_review")
+        self.assertEqual(self.client.post(f"{base}/{app_id}/action/", {"action": "verify_documents"}, format="json").json()["status"], "document_verification")
+        resp = self.client.post(f"{base}/{app_id}/action/", {"action": "approve", "note": "License confirmed"}, format="json")
+        self.assertEqual(resp.json()["status"], "approved")
+        profile = GuideProfile.objects.get(user=self.applicant)
+        self.assertEqual(profile.verification_status, "verified")
+        self.assertIsNotNone(profile.verified_at)
+        self.assertEqual(profile.verified_by, self.admin)
+        self.assertEqual(profile.languages, ["Nepali", "English"])  # carried from application
+        self.assertTrue(Notification.objects.filter(user=self.applicant, title="Guide application approved").exists())
+        self.assertTrue(AuditLog.objects.filter(action="workforce.guide.approve").exists())
+        # now visible in the public directory
+        names = [row["name"] for row in self.client.get("/api/v1/workforce/guides/").json()["results"]]
+        self.assertIn("Pemba Sherpa", names)
+
+    def test_needs_info_requires_note_and_notifies(self):
+        from tourist.models import Notification
+        app_id = self._apply().json()["id"]
+        self.client.force_authenticate(self.admin)
+        resp = self.client.post(f"/api/v1/workforce/admin/applications/{app_id}/action/", {"action": "needs_info"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        resp = self.client.post(f"/api/v1/workforce/admin/applications/{app_id}/action/",
+                                {"action": "needs_info", "note": "Upload citizenship scan"}, format="json")
+        self.assertEqual(resp.json()["status"], "needs_info")
+        self.assertTrue(Notification.objects.filter(user=self.applicant, title="Additional information requested").exists())
+
+    def test_suspend_and_reinstate_controls_directory(self):
+        self.client.force_authenticate(self.admin)
+        gid = self.verified.id
+        resp = self.client.post(f"/api/v1/workforce/admin/guides/{gid}/action/", {"action": "suspend"}, format="json")
+        self.assertEqual(resp.status_code, 400)  # reason required
+        resp = self.client.post(f"/api/v1/workforce/admin/guides/{gid}/action/", {"action": "suspend", "note": "Complaint under investigation"}, format="json")
+        self.assertEqual(resp.json()["verification_status"], "suspended")
+        names = [row["name"] for row in self.client.get("/api/v1/workforce/guides/").json()["results"]]
+        self.assertNotIn("Pro Guide", names)
+        self.client.post(f"/api/v1/workforce/admin/guides/{gid}/action/", {"action": "reinstate"}, format="json")
+        names = [row["name"] for row in self.client.get("/api/v1/workforce/guides/").json()["results"]]
+        self.assertIn("Pro Guide", names)
+
+    def test_guides_cannot_self_verify(self):
+        self.client.force_authenticate(self.applicant)
+        resp = self.client.put("/api/v1/workforce/guide-profile/", {
+            "headline": "Self verified", "verification_status": "verified", "verified_at": "2026-01-01T00:00:00Z",
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["verification_status"], "unverified")  # server-controlled
+        self.assertEqual(resp.json()["headline"], "Self verified")          # benign field saved
+

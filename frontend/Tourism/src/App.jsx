@@ -78,6 +78,8 @@ import SharedTripView from "./pages/SharedTripView"
 
 // New Features (Remote Repository Updates)
 import Packages from "./pages/Packages"
+import Guides from "./pages/Guides"
+import GuidePortal from "./pages/GuidePortal"
 import PackageDetail from "./pages/PackageDetail"
 import Collaborate from "./pages/Collaborate"
 import Checkout from "./pages/Checkout"
@@ -160,6 +162,8 @@ function App() {
         <Route path="/itinerary" element={<Itinerary />} />
         <Route path="/trip-planner" element={<Navigate to="/itinerary" replace />} />
         <Route path="/packages" element={<Packages />} />
+        <Route path="/guides" element={<Guides />} />
+        <Route path="/guide-portal" element={<GuidePortal />} />
         <Route path="/packages/:slug" element={<PackageDetail />} />
         <Route path="/collaborate" element={<Collaborate />} />
         <Route path="/checkout" element={<Checkout />} />

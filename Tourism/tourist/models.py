@@ -3180,3 +3180,90 @@ class TravelerDocument(TimeStampedModel):
 
     def __str__(self):
         return f"{self.full_name} ({self.get_relation_tag_display()})"
+
+
+class GuideProfile(TimeStampedModel):
+    """Reusable professional tourism profile for guides (workforce spec §2/§10).
+
+    A business record lives in MarketplacePartner(kind=guide); this is the
+    person-side professional profile with skills, verification and portfolio.
+    """
+
+    class VerificationStatus(models.TextChoices):
+        UNVERIFIED = "unverified", "Unverified"
+        PENDING = "pending", "Pending Verification"
+        VERIFIED = "verified", "Verified"
+        REJECTED = "rejected", "Rejected"
+        SUSPENDED = "suspended", "Suspended"
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="guide_profile")
+    headline = models.CharField(max_length=160, blank=True, help_text="One-line professional headline")
+    bio = models.TextField(blank=True)
+    years_experience = models.PositiveSmallIntegerField(default=0)
+    languages = models.JSONField(default=list, blank=True, help_text='["Nepali","English","Japanese"]')
+    specializations = models.JSONField(default=list, blank=True, help_text="trekking, cultural, wildlife, city, adventure…")
+    certifications = models.JSONField(default=list, blank=True, help_text='[{"name":"…","issuer":"…","year":2024}]')
+    license_number = models.CharField(max_length=120, blank=True, help_text="Government guide license where applicable")
+    regions = models.JSONField(default=list, blank=True, help_text="Districts/regions covered")
+    base_city = models.CharField(max_length=120, blank=True)
+    daily_rate_npr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    availability = models.JSONField(default=dict, blank=True, help_text='{"mon":true,…} or {"from":"2026-10-01","to":"2026-11-15"}')
+    portfolio_urls = models.JSONField(default=list, blank=True)
+    services = models.JSONField(default=list, blank=True, help_text="Offered services with optional pricing")
+    verification_status = models.CharField(max_length=20, choices=VerificationStatus.choices,
+                                           default=VerificationStatus.UNVERIFIED, db_index=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="guides_verified")
+    verification_note = models.TextField(blank=True)
+    is_public = models.BooleanField(default=True, help_text="Show in the public guide directory when verified")
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"Guide profile: {self.user.email} ({self.verification_status})"
+
+
+class GuideApplication(TimeStampedModel):
+    """Apply-to-become-a-guide workflow (workforce spec §3).
+
+    APPLIED → UNDER_REVIEW → DOCUMENT_VERIFICATION → APPROVED / REJECTED,
+    with a NEEDS_INFO side-state for requesting additional information.
+    """
+
+    class Status(models.TextChoices):
+        APPLIED = "applied", "Applied"
+        UNDER_REVIEW = "under_review", "Under Review"
+        DOCUMENT_VERIFICATION = "document_verification", "Document Verification"
+        NEEDS_INFO = "needs_info", "Additional Info Requested"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="guide_applications")
+    full_name = models.CharField(max_length=200)
+    phone = models.CharField(max_length=40, blank=True)
+    base_city = models.CharField(max_length=120, blank=True)
+    experience_summary = models.TextField(help_text="Guiding/tourism experience")
+    languages = models.JSONField(default=list, blank=True)
+    skills = models.JSONField(default=list, blank=True)
+    destinations_covered = models.JSONField(default=list, blank=True)
+    certifications = models.JSONField(default=list, blank=True)
+    license_info = models.CharField(max_length=240, blank=True, help_text="Government/license information")
+    document_urls = models.JSONField(default=list, blank=True, help_text="Citizenship, license, training certificates…")
+    references = models.JSONField(default=list, blank=True)
+    expected_daily_rate_npr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    availability = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.APPLIED, db_index=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="guide_applications_reviewed")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True, help_text="Latest review note / requested information")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "created_at"])]
+
+    def __str__(self):
+        return f"Guide application {self.full_name} ({self.status})"
+

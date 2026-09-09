@@ -46,6 +46,7 @@ import FeaturedDestinationsPanel from "../../components/admin/FeaturedDestinatio
 import AIEnginePanel from "../../components/admin/AIEnginePanel"
 import DataHealthPanel from "../../components/admin/DataHealthPanel"
 import AdminRouteManagerPanel from "../../components/admin/AdminRouteManagerPanel"
+import GuideVerificationPanel from "../../components/admin/GuideVerificationPanel"
 import AdminReportManagerPanel from "../../components/admin/AdminReportManagerPanel"
 import UserDashboardControlPanel from "../../components/admin/UserDashboardControlPanel"
 
@@ -749,6 +750,12 @@ const AdminDashboard = () => {
               </div>
               <div className="flex flex-wrap gap-3">
                 <button
+                  onClick={() => setActiveTab("guide_verification")}
+                  className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-violet-600/20 whitespace-nowrap"
+                >
+                  Guide Verification Center
+                </button>
+                <button
                   onClick={() => setActiveTab("places")}
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 whitespace-nowrap"
                 >
@@ -792,6 +799,7 @@ const AdminDashboard = () => {
         {activeTab === "ai_engine" && <AIEnginePanel />}
         {activeTab === "data_health" && <DataHealthPanel />}
         {activeTab === "transport_routes" && <AdminRouteManagerPanel />}
+        {activeTab === "guide_verification" && <GuideVerificationPanel />}
         {activeTab === "data_reports" && <AdminReportManagerPanel />}
         {activeTab === "featured_destinations" && <FeaturedDestinationsPanel />}
         {activeTab === "data_explorer" && <DataExplorerPanel />}

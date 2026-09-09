@@ -18,6 +18,7 @@ from . import views_osm
 from . import views_marketplace
 from . import views_emergency_admin
 from . import views_navigation
+from . import views_workforce
 from .serializers import UserProfileSerializer
 
 
@@ -170,6 +171,14 @@ urlpatterns = [
     path("navigation/places/search/", views_navigation.UniversalPlaceSearchView.as_view(), name="navigation-places-search"),
     path("navigation/places/nearby/", views_navigation.UniversalPlaceNearbyView.as_view(), name="navigation-places-nearby"),
     path("navigation/reports/submit/", views_navigation.UserDataReportSubmitView.as_view(), name="navigation-reports-submit"),
+    # --- tourism workforce platform (guides, applications, verification) ---
+    path("workforce/guides/", views_workforce.GuideDirectoryView.as_view(), name="workforce-guides"),
+    path("workforce/guides/<int:pk>/", views_workforce.GuideDetailView.as_view(), name="workforce-guide-detail"),
+    path("workforce/guide-profile/", views_workforce.MyGuideProfileView.as_view(), name="workforce-guide-profile"),
+    path("workforce/guide-applications/", views_workforce.GuideApplicationView.as_view(), name="workforce-guide-applications"),
+    path("workforce/admin/applications/", views_workforce.AdminGuideApplicationListView.as_view(), name="workforce-admin-applications"),
+    path("workforce/admin/applications/<int:pk>/action/", views_workforce.AdminGuideApplicationActionView.as_view(), name="workforce-admin-application-action"),
+    path("workforce/admin/guides/<int:pk>/action/", views_workforce.AdminGuideProfileActionView.as_view(), name="workforce-admin-guide-action"),
     path("admin/coordinates/verify/", views_navigation.AdminCoordinateVerificationView.as_view(), name="admin-coordinates-verify"),
     path("admin/featured-destinations/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations"),
     path("admin/featured-destinations/<int:pk>/", views_admin.AdminFeaturedDestinationView.as_view(), name="admin-featured-destinations-detail"),
