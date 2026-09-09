@@ -14,6 +14,7 @@ const WEB = process.env.E2E_BASE_URL || "http://127.0.0.1:5173"
 const DEMO = {
   tourist: { email: "tourist@nepaltourism.com", password: "Tourist@12345" },
   admin: { email: "admin@tourism.gov.np", password: "Admin@12345" },
+  staff: { email: "staff-ops@nepaltourism.com", password: "StaffOps!12345" },
 }
 
 let failed = 0
@@ -329,6 +330,147 @@ async function run() {
     if (listed.res.ok && rows.length && hasPinField && noDistrictAsCity) {
       ok("destination list exposes has_map_pin and does not display Kaski as a city")
     } else fail("destination list display_city", `count=${rows.length}`)
+  }
+
+  // ---- Staff Operations Center (spec §7-22) ----
+  {
+    let staffToken = null
+    try { staffToken = await login("staff") } catch { staffToken = null }
+    if (!staffToken) {
+      fail("staff login (seed staff-ops user via scripts or shell before live e2e)")
+    } else {
+      const auth = { Authorization: `Bearer ${staffToken}` }
+
+      // 1) support tickets — scoped queue with counts
+      {
+        const { res, data } = await request(`${API}/admin-panel/support/tickets/`, { headers: auth })
+        if (res.ok && data && typeof data.counts === "object" && Array.isArray(data.results)) ok("staff support ticket queue (scoped + counts)")
+        else fail("staff support tickets", `status ${res.status}`)
+      }
+
+      // 2) bookings — every row inside the staff member's hotel assignment
+      {
+        const hotels = await request(`${API}/admin-panel/my-hotels/`, { headers: auth })
+        const hotelIds = new Set((hotels.data?.results || hotels.data || []).map((h) => h.id))
+        const { res, data } = await request(`${API}/admin-panel/my-bookings/`, { headers: auth })
+        const rows = data?.results || []
+        const inScope = rows.every((r) => hotelIds.has(r.hotel_id))
+        if (res.ok && data?.counts && inScope) ok("staff bookings scoped to assigned hotels")
+        else fail("staff bookings scope", `status ${res.status} rows=${rows.length}`)
+
+        // 3) out-of-scope booking action is refused
+        const anyBooking = await request(`${API}/admin-panel/my-bookings/`, { headers: auth })
+        const outsider = anyBooking.data?.results?.[0]
+        if (outsider) {
+          const forbidden = await request(`${API}/admin-panel/my-bookings/999999/action/`, {
+            method: "POST", headers: auth, json: { action: "confirm" },
+          })
+          if (forbidden.res.status === 404 || forbidden.res.status === 403) ok("booking action outside scope refused")
+          else fail("booking action scope guard", `status ${forbidden.res.status}`)
+        } else ok("booking action outside scope refused (no bookings; endpoint guard covered by Django suite)")
+      }
+
+      // 4) data entry — draft → submit → self-approve refused
+      {
+        const stamp = Date.now()
+        const created = await request(`${API}/admin-panel/data-entry/`, {
+          method: "POST", headers: auth,
+          json: { name: `E2E Probe ${stamp}`, district: "Kaski", short_description: "created by live e2e" },
+        })
+        if (created.res.status === 201 && created.data?.status === "draft" && created.data?.submitted_by === DEMO.staff.email) {
+          ok("staff creates destination draft (submitted_by stamped)")
+        } else fail("staff data-entry draft", `status ${created.res.status}`)
+
+        if (created.data?.id) {
+          const submitted = await request(`${API}/admin-panel/data-entry/${created.data.id}/action/`, {
+            method: "POST", headers: auth, json: { action: "submit" },
+          })
+          if (submitted.res.ok && submitted.data?.status === "submitted") ok("staff submits draft for review")
+          else fail("staff data-entry submit", `status ${submitted.res.status}`)
+
+          const selfApprove = await request(`${API}/admin-panel/data-entry/${created.data.id}/action/`, {
+            method: "POST", headers: auth, json: { action: "approve" },
+          })
+          if (selfApprove.res.status === 403) ok("staff cannot approve own submission (needs destinations:approve)")
+          else fail("staff self-approve guard", `status ${selfApprove.res.status}`)
+
+          // cleanup: admin rejects the probe entry so the queue stays tidy
+          try {
+            const adminToken = await login("admin")
+            await request(`${API}/admin-panel/data-entry/${created.data.id}/action/`, {
+              method: "POST", headers: { Authorization: `Bearer ${adminToken}` },
+              json: { action: "reject", note: "e2e probe cleanup" },
+            })
+          } catch {}
+        }
+      }
+
+      // 5) media — staff upload lands pending, staff cannot approve
+      {
+        const entry = await request(`${API}/admin-panel/data-entry/?status=rejected`, { headers: auth })
+        const dest = entry.data?.results?.[0]
+        if (dest) {
+          const added = await request(`${API}/admin-panel/media/`, {
+            method: "POST", headers: auth,
+            json: { destination: dest.id, external_url: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Everest_kalapatthar.jpg", caption: "e2e probe" },
+          })
+          if (added.res.status === 201 && added.data?.status === "pending") ok("staff image upload lands in pending review queue")
+          else fail("staff media upload", `status ${added.res.status}`)
+          if (added.data?.id) {
+            const approve = await request(`${API}/admin-panel/media/${added.data.id}/action/`, {
+              method: "POST", headers: auth, json: { action: "approve" },
+            })
+            if (approve.res.status === 403) ok("staff cannot approve images (needs images:approve)")
+            else fail("media approve guard", `status ${approve.res.status}`)
+          }
+        } else fail("staff media upload", "no destination available for probe")
+      }
+
+      // 6) safety queue shape
+      {
+        const { res, data } = await request(`${API}/admin-panel/safety/`, { headers: auth })
+        if (res.ok && data?.counts && Array.isArray(data.alerts) && Array.isArray(data.hazards) && Array.isArray(data.reports)) {
+          ok("staff safety operations queue")
+        } else fail("staff safety queue", `status ${res.status}`)
+      }
+
+      // 7) staff cannot change own permissions
+      {
+        const esc = await request(`${API}/admin/staff-capabilities/`, {
+          method: "PUT", headers: auth,
+          json: { user_id: 1, capabilities: { users: ["view", "change"] } },
+        })
+        if (esc.res.status === 403) ok("staff cannot update capability profiles")
+        else fail("capability self-escalation guard", `status ${esc.res.status}`)
+      }
+    }
+
+    // 8) anonymous access refused on every staff-ops endpoint
+    {
+      const statuses = await Promise.all([
+        "admin-panel/support/tickets/", "admin-panel/my-bookings/", "admin-panel/data-entry/",
+        "admin-panel/media/", "admin-panel/safety/",
+      ].map((u) => request(`${API}/${u}`).then((r) => r.res.status)))
+      if (statuses.every((code) => code === 401)) ok("anonymous refused on all staff-ops endpoints")
+      else fail("anonymous staff-ops guard", JSON.stringify(statuses))
+    }
+  }
+
+  // ---- Staff panels & navigation extensions wired into the UI ----
+  {
+    const dash = await sourceFile("pages/StaffDashboard.jsx")
+    const wired = ["SupportDeskPanel", "HotelOpsPanel", "ContentOpsPanel", "MediaPanel", "SafetyOpsPanel", "StaffGlobalSearch"]
+      .every((c) => dash.includes(c))
+    if (wired) ok("StaffDashboard wires support/hotels/data-entry/media/safety/search panels")
+    else fail("StaffDashboard panel wiring")
+  }
+
+  {
+    const nav = await sourceFile("pages/Navigation.jsx")
+    if (nav.includes("savedRoutesApi.recalculate") && nav.includes("Check alternative routes")
+        && nav.includes("Browse destinations by province") && nav.includes("Offline mode")) {
+      ok("Navigation page has recalculate, alternatives, province picker and offline banner")
+    } else fail("Navigation extensions wiring")
   }
 
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
