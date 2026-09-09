@@ -102,7 +102,7 @@ const Navbar = () => {
         {/* Search (visible on all screens; grows to fill space) */}
         {features.search && <form
           onSubmit={handleSmartSearch}
-          className="flex flex-1 min-w-0 max-w-md items-center gap-1.5"
+          className="nav-search-form flex flex-1 min-w-0 max-w-md items-center gap-1.5"
         >
           <div className="relative flex-1 min-w-0">
             <FiSearch
@@ -118,12 +118,14 @@ const Navbar = () => {
             />
           </div>
 
-          {/* In normal flow (not absolute) so the badge can never bleed over
-              the brand when the form is squeezed at xl widths — layout e2e. */}
+          {/* In normal flow and gated by a container query on the form's own
+              width — the badge only exists when the form is genuinely wide
+              enough to hold it, so no squeeze (long brand, many nav links)
+              can ever push it over neighbouring text. */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-            className="hidden xl:flex shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
+            className="nav-kbd hidden shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-md transition-colors"
             title="Open Command Palette (Ctrl+K)"
           >
             <span>Ctrl</span>

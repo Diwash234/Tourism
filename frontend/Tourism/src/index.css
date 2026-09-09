@@ -739,3 +739,16 @@ html.dark .border-slate-100,
 html.dark .border-slate-200,
 html.dark .border-stone-100,
 html.dark .border-\[\#E5E0D5\] { border-color: var(--border); }
+
+/* Navbar search: the Ctrl+K badge only exists when the form itself is wide
+   enough to hold it (container query), so no squeeze — long brand name, many
+   nav links, narrow viewport — can ever push it over neighbouring text.
+   Plain CSS because Tailwind v3 container-query utilities need a plugin. */
+.nav-search-form {
+  container-type: inline-size;
+}
+@container (min-width: 13rem) {
+  .nav-kbd {
+    display: flex;
+  }
+}
