@@ -160,6 +160,7 @@ urlpatterns = [
     path("navigation/routes/<int:pk>/", views_navigation.UserRouteViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="user-route-detail"),
     path("reports/submit/", views_navigation.UserDataReportSubmitView.as_view(), name="user-report-submit"),
     path("admin/data-health/", views_navigation.AdminDataHealthView.as_view(), name="admin-data-health"),
+    path("admin/navigation-analytics/", views_navigation.AdminNavigationAnalyticsView.as_view(), name="admin-navigation-analytics"),
     path("admin/data-reports/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports"),
     path("admin/data-reports/<int:pk>/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports-detail"),
     path("admin/coordinates/verify/", views_navigation.AdminCoordinateVerificationView.as_view(), name="admin-coordinates-verify"),

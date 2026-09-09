@@ -22,6 +22,7 @@ from .models import (
     ManagedNavigationItem,
     ManagedPage,
     ContentSection,
+    UserRoute,
 )
 
 
@@ -1029,3 +1030,50 @@ class UserRouteHistoryTests(TestCase):
         self._auth()
         resp = self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="  "), format="json")
         self.assertEqual(resp.status_code, 400)
+
+
+class NavigationAnalyticsTests(TestCase):
+    """Admin navigation analytics (spec item 24) — real aggregates only."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser("analytics-admin@test.local", "Analytics!Pass1")
+        self.tourist = User.objects.create_user(email="analytics-tourist@test.local", password="Tourist!Pass1", role="tourist")
+        self.client = APIClient()
+
+    def _mk(self, user, dest, mode="Private Car / Taxi", km=100.0, saved=False):
+        UserRoute.objects.create(
+            user=user, origin_name="Kathmandu", origin_latitude=27.7172, origin_longitude=85.324,
+            destination_name=dest, destination_latitude=28.0, destination_longitude=84.0,
+            transport_mode=mode, distance_km=km, duration_min=120, duration_source="estimated",
+            is_saved=saved,
+        )
+
+    def test_requires_admin(self):
+        self.assertIn(self.client.get("/api/v1/admin/navigation-analytics/").status_code, (401, 403))
+        self.client.force_authenticate(self.tourist)
+        self.assertEqual(self.client.get("/api/v1/admin/navigation-analytics/").status_code, 403)
+
+    def test_aggregates_logged_routes(self):
+        self._mk(self.tourist, "Phewa Lake", km=200.0)
+        self._mk(self.tourist, "Phewa Lake", mode="Motorcycle", km=200.0, saved=True)
+        self._mk(self.admin, "Nagarkot", km=30.0)
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get("/api/v1/admin/navigation-analytics/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["total_calculations"], 3)
+        self.assertEqual(data["distinct_travellers"], 2)
+        self.assertEqual(data["saved_routes"], 1)
+        self.assertEqual(data["average_distance_km"], 143.3)  # (200+200+30)/3
+        top = {row["destination_name"]: row["calculations"] for row in data["top_destinations"]}
+        self.assertEqual(top, {"Phewa Lake": 2, "Nagarkot": 1})
+        modes = {row["transport_mode"]: row["calculations"] for row in data["mode_split"]}
+        self.assertEqual(modes, {"Private Car / Taxi": 2, "Motorcycle": 1})
+        self.assertEqual(data["calculations_last_30_days"], 3)
+
+    def test_empty_database_reports_honest_zeros(self):
+        self.client.force_authenticate(self.admin)
+        data = self.client.get("/api/v1/admin/navigation-analytics/").json()
+        self.assertEqual(data["total_calculations"], 0)
+        self.assertIsNone(data["average_distance_km"])  # never a fabricated 0-distance claim
+        self.assertEqual(data["top_destinations"], [])

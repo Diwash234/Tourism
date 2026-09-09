@@ -1,4 +1,6 @@
 import math
+from datetime import timedelta
+
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework.views import APIView
@@ -474,3 +476,48 @@ class UserRouteViewSet(viewsets.ModelViewSet):
         stale = UserRoute.objects.filter(user=self.request.user, is_saved=False).order_by("-created_at")[100:]
         if stale:
             UserRoute.objects.filter(id__in=[r.id for r in stale]).delete()
+
+
+class AdminNavigationAnalyticsView(APIView):
+    """Aggregated navigation usage analytics for admins (spec item 24).
+
+    Summarises real UserRoute rows (history + saved routes): volume, distinct
+    travellers, most-requested destinations, travel-mode split and saved-route
+    counts. No numbers are invented — every figure is a query over logged
+    route calculations.
+    """
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "destinations", "view")
+        from django.db.models import Count, Avg
+
+        total = UserRoute.objects.count()
+        window30 = UserRoute.objects.filter(created_at__gte=timezone.now() - timedelta(days=30)).count()
+        distinct_users = UserRoute.objects.values("user").distinct().count()
+        saved = UserRoute.objects.filter(is_saved=True).count()
+
+        top_destinations = list(
+            UserRoute.objects.exclude(destination_name="")
+            .values("destination_name")
+            .annotate(calculations=Count("id"))
+            .order_by("-calculations")[:10]
+        )
+        mode_split = list(
+            UserRoute.objects.exclude(transport_mode="")
+            .values("transport_mode")
+            .annotate(calculations=Count("id"))
+            .order_by("-calculations")
+        )
+        avg_distance = UserRoute.objects.exclude(distance_km__isnull=True).aggregate(avg_km=Avg("distance_km"))["avg_km"]
+
+        return Response({
+            "total_calculations": total,
+            "calculations_last_30_days": window30,
+            "distinct_travellers": distinct_users,
+            "saved_routes": saved,
+            "average_distance_km": round(avg_distance, 1) if avg_distance is not None else None,
+            "top_destinations": top_destinations,
+            "mode_split": mode_split,
+        })

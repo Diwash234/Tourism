@@ -10,6 +10,7 @@ import useToast from "../../hooks/useToast"
 export default function DataHealthPanel() {
   const { showToast } = useToast()
   const [stats, setStats] = useState(null)
+  const [navAnalytics, setNavAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // Rate Adjustments state
@@ -23,6 +24,12 @@ export default function DataHealthPanel() {
       .then(({ data }) => setStats(data))
       .catch(() => showToast("Could not load data health stats.", "error"))
       .finally(() => setLoading(false))
+
+    // Navigation usage analytics (spec item 24) — real aggregates of logged
+    // route calculations; failures must never block the health metrics.
+    axiosClient.get("/admin/navigation-analytics/")
+      .then(({ data }) => setNavAnalytics(data))
+      .catch(() => setNavAnalytics(null))
 
     adminApi.getRateAdjustments()
       .then(({ data }) => setRates(data))
@@ -146,6 +153,81 @@ export default function DataHealthPanel() {
           </p>
         </div>
       </div>
+
+      {/* Navigation Usage Analytics — aggregates of real logged route calculations */}
+      {navAnalytics && (
+        <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div>
+              <span className="px-3 py-0.5 rounded-full bg-blue-400/20 text-blue-300 text-[10px] font-black uppercase tracking-wider border border-blue-400/30">
+                Navigation Analytics
+              </span>
+              <h3 className="text-lg font-black text-white mt-1">Route Calculation Usage</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Aggregated from travellers' logged route calculations — no estimated or fabricated figures.
+              </p>
+            </div>
+            <div className="flex gap-4 text-right text-xs">
+              <div>
+                <span className="text-slate-400 block uppercase font-bold text-[10px]">Total</span>
+                <span className="text-xl font-black text-white">{navAnalytics.total_calculations}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block uppercase font-bold text-[10px]">Last 30d</span>
+                <span className="text-xl font-black text-blue-300">{navAnalytics.calculations_last_30_days}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block uppercase font-bold text-[10px]">Travellers</span>
+                <span className="text-xl font-black text-white">{navAnalytics.distinct_travellers}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block uppercase font-bold text-[10px]">Saved</span>
+                <span className="text-xl font-black text-amber-300">{navAnalytics.saved_routes}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <p className="font-black text-slate-200 uppercase text-[10px] tracking-wider mb-2">Top Requested Destinations</p>
+              {navAnalytics.top_destinations?.length ? (
+                <ul className="space-y-1">
+                  {navAnalytics.top_destinations.map((row) => (
+                    <li key={row.destination_name} className="flex justify-between text-slate-300">
+                      <span className="truncate pr-2">{row.destination_name}</span>
+                      <span className="font-bold text-emerald-300 whitespace-nowrap">{row.calculations} calc</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-500">No route calculations logged yet.</p>
+              )}
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <p className="font-black text-slate-200 uppercase text-[10px] tracking-wider mb-2">Travel Mode Split</p>
+              {navAnalytics.mode_split?.length ? (
+                <ul className="space-y-1">
+                  {navAnalytics.mode_split.map((row) => (
+                    <li key={row.transport_mode} className="flex justify-between text-slate-300">
+                      <span className="truncate pr-2">{row.transport_mode}</span>
+                      <span className="font-bold text-blue-300 whitespace-nowrap">{row.calculations} calc</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-500">No mode data logged yet.</p>
+              )}
+              <p className="mt-2 text-[11px] text-slate-400">
+                Average route distance:{" "}
+                <b className="text-white">
+                  {navAnalytics.average_distance_km != null ? `${navAnalytics.average_distance_km} km` : "Information unavailable"}
+                </b>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Official Government CPI & Rate Adjustments Studio */}
       {rates && (

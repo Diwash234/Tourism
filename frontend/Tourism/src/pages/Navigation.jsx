@@ -163,6 +163,7 @@ export default function Navigation() {
   // Standard turn-by-turn map is the default experience; the Game HUD is opt-in (brief item).
   const [gameMode, setGameMode] = useState(false)
   const [currentStepIdx, setCurrentStepIdx] = useState(0)
+  const [voiceOn, setVoiceOn] = useState(false)
   const [satelliteView, setSatelliteView] = useState(false)
   const [showToolsDrawer, setShowToolsDrawer] = useState(false)
   const [amenityTab, setAmenityTab] = useState("hospitals")
@@ -405,6 +406,25 @@ export default function Navigation() {
   }
 
   const TurnIcon = TURN_ICONS[currentStep.turn] || FiArrowUp
+
+  // Voice guidance: speak the current maneuver when enabled, re-speaking on
+  // every step change. Cancels cleanly on toggle-off/unmount.
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return undefined
+    if (!voiceOn || steps.length === 0) {
+      window.speechSynthesis.cancel()
+      return undefined
+    }
+    const utterance = new SpeechSynthesisUtterance(
+      `Step ${currentStepIdx + 1} of ${steps.length}. ${currentStep.instruction}` +
+        (currentStep.distance_km != null ? `, ${Number(currentStep.distance_km).toFixed(1)} kilometres.` : "")
+    )
+    utterance.rate = 0.95
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    return () => window.speechSynthesis.cancel()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, currentStepIdx, steps.length, currentStep.instruction])
 
   return (
     <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn" data-testid="navigation-page">
@@ -796,6 +816,41 @@ export default function Navigation() {
                   <p className="text-xs font-bold text-white leading-tight">{currentStep.instruction}</p>
                 </div>
               </div>
+
+              {steps.length > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-purple-800/60">
+                  <button
+                    type="button"
+                    aria-label="Previous step"
+                    disabled={currentStepIdx === 0}
+                    onClick={() => setCurrentStepIdx((i) => Math.max(0, i - 1))}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold disabled:opacity-30"
+                  >
+                    ◀ Prev
+                  </button>
+                  <span className="text-[10px] font-bold text-slate-300">
+                    Step {currentStepIdx + 1} of {steps.length}
+                  </span>
+                  <button
+                    type="button"
+                    aria-pressed={voiceOn}
+                    title={voiceOn ? "Voice guidance on — click to mute" : "Speak maneuvers aloud"}
+                    onClick={() => setVoiceOn((v) => !v)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold ${voiceOn ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-slate-800 hover:bg-slate-700 text-slate-300"}`}
+                  >
+                    {voiceOn ? "🔊 Voice" : "🔇 Voice"}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next step"
+                    disabled={currentStepIdx >= steps.length - 1}
+                    onClick={() => setCurrentStepIdx((i) => Math.min(steps.length - 1, i + 1))}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold disabled:opacity-30"
+                  >
+                    Next ▶
+                  </button>
+                </div>
+              )}
             </div>
 
             {distance && (
