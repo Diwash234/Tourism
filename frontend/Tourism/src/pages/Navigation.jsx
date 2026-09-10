@@ -167,6 +167,9 @@ export default function Navigation() {
   // when they were calculated, never presented as live.
   const [offlinePacks, setOfflinePacks] = useState(() => loadPacks())
   const [offlineBadge, setOfflineBadge] = useState("")
+  // Resolved waypoint coordinates from the last calculation — drawn as
+  // numbered stop markers on the map.
+  const [routeWaypoints, setRouteWaypoints] = useState([])
   const [destination, setDestination] = useState(null)
   const [route, setRoute] = useState([])
   const [transportMode, setTransportMode] = useState("Private Car / Taxi")
@@ -228,6 +231,7 @@ export default function Navigation() {
     setAltRoutes([])
     setPrimarySnapshot(null)
     setSelectedAlt(-1)
+    setRouteWaypoints(Array.isArray(pack.route_waypoints) ? pack.route_waypoints : [])
     setCurrentStepIdx(0)
     setOfflineBadge(`Offline copy — calculated ${new Date(pack.calculated_at).toLocaleString()}. Not a live route.`)
   }
@@ -272,6 +276,7 @@ export default function Navigation() {
       })
       setAltRoutes(Array.isArray(response.data.alternatives) ? response.data.alternatives : [])
       setSelectedAlt(-1)
+      setRouteWaypoints(Array.isArray(response.data.waypoints) ? response.data.waypoints : [])
       return true
     } catch {
       return false
@@ -379,6 +384,7 @@ export default function Navigation() {
       })
       setAltRoutes(Array.isArray(response.data.alternatives) ? response.data.alternatives : [])
       setSelectedAlt(-1)
+      setRouteWaypoints(Array.isArray(response.data.waypoints) ? response.data.waypoints : [])
 
       // Cache an offline pack of this calculation (newest first, capped).
       // eslint-disable-next-line react-hooks/purity -- runs in an async event handler after await, never during render
@@ -394,6 +400,7 @@ export default function Navigation() {
         duration_min: response.data.duration_min ?? null,
         duration_note: response.data.duration_note || "",
         duration_source: response.data.duration_source || "",
+        route_waypoints: Array.isArray(response.data.waypoints) ? response.data.waypoints : [],
         calculated_at: new Date().toISOString(),
       }
       if (offlinePack.route.length > 1) {
@@ -1189,6 +1196,7 @@ export default function Navigation() {
           <MapView
             destination={destination}
             route={route}
+            waypoints={routeWaypoints}
             satellite={satelliteView}
             userLocation={navActive ? live.position : (position ? { lat: position.lat, lng: position.lng } : null)}
             center={mapCenter}
@@ -1399,6 +1407,7 @@ export default function Navigation() {
               destinationName={destination?.name || destinationQuery.trim()}
               destinationSlug={destination?.slug || null}
               requestId={optionsRequestId}
+              waypoints={waypoints}
             />
           </div>
 

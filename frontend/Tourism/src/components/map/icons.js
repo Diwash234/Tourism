@@ -29,5 +29,8 @@ export const hospitalIcon = makeSvgIcon("#059669", "+")
 export const policeIcon = makeSvgIcon("#7C3AED", "P")
 export const attractionIcon = makeSvgIcon("#D97706", "★")
 
+// Numbered intermediate-stop markers for multi-stop routes (Phase 4/6+).
+export const waypointIcon = (n) => makeSvgIcon("#0D9488", String(n))
+
 export const createCustomIcon = (colorHex, label = "") => makeSvgIcon(colorHex, label)
 export default makeSvgIcon

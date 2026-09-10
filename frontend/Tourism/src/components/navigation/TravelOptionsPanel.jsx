@@ -25,10 +25,12 @@ const fmtDuration = (min) => {
   return `${Math.floor(min / 60)} hr ${min % 60} min`;
 };
 
-export default function TravelOptionsPanel({ originPayload, destinationName, destinationSlug, requestId }) {
+export default function TravelOptionsPanel({ originPayload, destinationName, destinationSlug, requestId, waypoints = [] }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
+  // stable dependency for the waypoints array (react-hooks/exhaustive-deps)
+  const waypointsKey = JSON.stringify(waypoints);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +43,12 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
       setLoading(true);
       setNote("");
       navigationApi
-        .getTravelOptions({ ...originPayload, destination_name: destinationName, destination_slug: destinationSlug })
+        .getTravelOptions({
+          ...originPayload,
+          destination_name: destinationName,
+          destination_slug: destinationSlug,
+          ...(waypoints.length ? { waypoints } : {}),
+        })
         .then(({ data: payload }) => {
           if (cancelled) return;
           setData(payload);
@@ -60,7 +67,7 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [requestId, destinationName, destinationSlug, originPayload]);
+  }, [requestId, destinationName, destinationSlug, originPayload, waypointsKey]);
 
   if (!destinationName) return null;
   if (loading && !data) {

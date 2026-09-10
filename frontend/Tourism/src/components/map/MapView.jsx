@@ -41,6 +41,7 @@ import {
   hospitalIcon,
   policeIcon,
   attractionIcon,
+  waypointIcon,
 } from "./icons"
 
 
@@ -109,6 +110,7 @@ const MapView = ({
   hospitals = [],
   policeStations = [],
   route = [],
+  waypoints = [],
   height = "420px"
 }) => {
   const [mapStyle, setMapStyle] = useState("detailed")
@@ -316,6 +318,22 @@ const MapView = ({
 
 
 
+
+        {waypoints.map((waypoint, index) => {
+          const stop = normalizeLocation(waypoint)
+          if (!stop) return null
+          return (
+            <Marker
+              key={`waypoint-${index}`}
+              position={[stop.lat, stop.lng]}
+              icon={waypointIcon(index + 1)}
+            >
+              <Popup>
+                <p className="font-semibold text-sm">Stop {index + 1}: {waypoint?.name || "Waypoint"}</p>
+              </Popup>
+            </Marker>
+          )
+        })}
 
         {
           dest && (

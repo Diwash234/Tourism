@@ -771,6 +771,27 @@ async function run() {
     else fail("travel options endpoint")
   }
 
+  // --- Travel options: multi-stop parity -----------------------------------
+  {
+    const single = await request(`${API}/navigation/travel-options/`, {
+      method: "POST",
+      json: { start_latitude: 27.7172, start_longitude: 85.324, destination_name: "Pokhara" },
+    })
+    const multi = await request(`${API}/navigation/travel-options/`, {
+      method: "POST",
+      json: {
+        start_latitude: 27.7172, start_longitude: 85.324, destination_name: "Pokhara",
+        waypoints: [{ latitude: 27.578, longitude: 84.499, name: "Chitwan" }],
+      },
+    })
+    if (
+      single.res.status === 200 && multi.res.status === 200 &&
+      single.data.multi_stop === false && multi.data.multi_stop === true &&
+      multi.data.waypoints?.[0]?.name === "Chitwan"
+    ) ok("travel options: multi-stop leg sums with honest flags")
+    else fail("travel options multi-stop", `single=${single.res.status} multi=${multi.res.status}`)
+  }
+
   // --- Trip Watch: live position sharing end-to-end -----------------------
   {
     const token = await login("tourist")

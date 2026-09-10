@@ -3557,3 +3557,56 @@ class MultiStopRouteTests(TestCase):
         self.assertIsNone(data["duration_min"])
         self.assertEqual(data["duration_source"], "unavailable")
         self.assertGreater(float(data["distance_km"]), 400)
+
+
+class TravelOptionsMultiStopTests(TestCase):
+    """Phase 6+: travel-options gains the same waypoints contract as
+    /navigation/route — distances become leg sums, honestly labelled."""
+
+    URL = "/api/v1/navigation/travel-options/"
+
+    def _post(self, payload):
+        return APIClient().post(self.URL, payload, format="json")
+
+    def test_multi_stop_leg_sum_and_flags(self):
+        single = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+        })
+        self.assertEqual(single.status_code, 200, single.content)
+        self.assertFalse(single.json()["multi_stop"])
+
+        multi = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+            "waypoints": [{"latitude": 27.578, "longitude": 84.499, "name": "Chitwan"}],
+        })
+        self.assertEqual(multi.status_code, 200, multi.content)
+        data = multi.json()
+        self.assertTrue(data["multi_stop"])
+        self.assertEqual(data["waypoints"][0]["name"], "Chitwan")
+        self.assertEqual(len(data["options"]), 4)
+        taxi = next(o for o in data["options"] if o["mode"] == "taxi")
+        self.assertGreater(float(taxi["distance_km"]), 100)
+        # the via-Chitwan corridor must not silently reuse the direct figure
+        single_km = float(next(o for o in single.json()["options"] if o["mode"] == "taxi")["distance_km"])
+        self.assertNotAlmostEqual(float(taxi["distance_km"]), single_km, delta=1.0)
+
+    def test_unresolvable_waypoint_rejected(self):
+        resp = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+            "waypoints": ["xyz_nonexistent_stop"],
+        })
+        self.assertEqual(resp.status_code, 404)
+
+    def test_more_than_three_waypoints_rejected(self):
+        resp = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+            "waypoints": [
+                {"latitude": 27.6, "longitude": 84.4}, {"latitude": 27.5, "longitude": 84.3},
+                {"latitude": 27.4, "longitude": 84.2}, {"latitude": 27.3, "longitude": 84.1},
+            ],
+        })
+        self.assertEqual(resp.status_code, 400)

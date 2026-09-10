@@ -758,8 +758,45 @@ class TravelOptionsView(APIView):
         if end_lat is None or end_lon is None:
             return Response({"detail": "Destination has no recorded coordinates."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Multi-stop parity (Phase 6+): the same waypoints contract as
+        # /navigation/route — names resolved through the place index, or
+        # explicit coordinates. Distances become leg sums, nothing invented.
+        raw_waypoints = data.get("waypoints") or []
+        if not isinstance(raw_waypoints, list):
+            return Response({"detail": "waypoints must be a list of place names or {latitude, longitude} objects."}, status=status.HTTP_400_BAD_REQUEST)
+        via_points = []
+        for waypoint in raw_waypoints:
+            if isinstance(waypoint, dict):
+                try:
+                    wlat = float(waypoint.get("latitude", waypoint.get("lat")))
+                    wlon = float(waypoint.get("longitude", waypoint.get("lng", waypoint.get("lon"))))
+                except (TypeError, ValueError):
+                    return Response({"detail": "Waypoint coordinates must be numeric."}, status=status.HTTP_400_BAD_REQUEST)
+                via_points.append({"name": str(waypoint.get("name") or "Waypoint")[:120], "latitude": wlat, "longitude": wlon})
+            elif isinstance(waypoint, str) and waypoint.strip():
+                from .location.search_service import LocationSearchService
+                resolved_wp = LocationSearchService.resolve_single_place(waypoint.strip())
+                if not (resolved_wp and resolved_wp.get("latitude") and resolved_wp.get("longitude")):
+                    return Response({"detail": f"No place with recorded coordinates matches waypoint '{waypoint}'."}, status=status.HTTP_404_NOT_FOUND)
+                via_points.append({"name": resolved_wp.get("name") or waypoint.strip(), "latitude": float(resolved_wp["latitude"]), "longitude": float(resolved_wp["longitude"])})
+        if len(via_points) > 3:
+            return Response({"detail": "Up to 3 waypoints are supported per route."}, status=status.HTTP_400_BAD_REQUEST)
+
         from .routing_service import route_metrics, route_steps
         drive = route_metrics(start_lat, start_lon, end_lat, end_lon)
+        if via_points:
+            leg_points = [(start_lat, start_lon)] + [(w["latitude"], w["longitude"]) for w in via_points] + [(end_lat, end_lon)]
+            leg_metrics = [route_metrics(leg_points[i][0], leg_points[i][1], leg_points[i + 1][0], leg_points[i + 1][1]) for i in range(len(leg_points) - 1)]
+            road_total = sum(float(m.get("road_distance_km") or m.get("route_distance_km") or 0) for m in leg_metrics)
+            duration_total = sum(int(m.get("duration_min") or 0) for m in leg_metrics)
+            straight_total = round(sum(float(m.get("straight_line_km") or 0) for m in leg_metrics), 2)
+            drive = {
+                **drive,
+                "road_distance_km": round(road_total, 2) if road_total else None,
+                "route_distance_km": round(road_total, 2) if road_total else None,
+                "straight_line_km": straight_total,
+                "duration_min": duration_total or None,
+            }
         road_km = drive.get("road_distance_km") or drive.get("route_distance_km")
         straight_km = drive.get("straight_line_km")
         km = road_km or straight_km
@@ -897,4 +934,6 @@ class TravelOptionsView(APIView):
             "before_you_go": before or UNAVAILABLE,
             "turn_by_turn": steps_payload,
             "turn_by_turn_note": tbt_note,
+            "multi_stop": bool(via_points),
+            "waypoints": via_points,
         })
