@@ -491,6 +491,29 @@ class NavigationRouteView(APIView):
                 "longitude": start_lon,
                 "resolved_from": "origin_name",
             }
+
+        # Route alternatives (Phase-2 selector): different graph weightings
+        # on the bundled engine, or the provider's own alternatives=true
+        # routes when a street-level provider is configured. Same duration
+        # honesty rules as the primary: no invented times for bus/flight.
+        if transport_mode != "flight" and response_data.get("route"):
+            from .routing_service import route_alternatives
+            alternatives = route_alternatives(
+                start_lat, start_lon, end_lat, end_lon,
+                primary_route_type=mode_route_type or route_type or "fastest",
+                primary_route=result.get("route", []),
+            )
+            for alt in alternatives:
+                if transport_mode == "tourist bus":
+                    alt["duration_min"] = None
+                    alt["duration_source"] = "unavailable"
+                    alt["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
+                elif transport_mode == "walking / trek" and alt.get("distance_km"):
+                    alt["duration_min"] = round((alt["distance_km"] / mode_speed) * 60)
+                    alt["duration_source"] = "estimated"
+                    alt["duration_note"] = f"Estimated at ~{mode_speed:g} km/h trekking pace over {alt['distance_km']} km of route distance."
+            if alternatives:
+                response_data["alternatives"] = alternatives
         return Response(response_data)
 
 

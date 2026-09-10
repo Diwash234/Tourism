@@ -3273,3 +3273,124 @@ class SectionTypographyConfigTests(TestCase):
         safe = AdminCMSView._safe_section_config({"font_family": "Comic Sans", "heading_level": "h9"})
         self.assertNotIn("font_family", safe)
         self.assertNotIn("heading_level", safe)
+
+
+class RouteAlternativesTests(TestCase):
+    """Phase-2 alternatives selector: real alternatives only — provider
+    alternatives=true when configured, different graph weightings otherwise.
+    Identical corridors are dropped; failures yield [] not padded variety."""
+
+    OSRM_THREE = {"code": "Ok", "routes": [
+        {"distance": 200000.0, "duration": 14400.0,
+         "geometry": {"coordinates": [[85.32, 27.71], [85.00, 27.90], [83.99, 28.21]]},
+         "legs": [{"steps": [{"distance": 200000.0, "duration": 14400.0, "name": "Prithvi Highway",
+                              "maneuver": {"type": "depart"}}]}]},
+        {"distance": 215000.0, "duration": 15000.0,
+         "geometry": {"coordinates": [[85.32, 27.71], [84.60, 27.60], [83.99, 28.21]]},
+         "legs": [{"steps": [{"distance": 215000.0, "duration": 15000.0, "name": "Southern Loop",
+                              "maneuver": {"type": "depart"}}]}]},
+        {"distance": 230000.0, "duration": 16200.0,
+         "geometry": {"coordinates": [[85.32, 27.71], [84.20, 28.10], [83.99, 28.21]]},
+         "legs": [{"steps": [{"distance": 230000.0, "duration": 16200.0, "name": "Northern Loop",
+                              "maneuver": {"type": "depart"}}]}]},
+    ]}
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def _set_provider(self, value):
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        SiteSetting.objects.create(key="routing_provider", value=value, is_public=False)
+
+    def test_signature_accepts_dicts_and_arrays(self):
+        from tourist.routing_service import _route_signature
+        self.assertEqual(
+            _route_signature([{"lat": 27.7, "lng": 85.3}, [27.8, 85.4]]),
+            ((27.7, 85.3), (27.8, 85.4)),
+        )
+        self.assertEqual(_route_signature([]), ())
+        self.assertEqual(_route_signature([{"lat": "bad"}, "junk"]), ())
+
+    def test_provider_alternatives_parsed_per_osrm_contract(self):
+        from unittest.mock import MagicMock, patch
+        from tourist.routing_service import route_alternatives
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving"})
+        fake = MagicMock()
+        fake.json.return_value = self.OSRM_THREE
+        fake.raise_for_status.return_value = None
+        with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
+            alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856)
+        # routes[1:3] only — the primary is routes[0]
+        self.assertEqual(len(alts), 2)
+        self.assertEqual(alts[0]["distance_km"], 215.0)
+        self.assertEqual(alts[0]["duration_min"], 250)
+        self.assertEqual(alts[0]["duration_source"], "routing_provider")
+        self.assertEqual(alts[0]["routing_engine"], "osrm_protocol_provider")
+        # geometry converted to the {lat,lng} contract and steps carried
+        self.assertEqual(alts[0]["route"][0], {"lat": 27.71, "lng": 85.32})
+        self.assertEqual(alts[0]["steps"][0]["instruction"], "Head out on Southern Loop")
+        self.assertIn("alternatives", mocked.call_args.kwargs["params"])
+
+    def test_provider_failure_degrades_to_labelled_graph_alternatives(self):
+        from unittest.mock import patch
+        import requests as requests_lib
+        from tourist.routing_service import route_alternatives
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving"})
+        with patch("tourist.routing_service.requests.get", side_effect=requests_lib.RequestException("boom")):
+            alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856)
+        # same degradation path as the primary route: bundled graph,
+        # explicitly labelled — never presented as provider routes
+        self.assertGreaterEqual(len(alts), 1)
+        for alt in alts:
+            self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
+            self.assertIn("coordinate-based", alt["note"])
+
+    def test_graph_alternatives_use_different_weightings(self):
+        from .models import SiteSetting
+        from tourist.routing_service import route_alternatives, _route_signature
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        import sys
+        from pathlib import Path
+        ml_root = Path(__file__).resolve().parent.parent.parent / "ml_service"
+        if str(ml_root) not in sys.path:
+            sys.path.insert(0, str(ml_root))
+        from model.route.route_engine import best_route
+        primary = best_route(27.7172, 85.3240, 28.2096, 83.9856, "fastest")
+        self.assertFalse(primary.get("error"))
+        alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856,
+                                  primary_route_type="fastest",
+                                  primary_route=primary.get("route", []))
+        self.assertGreaterEqual(len(alts), 1)
+        primary_sig = _route_signature(primary.get("route", []))
+        for alt in alts:
+            self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
+            self.assertEqual(alt["duration_source"], "estimated")
+            self.assertIn("coordinate-based", alt["note"])
+            self.assertNotEqual(_route_signature(alt["route"]), primary_sig,
+                                "identical corridor must be discarded, not shown as an alternative")
+
+    def test_navigation_route_attaches_alternatives(self):
+        response = self.client.post("/api/v1/navigation/route", {
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+        }, format="json")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        alts = data.get("alternatives", [])
+        self.assertGreaterEqual(len(alts), 1)
+        for alt in alts:
+            self.assertGreaterEqual(len(alt["route"]), 2)
+            self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
+
+    def test_tourist_bus_alternatives_get_no_invented_times(self):
+        response = self.client.post("/api/v1/navigation/route", {
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+            "transport_mode": "Tourist Bus",
+        }, format="json")
+        self.assertEqual(response.status_code, 200)
+        for alt in response.json().get("alternatives", []):
+            self.assertIsNone(alt["duration_min"])
+            self.assertEqual(alt["duration_source"], "unavailable")

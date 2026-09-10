@@ -171,6 +171,38 @@ export default function Navigation() {
   const [navActive, setNavActive] = useState(false)
   const [mapCenter, setMapCenter] = useState(null)
   const live = useLivePosition(navActive)
+  // Applicable route alternatives from /navigation/route (different graph
+  // weightings, or provider alternatives when a street-level provider is
+  // configured). selectedAlt -1 = the recommended primary route.
+  const [altRoutes, setAltRoutes] = useState([])
+  const [selectedAlt, setSelectedAlt] = useState(-1)
+  const [primarySnapshot, setPrimarySnapshot] = useState(null)
+
+  const applyAlternative = (idx) => {
+    if (idx === -1) {
+      const primary = primarySnapshot
+      if (!primary) return
+      setSelectedAlt(-1)
+      setRoute(primary.route)
+      setSteps(primary.steps)
+      setDistance(primary.distance)
+      setDurationMin(primary.durationMin)
+      setDurationNote(primary.durationNote)
+      setDurationSource(primary.durationSource)
+      setCurrentStepIdx(0)
+      return
+    }
+    const alt = altRoutes[idx]
+    if (!alt) return
+    setSelectedAlt(idx)
+    setRoute(alt.route || [])
+    setSteps(Array.isArray(alt.steps) ? alt.steps : [])
+    setDistance(alt.distance_km ?? null)
+    setDurationMin(alt.duration_min ?? null)
+    setDurationNote(alt.duration_note || "")
+    setDurationSource(alt.duration_source || "")
+    setCurrentStepIdx(0)
+  }
 
   // Off-route reroute: same endpoint as the manual calculate button, but the
   // origin is the current GPS fix. Returns true when a fresh route applied.
@@ -187,12 +219,23 @@ export default function Navigation() {
       })
       const newRoute = response.data.route || []
       if (newRoute.length < 2) return false
+      const reroutedSteps = Array.isArray(response.data.steps) ? response.data.steps : []
       setRoute(newRoute)
-      setSteps(Array.isArray(response.data.steps) ? response.data.steps : [])
+      setSteps(reroutedSteps)
       setDistance(response.data.distance_km ?? null)
       setDurationMin(response.data.duration_min ?? null)
       setDurationNote(response.data.duration_note || "")
       setDurationSource(response.data.duration_source || "")
+      setPrimarySnapshot({
+        route: newRoute,
+        steps: reroutedSteps,
+        distance: response.data.distance_km ?? null,
+        durationMin: response.data.duration_min ?? null,
+        durationNote: response.data.duration_note || "",
+        durationSource: response.data.duration_source || "",
+      })
+      setAltRoutes(Array.isArray(response.data.alternatives) ? response.data.alternatives : [])
+      setSelectedAlt(-1)
       return true
     } catch {
       return false
@@ -287,6 +330,18 @@ export default function Navigation() {
       setDurationSource(response.data.duration_source || "")
       setDistance(response.data.distance_km ?? null)
       setCurrentStepIdx(0)
+      // Applicable alternatives + a snapshot of the recommended primary so
+      // the selector can always restore it.
+      setPrimarySnapshot({
+        route: response.data.route || [],
+        steps: recordedSteps,
+        distance: response.data.distance_km ?? null,
+        durationMin: response.data.duration_min ?? null,
+        durationNote: response.data.duration_note || "",
+        durationSource: response.data.duration_source || "",
+      })
+      setAltRoutes(Array.isArray(response.data.alternatives) ? response.data.alternatives : [])
+      setSelectedAlt(-1)
 
       // Navigation history (spec item 16): silently log each successful
       // calculation for signed-in travellers. Failures never disturb the map.
@@ -1112,6 +1167,30 @@ export default function Navigation() {
                     <span className="text-lg font-black text-emerald-400">{durationMin ? `${durationMin} mins` : "—"}</span>
                   )}
                 </div>
+                {altRoutes.length > 0 && (
+                  <div className="col-span-2 text-left space-y-1" data-testid="route-alternatives">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Route options</p>
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        onClick={() => applyAlternative(-1)}
+                        className={`px-2 py-1 rounded-lg text-[11px] font-bold ${selectedAlt === -1 ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
+                      >
+                        Recommended{primarySnapshot?.distance ? ` · ${primarySnapshot.distance} km` : ""}{primarySnapshot?.durationMin ? ` · ${primarySnapshot.durationMin} min` : ""}
+                      </button>
+                      {altRoutes.map((alt, i) => (
+                        <button
+                          key={`${alt.label || "alt"}-${i}`}
+                          type="button"
+                          onClick={() => applyAlternative(i)}
+                          className={`px-2 py-1 rounded-lg text-[11px] font-bold ${selectedAlt === i ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
+                        >
+                          {alt.label || `Alternative ${i + 1}`} · {alt.distance_km} km{alt.duration_min ? ` · ${alt.duration_min} min` : " · no ETA"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="col-span-2 text-left">
                   <button
                     type="button"
