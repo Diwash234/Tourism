@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi"
 import safetyApi, { familyApi } from "../api/safetyApi"
 import useGeolocation from "../hooks/useGeolocation"
+import useLivePosition from "../hooks/useLivePosition"
 import useToast from "../hooks/useToast"
 import { useI18n } from "../i18n"
 
@@ -31,6 +32,25 @@ const FamilySafety = () => {
   const { showToast } = useToast()
   const { t } = useI18n()
   const [activeTrip, setActiveTrip] = useState(null)
+  // Live GPS while sharing: the one-shot fix above would go stale — the
+  // ping interval must send the CURRENT position, not the starting one.
+  const live = useLivePosition(Boolean(activeTrip))
+  const livePosRef = useRef(null)
+  useEffect(() => {
+    if (live.position) livePosRef.current = live.position
+  }, [live.position])
+
+  // Ping the backend on an interval with the freshest fix available.
+  useEffect(() => {
+    if (!activeTrip?.id) return undefined
+    const id = window.setInterval(() => {
+      const pos = livePosRef.current
+      if (pos) {
+        safetyApi.sendPing(activeTrip.id, { latitude: pos.lat, longitude: pos.lng }).catch(() => {})
+      }
+    }, PING_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [activeTrip?.id])
   const [label, setLabel] = useState("")
   const [sosLoading, setSosLoading] = useState(false)
 
@@ -49,8 +69,6 @@ const FamilySafety = () => {
     const t = setInterval(() => setNow(Date.now()), 30000)
     return () => clearInterval(t)
   }, [])
-
-  const pingIntervalRef = useRef(null)
 
   const loadLinks = useCallback(async () => {
     try {
@@ -79,7 +97,6 @@ const FamilySafety = () => {
     return () => {
       clearTimeout(boot)
       clearInterval(timer)
-      clearInterval(pingIntervalRef.current)
     }
   }, [loadLinks, loadMembers])
 
@@ -93,14 +110,9 @@ const FamilySafety = () => {
       const { data } = await safetyApi.startTrip({ label, expires_at })
       setActiveTrip(data)
       showToast("Live location sharing started — your family is notified.", "success")
-      // notify family members immediately with the first ping
+      // first ping immediately from the one-shot fix; the interval effect
+      // keeps sending the CURRENT watchPosition fix from here on
       safetyApi.sendPing(data.id, { latitude: position.lat, longitude: position.lng }).catch(() => {})
-
-      pingIntervalRef.current = setInterval(() => {
-        if (position) {
-          safetyApi.sendPing(data.id, { latitude: position.lat, longitude: position.lng }).catch(() => {})
-        }
-      }, PING_INTERVAL_MS)
     } catch (err) {
       showToast("Could not start sharing.", "error")
     }
@@ -109,7 +121,6 @@ const FamilySafety = () => {
   const stopSharing = async () => {
     if (!activeTrip) return
     await safetyApi.endTrip(activeTrip.id)
-    clearInterval(pingIntervalRef.current)
     setActiveTrip(null)
     showToast("Location sharing stopped.", "success")
   }
@@ -125,8 +136,8 @@ const FamilySafety = () => {
     setSosLoading(true)
     try {
       await safetyApi.triggerSos({
-        latitude: position?.lat,
-        longitude: position?.lng,
+        latitude: (livePosRef.current || position)?.lat,
+        longitude: (livePosRef.current || position)?.lng,
         trip: activeTrip?.id,
         message: "SOS triggered from the app.",
       })

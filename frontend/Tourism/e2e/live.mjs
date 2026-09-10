@@ -771,6 +771,45 @@ async function run() {
     else fail("travel options endpoint")
   }
 
+  // --- Trip Watch: live position sharing end-to-end -----------------------
+  {
+    const token = await login("tourist")
+    const auth = { Authorization: `Bearer ${token}` }
+    const created = await request(`${API}/safety/trips/`, {
+      method: "POST", headers: auth,
+      json: { label: "e2e live share", expires_at: new Date(Date.now() + 3600e3).toISOString() },
+    })
+    if (created.res.status !== 201) fail("trip watch: create trip", `status=${created.res.status}`)
+    else {
+      const trip = created.data
+      const ping1 = await request(`${API}/safety/trips/${trip.id}/ping/`, {
+        method: "POST", headers: auth, json: { latitude: 28.2096, longitude: 83.9856 },
+      })
+      const ping2 = await request(`${API}/safety/trips/${trip.id}/ping/`, {
+        method: "POST", headers: auth, json: { latitude: 27.7172, longitude: 85.324 },
+      })
+      if (ping1.res.status !== 201 || ping2.res.status !== 201) fail("trip watch: pings accepted", `${ping1.res.status}/${ping2.res.status}`)
+      else ok("trip watch: owner pings accepted")
+
+      // contact side: token-only access, latest ping must be the newest fix
+      const shared = await request(`${API}/safety/trip-share/${trip.share_token}/`)
+      const latest = shared.data?.latest_ping
+      if (shared.res.status === 200 && latest && Math.abs(Number(latest.latitude) - 27.7172) < 1e-3) ok("trip watch: contact sees latest position via token")
+      else fail("trip watch: contact token view", `status=${shared.res.status} latest=${JSON.stringify(latest)}`)
+
+      // unguessable token: random UUID must 404, not leak existence
+      const probe = await request(`${API}/safety/trip-share/00000000-0000-4000-8000-000000000000/`)
+      if (probe.res.status === 404) ok("trip watch: unknown token rejected")
+      else fail("trip watch: token probe", `status=${probe.res.status}`)
+
+      // end: contact view stops working immediately
+      await request(`${API}/safety/trips/${trip.id}/end/`, { method: "POST", headers: auth })
+      const afterEnd = await request(`${API}/safety/trip-share/${trip.share_token}/`)
+      if (afterEnd.res.status === 404) ok("trip watch: ending share revokes contact access")
+      else fail("trip watch: revoke on end", `status=${afterEnd.res.status}`)
+    }
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }
