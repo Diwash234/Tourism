@@ -677,6 +677,25 @@ async function run() {
     } else fail("websocket chat push")
   }
 
+  {
+    // §6/§69 — road distance via admin-configurable HTTPS provider, honest fallbacks
+    const metrics = await request(`${API}/routing/metrics/`, {
+      method: "POST",
+      json: { start_latitude: 27.7172, start_longitude: 85.324, end_latitude: 28.2096, end_longitude: 83.9956 },
+    })
+    const token = await login("admin")
+    const settingsResp = await request(`${API}/admin/cms/?resource=settings`, { headers: { Authorization: `Bearer ${token}` } })
+    const rows = settingsResp.data?.results || []
+    const provider = rows.find((row) => row.key === "routing_provider")
+    const statusOk = ["routed", "graph_routed", "routing_unavailable", "routing_unconfigured"].includes(metrics.data?.status)
+    if (
+      metrics.res.ok && typeof metrics.data?.straight_line_km === "number" && statusOk &&
+      metrics.data?.note && provider && String(provider.value?.base_url || "").startsWith("https://") &&
+      provider.is_public === false
+    ) ok("road distances come from an admin-configurable HTTPS provider with honest fallbacks")
+    else fail("road distance provider")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

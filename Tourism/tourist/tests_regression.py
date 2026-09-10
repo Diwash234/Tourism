@@ -2764,3 +2764,73 @@ class RichTextBodySanitizationTests(TestCase):
         self.assertIn('href="#"', self.section.body)
         self.assertIn("<p>Hi</p>", self.section.body)
 
+
+class RoadDistanceProviderTests(TestCase):
+    """Master spec §6/§69: real road distance via an admin-configured provider."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def _set_provider(self, value):
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        SiteSetting.objects.create(key="routing_provider", value=value, is_public=False)
+
+    def _metrics(self, coords=(27.7172, 85.3240, 28.2096, 83.9956)):
+        return self.client.post("/api/v1/routing/metrics/", {
+            "start_latitude": coords[0], "start_longitude": coords[1],
+            "end_latitude": coords[2], "end_longitude": coords[3],
+        })
+
+    def test_migration_seeds_https_provider_setting(self):
+        import importlib
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        migration = importlib.import_module("tourist.migrations.0068_seed_routing_provider")
+        from django.apps import apps as global_apps
+        migration.seed_routing_provider(global_apps, None)
+        row = SiteSetting.objects.get(key="routing_provider")
+        self.assertTrue(row.value["base_url"].startswith("https://"))
+        self.assertFalse(row.is_public)
+
+    def test_admin_provider_setting_produces_road_distance(self):
+        from unittest.mock import MagicMock, patch
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving", "api_key": ""})
+        fake = MagicMock()
+        fake.json.return_value = {"routes": [{"distance": 123456.0, "duration": 7200.0}]}
+        fake.raise_for_status.return_value = None
+        with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
+            response = self._metrics()
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "routed")
+        self.assertEqual(data["road_distance_km"], 123.46)
+        self.assertEqual(data["duration_min"], 120)
+        self.assertEqual(mocked.call_count, 1)
+        self.assertIn("osrm.example.test", mocked.call_args[0][0])
+
+    def test_http_provider_is_rejected_without_calling_it(self):
+        from unittest.mock import patch
+        self._set_provider({"enabled": True, "base_url": "http://insecure.example.test/route/v1/driving"})
+        with patch("tourist.routing_service.requests.get") as mocked:
+            response = self._metrics()
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(mocked.call_count, 0)
+        self.assertNotEqual(data["status"], "routed")
+        self.assertIsNotNone(data["straight_line_km"])
+
+    def test_provider_failure_degrades_to_labelled_fallback(self):
+        from unittest.mock import patch
+        import requests as requests_lib
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving"})
+        with patch("tourist.routing_service.requests.get", side_effect=requests_lib.RequestException("boom")):
+            response = self._metrics()
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn(data["status"], {"graph_routed", "routing_unavailable"})
+        self.assertIsNone(data["road_distance_km"])
+        # The note must keep the honest labelling in every fallback branch.
+        self.assertTrue("not road distance" in data["note"] or "not a street-level" in data["note"] or "not a GraphHopper/OSRM" in data["note"])
+

@@ -1044,6 +1044,10 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
 
     @override_settings(ROUTING_API_URL="", LOCAL_GRAPH_ROUTING_ENABLED=False)
     def test_routing_fallback_labels_straight_line_distance(self):
+        # The admin SiteSetting takes precedence over the environment, so
+        # "unconfigured" means neither source provides a provider.
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
         response = self.client.post(reverse("route-metrics"), {
             "start_latitude": 28.2096, "start_longitude": 83.9856,
             "end_latitude": 28.2380, "end_longitude": 83.9956,

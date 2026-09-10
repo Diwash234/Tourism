@@ -1,4 +1,14 @@
-"""Optional road metrics with an explicit straight-line fallback."""
+"""Road metrics with an admin-configurable provider and honest fallbacks.
+
+Order of truth (master spec §6/§69):
+  1. The admin-configured road-routing provider (SiteSetting
+     ``routing_provider``, HTTPS base URLs only — no code or deploy needed).
+  2. The bundled tourism GraphML graph — explicitly labelled as an
+     approximation, never presented as street-level road distance.
+  3. Straight-line distance — explicitly labelled as NOT road distance.
+
+Haversine output is never returned as road distance in any branch.
+"""
 import hashlib
 
 import requests
@@ -6,6 +16,30 @@ from django.conf import settings
 from django.core.cache import cache
 
 from .utils import haversine_distance
+
+PROVIDER_SETTING_KEY = "routing_provider"
+
+
+def provider_config():
+    """Resolve the road-routing provider.
+
+    The admin SiteSetting wins over the environment so the provider can be
+    swapped or disabled without a code change. Only HTTPS base URLs are
+    accepted from the setting — a provider can never be downgraded to HTTP.
+    Value shape: {"enabled": bool, "base_url": "https://.../route/v1/driving",
+                  "api_key": "optional bearer token"}.
+    """
+    from .models import SiteSetting
+
+    row = SiteSetting.objects.filter(key=PROVIDER_SETTING_KEY).first()
+    if row is not None and isinstance(row.value, dict):
+        base = str(row.value.get("base_url") or "").strip().rstrip("/")
+        api_key = str(row.value.get("api_key") or "")
+        enabled = bool(row.value.get("enabled", True)) and base.startswith("https://")
+        return {"enabled": enabled, "base_url": base, "api_key": api_key, "source": "admin_setting"}
+    base = (getattr(settings, "ROUTING_API_URL", "") or "").strip().rstrip("/")
+    api_key = getattr(settings, "ROUTING_API_KEY", "") or ""
+    return {"enabled": bool(base), "base_url": base, "api_key": api_key, "source": "environment"}
 
 
 def _local_graph_metrics(values):
@@ -46,25 +80,32 @@ def _local_graph_metrics(values):
 def route_metrics(start_lat, start_lon, end_lat, end_lon):
     values = list(map(float, (start_lat, start_lon, end_lat, end_lon)))
     straight = round(haversine_distance(*values), 2)
-    if not settings.ROUTING_API_URL:
+    provider = provider_config()
+
+    if not provider["enabled"]:
         local = _local_graph_metrics(values)
         if local:
             return local
         return {
             "straight_line_km": straight, "route_distance_km": None, "road_distance_km": None,
             "duration_min": None, "status": "routing_unconfigured",
-            "note": "No usable local graph path or road-routing service; straight-line distance is not road distance.",
+            "routing_engine": None,
+            "note": "No road-routing provider configured (admin: site setting 'routing_provider'); "
+                    "straight-line distance is not road distance.",
         }
-    key_raw = ":".join(f"{value:.5f}" for value in values)
+
+    # Cache per coordinate pair AND provider, so switching providers in the
+    # admin panel takes effect immediately instead of serving stale routes.
+    key_raw = provider["base_url"] + ":" + ":".join(f"{value:.5f}" for value in values)
     cache_key = "route-metrics:" + hashlib.sha256(key_raw.encode()).hexdigest()
     cached = cache.get(cache_key)
     if cached:
         return cached
-    base = settings.ROUTING_API_URL.rstrip("/")
-    url = f"{base}/route/v1/driving/{values[1]},{values[0]};{values[3]},{values[2]}"
+
+    url = f"{provider['base_url']}/route/v1/driving/{values[1]},{values[0]};{values[3]},{values[2]}"
     headers = {"Accept": "application/json", "User-Agent": "NepalTourismRouting/1.0"}
-    if settings.ROUTING_API_KEY:
-        headers["Authorization"] = f"Bearer {settings.ROUTING_API_KEY}"
+    if provider["api_key"]:
+        headers["Authorization"] = f"Bearer {provider['api_key']}"
     try:
         response = requests.get(url, params={"overview": "false", "steps": "false"}, headers=headers, timeout=settings.EXTERNAL_SYNC_TIMEOUT)
         response.raise_for_status()
@@ -74,13 +115,24 @@ def route_metrics(start_lat, start_lon, end_lat, end_lon):
             "route_distance_km": round(float(route["distance"]) / 1000, 2),
             "road_distance_km": round(float(route["distance"]) / 1000, 2),
             "duration_min": round(float(route["duration"]) / 60),
-            "status": "routed", "note": "Road metric supplied by the configured routing service.",
+            "status": "routed",
+            "routing_engine": "osrm_protocol_provider",
+            "provider_source": provider["source"],
+            "note": "Road metric supplied by the configured routing service.",
         }
         cache.set(cache_key, result, timeout=1800)
         return result
     except (requests.RequestException, IndexError, KeyError, TypeError, ValueError) as exc:
+        # Provider failed: degrade to the bundled graph (clearly labelled as
+        # an approximation), and only then to honestly-labelled straight line.
+        local = _local_graph_metrics(values)
+        if local:
+            local["note"] += " The configured road-routing provider failed; this is the bundled-graph approximation, not a street-level route."
+            local["provider_source"] = provider["source"]
+            return local
         return {
             "straight_line_km": straight, "route_distance_km": None, "road_distance_km": None,
             "duration_min": None, "status": "routing_unavailable",
-            "note": f"Routing service unavailable; showing straight-line distance only. {str(exc)[:120]}",
+            "routing_engine": None,
+            "note": f"Routing service unavailable; showing straight-line distance only, which is not road distance. {str(exc)[:120]}",
         }
