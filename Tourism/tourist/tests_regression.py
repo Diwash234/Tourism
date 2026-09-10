@@ -3037,3 +3037,85 @@ class TravelOptionsTests(TestCase):
             format="json",
         )
         self.assertEqual(res.status_code, 400)
+
+
+class ItineraryMLGuardTests(TestCase):
+    """Task-79: the ML microservice is the primary itinerary planner, but
+    Django must never serve a plan built around a different place than the
+    traveller requested (the ML planner defaults to Kathmandu for place
+    names it does not know, e.g. the district "Kaski")."""
+
+    def setUp(self):
+        category = Category.objects.first() or Category.objects.create(name="Test", slug="test")
+        Destination.objects.create(
+            name="Phewa Lake", slug="phewa-lake-guard-test",
+            district="Kaski", city_english="Pokhara",
+            latitude=28.21, longitude=83.95, category=category,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+    def test_plan_matching_requested_place_is_accepted(self):
+        from tourist.views_ml import _ml_plan_matches_place
+        payload = {"itinerary": [{"city": "Pokhara", "destinations": [{"name": "X", "city": "Pokhara"}]}]}
+        self.assertTrue(_ml_plan_matches_place(payload, "Pokhara"))
+        self.assertTrue(_ml_plan_matches_place(payload, ""))  # no place constraint
+        self.assertTrue(_ml_plan_matches_place({"days": [{"city": "Pokhara"}]}, "pokhara"))
+
+    def test_off_topic_plan_is_detected(self):
+        from tourist.views_ml import _ml_plan_matches_place
+        payload = {"itinerary": [{"city": "Kathmandu", "destinations": [{"name": "X", "city": "Kathmandu"}]}]}
+        self.assertFalse(_ml_plan_matches_place(payload, "Kaski"))
+
+    def test_off_topic_ml_response_falls_back_to_db_engine(self):
+        from unittest import mock
+
+        class FakeResponse:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"itinerary": [{"city": "Kathmandu", "day": 1,
+                                       "destinations": [{"name": "Ktm Place", "city": "Kathmandu"}]}]}
+
+        with mock.patch("tourist.views_ml.requests.post", return_value=FakeResponse()):
+            resp = self.client.post(
+                "/api/v1/ml/itinerary/",
+                {"days": 1, "start_city": "Kaski"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        # The Kathmandu plan was rejected; the district-scoped DB engine ran.
+        self.assertEqual(data.get("source"), "internal_db_engine")
+        stops = [x for day in data["itinerary"] for x in day.get("destinations", [])]
+        self.assertTrue(stops)
+        for stop in stops:
+            self.assertTrue(
+                "kaski" in str(stop.get("district", "")).lower() or stop.get("day_trip"),
+                f"off-topic stop leaked: {stop.get('name')} / {stop.get('district')}",
+            )
+
+    def test_on_topic_ml_response_is_served_and_enriched(self):
+        from unittest import mock
+
+        class FakeResponse:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"total_estimated_npr": 5000,
+                        "itinerary": [{"city": "Kaski", "day": 1, "theme": "lakes",
+                                       "destinations": [{"name": "Phewa Lake", "city": "Pokhara",
+                                                         "latitude": 28.21, "longitude": 83.95}]}]}
+
+        with mock.patch("tourist.views_ml.requests.post", return_value=FakeResponse()):
+            resp = self.client.post(
+                "/api/v1/ml/itinerary/",
+                {"days": 1, "start_city": "Kaski"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIsNone(data.get("source"))
+        self.assertEqual(data["total_estimated_npr"], 5000)
+        self.assertEqual(data["service_data_source"], "live_database_distance_ranking")

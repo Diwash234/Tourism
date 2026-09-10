@@ -716,6 +716,25 @@ async function run() {
   }
 
   {
+    // ML itinerary microservice (:8001) is the primary planner; the DB engine
+    // is the automatic fallback. Either way Django must enrich every day with
+    // real nearby services from the live database.
+    const plan = await request(`${API}/ml/itinerary/`, {
+      method: "POST",
+      json: { days: 2, start_city: "Pokhara", travelers: 2, interests: ["nature"] },
+    })
+    const days = plan.data?.itinerary || []
+    const mlPath = plan.data?.total_estimated_npr != null && plan.data?.source !== "internal_db_engine"
+    const enriched = plan.data?.service_data_source === "live_database_distance_ranking"
+    const servicesOk =
+      days.length > 0 &&
+      days.every((d) => d.nearby_services && Array.isArray(d.nearby_services.hospitals))
+    if (plan.res.ok && days.length === 2 && enriched && servicesOk)
+      ok(`itinerary planner (${mlPath ? "ML microservice" : "DB fallback"}) + live DB service enrichment`)
+    else fail("ml itinerary integration")
+  }
+
+  {
     // Task-79 §5/§24: the 77-district structure is served by the API
     const districts = await request(`${API}/districts/`)
     const rolpa = await request(`${API}/districts/rolpa/`)

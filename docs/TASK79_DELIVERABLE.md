@@ -24,6 +24,7 @@ evidence.
 | `destroy is not a function` | Root-caused earlier and re-verified: `ChartCard.jsx` is the **only** chart renderer (Bar/Line/Pie delegate to it); the race (fresh object literals per render driving react-chartjs-2's destroy/redraw path) is fixed via content-signature-memoised data/options + ErrorBoundary. No `useEffect(async`, no stray `.destroy` in `src/`. |
 | Footer redesign | Deep navy `#07101F` + subtle radial teal glow; teal = brand/links, gold = action only (compact "Explore Nepal →"); dedicated Emergency block (Police 100 / Ambulance 102 / Fire 101); subtle Himalayan silhouette (~4.5% opacity); subtle-bordered newsletter panel; simple bottom bar. All CMS hooks + real newsletter API preserved. |
 | Destination navigation screen | `POST /api/v1/navigation/travel-options/` — per-mode comparison (taxi / bus / walk / bicycle) with routing-service distances; costs from the admin fare card only (labelled estimates; delete a key → "Information unavailable"); rule-based recommendation with reasons; along-the-way recorded places with detour minutes; before-you-go facts from the destination record; turn-by-turn via `routing_service.route_steps()` when a live provider is configured, else coordinate-based steps from the bundled Nepal graph (always labelled "not street-level"; the label renders under the steps in the UI). Rendered by `TravelOptionsPanel` on the Navigation page. |
+| ML itinerary microservice | `ml_service` (FastAPI :8001, pinned venv) now runs as the primary planner; Django validates every ML response against the requested place (`_ml_plan_matches_place`) and falls back to the district-scoped DB engine when the plan is off-topic or the service is down; ML city picker learnt traveller-typed district names ("Kaski" → Pokhara). |
 | Fare card | SiteSetting `fare_card` (migration `0070`) seeds admin-editable typicals (taxi base 100 + 50/km, bicycle rental 200, bus 30) — editable in Django admin (`SiteSetting`) and via the CMS settings JSON editor; values are always labelled as estimates. |
 | Itinerary UX (§35) | Save (existing), plus new **Share** (link with `?city=&days=` rebuilds the same plan; Web Share API when available) and **Export / print** buttons. Generated stops now render their planned `🕐 start–end` times and day-trip labels from the fallback engine. |
 | Search (§19) | Public destination search suggestions now merge matching **districts** (top 3), routing selection to `/districts/<slug>`. |
@@ -91,6 +92,13 @@ python manage.py migrate            # applies 0069, 0070
 python manage.py seed_districts     # idempotent 77-district seed
 python manage.py runserver 0.0.0.0:8000
 
+# ML itinerary microservice (optional but recommended — Django falls back
+# to the internal DB planner automatically when it is down)
+python3.11 -m venv /tmp/mlvenv      # any clean venv; NOT the Django one
+/tmp/mlvenv/bin/pip install -r ml_service/requirements.txt
+cd ml_service
+/tmp/mlvenv/bin/uvicorn app:app --host 0.0.0.0 --port 8001
+
 # frontend
 cd frontend/Tourism
 npm install
@@ -103,11 +111,12 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
 
 ## 18. Test results (this session, latest run)
 
-- Backend: `tourist.tests_regression` — **195 tests OK** (district architecture ×7,
-  time-aware plans, travel options ×3, sqlite hardening, itinerary district-specificity ×4, …).
-- Live e2e: **60/60 passed**, including district API, travel-options,
-  district-specific itineraries, admin→DB→API→public flow, WebSocket chat,
-  routing-provider honesty checks.
+- Backend: `tourist.tests_regression` — **199 tests OK** (district architecture ×7,
+  time-aware plans, travel options ×3, sqlite hardening, itinerary district-specificity ×4,
+  ML-planner guard ×4, …).
+- Live e2e: **61/61 passed**, including district API, travel-options,
+  district-specific itineraries, ML-microservice planner + DB enrichment,
+  admin→DB→API→public flow, WebSocket chat, routing-provider honesty checks.
 - Frontend: eslint 0 errors on changed files; production build green.
 
 ## 19. Remaining limitations (honest)
@@ -126,8 +135,18 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
    **administrative summary** (province, region type, seat elevation,
    computed nearest districts) labelled "Auto-generated … curated
    description pending". No invented tourism prose.
-3. **ML itinerary service** (port 8001) is optional; the DB fallback is the
-   verified path in development.
+3. **ML itinerary service** (port 8001) now runs in development: a dedicated
+   venv with the pinned `ml_service/requirements.txt` (sklearn 1.5.0 matches
+   the trained `.joblib` models) serves it via uvicorn, and Django's
+   `POST /api/v1/ml/itinerary/` uses it as the primary planner — verified
+   end-to-end (dataset destinations, graphml road legs, NPR budget scaling,
+   then Django attaches live-DB hotels/hospitals/police per day,
+   `service_data_source: live_database_distance_ranking`). The internal DB
+   engine remains the automatic fallback whenever the service is down **or
+   plans around a different place than requested** — Django validates the ML
+   response against the requested district/city (`_ml_plan_matches_place`)
+   and rejects off-topic plans, and the ML service itself now normalises
+   traveller-typed district names ("Kaski" → Pokhara) before city picking.
 4. **Responsive audit at 320–1440px** was implemented-by-design (drawer,
    grids, footer) but cannot be machine-verified in this sandbox: every
    browser-binary source was tried and is blocked at network level —

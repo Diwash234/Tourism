@@ -520,6 +520,35 @@ def enrich_itinerary_with_services(payload):
     return payload
 
 
+def _ml_plan_matches_place(payload, place):
+    """True when the ML plan actually visits the requested place.
+
+    The ML service silently plans around its default city when it does not
+    recognise a place name (e.g. the district name "Kaski"), so callers must
+    be able to detect that and prefer the internal district-scoped engine
+    instead of serving a plan for the wrong place.
+    """
+    needle = (place or "").strip().lower()
+    if not needle:
+        return True  # no place constraint - any plan is on-topic
+    days = payload.get("itinerary") or payload.get("days") or []
+    if not isinstance(days, list):
+        return False
+    for day in days:
+        if not isinstance(day, dict):
+            continue
+        candidates = [day.get("city"), day.get("district")]
+        for stop in day.get("destinations") or day.get("stops") or []:
+            if isinstance(stop, dict):
+                candidates.append(stop.get("city"))
+                candidates.append(stop.get("district"))
+        for value in candidates:
+            text = str(value or "").strip().lower()
+            if text and (needle in text or text in needle):
+                return True
+    return False
+
+
 class ItineraryView(APIView):
     """
     POST /api/v1/ml/itinerary/
@@ -539,6 +568,7 @@ class ItineraryView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        ml_payload = None
         try:
             response = requests.post(
                 f"{settings.ML_SERVICE_URL}/itinerary/build",
@@ -555,163 +585,175 @@ class ItineraryView(APIView):
                 timeout=settings.ML_SERVICE_TIMEOUT * 3,
             )
             response.raise_for_status()
-            return Response(enrich_itinerary_with_services(response.json()))
+            ml_payload = response.json()
         except requests.RequestException as exc:
             logger.warning("ML itinerary service unreachable: %s", exc)
-            # Internal database fallback itinerary builder
-            days = max(1, data.get("days", 3))
-            travelers = max(1, data.get("travelers", 1))
-            interests = data.get("interests", ["culture"])
-            start_city = (data.get("start_city") or "Kathmandu").strip()
-            district = (data.get("district") or "").strip()
 
-            qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
-
-            # A typed place may be a district, city or province ("Rolpa" is a
-            # district, not a city) — match every level so district requests
-            # never fall through to a generic nationwide plan.
-            from django.db.models import Q
-            place = district or start_city
-            scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
-            scope_label = f"places recorded in “{place}”"
-            scoped = scope.exists()
-            if not scoped and district and district != start_city:
-                scope = qs.filter(Q(district__icontains=start_city) | Q(city__icontains=start_city))
-                scope_label = f"places recorded in “{start_city}”"
-                scoped = scope.exists()
-            if not scoped:
-                scope = qs
-                scope_label = None
-
-            def interest_score(dest):
-                hay = " ".join(filter(None, [
-                    dest.category.name if dest.category_id else "",
-                    dest.name,
-                    dest.short_description or "",
-                ])).lower()
-                return sum(1 for term in interests if term and str(term).lower() in hay)
-
-            candidates = sorted(
-                list(scope.select_related("category")[:400]),
-                key=lambda d: (-interest_score(d), d.name),
+        requested_place = ((data.get("district") or data.get("start_city")) or "").strip()
+        if ml_payload is not None:
+            if _ml_plan_matches_place(ml_payload, requested_place):
+                return Response(enrich_itinerary_with_services(ml_payload))
+            # The ML planner silently defaulted to another city (e.g. it does
+            # not know the district name "Kaski" → Pokhara). Never serve a
+            # plan for a different place than the traveller asked for.
+            logger.info(
+                "ML itinerary planned away from %r - using internal DB engine",
+                requested_place,
             )
+        # Internal database fallback itinerary builder
+        days = max(1, data.get("days", 3))
+        travelers = max(1, data.get("travelers", 1))
+        interests = data.get("interests", ["culture"])
+        start_city = (data.get("start_city") or "Kathmandu").strip()
+        district = (data.get("district") or "").strip()
 
-            # Greedy nearest-neighbour ordering so each day stays geographically
-            # compact instead of zig-zagging across the district.
-            want = min(len(candidates), max(days * 2, 2))
-            pool = candidates[:want]
-            ordered, remaining = [], list(pool)
-            cursor = None
-            while remaining:
-                if cursor is not None and cursor.latitude is not None and cursor.longitude is not None:
-                    remaining.sort(key=lambda p: (
-                        haversine_distance(float(cursor.latitude), float(cursor.longitude),
-                                           float(p.latitude), float(p.longitude))
-                        if p.latitude is not None and p.longitude is not None else 10_000.0
-                    ))
-                nxt = remaining.pop(0)
-                ordered.append(nxt)
-                cursor = nxt
+        qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
 
-            def to_item(dest, day_trip=False):
-                item = {
-                    "name": dest.name,
-                    "city": dest.city or (dest.district or start_city),
-                    "district": dest.district or "",
-                    "latitude": float(dest.latitude) if dest.latitude is not None else None,
-                    "longitude": float(dest.longitude) if dest.longitude is not None else None,
-                    "category": dest.category.name if dest.category_id else "Attraction",
-                }
-                if day_trip:
-                    item["day_trip"] = True
-                    item["note"] = f"Nearest recorded place outside “{place}” — a day trip, not inside the requested area."
-                return item
+        # A typed place may be a district, city or province ("Rolpa" is a
+        # district, not a city) — match every level so district requests
+        # never fall through to a generic nationwide plan.
+        from django.db.models import Q
+        place = district or start_city
+        scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
+        scope_label = f"places recorded in “{place}”"
+        scoped = scope.exists()
+        if not scoped and district and district != start_city:
+            scope = qs.filter(Q(district__icontains=start_city) | Q(city__icontains=start_city))
+            scope_label = f"places recorded in “{start_city}”"
+            scoped = scope.exists()
+        if not scoped:
+            scope = qs
+            scope_label = None
 
-            def schedule_items(items):
-                """Time-aware day plan (§12). Planning-grade estimates, clearly
-                labelled: 09:00 start, ~90 min per place, travel legs derived
-                from straight-line distance at ~35 km/h (road times come from
-                the routing service, never faked as exact)."""
-                cursor = 9 * 60
-                prev = None
-                for item in items:
-                    if prev is not None and item.get("latitude") is not None and item.get("longitude") is not None:
-                        km = haversine_distance(prev["latitude"], prev["longitude"],
-                                                item["latitude"], item["longitude"])
-                        travel_min = max(10, int(km / 35.0 * 60))
-                        item["travel_from_previous"] = {
-                            "distance_km": round(km, 1),
-                            "minutes_estimated": travel_min,
-                        }
-                        cursor += travel_min
-                    item["start_time"] = f"{cursor // 60:02d}:{cursor % 60:02d}"
-                    item["duration_minutes"] = 90
-                    cursor += 90
-                    item["end_time"] = f"{cursor // 60:02d}:{cursor % 60:02d}"
-                    prev = item
+        def interest_score(dest):
+            hay = " ".join(filter(None, [
+                dest.category.name if dest.category_id else "",
+                dest.name,
+                dest.short_description or "",
+            ])).lower()
+            return sum(1 for term in interests if term and str(term).lower() in hay)
 
-            itinerary_days = []
-            per_day = max(1, -(-len(ordered) // days)) if ordered else 0
-            for day_idx in range(1, days + 1):
-                chunk = ordered[(day_idx - 1) * per_day: day_idx * per_day]
-                day_destinations = [to_item(dest) for dest in chunk]
+        candidates = sorted(
+            list(scope.select_related("category")[:400]),
+            key=lambda d: (-interest_score(d), d.name),
+        )
 
-                # Honest shortfall: when the requested area has fewer recorded
-                # places than the trip needs, fill with the nearest places from
-                # the wider catalogue — clearly flagged, never fabricated.
-                if scoped and not day_destinations:
-                    used = {item["name"] for day in itinerary_days for item in day["destinations"]}
-                    used.update(item["name"] for item in day_destinations)
-                    fillers = [c for c in candidates if c.name not in used][:2]
-                    if not fillers:
-                        fillers = [c for c in qs.exclude(latitude__isnull=True).exclude(name__in=used)[:2]]
-                    day_destinations = [to_item(dest, day_trip=True) for dest in fillers]
+        # Greedy nearest-neighbour ordering so each day stays geographically
+        # compact instead of zig-zagging across the district.
+        want = min(len(candidates), max(days * 2, 2))
+        pool = candidates[:want]
+        ordered, remaining = [], list(pool)
+        cursor = None
+        while remaining:
+            if cursor is not None and cursor.latitude is not None and cursor.longitude is not None:
+                remaining.sort(key=lambda p: (
+                    haversine_distance(float(cursor.latitude), float(cursor.longitude),
+                                       float(p.latitude), float(p.longitude))
+                    if p.latitude is not None and p.longitude is not None else 10_000.0
+                ))
+            nxt = remaining.pop(0)
+            ordered.append(nxt)
+            cursor = nxt
 
-                if day_destinations:
-                    schedule_items(day_destinations)
-
-                cats = [item["category"] for item in day_destinations]
-                if cats:
-                    top = max(set(cats), key=cats.count)
-                    theme = f"{top} day in {place}" if len(set(cats)) == 1 else f"{top} & local exploration in {place}"
-                else:
-                    theme = "Arrival & orientation"
-
-                itinerary_days.append({
-                    "day": day_idx,
-                    "city": (day_destinations[0]["city"] if day_destinations else start_city),
-                    "theme": theme,
-                    "destinations": day_destinations,
-                    "daily_budget_npr": None,
-                })
-
-            fallback_payload = {
-                "source": "internal_db_engine",
-                "days": days,
-                "travelers": travelers,
-                "budget_level": data.get("budget_level", "mid"),
-                "travel_style": data.get("travel_style", "leisure"),
-                "travel_type": data.get("travel_type", "solo"),
-                "interests": interests,
-                "start_city": start_city,
-                "total_estimated_npr": None,
-                "total_estimated_usd": None,
-                "per_person_npr": None,
-                "budget_npr": data.get("budget_npr"),
-                "fits_budget": None,
-                "budget_note": "No recorded daily budget is stored for this fallback itinerary.",
-                "data_note": (
-                    f"Built from {scope_label}." if scope_label else
-                    f"No verified places are recorded for “{place}” yet — showing popular destinations from the wider Nepal catalogue instead."
-                ),
-                "timing_note": (
-                    "Times are planning estimates (09:00 start, ~90 min per place, "
-                    "travel legs from straight-line distance at ~35 km/h). "
-                    "Live road times come from the routing service."
-                ),
-                "itinerary": itinerary_days,
+        def to_item(dest, day_trip=False):
+            item = {
+                "name": dest.name,
+                "city": dest.city or (dest.district or start_city),
+                "district": dest.district or "",
+                "latitude": float(dest.latitude) if dest.latitude is not None else None,
+                "longitude": float(dest.longitude) if dest.longitude is not None else None,
+                "category": dest.category.name if dest.category_id else "Attraction",
             }
-            return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)
+            if day_trip:
+                item["day_trip"] = True
+                item["note"] = f"Nearest recorded place outside “{place}” — a day trip, not inside the requested area."
+            return item
+
+        def schedule_items(items):
+            """Time-aware day plan (§12). Planning-grade estimates, clearly
+            labelled: 09:00 start, ~90 min per place, travel legs derived
+            from straight-line distance at ~35 km/h (road times come from
+            the routing service, never faked as exact)."""
+            cursor = 9 * 60
+            prev = None
+            for item in items:
+                if prev is not None and item.get("latitude") is not None and item.get("longitude") is not None:
+                    km = haversine_distance(prev["latitude"], prev["longitude"],
+                                            item["latitude"], item["longitude"])
+                    travel_min = max(10, int(km / 35.0 * 60))
+                    item["travel_from_previous"] = {
+                        "distance_km": round(km, 1),
+                        "minutes_estimated": travel_min,
+                    }
+                    cursor += travel_min
+                item["start_time"] = f"{cursor // 60:02d}:{cursor % 60:02d}"
+                item["duration_minutes"] = 90
+                cursor += 90
+                item["end_time"] = f"{cursor // 60:02d}:{cursor % 60:02d}"
+                prev = item
+
+        itinerary_days = []
+        per_day = max(1, -(-len(ordered) // days)) if ordered else 0
+        for day_idx in range(1, days + 1):
+            chunk = ordered[(day_idx - 1) * per_day: day_idx * per_day]
+            day_destinations = [to_item(dest) for dest in chunk]
+
+            # Honest shortfall: when the requested area has fewer recorded
+            # places than the trip needs, fill with the nearest places from
+            # the wider catalogue — clearly flagged, never fabricated.
+            if scoped and not day_destinations:
+                used = {item["name"] for day in itinerary_days for item in day["destinations"]}
+                used.update(item["name"] for item in day_destinations)
+                fillers = [c for c in candidates if c.name not in used][:2]
+                if not fillers:
+                    fillers = [c for c in qs.exclude(latitude__isnull=True).exclude(name__in=used)[:2]]
+                day_destinations = [to_item(dest, day_trip=True) for dest in fillers]
+
+            if day_destinations:
+                schedule_items(day_destinations)
+
+            cats = [item["category"] for item in day_destinations]
+            if cats:
+                top = max(set(cats), key=cats.count)
+                theme = f"{top} day in {place}" if len(set(cats)) == 1 else f"{top} & local exploration in {place}"
+            else:
+                theme = "Arrival & orientation"
+
+            itinerary_days.append({
+                "day": day_idx,
+                "city": (day_destinations[0]["city"] if day_destinations else start_city),
+                "theme": theme,
+                "destinations": day_destinations,
+                "daily_budget_npr": None,
+            })
+
+        fallback_payload = {
+            "source": "internal_db_engine",
+            "days": days,
+            "travelers": travelers,
+            "budget_level": data.get("budget_level", "mid"),
+            "travel_style": data.get("travel_style", "leisure"),
+            "travel_type": data.get("travel_type", "solo"),
+            "interests": interests,
+            "start_city": start_city,
+            "total_estimated_npr": None,
+            "total_estimated_usd": None,
+            "per_person_npr": None,
+            "budget_npr": data.get("budget_npr"),
+            "fits_budget": None,
+            "budget_note": "No recorded daily budget is stored for this fallback itinerary.",
+            "data_note": (
+                f"Built from {scope_label}." if scope_label else
+                f"No verified places are recorded for “{place}” yet — showing popular destinations from the wider Nepal catalogue instead."
+            ),
+            "timing_note": (
+                "Times are planning estimates (09:00 start, ~90 min per place, "
+                "travel legs from straight-line distance at ~35 km/h). "
+                "Live road times come from the routing service."
+            ),
+            "itinerary": itinerary_days,
+        }
+        return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)
 
 
 class AIItineraryModificationView(APIView):
