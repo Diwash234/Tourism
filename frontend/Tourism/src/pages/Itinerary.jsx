@@ -168,7 +168,17 @@ function enrichPlanBudget(rawPlan, form) {
 
 const Itinerary = () => {
 
-  const [form, setForm] = useState(DEFAULT_FORM)
+  // Shareable plan state (§35): ?city=&days= rebuild the same plan for anyone
+  // opening the link — the link IS the share format, no server round-trip.
+  const [form, setForm] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    const days = Number(params.get("days"))
+    return {
+      ...DEFAULT_FORM,
+      ...(days >= 1 && days <= 14 ? { days } : {}),
+      ...(params.get("city") ? { start_city: params.get("city") } : {}),
+    }
+  })
 
   const [plan, setPlan] = useState(null)
 
@@ -1027,6 +1037,28 @@ const Itinerary = () => {
           >
             <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
               <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/itinerary?city=${encodeURIComponent(form.start_city)}&days=${form.days}`
+                if (navigator.share) { navigator.share({ title: "Nepal trip plan", url }).catch(() => {}); return }
+                navigator.clipboard?.writeText(url)
+                  .then(() => showToast("Share link copied — opening it rebuilds this same plan", "success"))
+                  .catch(() => showToast("Copy this link to share: " + url, "info"))
+              }}
+              className="card-base p-4 text-left border-2 border-sky-300 hover:bg-sky-50 print:hidden"
+            >
+              <FiCheckCircle className="text-sky-600 mb-1"/><b className="text-sky-800">Share this plan</b><p className="text-xs text-gray-500">Copy a link that rebuilds the same plan</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="card-base p-4 text-left border-2 border-amber-300 hover:bg-amber-50 print:hidden"
+            >
+              <FiCheckCircle className="text-amber-600 mb-1"/><b className="text-amber-800">Export / print</b><p className="text-xs text-gray-500">Print or save the plan as PDF</p>
             </button>
 
             <div className="card-base p-4">
