@@ -25,7 +25,7 @@ evidence.
 | Footer redesign | Deep navy `#07101F` + subtle radial teal glow; teal = brand/links, gold = action only (compact "Explore Nepal →"); dedicated Emergency block (Police 100 / Ambulance 102 / Fire 101); subtle Himalayan silhouette (~4.5% opacity); subtle-bordered newsletter panel; simple bottom bar. All CMS hooks + real newsletter API preserved. |
 | Destination navigation screen | `POST /api/v1/navigation/travel-options/` — per-mode comparison (taxi / bus / walk / bicycle) with routing-service distances; costs from the admin fare card only (labelled estimates; delete a key → "Information unavailable"); rule-based recommendation with reasons; along-the-way recorded places with detour minutes; before-you-go facts from the destination record; turn-by-turn via `routing_service.route_steps()` when a live provider is configured, else coordinate-based steps from the bundled Nepal graph (always labelled "not street-level"; the label renders under the steps in the UI). Rendered by `TravelOptionsPanel` on the Navigation page. |
 | Provider turn-by-turn pipeline | `route_steps` OSRM-contract parsing + `_step_instruction` road-name mapping now covered by mocked-contract tests: with `routing_provider` set, travel-options serves street-level steps ("Turn right onto Ring Road") with `source: routing_provider` and no disclaimer; without it, the labelled bundled-graph steps take over. |
-| Curated district descriptions | `seed_district_descriptions` fills empty descriptions for the 27 highest-traffic districts (all province seats + major trekking/pilgrimage/wildlife districts) with source-noted, fact-only text (idempotent, never overwrites admin content); the rest keep the auto-composed administrative summary. |
+| Curated district descriptions | `seed_district_descriptions` fills empty descriptions for 47 districts (all province seats + major trekking/pilgrimage/wildlife/gateway districts) with source-noted, fact-only text (idempotent, never overwrites admin content); the rest keep the auto-composed administrative summary. |
 | ML itinerary microservice | `ml_service` (FastAPI :8001, pinned venv) now runs as the primary planner; Django validates every ML response against the requested place (`_ml_plan_matches_place`) and falls back to the district-scoped DB engine when the plan is off-topic or the service is down; ML city picker learnt traveller-typed district names ("Kaski" → Pokhara). |
 | Fare card | SiteSetting `fare_card` (migration `0070`) seeds admin-editable typicals (taxi base 100 + 50/km, bicycle rental 200, bus 30) — editable in Django admin (`SiteSetting`) and via the CMS settings JSON editor; values are always labelled as estimates. |
 | Itinerary UX (§35) | Save (existing), plus new **Share** (link with `?city=&days=` rebuilds the same plan; Web Share API when available) and **Export / print** buttons. Generated stops now render their planned `🕐 start–end` times and day-trip labels from the fallback engine. |
@@ -140,11 +140,11 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
    names (verified: 0 of 37,055 edges named), so road names can honestly
    only come from a real provider.
 2. **District tourism content** grows only from verified sources or admin
-   entry by design: the 27 highest-traffic districts (all seven province
-   seats plus the major trekking, pilgrimage and wildlife districts) now
-   carry curated, source-noted descriptions
+   entry by design: 47 districts — every province seat plus the major
+   trekking, pilgrimage, wildlife and gateway districts — now carry
+   curated, source-noted descriptions
    (`seed_district_descriptions`, idempotent, never overwrites admin
-   content); the remaining 50 keep the honest "Information unavailable"
+   content); the remaining 30 keep the honest "Information unavailable"
    description plus the auto-composed **administrative summary** (province,
    region type, seat elevation, computed nearest districts) labelled
    "Auto-generated … curated description pending". No invented tourism

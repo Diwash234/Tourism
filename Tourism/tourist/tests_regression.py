@@ -3211,17 +3211,24 @@ class DistrictDescriptionSeedTests(TestCase):
 
     def test_command_fills_only_empty_descriptions(self):
         from django.core.management import call_command
+        from tourist.management.commands.seed_district_descriptions import DESCRIPTIONS
         from .models import District
         call_command("seed_district_descriptions")
         ktm = District.objects.get(slug="kathmandu")
         self.assertIn("capital district", ktm.description)
         self.assertIn("UNESCO", ktm.description)
+        # every curated district got filled (catches slug drift)
+        for slug in DESCRIPTIONS:
+            self.assertTrue(
+                (District.objects.get(slug=slug).description or "").strip(),
+                f"curated district '{slug}' left empty - slug drift?",
+            )
         # a second run must not touch existing content
         ktm.description = "Admin curated text."
         ktm.save()
         call_command("seed_district_descriptions")
         ktm.refresh_from_db()
         self.assertEqual(ktm.description, "Admin curated text.")
-        # districts without a curated entry keep the honest gap
-        humla = District.objects.get(slug="humla")
-        self.assertEqual((humla.description or "").strip(), "")
+        # districts outside the curated set keep the honest gap
+        achham = District.objects.get(slug="achham")
+        self.assertEqual((achham.description or "").strip(), "")
