@@ -170,6 +170,7 @@ export default function Navigation() {
   // session runs, and the map center is nudged by "Recenter on me".
   const [navActive, setNavActive] = useState(false)
   const [mapCenter, setMapCenter] = useState(null)
+  const [liveManeuver, setLiveManeuver] = useState(null)
   const live = useLivePosition(navActive)
   // Applicable route alternatives from /navigation/route (different graph
   // weightings, or provider alternatives when a street-level provider is
@@ -588,24 +589,27 @@ export default function Navigation() {
     : null
   const isOffRoute = routeDeviationKm != null && routeDeviationKm > OFF_ROUTE_THRESHOLD_KM
 
-  // Voice guidance: speak the current maneuver when enabled, re-speaking on
-  // every step change. Cancels cleanly on toggle-off/unmount.
+  // Voice guidance: during a live GPS session it follows the GPS-derived
+  // next maneuver (Phase 3); otherwise it follows the manual step buttons.
+  // Cancels cleanly on toggle-off/unmount.
+  const spokenText = navActive
+    ? (liveManeuver ? `${liveManeuver.instruction}.` : "")
+    : (steps.length
+        ? `Step ${currentStepIdx + 1} of ${steps.length}. ${currentStep.instruction}` +
+          (currentStep.distance_km != null ? `, ${Number(currentStep.distance_km).toFixed(1)} kilometres.` : "")
+        : "")
   useEffect(() => {
     if (!("speechSynthesis" in window)) return undefined
-    if (!voiceOn || steps.length === 0) {
+    if (!voiceOn || !spokenText) {
       window.speechSynthesis.cancel()
       return undefined
     }
-    const utterance = new SpeechSynthesisUtterance(
-      `Step ${currentStepIdx + 1} of ${steps.length}. ${currentStep.instruction}` +
-        (currentStep.distance_km != null ? `, ${Number(currentStep.distance_km).toFixed(1)} kilometres.` : "")
-    )
+    const utterance = new SpeechSynthesisUtterance(spokenText)
     utterance.rate = 0.95
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
     return () => window.speechSynthesis.cancel()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn, currentStepIdx, steps.length, currentStep.instruction])
+  }, [voiceOn, spokenText])
 
   return (
     <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn" data-testid="navigation-page">
@@ -1091,9 +1095,10 @@ export default function Navigation() {
               durationMin={durationMin}
               userPos={live.position}
               destinationName={destination?.name || destinationQuery}
+              onManeuver={setLiveManeuver}
               onReroute={rerouteFromGps}
               onRecenter={(pos) => setMapCenter({ lat: pos.lat, lng: pos.lng })}
-              onEnd={() => { setNavActive(false); setMapCenter(null) }}
+              onEnd={() => { setNavActive(false); setMapCenter(null); setLiveManeuver(null) }}
             />
           )}
           <div className="space-y-3">

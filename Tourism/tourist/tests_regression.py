@@ -3394,3 +3394,79 @@ class RouteAlternativesTests(TestCase):
         for alt in response.json().get("alternatives", []):
             self.assertIsNone(alt["duration_min"])
             self.assertEqual(alt["duration_source"], "unavailable")
+
+
+class RoutingProviderAdminTests(TestCase):
+    """Phase 3: admins can configure the road-routing provider from the panel
+    — HTTPS-only, secret never echoed in full, honest connection test."""
+
+    URL = "/api/v1/admin/routing-provider/"
+
+    def _admin(self):
+        client = APIClient()
+        client.force_authenticate(user=make_superuser())
+        return client
+
+    def test_http_base_url_rejected(self):
+        resp = self._admin().patch(self.URL, {
+            "enabled": True, "base_url": "http://insecure.example.test/route/v1/driving",
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("https", resp.data["detail"])
+
+    def test_unknown_fields_rejected(self):
+        resp = self._admin().patch(self.URL, {"base_url": "https://osrm.example.test", "surprise": 1}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_https_roundtrip_key_masking_and_public_config_exclusion(self):
+        client = self._admin()
+        saved = client.patch(self.URL, {
+            "enabled": True,
+            "base_url": "https://osrm.example.test/route/v1/driving/",
+            "api_key": "SECRET-1234567890",
+        }, format="json")
+        self.assertEqual(saved.status_code, 200, saved.content)
+        self.assertTrue(saved.data["enabled"])
+        self.assertEqual(saved.data["base_url"], "https://osrm.example.test/route/v1/driving")  # trailing slash trimmed
+        self.assertTrue(saved.data["api_key_set"])
+        self.assertEqual(saved.data["api_key_last4"], "7890")
+        self.assertNotIn("SECRET-1234567890", saved.content.decode())
+
+        fetched = client.get(self.URL)
+        self.assertTrue(fetched.data["api_key_set"])
+        self.assertNotIn("SECRET-1234567890", fetched.content.decode())
+
+        # credential never leaks into the public config snapshot
+        public = APIClient().get("/api/v1/config/public/").json()
+        self.assertNotIn("routing_provider", public.get("settings", {}))
+
+        # omitting api_key keeps the stored secret
+        kept = client.patch(self.URL, {"enabled": False}, format="json")
+        self.assertEqual(kept.status_code, 200)
+        self.assertTrue(kept.data["api_key_set"])
+        self.assertFalse(kept.data["enabled"])
+
+    def test_connection_test_reports_honest_verdicts(self):
+        from unittest.mock import MagicMock, patch
+        import requests as requests_lib
+        client = self._admin()
+        client.patch(self.URL, {"enabled": True, "base_url": "https://osrm.example.test"}, format="json")
+
+        ok = MagicMock()
+        ok.json.return_value = {"code": "Ok", "routes": [{"distance": 1500.0, "duration": 300.0}]}
+        ok.raise_for_status.return_value = None
+        with patch("requests.get", return_value=ok):
+            good = client.post(self.URL, {"action": "test"}, format="json")
+        self.assertEqual(good.status_code, 200)
+        self.assertTrue(good.data["ok"])
+        self.assertEqual(good.data["routes_count"], 1)
+
+        with patch("requests.get", side_effect=requests_lib.RequestException("connection refused")):
+            bad = client.post(self.URL, {"action": "test"}, format="json")
+        self.assertEqual(bad.status_code, 200)
+        self.assertFalse(bad.data["ok"])
+        self.assertIn("connection refused", bad.data["error"])
+
+    def test_requires_authentication(self):
+        resp = APIClient().get(self.URL)
+        self.assertIn(resp.status_code, (401, 403))

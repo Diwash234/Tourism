@@ -53,6 +53,7 @@ export default function LiveNavigationPanel({
   durationMin,
   userPos,
   destinationName,
+  onManeuver,
   onReroute,
   onRecenter,
   onEnd,
@@ -61,6 +62,7 @@ export default function LiveNavigationPanel({
   const [progress, setProgress] = useState({ remainingKm: null, remainingMin: null, offsetM: null })
   const [nextStep, setNextStep] = useState(null)
   const reroutingRef = useRef(false)
+  const announcedRef = useRef(null)
 
   const points = useMemo(
     () => (route || []).map(normalizePoint).filter(Boolean),
@@ -129,7 +131,13 @@ export default function LiveNavigationPanel({
         remainingMin: durationMin != null ? Math.max(1, Math.round((durationMin * remainingM) / routeM)) : null,
         offsetM: Math.round(best.distM),
       })
-      setNextStep(stepTable.find((s) => s.endM > best.traveledM + 10) || stepTable[stepTable.length - 1] || null)
+      const upcoming = stepTable.find((s) => s.endM > best.traveledM + 10) || stepTable[stepTable.length - 1] || null
+      setNextStep(upcoming)
+      // Voice guidance hook: notify the parent when the next maneuver changes.
+      if (onManeuver && upcoming && upcoming.instruction !== announcedRef.current) {
+        announcedRef.current = upcoming.instruction
+        onManeuver(upcoming)
+      }
 
       setSession((prev) => {
         if (prev.status === "arrived") return prev
@@ -142,7 +150,7 @@ export default function LiveNavigationPanel({
       })
     }, 0)
     return () => window.clearTimeout(id)
-  }, [userPos, geometry, points, stepTable, durationMin])
+  }, [userPos, geometry, points, stepTable, durationMin, onManeuver])
 
   // Trigger the reroute once confirmed off-route (deferred for the same rule).
   useEffect(() => {

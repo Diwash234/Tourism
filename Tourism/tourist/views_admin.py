@@ -1762,6 +1762,100 @@ class StaffCapabilityManagementView(APIView):
         return Response({"message":"Capabilities updated","user_id":user.id})
 
 
+class AdminRoutingProviderView(APIView):
+    """Admin control for the road-routing provider (SiteSetting
+    ``routing_provider``): the single switch that upgrades navigation from
+    the bundled coordinate-based graph to street-level OSRM-protocol routes.
+    HTTPS-only, api_key never echoed back in full, connection test included
+    so the admin sees an honest verdict instead of guessing."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
+
+    def _setting(self):
+        from .models import SiteSetting
+        return SiteSetting.objects.filter(key="routing_provider").first()
+
+    def _public_state(self, row):
+        if row is None or not isinstance(row.value, dict):
+            return {"configured": False, "enabled": False, "base_url": "", "api_key_set": False, "api_key_last4": ""}
+        value = row.value
+        api_key = str(value.get("api_key") or "")
+        return {
+            "configured": True,
+            "enabled": bool(value.get("enabled", True)) and str(value.get("base_url") or "").startswith("https://"),
+            "base_url": str(value.get("base_url") or ""),
+            "api_key_set": bool(api_key),
+            "api_key_last4": api_key[-4:] if api_key else "",
+        }
+
+    def get(self, request):
+        _require_capability(request, "settings", "view")
+        return Response(self._public_state(self._setting()))
+
+    def patch(self, request):
+        _require_capability(request, "settings", "change")
+        import re
+        from .models import SiteSetting
+        data = request.data
+        if not isinstance(data, dict):
+            return Response({"detail": "Provider configuration must be structured data"}, status=400)
+        unknown = set(data) - {"enabled", "base_url", "api_key"}
+        if unknown:
+            return Response({"detail": f"Unsupported provider fields: {', '.join(sorted(unknown))}"}, status=400)
+        before_row = self._setting()
+        before = dict(before_row.value) if before_row and isinstance(before_row.value, dict) else {}
+        base_url = str(data.get("base_url", before.get("base_url", ""))).strip().rstrip("/")
+        enabled = bool(data.get("enabled", before.get("enabled", True)))
+        # api_key: absent/None keeps the stored secret; "" clears it.
+        if "api_key" in data and data["api_key"] is not None:
+            api_key = str(data["api_key"])
+        else:
+            api_key = str(before.get("api_key") or "")
+        if enabled and not re.fullmatch(r"https://[^\s]{3,500}", base_url):
+            return Response({"detail": "base_url must be a secure https:// URL (an OSRM-protocol endpoint, e.g. https://router.example.org) — http is rejected."}, status=400)
+        if len(api_key) > 500:
+            return Response({"detail": "api_key is too long (500 characters max)"}, status=400)
+        value = {"enabled": enabled, "base_url": base_url, "api_key": api_key}
+        row, _ = SiteSetting.objects.get_or_create(key="routing_provider", defaults={"value": value, "description": "Road-routing provider (OSRM protocol)", "is_public": False})
+        row.value = value
+        row.is_public = False  # credentials must never enter the public config
+        row.updated_by = request.user
+        row.save()
+        from audit.models import AuditLog
+        masked = {**value, "api_key": ("***" + api_key[-4:]) if api_key else ""}
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", "admin"),
+            category="admin", severity="info", source="backend", action="routing.provider.update",
+            message="Routing provider configuration updated", extra={"before": {**before, "api_key": "***"}, "after": masked})
+        return Response({"message": "Routing provider saved", **self._public_state(row)})
+
+    def post(self, request):
+        """action=test: server-side probe of the stored provider with a short
+        fixed Kathmandu pair — an honest ok/error verdict for the admin."""
+        _require_capability(request, "settings", "view")
+        import requests as http_requests
+        if str(request.data.get("action") or "test") != "test":
+            return Response({"detail": "Only action=test is supported"}, status=400)
+        state = self._public_state(self._setting())
+        if not state["base_url"].startswith("https://"):
+            return Response({"ok": False, "error": "No https provider base URL configured yet."})
+        row = self._setting()
+        api_key = str((row.value or {}).get("api_key") or "")
+        headers = {"Accept": "application/json", "User-Agent": "NepalTourismRouting/1.0"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        url = f"{state['base_url'].rstrip('/')}/route/v1/driving/85.3240,27.7172;85.3340,27.7272"
+        started = timezone.now()
+        try:
+            response = http_requests.get(url, params={"overview": "false"}, headers=headers, timeout=8)
+            latency_ms = int((timezone.now() - started).total_seconds() * 1000)
+            response.raise_for_status()
+            payload = response.json()
+            return Response({"ok": True, "latency_ms": latency_ms,
+                             "routes_count": len(payload.get("routes", []))})
+        except Exception as exc:  # noqa: BLE001 — any probe failure is an honest "not reachable" verdict
+            return Response({"ok": False, "error": str(exc)[:200]})
+
+
 class AdminBrandingView(APIView):
     """Safe branding assets and allowlisted theme presets; never accepts CSS or scripts."""
     permission_classes = [IsAdminOrStaff]

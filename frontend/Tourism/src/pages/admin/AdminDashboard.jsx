@@ -39,6 +39,7 @@ import ReportsPanel from "../../components/admin/ReportsPanel"
 import UserManagement from "../../components/admin/UserManagement"
 import ReviewModerationPanel from "../../components/admin/ReviewModerationPanel"
 import BrandingPanel from "../../components/admin/BrandingPanel"
+import RoutingProviderPanel from "../../components/admin/RoutingProviderPanel"
 import TravelServicesPanel from "../../components/admin/TravelServicesPanel"
 import RetentionPolicyPanel from "../../components/admin/RetentionPolicyPanel"
 import OwnerDeskPanel from "../../components/admin/OwnerDeskPanel"
@@ -805,7 +806,7 @@ const AdminDashboard = () => {
         {activeTab === "data_reports" && <AdminReportManagerPanel />}
         {activeTab === "featured_destinations" && <FeaturedDestinationsPanel />}
         {activeTab === "data_explorer" && <DataExplorerPanel />}
-        {activeTab === "branding" && <BrandingPanel />}
+        {activeTab === "branding" && <div className="space-y-6"><BrandingPanel /><RoutingProviderPanel /></div>}
         {activeTab === "visitor_desk" && <OwnerDeskPanel />}
         {activeTab === "cms" && <CMSPanel />}
         {activeTab === "cms_overview" && <CMSOverviewPanel />}

@@ -871,6 +871,24 @@ async function main() {
   check("live E: end callback fired", ended === 1)
   panelE.unmount()
 
+  // --- E2: voice-guidance maneuver announcements -----------------------------
+  const maneuvers = []
+  const panelV = entry.mountLiveNavPanel({
+    ...basePanelProps,
+    userPos: { lat: 28.2096, lng: 83.9856 },
+    onManeuver: (step) => maneuvers.push(step.instruction),
+  })
+  await settle()
+  check("live E2: first maneuver announced", maneuvers.length === 1 && maneuvers[0] === "Head north on NH2", JSON.stringify(maneuvers))
+  panelV.rerender({
+    ...basePanelProps,
+    userPos: { lat: 28.2097, lng: 83.9857 },
+    onManeuver: (step) => maneuvers.push(step.instruction),
+  })
+  await settle()
+  check("live E2: same maneuver not re-announced", maneuvers.length === 1, JSON.stringify(maneuvers))
+  panelV.unmount()
+
   // --- F: useLivePosition (real hook, stubbed watchPosition) ----------------
   entry.setGeolocation("ok", { lat: 28.2, lng: 83.98 })
   const probe = entry.mountLiveProbe(true)
