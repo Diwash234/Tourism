@@ -122,7 +122,9 @@ const SearchBar = ({
   const handleSelectSuggestion = (item) => {
     setQuery(item.name)
     setIsOpen(false)
-    if (item.slug) {
+    if (item.kind === "district" && item.slug) {
+      navigate(`/districts/${item.slug}`)
+    } else if (item.slug) {
       navigate(`/destinations/${item.slug}`)
     } else {
       navigate(`/destinations?q=${encodeURIComponent(item.name)}`)

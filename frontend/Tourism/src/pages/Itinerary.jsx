@@ -1417,6 +1417,19 @@ const Itinerary = () => {
 
                           </p>
 
+                          {dest.start_time && (
+                            <p className="text-[11px] text-emerald-700 font-bold mt-1">
+                              🕐 {dest.start_time}–{dest.end_time}
+                              {dest.travel_from_previous && (
+                                <span className="text-gray-400 font-normal"> · ~{dest.travel_from_previous.minutes_estimated} min travel</span>
+                              )}
+                            </p>
+                          )}
+
+                          {dest.day_trip && (
+                            <p className="text-[11px] text-amber-600 mt-1">{dest.note}</p>
+                          )}
+
 
 
 

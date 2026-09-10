@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { FiMapPin, FiPlus, FiSearch, FiStar, FiNavigation, FiCheckCircle } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
+import districtApi from "../../api/districtApi"
 import userApi from "../../api/userApi"
 
 import DestinationCard from "../../components/cards/DestinationCard"
@@ -305,9 +306,19 @@ export default function DestinationList() {
 
   const fetchSuggestions = useCallback(async (q, signal) => {
     try {
-      const res = await destinationApi.autocomplete(q, { type: type === "hotel" ? "hotel" : "attraction" })
+      const [res, districtRes] = await Promise.all([
+        destinationApi.autocomplete(q, { type: type === "hotel" ? "hotel" : "attraction" }),
+        type === "hotel" ? Promise.resolve(null) : districtApi.districts({ search: q }).catch(() => null),
+      ])
       if (signal?.aborted) return []
-      return res.data?.results || res.data || []
+      const districtHits = (districtRes?.data?.results || []).slice(0, 3).map((d) => ({
+        id: `district-${d.id}`,
+        name: `${d.name} — district`,
+        slug: d.slug,
+        kind: "district",
+        city: d.province,
+      }))
+      return [...districtHits, ...(res.data?.results || res.data || [])]
     } catch {
       return []
     }
