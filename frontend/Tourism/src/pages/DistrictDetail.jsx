@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link, useParams } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import districtApi from "../api/districtApi";
@@ -52,6 +53,7 @@ export default function DistrictDetail() {
 
   return (
     <div className="min-h-screen bg-[#F7F8F5] dark:bg-nav-dark pb-16">
+      <CMSPageIntro pageKey="district-detail" />
       <PageHeader
         title={data.name}
         subtitle={`${data.province} Province${data.elevation_m != null ? ` · ~${data.elevation_m} m` : ""}`}

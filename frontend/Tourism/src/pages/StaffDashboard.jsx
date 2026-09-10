@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiAlertCircle, FiBriefcase, FiCheck, FiCheckCircle, FiClock, FiRefreshCw, FiX } from "react-icons/fi"
 import adminApi from "../api/adminApi"
@@ -109,6 +110,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
   })
 
   return <div className="space-y-6">
+    <CMSPageIntro pageKey="staff-desk" />
     <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b pb-4"><div><span className="text-xs uppercase tracking-widest font-black text-[#102A2E]">Capability-scoped operations</span><h1 className="text-3xl font-black text-slate-900 flex items-center gap-2"><FiBriefcase className="text-[#102A2E]"/>{module === "dashboard" ? "Staff Operations Desk" : names[module]}</h1><p className="text-sm text-slate-500">Only records in your backend-assigned scope are shown. Hidden modules are also denied by the API.</p>{data.managed_districts?.length > 0 && <p className="text-xs text-amber-700 mt-1">Assigned districts: {data.managed_districts.join(", ")}</p>}</div><div className="flex flex-col sm:items-end gap-2"><StaffGlobalSearch /><button onClick={load} className="px-4 py-2 bg-white border rounded-xl text-sm font-bold flex items-center justify-center gap-2"><FiRefreshCw className={loading ? "animate-spin" : ""}/> Refresh</button></div></header>
 
     {module === "dashboard" ? <>

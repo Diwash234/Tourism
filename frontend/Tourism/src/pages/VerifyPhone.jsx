@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiPhone, FiCheckCircle } from "react-icons/fi"
@@ -95,6 +96,7 @@ const VerifyPhone = () => {
 
   return (
     <div className="container-app section-space max-w-md mx-auto fade-in">
+      <CMSPageIntro pageKey="auth-verify" />
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-8 text-center">
         {verified ? (
           <>

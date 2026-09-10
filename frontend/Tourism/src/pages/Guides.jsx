@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiSearch, FiMapPin, FiAward, FiStar, FiRefreshCw, FiCalendar, FiMessageSquare } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -73,6 +74,7 @@ export default function Guides() {
 
   return (
     <div className="min-h-screen bg-[#F7F8F5]">
+      <CMSPageIntro pageKey="guides" />
       <PageHeader
         title="Verified Local Guides"
         subtitle="Government-licensed, platform-verified guides across Nepal — trekking, cultural, wildlife and city specialists."

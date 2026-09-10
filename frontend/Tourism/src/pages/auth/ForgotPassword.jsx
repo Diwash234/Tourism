@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { useState } from "react"
 import { FiMail } from "react-icons/fi"
@@ -29,6 +30,7 @@ const ForgotPassword = () => {
   return (
     <div className="min-h-[80svh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       <NepalSceneBackground />
+      <CMSPageIntro pageKey="auth-recovery" />
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl">
         <TourismLogo size="sm" />
       </div>

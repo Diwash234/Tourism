@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiBriefcase, FiMapPin, FiClock, FiDollarSign, FiSearch, FiCheckCircle } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -75,6 +76,7 @@ export default function TourismJobs() {
 
   return (
     <div className="min-h-screen bg-[#F7F8F5]">
+      <CMSPageIntro pageKey="tourism-jobs" />
       <PageHeader
         title="Tourism Work & Gigs"
         subtitle="Seasonal and contract work across Nepal's tourism industry — guiding, hosting, content, support and more."

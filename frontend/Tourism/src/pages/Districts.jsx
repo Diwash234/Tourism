@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import districtApi from "../api/districtApi";
@@ -42,6 +43,7 @@ export default function Districts() {
 
   return (
     <div className="min-h-screen bg-[#F7F8F5] dark:bg-nav-dark pb-16">
+      <CMSPageIntro pageKey="districts" />
       <PageHeader
         title="Districts of Nepal"
         subtitle="All 77 districts with recorded tourism profiles"

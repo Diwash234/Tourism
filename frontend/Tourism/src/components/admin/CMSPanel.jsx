@@ -802,6 +802,123 @@ function SeoSuite({ value }) {
   )
 }
 
+function MediaPickerModal({ onPick, onClose }) {
+  // Browse the moderated media library (admin/media-library/) and pick an
+  // image URL into any CMS image field — no manual URL copying.
+  const [items, setItems] = useState([])
+  const [query, setQuery] = useState("")
+  const [loading, setLoading] = useState(true)
+
+  const load = async (q) => {
+    setLoading(true)
+    try {
+      const { data } = await adminApi.getMediaLibrary({ q: q || undefined, page_size: 60 })
+      setItems((data.results || []).filter((item) => item.url))
+    } catch {
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
+    let active = true
+    const init = async () => {
+      try {
+        const { data } = await adminApi.getMediaLibrary({ page_size: 60 })
+        if (active) setItems((data.results || []).filter((item) => item.url))
+      } catch {
+        if (active) setItems([])
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    init()
+    return () => { active = false }
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-600 bg-slate-800 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-slate-700 p-4">
+          <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400">Media library</h3>
+          <form
+            className="flex flex-1 justify-end gap-2"
+            onSubmit={(e) => { e.preventDefault(); load(query) }}
+          >
+            <input
+              className="input-field max-w-[16rem] bg-slate-900 text-slate-100"
+              placeholder="Search place or caption…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button type="submit" className="rounded-lg bg-emerald-700 px-3 py-2 text-[11px] font-black text-white hover:bg-emerald-600">
+              Search
+            </button>
+          </form>
+          <button type="button" onClick={onClose} aria-label="Close media library" className="text-slate-400 hover:text-white">
+            <FiX />
+          </button>
+        </div>
+        <div className="grid flex-1 grid-cols-2 gap-3 overflow-auto p-4 sm:grid-cols-3 md:grid-cols-4">
+          {loading && <p className="col-span-full text-xs text-slate-400">Loading library…</p>}
+          {!loading && items.length === 0 && (
+            <p className="col-span-full text-xs text-slate-400">
+              No images yet. Upload images from the Media panel (destination galleries) and they appear here.
+            </p>
+          )}
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onPick(item.url)}
+              className="group overflow-hidden rounded-xl border border-slate-600 bg-slate-900 text-left hover:border-emerald-500"
+            >
+              <img src={item.url} alt={item.alt_text || item.caption || ""} className="h-24 w-full object-cover" loading="lazy" />
+              <span className="block truncate px-2 py-1.5 text-[10px] font-bold text-slate-300 group-hover:text-emerald-300">
+                {item.caption || item.destination || "Untitled"}
+              </span>
+              <span className="block px-2 pb-1.5 text-[9px] uppercase tracking-wide text-slate-500">
+                {item.status}{item.photographer ? ` · ${item.photographer}` : ""}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ImageField({ label, value, onChange }) {
+  const [picker, setPicker] = useState(false)
+  return (
+    <>
+      <label className="text-xs font-semibold text-slate-300">
+        {label}
+        <span className="mt-1 flex gap-2">
+          <input className="input-field flex-1" value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+          <button
+            type="button"
+            onClick={() => setPicker(true)}
+            className="shrink-0 rounded-lg bg-emerald-700 px-3 py-2 text-[11px] font-black text-white hover:bg-emerald-600"
+          >
+            Browse
+          </button>
+        </span>
+        {value ? <img src={value} alt="" className="mt-2 max-h-28 rounded-lg object-cover" /> : null}
+      </label>
+      {picker && (
+        <MediaPickerModal
+          onPick={(url) => { onChange(url); setPicker(false) }}
+          onClose={() => setPicker(false)}
+        />
+      )}
+    </>
+  )
+}
+
 function CMSFriendlyEditor({ resource, json, setJson }) {
   let value = {}
   try { value = JSON.parse(json || "{}") } catch {
@@ -825,7 +942,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
       {field("key", "Page key")}
       {field("route", "Page route")}
       {field("meta_description", "Search description", "textarea")}
-      {field("og_image_url", "Social image URL")}
+      <ImageField label="Social image URL" value={value.og_image_url} onChange={(v) => set("og_image_url", v)} />
       <label className="text-xs font-semibold text-slate-300">Publication status
         <select className="input-field mt-1" value={value.status || "draft"} onChange={e => set("status", e.target.value)}>
           <option>draft</option><option>scheduled</option><option>published</option>
@@ -846,10 +963,12 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         <label className="sm:col-span-2 text-xs font-semibold text-slate-300">Body content
           <RichTextEditor value={value.body || ""} onChange={html => set("body", html)} />
         </label>
-        {field("image_url", "Image URL")}
-        <label className="text-xs font-semibold text-slate-300">Media URL (HTTPS or /)
-          <input className="input-field mt-1" value={value.config?.media_url || ""} onChange={e => set("config", { ...(value.config || {}), media_url: e.target.value })} />
-        </label>
+        <ImageField label="Image URL" value={value.image_url} onChange={(v) => set("image_url", v)} />
+        <ImageField
+          label="Media URL (HTTPS or /)"
+          value={value.config?.media_url || ""}
+          onChange={(v) => set("config", { ...(value.config || {}), media_url: v })}
+        />
         <label className="text-xs font-semibold text-slate-300">Background Theme / Style
           <select className="input-field mt-1" value={value.config?.background_style || "clean-white"} onChange={e => set("config", { ...(value.config || {}), background_style: e.target.value })}>
             <option value="clean-white">Clean White (Standard Card)</option>

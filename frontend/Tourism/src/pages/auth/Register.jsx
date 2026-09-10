@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { FiUser, FiMail, FiPhone, FiLock, FiCheckCircle } from "react-icons/fi"
@@ -50,6 +51,7 @@ const Register = () => {
 
   return (
     <AuthShell portal="tourist" title="Join Nepal Tourism">
+      <CMSPageIntro pageKey="auth-register" />
       <div className="absolute inset-0 -z-0 overflow-hidden rounded-[2rem]">
         <LightRays color="#1f6b4d" accent="#c2603a" intensity={0.25} speed={28} />
       </div>
