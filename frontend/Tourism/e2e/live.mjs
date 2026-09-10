@@ -738,6 +738,7 @@ async function run() {
     // Task-79 §5/§24: the 77-district structure is served by the API
     const districts = await request(`${API}/districts/`)
     const rolpa = await request(`${API}/districts/rolpa/`)
+    const ktm = await request(`${API}/districts/kathmandu/`)
     const provinces = await request(`${API}/provinces/`)
     if (
       districts.res.ok && districts.data.count === 77 &&
@@ -745,6 +746,7 @@ async function run() {
       rolpa.data.emergency_numbers.police === "100" &&
       String(rolpa.data.summary || "").includes("Rolpa is a") &&
       String(rolpa.data.summary || "").includes("Auto-generated") &&
+      ktm.res.ok && String(ktm.data.description || "").includes("capital district") &&
       provinces.res.ok && provinces.data.count === 7
     ) ok("districts API serves all 77 districts + 7 provinces with honest profiles")
     else fail("districts API")

@@ -24,6 +24,8 @@ evidence.
 | `destroy is not a function` | Root-caused earlier and re-verified: `ChartCard.jsx` is the **only** chart renderer (Bar/Line/Pie delegate to it); the race (fresh object literals per render driving react-chartjs-2's destroy/redraw path) is fixed via content-signature-memoised data/options + ErrorBoundary. No `useEffect(async`, no stray `.destroy` in `src/`. |
 | Footer redesign | Deep navy `#07101F` + subtle radial teal glow; teal = brand/links, gold = action only (compact "Explore Nepal →"); dedicated Emergency block (Police 100 / Ambulance 102 / Fire 101); subtle Himalayan silhouette (~4.5% opacity); subtle-bordered newsletter panel; simple bottom bar. All CMS hooks + real newsletter API preserved. |
 | Destination navigation screen | `POST /api/v1/navigation/travel-options/` — per-mode comparison (taxi / bus / walk / bicycle) with routing-service distances; costs from the admin fare card only (labelled estimates; delete a key → "Information unavailable"); rule-based recommendation with reasons; along-the-way recorded places with detour minutes; before-you-go facts from the destination record; turn-by-turn via `routing_service.route_steps()` when a live provider is configured, else coordinate-based steps from the bundled Nepal graph (always labelled "not street-level"; the label renders under the steps in the UI). Rendered by `TravelOptionsPanel` on the Navigation page. |
+| Provider turn-by-turn pipeline | `route_steps` OSRM-contract parsing + `_step_instruction` road-name mapping now covered by mocked-contract tests: with `routing_provider` set, travel-options serves street-level steps ("Turn right onto Ring Road") with `source: routing_provider` and no disclaimer; without it, the labelled bundled-graph steps take over. |
+| Curated district descriptions | `seed_district_descriptions` fills empty descriptions for the 10 most-visited districts with source-noted, fact-only text (idempotent, never overwrites admin content); others keep the auto-composed administrative summary. |
 | ML itinerary microservice | `ml_service` (FastAPI :8001, pinned venv) now runs as the primary planner; Django validates every ML response against the requested place (`_ml_plan_matches_place`) and falls back to the district-scoped DB engine when the plan is off-topic or the service is down; ML city picker learnt traveller-typed district names ("Kaski" → Pokhara). |
 | Fare card | SiteSetting `fare_card` (migration `0070`) seeds admin-editable typicals (taxi base 100 + 50/km, bicycle rental 200, bus 30) — editable in Django admin (`SiteSetting`) and via the CMS settings JSON editor; values are always labelled as estimates. |
 | Itinerary UX (§35) | Save (existing), plus new **Share** (link with `?city=&days=` rebuilds the same plan; Web Share API when available) and **Export / print** buttons. Generated stops now render their planned `🕐 start–end` times and day-trip labels from the fallback engine. |
@@ -90,6 +92,7 @@ Was the SQLite lock (same root cause). After the WAL/timeout fix, `GET
 cd Tourism
 python manage.py migrate            # applies 0069, 0070
 python manage.py seed_districts     # idempotent 77-district seed
+python manage.py seed_district_descriptions  # curated descriptions, never overwrites
 python manage.py runserver 0.0.0.0:8000
 
 # ML itinerary microservice (optional but recommended — Django falls back
@@ -111,12 +114,13 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
 
 ## 18. Test results (this session, latest run)
 
-- Backend: `tourist.tests_regression` — **199 tests OK** (district architecture ×7,
+- Backend: `tourist.tests_regression` — **202 tests OK** (district architecture ×7,
   time-aware plans, travel options ×3, sqlite hardening, itinerary district-specificity ×4,
-  ML-planner guard ×4, …).
-- Live e2e: **61/61 passed**, including district API, travel-options,
-  district-specific itineraries, ML-microservice planner + DB enrichment,
-  admin→DB→API→public flow, WebSocket chat, routing-provider honesty checks.
+  ML-planner guard ×4, routing-provider turn-by-turn pipeline ×2, description seeding ×1, …).
+- Live e2e: **61/61 passed**, including district API (curated + auto-composed
+  profiles), travel-options, district-specific itineraries, ML-microservice
+  planner + DB enrichment, admin→DB→API→public flow, WebSocket chat,
+  routing-provider honesty checks.
 - Frontend: eslint 0 errors on changed files; production build green.
 
 ## 19. Remaining limitations (honest)
@@ -126,12 +130,20 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
    steps (compass instructions + segment distances from the graph geometry),
    each response carrying an explicit "coordinate-based, not street-level"
    note that the UI always displays under the steps. **Street-level** turns
-   still require a reachable OSRM-compatible provider (admin site setting
-   `routing_provider`); the public OSRM demo is unreachable from this sandbox
-   (verified `HTTP 000`, 2026-09-10).
+   come from the admin-configured OSRM-compatible provider (site setting
+   `routing_provider`); the full provider pipeline — HTTPS-only config,
+   OSRM-contract parsing, provider road names in instructions
+   ("Turn right onto Ring Road") — is covered by mocked-contract regression
+   tests, so the only missing piece is an externally reachable OSRM server,
+   which this sandbox cannot provide (public demo and Geofabrik both
+   verified `HTTP 000`, 2026-09-10). The bundled graph carries no road
+   names (verified: 0 of 37,055 edges named), so road names can honestly
+   only come from a real provider.
 2. **District tourism content** grows only from verified sources or admin
-   entry by design — the curated description stays "Information unavailable"
-   when absent (§5/§42), but profiles now also carry an auto-composed
+   entry by design: the 10 most-visited districts now carry curated,
+   source-noted descriptions (`seed_district_descriptions`, idempotent,
+   never overwrites admin content); all other districts keep the honest
+   "Information unavailable" description plus the auto-composed
    **administrative summary** (province, region type, seat elevation,
    computed nearest districts) labelled "Auto-generated … curated
    description pending". No invented tourism prose.
@@ -150,8 +162,9 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
 4. **Responsive audit at 320–1440px** was implemented-by-design (drawer,
    grids, footer) but cannot be machine-verified in this sandbox: every
    browser-binary source was tried and is blocked at network level —
-   `cdn.playwright.dev` and `storage.googleapis.com` (puppeteer/Chrome) both
-   return `HTTP 000`, Ubuntu archives are blocked, and no system Chromium
-   exists (npm/PyPI themselves are reachable; only browser CDNs are not).
+   `cdn.playwright.dev`, `storage.googleapis.com` (puppeteer/Chrome) and the
+   `cdn.npmmirror.com` mirror all return `HTTP 000`, Ubuntu archives are
+   blocked, and no system Chromium exists (npm/PyPI themselves are
+   whitelisted-reachable; everything else is not).
 5. `bus` timing uses a ×1.6 heuristic over road time and is only offered when
    a fare is configured; real transit schedules are never fabricated.

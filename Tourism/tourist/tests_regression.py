@@ -3119,3 +3119,109 @@ class ItineraryMLGuardTests(TestCase):
         self.assertIsNone(data.get("source"))
         self.assertEqual(data["total_estimated_npr"], 5000)
         self.assertEqual(data["service_data_source"], "live_database_distance_ranking")
+
+class RoutingProviderStepsTests(TestCase):
+    """Task-79 §15: when an admin configures a live OSRM-compatible provider,
+    street-level turn-by-turn must come from it — parsed per the OSRM
+    contract, using the provider's road names, never invented."""
+
+    OSRM_ROUTE = {"code": "Ok", "routes": [{
+        "distance": 2860.0,
+        "duration": 480.0,
+        "geometry": {"coordinates": [[85.32, 27.71], [85.33, 27.72]]},
+        "legs": [{"distance": 2860.0, "duration": 480.0, "steps": [
+            {"distance": 120.0, "duration": 30.0, "name": "Durbar Marg",
+             "maneuver": {"type": "depart", "modifier": "north"}},
+            {"distance": 900.0, "duration": 180.0, "name": "Ring Road",
+             "maneuver": {"type": "turn", "modifier": "right"}},
+            {"distance": 400.0, "duration": 90.0, "name": "",
+             "maneuver": {"type": "roundabout", "exit": 2}},
+            {"distance": 0, "duration": 0, "name": "",
+             "maneuver": {"type": "arrive"}},
+        ]}],
+    }]}
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_step_instruction_mapping(self):
+        from tourist.routing_service import _step_instruction
+        self.assertEqual(
+            _step_instruction({"name": "Durbar Marg", "distance": 120,
+                               "maneuver": {"type": "depart"}})["instruction"],
+            "Head out on Durbar Marg",
+        )
+        self.assertEqual(
+            _step_instruction({"name": "Ring Road", "distance": 900,
+                               "maneuver": {"type": "turn", "modifier": "right"}})["instruction"],
+            "Turn right onto Ring Road",
+        )
+        self.assertIn(
+            "exit 2",
+            _step_instruction({"name": "", "distance": 400,
+                               "maneuver": {"type": "roundabout", "exit": 2}})["instruction"],
+        )
+        self.assertEqual(
+            _step_instruction({"name": "", "distance": 0,
+                               "maneuver": {"type": "arrive"}})["instruction"],
+            "Arrive at your destination",
+        )
+
+    def test_travel_options_uses_provider_steps_when_configured(self):
+        from unittest.mock import MagicMock, patch
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        SiteSetting.objects.create(
+            key="routing_provider", is_public=False,
+            value={"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving",
+                   "api_key": ""},
+        )
+        fake = MagicMock()
+        fake.json.return_value = self.OSRM_ROUTE
+        fake.raise_for_status.return_value = None
+        with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
+            res = self.client.post(
+                "/api/v1/navigation/travel-options/",
+                {"origin_name": "Kathmandu", "destination_name": "Pashupatinath"},
+                format="json",
+            )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        tbt = data["turn_by_turn"]
+        self.assertIsNotNone(tbt)
+        self.assertEqual(tbt["source"], "routing_provider")
+        self.assertIsNone(data["turn_by_turn_note"])
+        instructions = [step["instruction"] for step in tbt["steps"]]
+        self.assertIn("Head out on Durbar Marg", instructions)
+        self.assertIn("Turn right onto Ring Road", instructions)
+        self.assertIn("Arrive at your destination", instructions)
+        self.assertEqual(tbt["steps"][1]["road"], "Ring Road")
+        self.assertTrue(tbt["geometry"])
+        self.assertGreaterEqual(mocked.call_count, 1)
+        self.assertIn("osrm.example.test", mocked.call_args[0][0])
+
+class DistrictDescriptionSeedTests(TestCase):
+    """Curated descriptions come only from the source-noted seed command and
+    never overwrite existing (admin-entered) content."""
+
+    def setUp(self):
+        from django.core.management import call_command
+        call_command("seed_districts", verbosity=0)
+
+    def test_command_fills_only_empty_descriptions(self):
+        from django.core.management import call_command
+        from .models import District
+        call_command("seed_district_descriptions")
+        ktm = District.objects.get(slug="kathmandu")
+        self.assertIn("capital district", ktm.description)
+        self.assertIn("UNESCO", ktm.description)
+        # a second run must not touch existing content
+        ktm.description = "Admin curated text."
+        ktm.save()
+        call_command("seed_district_descriptions")
+        ktm.refresh_from_db()
+        self.assertEqual(ktm.description, "Admin curated text.")
+        # districts without a curated entry keep the honest gap
+        humla = District.objects.get(slug="humla")
+        self.assertEqual((humla.description or "").strip(), "")
