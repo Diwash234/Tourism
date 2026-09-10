@@ -157,6 +157,10 @@ export default function Navigation() {
 
   const [originQuery, setOriginQuery] = useState(requestedOrigin || "")
   const [destinationQuery, setDestinationQuery] = useState(requestedDest || "")
+  // Multi-stop (Phase 4): up to 3 intermediate place names, resolved by the
+  // backend through the same index as destinations — never guessed.
+  const [waypoints, setWaypoints] = useState([])
+  const [waypointInput, setWaypointInput] = useState("")
   const [destination, setDestination] = useState(null)
   const [route, setRoute] = useState([])
   const [transportMode, setTransportMode] = useState("Private Car / Taxi")
@@ -217,6 +221,7 @@ export default function Navigation() {
         start_latitude: lat,
         start_longitude: lng,
         origin_name: "Current Location",
+        ...(waypoints.length ? { waypoints } : {}),
       })
       const newRoute = response.data.route || []
       if (newRoute.length < 2) return false
@@ -318,6 +323,7 @@ export default function Navigation() {
         payload.origin_name = origName
       }
 
+      if (waypoints.length) payload.waypoints = waypoints
       const response = await navigationApi.getRoute(payload)
       const dest = response.data.destination || null
       const recordedSteps = Array.isArray(response.data.steps) ? response.data.steps : []
@@ -714,6 +720,58 @@ export default function Navigation() {
                 value={destinationQuery}
                 onChange={(e) => setDestinationQuery(e.target.value)}
               />
+            </div>
+
+            <div className="sm:col-span-2 space-y-1.5" data-testid="waypoint-editor">
+              <div className="flex gap-1.5">
+                <input
+                  className="input-field text-xs font-medium flex-1"
+                  placeholder="Add an intermediate stop (e.g. Bandipur, Lumbini) — optional, max 3"
+                  value={waypointInput}
+                  onChange={(e) => setWaypointInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      const name = waypointInput.trim()
+                      if (name && waypoints.length < 3 && !waypoints.includes(name)) {
+                        setWaypoints((prev) => [...prev, name])
+                        setWaypointInput("")
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = waypointInput.trim()
+                    if (name && waypoints.length < 3 && !waypoints.includes(name)) {
+                      setWaypoints((prev) => [...prev, name])
+                      setWaypointInput("")
+                    }
+                  }}
+                  disabled={!waypointInput.trim() || waypoints.length >= 3}
+                  className="px-3 py-2 rounded-xl bg-[#1D5146] text-white text-[11px] font-black uppercase tracking-wider hover:opacity-90 disabled:opacity-40"
+                >
+                  + Stop
+                </button>
+              </div>
+              {waypoints.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {waypoints.map((name, idx) => (
+                    <span key={name} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-[#1D5146]">
+                      Stop {idx + 1}: {name}
+                      <button
+                        type="button"
+                        aria-label={`Remove stop ${name}`}
+                        onClick={() => setWaypoints((prev) => prev.filter((w) => w !== name))}
+                        className="text-rose-600 font-black hover:text-rose-700"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {provinces.length > 0 && (

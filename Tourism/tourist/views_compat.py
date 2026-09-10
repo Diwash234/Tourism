@@ -428,7 +428,77 @@ class NavigationRouteView(APIView):
             "flight": (None, None),             # no flight schedule data
         }
         mode_route_type, mode_speed = MODE_PROFILES.get(transport_mode, (route_type, 40))
-        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
+
+        # Multi-stop routing (Phase 4): up to 3 waypoints, each a place name
+        # (resolved through the same index as destinations — never guessed)
+        # or explicit {latitude, longitude}. Every leg is routed through the
+        # same engine/honesty pipeline; totals are leg sums, nothing invented.
+        raw_waypoints = request.data.get("waypoints") or []
+        if not isinstance(raw_waypoints, list):
+            return Response({"detail": "waypoints must be a list of place names or {latitude, longitude} objects."}, status=status.HTTP_400_BAD_REQUEST)
+        resolved_waypoints = []
+        for waypoint in raw_waypoints:
+            if isinstance(waypoint, dict):
+                try:
+                    wlat = _parse_float(waypoint.get("latitude", waypoint.get("lat")), "waypoint latitude")
+                    wlon = _parse_float(waypoint.get("longitude", waypoint.get("lng", waypoint.get("lon"))), "waypoint longitude")
+                except ValueError as exc:
+                    return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+                resolved_waypoints.append({"name": str(waypoint.get("name") or "Waypoint")[:120], "latitude": wlat, "longitude": wlon})
+            elif isinstance(waypoint, str) and waypoint.strip():
+                from .location.search_service import LocationSearchService
+                resolved_wp = LocationSearchService.resolve_single_place(waypoint.strip())
+                if not (resolved_wp and resolved_wp.get("latitude") and resolved_wp.get("longitude")):
+                    return Response(
+                        {"detail": f"No place with recorded coordinates matches waypoint '{waypoint}'. Use a known place name or exact coordinates."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                resolved_waypoints.append({"name": resolved_wp.get("name") or waypoint.strip(), "latitude": float(resolved_wp["latitude"]), "longitude": float(resolved_wp["longitude"])})
+        if len(resolved_waypoints) > 3:
+            return Response({"detail": "Up to 3 waypoints are supported per route."}, status=status.HTTP_400_BAD_REQUEST)
+        if resolved_waypoints and transport_mode == "flight":
+            return Response({"detail": "Multi-stop routing is not available for flights — no flight schedule data is invented."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if resolved_waypoints:
+            leg_points = [(start_lat, start_lon)] + [(w["latitude"], w["longitude"]) for w in resolved_waypoints] + [(end_lat, end_lon)]
+            merged_route, merged_steps = [], []
+            total_km, total_min, all_durations, engines = 0.0, 0.0, True, set()
+            for idx in range(len(leg_points) - 1):
+                leg = get_ml_best_route(leg_points[idx][0], leg_points[idx][1], leg_points[idx + 1][0], leg_points[idx + 1][1], route_type=mode_route_type or "fastest")
+                if leg is None:
+                    return Response({"detail": "Routing service is currently unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                if leg.get("error"):
+                    return Response({"detail": f"Leg {idx + 1} of {len(leg_points) - 1}: {leg['error']}"}, status=status.HTTP_404_NOT_FOUND)
+                coords = leg.get("route", [])
+                if merged_route and coords:
+                    coords = coords[1:]  # junction point already drawn
+                merged_route.extend(coords)
+                if idx < len(resolved_waypoints):
+                    merged_steps.append({"instruction": f"Waypoint {idx + 1}: pass through {resolved_waypoints[idx]['name']}", "distance_m": 0, "distance_km": 0, "is_waypoint": True})
+                merged_steps.extend(leg.get("steps") or [])
+                total_km += float(leg.get("distance_km") or 0)
+                if leg.get("duration_min") is not None:
+                    total_min += float(leg["duration_min"])
+                else:
+                    all_durations = False
+                if leg.get("routing_engine"):
+                    engines.add(str(leg["routing_engine"]))
+            has_duration = all_durations and total_min > 0
+            result = {
+                "distance_km": round(total_km, 2),
+                "duration_min": round(total_min) if has_duration else None,
+                "duration_source": "estimated" if has_duration else None,
+                "duration_note": "Sum of per-leg average-speed estimates; not a live traffic prediction." if has_duration else None,
+                "route": merged_route,
+                "steps": merged_steps,
+                "routing_engine": "+".join(sorted(engines)) if engines else None,
+                "waypoints": resolved_waypoints,
+                "straight_line_km": round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2),
+                "road_distance_km": None,
+                "note": "Multi-stop route: every leg routed on the same engine as single-stop routes; totals are leg sums.",
+            }
+        else:
+            result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},
@@ -496,7 +566,7 @@ class NavigationRouteView(APIView):
         # on the bundled engine, or the provider's own alternatives=true
         # routes when a street-level provider is configured. Same duration
         # honesty rules as the primary: no invented times for bus/flight.
-        if transport_mode != "flight" and response_data.get("route"):
+        if transport_mode != "flight" and response_data.get("route") and not resolved_waypoints:
             from .routing_service import route_alternatives
             alternatives = route_alternatives(
                 start_lat, start_lon, end_lat, end_lon,

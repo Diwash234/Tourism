@@ -3470,3 +3470,90 @@ class RoutingProviderAdminTests(TestCase):
     def test_requires_authentication(self):
         resp = APIClient().get(self.URL)
         self.assertIn(resp.status_code, (401, 403))
+
+
+class MultiStopRouteTests(TestCase):
+    """Phase 4: multi-stop routes — every leg through the same engine and
+    honesty rules; totals are leg sums; unresolvable stops are rejected."""
+
+    URL = "/api/v1/navigation/route"
+    KTM = {"latitude": 27.7172, "longitude": 85.3240}
+    PKR = {"latitude": 28.2096, "longitude": 83.9856}
+
+    def _route(self, payload):
+        # DRF client — Django's default test client would multipart-encode
+        # the payload and stringify the waypoints list.
+        return APIClient().post(self.URL, payload, format="json")
+
+    def test_coordinate_roundtrip_is_leg_sum(self):
+        single = self._route({"start_latitude": 27.7172, "start_longitude": 85.3240,
+                              "end_latitude": 28.2096, "end_longitude": 83.9856})
+        self.assertEqual(single.status_code, 200, single.content)
+        one_way = float(single.json()["distance_km"])
+
+        multi = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 27.7172, "end_longitude": 85.3240,
+            "waypoints": [{"latitude": 28.2096, "longitude": 83.9856, "name": "Pokhara"}],
+        })
+        self.assertEqual(multi.status_code, 200, multi.content)
+        data = multi.json()
+        total = float(data["distance_km"])
+        # KTM -> Pokhara -> KTM must be roughly the round trip, not one leg
+        self.assertGreater(total, one_way * 1.7)
+        self.assertLess(total, one_way * 2.3)
+        self.assertEqual(data["waypoints"][0]["name"], "Pokhara")
+        instructions = [s.get("instruction", "") for s in data.get("steps", [])]
+        self.assertTrue(any("Waypoint 1: pass through Pokhara" in text for text in instructions))
+        self.assertGreaterEqual(len(data["route"]), 4)
+        # alternatives are a single-stop concept — none fabricated here
+        self.assertNotIn("alternatives", data)
+
+    def test_named_waypoint_resolves_through_place_index(self):
+        resp = self._route({
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+            "waypoints": ["Pokhara"],
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        names = [w["name"] for w in resp.json().get("waypoints", [])]
+        self.assertEqual(len(names), 1)
+
+    def test_unresolvable_waypoint_rejected(self):
+        resp = self._route({
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+            "waypoints": ["xyz_nonexistent_place"],
+        })
+        self.assertEqual(resp.status_code, 404)
+        self.assertIn("waypoint", resp.json()["detail"])
+
+    def test_more_than_three_waypoints_rejected(self):
+        resp = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 28.2096, "end_longitude": 83.9856,
+            "waypoints": [dict(self.PKR), dict(self.PKR), dict(self.PKR), dict(self.PKR)],
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_flight_multi_stop_rejected_without_invented_times(self):
+        resp = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 28.2096, "end_longitude": 83.9856,
+            "transport_mode": "Flight",
+            "waypoints": [dict(self.PKR)],
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_tourist_bus_multi_stop_keeps_duration_unavailable(self):
+        resp = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 27.7172, "end_longitude": 85.3240,
+            "transport_mode": "Tourist Bus",
+            "waypoints": [dict(self.PKR)],
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        data = resp.json()
+        self.assertIsNone(data["duration_min"])
+        self.assertEqual(data["duration_source"], "unavailable")
+        self.assertGreater(float(data["distance_km"]), 400)
