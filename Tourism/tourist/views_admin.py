@@ -2225,11 +2225,26 @@ class AdminCMSView(APIView):
             "padding_style": {"compact", "medium", "spacious"},
             "text_scale": {"sm", "base", "lg", "xl"},
             "align": {"left", "center", "right"},
+            # Typography (section content controls): structured values only,
+            # mapped to fixed class/font stacks by the frontend — never raw CSS.
+            "font_family": {"default", "serif", "mono", "display"},
+            "heading_level": {"h1", "h2", "h3", "h4"},
+            "heading_size": {"sm", "base", "lg", "xl"},
         }
         for key, allowed in style_enums.items():
             value = str(config.get(key) or "").strip().lower()
             if value in allowed:
                 safe[key] = value
+        # Custom colors: strict hex allow-list (the frontend renderer applies
+        # the same rule) — previously these keys were silently dropped here,
+        # which meant custom_bg/custom_color could never be saved.
+        hex_re = r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})"
+        for color_key in ("custom_bg", "custom_color", "title_color"):
+            raw_color = str(config.get(color_key) or "").strip()
+            if raw_color:
+                if not re.fullmatch(hex_re, raw_color):
+                    raise ValueError(f"{color_key} must be a hex color like #0A7F5C")
+                safe[color_key] = raw_color
         bg_image = str(config.get("bg_image") or "").strip()
         if bg_image:
             if not bg_image.startswith("https://"):

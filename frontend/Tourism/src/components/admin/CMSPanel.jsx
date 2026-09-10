@@ -1001,6 +1001,33 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
             <option value="right">Right</option>
           </select>
         </label>
+        <label className="text-xs font-semibold text-slate-300">Font family
+          <select className="input-field mt-1" value={value.config?.font_family || "default"} onChange={e => set("config", { ...(value.config || {}), font_family: e.target.value })}>
+            <option value="default">Site default</option>
+            <option value="serif">Serif (editorial)</option>
+            <option value="mono">Monospace</option>
+            <option value="display">Display (soft sans)</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-300">Heading level
+          <select className="input-field mt-1" value={value.config?.heading_level || "h2"} onChange={e => set("config", { ...(value.config || {}), heading_level: e.target.value })}>
+            <option value="h1">H1 (page-level)</option>
+            <option value="h2">H2 (default)</option>
+            <option value="h3">H3 (sub-section)</option>
+            <option value="h4">H4 (minor)</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-300">Heading size
+          <select className="input-field mt-1" value={value.config?.heading_size || "base"} onChange={e => set("config", { ...(value.config || {}), heading_size: e.target.value })}>
+            <option value="sm">Small</option>
+            <option value="base">Normal</option>
+            <option value="lg">Large</option>
+            <option value="xl">Extra large</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-300">Heading color (hex, optional)
+          <input className="input-field mt-1" value={value.config?.title_color || ""} onChange={e => set("config", { ...(value.config || {}), title_color: e.target.value })} placeholder="#1D5146" />
+        </label>
         <label className="text-xs font-semibold text-slate-300">Background Image (HTTPS, optional)
           <input className="input-field mt-1" value={value.config?.bg_image || ""} onChange={e => set("config", { ...(value.config || {}), bg_image: e.target.value })} placeholder="https://…" />
         </label>

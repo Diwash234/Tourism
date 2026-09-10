@@ -3238,3 +3238,38 @@ class DistrictDescriptionSeedTests(TestCase):
         call_command("seed_district_descriptions")
         fresh.refresh_from_db()
         self.assertEqual((fresh.description or "").strip(), "")
+
+
+class SectionTypographyConfigTests(TestCase):
+    """Section content controls: body rich text + typography config must
+    survive the admin save-path (regression: custom_bg/custom_color were
+    silently dropped by _safe_section_config)."""
+
+    def test_custom_colors_and_typography_survive_safe_config(self):
+        from tourist.views_admin import AdminCMSView
+        safe = AdminCMSView._safe_section_config({
+            "custom_bg": "#07101F",
+            "custom_color": "#FFF",
+            "title_color": "#1D5146",
+            "font_family": "serif",
+            "heading_level": "h3",
+            "heading_size": "lg",
+            "text_scale": "lg",
+            "align": "center",
+        })
+        self.assertEqual(safe["custom_bg"], "#07101F")
+        self.assertEqual(safe["custom_color"], "#FFF")
+        self.assertEqual(safe["title_color"], "#1D5146")
+        self.assertEqual(safe["font_family"], "serif")
+        self.assertEqual(safe["heading_level"], "h3")
+        self.assertEqual(safe["heading_size"], "lg")
+
+    def test_invalid_values_are_rejected_or_dropped(self):
+        from tourist.views_admin import AdminCMSView
+        with self.assertRaises(ValueError):
+            AdminCMSView._safe_section_config({"custom_bg": "red; background:url(x)"})
+        with self.assertRaises(ValueError):
+            AdminCMSView._safe_section_config({"title_color": "javascript:alert(1)"})
+        safe = AdminCMSView._safe_section_config({"font_family": "Comic Sans", "heading_level": "h9"})
+        self.assertNotIn("font_family", safe)
+        self.assertNotIn("heading_level", safe)

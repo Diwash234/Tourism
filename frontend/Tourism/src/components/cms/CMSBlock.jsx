@@ -342,12 +342,23 @@ export default function CMSBlock({ section }) {
   const TEXT_SCALES = { sm: "text-sm", base: "text-base", lg: "text-lg", xl: "text-xl" }
   const scaleClass = TEXT_SCALES[config.text_scale] || ""
   const alignClass = config.align === "center" ? "text-center" : config.align === "right" ? "text-right" : ""
+  // Typography controls: fixed font stacks + heading level/size enums —
+  // structured values only, never raw CSS.
+  const FONT_STACKS = {
+    serif: "Georgia, 'Times New Roman', serif",
+    mono: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    display: "'Trebuchet MS', 'Segoe UI', system-ui, sans-serif",
+  }
+  const HEADING_SIZES = { sm: "text-lg", base: "text-2xl", lg: "text-3xl", xl: "text-4xl" }
+  const headingClass = HEADING_SIZES[config.heading_size] || "text-2xl"
+  const HeadingTag = ["h1", "h3", "h4"].includes(config.heading_level) ? config.heading_level : "h2"
   const bgImage = typeof config.bg_image === "string" && /^https:\/\//.test(config.bg_image) ? config.bg_image : ""
   // Custom color overrides (§styling): strict hex allow-list only — never raw CSS.
   const hexOk = (v) => typeof v === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
   const customStyle = {}
   if (hexOk(config.custom_bg)) customStyle.background = config.custom_bg
   if (hexOk(config.custom_color)) customStyle.color = config.custom_color
+  if (FONT_STACKS[config.font_family]) customStyle.fontFamily = FONT_STACKS[config.font_family]
   if (bgImage) { customStyle.backgroundImage = `url(${bgImage})`; customStyle.backgroundSize = "cover"; customStyle.backgroundPosition = "center" }
 
   return (
@@ -355,7 +366,14 @@ export default function CMSBlock({ section }) {
       className={`${layout} ${effectClass(config.effect)} ${scaleClass} ${alignClass}`}
       style={Object.keys(customStyle).length ? customStyle : undefined}
     >
-      {section.title && <h2 className="text-2xl font-black tracking-tight">{section.title}</h2>}
+      {section.title && (
+        <HeadingTag
+          className={`${headingClass} font-black tracking-tight`}
+          style={hexOk(config.title_color) ? { color: config.title_color } : undefined}
+        >
+          {section.title}
+        </HeadingTag>
+      )}
       {section.subtitle && <p className="mt-1 text-sm opacity-80">{section.subtitle}</p>}
 
       {/* RENDER CHILD CONTENT BLOCKS IF PRESENT */}
