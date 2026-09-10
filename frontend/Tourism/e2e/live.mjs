@@ -831,6 +831,55 @@ async function run() {
     }
   }
 
+  // ---- Task-82: admin full-page editing contracts ----
+  {
+    const token = await login("admin")
+    const auth = { Authorization: `Bearer ${token}` }
+
+    // destination cover image: edit → visible in BOTH stores → HTTPS enforced → restore
+    const detail = await request(`${API}/admin/destinations/1`, { headers: auth })
+    const original = detail.data?.cover_image || ""
+    if (detail.res.status === 200) {
+      const set = await request(`${API}/admin/destinations/1`, { method: "PUT", headers: auth, json: { cover_image_url: "https://example.org/e2e-task82.jpg" } })
+      const check = await request(`${API}/admin/destinations/1`, { headers: auth })
+      const galleryHit = (check.data?.gallery || []).some((g) => String(g.url).includes("e2e-task82"))
+      if (set.res.status === 200 && check.data?.cover_image === "https://example.org/e2e-task82.jpg" && galleryHit) ok("admin: destination cover image edit updates both stores")
+      else fail("admin: cover image edit", `set=${set.res.status} raw=${check.data?.cover_image} gallery=${galleryHit}`)
+      const bad = await request(`${API}/admin/destinations/1`, { method: "PUT", headers: auth, json: { cover_image_url: "http://insecure.example.com/x.jpg" } })
+      if (bad.res.status === 400) ok("admin: non-HTTPS cover image rejected")
+      else fail("admin: http cover rejection", `status=${bad.res.status}`)
+      const restore = await request(`${API}/admin/destinations/1`, { method: "PUT", headers: auth, json: { cover_image_url: original } })
+      if (restore.res.status === 200) ok("admin: cover image restore round-trip")
+      else fail("admin: cover restore", `status=${restore.res.status}`)
+    } else fail("admin: destination detail", `status=${detail.res.status}`)
+
+    // hospital/directory row: rename → revert
+    const dir = await request(`${API}/admin/emergency-directory/?kind=hospital`, { headers: auth })
+    const row = dir.data?.results?.[0]
+    if (row) {
+      const renamed = await request(`${API}/admin/emergency-directory/`, { method: "PATCH", headers: auth, json: { kind: "hospital", id: row.id, name: `${row.name} (e2e)` } })
+      const reverted = await request(`${API}/admin/emergency-directory/`, { method: "PATCH", headers: auth, json: { kind: "hospital", id: row.id, name: row.name } })
+      if (renamed.res.status === 200 && renamed.data?.record?.name === `${row.name} (e2e)` && reverted.res.status === 200 && reverted.data?.record?.name === row.name) ok("admin: hospital name edit + revert")
+      else fail("admin: hospital rename", `set=${renamed.res.status} back=${reverted.res.status}`)
+    } else fail("admin: hospital row for rename test", "no rows")
+
+    // emergency kinds now include atm/bank (invalid kind error must advertise them)
+    const badKind = await request(`${API}/admin/emergency-directory/`, { method: "POST", headers: auth, json: { kind: "nightclub", name: "E2E Bad Kind", latitude: 27.7, longitude: 85.3 } })
+    if (badKind.res.status === 400 && String(badKind.data?.detail).includes("atm")) ok("admin: emergency directory accepts atm/bank kinds")
+    else fail("admin: kinds message", `status=${badKind.res.status} detail=${badKind.data?.detail}`)
+  }
+
+  // public emergency directory exposes the ATM & Bank count
+  {
+    const first = await request(`${API}/destinations/?limit=1`)
+    const row = first.data?.results?.[0] || first.data?.[0]
+    if (row?.slug) {
+      const em = await request(`${API}/destinations/${encodeURIComponent(row.slug)}/emergency/`)
+      if (em.res.status === 200 && typeof em.data?.counts?.atm_bank_within_radius === "number") ok("public: emergency counts include atm_bank_within_radius")
+      else fail("public: atm_bank count", `status=${em.res.status} counts=${JSON.stringify(em.data?.counts)?.slice(0, 120)}`)
+    } else fail("public: atm_bank count", "no destination row to probe")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

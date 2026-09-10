@@ -227,3 +227,22 @@ options missing; wanted preview before publishing. Findings & fixes:
 
 Battery after this change: Django suite **224 OK**, e2e **66/66**,
 `test:nav` **162/162**, `npm run build` ✓, eslint 0 errors on touched files.
+
+## Task-82 follow-up — public visibility & scope clarity (2026-09-10)
+
+1. **ATM & Bank on the public Emergency page** — admin-created ATM/Bank rows
+   already flowed into `specialized_contacts` (the public directory service
+   includes every `OSMEssentialService` category except hospital/police), but
+   the page had no dedicated filter. Added an **"ATM & Bank (n)"** tab
+   (filters `type` in atm/bank) backed by a new `atm_bank_within_radius`
+   count in `emergency_service.facility_counts`.
+2. **Footer CMS check** — `Footer.jsx` already renders the `footer` managed
+   page through `pageCMS("footer", [...])` + extras; no gap.
+3. **"User Dashboard Controls" scope confusion** — tab renamed to
+   **"Dashboard Page Layout"** and the panel now states explicitly that it
+   controls the user Dashboard page only, pointing to Website → Page Editor
+   for all other pages and Branding, Theme & Routing for site-wide settings.
+4. **Permanent e2e coverage** for the task-82 contracts (6 new tests, suite
+   now **72/72**): cover-image edit updates BOTH stores + restore round-trip,
+   non-HTTPS cover rejected (400), hospital rename + revert, emergency kinds
+   advertise atm/bank, public counts expose `atm_bank_within_radius`.

@@ -37,7 +37,7 @@ export const ADMIN_NAV_GROUPS = [
     ["cookie_consent", "Cookie Consent", BsCookie],
     ["category_translations", "Categories & Translations", BsTranslate],
     ["content_translations", "Content Translations", BsGlobe],
-    ["user_dashboard_control", "User Dashboard Controls", BsSliders],
+    ["user_dashboard_control", "Dashboard Page Layout", BsSliders],
     ["ai_engine", "Central AI Engine Studio", BsStar],
   ]},
   { label: "Travel Management", items: [
