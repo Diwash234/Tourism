@@ -136,3 +136,64 @@ def route_metrics(start_lat, start_lon, end_lat, end_lon):
             "routing_engine": None,
             "note": f"Routing service unavailable; showing straight-line distance only, which is not road distance. {str(exc)[:120]}",
         }
+
+
+def _step_instruction(step):
+    """OSRM step -> human instruction. Road names come from the routing
+    provider's data, never invented."""
+    maneuver = step.get("maneuver") or {}
+    mtype = (maneuver.get("type") or "").replace("_", " ")
+    modifier = maneuver.get("modifier") or ""
+    name = (step.get("name") or "").strip()
+    distance_m = int(step.get("distance") or 0)
+    if mtype == "depart":
+        text = "Head out" + (f" on {name}" if name else "")
+    elif mtype == "arrive":
+        text = "Arrive at your destination"
+    elif mtype == "roundabout" or mtype == "rotary":
+        text = f"At the roundabout, take exit {maneuver.get('exit', '')} " + (f"onto {name}" if name else "").strip()
+    elif modifier and modifier.lower() != "straight":
+        text = f"Turn {modifier.lower()}" + (f" onto {name}" if name else "")
+    elif mtype in ("new name", "continue", "fork", "merge", "on ramp", "off ramp"):
+        text = ("Continue" if not name else f"Continue onto {name}")
+    else:
+        text = "Continue straight" + (f" on {name}" if name else "")
+    return {"instruction": text.strip(), "distance_m": distance_m,
+            "duration_min": round(float(step.get("duration") or 0) / 60, 1),
+            "road": name or None}
+
+
+def route_steps(start_lat, start_lon, end_lat, end_lon):
+    """Turn-by-turn steps + geometry when a live provider is configured.
+    Returns None otherwise — the UI must say detailed directions require a
+    live road-routing provider, never fabricate them."""
+    values = list(map(float, (start_lat, start_lon, end_lat, end_lon)))
+    provider = provider_config()
+    if not provider["enabled"]:
+        return None
+    url = f"{provider['base_url']}/route/v1/driving/{values[1]},{values[0]};{values[3]},{values[2]}"
+    headers = {"Accept": "application/json", "User-Agent": "NepalTourismRouting/1.0"}
+    if provider["api_key"]:
+        headers["Authorization"] = f"Bearer {provider['api_key']}"
+    try:
+        response = requests.get(
+            url,
+            params={"overview": "full", "steps": "true", "geometries": "geojson"},
+            headers=headers,
+            timeout=settings.EXTERNAL_SYNC_TIMEOUT,
+        )
+        response.raise_for_status()
+        route = response.json().get("routes", [])[0]
+        steps = []
+        for leg in route.get("legs", []):
+            for step in leg.get("steps", []):
+                steps.append(_step_instruction(step))
+        return {
+            "source": "routing_provider",
+            "distance_km": round(float(route["distance"]) / 1000, 2),
+            "duration_min": round(float(route["duration"]) / 60),
+            "geometry": (route.get("geometry") or {}).get("coordinates"),
+            "steps": steps,
+        }
+    except (requests.RequestException, IndexError, KeyError, TypeError, ValueError):
+        return None

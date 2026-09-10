@@ -23,6 +23,7 @@ import {
 import PlaceholderImage from "../components/common/PlaceholderImage"
 import NationalSymbols, { ALL_26_NATIONAL_SYMBOLS, EIGHT_THOUSANDERS, HIMALAYAN_RANGES, DEFAULT_FOODS, DEFAULT_FESTIVALS } from "../components/dashboard/NationalSymbols"
 import destinationApi from "../api/destinationApi"
+import districtApi from "../api/districtApi"
 import { NOT_RECORDED, UPDATE_SOON, recordedCity, recordedText } from "../utils/placeUtils"
 
 const DEFAULT_CULTURE = [
@@ -101,12 +102,14 @@ export default function DiscoverNepal() {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showSymbolsModal, setShowSymbolsModal] = useState(false)
+  const [districtRows, setDistrictRows] = useState([])
 
   useEffect(() => {
     destinationApi.discoverNepal()
       .then(({ data }) => setPayload(data))
       .catch(() => setPayload(null))
       .finally(() => setLoading(false))
+    districtApi.districts().then(({ data }) => setDistrictRows(data.results || [])).catch(() => {})
   }, [])
 
   const wildlife = payload?.wildlife?.items || []
@@ -326,6 +329,47 @@ export default function DiscoverNepal() {
             </Link>
           ))}
         </div>
+      </Section>
+
+      <Section id="districts" icon={FiMap} title="77 Districts of Nepal">
+        <p className="text-sm text-slate-600 mt-1">
+          Every district has a data-driven profile built from recorded tourism data —
+          nothing is fabricated where verified information is unavailable.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mt-3">
+          {Object.entries(
+            districtRows.reduce((acc, row) => {
+              acc[row.province] = (acc[row.province] || 0) + 1
+              return acc
+            }, {})
+          ).map(([provinceName, count]) => (
+            <div key={provinceName} className="rounded-xl border border-slate-200 bg-white p-2.5 text-center">
+              <p className="text-[11px] font-black text-slate-900">{provinceName}</p>
+              <p className="text-[10px] text-emerald-700 font-bold">{count} districts</p>
+            </div>
+          ))}
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+          {[...districtRows]
+            .sort((a, b) => (b.destination_count || 0) - (a.destination_count || 0))
+            .slice(0, 8)
+            .map((row) => (
+              <Link
+                key={row.slug}
+                to={`/districts/${row.slug}`}
+                className="card-base p-4 bg-white border border-slate-200 hover:shadow-md transition"
+              >
+                <h3 className="font-extrabold text-sm text-slate-900">{row.name}</h3>
+                <p className="text-xs text-emerald-700 font-bold mt-1">
+                  {row.destination_count > 0 ? `${row.destination_count} recorded places` : "Awaiting verified data"}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{row.province} Province</p>
+              </Link>
+            ))}
+        </div>
+        <Link to="/districts" className="inline-block mt-4 text-sm font-black text-emerald-700 hover:underline">
+          Browse all 77 districts →
+        </Link>
       </Section>
 
       {/* ALL 26 NATIONAL SYMBOLS SHOWCASE MODAL */}

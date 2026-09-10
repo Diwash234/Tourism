@@ -2984,3 +2984,46 @@ class DistrictArchitectureTests(TestCase):
 
     def test_unknown_district_404(self):
         self.assertEqual(self.client.get("/api/v1/districts/atlantis/").status_code, 404)
+
+
+class TravelOptionsTests(TestCase):
+    """Task-79 §15/§16: destination navigation screen backend."""
+
+    def test_travel_options_compare_modes_honestly(self):
+        res = self.client.post(
+            "/api/v1/navigation/travel-options/",
+            {"origin_name": "Kathmandu", "destination_name": "Pashupatinath"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        modes = {option["mode"] for option in data["options"]}
+        self.assertEqual(modes, {"taxi", "bus", "walk", "bicycle"})
+        self.assertGreater(data["distance_km"], 0)
+        self.assertIn(data["recommended"], modes)
+        self.assertTrue(data["recommendation_reasons"])
+        walk = next(o for o in data["options"] if o["mode"] == "walk")
+        self.assertEqual(walk["cost_npr"], [0, 0])
+        taxi = next(o for o in data["options"] if o["mode"] == "taxi")
+        # fare_card migration seeds admin-editable estimates → labelled estimate
+        self.assertIsNotNone(taxi["cost_npr"])
+        self.assertIn("fare card", taxi["cost_note"])
+        # No live routing provider in tests → turn-by-turn honestly absent.
+        self.assertIsNone(data["turn_by_turn"])
+        self.assertIn("routing provider", data["turn_by_turn_note"])
+
+    def test_unknown_destination_404(self):
+        res = self.client.post(
+            "/api/v1/navigation/travel-options/",
+            {"origin_name": "Kathmandu", "destination_name": "Atlantis Temple"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 404)
+
+    def test_missing_origin_400(self):
+        res = self.client.post(
+            "/api/v1/navigation/travel-options/",
+            {"destination_name": "Pashupatinath"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)

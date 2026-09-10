@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
@@ -13,6 +13,7 @@ import {
   FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
+import TravelOptionsPanel from "../components/navigation/TravelOptionsPanel"
 import emergencyApi from "../api/emergencyApi"
 import useAuth from "../hooks/useAuth"
 import { savedRoutesApi } from "../services/api"
@@ -186,6 +187,17 @@ export default function Navigation() {
   // GPS fix at request time and is never silently replaced by a fixed city.
   const usingMyLocation = originQuery.trim().toLowerCase() === "my current location"
 
+  // Origin for the travel-options comparison: GPS fix or a named place —
+  // same honesty rules as the route request (never a fabricated city).
+  const travelOriginPayload = useMemo(() => {
+    const origName = originQuery.trim()
+    if ((!origName || usingMyLocation) && position) {
+      return { start_latitude: position.lat, start_longitude: position.lng }
+    }
+    if (origName && !usingMyLocation) return { origin_name: origName }
+    return null
+  }, [originQuery, usingMyLocation, position])
+
   const handleUseMyLocation = () => {
     if (position) {
       setOriginQuery("My Current Location")
@@ -234,6 +246,7 @@ export default function Navigation() {
 
       setDestination(dest)
       setRoute(response.data.route || [])
+      setOptionsRequestId((value) => value + 1)
       setSteps(recordedSteps)
       setDurationMin(response.data.duration_min ?? null)
       setDurationNote(response.data.duration_note || "")
@@ -300,6 +313,7 @@ export default function Navigation() {
   const [myRoutes, setMyRoutes] = useState([])
   const ROUTES_CACHE_KEY = "np-nav-cached-routes"
   const [routeAlts, setRouteAlts] = useState(null)
+  const [optionsRequestId, setOptionsRequestId] = useState(0)
   const [provinces, setProvinces] = useState([])
   const [openProvince, setOpenProvince] = useState(null)
 
@@ -1090,6 +1104,13 @@ export default function Navigation() {
                 </Link>
               </div>
             )}
+
+            <TravelOptionsPanel
+              originPayload={travelOriginPayload}
+              destinationName={destination?.name || destinationQuery.trim()}
+              destinationSlug={destination?.slug || null}
+              requestId={optionsRequestId}
+            />
           </div>
 
           <div className="space-y-2 pt-2 border-t border-slate-800">

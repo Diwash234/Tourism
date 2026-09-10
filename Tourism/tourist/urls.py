@@ -161,6 +161,7 @@ urlpatterns = [
     path("admin/visitor-desk/", views_admin.AdminVisitorDeskView.as_view(), name="admin-visitor-desk"),
     path("navigation/calculate/", views_navigation.UserRouteCalculateView.as_view(), name="user-route-calculate"),
     path("navigation/routes/", views_navigation.UserRouteViewSet.as_view({"get": "list", "post": "create"}), name="user-route-list"),
+    path("navigation/travel-options/", views_navigation.TravelOptionsView.as_view(), name="travel-options"),
     path("navigation/routes/<int:pk>/", views_navigation.UserRouteViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="user-route-detail"),
     path("reports/submit/", views_navigation.UserDataReportSubmitView.as_view(), name="user-report-submit"),
     path("admin/data-health/", views_navigation.AdminDataHealthView.as_view(), name="admin-data-health"),

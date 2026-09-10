@@ -729,6 +729,22 @@ async function run() {
     else fail("districts API")
   }
 
+  {
+    // Task-79 §15/§16: destination navigation screen data
+    const travel = await request(`${API}/navigation/travel-options/`, {
+      method: "POST",
+      json: { origin_name: "Kathmandu", destination_name: "Pashupatinath" },
+    })
+    const modes = (travel.data?.options || []).map((o) => o.mode)
+    if (
+      travel.res.ok &&
+      modes.includes("walk") && modes.includes("taxi") &&
+      travel.data.recommended &&
+      (travel.data.turn_by_turn || String(travel.data.turn_by_turn_note || "").includes("routing provider"))
+    ) ok("navigation screen serves honest mode comparison + recommendation")
+    else fail("travel options endpoint")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

@@ -343,11 +343,17 @@ export default function CMSBlock({ section }) {
   const scaleClass = TEXT_SCALES[config.text_scale] || ""
   const alignClass = config.align === "center" ? "text-center" : config.align === "right" ? "text-right" : ""
   const bgImage = typeof config.bg_image === "string" && /^https:\/\//.test(config.bg_image) ? config.bg_image : ""
+  // Custom color overrides (§styling): strict hex allow-list only — never raw CSS.
+  const hexOk = (v) => typeof v === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
+  const customStyle = {}
+  if (hexOk(config.custom_bg)) customStyle.background = config.custom_bg
+  if (hexOk(config.custom_color)) customStyle.color = config.custom_color
+  if (bgImage) { customStyle.backgroundImage = `url(${bgImage})`; customStyle.backgroundSize = "cover"; customStyle.backgroundPosition = "center" }
 
   return (
     <article
       className={`${layout} ${effectClass(config.effect)} ${scaleClass} ${alignClass}`}
-      style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+      style={Object.keys(customStyle).length ? customStyle : undefined}
     >
       {section.title && <h2 className="text-2xl font-black tracking-tight">{section.title}</h2>}
       {section.subtitle && <p className="mt-1 text-sm opacity-80">{section.subtitle}</p>}

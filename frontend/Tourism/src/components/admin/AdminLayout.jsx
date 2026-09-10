@@ -91,7 +91,7 @@ export default function AdminLayout() {
             )
           })}
         </nav>
-        <div className="mx-2 hidden min-w-0 max-w-md flex-1 lg:max-w-lg md:block"><AdminGlobalSearch /></div>
+        <div className="mx-2 hidden min-w-[10rem] max-w-md flex-1 lg:max-w-lg md:block"><AdminGlobalSearch /></div>
         <div className="ml-auto flex items-center gap-2 text-xs">
           <span className="hidden rounded-full bg-emerald-800 px-2 py-1 font-black uppercase tracking-wide text-emerald-200 sm:inline">Admin</span>
           <Link to="/" className="min-h-10 whitespace-nowrap rounded-lg bg-white px-3 py-2 font-bold text-emerald-950">Traveller site</Link>

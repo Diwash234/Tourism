@@ -885,6 +885,12 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         <label className="text-xs font-semibold text-slate-300">Background Image (HTTPS, optional)
           <input className="input-field mt-1" value={value.config?.bg_image || ""} onChange={e => set("config", { ...(value.config || {}), bg_image: e.target.value })} placeholder="https://…" />
         </label>
+        <label className="text-xs font-semibold text-slate-300">Custom background (hex, optional)
+          <input className="input-field mt-1" value={value.config?.custom_bg || ""} onChange={e => set("config", { ...(value.config || {}), custom_bg: e.target.value })} placeholder="#07101F" />
+        </label>
+        <label className="text-xs font-semibold text-slate-300">Custom text color (hex, optional)
+          <input className="input-field mt-1" value={value.config?.custom_color || ""} onChange={e => set("config", { ...(value.config || {}), custom_color: e.target.value })} placeholder="#19C7A5" />
+        </label>
         <label className="text-xs font-semibold text-slate-300">Animation
           <select className="input-field mt-1" value={value.config?.effect || "none"} onChange={e => set("config", { ...(value.config || {}), effect: e.target.value })}>
             {["none", "marquee", "fade", "slide"].map(item => <option key={item}>{item}</option>)}
@@ -1430,6 +1436,12 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                     <option value="medium">Medium (p-6)</option>
                     <option value="spacious">Spacious (p-10)</option>
                   </select>
+                </label>
+                <label className="font-semibold text-slate-300">Custom background (hex, optional)
+                  <input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.custom_bg || ""} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), custom_bg: e.target.value } })} placeholder="#07101F" />
+                </label>
+                <label className="font-semibold text-slate-300">Custom text color (hex, optional)
+                  <input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.custom_color || ""} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), custom_color: e.target.value } })} placeholder="#19C7A5" />
                 </label>
                 <label className="font-semibold text-slate-300">Section type
                   <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.section_type || "text"} onChange={(e) => setDraft({ ...draft, section_type: e.target.value })}>

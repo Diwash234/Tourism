@@ -43,6 +43,8 @@ import DestinationDetails from "./pages/destinations/DestinationDetails"
 import SubmitPlacePage from "./pages/SubmitPlacePage"
 import SubmitServicePage from "./pages/SubmitServicePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
+import Districts from "./pages/Districts"
+import DistrictDetail from "./pages/DistrictDetail"
 import ExploreNepalMap from "./pages/ExploreNepalMap"
 import CompareDestinations from "./pages/CompareDestinations"
 import Gallery from "./pages/Gallery"
@@ -196,6 +198,8 @@ function App() {
           <Route path="/destinations/submit" element={<SubmitPlacePage />} />
           <Route path="/submit-service" element={<SubmitServicePage />} />
           <Route path="/discover-nepal" element={<DiscoverNepal />} />
+          <Route path="/districts" element={<Districts />} />
+          <Route path="/districts/:slug" element={<DistrictDetail />} />
           <Route path="/explore-map" element={<ExploreNepalMap />} />
 
           <Route 
