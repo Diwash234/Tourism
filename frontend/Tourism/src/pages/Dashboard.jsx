@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import {
   FiMapPin,
   FiHeart,
@@ -312,6 +313,10 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 fade-in">
+      {/* CMS-managed intro — the dashboard is a managed page like every
+          other (15 sections in the admin CMS); it must render them. */}
+      <CMSPageIntro pageKey="dashboard" />
+
       {/* 1. National Symbols Branding */}
       {showBlock("national-symbols") && <NationalSymbols />}
 
