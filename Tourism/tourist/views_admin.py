@@ -1569,28 +1569,95 @@ class AdminDataExplorerView(APIView):
             if field is None:
                 return Response({"detail": f"Field '{name}' is not editable for {resource}."}, status=status.HTTP_400_BAD_REQUEST)
             try:
-                if isinstance(field, models.BooleanField):
-                    value = bool(raw) if not isinstance(raw, str) else str(raw).lower() in {"1", "true", "yes", "on"}
-                elif isinstance(field, models.DecimalField):
-                    value = None if raw in ("", None) else Decimal(str(raw))
-                elif isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
-                    value = None if raw in ("", None) and field.null else int(raw)
-                else:
-                    value = "" if raw is None else str(raw)
-                    max_len = getattr(field, "max_length", None)
-                    if max_len and len(value) > max_len:
-                        raise ValueError(f"too long (max {max_len} characters)")
+                value = self._coerce_field(field, raw)
+                self._validate_choices(field, value)
             except (InvalidOperation, TypeError, ValueError) as exc:
                 return Response({"detail": f"{name}: invalid value ({exc})"}, status=status.HTTP_400_BAD_REQUEST)
-            choices = [str(c[0]) for c in (getattr(field, "choices", None) or [])]
-            if choices and value not in (None, "") and str(value) not in choices:
-                return Response({"detail": f"{name}: must be one of {', '.join(choices)}"}, status=status.HTTP_400_BAD_REQUEST)
             if getattr(obj, name) != value:
                 setattr(obj, name, value)
                 changed.append(name)
         if changed:
             obj.save()
         return Response({"message": "Record updated", "changed": changed})
+
+    def _coerce_field(self, field, raw):
+        from decimal import Decimal
+        if isinstance(field, models.BooleanField):
+            return bool(raw) if not isinstance(raw, str) else str(raw).lower() in {"1", "true", "yes", "on"}
+        if isinstance(field, models.DecimalField):
+            return None if raw in ("", None) else Decimal(str(raw))
+        if isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
+            return None if raw in ("", None) and field.null else int(raw)
+        value = "" if raw is None else str(raw)
+        max_len = getattr(field, "max_length", None)
+        if max_len and len(value) > max_len:
+            raise ValueError(f"too long (max {max_len} characters)")
+        return value
+
+    def _validate_choices(self, field, value):
+        choices = [str(c[0]) for c in (getattr(field, "choices", None) or [])]
+        if choices and value not in (None, "") and str(value) not in choices:
+            raise ValueError(f"must be one of {', '.join(choices)}")
+
+    def post(self, request):
+        """Generic record creation for explorer resources.
+
+        Payload: {"resource": "...", "fields": {name: value, ...}}. Same
+        type-based whitelist as PATCH; model-level NOT NULL violations are
+        reported as 400 instead of crashing.
+        """
+        from decimal import InvalidOperation
+        from django.db import IntegrityError, transaction
+        resource = request.data.get("resource")
+        fields_in = request.data.get("fields") or {}
+        if not isinstance(fields_in, dict) or not fields_in:
+            return Response({"detail": "fields object is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if resource == "destinations":
+            return Response({"detail": "Use the dedicated destination editor to create destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        model = self._resource_model(resource)
+        if model is None:
+            return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
+        editable = {f.name: f for f in self._editable_fields(model)}
+        values = {}
+        for name, raw in fields_in.items():
+            field = editable.get(name)
+            if field is None:
+                return Response({"detail": f"Field '{name}' is not editable for {resource}."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                value = self._coerce_field(field, raw)
+                self._validate_choices(field, value)
+            except (InvalidOperation, TypeError, ValueError) as exc:
+                return Response({"detail": f"{name}: invalid value ({exc})"}, status=status.HTTP_400_BAD_REQUEST)
+            values[name] = value
+        try:
+            with transaction.atomic():
+                obj = model.objects.create(**values)
+        except IntegrityError as exc:
+            return Response({"detail": f"Required fields are missing or invalid for {resource}: {str(exc).splitlines()[0][:160]}"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Record created", "id": obj.pk}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        """Delete one explorer record. Params: ?resource=...&id=...
+
+        Records referenced by other data are refused with 409 instead of
+        cascade-deleting related content.
+        """
+        from django.db.models import ProtectedError
+        resource = request.query_params.get("resource")
+        row_id = request.query_params.get("id")
+        if resource == "destinations":
+            return Response({"detail": "Use the dedicated destination archive flow for destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        model = self._resource_model(resource)
+        if model is None:
+            return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
+        obj = model.objects.filter(pk=row_id).first()
+        if obj is None:
+            return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            obj.delete()
+        except ProtectedError:
+            return Response({"detail": "This record is referenced by other data and cannot be deleted. Edit or archive it instead."}, status=status.HTTP_409_CONFLICT)
+        return Response({"message": "Record deleted"})
 
     def get(self, request):
         from django.apps import apps

@@ -880,6 +880,18 @@ async function run() {
       else fail("admin: fk rejection", `status=${fk.res.status}`)
     } else fail("admin: generic row edit", "no hospital rows")
 
+    // generic create + delete round-trip (own row only; never touches seeded data)
+    const slug = `e2e-cat-${Date.now()}`
+    const created = await request(`${API}/admin/data-explorer/`, { method: "POST", headers: auth, json: { resource: "categories", fields: { name: "E2E Temp Category", slug } } })
+    if (created.res.status === 201 && created.data?.id) {
+      const removed = await request(`${API}/admin/data-explorer/?resource=categories&id=${created.data.id}`, { method: "DELETE", headers: auth })
+      if (removed.res.status === 200) ok("admin: generic create + delete round-trip")
+      else fail("admin: generic delete", `status=${removed.res.status}`)
+    } else fail("admin: generic create", `status=${created.res.status} body=${JSON.stringify(created.data)?.slice(0, 100)}`)
+    const badCreate = await request(`${API}/admin/data-explorer/`, { method: "POST", headers: auth, json: { resource: "hotels", fields: { name: "E2E No Location" } } })
+    if (badCreate.res.status === 400) ok("admin: generic create validates required relations")
+    else fail("admin: generic create validation", `status=${badCreate.res.status}`)
+
     // emergency kinds now include atm/bank (invalid kind error must advertise them)
     const badKind = await request(`${API}/admin/emergency-directory/`, { method: "POST", headers: auth, json: { kind: "nightclub", name: "E2E Bad Kind", latitude: 27.7, longitude: 85.3 } })
     if (badKind.res.status === 400 && String(badKind.data?.detail).includes("atm")) ok("admin: emergency directory accepts atm/bank kinds")
