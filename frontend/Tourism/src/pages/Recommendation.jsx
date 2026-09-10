@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiAlertTriangle,
   FiCompass, FiMapPin, FiArrowRight, FiTrendingUp, FiShield,
@@ -224,6 +225,7 @@ const PROVINCES = ["", "Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Kar
 function SelectField({ label, value, options, onChange }) {
   return (
     <label className="space-y-1.5">
+      <CMSPageIntro pageKey="recommendation" />
       <span className="text-xs font-bold text-gray-600">{label}</span>
       <select className="input-field bg-white" value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map(([key, text]) => <option key={key} value={key}>{text}</option>)}

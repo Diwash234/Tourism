@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiCheck, FiMapPin, FiPackage, FiShoppingBag } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -60,6 +61,7 @@ const Packages = () => {
 
   return (
     <div className="container-app py-10" data-testid="packages-page">
+      <CMSPageIntro pageKey="packages" />
       <CMSIntro section={cmsBlock("intro")} />
       <PageHeader
         title="Travel Packages"

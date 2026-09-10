@@ -11,6 +11,8 @@ const KINDS = [
   ["fire_station", "Fire & rescue"],
   ["ambulance", "Ambulance"],
   ["blood_bank", "Blood bank"],
+  ["atm", "ATM"],
+  ["bank", "Bank"],
 ]
 
 const empty = {
@@ -26,6 +28,7 @@ export default function EmergencyDirectoryPanel() {
   const [coverage, setCoverage] = useState({})
   const [query, setQuery] = useState("")
   const [kind, setKind] = useState("")
+  const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const load = async () => {
@@ -75,6 +78,22 @@ export default function EmergencyDirectoryPanel() {
     }
   }
 
+  const saveEdit = async (event) => {
+    event.preventDefault()
+    try {
+      const { data } = await adminApi.updateEmergencyDirectory({
+        kind: editing.kind, id: editing.id,
+        name: editing.name, phone: editing.phone, address: editing.address,
+        opening_hours: editing.opening_hours || "",
+      })
+      showToast(data.message || "Record updated", "success")
+      setEditing(null)
+      load()
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Could not update record", "error")
+    }
+  }
+
   return (
     <div className="space-y-6" data-testid="emergency-directory-panel">
       <div className="rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
@@ -97,6 +116,7 @@ export default function EmergencyDirectoryPanel() {
           <span>Police {coverage.police ?? "—"}</span>
           <span>Pharmacies {coverage.pharmacy ?? "—"}</span>
           <span>Fire {coverage.fire_station ?? "—"}</span>
+          <span>ATM / Bank {coverage.atm ?? "—"}</span>
         </div>
         <form className="flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); load() }}>
           <input className="input-field" placeholder="Search Dadeldhura, Amargadhi, pharmacy…" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -155,11 +175,25 @@ export default function EmergencyDirectoryPanel() {
                 <p className="font-bold text-slate-900">{row.name}</p>
                 <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
                 <p className="text-xs text-slate-300">{row.latitude}, {row.longitude}</p>
+                {editing && editing.kind === row.kind && editing.id === row.id ? (
+                  <form onSubmit={saveEdit} className="mt-2 space-y-2">
+                    <input className="input-field" required value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Name" />
+                    <input className="input-field" value={editing.phone} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} placeholder="Phone" />
+                    <input className="input-field" value={editing.address} onChange={(e) => setEditing({ ...editing, address: e.target.value })} placeholder="Address" />
+                    <input className="input-field" value={editing.opening_hours || ""} onChange={(e) => setEditing({ ...editing, opening_hours: e.target.value })} placeholder="Opening hours" />
+                    <div className="flex gap-2">
+                      <button type="submit" className="text-xs font-black rounded-lg bg-emerald-600 text-white px-3 py-1.5">Save changes</button>
+                      <button type="button" onClick={() => setEditing(null)} className="text-xs font-bold text-slate-500 px-2">Cancel</button>
+                    </div>
+                  </form>
+                ) : (
                 <div className="flex gap-2 mt-2">
+                  <button type="button" onClick={() => setEditing({ kind: row.kind, id: row.id, name: row.name || "", phone: row.phone || "", address: row.address || "", opening_hours: row.opening_hours || "" })} className="text-xs font-bold text-sky-700">Edit</button>
                   {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}
                   {!row.is_archived && <button type="button" onClick={() => act(row, "archive")} className="text-xs font-bold text-rose-700">Archive</button>}
                   {row.is_archived && <button type="button" onClick={() => act(row, "restore")} className="text-xs font-bold text-slate-700">Restore</button>}
                 </div>
+                )}
               </div>
             ))}
           </div>

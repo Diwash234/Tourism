@@ -90,7 +90,7 @@ class AdminEmergencyDirectoryView(APIView):
 
         pending = InfrastructureSubmission.objects.filter(
             status=InfrastructureSubmission.Status.PENDING,
-            place_type__in=["hospital", "police", "pharmacy", "fire_station", "ambulance", "blood_bank", "clinic"],
+            place_type__in=["hospital", "police", "pharmacy", "fire_station", "ambulance", "blood_bank", "clinic", "atm", "bank"],
         ).select_related("submitted_by").order_by("-created_at")[:50]
 
         return Response({
@@ -103,6 +103,7 @@ class AdminEmergencyDirectoryView(APIView):
                 "pharmacy": OSMEssentialService.objects.filter(category="pharmacy", is_archived=False).count(),
                 "fire_station": OSMEssentialService.objects.filter(category="fire_station", is_archived=False).count(),
                 "ambulance": OSMEssentialService.objects.filter(category="ambulance", is_archived=False).count(),
+            "atm": OSMEssentialService.objects.filter(category__in=["atm", "bank"], is_archived=False).count(),
             },
             "notice": (
                 "Add only accurate records with coordinates. This does not scrape Google or Facebook, "

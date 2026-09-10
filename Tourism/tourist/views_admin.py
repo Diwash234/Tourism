@@ -800,12 +800,45 @@ class AdminDestinationDetailView(APIView):
         if next_lat is not None and next_lng is not None and not _in_nepal(next_lat, next_lng):
             return Response({"detail": "Coordinates must fall inside Nepal (lat 26–31, lng 80–89)."}, status=400)
 
+        # Cover image: admins can point the destination cover at any HTTPS URL.
+        # Single source of truth = the gallery row flagged is_cover (what the
+        # public site resolves through _cover_of), never a fabricated photo.
+        cover_url_changed = False
+        cover_url = payload.pop("cover_image_url", None)
+        if cover_url is not None:
+            cover_url = str(cover_url or "").strip()
+            if cover_url and not cover_url.startswith("https://"):
+                return Response({"detail": "cover_image_url must use HTTPS."}, status=status.HTTP_400_BAD_REQUEST)
+            cover_row = destination.gallery.filter(is_cover=True).first()
+            raw_current = str(destination.cover_image or "")
+            current = raw_current if raw_current.startswith("http") else ((cover_row.external_url if cover_row else "") or "")
+            row_current = (cover_row.external_url if cover_row else "") or ""
+            if cover_url != current or cover_url != row_current:
+                # _cover_of() (and the public serializers) read the raw
+                # destination.cover_image string FIRST when it holds a URL,
+                # so both stores must agree for the change to be visible.
+                destination.cover_image = cover_url
+                if cover_row:
+                    cover_row.external_url = cover_url
+                    cover_row.source = DestinationImage.Source.ADMIN
+                else:
+                    cover_row = DestinationImage.objects.create(
+                        destination=destination, external_url=cover_url, is_cover=True,
+                        source=DestinationImage.Source.ADMIN,
+                        status=DestinationImage.ImageStatus.APPROVED,
+                        alt_text=destination.name,
+                    )
+                cover_row.save()
+                cover_url_changed = True
+
         changed = []
         for key, value in payload.items():
             if key in editable and hasattr(destination, key):
                 if getattr(destination, key) != value:
                     changed.append(key)
                 setattr(destination, key, value)
+        if cover_url_changed:
+            changed.append("cover_image_url")
         destination.save()
         _sync_destination_json(destination)
         if changed:

@@ -183,3 +183,47 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
    whitelisted-reachable; everything else is not).
 5. `bus` timing uses a ×1.6 heuristic over road time and is only offered when
    a fare is configured; real transit schedules are never fabricated.
+
+## Task-82 addendum — full-page admin editing (2026-09-10)
+
+User report: "sections have descriptions but I cannot see anything there";
+destination name/image, hospital names not editable; ATM/Pharmacy add
+options missing; wanted preview before publishing. Findings & fixes:
+
+1. **Sections invisible on most pages (root cause)** — only 3 pages rendered
+   `CMSBlock`/`CMSExtras` directly, and `CMSPageIntro` (which renders intro +
+   ALL other sections of a page) was mounted on 34 pages. Managed pages
+   missing a renderer: `about`, `gallery`, `packages`, `hotels`,
+   `recommendation`, `trip-planner`/`itinerary` (key mismatch — Itinerary.jsx
+   rendered `pageKey="itinerary"` while `/trip-planner` redirects to
+   `/itinerary`; it now renders BOTH keys). `bookings`, `chatbot`,
+   `hotel-booking` already had it (files live in `src/` root, missed by the
+   first scan). Every public managed page now renders admin-added sections.
+2. **Destination name editing** — already existed: Admin → Data Explorer →
+   Destinations → click a row → Name field (PUT `/admin/destinations/{id}`).
+3. **Destination cover image editing (new)** — `PUT /admin/destinations/{id}`
+   now accepts `cover_image_url` (HTTPS enforced, 400 otherwise). Writes BOTH
+   stores the public site reads: the raw `destination.cover_image` URL string
+   (checked first by `_cover_of`) and the `is_cover` `DestinationImage`
+   gallery row (created with source=admin, status=approved if absent).
+   Data Explorer edit form exposes a `cover_image_url` input, pre-filled from
+   the resolved cover.
+4. **Hospital / directory name editing (new UI)** — backend PATCH on
+   `/admin/emergency-directory/` always supported `name`, `phone`, `address`,
+   `opening_hours`; the Emergency Directory panel had no edit affordance.
+   Each row now has Edit → inline form → save. Verified live: renamed
+   "Tribhuvan University Teaching Hospital" and reverted.
+5. **ATM & Bank categories (new)** — `publish_official_emergency` allowed set
+   now includes `atm` + `bank` (stored as `OSMEssentialService`, same as
+   pharmacy); pending-submission filter and `coverage.atm` counter added;
+   panel KINDS + coverage chip updated. User submit form already offered
+   ATM/Bank (model `PlaceType.ATM` existed) — they now flow through admin
+   creation and appear in directory stats. Verified live: created + cleaned
+   up a test ATM row (DB row hard-deleted, CSV rows reverted).
+6. **Preview before publishing** — already present in Website → Page Editor:
+   select a row → **Preview** (desktop/mobile, live route or draft view,
+   traveller-mode iframe). Draft flow: save with `is_published=false`,
+   preview, then publish.
+
+Battery after this change: Django suite **224 OK**, e2e **66/66**,
+`test:nav` **162/162**, `npm run build` ✓, eslint 0 errors on touched files.

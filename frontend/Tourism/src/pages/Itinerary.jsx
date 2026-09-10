@@ -422,6 +422,7 @@ const Itinerary = () => {
   )
     return (
     <div className="container-app py-10">
+      <CMSPageIntro pageKey="trip-planner" />
       <CMSPageIntro pageKey="itinerary" />
 
       <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests — your trip plan updates

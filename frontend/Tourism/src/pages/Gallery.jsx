@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import PageHeader from "../components/common/PageHeader"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link } from "react-router-dom"
@@ -200,6 +201,7 @@ export default function Gallery() {
 
   return (
     <div className="container-app theme-indigo py-8 space-y-8 animate-fadeIn">
+      <CMSPageIntro pageKey="gallery" />
       <CMSIntro section={cmsBlock("intro")} />
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-2">

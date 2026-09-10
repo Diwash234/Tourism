@@ -34,6 +34,41 @@
           "status": "approved"
         }
       ]
+    },
+    "1": {
+      "id": 1,
+      "name": "Rockland Hotel",
+      "slug": "rockland-hotel",
+      "city": "Pokhara",
+      "city_english": "Pokhara",
+      "city_nepali": "",
+      "district": "कास्की",
+      "province": "Gandaki",
+      "municipality": "",
+      "ward_number": null,
+      "latitude": 28.21136,
+      "longitude": 83.963108,
+      "distance_from_kathmandu_km": 144.51,
+      "description": "Rockland Hotel is a hotel/lodge, located in Pokhara, in गण्डकी प्रदेश, Nepal. It offers accommodation for travellers exploring the surrounding area; check current availability and pricing directly.",
+      "short_description": "Rockland Hotel is a hotel/lodge, located in Pokhara, in गण्डकी प्रदेश, Nepal. It offers accommodation for travellers exploring the surrounding area; check current availability and pricing directly.",
+      "status": "approved",
+      "updated_at": "2026-09-10T14:20:12.476496+00:00",
+      "images": [
+        {
+          "id": 547273,
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Pukson.jpg/960px-Pukson.jpg",
+          "caption": "Rockland Hotel - View 2",
+          "is_cover": true,
+          "status": "approved"
+        },
+        {
+          "id": 547272,
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Thrangu_Tashi_Yangtse_Monastery.jpg/960px-Thrangu_Tashi_Yangtse_Monastery.jpg",
+          "caption": "Rockland Hotel - View 1",
+          "is_cover": false,
+          "status": "approved"
+        }
+      ]
     }
   }
 }

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiUsers, FiTarget, FiGlobe, FiArrowRight } from "react-icons/fi"
 import { APP_NAME } from "../utils/constants"
@@ -10,6 +11,7 @@ const About = () => {
   const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
   return (
   <div className="container-app section-space fade-in theme-maroon">
+    <CMSPageIntro pageKey="about" />
     <CMSIntro section={block("intro")} />
     <PageHeader
       title={<>About {APP_NAME}</>}
