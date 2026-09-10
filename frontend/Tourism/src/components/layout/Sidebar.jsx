@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 import {
-  BsHouseDoor, BsPerson, BsGeoAlt, BsHeart, BsClockHistory, BsBell, BsGear,
+  BsHouseDoor, BsGeoAlt, BsHeart, BsClockHistory, BsBell, BsGear,
   BsWallet2, BsCalculator, BsCalendar3, BsExclamationTriangle, BsCompass,
-  BsTranslate, BsChatDots, BsJournalBookmark, BsShieldLock, BsBuilding, BsBriefcase,
+  BsTranslate, BsShieldLock, BsBuilding, BsBriefcase,
   BsPlusCircle, BsCheck2Square, BsX, BsBoxArrowInRight, BsPersonPlus, BsBarChart, BsImage,
   BsActivity, BsChevronDown, BsChevronRight, BsSignpost, BsStar, BsMap, BsBook,
-  BsListOl, BsTicketPerforated, BsPeople, BsChatQuote, BsRobot, BsCardText, BsInbox,
+  BsTicketPerforated, BsPeople, BsChatQuote, BsRobot, BsCardText, BsInbox,
   BsHospital, BsHouses,
 } from "react-icons/bs"
 
@@ -120,8 +120,21 @@ export default function Sidebar() {
   // Icon-rail mode: desktop with the rail closed. On mobile !open simply
   // means the drawer is off-screen, so the same flat icon rendering is inert.
   const iconMode = !open
+  // Mobile viewport (<lg). Tracked via matchMedia so a resize/rotation
+  // re-renders correctly. On mobile the drawer shows EVERY group fully
+  // expanded — collapsible group headers on a phone made items look "missing"
+  // (task-79 §21: no navbar item may disappear without being accessible).
+  const [mobileView, setMobileView] = useState(() => !isDesktop())
 
   useEffect(() => { configApi.getPublicConfig().then(({ data }) => setManagedItems((data.navigation || []).filter(item => item.location === "sidebar"))).catch(() => {}) }, [])
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined
+    const mq = window.matchMedia("(min-width: 1024px)")
+    const onChange = (event) => setMobileView(!event.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
 
   const handleNav = () => {
     if (!isDesktop()) closeSidebar()
@@ -267,19 +280,27 @@ export default function Sidebar() {
               ))}
             </div>
           ) : (
-            /* Expanded mode: click-controlled collapsible groups (brief §17) */
+            /* Expanded mode: click-controlled collapsible groups on desktop
+               (brief §17); always-open flat groups on mobile so every item
+               is visible without extra taps (task-79 §21). */
             visibleGroups.map((grp) => (
               <div key={grp.label} className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
-                  className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-nav-deep dark:text-nav-darkText uppercase tracking-wider whitespace-nowrap"
-                  aria-expanded={expanded[grp.label] === true}
-                >
-                  {grp.tk ? t(grp.tk) : grp.label}
-                  {expanded[grp.label] === true ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
-                </button>
-                {expanded[grp.label] === true && (
+                {mobileView ? (
+                  <p className="px-3 py-2 text-[11px] font-extrabold text-nav-deep dark:text-nav-darkText uppercase tracking-wider">
+                    {grp.tk ? t(grp.tk) : grp.label}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
+                    className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-nav-deep dark:text-nav-darkText uppercase tracking-wider whitespace-nowrap"
+                    aria-expanded={expanded[grp.label] === true}
+                  >
+                    {grp.tk ? t(grp.tk) : grp.label}
+                    {expanded[grp.label] === true ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
+                  </button>
+                )}
+                {(mobileView || expanded[grp.label] === true) && (
                   <div className="space-y-0.5 border-l-2 border-nav-tintStrong ml-3 pl-1">
                     {grp.links.map(renderLink)}
                   </div>

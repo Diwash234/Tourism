@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
     User, Language, Category, Destination, DestinationTranslation,
+    Province, District,
     DestinationImage, DestinationVideo, Review, Rating, Favorite,
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
     DeviceToken, EmailVerificationToken, PasswordResetToken, MLInsight, Hotel,
@@ -633,3 +634,35 @@ class ManagedNavigationItemAdmin(admin.ModelAdmin):
 @admin.register(FeedbackMessage)
 class FeedbackMessageAdmin(admin.ModelAdmin):
     list_display=['feedback','sender','is_internal','created_at']; list_filter=['is_internal']; search_fields=['body','feedback__subject']
+
+
+# ---------------------------------------------------------------------------
+# Administrative geography (task-79 §5/§25): practical management for the
+# 77-district structure. Descriptions stay blank until verified — the public
+# API renders blank as "Information unavailable", so admins never feel
+# pressured to invent content.
+# ---------------------------------------------------------------------------
+
+@admin.register(Province)
+class ProvinceAdmin(admin.ModelAdmin):
+    list_display = ("name", "capital", "order")
+    ordering = ("order", "name")
+    search_fields = ("name", "capital")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(District)
+class DistrictAdmin(admin.ModelAdmin):
+    list_display = ("name", "province", "region_type", "elevation_m")
+    list_filter = ("province",)
+    search_fields = ("name", "region_type")
+    prepopulated_fields = {"slug": ("name",)}
+    autocomplete_fields = ("province",)
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "province", "region_type")}),
+        ("Geography", {"fields": ("latitude", "longitude", "elevation_m")}),
+        ("Verified content", {
+            "fields": ("description",),
+            "description": "Only enter text verified from a trustworthy source. Blank shows as 'Information unavailable' publicly.",
+        }),
+    )

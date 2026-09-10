@@ -627,6 +627,29 @@ class ItineraryView(APIView):
                     item["note"] = f"Nearest recorded place outside “{place}” — a day trip, not inside the requested area."
                 return item
 
+            def schedule_items(items):
+                """Time-aware day plan (§12). Planning-grade estimates, clearly
+                labelled: 09:00 start, ~90 min per place, travel legs derived
+                from straight-line distance at ~35 km/h (road times come from
+                the routing service, never faked as exact)."""
+                cursor = 9 * 60
+                prev = None
+                for item in items:
+                    if prev is not None and item.get("latitude") is not None and item.get("longitude") is not None:
+                        km = haversine_distance(prev["latitude"], prev["longitude"],
+                                                item["latitude"], item["longitude"])
+                        travel_min = max(10, int(km / 35.0 * 60))
+                        item["travel_from_previous"] = {
+                            "distance_km": round(km, 1),
+                            "minutes_estimated": travel_min,
+                        }
+                        cursor += travel_min
+                    item["start_time"] = f"{cursor // 60:02d}:{cursor % 60:02d}"
+                    item["duration_minutes"] = 90
+                    cursor += 90
+                    item["end_time"] = f"{cursor // 60:02d}:{cursor % 60:02d}"
+                    prev = item
+
             itinerary_days = []
             per_day = max(1, -(-len(ordered) // days)) if ordered else 0
             for day_idx in range(1, days + 1):
@@ -643,6 +666,9 @@ class ItineraryView(APIView):
                     if not fillers:
                         fillers = [c for c in qs.exclude(latitude__isnull=True).exclude(name__in=used)[:2]]
                     day_destinations = [to_item(dest, day_trip=True) for dest in fillers]
+
+                if day_destinations:
+                    schedule_items(day_destinations)
 
                 cats = [item["category"] for item in day_destinations]
                 if cats:
@@ -677,6 +703,11 @@ class ItineraryView(APIView):
                 "data_note": (
                     f"Built from {scope_label}." if scope_label else
                     f"No verified places are recorded for “{place}” yet — showing popular destinations from the wider Nepal catalogue instead."
+                ),
+                "timing_note": (
+                    "Times are planning estimates (09:00 start, ~90 min per place, "
+                    "travel legs from straight-line distance at ~35 km/h). "
+                    "Live road times come from the routing service."
                 ),
                 "itinerary": itinerary_days,
             }

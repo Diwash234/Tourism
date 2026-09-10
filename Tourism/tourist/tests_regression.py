@@ -22,6 +22,8 @@ from .models import (
     StaffCapabilityProfile,
     Category,
     Destination,
+    Province,
+    District,
     Hospital,
     Hotel,
     UserFeedback,
@@ -2878,6 +2880,23 @@ class DistrictItineraryFallbackTests(TestCase):
         self.assertEqual(data["source"], "internal_db_engine")
         self.assertIn("No verified places", data["data_note"])
 
+    def test_fallback_days_are_time_aware(self):
+        """§12: stops carry start/end times, travel legs and an honest
+        timing_note — estimates labelled as estimates, never exact fakes."""
+        data = self._plan("Kaski", days=1)
+        stops = [d for day in data["itinerary"] for d in day["destinations"]]
+        self.assertGreaterEqual(len(stops), 2)
+        first, second = stops[0], stops[1]
+        self.assertEqual(first["start_time"], "09:00")
+        self.assertEqual(first["duration_minutes"], 90)
+        self.assertEqual(first["end_time"], "10:30")
+        self.assertIn("travel_from_previous", second)
+        self.assertGreater(second["travel_from_previous"]["minutes_estimated"], 0)
+        # Second stop starts after first end + the estimated travel leg.
+        expected = 10 * 60 + 30 + second["travel_from_previous"]["minutes_estimated"]
+        self.assertEqual(second["start_time"], f"{expected // 60:02d}:{expected % 60:02d}")
+        self.assertIn("planning estimates", data["timing_note"])
+
 
 class SqliteLockHardeningTests(TestCase):
     """`database is locked` 500s: busy timeout + WAL wiring must stay in place."""
@@ -2899,3 +2918,69 @@ class SqliteLockHardeningTests(TestCase):
                 resolved.append(fn)
         self.assertIn(_enable_sqlite_wal, resolved)
 
+
+
+class DistrictArchitectureTests(TestCase):
+    """Task-79 §5/§24: 77-district structure + /api/v1/districts/ endpoints."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.core.management import call_command
+        call_command("seed_districts", verbosity=0)
+
+    def test_seed_creates_all_77_districts_idempotently(self):
+        from django.core.management import call_command
+        self.assertEqual(Province.objects.count(), 7)
+        self.assertEqual(District.objects.count(), 77)
+        call_command("seed_districts", verbosity=0)  # second run must not duplicate
+        self.assertEqual(Province.objects.count(), 7)
+        self.assertEqual(District.objects.count(), 77)
+
+    def test_rolpa_exists_in_lumbini(self):
+        rolpa = District.objects.select_related("province").get(slug="rolpa")
+        self.assertEqual(rolpa.province.name, "Lumbini")
+        self.assertIsNotNone(rolpa.latitude)
+
+    def test_district_list_endpoint(self):
+        res = self.client.get("/api/v1/districts/")
+        self.assertEqual(res.status_code, 200)
+        payload = res.json()
+        self.assertEqual(payload["count"], 77)
+        search = self.client.get("/api/v1/districts/?search=rolpa").json()
+        self.assertEqual(search["count"], 1)
+        self.assertEqual(search["results"][0]["name"], "Rolpa")
+        by_province = self.client.get("/api/v1/districts/?province=koshi").json()
+        self.assertEqual(by_province["count"], 14)
+
+    def test_province_endpoint(self):
+        res = self.client.get("/api/v1/provinces/").json()
+        self.assertEqual(res["count"], 7)
+        koshi = next(p for p in res["results"] if p["name"] == "Koshi")
+        self.assertEqual(koshi["district_count"], 14)
+
+    def test_district_detail_aggregates_real_data_and_labels_gaps(self):
+        # A real published destination recorded against Rolpa must appear...
+        category = Category.objects.first() or Category.objects.create(name="Test", slug="test")
+        Destination.objects.create(
+            name="Jaljala Himal Viewpoint", slug="jaljala-viewpoint-test",
+            district="Rolpa", city_english="Rolpa",
+            latitude=28.42, longitude=82.70, category=category,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        payload = self.client.get("/api/v1/districts/rolpa/").json()
+        self.assertEqual(payload["province"], "Lumbini")
+        self.assertGreaterEqual(payload["destination_count"], 1)
+        names = [d["name"] for bucket in payload["destinations_by_category"].values() for d in bucket]
+        self.assertIn("Jaljala Himal Viewpoint", names)
+        self.assertEqual(payload["emergency_numbers"]["police"], "100")
+        self.assertTrue(payload["nearby_districts"])
+        # ...and unverified description stays honestly unavailable, not invented.
+        self.assertEqual(payload["description"], "Information unavailable")
+
+    def test_district_without_data_gets_honest_note(self):
+        payload = self.client.get("/api/v1/districts/humla/").json()
+        self.assertIn("data_note", payload)
+        self.assertIn("No verified tourism places", payload["data_note"])
+
+    def test_unknown_district_404(self):
+        self.assertEqual(self.client.get("/api/v1/districts/atlantis/").status_code, 404)

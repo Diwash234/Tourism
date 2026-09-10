@@ -715,6 +715,20 @@ async function run() {
     else fail("district-specific itineraries")
   }
 
+  {
+    // Task-79 §5/§24: the 77-district structure is served by the API
+    const districts = await request(`${API}/districts/`)
+    const rolpa = await request(`${API}/districts/rolpa/`)
+    const provinces = await request(`${API}/provinces/`)
+    if (
+      districts.res.ok && districts.data.count === 77 &&
+      rolpa.res.ok && rolpa.data.province === "Lumbini" &&
+      rolpa.data.emergency_numbers.police === "100" &&
+      provinces.res.ok && provinces.data.count === 7
+    ) ok("districts API serves all 77 districts + 7 provinces with honest profiles")
+    else fail("districts API")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

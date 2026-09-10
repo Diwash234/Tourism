@@ -9,6 +9,7 @@ from . import views_auth
 from . import views_admin
 from . import views_compat
 from . import views_discovery
+from . import views_districts
 from . import views_family_safety
 from . import views_images
 from .services.ai_images import api as ai_images_api
@@ -238,6 +239,9 @@ urlpatterns = [
     path("config/public/", views.PublicConfigView.as_view(), name="public-config"),
     path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter-subscribe"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
+    path("provinces/", views_districts.ProvinceListView.as_view(), name="province-list"),
+    path("districts/", views_districts.DistrictListView.as_view(), name="district-list"),
+    path("districts/<slug:slug>/", views_districts.DistrictDetailView.as_view(), name="district-detail"),
     path("translate/", views.TranslateTextView.as_view(), name="translate-text"),
     path("images/resolve/", views_images.ImageResolveView.as_view(), name="images-resolve"),
     # Multi-source Image Acquisition & Provenance Pipeline API

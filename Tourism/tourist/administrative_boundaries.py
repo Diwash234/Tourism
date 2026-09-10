@@ -73,6 +73,62 @@ NEPAL_DISTRICTS_DATA = {
     "Kanchanpur": {"province": "Sudurpashchim", "lat": 28.9667, "lng": 80.1833, "altitude": 198, "type": "Shuklaphanta National Park"},
     "Kailali": {"province": "Sudurpashchim", "lat": 28.7167, "lng": 80.6000, "altitude": 180, "type": "Dhangadhi/Tikapur"},
     "Doti": {"province": "Sudurpashchim", "lat": 29.2667, "lng": 80.9833, "altitude": 1300, "type": "Khaptad National Park"},
+
+    # --- Completed to the full constitutional list of 77 districts ---
+    # Headquarters towns and approximate centre coordinates/elevations are
+    # public administrative facts (MoFAGA district profiles). Tourism
+    # descriptions are intentionally NOT included here; unverified fields
+    # must be marked unavailable downstream, never fabricated.
+
+    # Koshi Province (completed)
+    "Bhojpur": {"province": "Koshi", "lat": 27.1667, "lng": 87.0500, "altitude": 1200, "type": "Hill/Bhojpur Bazar"},
+    "Dhankuta": {"province": "Koshi", "lat": 26.9833, "lng": 87.3333, "altitude": 1150, "type": "Hill/Mulghat Gateway"},
+    "Khotang": {"province": "Koshi", "lat": 27.1833, "lng": 86.7833, "altitude": 1300, "type": "Hill/Halesi Mahadev"},
+    "Okhaldhunga": {"province": "Koshi", "lat": 27.3240, "lng": 86.5047, "altitude": 1400, "type": "Hill/Siddhicharan"},
+    "Panchthar": {"province": "Koshi", "lat": 27.1096, "lng": 87.8157, "altitude": 1200, "type": "Hill/Phidim"},
+    "Terhathum": {"province": "Koshi", "lat": 27.0167, "lng": 87.5500, "altitude": 1400, "type": "Hill/Myanglung"},
+    "Udayapur": {"province": "Koshi", "lat": 26.8333, "lng": 86.7000, "altitude": 200, "type": "Inner Terai/Gaighat"},
+
+    # Madhesh Province (completed)
+    "Bara": {"province": "Madhesh", "lat": 27.0333, "lng": 85.0000, "altitude": 80, "type": "Terai/Kalaiya"},
+    "Mahottari": {"province": "Madhesh", "lat": 26.6942, "lng": 85.8167, "altitude": 80, "type": "Terai/Jaleshwar"},
+    "Rautahat": {"province": "Madhesh", "lat": 26.7667, "lng": 85.3000, "altitude": 80, "type": "Terai/Gaur"},
+    "Saptari": {"province": "Madhesh", "lat": 26.5333, "lng": 86.7500, "altitude": 80, "type": "Terai/Rajbiraj"},
+    "Sarlahi": {"province": "Madhesh", "lat": 26.8567, "lng": 85.5667, "altitude": 80, "type": "Terai/Malangwa"},
+    "Siraha": {"province": "Madhesh", "lat": 26.6500, "lng": 86.2000, "altitude": 80, "type": "Terai/Salhes/Siraha Bazar"},
+
+    # Bagmati Province (completed)
+    "Dolakha": {"province": "Bagmati", "lat": 27.6667, "lng": 86.0500, "altitude": 1500, "type": "Himalayan/Charikot"},
+    "Ramechhap": {"province": "Bagmati", "lat": 27.3833, "lng": 86.0667, "altitude": 460, "type": "Hill/Manthali (Everest flights)"},
+    "Sindhuli": {"province": "Bagmati", "lat": 27.2569, "lng": 85.9714, "altitude": 700, "type": "Hill/Kamalamai"},
+
+    # Gandaki Province (completed)
+    "Nawalpur": {"province": "Gandaki", "lat": 27.6500, "lng": 84.1333, "altitude": 150, "type": "Inner Terai/Kawasoti"},
+
+    # Lumbini Province (completed)
+    "Arghakhanchi": {"province": "Lumbini", "lat": 27.8944, "lng": 83.1225, "altitude": 1200, "type": "Hill/Sandhikharka"},
+    "Dang": {"province": "Lumbini", "lat": 28.0000, "lng": 82.4833, "altitude": 350, "type": "Inner Terai/Ghorahi (Deukhuri)"},
+    "Eastern Rukum": {"province": "Lumbini", "lat": 28.6500, "lng": 82.6500, "altitude": 1500, "type": "Himalayan/Rukumkot"},
+    "Gulmi": {"province": "Lumbini", "lat": 28.0833, "lng": 83.3000, "altitude": 1100, "type": "Hill/Tamghas"},
+    "Parasi": {"province": "Lumbini", "lat": 27.5333, "lng": 83.6667, "altitude": 100, "type": "Terai/Ramgram Stupa"},
+    "Pyuthan": {"province": "Lumbini", "lat": 28.1000, "lng": 82.8500, "altitude": 1200, "type": "Hill/Khalanga"},
+    "Rolpa": {"province": "Lumbini", "lat": 28.3833, "lng": 82.6500, "altitude": 1200, "type": "Hill/Libang (Rolpa Bazar)"},
+
+    # Karnali Province (completed)
+    "Dailekh": {"province": "Karnali", "lat": 28.8000, "lng": 81.7000, "altitude": 1200, "type": "Hill/Narayan"},
+    "Humla": {"province": "Karnali", "lat": 29.9667, "lng": 81.8167, "altitude": 2950, "type": "Trans-Himalayan/Simikot"},
+    "Jajarkot": {"province": "Karnali", "lat": 28.7333, "lng": 82.2000, "altitude": 1200, "type": "Hill/Khalanga"},
+    "Kalikot": {"province": "Karnali", "lat": 29.1500, "lng": 81.6500, "altitude": 1300, "type": "Hill/Manma"},
+    "Salyan": {"province": "Karnali", "lat": 28.3500, "lng": 82.1700, "altitude": 1300, "type": "Hill/Salyan Khalanga"},
+    "Western Rukum": {"province": "Karnali", "lat": 28.6258, "lng": 82.4331, "altitude": 1500, "type": "Himalayan/Musikot"},
+
+    # Sudurpashchim Province (completed)
+    "Achham": {"province": "Sudurpashchim", "lat": 29.0500, "lng": 81.2800, "altitude": 900, "type": "Hill/Mangalsen"},
+    "Baitadi": {"province": "Sudurpashchim", "lat": 29.5000, "lng": 80.5500, "altitude": 1000, "type": "Hill/Dasharathchand"},
+    "Bajhang": {"province": "Sudurpashchim", "lat": 29.5300, "lng": 81.2500, "altitude": 1000, "type": "Himalayan/Chainpur"},
+    "Bajura": {"province": "Sudurpashchim", "lat": 29.4500, "lng": 81.5500, "altitude": 1300, "type": "Himalayan/Martadi"},
+    "Dadeldhura": {"province": "Sudurpashchim", "lat": 29.3000, "lng": 80.5000, "altitude": 1300, "type": "Hill/Amargadhi"},
+    "Darchula": {"province": "Sudurpashchim", "lat": 29.8500, "lng": 80.5300, "altitude": 900, "type": "Himalayan/Mahakali Khalanga"},
 }
 
 

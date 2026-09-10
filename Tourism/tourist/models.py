@@ -3403,3 +3403,49 @@ class GuideReview(TimeStampedModel):
     def __str__(self):
         return f"{self.rating}★ for guide {self.guide_profile_id} by {self.user.email}"
 
+
+
+# ---------------------------------------------------------------------------
+# Administrative geography (task-79 §5): Province -> District as first-class
+# records so every district (all 77) has a profile the API can serve. Tourism
+# facts are NOT stored here — they come from real Destination/Hospital rows;
+# when a district has no verified tourism data the API must say so explicitly
+# ("Information unavailable") instead of inventing content.
+# ---------------------------------------------------------------------------
+
+class Province(TimeStampedModel):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True)
+    capital = models.CharField(max_length=150, blank=True)
+    order = models.PositiveSmallIntegerField(default=0, db_index=True)
+
+    class Meta:
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class District(TimeStampedModel):
+    name = models.CharField(max_length=120, unique=True, db_index=True)
+    slug = models.SlugField(max_length=140, unique=True)
+    province = models.ForeignKey(
+        Province, on_delete=models.PROTECT, related_name="districts"
+    )
+    region_type = models.CharField(
+        max_length=150, blank=True,
+        help_text="Geographic character note from the seed dataset (e.g. 'Hill/Libang (Rolpa Bazar)').",
+    )
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    elevation_m = models.IntegerField(null=True, blank=True)
+    description = models.TextField(
+        blank=True,
+        help_text="Curated/verified text. Left blank until verified — the API renders 'Information unavailable', never fabricated copy.",
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.province.name})"
