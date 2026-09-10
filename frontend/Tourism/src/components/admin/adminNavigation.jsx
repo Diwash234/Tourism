@@ -32,7 +32,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: "Rejected", query: { section: "media_library", status: "rejected" } },
     ]],
     ["image_pipeline", "Image Acquisition Pipeline", BsTools],
-    ["branding", "Branding & Theme", BsPalette],
+    ["branding", "Branding, Theme & Routing", BsPalette],
     ["header_navbar", "Header & Navbar", BsLayoutTextWindow],
     ["cookie_consent", "Cookie Consent", BsCookie],
     ["category_translations", "Categories & Translations", BsTranslate],

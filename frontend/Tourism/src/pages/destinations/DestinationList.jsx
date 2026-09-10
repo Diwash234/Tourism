@@ -113,6 +113,9 @@ export default function DestinationList() {
   const [researching, setResearching] = useState(false)
   const [didYouMean, setDidYouMean] = useState(null)
   const [isGpsSorted, setIsGpsSorted] = useState(false)
+  // Nearest-first is OPT-IN: GPS must never silently replace the full
+  // destination catalogue with nearby results (user-reported confusion).
+  const [nearMeFirst, setNearMeFirst] = useState(false)
 
   const { position } = useGeolocation()
 
@@ -147,7 +150,8 @@ export default function DestinationList() {
     return () => clearTimeout(t)
   }, [query, letter, categoryChip, type, page, setSearchParams])
 
-  // Fetch destinations — GPS proximity nearest first when position active & no explicit search query!
+  // Fetch destinations — full catalogue by default; nearest-first only when
+  // the traveller explicitly enables it (and no explicit search is active).
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
@@ -156,7 +160,7 @@ export default function DestinationList() {
 
     const chipParams = chipToQuery(categoryChip)
 
-    if (position?.lat && position?.lng && !query && !letter && !categoryChip) {
+    if (nearMeFirst && position?.lat && position?.lng && !query && !letter && !categoryChip) {
       setIsGpsSorted(true)
       destinationApi.nearby(position.lat, position.lng, { radius_km: 250, page, limit: PAGE_SIZE })
         .then(({ data }) => {
@@ -237,7 +241,7 @@ export default function DestinationList() {
     fallbackFetch()
     }, 0)
     return () => clearTimeout(t)
-  }, [page, categoryChip, type, query, letter, position])
+  }, [page, categoryChip, type, query, letter, position, nearMeFirst])
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
@@ -347,6 +351,16 @@ export default function DestinationList() {
                   style={{ background: `${TERRACOTTA}15`, color: TERRACOTTA }}>
               Himalayan Atlas
             </span>
+            {position && (
+              <button
+                type="button"
+                onClick={() => { setNearMeFirst((v) => !v); setPage(1) }}
+                aria-pressed={nearMeFirst}
+                className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1 border ${nearMeFirst ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50"}`}
+              >
+                <FiNavigation size={12} /> {nearMeFirst ? "Near me first: ON" : "Sort near me"}
+              </button>
+            )}
             {isGpsSorted && (
               <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider flex items-center gap-1">
                 <FiNavigation size={12} /> Ranked Nearest by GPS Location
