@@ -920,6 +920,52 @@ async function main() {
   probeH.unmount()
   entry.setGeolocation("ok", { lat: 28.2, lng: 83.98 }) // restore for any later sections
 
+  // =========================================================================
+  // OFFLINE ROUTE PACKS (increment 8) — real offlinePacks module on jsdom's
+  // localStorage.
+  // =========================================================================
+  const packs = entry.offlinePacks
+  const PACK_KEY = "nepal_nav_offline_packs_v1"
+  const mkPack = (id, name) => ({
+    id, destination_name: name, route: [{ lat: 27.7, lng: 85.3 }, { lat: 28.2, lng: 83.9 }],
+    steps: [], distance_km: 200, calculated_at: new Date().toISOString(),
+  })
+
+  window.localStorage.setItem(PACK_KEY, "{corrupted json")
+  check("packs: corrupted storage degrades to []", Array.isArray(packs.loadPacks()) && packs.loadPacks().length === 0)
+
+  let list = packs.addPack([], mkPack(1, "Pokhara"))
+  list = packs.addPack(list, mkPack(2, "Chitwan"))
+  packs.persistPacks(list)
+  const loaded = packs.loadPacks()
+  check("packs: persist/load roundtrip", loaded.length === 2 && loaded[0].destination_name === "Chitwan")
+
+  // same destination replaces (newest first), never duplicates
+  list = packs.addPack(list, mkPack(3, "pokhara"))
+  check("packs: same destination replaced case-insensitively",
+    list.length === 2 && list[0].id === 3 && list[1].destination_name === "Chitwan")
+
+  // cap at 5
+  for (let i = 10; i < 16; i += 1) list = packs.addPack(list, mkPack(i, `Place ${i}`))
+  check("packs: capped at 5, newest kept", list.length === 5 && list[0].id === 15)
+
+  // finder
+  check("packs: destination finder is case-insensitive",
+    packs.findPackForDestination(list, "place 15")?.id === 15
+    && packs.findPackForDestination(list, "Nowhere") === null
+    && packs.findPackForDestination(list, "") === null)
+
+  // removal + persistence of removal
+  list = packs.removePack(list, 15)
+  packs.persistPacks(list)
+  check("packs: removal persists", packs.loadPacks().every((p) => p.id !== 15))
+
+  // packs without a usable route are filtered out on load
+  window.localStorage.setItem(PACK_KEY, JSON.stringify([{ id: 99, destination_name: "Broken", route: [] }, mkPack(100, "Good")]))
+  const filtered = packs.loadPacks()
+  check("packs: routeless entries filtered on load", filtered.length === 1 && filtered[0].id === 100)
+  window.localStorage.removeItem(PACK_KEY)
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)

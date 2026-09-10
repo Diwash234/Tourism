@@ -13,6 +13,7 @@ import CookieConsentBanner from "../src/components/common/CookieConsentBanner"
 import NearbyPlaces from "../src/pages/NearbyPlaces"
 import DataExplorerPanel from "../src/components/admin/DataExplorerPanel"
 import LiveNavigationPanel from "../src/components/navigation/LiveNavigationPanel"
+import * as offlinePacks from "../src/utils/offlinePacks"
 import useLivePosition from "../src/hooks/useLivePosition"
 import CategoryTranslationPanel from "../src/components/admin/CategoryTranslationPanel"
 import { ToastProvider } from "../src/context/ToastContext"
@@ -479,6 +480,7 @@ export function mountCategoryPanel() {
   }
 }
 
+export { offlinePacks }
 export const act = React.act
 
 // Off-route helper under test (increment 6)

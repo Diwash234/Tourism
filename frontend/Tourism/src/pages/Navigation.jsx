@@ -19,6 +19,7 @@ import useLivePosition from "../hooks/useLivePosition"
 import emergencyApi from "../api/emergencyApi"
 import useAuth from "../hooks/useAuth"
 import { savedRoutesApi } from "../services/api"
+import { loadPacks, persistPacks, addPack, removePack, findPackForDestination } from "../utils/offlinePacks"
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
@@ -161,6 +162,11 @@ export default function Navigation() {
   // backend through the same index as destinations — never guessed.
   const [waypoints, setWaypoints] = useState([])
   const [waypointInput, setWaypointInput] = useState("")
+  // Offline route packs (Phase 6): snapshots of calculated routes so
+  // turn-by-turn stays usable without connectivity — always labelled with
+  // when they were calculated, never presented as live.
+  const [offlinePacks, setOfflinePacks] = useState(() => loadPacks())
+  const [offlineBadge, setOfflineBadge] = useState("")
   const [destination, setDestination] = useState(null)
   const [route, setRoute] = useState([])
   const [transportMode, setTransportMode] = useState("Private Car / Taxi")
@@ -207,6 +213,30 @@ export default function Navigation() {
     setDurationNote(alt.duration_note || "")
     setDurationSource(alt.duration_source || "")
     setCurrentStepIdx(0)
+  }
+
+  // Offline packs: load a cached calculation onto the map (labelled) or drop it.
+  const loadOfflinePack = (pack) => {
+    if (!pack) return
+    setDestination(pack.destination || null)
+    setRoute(Array.isArray(pack.route) ? pack.route : [])
+    setSteps(Array.isArray(pack.steps) ? pack.steps : [])
+    setDistance(pack.distance_km ?? null)
+    setDurationMin(pack.duration_min ?? null)
+    setDurationNote(pack.duration_note || "")
+    setDurationSource(pack.duration_source || "")
+    setAltRoutes([])
+    setPrimarySnapshot(null)
+    setSelectedAlt(-1)
+    setCurrentStepIdx(0)
+    setOfflineBadge(`Offline copy — calculated ${new Date(pack.calculated_at).toLocaleString()}. Not a live route.`)
+  }
+  const deleteOfflinePack = (pack) => {
+    setOfflinePacks((prev) => {
+      const next = removePack(prev, pack.id)
+      persistPacks(next)
+      return next
+    })
   }
 
   // Off-route reroute: same endpoint as the manual calculate button, but the
@@ -350,6 +380,31 @@ export default function Navigation() {
       setAltRoutes(Array.isArray(response.data.alternatives) ? response.data.alternatives : [])
       setSelectedAlt(-1)
 
+      // Cache an offline pack of this calculation (newest first, capped).
+      // eslint-disable-next-line react-hooks/purity -- runs in an async event handler after await, never during render
+      const offlinePack = {
+        id: Date.now(),
+        destination_name: dest?.name || destName,
+        destination: dest,
+        transport_mode: transportMode,
+        waypoints,
+        route: response.data.route || [],
+        steps: recordedSteps,
+        distance_km: response.data.distance_km ?? null,
+        duration_min: response.data.duration_min ?? null,
+        duration_note: response.data.duration_note || "",
+        duration_source: response.data.duration_source || "",
+        calculated_at: new Date().toISOString(),
+      }
+      if (offlinePack.route.length > 1) {
+        setOfflinePacks((prev) => {
+          const next = addPack(prev, offlinePack)
+          persistPacks(next)
+          return next
+        })
+      }
+      setOfflineBadge("")
+
       // Navigation history (spec item 16): silently log each successful
       // calculation for signed-in travellers. Failures never disturb the map.
       if (isAuthenticated) {
@@ -396,7 +451,13 @@ export default function Navigation() {
       setDurationNote("")
       setDurationSource("")
       setDestination(null)
-      setError(err.response?.data?.detail || "Routing information unavailable for this pair of places. Check the place names and try again.")
+      const offlineMatch = typeof navigator !== "undefined" && navigator.onLine === false
+        ? findPackForDestination(offlinePacks, destName)
+        : null
+      setError(
+        (err.response?.data?.detail || "Routing information unavailable for this pair of places. Check the place names and try again.") +
+        (offlineMatch ? " You appear to be offline — an offline copy of this route is available below." : "")
+      )
     } finally {
       setLoading(false)
     }
@@ -1158,6 +1219,34 @@ export default function Navigation() {
               onRecenter={(pos) => setMapCenter({ lat: pos.lat, lng: pos.lng })}
               onEnd={() => { setNavActive(false); setMapCenter(null); setLiveManeuver(null) }}
             />
+          )}
+          {offlinePacks.length > 0 && (
+            <div className="rounded-2xl bg-slate-900 border border-slate-800 p-3 space-y-2" data-testid="offline-packs">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Offline route packs ({offlinePacks.length}/5)</p>
+              {offlinePacks.map((pack) => (
+                <div key={pack.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loadOfflinePack(pack)}
+                    className="flex-1 text-left rounded-lg bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5"
+                  >
+                    <span className="block text-[11px] font-bold text-white">{pack.destination_name || "Saved route"}{pack.distance_km != null ? ` · ${pack.distance_km} km` : ""}</span>
+                    <span className="block text-[9px] text-slate-500">Saved {new Date(pack.calculated_at).toLocaleString()}</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete offline pack for ${pack.destination_name || "saved route"}`}
+                    onClick={() => deleteOfflinePack(pack)}
+                    className="text-slate-500 hover:text-rose-400 text-xs font-black px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {offlineBadge && (
+            <p className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-[10px] font-bold text-amber-300">{offlineBadge}</p>
           )}
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
