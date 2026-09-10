@@ -752,6 +752,156 @@ async function main() {
   const arr = minDistanceToPathKm(27.7222, 85.3240, [[27.7172, 85.3240], [27.7272, 85.3240]])
   check("offroute: [lat,lng] arrays accepted", arr !== null && arr < 0.01, `got ${arr}`)
 
+  // =========================================================================
+  // LIVE NAVIGATION ENGINE (increment 7) — real LiveNavigationPanel +
+  // real useLivePosition, synthetic routes/GPS only.
+  // =========================================================================
+  const liveRoute = [
+    { lat: 28.2096, lng: 83.9856 }, // Pokhara
+    { lat: 27.9634, lng: 84.6548 }, // midpoint
+    { lat: 27.7172, lng: 85.3240 }, // Kathmandu
+  ]
+  const liveSteps = [
+    { instruction: "Head north on NH2", distance_km: 65 },
+    { instruction: "Continue to Kathmandu", distance_km: 65 },
+  ]
+  const basePanelProps = {
+    route: liveRoute,
+    steps: liveSteps,
+    durationMin: 180,
+    userPos: null,
+    destinationName: "Kathmandu",
+    onReroute: async () => false,
+    onRecenter: () => {},
+    onEnd: () => {},
+  }
+
+  // --- A: following state at the route start ------------------------------
+  const panelA = entry.mountLiveNavPanel({ ...basePanelProps, userPos: { lat: 28.2096, lng: 83.9856 } })
+  await settle()
+  const textA = panelA.container.textContent
+  check("live A: panel renders", !!panelA.container.querySelector('[data-testid="live-navigation-panel"]'))
+  check("live A: following status at start", /Following route/.test(textA), textA.replace(/\s+/g, " ").slice(0, 100))
+  const remA = Number((textA.match(/Remaining\s*([\d.]+)\s*km/) || [])[1])
+  check("live A: remaining ≈ full route (~142 km)", remA > 135 && remA < 150, `got ${remA}`)
+  const etaA = Number((textA.match(/ETA\s*(\d+)\s*min/) || [])[1])
+  check("live A: ETA ≈ full duration at start", etaA > 160 && etaA <= 181, `got ${etaA}`)
+  check("live A: next maneuver shown", /Head north on NH2/.test(textA))
+  const offA = Number((textA.match(/GPS offset\s*(\d+)\s*m/) || [])[1])
+  check("live A: GPS offset near zero on-route", offA < 20, `got ${offA}`)
+  panelA.unmount()
+
+  // --- B: arrival at the endpoint ------------------------------------------
+  const panelB = entry.mountLiveNavPanel({ ...basePanelProps, userPos: { lat: 28.2096, lng: 83.9856 } })
+  await settle()
+  panelB.rerender({ ...basePanelProps, userPos: { lat: 27.7172, lng: 85.3240 } })
+  await settle()
+  const textB = panelB.container.textContent
+  check("live B: arrival detected at endpoint", /Arrived at Kathmandu/.test(textB), textB.replace(/\s+/g, " ").slice(0, 100))
+  check("live B: remaining zeroed on arrival", /Remaining\s*0 km/.test(textB))
+  panelB.unmount()
+
+  // --- C: off-route detection + successful reroute -------------------------
+  const rerouteCalls = []
+  const panelC = entry.mountLiveNavPanel({
+    ...basePanelProps,
+    userPos: { lat: 26.4567, lng: 87.2718 }, // Biratnagar — far off the route
+    onReroute: async (lat, lng) => { rerouteCalls.push([lat, lng]); return true },
+  })
+  await settle()
+  // Second fix (new object identity, same place) → consecutive off-route fixes.
+  panelC.rerender({
+    ...basePanelProps,
+    userPos: { lat: 26.4567, lng: 87.2718 },
+    onReroute: async (lat, lng) => { rerouteCalls.push([lat, lng]); return true },
+  })
+  await settle()
+  await settle()
+  check("live C: reroute requested from GPS position", rerouteCalls.length >= 1
+    && rerouteCalls[0][0] === 26.4567 && rerouteCalls[0][1] === 87.2718, JSON.stringify(rerouteCalls))
+  // Parent applies the rerouted path (as Navigation.jsx does) → back on route.
+  const reroutedRoute = [
+    { lat: 26.4567, lng: 87.2718 },
+    { lat: 27.7172, lng: 85.3240 },
+  ]
+  panelC.rerender({
+    ...basePanelProps,
+    route: reroutedRoute,
+    steps: [{ instruction: "Head to Kathmandu", distance_km: 150 }],
+    userPos: { lat: 26.4567, lng: 87.2718 },
+    onReroute: async (lat, lng) => { rerouteCalls.push([lat, lng]); return true },
+  })
+  await settle()
+  const textC = panelC.container.textContent
+  check("live C: following restored after reroute", /Following route/.test(textC), textC.replace(/\s+/g, " ").slice(0, 100))
+  check("live C: reroute counter shown", /1 reroute/.test(textC), textC.replace(/\s+/g, " ").slice(0, 100))
+  panelC.unmount()
+
+  // --- D: failed reroute keeps honest off-route state -----------------------
+  const panelD = entry.mountLiveNavPanel({
+    ...basePanelProps,
+    userPos: { lat: 26.4567, lng: 87.2718 },
+    onReroute: async () => false,
+  })
+  await settle()
+  panelD.rerender({ ...basePanelProps, userPos: { lat: 26.4567, lng: 87.2718 }, onReroute: async () => false })
+  await settle()
+  await settle()
+  const textD = panelD.container.textContent
+  check("live D: off-route state when reroute fails", /Off route/.test(textD) || /Rerouting/.test(textD), textD.replace(/\s+/g, " ").slice(0, 100))
+  panelD.unmount()
+
+  // --- E: recenter + end controls ------------------------------------------
+  let recenters = 0
+  let ended = 0
+  const panelE = entry.mountLiveNavPanel({
+    ...basePanelProps,
+    userPos: { lat: 28.2096, lng: 83.9856 },
+    onRecenter: () => { recenters += 1 },
+    onEnd: () => { ended += 1 },
+  })
+  await settle()
+  const recenterBtn = [...panelE.container.querySelectorAll("button")].find((b) => /Recenter on me/.test(b.textContent))
+  const endBtn = [...panelE.container.querySelectorAll("button")].find((b) => /^End$/.test(b.textContent.trim()))
+  check("live E: recenter button present", !!recenterBtn)
+  check("live E: end button present", !!endBtn)
+  if (recenterBtn) await click(recenterBtn)
+  if (endBtn) await click(endBtn)
+  check("live E: recenter callback fired", recenters === 1)
+  check("live E: end callback fired", ended === 1)
+  panelE.unmount()
+
+  // --- F: useLivePosition (real hook, stubbed watchPosition) ----------------
+  entry.setGeolocation("ok", { lat: 28.2, lng: 83.98 })
+  const probe = entry.mountLiveProbe(true)
+  await settle()
+  check("live F: locating while awaiting first fix", probe.container.querySelector("#probe-locating").textContent === "true")
+  check("live F: watch registered", entry.getWatchState().active === 1, JSON.stringify(entry.getWatchState()))
+  entry.fireWatchFix({ lat: 28.21, lng: 83.99 })
+  await settle()
+  check("live F: fix surfaced to consumer", probe.container.querySelector("#probe-pos").textContent === "28.21,83.99")
+  check("live F: locating clears after fix", probe.container.querySelector("#probe-locating").textContent === "false")
+  probe.setActive(false)
+  await settle()
+  const ws = entry.getWatchState()
+  check("live F: watch cleared on deactivate", ws.active === 0 && ws.clears === 1, JSON.stringify(ws))
+  probe.unmount()
+
+  // --- G: useLivePosition error honesty --------------------------------------
+  entry.setGeolocation("denied")
+  const probeG = entry.mountLiveProbe(true)
+  entry.fireWatchError("User denied Geolocation", 1)
+  await settle()
+  check("live G: watch error surfaced", probeG.container.querySelector("#probe-err").textContent === "User denied Geolocation")
+  probeG.unmount()
+  entry.setGeolocation("unsupported")
+  const probeH = entry.mountLiveProbe(true)
+  await settle()
+  check("live G: unsupported browser reported honestly",
+    /not supported/.test(probeH.container.querySelector("#probe-err").textContent))
+  probeH.unmount()
+  entry.setGeolocation("ok", { lat: 28.2, lng: 83.98 }) // restore for any later sections
+
   console.log(results.join("\n"))
   console.log(`\n${results.length - failures}/${results.length} passed`)
   process.exit(failures ? 1 : 0)

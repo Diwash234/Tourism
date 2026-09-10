@@ -12,6 +12,8 @@ import AdminLayout from "../src/components/admin/AdminLayout"
 import CookieConsentBanner from "../src/components/common/CookieConsentBanner"
 import NearbyPlaces from "../src/pages/NearbyPlaces"
 import DataExplorerPanel from "../src/components/admin/DataExplorerPanel"
+import LiveNavigationPanel from "../src/components/navigation/LiveNavigationPanel"
+import useLivePosition from "../src/hooks/useLivePosition"
 import CategoryTranslationPanel from "../src/components/admin/CategoryTranslationPanel"
 import { ToastProvider } from "../src/context/ToastContext"
 import axios from "axios"
@@ -214,6 +216,12 @@ export function setDataExplorerFixtures(f) {
   }
 }
 
+// watchPosition test controls (module-level so setGeolocation's stub and the
+// fire* helpers share one registry).
+let watchCbs = []
+let watchClears = 0
+let watchNextId = 1
+
 // jsdom has no geolocation — install a controllable stub on the navigator the
 // component reads. "unsupported" models browsers without the API at all.
 export function setGeolocation(mode, coords = {}) {
@@ -232,8 +240,76 @@ export function setGeolocation(mode, coords = {}) {
         setTimeout(() => onSuccess({ coords: { latitude: coords.lat, longitude: coords.lng } }), 0)
       }
     },
+    // watchPosition support for the live-navigation hook: fixes are fired
+    // explicitly by tests through fireWatchFix/fireWatchError.
+    watchPosition(onSuccess, onError) {
+      const id = watchNextId++
+      watchCbs.push({ id, onSuccess, onError })
+      return id
+    },
+    clearWatch(id) {
+      watchCbs = watchCbs.filter((w) => w.id !== id)
+      watchClears += 1
+    },
   }
   Object.defineProperty(nav, "geolocation", { value: stub, configurable: true })
+}
+
+export function fireWatchFix(coords) {
+  for (const w of [...watchCbs]) {
+    const cb = w.onSuccess
+    setTimeout(() => cb({ coords: { latitude: coords.lat, longitude: coords.lng, accuracy: coords.accuracy ?? 5 } }), 0)
+  }
+}
+
+export function fireWatchError(message, code = 2) {
+  for (const w of [...watchCbs]) {
+    const cb = w.onError
+    setTimeout(() => { const err = new Error(message); err.code = code; cb(err) }, 0)
+  }
+}
+
+export function getWatchState() {
+  return { active: watchCbs.length, clears: watchClears }
+}
+
+// Mounts the REAL LiveNavigationPanel with caller-controlled props.
+export function mountLiveNavPanel(props) {
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  const render = (p) => React.act(() => { root.render(React.createElement(LiveNavigationPanel, p)) })
+  render(props)
+  return {
+    container,
+    rerender: render,
+    unmount: () => React.act(() => root.render(null)),
+  }
+}
+
+// Mounts a probe component driven by the REAL useLivePosition hook.
+export function mountLiveProbe(initialActive = true) {
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  let setActive = null
+  function Probe() {
+    const [active, setA] = React.useState(initialActive)
+    setActive = setA
+    const live = useLivePosition(active)
+    return React.createElement(
+      "div", null,
+      React.createElement("span", { id: "probe-pos" }, live.position ? `${live.position.lat},${live.position.lng}` : ""),
+      React.createElement("span", { id: "probe-err" }, live.error || ""),
+      React.createElement("span", { id: "probe-locating" }, String(live.locating))
+    )
+  }
+  React.act(() => { root.render(React.createElement(Probe)) })
+  return {
+    container,
+    setActive: (v) => React.act(() => setActive(v)),
+    unmount: () => React.act(() => root.render(null)),
+  }
 }
 
 export function mountDataExplorer() {

@@ -14,6 +14,8 @@ import {
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
 import TravelOptionsPanel from "../components/navigation/TravelOptionsPanel"
+import LiveNavigationPanel from "../components/navigation/LiveNavigationPanel"
+import useLivePosition from "../hooks/useLivePosition"
 import emergencyApi from "../api/emergencyApi"
 import useAuth from "../hooks/useAuth"
 import { savedRoutesApi } from "../services/api"
@@ -164,6 +166,38 @@ export default function Navigation() {
   const [durationSource, setDurationSource] = useState("")
   const [steps, setSteps] = useState([])
   const [routeAlerts, setRouteAlerts] = useState([])
+  // Live navigation session (Phase 2): GPS watch is only active while the
+  // session runs, and the map center is nudged by "Recenter on me".
+  const [navActive, setNavActive] = useState(false)
+  const [mapCenter, setMapCenter] = useState(null)
+  const live = useLivePosition(navActive)
+
+  // Off-route reroute: same endpoint as the manual calculate button, but the
+  // origin is the current GPS fix. Returns true when a fresh route applied.
+  const rerouteFromGps = async (lat, lng) => {
+    const destName = destination?.name || destinationQuery.trim()
+    if (!destName) return false
+    try {
+      const response = await navigationApi.getRoute({
+        destination_name: destName,
+        transport_mode: transportMode,
+        start_latitude: lat,
+        start_longitude: lng,
+        origin_name: "Current Location",
+      })
+      const newRoute = response.data.route || []
+      if (newRoute.length < 2) return false
+      setRoute(newRoute)
+      setSteps(Array.isArray(response.data.steps) ? response.data.steps : [])
+      setDistance(response.data.distance_km ?? null)
+      setDurationMin(response.data.duration_min ?? null)
+      setDurationNote(response.data.duration_note || "")
+      setDurationSource(response.data.duration_source || "")
+      return true
+    } catch {
+      return false
+    }
+  }
   const [alertsLoaded, setAlertsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -976,13 +1010,37 @@ export default function Navigation() {
         <div className="lg:col-span-2 card-base overflow-hidden rounded-3xl border border-[#E5E0D5] h-[500px] relative shadow-2xl">
           <MapView
             destination={destination}
-            routeWaypoints={route}
+            route={route}
             satellite={satelliteView}
+            userLocation={navActive ? live.position : (position ? { lat: position.lat, lng: position.lng } : null)}
+            center={mapCenter}
           />
         </div>
 
         {/* HUD NAVIGATOR PANEL */}
         <div className="card-base p-5 bg-slate-950 text-white rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between">
+          {route.length > 1 && !navActive && (
+            <button
+              type="button"
+              onClick={() => setNavActive(true)}
+              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black uppercase tracking-wider text-white hover:bg-emerald-500 flex items-center justify-center gap-2"
+            >
+              <FiNavigation /> Start live navigation
+            </button>
+          )}
+          {navActive && (
+            <LiveNavigationPanel
+              route={route}
+              steps={steps}
+              distanceKm={distance}
+              durationMin={durationMin}
+              userPos={live.position}
+              destinationName={destination?.name || destinationQuery}
+              onReroute={rerouteFromGps}
+              onRecenter={(pos) => setMapCenter({ lat: pos.lat, lng: pos.lng })}
+              onEnd={() => { setNavActive(false); setMapCenter(null) }}
+            />
+          )}
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
               <span className="text-[10px] font-black uppercase text-amber-400">Tactical HUD Navigation</span>
