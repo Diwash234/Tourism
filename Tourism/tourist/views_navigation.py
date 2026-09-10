@@ -846,6 +846,38 @@ class TravelOptionsView(APIView):
                 "best_time_to_visit": destination.best_time_to_visit or UNAVAILABLE,
             }
         steps_payload = route_steps(start_lat, start_lon, end_lat, end_lon)
+        if steps_payload is None and drive.get("status") == "graph_routed" and drive.get("directions"):
+            # Honest second tier: coordinate-based turns derived from the
+            # bundled tourism graph geometry — clearly labelled as NOT
+            # street-level directions (route_engine documents the same).
+            steps_payload = {
+                "source": "bundled_nepal_graphml",
+                "distance_km": drive.get("route_distance_km"),
+                "duration_min": drive.get("duration_min"),
+                "geometry": None,
+                "steps": [
+                    {
+                        "instruction": direction.get("instruction") or "Continue",
+                        "distance_m": int(round((direction.get("distance_km") or 0) * 1000)),
+                        "road": None,
+                    }
+                    for direction in drive["directions"]
+                ],
+            }
+
+        if steps_payload and steps_payload["source"] == "bundled_nepal_graphml":
+            tbt_note = (
+                "Directions derived from the bundled Nepal tourism graph (coordinate-based, "
+                "not street-level). Configure a road-routing provider (admin site setting "
+                "'routing_provider') for street-level turns."
+            )
+        elif steps_payload is None:
+            tbt_note = (
+                "Detailed turn-by-turn directions need a live road-routing provider "
+                "(admin → site setting 'routing_provider'). Distances above remain real."
+            )
+        else:
+            tbt_note = None
 
         return Response({
             "origin": {"latitude": start_lat, "longitude": start_lon},
@@ -864,8 +896,5 @@ class TravelOptionsView(APIView):
             "along_the_way": along,
             "before_you_go": before or UNAVAILABLE,
             "turn_by_turn": steps_payload,
-            "turn_by_turn_note": None if steps_payload else (
-                "Detailed turn-by-turn directions need a live road-routing provider "
-                "(admin → site setting 'routing_provider'). Distances above remain real."
-            ),
+            "turn_by_turn_note": tbt_note,
         })

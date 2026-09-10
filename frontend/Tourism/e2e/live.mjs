@@ -724,6 +724,8 @@ async function run() {
       districts.res.ok && districts.data.count === 77 &&
       rolpa.res.ok && rolpa.data.province === "Lumbini" &&
       rolpa.data.emergency_numbers.police === "100" &&
+      String(rolpa.data.summary || "").includes("Rolpa is a") &&
+      String(rolpa.data.summary || "").includes("Auto-generated") &&
       provinces.res.ok && provinces.data.count === 7
     ) ok("districts API serves all 77 districts + 7 provinces with honest profiles")
     else fail("districts API")
@@ -740,7 +742,10 @@ async function run() {
       travel.res.ok &&
       modes.includes("walk") && modes.includes("taxi") &&
       travel.data.recommended &&
-      (travel.data.turn_by_turn || String(travel.data.turn_by_turn_note || "").includes("routing provider"))
+      (
+        (travel.data.turn_by_turn?.steps?.length > 0 && Boolean(travel.data.turn_by_turn_note)) ||
+        String(travel.data.turn_by_turn_note || "").includes("routing provider")
+      )
     ) ok("navigation screen serves honest mode comparison + recommendation")
     else fail("travel options endpoint")
   }

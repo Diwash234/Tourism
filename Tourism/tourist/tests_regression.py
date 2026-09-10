@@ -2976,6 +2976,10 @@ class DistrictArchitectureTests(TestCase):
         self.assertTrue(payload["nearby_districts"])
         # ...and unverified description stays honestly unavailable, not invented.
         self.assertEqual(payload["description"], "Information unavailable")
+        # Auto-composed administrative summary states verified fields only.
+        self.assertIn("Rolpa is a", payload["summary"])
+        self.assertIn("Lumbini", payload["summary"])
+        self.assertIn("Auto-generated", payload["summary"])
 
     def test_district_without_data_gets_honest_note(self):
         payload = self.client.get("/api/v1/districts/humla/").json()
@@ -3008,9 +3012,15 @@ class TravelOptionsTests(TestCase):
         # fare_card migration seeds admin-editable estimates → labelled estimate
         self.assertIsNotNone(taxi["cost_npr"])
         self.assertIn("fare card", taxi["cost_note"])
-        # No live routing provider in tests → turn-by-turn honestly absent.
-        self.assertIsNone(data["turn_by_turn"])
-        self.assertIn("routing provider", data["turn_by_turn_note"])
+        # No live routing provider in tests → turn-by-turn comes from the
+        # bundled graph, clearly labelled as not street-level (never faked).
+        if data["turn_by_turn"] is not None:
+            self.assertEqual(data["turn_by_turn"]["source"], "bundled_nepal_graphml")
+            self.assertIn("bundled", data["turn_by_turn_note"])
+            for step in data["turn_by_turn"]["steps"]:
+                self.assertIn("instruction", step)
+        else:
+            self.assertIn("routing provider", data["turn_by_turn_note"])
 
     def test_unknown_destination_404(self):
         res = self.client.post(

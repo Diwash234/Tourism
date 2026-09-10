@@ -79,7 +79,16 @@ export default function DistrictDetail() {
 
         <section className="rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="text-sm font-black uppercase tracking-wider text-emerald-700 mb-2">About {data.name}</h2>
-          <p className="text-sm text-gray-700">{data.description}</p>
+          {data.description === "Information unavailable" && data.summary ? (
+            <>
+              <p className="text-sm text-gray-700">{data.summary}</p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mt-2">
+                Auto-generated administrative summary · curated description pending
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-700">{data.description}</p>
+          )}
           <p className="text-xs text-gray-500 mt-2">
             Region: {data.region_type} · Province: {data.province}
           </p>

@@ -52,6 +52,22 @@ def _count_for_district(district, lookup):
     return sum(total for label, total in lookup.items() if name == label or name in label)
 
 
+def _compose_admin_summary(district, nearby):
+    """Fact-based administrative summary composed from verified seed data —
+    offered when no human-written description exists. States only recorded
+    fields (province, region type, elevation, computed neighbour distances);
+    never invents tourism prose."""
+    region = (district.region_type or "").strip().lower()
+    text = f"{district.name} is a {region + ' ' if region else ''}district in {district.province.name}, Nepal."
+    if district.elevation_m is not None:
+        text += f" The district seat sits at about {district.elevation_m:,.0f} m elevation."
+    if nearby:
+        pairs = ", ".join(f"{item['name']} ({item['distance_km']:.0f} km away)" for item in nearby[:3])
+        text += f" Nearest districts: {pairs}."
+    text += " Auto-generated from verified administrative data — curated description pending."
+    return text
+
+
 class ProvinceListView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -171,6 +187,7 @@ class DistrictDetailView(APIView):
             "longitude": district.longitude,
             "elevation_m": district.elevation_m,
             "description": district.description.strip() or UNAVAILABLE,
+            "summary": _compose_admin_summary(district, nearby),
             "destinations_by_category": by_category,
             "destination_count": destinations.count(),
             "hospitals": [

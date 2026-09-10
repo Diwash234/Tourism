@@ -123,17 +123,22 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
       <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
         <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 mb-2">Route instructions</h3>
         {data.turn_by_turn?.steps?.length ? (
-          <ol className="space-y-1">
-            {data.turn_by_turn.steps.map((step, idx) => (
-              <li key={idx} className="flex gap-2 text-[11px] text-slate-300">
-                <span className="text-emerald-400 font-black shrink-0">{idx + 1}.</span>
-                <span>
-                  {step.instruction}
-                  {step.distance_m > 0 && <span className="text-slate-500"> · {step.distance_m} m</span>}
-                </span>
-              </li>
-            ))}
-          </ol>
+          <>
+            <ol className="space-y-1">
+              {data.turn_by_turn.steps.map((step, idx) => (
+                <li key={idx} className="flex gap-2 text-[11px] text-slate-300">
+                  <span className="text-emerald-400 font-black shrink-0">{idx + 1}.</span>
+                  <span>
+                    {step.instruction}
+                    {step.distance_m > 0 && <span className="text-slate-500"> · {step.distance_m} m</span>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {data.turn_by_turn_note && (
+              <p className="text-[10px] text-slate-500 mt-2 leading-snug">{data.turn_by_turn_note}</p>
+            )}
+          </>
         ) : (
           <p className="text-[11px] text-amber-300">{data.turn_by_turn_note}</p>
         )}

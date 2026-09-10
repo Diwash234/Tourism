@@ -23,7 +23,7 @@ evidence.
 | Mobile navbar | Root-caused: drawer groups rendered collapsed by default, so items looked missing. Mobile viewport now renders every group fully expanded (matchMedia-tracked); desktop keeps click-controlled collapsing. Admin-added nav items surface in a "More" drawer group instead of disappearing. |
 | `destroy is not a function` | Root-caused earlier and re-verified: `ChartCard.jsx` is the **only** chart renderer (Bar/Line/Pie delegate to it); the race (fresh object literals per render driving react-chartjs-2's destroy/redraw path) is fixed via content-signature-memoised data/options + ErrorBoundary. No `useEffect(async`, no stray `.destroy` in `src/`. |
 | Footer redesign | Deep navy `#07101F` + subtle radial teal glow; teal = brand/links, gold = action only (compact "Explore Nepal →"); dedicated Emergency block (Police 100 / Ambulance 102 / Fire 101); subtle Himalayan silhouette (~4.5% opacity); subtle-bordered newsletter panel; simple bottom bar. All CMS hooks + real newsletter API preserved. |
-| Destination navigation screen | `POST /api/v1/navigation/travel-options/` — per-mode comparison (taxi / bus / walk / bicycle) with routing-service distances; costs from the admin fare card only (labelled estimates; delete a key → "Information unavailable"); rule-based recommendation with reasons; along-the-way recorded places with detour minutes; before-you-go facts from the destination record; OSRM turn-by-turn via `routing_service.route_steps()` when a live provider is configured, honest note otherwise. Rendered by `TravelOptionsPanel` on the Navigation page. |
+| Destination navigation screen | `POST /api/v1/navigation/travel-options/` — per-mode comparison (taxi / bus / walk / bicycle) with routing-service distances; costs from the admin fare card only (labelled estimates; delete a key → "Information unavailable"); rule-based recommendation with reasons; along-the-way recorded places with detour minutes; before-you-go facts from the destination record; turn-by-turn via `routing_service.route_steps()` when a live provider is configured, else coordinate-based steps from the bundled Nepal graph (always labelled "not street-level"; the label renders under the steps in the UI). Rendered by `TravelOptionsPanel` on the Navigation page. |
 | Fare card | SiteSetting `fare_card` (migration `0070`) seeds admin-editable typicals (taxi base 100 + 50/km, bicycle rental 200, bus 30) — editable in Django admin (`SiteSetting`) and via the CMS settings JSON editor; values are always labelled as estimates. |
 | Itinerary UX (§35) | Save (existing), plus new **Share** (link with `?city=&days=` rebuilds the same plan; Web Share API when available) and **Export / print** buttons. Generated stops now render their planned `🕐 start–end` times and day-trip labels from the fallback engine. |
 | Search (§19) | Public destination search suggestions now merge matching **districts** (top 3), routing selection to `/districts/<slug>`. |
@@ -112,17 +112,27 @@ node e2e/live.mjs                   # requires backend on :8000 + frontend on :5
 
 ## 19. Remaining limitations (honest)
 
-1. **Turn-by-turn instructions** require a reachable OSRM-compatible provider
-   (admin site setting `routing_provider`). The sandbox cannot reach OSRM, so
-   the UI shows the honest note instead; distances/times still come from the
-   bundled graph / straight-line estimates, clearly labelled.
+1. **Turn-by-turn instructions**: when no live provider is configured, the
+   bundled Nepal GraphML engine now supplies coordinate-based turn-by-turn
+   steps (compass instructions + segment distances from the graph geometry),
+   each response carrying an explicit "coordinate-based, not street-level"
+   note that the UI always displays under the steps. **Street-level** turns
+   still require a reachable OSRM-compatible provider (admin site setting
+   `routing_provider`); the public OSRM demo is unreachable from this sandbox
+   (verified `HTTP 000`, 2026-09-10).
 2. **District tourism content** grows only from verified sources or admin
-   entry by design — many district profiles currently say "Information
-   unavailable" for description; that is the intended behaviour (§5/§42).
+   entry by design — the curated description stays "Information unavailable"
+   when absent (§5/§42), but profiles now also carry an auto-composed
+   **administrative summary** (province, region type, seat elevation,
+   computed nearest districts) labelled "Auto-generated … curated
+   description pending". No invented tourism prose.
 3. **ML itinerary service** (port 8001) is optional; the DB fallback is the
    verified path in development.
 4. **Responsive audit at 320–1440px** was implemented-by-design (drawer,
-   grids, footer) but not machine-verified in this sandbox (no headless
-   browser available).
+   grids, footer) but cannot be machine-verified in this sandbox: every
+   browser-binary source was tried and is blocked at network level —
+   `cdn.playwright.dev` and `storage.googleapis.com` (puppeteer/Chrome) both
+   return `HTTP 000`, Ubuntu archives are blocked, and no system Chromium
+   exists (npm/PyPI themselves are reachable; only browser CDNs are not).
 5. `bus` timing uses a ×1.6 heuristic over road time and is only offered when
    a fare is configured; real transit schedules are never fabricated.
