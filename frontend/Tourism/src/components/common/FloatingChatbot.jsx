@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { FiMessageSquare, FiX, FiSend, FiMinimize2, FiMaximize2 } from "react-icons/fi"
 import chatbotApi from "../../api/chatbotApi"
 import useGeolocation from "../../hooks/useGeolocation"
+import useChatSocket from "../../hooks/useChatSocket"
 import useToast from "../../hooks/useToast"
 import HimalPackageCards from "../chat/HimalPackageCards"
 
@@ -18,6 +19,28 @@ const FloatingChatbot = () => {
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState(null)
+
+  // Live sync across tabs/devices over WebSocket (master spec §30). The
+  // REST POST stays canonical; socket events are deduplicated by message id.
+  const seenIds = useRef(new Set())
+  useChatSocket(conversationId, (event) => {
+    if (event.message_id == null || seenIds.current.has(event.message_id)) return
+    seenIds.current.add(event.message_id)
+    if (event.type === "bot_reply") {
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: event.reply || "",
+        package_cards: event.package_cards || [],
+        emergency_cards: event.emergency_cards || [],
+      }])
+    } else if (event.type === "user_message") {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        if (last?.role === "user" && last.content === event.content) return prev
+        return [...prev, { role: "user", content: event.content }]
+      })
+    }
+  })
 
   const { position } = useGeolocation()
   const { showToast } = useToast()
@@ -50,6 +73,7 @@ const FloatingChatbot = () => {
       if (data.conversation_id) {
         setConversationId(data.conversation_id)
       }
+      if (data.message_id != null) seenIds.current.add(data.message_id)
 
       setMessages((prev) => [
         ...prev,

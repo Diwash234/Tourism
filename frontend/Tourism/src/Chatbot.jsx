@@ -12,6 +12,7 @@ import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"
 import destinationApi from "./api/destinationApi"
 import useGeolocation from "./hooks/useGeolocation"
+import useChatSocket from "./hooks/useChatSocket"
 import useToast from "./hooks/useToast"
 import HimalPackageCards from "./components/chat/HimalPackageCards"
 import { NOT_RECORDED, recordedCity } from "./utils/placeUtils"
@@ -42,6 +43,32 @@ export default function ChatBot() {
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState(null)
+
+  // Live sync across tabs/devices over WebSocket (master spec §30); the
+  // REST POST stays canonical and socket events dedupe by message id.
+  const seenChatIds = useRef(new Set())
+  useChatSocket(conversationId, (event) => {
+    if (event.message_id == null || seenChatIds.current.has(event.message_id)) return
+    seenChatIds.current.add(event.message_id)
+    if (event.type === "bot_reply") {
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: event.reply || "",
+        destination_cards: event.destination_cards || [],
+        image_cards: event.image_cards || [],
+        itinerary_cards: event.itinerary_cards || null,
+        distance_cards: event.distance_cards || null,
+        emergency_cards: event.emergency_cards || [],
+        package_cards: event.package_cards || [],
+      }])
+    } else if (event.type === "user_message") {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        if (last?.role === "user" && last.content === event.content) return prev
+        return [...prev, { role: "user", content: event.content }]
+      })
+    }
+  })
 
   const { position } = useGeolocation()
   const chatBoxRef = useRef(null)
@@ -99,6 +126,7 @@ export default function ChatBot() {
       if (data.conversation_id) {
         setConversationId(data.conversation_id)
       }
+      if (data.message_id != null) seenChatIds.current.add(data.message_id)
 
       setMessages((prev) => [
         ...prev,

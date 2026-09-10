@@ -27,6 +27,9 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 # Applications
 # ------------------------------------------------------------------
 INSTALLED_APPS = [
+    # Daphne first so `manage.py runserver` serves ASGI (HTTP + WebSocket)
+    # for the live chat (channels 4 requires this ordering).
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -45,6 +48,7 @@ INSTALLED_APPS = [
     "phonenumber_field",
 
     # Local
+    "channels",
     "tourist",
     "admin_panel",
     "booking",
@@ -91,6 +95,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "Tourism.wsgi.application"
 ASGI_APPLICATION = "Tourism.asgi.application"
+
+# Live chat over WebSocket (master spec §30). In-memory layer: single-node
+# deployments (runserver/daphne) get full-duplex push with no broker.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # ------------------------------------------------------------------
 # Database

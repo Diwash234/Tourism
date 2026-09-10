@@ -635,6 +635,48 @@ async function run() {
     else fail("rich text editor upgrade")
   }
 
+  {
+    // §30 — chat replies pushed live over a full-duplex WebSocket
+    // Anonymous conversations are session-scoped, so the second message must
+    // reuse the first response's session cookie to hit the same conversation.
+    const firstRaw = await fetch(`${API}/chatbot/message/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Namaste from e2e" }),
+    })
+    const firstBody = await firstRaw.json()
+    const first = { res: firstRaw, data: firstBody }
+    const sessionCookie = (firstRaw.headers.getSetCookie?.() || []).map((c) => c.split(";")[0]).join("; ")
+    const conversationId = firstBody?.conversation_id
+    let wsEvent = null
+    if (conversationId && typeof WebSocket !== "undefined") {
+      await new Promise((resolve) => {
+        const ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${conversationId}/`)
+        let settled = false
+        const done = () => {
+          if (settled) return
+          settled = true
+          try { ws.close() } catch { /* noop */ }
+          resolve()
+        }
+        const timer = setTimeout(done, 20000)
+        ws.onopen = () => fetch(`${API}/chatbot/message/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: sessionCookie },
+          body: JSON.stringify({ message: "Tell me about Pokhara", conversation_id: conversationId }),
+        }).catch(() => {})
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          if (data.type === "bot_reply") { wsEvent = data; clearTimeout(timer); done() }
+        }
+        ws.onerror = () => { clearTimeout(timer); done() }
+      })
+    }
+    if (first.res.ok && wsEvent?.message_id != null && wsEvent.conversation_id === conversationId) {
+      ok("chat replies are pushed live over WebSocket (full-duplex)")
+    } else fail("websocket chat push")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }
