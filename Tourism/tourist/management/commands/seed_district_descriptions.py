@@ -324,6 +324,177 @@ DESCRIPTIONS = {
         "town of Tansen, perched above the Siddhartha Highway, and on "
         "Rani Mahal, the riverside palace built on the Kali Gandaki in 1893."
     ),
+    # --- batch 4: remaining 30 districts, grounded in seed facts (province,
+    # region, seat) plus places recorded in this platform's own database ---
+    "achham": (
+        "Achham is a hill district of Sudurpashchim Province with Mangalsen "
+        "as its seat. Recorded on this platform: the Baidyanath Dham temple "
+        "complex and the historic sites of Bannigadhi and Jayagadh."
+    ),
+    "arghakhanchi": (
+        "Arghakhanchi is a hill district of Lumbini Province with "
+        "Sandhikharka as its seat. Recorded on this platform: the Argha "
+        "Durbar and Argali Darbar heritage sites and the Chhatradev "
+        "Devalaya temple."
+    ),
+    "baitadi": (
+        "Baitadi is a hill district of Sudurpashchim Province with "
+        "Dasharathchand as its seat. Recorded on this platform: the "
+        "Deulek Kedar temple and Baitadi's waterfalls."
+    ),
+    "bajhang": (
+        "Bajhang is a Himalayan district of Sudurpashchim Province with "
+        "Chainpur as its seat, on the western approaches to Khaptad. "
+        "Recorded on this platform: the Bajhang Tatopani hot springs and "
+        "the temples of Bithadchir."
+    ),
+    "bajura": (
+        "Bajura is a Himalayan district of Sudurpashchim Province whose "
+        "hilltop Badimalika shrine is one of the far-west's great "
+        "pilgrimage sites. Recorded on this platform: Badimalika Dham and "
+        "the Budhiganga river valley."
+    ),
+    "bhojpur": (
+        "Bhojpur is a hill district of Koshi Province along the Arun river, "
+        "long famed for its khukuri blade-makers. Recorded on this "
+        "platform: Bhojpur Bazaar and its craft and food trails."
+    ),
+    "dadeldhura": (
+        "Dadeldhura is a hill district of Sudurpashchim Province named for "
+        "the Amargadhi fort that crowns its seat town. Recorded on this "
+        "platform: Amargadhi, the Ajayameru Kot ruins and Aalital Lake."
+    ),
+    "dailekh": (
+        "Dailekh is a hill district of Karnali Province whose Dullu valley "
+        "holds the stone inscriptions of the medieval Khasa kingdom. "
+        "Recorded on this platform: the Akhanda Jwala eternal flame, "
+        "Basudhara temple and Badapokhara at Dullu."
+    ),
+    "dhankuta": (
+        "Dhankuta is a hill district of Koshi Province above the Mulghat "
+        "gateway on the Koshi corridor. Recorded on this platform: the "
+        "Bhedetar hill station and viewpoint, its waterfall, and the "
+        "Bhanu Bhakta Memorial."
+    ),
+    "eastern-rukum": (
+        "Eastern Rukum is a Himalayan district of Lumbini Province, formed "
+        "in 2017 when Rukum was split in two, with Rukumkot as its seat "
+        "beneath sacred Mount Sisne. Tourism places are still being "
+        "recorded here."
+    ),
+    "gulmi": (
+        "Gulmi is a hill district of Lumbini Province with Tamghas as its "
+        "seat and a growing reputation for coffee. Recorded on this "
+        "platform: Gulmi coffee farms, the Chhahara waterfall and "
+        "Bichitra Cave."
+    ),
+    "jajarkot": (
+        "Jajarkot is a hill district of Karnali Province with Khalanga as "
+        "its seat. Recorded on this platform: the Barekot heritage trail, "
+        "the chortens of Jajarkot and Ghalemdi waterfall."
+    ),
+    "kalikot": (
+        "Kalikot is a hill district of Karnali Province with Manma as its "
+        "seat. Recorded on this platform: the Dademasta and Bobka Than "
+        "shrines, Chuli Malika peak and Bayal waterfall."
+    ),
+    "kapilvastu": (
+        "Kapilvastu is a Terai district of Lumbini Province named for the "
+        "ancient Shakya-kingdom region, with Taulihawa as its seat. "
+        "Recorded on this platform: Aurorakot and Dohani heritage sites, "
+        "the Banganga river and Badki Mai temple."
+    ),
+    "khotang": (
+        "Khotang is a hill district of Koshi Province whose Halesi "
+        "Maratika cave temple — a major Shiva shrine also sacred to "
+        "Buddhists — is the far-east's most visited pilgrimage site. "
+        "Recorded on this platform: Halesi Mahadev and Barahapokhari."
+    ),
+    "mahottari": (
+        "Mahottari is a Terai district of Madhesh Province with Jaleshwar "
+        "as its seat on the Indian border. Recorded on this platform: the "
+        "Jaleshwar Mahadev and Aurahi Mahadev temples."
+    ),
+    "nawalpur": (
+        "Nawalpur is an Inner Terai district of Gandaki Province bordering "
+        "Chitwan National Park's eastern buffer zone, with Kawasoti as its "
+        "seat. Recorded on this platform: the Tharu homestay village of "
+        "Amaltari and its jungle-edge lodges."
+    ),
+    "okhaldhunga": (
+        "Okhaldhunga is a hill district of Koshi Province whose name comes "
+        "from a legendary stone mortar (okhal), with Siddhicharan as its "
+        "seat. Recorded on this platform: Okhaldhunga Bazaar and the "
+        "surrounding hill villages."
+    ),
+    "panchthar": (
+        "Panchthar is a hill district of Koshi Province in the Limbuwan "
+        "heartland, with Phidim as its seat. Recorded on this platform: "
+        "the Chiwabhanjyang Limbu heritage site, Aagejung monastery and "
+        "Battise waterfall."
+    ),
+    "parasi": (
+        "Parasi (Nawalparasi West) is a Terai district of Lumbini Province "
+        "whose Ramgram Stupa is traditionally counted among the eight "
+        "original stupas holding the Buddha's relics. Recorded on this "
+        "platform: Ramgram, Balmiki Ashram and the district's river-side "
+        "temples."
+    ),
+    "pyuthan": (
+        "Pyuthan is a hill district of Lumbini Province with Khalanga as "
+        "its seat in the Jhimruk valley. Recorded on this platform: the "
+        "Gaumukhi cave shrine and the Jhimruk river terraces."
+    ),
+    "rautahat": (
+        "Rautahat is a Terai district of Madhesh Province with Gaur as its "
+        "seat near the Indian border. Recorded on this platform: the "
+        "Barahwa wetland and Brindaban forest."
+    ),
+    "rolpa": (
+        "Rolpa is a hill district of Lumbini Province with Libang (Rolpa "
+        "Bazar) as its seat — the heartland of Nepal's People's War, now "
+        "crossed by the Guerrilla Trek. Recorded on this platform: the "
+        "Guerrilla Trek and the villages of Holeri and Jelbang."
+    ),
+    "salyan": (
+        "Salyan is a hill district of Karnali Province with Salyan "
+        "Khalanga as its seat. Recorded on this platform: the "
+        "Chhayakshetra and Khairabang pilgrimage temples and Kachuwa "
+        "Daha lake."
+    ),
+    "sarlahi": (
+        "Sarlahi is a farm-rich Terai district of Madhesh Province with "
+        "Malangwa as its seat. Recorded on this platform: the "
+        "Chaturbhujeshwar temple and Malangwa's Buddha Park."
+    ),
+    "siraha": (
+        "Siraha is a Terai district of Madhesh Province along the Kamala "
+        "river. Recorded on this platform: Salhesh Phulbari, a pilgrimage "
+        "site of the Dusadh folk hero Salhesh, near Lahan."
+    ),
+    "syangja": (
+        "Syangja is a hill district of Gandaki Province on the Siddhartha "
+        "Highway between Butwal and Pokhara, known for its oranges and "
+        "for paragliding from Sirkot. Recorded on this platform: the "
+        "Sirkot paragliding hill and the Aandhikhola valley."
+    ),
+    "terhathum": (
+        "Terhathum is a hill district of Koshi Province with Myanglung as "
+        "its seat. Recorded on this platform: Hyatung waterfall — among "
+        "Nepal's tallest — and the Basantapur bazaar on the Tamor "
+        "corridor."
+    ),
+    "udayapur": (
+        "Udayapur is an Inner Terai district of Koshi Province with Gaighat "
+        "as its seat in the Udayapur valley. Recorded on this platform: "
+        "the Chaudandigadhi fort and local Shiva shrines."
+    ),
+    "western-rukum": (
+        "Western Rukum is a Himalayan district of Karnali Province, formed "
+        "in 2017 when Rukum was split in two, with Musikot as its seat in "
+        "the Bheri river valley. Tourism places are still being recorded "
+        "here."
+    ),
 }
 
 

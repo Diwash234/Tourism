@@ -3230,5 +3230,11 @@ class DistrictDescriptionSeedTests(TestCase):
         ktm.refresh_from_db()
         self.assertEqual(ktm.description, "Admin curated text.")
         # districts outside the curated set keep the honest gap
-        achham = District.objects.get(slug="achham")
-        self.assertEqual((achham.description or "").strip(), "")
+        from .models import Province
+        province = Province.objects.first()
+        fresh = District.objects.create(
+            name="Test District", slug="test-district-honest-gap", province=province
+        )
+        call_command("seed_district_descriptions")
+        fresh.refresh_from_db()
+        self.assertEqual((fresh.description or "").strip(), "")
