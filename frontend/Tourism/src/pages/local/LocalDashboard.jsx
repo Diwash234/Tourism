@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { useForm } from "react-hook-form"
 import { FiHome, FiPlus, FiTrash2, FiImage, FiAlertTriangle } from "react-icons/fi"
 import localApi from "../../api/LocalApi"
@@ -116,6 +117,7 @@ const LocalDashboard = () => {
 
   return (
     <div>
+      <CMSPageIntro pageKey="local-dashboard" />
       <PageHeader
         title="Local Guide Dashboard"
         subtitle="Showcase your local places with photos. Submissions appear in destination search once approved by an admin."

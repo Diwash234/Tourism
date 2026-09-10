@@ -1,4 +1,5 @@
 import { useState } from "react"
+import CMSPageIntro from "./components/cms/CMSPageIntro"
 import { useParams, useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { FiCalendar } from "react-icons/fi"
@@ -33,6 +34,7 @@ const BookHotel = () => {
 
   return (
     <div className="container-app py-10 max-w-lg">
+      <CMSPageIntro pageKey="hotel-booking" />
       <h1 className="section-title flex items-center gap-2">
         <FiCalendar className="text-primary-500" /> Book This Hotel
       </h1>

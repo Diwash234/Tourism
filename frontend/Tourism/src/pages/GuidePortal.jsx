@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiUser, FiFileText, FiEdit3, FiCheckCircle, FiClock, FiAlertCircle, FiXCircle } from "react-icons/fi"
 import useAuth from "../hooks/useAuth"
@@ -149,6 +150,7 @@ export default function GuidePortal() {
   return (
     <div className="min-h-screen bg-[#F7F8F5]">
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-5">
+        <CMSPageIntro pageKey="guide-portal" />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <span className="text-xs uppercase tracking-widest font-black text-[#102A2E]">Tourism Workforce</span>

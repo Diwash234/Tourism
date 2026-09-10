@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { FiPlus, FiCheckCircle, FiX } from "react-icons/fi"
 import adminPanelApi from "../../api/adminPanelApi"
 import hotelApi from "../../api/hotelApi"
@@ -77,6 +78,7 @@ const Tasks = () => {
 
   return (
     <div className="container-app py-10 fade-in">
+      <CMSPageIntro pageKey="admin-tasks" />
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="section-title mb-0">Tasks</h1>
         <button

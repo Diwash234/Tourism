@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { FiMail, FiLock, FiShield, FiAlertTriangle } from "react-icons/fi"
@@ -40,6 +41,7 @@ export default function AdminLogin() {
 
   return (
     <AuthShell portal="admin" title="Administrator Sign In">
+      <CMSPageIntro pageKey="admin-login" />
       <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-900 text-slate-200 text-xs mb-5">
         <FiShield className="mt-0.5 shrink-0 text-nepalred-400" />
         <span>

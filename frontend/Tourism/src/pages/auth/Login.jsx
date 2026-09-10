@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { FiMail, FiLock, FiShield, FiUser, FiBriefcase, FiCheckCircle } from "react-icons/fi"
@@ -80,6 +81,7 @@ const Login = () => {
   return (
     <div className="min-h-[85svh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       <NepalSceneBackground />
+      <CMSPageIntro pageKey="portal-login" />
 
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-5 py-2.5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
         <TourismLogo size="sm" />

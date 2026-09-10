@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiCalendar, FiStar, FiX } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -69,6 +70,7 @@ export default function GuideBookings() {
 
   return (
     <div className="min-h-screen bg-[#F7F8F5]">
+      <CMSPageIntro pageKey="guide-bookings" />
       <PageHeader
         title="My Guide Requests"
         subtitle="Track booking requests to verified guides — cancel anytime before the trip, review it after."

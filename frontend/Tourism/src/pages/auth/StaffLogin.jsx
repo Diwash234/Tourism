@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { FiMail, FiLock, FiAlertCircle } from "react-icons/fi"
@@ -43,6 +44,7 @@ export default function StaffLogin() {
 
   return (
     <AuthShell portal="staff" title="Staff Sign In">
+      <CMSPageIntro pageKey="staff-login" />
       <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 mb-5">
         <FiAlertCircle className="mt-0.5 shrink-0" />
         <span>

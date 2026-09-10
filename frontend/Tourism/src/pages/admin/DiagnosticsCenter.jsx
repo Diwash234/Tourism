@@ -10,6 +10,7 @@
  * No feature here can crash the page: every sub-panel is wrapped in
  * its own ErrorBoundary.
  */
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { useEffect, useState, useCallback, useMemo } from "react"
 import {
   FiActivity, FiAlertCircle, FiCheckCircle, FiClock, FiRefreshCw,
@@ -396,6 +397,7 @@ function AuditPanel() {
 export default function DiagnosticsCenter() {
   return (
     <div className="space-y-6">
+      <CMSPageIntro pageKey="admin-diagnostics" />
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-2xl bg-primary-50 text-primary-700 flex items-center justify-center">
           <FiShield size={26} />
