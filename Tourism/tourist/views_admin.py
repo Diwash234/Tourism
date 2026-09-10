@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models import Count, Sum, F, Q
 from django.utils import timezone
 from django.conf import settings
@@ -1483,14 +1484,120 @@ class AdminDataExplorerView(APIView):
         "newsletter_signups": ("tourist.NewsletterSignup", ["email","is_active"]),
         "marketplace_partners": ("tourist.MarketplacePartner", ["name","email","city","status"]),
         "marketplace_orders": ("tourist.MarketplaceOrder", ["reference","guest_email","guest_name","status"]),
+        "restaurants": ("tourist.Restaurant", ["name","destination__name","cuisine_type","city","status"]),
+        "hospitals": ("tourist.Hospital", ["name","district","phone","address"]),
+        "police_stations": ("tourist.PoliceStation", ["name","district","phone","address"]),
+        "transit_routes": ("tourist.DestinationTransitRoute", ["destination__name","mode","from_location","is_verified"]),
     }
+
+    # Generic editing: only plain scalar model fields are ever editable.
+    # Relations, files, JSON, primary keys and auto timestamps are excluded
+    # by type — the safe boundary is the field type itself.
+    EDITABLE_FIELD_TYPES = (
+        models.CharField, models.TextField, models.SlugField, models.URLField,
+        models.EmailField, models.IntegerField, models.PositiveIntegerField,
+        models.PositiveSmallIntegerField, models.SmallIntegerField,
+        models.BigIntegerField, models.DecimalField, models.BooleanField,
+    )
+
+    @classmethod
+    def _editable_fields(cls, model):
+        out = []
+        for field in model._meta.get_fields():
+            if not isinstance(field, cls.EDITABLE_FIELD_TYPES):
+                continue
+            if getattr(field, "primary_key", False) or getattr(field, "auto_now", False) or getattr(field, "auto_now_add", False):
+                continue
+            if field.name in {"created_at", "updated_at"}:
+                continue
+            out.append(field)
+        return out
+
+    @classmethod
+    def _field_spec(cls, field):
+        spec = {"name": field.name, "type": "text"}
+        if isinstance(field, models.BooleanField):
+            spec["type"] = "boolean"
+        elif isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
+            spec["type"] = "integer"
+        elif isinstance(field, models.DecimalField):
+            spec["type"] = "decimal"
+        elif isinstance(field, models.TextField):
+            spec["type"] = "textarea"
+        elif isinstance(field, models.URLField):
+            spec["type"] = "url"
+        elif isinstance(field, models.EmailField):
+            spec["type"] = "email"
+        if getattr(field, "choices", None):
+            spec["choices"] = [str(c[0]) for c in field.choices]
+        if getattr(field, "max_length", None):
+            spec["max_length"] = field.max_length
+        return spec
+
+    def _resource_model(self, resource):
+        from django.apps import apps
+        if resource not in self.RESOURCES:
+            return None
+        return apps.get_model(self.RESOURCES[resource][0])
+
+    def patch(self, request):
+        """Generic row editing for every explorer resource.
+
+        Payload: {"resource": "...", "id": <pk>, "fields": {name: value, ...}}.
+        Only scalar whitelisted-by-type fields are accepted; values are coerced
+        to the field type, validated against model choices, and everything else
+        is rejected instead of silently ignored.
+        """
+        from decimal import Decimal, InvalidOperation
+        resource = request.data.get("resource")
+        row_id = request.data.get("id")
+        fields_in = request.data.get("fields") or {}
+        if not isinstance(fields_in, dict) or not fields_in:
+            return Response({"detail": "fields object is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if resource == "destinations":
+            return Response({"detail": "Use the dedicated destination editor for destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        model = self._resource_model(resource)
+        if model is None:
+            return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
+        obj = model.objects.filter(pk=row_id).first()
+        if obj is None:
+            return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
+        editable = {f.name: f for f in self._editable_fields(model)}
+        changed = []
+        for name, raw in fields_in.items():
+            field = editable.get(name)
+            if field is None:
+                return Response({"detail": f"Field '{name}' is not editable for {resource}."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                if isinstance(field, models.BooleanField):
+                    value = bool(raw) if not isinstance(raw, str) else str(raw).lower() in {"1", "true", "yes", "on"}
+                elif isinstance(field, models.DecimalField):
+                    value = None if raw in ("", None) else Decimal(str(raw))
+                elif isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
+                    value = None if raw in ("", None) and field.null else int(raw)
+                else:
+                    value = "" if raw is None else str(raw)
+                    max_len = getattr(field, "max_length", None)
+                    if max_len and len(value) > max_len:
+                        raise ValueError(f"too long (max {max_len} characters)")
+            except (InvalidOperation, TypeError, ValueError) as exc:
+                return Response({"detail": f"{name}: invalid value ({exc})"}, status=status.HTTP_400_BAD_REQUEST)
+            choices = [str(c[0]) for c in (getattr(field, "choices", None) or [])]
+            if choices and value not in (None, "") and str(value) not in choices:
+                return Response({"detail": f"{name}: must be one of {', '.join(choices)}"}, status=status.HTTP_400_BAD_REQUEST)
+            if getattr(obj, name) != value:
+                setattr(obj, name, value)
+                changed.append(name)
+        if changed:
+            obj.save()
+        return Response({"message": "Record updated", "changed": changed})
 
     def get(self, request):
         from django.apps import apps
         from django.db.models import Q
         from django.forms.models import model_to_dict
         resource = request.query_params.get("resource", "destinations")
-        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit","marketplace_listings":"marketplace","marketplace_partners":"marketplace","marketplace_orders":"marketplace"}
+        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit","marketplace_listings":"marketplace","marketplace_partners":"marketplace","marketplace_orders":"marketplace","restaurants":"destinations","hospitals":"safety","police_stations":"safety","transit_routes":"destinations"}
         user = request.user
         if not (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"}):
             profile = getattr(user, "capability_profile", None)
@@ -1498,6 +1605,20 @@ class AdminDataExplorerView(APIView):
                 return Response({"detail": "Staff capability denied."}, status=403)
         if resource not in self.RESOURCES:
             return Response({"detail": "Unknown resource."}, status=400)
+        if request.query_params.get("schema"):
+            model = self._resource_model(resource)
+            return Response({
+                "resource": resource,
+                "editable": [self._field_spec(f) for f in self._editable_fields(model)],
+            })
+        edit_id = request.query_params.get("edit_id")
+        if edit_id:
+            model = self._resource_model(resource)
+            obj = model.objects.filter(pk=edit_id).first()
+            if obj is None:
+                return Response({"detail": "Record not found."}, status=404)
+            values = {f.name: getattr(obj, f.name) for f in self._editable_fields(model)}
+            return Response({"resource": resource, "id": obj.pk, "values": values})
         label, search_fields = self.RESOURCES[resource]
         model = apps.get_model(label)
         qs = model.objects.all().order_by("-pk")

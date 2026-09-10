@@ -863,6 +863,23 @@ async function run() {
       else fail("admin: hospital rename", `set=${renamed.res.status} back=${reverted.res.status}`)
     } else fail("admin: hospital row for rename test", "no rows")
 
+    // generic row editing across explorer resources (task-82 "manage everything" contract)
+    const schema = await request(`${API}/admin/data-explorer/?resource=hospitals&schema=1`, { headers: auth })
+    const editable = (schema.data?.editable || []).map((f) => f.name)
+    if (schema.res.status === 200 && editable.includes("name") && !editable.includes("destination")) ok("admin: explorer schema exposes scalar fields only")
+    else fail("admin: explorer schema", `status=${schema.res.status} fields=${editable.slice(0, 5)}`)
+    const hlist = await request(`${API}/admin/data-explorer/?resource=hospitals&page=1`, { headers: auth })
+    const hrow = hlist.data?.results?.[0]
+    if (hrow) {
+      const renamed = await request(`${API}/admin/data-explorer/`, { method: "PATCH", headers: auth, json: { resource: "hospitals", id: hrow.id, fields: { name: `${hrow.name} (e2e)` } } })
+      const reverted = await request(`${API}/admin/data-explorer/`, { method: "PATCH", headers: auth, json: { resource: "hospitals", id: hrow.id, fields: { name: hrow.name } } })
+      if (renamed.res.status === 200 && reverted.res.status === 200 && renamed.data?.changed?.includes("name")) ok("admin: generic row edit round-trip (hospitals)")
+      else fail("admin: generic row edit", `set=${renamed.res.status} back=${reverted.res.status}`)
+      const fk = await request(`${API}/admin/data-explorer/`, { method: "PATCH", headers: auth, json: { resource: "hospitals", id: hrow.id, fields: { destination: "1" } } })
+      if (fk.res.status === 400) ok("admin: relation fields rejected by generic editor")
+      else fail("admin: fk rejection", `status=${fk.res.status}`)
+    } else fail("admin: generic row edit", "no hospital rows")
+
     // emergency kinds now include atm/bank (invalid kind error must advertise them)
     const badKind = await request(`${API}/admin/emergency-directory/`, { method: "POST", headers: auth, json: { kind: "nightclub", name: "E2E Bad Kind", latitude: 27.7, longitude: 85.3 } })
     if (badKind.res.status === 400 && String(badKind.data?.detail).includes("atm")) ok("admin: emergency directory accepts atm/bank kinds")
