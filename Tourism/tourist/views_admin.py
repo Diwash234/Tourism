@@ -1953,6 +1953,10 @@ class AdminCMSView(APIView):
         if resource == "sections" and "body" in payload:
             payload["body"] = re.sub(r"(?is)<script.*?>.*?</script>", "", str(payload.get("body") or ""))
             payload["body"] = re.sub(r"(?is)on\w+\s*=", "", payload["body"])
+            # Rich text editor hardening (§46): neutralize javascript: URLs in
+            # href/src server-side — the editor validates too, but storage is
+            # the source of truth and must never hold an executable URL.
+            payload["body"] = re.sub(r"(?is)(href|src)\s*=\s*([\"\']?)\s*javascript:[^\"\'>\s]*\2", r"\1=\2#\2", payload["body"])
         if resource == "pages" and payload.get("og_image_url") and not str(payload["og_image_url"]).startswith("https://") and not str(payload["og_image_url"]).startswith("/"):
             raise ValueError("Social image must be an HTTPS URL or an internal path")
         if resource == "settings" and payload.get("key") == "branding":

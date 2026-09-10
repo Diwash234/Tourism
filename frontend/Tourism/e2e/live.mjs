@@ -609,6 +609,32 @@ async function run() {
     } else fail("Navigation extensions wiring")
   }
 
+  {
+    // §21/§119 — opt-in traveller location joins the recommendation ranking
+    const withLoc = await request(`${API}/destinations/mood-recommendations/?mood=lakeside&latitude=28.21&longitude=83.98&limit=8`)
+    const badLoc = await request(`${API}/destinations/mood-recommendations/?mood=lakeside&latitude=999&longitude=0&limit=4`)
+    const recSrc = await sourceFile("pages/Recommendation.jsx")
+    const rows = withLoc.data?.results || []
+    if (
+      withLoc.res.ok && withLoc.data?.preferences?.location?.latitude === 28.21 &&
+      rows.some((r) => r.distance_km != null && r.distance_is_straight_line === true) &&
+      badLoc.res.ok && badLoc.data?.preferences?.location === null &&
+      recSrc.includes("requestMyLocation") && recSrc.includes("straight line")
+    ) ok("recommendations accept traveller location with honest straight-line distances")
+    else fail("location-aware recommendations")
+  }
+
+  {
+    // §46 — rich text editor validates URLs and powers homepage bodies
+    const editor = await sourceFile("components/admin/RichTextEditor.jsx")
+    const homepage = await sourceFile("components/admin/HomepageManagerPanel.jsx")
+    if (
+      editor.includes("safeUrl") && editor.includes("unlink") && editor.includes("mailto:") &&
+      homepage.includes("RichTextEditor")
+    ) ok("rich text editor validates URLs and powers homepage section bodies")
+    else fail("rich text editor upgrade")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

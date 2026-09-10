@@ -6,6 +6,7 @@ import {
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
+import RichTextEditor from "./RichTextEditor"
 import CMSBlock from "../cms/CMSBlock"
 import { ContentBlocksBuilder } from "./CMSPanel"
 
@@ -383,7 +384,7 @@ export default function HomepageManagerPanel() {
                   </label>
                 </div>
                 <label className="block text-xs font-bold text-slate-300">Description
-                  <textarea rows={3} className={`${field} mt-1`} value={draft.body || ""} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+                  <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} label="Homepage section body" />
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <label className="block text-xs font-bold text-slate-300">Button text

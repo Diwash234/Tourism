@@ -2,6 +2,15 @@ import { useEffect, useRef, useState } from "react"
 
 const COLORS = ["#0f172a", "#166534", "#b45309", "#be123c", "#1d4ed8", "#ffffff"]
 const strip = (html) => (html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+// Only http(s), mailto and internal URLs may enter the document — the
+// backend strips javascript: hrefs too, but the editor refuses first (spec §46).
+const safeUrl = (raw, { allowMailto = true } = {}) => {
+  const url = (raw || "").trim()
+  if (!url) return ""
+  if (/^https?:\/\//i.test(url) || url.startsWith("/") || url.startsWith("#")) return url
+  if (allowMailto && /^mailto:[^@\s]+@[^@\s]+$/i.test(url)) return url
+  return ""
+}
 
 export default function RichTextEditor({ value = "", onChange, label = "Section body" }) {
   const ref = useRef(null)
@@ -103,8 +112,10 @@ export default function RichTextEditor({ value = "", onChange, label = "Section 
           type="button"
           onMouseDown={(event) => {
             event.preventDefault()
-            const url = window.prompt("Link URL", "https://")
+            const raw = window.prompt("Link URL (https, mailto or internal path)", "https://")
+            const url = safeUrl(raw)
             if (url) run("createLink", url)
+            else if (raw && raw.trim()) window.alert("Only https://, http://, mailto: or internal / links are allowed")
           }}
           className="rounded-lg bg-white px-2 py-1 text-xs font-black"
         >
@@ -114,8 +125,10 @@ export default function RichTextEditor({ value = "", onChange, label = "Section 
           type="button"
           onMouseDown={(event) => {
             event.preventDefault()
-            const url = window.prompt("Image URL", "https://")
+            const raw = window.prompt("Image URL (https or internal path)", "https://")
+            const url = safeUrl(raw, { allowMailto: false })
             if (url) run("insertImage", url)
+            else if (raw && raw.trim()) window.alert("Only https://, http:// or internal / image URLs are allowed")
           }}
           className="rounded-lg bg-white px-2 py-1 text-xs font-black"
         >
@@ -131,6 +144,7 @@ export default function RichTextEditor({ value = "", onChange, label = "Section 
         >
           Table
         </button>
+        {button("unlink", null, "Unlink", "Remove link")}
         {button("insertHorizontalRule", null, "Line", "Horizontal line")}
         {button("removeFormat", null, "Clear", "Clear formatting")}
         {button("undo", null, "Undo", "Undo")}

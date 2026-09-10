@@ -2693,3 +2693,74 @@ class TripInterestsAndSectionStyleTests(TestCase):
         self.assertEqual(cfg["bg_image"], "https://cdn.example/bg.jpg")
         self.assertEqual(cfg["background_style"], "dark-slate")
 
+
+class LocationAwareRecommendationTests(TestCase):
+    """Master spec §21/§119: opt-in traveller location for recommendations."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        self.lakes = Category.objects.create(name="Lakes Loc Test", slug="lakes")
+        self.near = Destination.objects.create(
+            name="Phewa Near Shore", slug="phewa-near-shore", category=self.lakes,
+            district="Kaski", province="Gandaki", latitude=28.20, longitude=83.96,
+            short_description="A calm lake shore walk",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        self.far = Destination.objects.create(
+            name="Eastern Far Lake", slug="eastern-far-lake", category=self.lakes,
+            district="Sunsari", province="Koshi", latitude=26.65, longitude=87.27,
+            short_description="A distant lake reserve",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+    def test_location_context_adds_distance_and_boosts_near_results(self):
+        resp = self.client.get("/api/v1/destinations/mood-recommendations/", {
+            "mood": "lakeside", "latitude": 28.21, "longitude": 83.98, "limit": 6,
+        })
+        self.assertEqual(resp.status_code, 200)
+        results = resp.json()["results"]
+        slugs = [row["slug"] for row in results]
+        self.assertIn("phewa-near-shore", slugs)
+        near_row = next(row for row in results if row["slug"] == "phewa-near-shore")
+        self.assertLess(near_row["distance_km"], 5)
+        self.assertTrue(near_row["distance_is_straight_line"])
+        self.assertIn("proximity", near_row["match_breakdown"])
+        self.assertEqual(resp.json()["preferences"]["location"], {"latitude": 28.21, "longitude": 83.98})
+        if "eastern-far-lake" in slugs:
+            self.assertLess(slugs.index("phewa-near-shore"), slugs.index("eastern-far-lake"))
+
+    def test_invalid_coordinates_are_ignored_not_fatal(self):
+        resp = self.client.get("/api/v1/destinations/mood-recommendations/", {
+            "mood": "lakeside", "latitude": 999, "longitude": 83.98, "limit": 6,
+        })
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertIsNone(payload["preferences"]["location"])
+        # The serializer always exposes the distance_km key; without a valid
+        # location it must stay empty and the §21/§119 flag must be absent.
+        self.assertFalse(any(row.get("distance_km") is not None for row in payload["results"]))
+        self.assertFalse(any("distance_is_straight_line" in row for row in payload["results"]))
+
+
+class RichTextBodySanitizationTests(TestCase):
+    """Master spec §46: javascript: URLs never survive into stored bodies."""
+
+    def setUp(self):
+        from .models import ManagedPage, ContentSection
+        self.admin = User.objects.create_superuser("rt-admin@test.local", "Sup!Pass123")
+        self.page = ManagedPage.objects.create(route="/rt-test", key="rt-test", title="RT", status="published")
+        self.section = ContentSection.objects.create(page=self.page, key="intro", title="I", section_type="text", status="published")
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def test_javascript_href_is_neutralized_on_save(self):
+        resp = self.client.patch("/api/v1/admin/cms/", {
+            "resource": "sections", "id": self.section.id, "action": "update",
+            "body": '<p>Hi</p><a href="javascript:alert(1)">click</a><img src="JaVaScRiPt:evil()">',
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.section.refresh_from_db()
+        self.assertNotIn("javascript:", self.section.body.lower())
+        self.assertIn('href="#"', self.section.body)
+        self.assertIn("<p>Hi</p>", self.section.body)
+

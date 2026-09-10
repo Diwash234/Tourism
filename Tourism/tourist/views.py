@@ -2156,6 +2156,18 @@ class MoodRecommendationsView(generics.ListAPIView):
         travel_style = (request.query_params.get("travel_style") or "any").lower()
         province = (request.query_params.get("province") or "").strip().lower()
 
+        # Optional traveller location (master spec §21/§119): when supplied,
+        # straight-line proximity joins the ranking and every result carries
+        # an honestly labelled distance. Invalid coordinates are ignored, so
+        # the endpoint keeps working for visitors who decline to share.
+        try:
+            traveller_lat = float(request.query_params.get("latitude"))
+            traveller_lng = float(request.query_params.get("longitude"))
+            if not (-90.0 <= traveller_lat <= 90.0 and -180.0 <= traveller_lng <= 180.0):
+                raise ValueError("Coordinates out of range")
+        except (TypeError, ValueError):
+            traveller_lat = traveller_lng = None
+
         # Build the weighted profile while preserving the existing mood model.
         cat_weights, kws = {}, []
         for mood in moods:
@@ -2254,6 +2266,16 @@ class MoodRecommendationsView(generics.ListAPIView):
                     reasons.append(f"{inferred_difficulty.title()} difficulty match")
             score += difficulty_score
             breakdown["difficulty"] = difficulty_score
+
+            proximity_score = 0.0
+            if traveller_lat is not None and destination.latitude is not None and destination.longitude is not None:
+                distance_km = haversine_distance(traveller_lat, traveller_lng,
+                                                 float(destination.latitude), float(destination.longitude))
+                proximity_score = 0.20 * max(0.0, 1.0 - distance_km / 400.0)
+                score += proximity_score
+                breakdown["proximity"] = round(proximity_score, 3)
+                if distance_km <= 60:
+                    reasons.append(f"Only ~{distance_km:.0f} km from your location (straight line)")
 
             estimated_daily = float(destination.entry_fee or 0) + (30 if cat in easy_cats else 50 if cat not in high_altitude_cats else 75)
             inferred_budget = "low" if estimated_daily <= 40 else "medium" if estimated_daily <= 80 else "high"
@@ -2413,6 +2435,11 @@ class MoodRecommendationsView(generics.ListAPIView):
                 safety_context["nearest_police"] = nearby["police"][0] if nearby["police"] else None
             item["safety_context"] = safety_context
             item["data_source"] = destination.source or ("User submission" if destination.is_user_submitted else "Database")
+            if traveller_lat is not None and destination.latitude is not None and destination.longitude is not None:
+                item["distance_km"] = round(haversine_distance(
+                    traveller_lat, traveller_lng,
+                    float(destination.latitude), float(destination.longitude)), 1)
+                item["distance_is_straight_line"] = True
             data.append(item)
             chosen_rows.append(row)
             if len(data) >= limit:
@@ -2420,7 +2447,8 @@ class MoodRecommendationsView(generics.ListAPIView):
 
         return Response({
             "source": "live_database_content_model", "model_version": "content-v2",
-            "preferences": {"moods": moods, "days": days, "budget": budget, "difficulty": difficulty, "season": season, "travel_style": travel_style, "province": province},
+            "preferences": {"moods": moods, "days": days, "budget": budget, "difficulty": difficulty, "season": season, "travel_style": travel_style, "province": province,
+                            "location": {"latitude": traveller_lat, "longitude": traveller_lng} if traveller_lat is not None else None},
             "count": len(data), "results": data,
         })
 

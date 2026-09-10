@@ -253,12 +253,29 @@ export default function Recommendation() {
   const [hasRun, setHasRun] = useState(false)
   const [meta, setMeta] = useState(null)
   const [interactionConsent, setInteractionConsent] = useState(false)
+  // Traveller location context (master spec §21/§119): optional, opt-in,
+  // never silently requested — closer places join the ranking when shared.
+  const [nearMe, setNearMe] = useState(null)
+  const [geoError, setGeoError] = useState("")
 
   const toggleInterest = (key) => setSelected((current) =>
     current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
   )
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+
+  function requestMyLocation() {
+    setGeoError("")
+    if (!navigator.geolocation) {
+      setGeoError("This browser cannot share location")
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setNearMe({ lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5) }),
+      () => setGeoError("Location permission denied — recommendations continue without it"),
+      { timeout: 10000 },
+    )
+  }
 
   async function loadRecommendations() {
     if (!selected.length) return
@@ -270,6 +287,7 @@ export default function Recommendation() {
         difficulty: form.difficulty, season: form.season,
         travel_style: form.travelStyle, province: form.province, limit: 18,
         mode: explorationMode,
+        ...(nearMe ? { latitude: nearMe.lat, longitude: nearMe.lng } : {}),
       })
       let results = data.results || data.recommendations || (Array.isArray(data) ? data : [])
       if (selected.includes("educational")) {
@@ -355,6 +373,22 @@ export default function Recommendation() {
             </label>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
+            <button
+              type="button"
+              onClick={() => (nearMe ? setNearMe(null) : requestMyLocation())}
+              className="rounded-full border border-emerald-300 bg-white px-4 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 transition-colors"
+            >
+              {nearMe ? "✕ Stop using my location" : "📍 Rank places near me first"}
+            </button>
+            {nearMe && (
+              <span className="text-xs font-bold text-emerald-800">
+                Using {nearMe.lat}, {nearMe.lng} — cards show straight-line distance
+              </span>
+            )}
+            {geoError && <span className="text-xs font-bold text-rose-600">{geoError}</span>}
+          </div>
+
           <div className="space-y-1.5">
             <span className="text-xs font-bold text-gray-600 block">Exploration Mode (Diversity Balancing)</span>
             <div className="flex flex-wrap gap-2">
@@ -424,6 +458,9 @@ export default function Recommendation() {
                 </div>
                 <div className="p-5 flex-1 space-y-4">
                   <p className="text-xs text-gray-500 flex items-center gap-1"><FiMapPin /> {item.display_city || item.district || "Nepal"}{item.province ? `, ${item.province}` : ""}</p>
+                  {item.distance_km != null && (
+                    <p className="text-xs font-bold text-emerald-700">≈ {item.distance_km} km from you · straight line</p>
+                  )}
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.difficulty || "Easy"}</b><span className="text-[10px] text-gray-400">ranking</span></div>
                     <div className="rounded-xl bg-gray-50 p-2"><b className="block text-xs capitalize">{item.budget_level || "Budget"}</b><span className="text-[10px] text-gray-400">rank tag</span></div>
