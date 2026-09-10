@@ -180,3 +180,7 @@ image-server/images/**/*
 downloads/nepal-tourism-database.sqlite3
 downloads/nepal-images-only.zip
 downloads/nepal-tourism-full-project.zip
+
+# SQLite WAL runtime sidecars
+Tourism/db.sqlite3-wal
+Tourism/db.sqlite3-shm

@@ -135,6 +135,14 @@ export default function Sidebar() {
   ])
 
   const managedByRoute = new Map(managedItems.filter(item => String(item.route).startsWith("/")).map(item => [item.route, item]))
+  // Every admin-managed sidebar item must be reachable on mobile too: items
+  // admins add that are not part of the built-in GROUPS land in a "More"
+  // group instead of silently disappearing from the drawer.
+  const coveredRoutes = new Set(GROUPS.flatMap((grp) => grp.links.map((link) => link.to)))
+  const extraManagedLinks = managedItems
+    .filter((item) => item.route && String(item.route).startsWith("/") && !coveredRoutes.has(String(item.route)))
+    .filter((item) => isAuthenticated || PUBLIC_ROUTES.has(String(item.route)))
+    .map((item) => ({ to: String(item.route), label: item.label || String(item.route), icon: BsCompass, color: "emerald" }))
   const visibleGroups = GROUPS.map((grp) => ({
     ...grp,
     links: grp.links
@@ -148,6 +156,9 @@ export default function Sidebar() {
         return true
       }),
   })).filter((g) => g.links.length > 0)
+  if (extraManagedLinks.length > 0) {
+    visibleGroups.push({ label: "More", tk: "sidebar.more", links: extraManagedLinks })
+  }
 
   // Expand the group that owns the active route (brief §17/§20); other groups
   // keep whatever the user last chose. Deferred one tick: keeps synchronous

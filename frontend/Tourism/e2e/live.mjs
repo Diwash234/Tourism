@@ -696,6 +696,25 @@ async function run() {
     else fail("road distance provider")
   }
 
+  {
+    // Master prompt: itineraries must be district-specific, not one generic plan
+    const planA = await request(`${API}/ml/itinerary/`, { method: "POST", json: { days: 2, start_city: "Kaski" } })
+    const planB = await request(`${API}/ml/itinerary/`, { method: "POST", json: { days: 2, start_city: "Kathmandu" } })
+    const stopsA = (planA.data?.itinerary || []).flatMap((d) => d.destinations || [])
+    const stopsB = (planB.data?.itinerary || []).flatMap((d) => d.destinations || [])
+    const namesB = new Set(stopsB.map((x) => x.name))
+    const fallback = planA.data?.source === "internal_db_engine"
+    const districtOk = !fallback || (
+      stopsA.some((x) => String(x.district || "").toLowerCase().includes("kaski")) &&
+      stopsA.every((x) => String(x.district || "").toLowerCase().includes("kaski") || x.day_trip)
+    )
+    if (
+      planA.res.ok && planB.res.ok && stopsA.length > 0 && stopsB.length > 0 &&
+      stopsA.some((x) => !namesB.has(x.name)) && districtOk
+    ) ok("itineraries are district-specific from recorded data (Kaski ≠ Kathmandu)")
+    else fail("district-specific itineraries")
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

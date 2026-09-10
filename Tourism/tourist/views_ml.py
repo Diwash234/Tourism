@@ -563,43 +563,98 @@ class ItineraryView(APIView):
             travelers = max(1, data.get("travelers", 1))
             interests = data.get("interests", ["culture"])
             start_city = (data.get("start_city") or "Kathmandu").strip()
+            district = (data.get("district") or "").strip()
 
             qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
-            city_qs = qs.filter(city__icontains=start_city)
-            if not city_qs.exists():
-                city_qs = qs
 
-            dest_list = list(city_qs[: days * 3])
-            if not dest_list:
-                dest_list = list(qs[: days * 3])
+            # A typed place may be a district, city or province ("Rolpa" is a
+            # district, not a city) — match every level so district requests
+            # never fall through to a generic nationwide plan.
+            from django.db.models import Q
+            place = district or start_city
+            scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
+            scope_label = f"places recorded in “{place}”"
+            scoped = scope.exists()
+            if not scoped and district and district != start_city:
+                scope = qs.filter(Q(district__icontains=start_city) | Q(city__icontains=start_city))
+                scope_label = f"places recorded in “{start_city}”"
+                scoped = scope.exists()
+            if not scoped:
+                scope = qs
+                scope_label = None
+
+            def interest_score(dest):
+                hay = " ".join(filter(None, [
+                    dest.category.name if dest.category_id else "",
+                    dest.name,
+                    dest.short_description or "",
+                ])).lower()
+                return sum(1 for term in interests if term and str(term).lower() in hay)
+
+            candidates = sorted(
+                list(scope.select_related("category")[:400]),
+                key=lambda d: (-interest_score(d), d.name),
+            )
+
+            # Greedy nearest-neighbour ordering so each day stays geographically
+            # compact instead of zig-zagging across the district.
+            want = min(len(candidates), max(days * 2, 2))
+            pool = candidates[:want]
+            ordered, remaining = [], list(pool)
+            cursor = None
+            while remaining:
+                if cursor is not None and cursor.latitude is not None and cursor.longitude is not None:
+                    remaining.sort(key=lambda p: (
+                        haversine_distance(float(cursor.latitude), float(cursor.longitude),
+                                           float(p.latitude), float(p.longitude))
+                        if p.latitude is not None and p.longitude is not None else 10_000.0
+                    ))
+                nxt = remaining.pop(0)
+                ordered.append(nxt)
+                cursor = nxt
+
+            def to_item(dest, day_trip=False):
+                item = {
+                    "name": dest.name,
+                    "city": dest.city or (dest.district or start_city),
+                    "district": dest.district or "",
+                    "latitude": float(dest.latitude) if dest.latitude is not None else None,
+                    "longitude": float(dest.longitude) if dest.longitude is not None else None,
+                    "category": dest.category.name if dest.category_id else "Attraction",
+                }
+                if day_trip:
+                    item["day_trip"] = True
+                    item["note"] = f"Nearest recorded place outside “{place}” — a day trip, not inside the requested area."
+                return item
 
             itinerary_days = []
-
+            per_day = max(1, -(-len(ordered) // days)) if ordered else 0
             for day_idx in range(1, days + 1):
-                day_destinations = []
-                start_i = (day_idx - 1) * 2
-                for dest in dest_list[start_i : start_i + 2]:
-                    day_destinations.append({
-                        "name": dest.name,
-                        "city": dest.city or start_city,
-                        "latitude": float(dest.latitude) if dest.latitude else None,
-                        "longitude": float(dest.longitude) if dest.longitude else None,
-                        "category": dest.category.name if dest.category else "Attraction",
-                    })
-                if not day_destinations and dest_list:
-                    d = dest_list[day_idx % len(dest_list)]
-                    day_destinations.append({
-                        "name": d.name,
-                        "city": d.city or start_city,
-                        "latitude": float(d.latitude) if d.latitude else None,
-                        "longitude": float(d.longitude) if d.longitude else None,
-                        "category": d.category.name if d.category else "Attraction",
-                    })
+                chunk = ordered[(day_idx - 1) * per_day: day_idx * per_day]
+                day_destinations = [to_item(dest) for dest in chunk]
+
+                # Honest shortfall: when the requested area has fewer recorded
+                # places than the trip needs, fill with the nearest places from
+                # the wider catalogue — clearly flagged, never fabricated.
+                if scoped and not day_destinations:
+                    used = {item["name"] for day in itinerary_days for item in day["destinations"]}
+                    used.update(item["name"] for item in day_destinations)
+                    fillers = [c for c in candidates if c.name not in used][:2]
+                    if not fillers:
+                        fillers = [c for c in qs.exclude(latitude__isnull=True).exclude(name__in=used)[:2]]
+                    day_destinations = [to_item(dest, day_trip=True) for dest in fillers]
+
+                cats = [item["category"] for item in day_destinations]
+                if cats:
+                    top = max(set(cats), key=cats.count)
+                    theme = f"{top} day in {place}" if len(set(cats)) == 1 else f"{top} & local exploration in {place}"
+                else:
+                    theme = "Arrival & orientation"
 
                 itinerary_days.append({
                     "day": day_idx,
-                    "city": start_city,
-                    "theme": "Cultural & Scenic Exploration",
+                    "city": (day_destinations[0]["city"] if day_destinations else start_city),
+                    "theme": theme,
                     "destinations": day_destinations,
                     "daily_budget_npr": None,
                 })
@@ -619,6 +674,10 @@ class ItineraryView(APIView):
                 "budget_npr": data.get("budget_npr"),
                 "fits_budget": None,
                 "budget_note": "No recorded daily budget is stored for this fallback itinerary.",
+                "data_note": (
+                    f"Built from {scope_label}." if scope_label else
+                    f"No verified places are recorded for “{place}” yet — showing popular destinations from the wider Nepal catalogue instead."
+                ),
                 "itinerary": itinerary_days,
             }
             return Response(enrich_itinerary_with_services(fallback_payload), status=status.HTTP_200_OK)

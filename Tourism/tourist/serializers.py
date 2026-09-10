@@ -1426,6 +1426,7 @@ class ItineraryRequestSerializer(serializers.Serializer):
 
     days = serializers.IntegerField(default=3, min_value=1, max_value=30)
     travelers = serializers.IntegerField(default=1, min_value=1, max_value=50)
+    district = serializers.CharField(required=False, allow_blank=True, max_length=80)
     budget_npr = serializers.FloatField(required=False, allow_null=True, min_value=0)
     budget_level = serializers.ChoiceField(
         choices=["budget", "mid", "standard", "luxury"], default="mid"

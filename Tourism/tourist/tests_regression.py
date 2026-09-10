@@ -2834,3 +2834,68 @@ class RoadDistanceProviderTests(TestCase):
         # The note must keep the honest labelling in every fallback branch.
         self.assertTrue("not road distance" in data["note"] or "not a street-level" in data["note"] or "not a GraphHopper/OSRM" in data["note"])
 
+
+class DistrictItineraryFallbackTests(TestCase):
+    """Master prompt: itineraries must be district-specific, never one generic plan."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        cat = Category.objects.create(name="Heritage Itin Test", slug="heritage-itin")
+        for i, (district, name) in enumerate([
+            ("Rolpa", "Talgara Heritage Village"), ("Rolpa", "Jhimruk Ridge Viewpoint"), ("Rolpa", "Rolpa Bazaar Street"),
+            ("Kaski", "Phewa Shore Walk"), ("Kaski", "Sarangkot Sunrise Ridge"), ("Kaski", "Begnas Lake Edge"),
+        ]):
+            Destination.objects.create(
+                name=name, slug=f"itin-{district.lower()}-{i}", category=cat,
+                district=district, city="", province="Gandaki",
+                latitude=28.0 + i * 0.05, longitude=83.0 + i * 0.05,
+                short_description="A recorded test place",
+                status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            )
+
+    def _plan(self, place, days=2):
+        response = self.client.post("/api/v1/ml/itinerary/", {"days": days, "start_city": place}, format="json")
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_district_name_scopes_the_plan(self):
+        data = self._plan("Rolpa")
+        self.assertEqual(data["source"], "internal_db_engine")
+        stops = [d for day in data["itinerary"] for d in day["destinations"]]
+        self.assertTrue(stops)
+        for stop in stops:
+            self.assertEqual(stop["district"], "Rolpa")
+            self.assertNotIn("day_trip", stop)
+
+    def test_different_districts_get_different_plans(self):
+        a = {d["name"] for day in self._plan("Rolpa")["itinerary"] for d in day["destinations"]}
+        b = {d["name"] for day in self._plan("Kaski")["itinerary"] for d in day["destinations"]}
+        self.assertTrue(a and b)
+        self.assertFalse(a & b, "Rolpa and Kaski plans must not share stops")
+
+    def test_unknown_place_is_labelled_not_fabricated(self):
+        data = self._plan("Atlantis")
+        self.assertEqual(data["source"], "internal_db_engine")
+        self.assertIn("No verified places", data["data_note"])
+
+
+class SqliteLockHardeningTests(TestCase):
+    """`database is locked` 500s: busy timeout + WAL wiring must stay in place."""
+
+    def test_timeout_configured_and_wal_handler_registered(self):
+        from django.conf import settings as dj_settings
+        from django.db import connection
+        from django.db.backends.signals import connection_created
+        if connection.vendor != "sqlite":
+            self.skipTest("sqlite-only hardening")
+        self.assertEqual(dj_settings.DATABASES["default"]["OPTIONS"]["timeout"], 20)
+        import weakref
+        from tourist.signals import _enable_sqlite_wal
+        resolved = []
+        for entry in connection_created.receivers:
+            receiver = entry[1]
+            fn = receiver() if isinstance(receiver, weakref.ReferenceType) else receiver
+            if fn is not None:
+                resolved.append(fn)
+        self.assertIn(_enable_sqlite_wal, resolved)
+

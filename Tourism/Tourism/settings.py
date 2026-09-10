@@ -126,6 +126,12 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / config("DB_NAME", default="db.sqlite3"),
+            "OPTIONS": {
+                # Concurrent readers + audit-log writers previously raised
+                # "database is locked" 500s under the threaded ASGI server.
+                # Wait up to 20s for the write lock instead of failing.
+                "timeout": 20,
+            },
         }
     }
 
