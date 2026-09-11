@@ -184,3 +184,7 @@ downloads/nepal-tourism-full-project.zip
 # SQLite WAL runtime sidecars
 Tourism/db.sqlite3-wal
 Tourism/db.sqlite3-shm
+
+# Dead broken duplicates deleted in P007 — sandbox rebuilds keep restoring them as untracked leftovers
+frontend/Tourism/src/pages/SmartImages.jsx
+frontend/Tourism/src/pages/ImageGallery.jsx
