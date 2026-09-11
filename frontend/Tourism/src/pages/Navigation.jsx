@@ -11,7 +11,7 @@ import {
   FiNavigation, FiMapPin, FiShield,
   FiArrowLeft, FiArrowRight, FiArrowUp, FiRotateCcw, FiChevronLeft,
   FiChevronRight, FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
-  FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee
+  _FiCheckCircle, _FiAlertTriangle, _FiPhoneCall, _FiSun, _FiZap, _FiTruck, _FiCoffee
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
 import TravelOptionsPanel from "../components/navigation/TravelOptionsPanel"
@@ -24,8 +24,8 @@ import { loadPacks, persistPacks, addPack, removePack, findPackForDestination } 
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
-import { formatDistance, formatDuration } from "../utils/formatDistance"
-import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
+import { formatDistance } from "../utils/formatDistance"
+import { hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
   { id: "hospitals", label: "🏥 Hospitals" },
@@ -288,9 +288,9 @@ export default function Navigation() {
   const [alertsLoaded, setAlertsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [emergencyDir, setEmergencyDir] = useState(null)
-  const [nearbyDests, setNearbyDests] = useState([])
-  const [featuredDests, setFeaturedDests] = useState([])
+  const [_emergencyDir, setEmergencyDir] = useState(null)
+  const [_nearbyDests, _setNearbyDests] = useState([])
+  const [_featuredDests, setFeaturedDests] = useState([])
   const [nearbyPlaces, setNearbyPlaces] = useState([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { FiCompass, FiArrowRight, FiStar, FiMapPin, FiChevronLeft, FiChevronRight } from "react-icons/fi"
+import { FiCompass, FiArrowRight, FiStar, FiChevronLeft, FiChevronRight } from "react-icons/fi"
 
 const HERO_TEMPLATES = [
   {

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { FiAlertTriangle, FiCheck, FiPhoneCall, FiMapPin, FiClock } from "react-icons/fi"
+import { FiAlertTriangle, FiCheck } from "react-icons/fi"
 
 export default function MedicalEmergencyPanel({ emergencies = [], onResolve }) {
   const activeEmergencies = emergencies.filter((e) => e.status === "active")

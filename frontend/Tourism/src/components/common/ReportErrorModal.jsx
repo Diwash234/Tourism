@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiAlertTriangle, FiCheckCircle, FiX, FiSend } from "react-icons/fi"
+import { FiX, FiSend } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 

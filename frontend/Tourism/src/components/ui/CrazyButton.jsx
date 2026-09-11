@@ -54,8 +54,8 @@ export default function CrazyButton({
     if (disabled) return
     if (!reduced) {
       const rect = e.currentTarget.getBoundingClientRect()
-      const cx = rect.width / 2
-      const cy = rect.height / 2
+      const _cx = rect.width / 2
+      const _cy = rect.height / 2
       const burst = Array.from({ length: burstCount }).map((_, i) => {
         const angle = (Math.PI * 2 * i) / burstCount + Math.random() * 0.3
         const dist = 40 + Math.random() * 50

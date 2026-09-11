@@ -2,11 +2,11 @@ import { useEffect, useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  FiStar, FiMapPin, FiHeart, FiPhoneCall, FiDollarSign,
-  FiShield, FiHome, FiCoffee, FiShoppingBag, FiGlobe, FiClock,
-  FiNavigation, FiLayers, FiMaximize2, FiChevronLeft, FiChevronRight,
-  FiX, FiCalendar, FiActivity, FiAlertTriangle, FiCheckCircle,
-  FiTruck, FiCompass, FiExternalLink, FiInfo, FiBookOpen, FiShare2, FiSun
+  _FiStar, FiMapPin, _FiHeart, FiPhoneCall, FiDollarSign,
+  FiShield, _FiHome, FiCoffee, _FiShoppingBag, FiGlobe, FiClock,
+  FiNavigation, _FiLayers, _FiMaximize2, FiChevronLeft, FiChevronRight,
+  FiX, _FiCalendar, FiActivity, _FiAlertTriangle, _FiCheckCircle,
+  FiTruck, FiCompass, FiExternalLink, _FiInfo, FiBookOpen, _FiShare2, FiSun
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
@@ -31,8 +31,6 @@ import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import ReportErrorModal from "../../components/common/ReportErrorModal"
 import { RISK_LEVELS } from "../../utils/constants"
-import { formatCurrencyUSD, formatCurrencyNPR } from "../../utils/formatters"
-import { FadeIn, HoverCard } from "../../components/common/MotionSystem"
 import CircularGallery from "../../components/ui/CircularGallery"
 import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
@@ -122,7 +120,7 @@ export default function DestinationDetails() {
   // Gallery & Image Category Filter
   const [activeImageIdx, setActiveImageIdx] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [selectedImgCategory, setSelectedImgCategory] = useState("all")
+  const [_selectedImgCategory, _setSelectedImgCategory] = useState("all")
   const [showOfflineKit, setShowOfflineKit] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
 

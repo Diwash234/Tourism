@@ -5,7 +5,7 @@
  * Ultra-lightweight, 60fps GPU acceleration with automatic fallback,
  * respecting prefers-reduced-motion and zero CPU throttling.
  */
-import React, { useRef, useEffect } from "react"
+import { useRef, useEffect } from "react"
 
 export const WebGpuAmbientCanvas = ({ className = "" }) => {
   const canvasRef = useRef(null)

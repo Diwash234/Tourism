@@ -34,7 +34,7 @@ export default function TranslationsPanel() {
 
   const load = async () => {
     try {
-      const [pages, sections, navigation, translationsRes] = await Promise.all([
+      const [pages, sections, navigation, _translationsRes] = await Promise.all([
         adminApi.getCMS("pages"),
         adminApi.getCMS("sections"),
         adminApi.getCMS("navigation"),

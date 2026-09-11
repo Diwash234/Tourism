@@ -1,7 +1,7 @@
 import { motion } from "framer-motion"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
-import { FiCompass, FiHome, FiArrowRight, FiSearch } from "react-icons/fi"
+import { FiCompass, FiHome } from "react-icons/fi"
 import { FadeIn } from "../components/common/MotionSystem"
 
 export default function NotFound() {

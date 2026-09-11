@@ -22,7 +22,7 @@ const ResetPassword = () => {
   const token = searchParams.get("token")
   const { register, handleSubmit, watch, formState: { errors } } = useForm()
   const { showToast } = useToast()
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const newPassword = watch("new_password", "")

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react"
+import { createContext, useState, useEffect } from "react"
 import destinationApi from "../api/destinationApi"
 
 export const DestinationContext = createContext(null)

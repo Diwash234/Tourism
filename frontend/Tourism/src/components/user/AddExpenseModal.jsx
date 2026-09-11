@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiDollarSign, FiX, FiCheck, FiPlus } from "react-icons/fi"
+import { FiX, FiCheck } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 

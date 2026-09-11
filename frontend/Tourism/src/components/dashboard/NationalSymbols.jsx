@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import usePublicConfig from "../../hooks/usePublicConfig";
 import { Link } from "react-router-dom";
 import {
-  FiBookOpen, FiX, FiAward, FiCoffee, FiMap, FiSun,
-  FiCompass, FiTriangle, FiCheckCircle, FiInfo, FiLayers, FiCalendar
+  FiBookOpen, FiX, _FiAward, _FiCoffee, _FiMap, _FiSun,
+  FiCompass, _FiTriangle, _FiCheckCircle, _FiInfo, _FiLayers, _FiCalendar
 } from "react-icons/fi";
 
 import FlagImg from "./flag,png.jfif";

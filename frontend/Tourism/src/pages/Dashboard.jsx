@@ -12,19 +12,19 @@ import {
   FiCalendar,
   FiDollarSign,
   FiCompass,
-  FiSettings,
+  _FiSettings,
   FiStar,
   FiShield,
   FiPlus,
-  FiEdit3,
-  FiCheckCircle,
-  FiClock,
+  _FiEdit3,
+  _FiCheckCircle,
+  _FiClock,
   FiSliders,
   FiTag,
   FiAlertTriangle,
   FiZap,
-  FiRefreshCw,
-  FiShare2,
+  _FiRefreshCw,
+  _FiShare2,
 } from "react-icons/fi"
 
 import useAuth from "../hooks/useAuth"
@@ -111,7 +111,7 @@ const Dashboard = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showReportErrorModal, setShowReportErrorModal] = useState(false)
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
-  const [reportTargetDest, setReportTargetDest] = useState(null)
+  const [reportTargetDest, _setReportTargetDest] = useState(null)
 
   // Preferences Form State
   const [preferencesForm, setPreferencesForm] = useState({
@@ -132,7 +132,7 @@ const Dashboard = () => {
   const [file, setFile] = useState(null)
   const [caption, setCaption] = useState("")
   const [status, setStatus] = useState("")
-  const [myPhotos, setMyPhotos] = useState([])
+  const [_myPhotos, setMyPhotos] = useState([])
 
   const loadDashboardData = async () => {
     try {

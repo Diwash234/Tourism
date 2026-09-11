@@ -3,7 +3,7 @@ import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import {
-  FiShare2, FiAlertTriangle, FiCopy, FiStopCircle, FiUserPlus,
+  _FiShare2, FiAlertTriangle, FiCopy, FiStopCircle, FiUserPlus,
   FiUsers, FiMapPin, FiClock, FiShield, FiCheck, FiX, FiLink2,
 } from "react-icons/fi"
 import safetyApi, { familyApi } from "../api/safetyApi"
@@ -63,7 +63,7 @@ const FamilySafety = () => {
   const [linkEmail, setLinkEmail] = useState("")
   const [linkRelation, setLinkRelation] = useState("")
   const [linking, setLinking] = useState(false)
-  const [loadingLinks, setLoadingLinks] = useState(true)
+  const [_loadingLinks, setLoadingLinks] = useState(true)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000)

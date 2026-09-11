@@ -1,4 +1,4 @@
-import { FiClock, FiMapPin, FiEye } from "react-icons/fi"
+import { FiClock } from "react-icons/fi"
 
 export default function UserHistoryPanel({ history = [] }) {
   return (

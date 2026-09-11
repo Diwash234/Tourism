@@ -1,6 +1,5 @@
-import React from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { FiArrowRight, FiStar, FiCompass } from "react-icons/fi"
+import { FiArrowRight, FiStar } from "react-icons/fi"
 
 export default function FeaturedEditorialGrid({ destinations = [], featuredCards = [], section = null }) {
   const navigate = useNavigate()

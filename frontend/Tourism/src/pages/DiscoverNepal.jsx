@@ -12,12 +12,12 @@ import {
   FiImage,
   FiMap,
   FiSun,
-  FiTriangle,
-  FiCheckCircle,
-  FiInfo,
+  _FiTriangle,
+  _FiCheckCircle,
+  _FiInfo,
   FiBookOpen,
   FiX,
-  FiCalendar,
+  _FiCalendar,
   FiCompass,
 } from "react-icons/fi"
 
@@ -25,7 +25,7 @@ import PlaceholderImage from "../components/common/PlaceholderImage"
 import NationalSymbols, { ALL_26_NATIONAL_SYMBOLS, EIGHT_THOUSANDERS, HIMALAYAN_RANGES, DEFAULT_FOODS, DEFAULT_FESTIVALS } from "../components/dashboard/NationalSymbols"
 import destinationApi from "../api/destinationApi"
 import districtApi from "../api/districtApi"
-import { NOT_RECORDED, UPDATE_SOON, recordedCity, recordedText } from "../utils/placeUtils"
+import { NOT_RECORDED, recordedCity, recordedText } from "../utils/placeUtils"
 
 const DEFAULT_CULTURE = [
   {
@@ -101,7 +101,7 @@ const DestCard = ({ dest, icon: Icon }) => (
 
 export default function DiscoverNepal() {
   const [payload, setPayload] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [showSymbolsModal, setShowSymbolsModal] = useState(false)
   const [districtRows, setDistrictRows] = useState([])
 

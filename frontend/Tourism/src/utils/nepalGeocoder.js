@@ -402,7 +402,7 @@ export function resolveFuzzyPlaceLocation(query) {
 /**
  * High-precision forward geocoder supporting all 77 districts and custom entries
  */
-export function geocodeNepalPlace(province, district, municipalityName = "", wardNo = 1) {
+export function geocodeNepalPlace(province, district, _municipalityName = "", wardNo = 1) {
   const distInfo = DISTRICT_DEFAULTS[district]
 
   let baseLat = distInfo?.lat || 28.2096

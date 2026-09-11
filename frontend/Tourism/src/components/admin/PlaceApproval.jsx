@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiCheck, FiX, FiInfo, FiMapPin, FiCalendar, FiDollarSign } from "react-icons/fi"
+import { FiCheck, FiX, FiInfo } from "react-icons/fi"
 
 export default function PlaceApproval({ pendingPlaces = [], onApprove, onReject }) {
   const [inspectingPlace, setInspectingPlace] = useState(null)

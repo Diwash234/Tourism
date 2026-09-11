@@ -1,4 +1,3 @@
-import React from "react"
 import { cn } from "../../utils/cn"
 
 export const ShimmerBadge = ({ children, className = "", variant = "gold", icon: Icon = null }) => {

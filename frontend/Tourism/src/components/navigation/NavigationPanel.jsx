@@ -1,6 +1,6 @@
-import { FiCompass, FiShield, FiTrendingUp, FiZap } from "react-icons/fi"
+import { FiShield } from "react-icons/fi"
 
-export default function NavigationPanel({ speedKmh = 58, bearing = "285° WNW", altitude = 1400, missionName = "Pokhara" }) {
+export default function NavigationPanel({ speedKmh = 58, bearing = "285° WNW", altitude = 1400, _missionName = "Pokhara" }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="p-3.5 rounded-2xl bg-black/40 border border-purple-800/60 text-center text-white">

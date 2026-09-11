@@ -1,4 +1,3 @@
-import React from "react"
 import usePublicConfig from "../hooks/usePublicConfig"
 import { FiFileText } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"

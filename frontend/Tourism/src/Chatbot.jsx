@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react"
 import PageHeader from "./components/common/PageHeader"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
-  FiSend, FiCompass, FiShield, FiDollarSign, FiPhoneCall, FiSun,
-  FiMapPin, FiImage, FiNavigation, FiArrowRight, FiGlobe, FiKey,
-  FiCalendar, FiClock, FiCheck, FiTruck, FiExternalLink, FiMaximize2,
+  FiSend, _FiCompass, FiShield, _FiDollarSign, FiPhoneCall, _FiSun,
+  FiMapPin, FiImage, _FiNavigation, _FiArrowRight, _FiGlobe, _FiKey,
+  FiCalendar, _FiClock, _FiCheck, FiTruck, _FiExternalLink, _FiMaximize2,
   FiMessageCircle,
 } from "react-icons/fi"
 import { Link } from "react-router-dom"

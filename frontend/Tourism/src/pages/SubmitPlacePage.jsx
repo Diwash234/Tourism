@@ -2,11 +2,11 @@ import { useEffect, useState } from "react"
 import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
-  FiMapPin, FiUploadCloud, FiClock, FiDollarSign, FiShield,
-  FiCompass, FiInfo, FiCheckCircle, FiCrosshair, FiHome, FiPhoneCall,
-  FiLayers, FiImage, FiX, FiEdit3
+  FiMapPin, FiUploadCloud, FiClock, _FiDollarSign, FiShield,
+  FiCompass, FiInfo, _FiCheckCircle, FiCrosshair, FiHome, FiPhoneCall,
+  FiLayers, FiImage, _FiX, FiEdit3
 } from "react-icons/fi"
 import { getCurrentPosition } from "../services/api.js"
 import destinationApi from "../api/destinationApi"
@@ -59,7 +59,7 @@ export default function SubmitPlacePage() {
 
   const [coverImage, setCoverImage] = useState(null)
   const [coverImagePreview, setCoverImagePreview] = useState(null)
-  const [galleryImages, setGalleryImages] = useState([])
+  const [_galleryImages, setGalleryImages] = useState([])
   const [galleryPreviews, setGalleryPreviews] = useState([])
 
   useEffect(() => {

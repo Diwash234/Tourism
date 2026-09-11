@@ -1,4 +1,3 @@
-import React from "react"
 
 /**
  * ResponsiveContainer — Standard constrained content wrapper.

@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { FiShield, FiAlertTriangle, FiCheckCircle } from "react-icons/fi"
+import { FiShield } from "react-icons/fi"
 
-export default function RiskPrediction({ placeName = "Annapurna Circuit" }) {
+export default function RiskPrediction({ _placeName = "Annapurna Circuit" }) {
   const [altitude, setAltitude] = useState(4130)
   const [season, setSeason] = useState("autumn")
 

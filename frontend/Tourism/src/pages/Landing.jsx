@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
-  FiMapPin, FiShield, FiDollarSign, FiNavigation, FiStar,
-  FiCompass, FiArrowRight, FiCheckCircle, FiPhoneCall, FiSun
+  FiMapPin, FiShield, FiDollarSign, FiNavigation, _FiStar,
+  _FiCompass, FiArrowRight, _FiCheckCircle, _FiPhoneCall, _FiSun
 } from "react-icons/fi"
 import { useI18n } from "../i18n"
 
@@ -22,8 +22,8 @@ import usePublicConfig from "../hooks/usePublicConfig"
 import VisitorNoticeBanner from "../components/common/VisitorNoticeBanner"
 import { CMSExtras } from "../components/cms/CMSBlock"
 import {
-  FadeIn, SlideUp, Stagger, StaggerItem, HoverCard,
-  BurnGlowBadge, InteractiveHeroCanvas
+  _FadeIn, SlideUp, _Stagger, _StaggerItem, HoverCard,
+  _BurnGlowBadge, _InteractiveHeroCanvas
 } from "../components/common/MotionSystem"
 import CaseStudiesSection from "../components/landing/CaseStudiesSection"
 import TestimonialsSection from "../components/landing/TestimonialsSection"
@@ -93,7 +93,7 @@ const HOME_KEYS = ["hero", "features", "featured", "case-studies", "highlights",
 
 export default function Landing() {
   const { t } = useI18n()
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
   const publicConfig = usePublicConfig()
   const { showBlock, copy, extras, block } = publicConfig.pageCMS("home", HOME_KEYS)
   // Admin-managed overrides (section config) win; constants are fallbacks only.
@@ -109,15 +109,15 @@ export default function Landing() {
   })()
   const notices = publicConfig.notices || []
   const destCount = publicConfig.catalog?.destination_count
-  const destCountLabel = destCount != null ? destCount.toLocaleString() : null
+  const _destCountLabel = destCount != null ? destCount.toLocaleString() : null
   const [destinations, setDestinations] = useState([])
   const [featuredCards, setFeaturedCards] = useState([])
   const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(true)
-  const cmsHero = { title: copy("hero", "title"), subtitle: copy("hero", "subtitle", copy("hero", "body")) }
+  const _cmsHero = { title: copy("hero", "title"), subtitle: copy("hero", "subtitle", copy("hero", "body")) }
 
   // Search-as-you-type suggestions + did-you-mean autocorrect from the API
-  const fetchSuggestions = useCallback(async (q, signal) => {
+  const _fetchSuggestions = useCallback(async (q, _signal) => {
     try {
       const res = await destinationApi.autocomplete(q, { type: "attraction" })
       return res.data

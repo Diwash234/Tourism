@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import PageHeader from "../components/common/PageHeader"
-import { FiMapPin, FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi"
+import { FiMapPin } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 

@@ -1,4 +1,4 @@
-import { FiStar, FiUser, FiSend, FiCheckCircle } from "react-icons/fi"
+import { FiStar, FiCheckCircle } from "react-icons/fi"
 import { useState } from "react"
 
 const DEFAULT_VERIFIED_REVIEWS = [

@@ -1,4 +1,4 @@
-import { FiArrowUp, FiArrowLeft, FiArrowRight, FiRotateCcw } from "react-icons/fi"
+import { FiArrowUp, FiArrowLeft, FiArrowRight } from "react-icons/fi"
 
 const TURN_ICONS = {
   start: FiArrowUp,

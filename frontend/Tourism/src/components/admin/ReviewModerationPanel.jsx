@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { FiArchive, FiCheck, FiChevronLeft, FiChevronRight, FiFlag, FiRefreshCw, FiRotateCcw, FiSearch } from "react-icons/fi"
+import { FiArchive, FiCheck, FiFlag, FiRefreshCw, FiRotateCcw, FiSearch } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import { AdminEmptyState, AdminPagination, AdminStatusBadge } from "./AdminPrimitives"

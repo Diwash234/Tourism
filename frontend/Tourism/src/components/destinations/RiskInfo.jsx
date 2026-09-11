@@ -1,4 +1,4 @@
-import { FiShield, FiAlertTriangle } from "react-icons/fi"
+import { FiShield } from "react-icons/fi"
 
 export default function RiskInfo({ riskAnalysis, alertTitle }) {
   const score = riskAnalysis?.tourism_risk_index || 18

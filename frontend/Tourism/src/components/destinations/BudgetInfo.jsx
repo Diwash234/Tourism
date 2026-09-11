@@ -2,7 +2,7 @@ import { FiDollarSign } from "react-icons/fi"
 
 export default function BudgetInfo({ budgetEst, entryFee = 0 }) {
   const dailyCost = budgetEst?.estimated_daily_budget || 45
-  const totalCost = budgetEst?.estimated_trip_budget || (dailyCost * 3)
+  const _totalCost = budgetEst?.estimated_trip_budget || (dailyCost * 3)
 
   return (
     <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl bg-gradient-to-br from-white to-purple-50/50 space-y-4">

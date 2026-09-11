@@ -31,7 +31,7 @@ function getFallbackForTitle(title) {
   return fallbackImageUrl(title) || FALLBACK_NEPAL_PHOTOS[Math.abs(title.length) % FALLBACK_NEPAL_PHOTOS.length]
 }
 
-const PlaceholderImage = ({ className = "", title = "Nepal Attraction", src = null, alt = "", cropBox = null }) => {
+const PlaceholderImage = ({ className = "", title = "Nepal Attraction", src = null, alt = "", _cropBox = null }) => {
   const [failed, setFailed] = useState(false)
   
   useEffect(() => {

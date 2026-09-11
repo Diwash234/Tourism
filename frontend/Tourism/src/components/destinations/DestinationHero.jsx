@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   FiMapPin,
@@ -29,7 +29,7 @@ export default function DestinationHero({
   destination,
   isFavorite = false,
   onToggleFavorite,
-  onOpenReportModal,
+  _onOpenReportModal,
   onOpenOfflineKit,
 }) {
   const navigate = useNavigate()

@@ -1,5 +1,5 @@
 import authApi from "../api/authApi"
-import React, { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom"
 import { isGuestPreview } from "../api/axiosClient"
 export const AuthContext = createContext(null)

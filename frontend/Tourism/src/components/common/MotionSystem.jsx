@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 
 // Smooth cubic bezier easing matching modern digital agency standards (Refero / Emil Kowalski)
@@ -155,7 +155,7 @@ export const MagneticButton = ({ children, onClick, className = "", disabled = f
 /**
  * BurnGlowBadge — Luxury energy sweep glow pill
  */
-export const BurnGlowBadge = ({ text, icon: Icon = null, variant = "gold" }) => {
+export const BurnGlowBadge = ({ text, icon: Icon = null, _variant = "gold" }) => {
   return (
     <div className="relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full overflow-hidden border border-amber-400/40 bg-gradient-to-r from-purple-950/80 via-purple-900/60 to-purple-950/80 text-amber-300 text-xs font-bold shadow-lg shadow-purple-950/40 backdrop-blur">
       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]" />

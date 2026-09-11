@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { FiStar, FiCheckCircle } from "react-icons/fi"
+import { FiCheckCircle } from "react-icons/fi"
 import { SlideUp, HoverCard } from "../common/MotionSystem"
 import axiosClient from "../../api/axiosClient"
 

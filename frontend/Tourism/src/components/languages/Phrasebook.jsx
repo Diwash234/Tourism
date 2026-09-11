@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { FiVolume2, FiCopy, FiGlobe } from "react-icons/fi"
+import { FiVolume2, FiCopy } from "react-icons/fi"
 import useToast from "../../hooks/useToast"
 
 const PHRASES = [

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
-import { FiSend, FiUser, FiShield, FiPaperclip, FiRefreshCw, FiCheckCircle } from "react-icons/fi"
+import { FiSend, FiUser, FiShield, FiPaperclip, FiRefreshCw } from "react-icons/fi"
 
 const statuses = ["new", "read", "in_progress", "waiting_user", "replied", "resolved", "closed", "archived"]
 

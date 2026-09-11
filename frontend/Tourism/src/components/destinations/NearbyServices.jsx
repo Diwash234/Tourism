@@ -1,4 +1,4 @@
-import { FiPhoneCall, FiHome, FiShield, FiPlus } from "react-icons/fi"
+import { FiPhoneCall, FiHome, FiShield } from "react-icons/fi"
 
 export default function NearbyServices({ hospitalInfo, hotelInfo, policeInfo }) {
   return (

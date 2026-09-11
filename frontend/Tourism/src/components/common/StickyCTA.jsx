@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link, useLocation } from "react-router-dom"
-import { FiCompass, FiShield, FiPhoneCall, FiArrowRight, FiZap } from "react-icons/fi"
+import { FiCompass, FiShield, FiArrowRight } from "react-icons/fi"
 
 export default function StickyCTA({ section = null }) {
   const [visible, setVisible] = useState(false)

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { FiMapPin, FiPlus, FiSearch, FiStar, FiNavigation, FiCheckCircle } from "react-icons/fi"
+import { FiMapPin, FiPlus, FiNavigation } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import districtApi from "../../api/districtApi"
@@ -22,7 +22,7 @@ import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 // Nepal palette
 const GREEN = "#1f6b4d"
-const GREEN_DARK = "#174f38"
+const _GREEN_DARK = "#174f38"
 const TERRACOTTA = "#c2603a"
 const GOLD = "#b8862f"
 const WARM_BG = "#faf8f4"
@@ -90,7 +90,7 @@ function chipToQuery(chip) {
 export default function DestinationList() {
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
-  const { showBlock, copy, extras } = usePublicConfig().pageCMS("destinations", ["intro", "search", "featured"])
+  const { _showBlock, _copy, extras } = usePublicConfig().pageCMS("destinations", ["intro", "search", "featured"])
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 

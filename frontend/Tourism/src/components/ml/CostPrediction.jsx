@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { FiDollarSign, FiTrendingUp, FiCheckCircle } from "react-icons/fi"
+import { FiDollarSign } from "react-icons/fi"
 
-export default function CostPrediction({ onCalculate }) {
+export default function CostPrediction({ _onCalculate }) {
   const [days, setDays] = useState(7)
   const [travelers, setTravelers] = useState(2)
   const [style, setStyle] = useState("mid")

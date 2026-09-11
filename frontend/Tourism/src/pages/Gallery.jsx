@@ -4,8 +4,8 @@ import PageHeader from "../components/common/PageHeader"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link } from "react-router-dom"
 import {
-  FiImage, FiMaximize2, FiX, FiChevronLeft, FiChevronRight,
-  FiMapPin, FiCompass, FiAward, FiExternalLink, FiSearch, FiFilter,
+  _FiImage, FiMaximize2, FiX, FiChevronLeft, FiChevronRight,
+  _FiMapPin, FiCompass, _FiAward, _FiExternalLink, FiSearch, _FiFilter,
   FiCamera,
 } from "react-icons/fi"
 

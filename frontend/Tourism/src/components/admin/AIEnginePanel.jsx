@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import {
-  FiCpu, FiSliders, FiCheck, FiSave, FiSearch, FiShield,
-  FiZap, FiCompass, FiDollarSign, FiAlertTriangle, FiCheckCircle, FiLock
+  _FiCpu, _FiSliders, _FiCheck, FiSave, _FiSearch, _FiShield,
+  _FiZap, _FiCompass, _FiDollarSign, _FiAlertTriangle, _FiCheckCircle, _FiLock
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"

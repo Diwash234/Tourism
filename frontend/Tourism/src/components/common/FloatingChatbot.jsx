@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiMessageSquare, FiX, FiSend, FiMinimize2, FiMaximize2 } from "react-icons/fi"
+import { FiMessageSquare, FiX, FiSend } from "react-icons/fi"
 import chatbotApi from "../../api/chatbotApi"
 import useGeolocation from "../../hooks/useGeolocation"
 import useChatSocket from "../../hooks/useChatSocket"
