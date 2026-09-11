@@ -4073,3 +4073,33 @@ class SectionConfigSanitizerRegressionTests(TestCase):
         r = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk,
             "config": {"media_url": "http://insecure.test/x.jpg"}}, format="json")
         self.assertEqual(r.status_code, 400)
+
+    def test_topic_and_faq_cards_survive_save(self):
+        cfg = {
+            "topic_cards": [
+                {"id": "curation", "title": "How Curation Works", "titleBadge": "Standard",
+                 "content": "Official registries.", "highlights": ["Verified GPS.", "Categorized."]},
+            ],
+            "faq_cards": [{"q": "Why unavailable?", "a": "We never fabricate data."}],
+        }
+        resp = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk, "config": cfg}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.sec.refresh_from_db()
+        got = self.sec.config
+        self.assertEqual(len(got.get("topic_cards", [])), 1)
+        self.assertEqual(got["topic_cards"][0]["highlights"], ["Verified GPS.", "Categorized."])
+        self.assertEqual(got["topic_cards"][0]["titlebadge"], "Standard")  # key normalized, value kept
+        self.assertEqual(len(got.get("faq_cards", [])), 1)
+
+    def test_topic_cards_malicious_input_sanitized(self):
+        cfg = {"topic_cards": [
+            {"id": "x", "title": "<script>alert(1)</script>Safe Title",
+             "image_url": "javascript:alert(1)", "highlights": ["<b>ok</b>"] * 20},
+        ]}
+        resp = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk, "config": cfg}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.sec.refresh_from_db()
+        rec = self.sec.config["topic_cards"][0]
+        self.assertNotIn("<script>", rec["title"])
+        self.assertNotIn("image_url", rec)  # javascript: URL dropped
+        self.assertLessEqual(len(rec["highlights"]), 12)

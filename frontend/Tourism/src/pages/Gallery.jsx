@@ -37,6 +37,10 @@ const normalizeGalleryCategory = (value = "") => {
 export default function Gallery() {
   const { block: __block } = usePublicConfig().pageCMS("gallery", [])
   const __intro = __block("page-intro") || __block("intro")
+  const chips = CATEGORY_FILTERS.map((f) => {
+    const o = ((__intro?.config?.cards) || []).find((x) => x && x.id === f.id)
+    return o && o.label ? { ...f, label: o.label } : f
+  })
   const { block: cmsBlock } = usePublicConfig().pageCMS("gallery", ["intro", "page-intro"])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -220,7 +224,7 @@ export default function Gallery() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#F7F8F5]/70 border border-[#E5E0D5] p-4 rounded-3xl">
         {/* Category Pills */}
         <div className="flex overflow-x-auto gap-2 w-full sm:w-auto no-scrollbar pb-1 sm:pb-0">
-          {((__intro?.config?.cards?.length ? __intro.config.cards : CATEGORY_FILTERS)).map((f) => (
+          {chips.map((f) => (
             <button
               key={f.id}
               onClick={() => setSelectedCategory(f.id)}

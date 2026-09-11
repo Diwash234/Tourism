@@ -2682,7 +2682,7 @@ class AdminCMSView(APIView):
                     ]
             return out
 
-        for list_key in ("cards", "foods", "festivals", "all_symbols", "faq_cards"):
+        for list_key in ("cards", "foods", "festivals", "all_symbols", "faq_cards", "topic_cards"):
             if isinstance(config.get(list_key), list):
                 cleaned = [_clean_record(r) for r in config[list_key][:40] if isinstance(r, dict)]
                 cleaned = [r for r in cleaned if r]

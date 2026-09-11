@@ -19,7 +19,18 @@ export default function HowItWorks() {
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedFaq, setExpandedFaq] = useState(null)
 
-  const travellerTopics = [
+  const __cmsTopics = (__intro?.config?.topic_cards) || []
+  const __mergeTopics = (list) => list.map((t) => {
+    const o = __cmsTopics.find((x) => x && x.id === t.id) || {}
+    return {
+      ...t,
+      title: o.title || t.title,
+      titleBadge: o.titlebadge ?? o.titleBadge ?? t.titleBadge,
+      content: o.content || t.content,
+      highlights: Array.isArray(o.highlights) && o.highlights.length ? o.highlights : t.highlights,
+    }
+  })
+  const travellerTopics = __mergeTopics([
     {
       id: "curation",
       title: "How Destinations are Curated & Verified",
@@ -65,9 +76,9 @@ export default function HowItWorks() {
         "Community Badges: Verified contributors earn community trust ratings."
       ]
     }
-  ]
+  ])
 
-  const adminTopics = [
+  const adminTopics = __mergeTopics([
     {
       id: "overview",
       title: "Admin Dashboard Workspace Overview",
@@ -114,7 +125,7 @@ export default function HowItWorks() {
         "Zero Fabrication Standard: Reject submissions containing speculative prices or unverified locations."
       ]
     }
-  ]
+  ])
 
   const faqs = __intro?.config?.faq_cards?.length ? __intro.config.faq_cards : [
     {
