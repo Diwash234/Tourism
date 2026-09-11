@@ -1486,6 +1486,9 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
         status: "published",
         is_visible: Boolean(draft.is_visible),
       })
+      // The public site serves the frozen snapshot, which only refreshes on
+      // the publish action — without this second call edits stay invisible.
+      await adminApi.runCMSAction({ resource: "sections", id: draft.id, action: "publish" })
       notifyCmsUpdated()
       onToast("Section saved & published live!", "success")
       setOpenId(null)
@@ -1606,6 +1609,25 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <div className="sm:col-span-2 mt-2">
                   <ContentBlocksBuilder sectionId={draft.id} onToast={onToast} />
                 </div>
+                {Array.isArray(draft.config?.cards) && (
+                  <div className="sm:col-span-2 rounded-xl bg-slate-800/70 border border-slate-700 p-3">
+                    <p className="text-xs font-black text-amber-300 mb-2">Cards ({draft.config.cards.length}) — edit titles, images, order</p>
+                    <div className="space-y-2">
+                      {draft.config.cards.map((card, idx) => (
+                        <div key={`${card.key || "card"}-${idx}`} className="flex flex-wrap gap-2 items-center">
+                          <input className="input-field text-slate-100 bg-slate-900 border-slate-700 text-xs flex-1 min-w-[140px]" value={card.title || ""} placeholder="Card title"
+                            onChange={(e) => { const cards = [...draft.config.cards]; cards[idx] = { ...card, title: e.target.value }; setDraft({ ...draft, config: { ...draft.config, cards } }) }} />
+                          <input className="input-field text-slate-100 bg-slate-900 border-slate-700 text-xs flex-1 min-w-[160px]" value={card.image_url || ""} placeholder="Image URL"
+                            onChange={(e) => { const cards = [...draft.config.cards]; cards[idx] = { ...card, image_url: e.target.value }; setDraft({ ...draft, config: { ...draft.config, cards } }) }} />
+                          <button type="button" title="Move up" disabled={idx === 0} onClick={() => { const cards = [...draft.config.cards]; [cards[idx - 1], cards[idx]] = [cards[idx], cards[idx - 1]]; setDraft({ ...draft, config: { ...draft.config, cards } }) }} className="px-2 py-1 rounded bg-slate-700 text-xs disabled:opacity-30">↑</button>
+                          <button type="button" title="Move down" disabled={idx === draft.config.cards.length - 1} onClick={() => { const cards = [...draft.config.cards]; [cards[idx + 1], cards[idx]] = [cards[idx], cards[idx + 1]]; setDraft({ ...draft, config: { ...draft.config, cards } }) }} className="px-2 py-1 rounded bg-slate-700 text-xs disabled:opacity-30">↓</button>
+                          <button type="button" title="Remove card" onClick={() => { const cards = draft.config.cards.filter((_, j) => j !== idx); setDraft({ ...draft, config: { ...draft.config, cards } }) }} className="px-2 py-1 rounded bg-rose-700 text-xs">✕</button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setDraft({ ...draft, config: { ...draft.config, cards: [...draft.config.cards, { key: `custom-${Date.now()}`, title: "New card", icon: "pin", image_url: "", items: [] }] } })} className="text-xs font-bold text-emerald-300 hover:text-emerald-200">+ Add card</button>
+                    </div>
+                  </div>
+                )}
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
                   <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>

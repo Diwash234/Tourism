@@ -95,7 +95,7 @@ export default function Landing() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const publicConfig = usePublicConfig()
-  const { showBlock, copy, extras } = publicConfig.pageCMS("home", HOME_KEYS)
+  const { showBlock, copy, extras, block } = publicConfig.pageCMS("home", HOME_KEYS)
   // Admin-editable feature boxes: a published card_grid block on the `features`
   // section replaces the built-in boxes (any count, own titles/images/links).
   const cmsFeatureItems = (() => {
@@ -247,7 +247,7 @@ export default function Landing() {
       )}
 
       {showBlock("case-studies") && <CaseStudiesSection />}
-      {showBlock("highlights") && <NepalHighlights />}
+      {showBlock("highlights") && <NepalHighlights section={block("highlights")} />}
       {(showBlock("symbols") || showBlock("culture")) && <section className="container-app section-space">
         {showBlock("symbols") && <NationalSymbols />}
         {showBlock("culture") && <NepalExperienceSection />}

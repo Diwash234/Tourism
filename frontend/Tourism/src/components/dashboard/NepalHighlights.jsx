@@ -7,15 +7,20 @@ import {
 } from "react-icons/fi"
 import destinationApi from "../../api/destinationApi"
 
+const ICONS = {
+  mountain: FiTriangle, compass: FiCompass, home: FiHome, feather: FiFeather,
+  wind: FiWind, droplet: FiDroplet, music: FiMusic, coffee: FiCoffee, pin: FiMapPin,
+}
+
 const THEMES = [
-  { icon: FiTriangle, title: "Mountains & Peaks", key: "mountains", bgImg: "/images/destinations/everest/base-camp.jpg" },
-  { icon: FiCompass, title: "Featured Places", key: "featured", bgImg: "/images/destinations/pokhara/fewatal.jpg" },
-  { icon: FiHome, title: "UNESCO Heritage", key: "heritage", bgImg: "/images/destinations/kathmandu/durbar-square.jpg" },
-  { icon: FiFeather, title: "Wildlife Reserves", key: "wildlife", bgImg: "/images/destinations/chitwan/safari.jpg" },
-  { icon: FiWind, title: "Culture & Living Art", key: "culture", bgImg: "/images/destinations/boudhanath/stupa.jpg" },
-  { icon: FiDroplet, title: "Local Culinary Heritage", key: "cuisine", bgImg: "/images/destinations/food/momo.jpg" },
-  { icon: FiMusic, title: "Cultural Festivals", key: "festivals", bgImg: "/images/destinations/festivals/dashain-tika.jpg" },
-  { icon: FiCoffee, title: "7 Provinces of Nepal", key: "provinces", bgImg: "/images/destinations/ilam/tea-gardens.jpg" },
+  { icon: "mountain", title: "Mountains & Peaks", key: "mountains", bgImg: "/images/destinations/everest/base-camp.jpg" },
+  { icon: "compass", title: "Featured Places", key: "featured", bgImg: "/images/destinations/pokhara/fewatal.jpg" },
+  { icon: "home", title: "UNESCO Heritage", key: "heritage", bgImg: "/images/destinations/kathmandu/durbar-square.jpg" },
+  { icon: "feather", title: "Wildlife Reserves", key: "wildlife", bgImg: "/images/destinations/chitwan/safari.jpg" },
+  { icon: "wind", title: "Culture & Living Art", key: "culture", bgImg: "/images/destinations/boudhanath/stupa.jpg" },
+  { icon: "droplet", title: "Local Culinary Heritage", key: "cuisine", bgImg: "/images/destinations/food/momo.jpg" },
+  { icon: "music", title: "Cultural Festivals", key: "festivals", bgImg: "/images/destinations/festivals/dashain-tika.jpg" },
+  { icon: "coffee", title: "7 Provinces of Nepal", key: "provinces", bgImg: "/images/destinations/ilam/tea-gardens.jpg" },
 ]
 
 const DEFAULT_THEME_DATA = {
@@ -65,7 +70,7 @@ const DEFAULT_THEME_DATA = {
   ],
 }
 
-const NepalHighlights = ({ bare = false }) => {
+const NepalHighlights = ({ bare = false, section = null }) => {
   const [payload, setPayload] = useState(null)
 
   useEffect(() => {
@@ -74,7 +79,19 @@ const NepalHighlights = ({ bare = false }) => {
       .catch(() => setPayload(null))
   }, [])
 
-  const tagsFor = (key) => {
+  // Admin-managed cards (CMS section config) override the built-in themes.
+  const cmsCards = Array.isArray(section?.config?.cards) && section.config.cards.length ? section.config.cards : null
+  const cards = cmsCards || THEMES
+
+  const tagsFor = (card) => {
+    const key = card.key
+    if (Array.isArray(card.items) && card.items.length) {
+      return card.items.map((item, i) => ({ id: `${key}-${i}`, name: item.name, to: item.to || "/destinations" }))
+    }
+    return themeItems(key)
+  }
+
+  const themeItems = (key) => {
     let apiData = []
     if (key === "provinces") {
       apiData = (payload?.provinces || []).map((row) => ({ id: row.name, name: row.name, to: `/destinations?q=${encodeURIComponent(row.name)}` }))
@@ -92,17 +109,20 @@ const NepalHighlights = ({ bare = false }) => {
     <section className={bare ? "" : "container-app section-space"}>
       <div className="text-center max-w-2xl mx-auto section-head space-y-2">
         <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
-          Himalayan Highlights & Culture
+          {section?.config?.badge || "Himalayan Highlights & Culture"}
         </span>
-        <h2 className="section-title text-center mx-auto w-fit">Why Visit Nepal</h2>
+        <h2 className="section-title text-center mx-auto w-fit">{section?.title || "Why Visit Nepal"}</h2>
         <p className="text-gray-600 text-sm">
-          Explore iconic mountain peaks, UNESCO World Heritage, wildlife safaris, authentic local cuisine, and vibrant cultural festivals across all 7 provinces.
+          {section?.subtitle || "Explore iconic mountain peaks, UNESCO World Heritage, wildlife safaris, authentic local cuisine, and vibrant cultural festivals across all 7 provinces."}
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {THEMES.map(({ icon: Icon, title, key, bgImg }, i) => {
-          const dests = tagsFor(key)
+        {cards.map((card, i) => {
+          const Icon = ICONS[card.icon] || FiMapPin
+          const { title, key } = card
+          const bgImg = card.image_url || card.bgImg
+          const dests = tagsFor(card)
           return (
             <motion.div
               key={title}
