@@ -1564,6 +1564,15 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
               <button type="button" onClick={() => { setOpenId(openId === section.id ? null : section.id); setDraft({ ...section }) }} className="rounded bg-white px-2 py-1 font-bold">Edit</button>
               <button type="button" onClick={() => move(index, -1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move up">↑</button>
               <button type="button" onClick={() => move(index, 1)} className="rounded bg-white px-2 py-1 font-bold" aria-label="Move down">↓</button>
+              <button type="button" onClick={async () => {
+                if (!window.confirm(`Delete section "${section.title || section.key}"? This cannot be undone.`)) return
+                try {
+                  await adminApi.deleteCMS({ resource: "sections", id: section.id })
+                  onToast("Section deleted", "success")
+                  if (openId === section.id) { setOpenId(null); setDraft(null) }
+                  loadSections()
+                } catch (e) { onToast(e.response?.data?.detail || "Could not delete section", "error") }
+              }} className="rounded bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 font-bold" aria-label="Delete section">✕</button>
             </div>
             {previewId === section.id && (
               <article className="mt-3 rounded-lg bg-white p-3">
