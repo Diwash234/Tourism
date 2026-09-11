@@ -11,6 +11,7 @@
 // GPS denial can never masquerade as "No nearby places found".
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import {
   FiMapPin,
   FiSearch,
@@ -48,6 +49,8 @@ const RESULT_TYPES = [
 ]
 
 const NearbyPlaces = () => {
+  const { block: __block } = usePublicConfig().pageCMS("nearby-places", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { position, error: geoError, code: geoCode, locating, retry: retryGeo } = useGeolocation()
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
@@ -279,7 +282,7 @@ const NearbyPlaces = () => {
   return (
     <div className="container-app py-10 fade-in theme-forest">
       <CMSPageIntro pageKey="nearby-places" />
-      <PageHeader title="Nearby Places" icon={FiMapPin} />
+      <PageHeader title={__intro?.title || "Nearby Places"} subtitle={__intro?.subtitle || __intro?.body || undefined} icon={FiMapPin} />
 
       {/* Result type tabs — all backed by real, distance-ranked DB queries */}
       <div className="flex flex-wrap gap-2 mb-4" role="tablist" aria-label="Nearby result types">

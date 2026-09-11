@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
@@ -33,6 +34,8 @@ const PROVINCES = [
 ]
 
 const ExploreNepalMap = () => {
+  const { block: __block } = usePublicConfig().pageCMS("explore-map", [])
+  const __intro = __block("page-intro") || __block("intro")
   const [selected, setSelected] = useState(null)
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -55,7 +58,7 @@ const ExploreNepalMap = () => {
   return (
     <div className="container-app py-10 fade-in">
       <CMSPageIntro pageKey="explore-map" />
-      <PageHeader title="Explore Nepal by Province" subtitle={<>Pick a province to narrow down destinations, then drill into any place for hotels, weather,
+      <PageHeader title={__intro?.title || "Explore Nepal by Province"} subtitle={__intro?.subtitle || __intro?.body || <>Pick a province to narrow down destinations, then drill into any place for hotels, weather,
         budget, and safety info all in one view.</>} icon={ FiMapPin } />
       <p className="text-xs text-gray-400 mb-6">
         Simplified schematic, not a precise geographic map — each zone links to that province's main city.

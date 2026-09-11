@@ -1,4 +1,5 @@
 import { useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -12,6 +13,8 @@ import Breadcrumbs from "../components/common/Breadcrumbs"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function HowItWorks() {
+  const { block: __block } = usePublicConfig().pageCMS("how-it-works", [])
+  const __intro = __block("page-intro") || __block("intro")
   const [activeRole, setActiveRole] = useState("traveller") // 'traveller' or 'admin'
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedFaq, setExpandedFaq] = useState(null)
@@ -113,7 +116,7 @@ export default function HowItWorks() {
     }
   ]
 
-  const faqs = [
+  const faqs = __intro?.config?.faq_cards?.length ? __intro.config.faq_cards : [
     {
       q: "Why do some destinations say 'Map location unavailable'?",
       a: "Nepal's terrain includes remote alpine valleys and newly recognized heritage sites. If precise cartographic coordinates are not yet verified, we deliberately omit the map pin rather than showing a misleading fake location in the middle of a district center."
@@ -160,7 +163,7 @@ export default function HowItWorks() {
 
           <CMSPageIntro pageKey="how-it-works" />
 
-          <PageHeader title="How Nepal Yatra Works" subtitle="From discovery to a planned trip — the whole journey." icon={FiInfo} />
+          <PageHeader title={__intro?.title || "How Nepal Yatra Works"} subtitle={__intro?.subtitle || __intro?.body || "From discovery to a planned trip — the whole journey."} icon={FiInfo} />
 
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             Discover how we curate authentic destination data, uphold our strict Zero-Hallucination policy, and empower both travelers and administrators.

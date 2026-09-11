@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
@@ -93,6 +94,8 @@ function formatComparePlace(dest) {
 }
 
 export default function CompareDestinations() {
+  const { block: __block } = usePublicConfig().pageCMS("compare", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { position } = useGeolocation()
   const [searchParams] = useSearchParams()
   const requestedSlug = searchParams.get("dest") || searchParams.get("destination") || ""
@@ -194,7 +197,7 @@ export default function CompareDestinations() {
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           Side-by-Side Comparison
         </span>
-        <PageHeader title="Compare recorded Nepal destinations" icon={FiColumns} />
+        <PageHeader title={__intro?.title || "Compare recorded Nepal destinations"} subtitle={__intro?.subtitle || __intro?.body || undefined} icon={FiColumns} />
         <p className="text-sm text-gray-500">
           Only stored fields are shown. Empty values stay “Information unavailable”.
         </p>

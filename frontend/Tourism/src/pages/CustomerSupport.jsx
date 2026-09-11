@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import {
   FiHeadphones, FiMessageSquare, FiSend, FiCheckCircle, FiPhoneCall,
@@ -14,6 +15,8 @@ import useAuth from "../hooks/useAuth"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function CustomerSupport() {
+  const { block: __block } = usePublicConfig().pageCMS("customer-support", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { showToast } = useToast()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState("chat") // 'chat', 'himal', 'emergency'
@@ -134,7 +137,7 @@ export default function CustomerSupport() {
             24/7 Traveler Help Desk & Admin Support
           </span>
           <CMSPageIntro pageKey="customer-support" />
-          <PageHeader title="Customer Support & Admin Chat Center" subtitle="Talk to the support desk — real people, real tickets." icon={FiLifeBuoy} />
+          <PageHeader title={__intro?.title || "Customer Support & Admin Chat Center"} subtitle={__intro?.subtitle || __intro?.body || "Talk to the support desk — real people, real tickets."} icon={FiLifeBuoy} />
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             Direct real-time communication channel with Nepal Yatra Admin and Field Support Staff. Ask questions, report trip issues, or request itinerary assistance.
           </p>
