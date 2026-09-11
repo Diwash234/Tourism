@@ -26,6 +26,7 @@ import TermsOfService from "./pages/TermsOfService"
 import CustomerSupport from "./pages/CustomerSupport"
 import ThankYou from "./pages/ThankYou"
 import NotFound from "./pages/NotFound"
+import DynamicCMSPage from "./pages/DynamicCMSPage"
 
 // Authentication
 import Login from "./pages/auth/Login"
@@ -305,6 +306,7 @@ function App() {
 
       {/* 404 Page — wrapped in MainLayout for consistent Navbar + Footer */}
       <Route element={<MainLayout />}>
+        <Route path="/page/:slug" element={<DynamicCMSPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 

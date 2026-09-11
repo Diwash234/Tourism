@@ -3763,3 +3763,61 @@ class CMSDuplicateRegressionTests(TestCase):
         setting = SiteSetting.objects.create(key="dup-test", value="x")
         resp = self.client.patch(self.url, {"resource": "settings", "id": setting.pk, "action": "duplicate"}, format="json")
         self.assertEqual(resp.status_code, 400)
+
+
+class DynamicPageFlowRegressionTests(TestCase):
+    """Blueprint proof: admin creates a page -> template -> publish -> public
+    API serves it, with NO React code change (frontend /page/:slug route)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/cms/"
+
+    def test_create_template_publish_reaches_public_api(self):
+        r = self.client.post(self.url, {
+            "resource": "pages", "key": "winter-proof", "route": "/winter-proof",
+            "title": "Winter Proof", "status": "draft", "is_enabled": True,
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+        pid = r.json()["id"]
+        r = self.client.patch(self.url, {"resource": "pages", "id": pid, "action": "apply_template", "template": "landing"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertGreater(r.json()["created"], 0)
+        # draft must NOT be public yet
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNone(next((p for p in pub["pages"] if p["key"] == "winter-proof"), None))
+        # publish page + sections
+        self.assertEqual(self.client.patch(self.url, {"resource": "pages", "id": pid, "action": "publish"}, format="json").status_code, 200)
+        for sec in ContentSection.objects.filter(page_id=pid):
+            self.client.patch(self.url, {"resource": "sections", "id": sec.pk, "action": "publish"}, format="json")
+        pub = self.client.get("/api/v1/config/public/").json()
+        page = next((p for p in pub["pages"] if p["key"] == "winter-proof"), None)
+        self.assertIsNotNone(page)
+        self.assertGreater(len(page["sections"]), 0)
+
+    def test_section_edit_stays_draft_until_publish(self):
+        page = ManagedPage.objects.create(key="snap-proof", route="/snap-proof", title="Snap", status="published", is_enabled=True)
+        sec = ContentSection.objects.create(page=page, key="body", title="Original", section_type="text", status="published")
+        from tourist.cms_publishing import sync_published_snapshot
+        sync_published_snapshot(sec)
+        # plain update: public keeps the frozen snapshot
+        self.client.patch(self.url, {"resource": "sections", "id": sec.pk, "title": "Changed Draft"}, format="json")
+        pub = self.client.get("/api/v1/config/public/").json()
+        served = next(s for p in pub["pages"] if p["key"] == "snap-proof" for s in p["sections"] if s["key"] == "body")
+        self.assertEqual(served["title"], "Original")
+        # publish refreshes it
+        self.client.patch(self.url, {"resource": "sections", "id": sec.pk, "action": "publish"}, format="json")
+        pub = self.client.get("/api/v1/config/public/").json()
+        served = next(s for p in pub["pages"] if p["key"] == "snap-proof" for s in p["sections"] if s["key"] == "body")
+        self.assertEqual(served["title"], "Changed Draft")
+
+    def test_dynamic_nav_item_reaches_public_api(self):
+        r = self.client.post(self.url, {
+            "resource": "navigation", "location": "navbar", "label": "Winter Nav Proof",
+            "route": "/page/winter-proof", "display_order": 99, "is_active": True,
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+        pub = self.client.get("/api/v1/config/public/").json()
+        labels = [n.get("label") for n in pub.get("navigation", [])]
+        self.assertIn("Winter Nav Proof", labels)
