@@ -3868,3 +3868,28 @@ class RBACAttackRegressionTests(TestCase):
     def test_anonymous_cannot_reach_admin_cms_at_all(self):
         c = APIClient()
         self.assertEqual(c.get("/api/v1/admin/cms/", {"resource": "pages"}).status_code, 401)
+
+
+class ScheduledExpiryRegressionTests(TestCase):
+    """Blueprint §14: scheduled unpublish/expire executes automatically."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+
+    def test_expired_section_auto_hidden_and_future_scheduled_hidden(self):
+        from datetime import timedelta
+        page = ManagedPage.objects.create(key="expiry-proof", route="/expiry-proof", title="Expiry", status="published", is_enabled=True)
+        today = timezone.now().date()
+        expired = ContentSection.objects.create(page=page, key="old", title="Expired Promo", section_type="text", status="published",
+                                                config={"visibility": {"end_date": (today - timedelta(days=1)).isoformat()}})
+        upcoming = ContentSection.objects.create(page=page, key="soon", title="Winter Promo", section_type="text", status="published",
+                                                 config={"visibility": {"start_date": (today + timedelta(days=5)).isoformat()}})
+        current = ContentSection.objects.create(page=page, key="now", title="Live Now", section_type="text", status="published")
+        pub = self.client.get("/api/v1/config/public/").json()
+        served = {s["key"] for p in pub["pages"] if p["key"] == "expiry-proof" for s in p["sections"]}
+        self.assertNotIn("old", served)   # auto-expired
+        self.assertNotIn("soon", served)  # not yet started
+        self.assertIn("now", served)
+        self.assertEqual(expired.status, "published")  # record intact, just hidden
+        self.assertEqual(upcoming.status, "published")
