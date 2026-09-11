@@ -1,5 +1,6 @@
 import { useEffect } from "react"
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom"
+import usePublicConfig from "./hooks/usePublicConfig"
 import ErrorBoundary from "./components/common/ErrorBoundary"
 import { installGlobalErrorHandlers } from "./utils/errorLogger"
 import CommandPalette from "./components/common/CommandPalette"
@@ -105,6 +106,21 @@ import HotelAssignments from "./pages/admin/HotelAssignments"
 import AdminTasks from "./pages/admin/Tasks"
 
 
+// Admin-managed URL redirects (RedirectRule) arrive through the public config;
+// this moves visitors off renamed/retired URLs with no redeploy (spec §17).
+function RedirectHandler() {
+  const config = usePublicConfig()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const path = window.location.pathname
+    const hit = (config.redirects || []).find((r) => String(r.old_path || "").toLowerCase() === path.toLowerCase())
+    if (!hit?.new_path) return
+    if (/^https?:\/\//i.test(hit.new_path)) window.location.replace(hit.new_path)
+    else navigate(hit.new_path, { replace: true })
+  }, [config.redirects, navigate])
+  return null
+}
+
 function App() {
   useEffect(() => {
     installGlobalErrorHandlers()
@@ -132,6 +148,7 @@ function App() {
       <ScrollToTop />
       <RedirectRules />
       <CommandPalette />
+      <RedirectHandler />
       <Routes>
 
       {/* Auth portals — no traveller navbar/sidebar so Admin, Staff and Traveller look different */}

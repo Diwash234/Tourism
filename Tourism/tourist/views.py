@@ -1,5 +1,8 @@
 from decimal import Decimal
 
+from django.http import HttpResponse
+from django.views import View
+
 from django.conf import settings
 from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404,render
@@ -2524,3 +2527,34 @@ class TravelerDocumentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class SitemapView(View):
+    """Generated sitemap: static routes + published CMS pages (incl. dynamic
+    /page/:key) + published destination slugs. Unpublished pages never appear
+    (spec §28: no incorrect exposure)."""
+
+    def get(self, request):
+        base = request.build_absolute_uri("/").rstrip("/")
+        static = ["", "/destinations", "/districts", "/gallery", "/packages", "/guides",
+                  "/about", "/contact", "/emergency", "/discover-nepal", "/explore-map",
+                  "/how-it-works", "/knowledge-base"]
+        locs = [f"{base}{path}" for path in static]
+        for page in ManagedPage.objects.filter(is_enabled=True, status="published").exclude(route=""):
+            route = page.route if page.route.startswith("/page/") or page.route in static else f"/page/{page.key}"
+            locs.append(f"{base}{route}")
+        for slug in Destination.objects.filter(status="published").values_list("slug", flat=True)[:5000]:
+            locs.append(f"{base}/destinations/{slug}")
+        xml = "\n".join(
+            ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+            + [f"  <url><loc>{loc}</loc></url>" for loc in dict.fromkeys(locs)]
+            + ["</urlset>"]
+        )
+        return HttpResponse(xml, content_type="application/xml")
+
+
+class RobotsTxtView(View):
+    def get(self, request):
+        base = request.build_absolute_uri("/").rstrip("/")
+        body = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\n\n" + f"Sitemap: {base}/api/v1/seo/sitemap.xml\n"
+        return HttpResponse(body, content_type="text/plain")

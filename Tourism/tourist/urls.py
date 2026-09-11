@@ -239,6 +239,8 @@ urlpatterns = [
 
     # Additional endpoints
     path("config/public/", views.PublicConfigView.as_view(), name="public-config"),
+    path("seo/sitemap.xml", views.SitemapView.as_view(), name="sitemap"),
+    path("seo/robots.txt", views.RobotsTxtView.as_view(), name="robots"),
     path("newsletter/subscribe/", views.NewsletterSubscribeView.as_view(), name="newsletter-subscribe"),
     path("discover-nepal/", views.DiscoverNepalView.as_view(), name="discover-nepal"),
     path("provinces/", views_districts.ProvinceListView.as_view(), name="province-list"),

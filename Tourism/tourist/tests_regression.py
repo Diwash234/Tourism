@@ -3929,3 +3929,20 @@ class MediaDeletionProtectionTests(TestCase):
         r = self.client.delete(f"/api/v1/admin/images/{img.pk}")
         self.assertEqual(r.status_code, 200)
         self.assertFalse(DestinationImage.objects.filter(pk=img.pk).exists())
+
+
+class SEOSitemapRegressionTests(TestCase):
+    """Sitemap exposes published pages only; robots points at the sitemap."""
+
+    def test_sitemap_includes_published_excludes_draft(self):
+        ManagedPage.objects.create(key="seo-live", route="/seo-live", title="SEO Live", status="published", is_enabled=True)
+        ManagedPage.objects.create(key="seo-draft", route="/seo-draft", title="SEO Draft", status="draft", is_enabled=True)
+        body = self.client.get("/api/v1/seo/sitemap.xml").content.decode()
+        self.assertIn("/page/seo-live", body)
+        self.assertNotIn("seo-draft", body)
+        self.assertTrue(body.startswith("<?xml"))
+
+    def test_robots_references_sitemap_and_blocks_admin(self):
+        body = self.client.get("/api/v1/seo/robots.txt").content.decode()
+        self.assertIn("Sitemap:", body)
+        self.assertIn("Disallow: /admin", body)
