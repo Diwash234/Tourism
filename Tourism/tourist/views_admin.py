@@ -2737,6 +2737,11 @@ class AdminCMSView(APIView):
 
     def patch(self, request):
         _require_capability(request, "content", "change")
+        # Role-differentiated workflow (spec §11): editing and submitting for
+        # review need content.change; approving/publishing/rollback need the
+        # stronger content.publish capability (admins always pass).
+        if request.data.get("action") in {"publish", "approve", "schedule", "rollback"}:
+            _require_capability(request, "content", "publish")
         resource = request.data.get("resource")
         model = self.MODELS.get(resource)
         obj = model.objects.filter(pk=request.data.get("id")).first() if model else None

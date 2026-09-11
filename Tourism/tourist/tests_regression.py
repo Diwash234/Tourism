@@ -4006,3 +4006,31 @@ class ReviewWorkflowRegressionTests(TestCase):
         # draft cannot be "request_changes" target from published-only states
         self.page.status = "published"; self.page.save()
         self.assertEqual(self._act("approve").status_code, 400)
+
+
+class RoleDifferentiatedApprovalTests(TestCase):
+    """Content staff can edit/submit; only content.publish may approve/publish."""
+
+    def setUp(self):
+        from .models import StaffCapabilityProfile
+        self.editor = User.objects.create_user(email="editor@test.local", password="Passw0rd!Ee", role="STAFF", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.editor, capabilities={"content": ["view", "change"]})
+        self.page = ManagedPage.objects.create(key="rd-page", route="/rd-page", title="RD", status="draft", is_enabled=True)
+
+    def _client(self):
+        c = APIClient(); c.force_authenticate(user=self.editor); return c
+
+    def test_editor_submits_but_cannot_approve_or_publish(self):
+        c = self._client()
+        r = c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "submit_review"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        r = c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "approve"}, format="json")
+        self.assertEqual(r.status_code, 403)
+        r = c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 403)
+
+    def test_super_admin_can_approve_and_publish(self):
+        c = APIClient(); c.force_authenticate(user=make_superuser())
+        self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "submit_review"}, format="json").status_code, 200)
+        self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "approve"}, format="json").status_code, 200)
+        self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "publish"}, format="json").status_code, 200)
