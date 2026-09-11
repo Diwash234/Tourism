@@ -175,6 +175,10 @@ const NationalSymbols = ({ section = null }) => {
     ? symbolsGrid.data.items.map((c) => ({ image: c.image, label: c.title, fact: c.description }))
     : null;
   const summarySymbols = cmsSymbolItems || SUMMARY_SYMBOLS;
+  // Full symbol grid: admin config (home or discover-nepal section) wins.
+  const cfgAll = section?.config?.all_symbols?.length ? section.config.all_symbols
+    : (symbolsSection?.config?.all_symbols?.length ? symbolsSection.config.all_symbols : null);
+  const allSymbols = cfgAll || ALL_26_NATIONAL_SYMBOLS;
   const [showFullModal, setShowFullModal] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState("symbols");
 
@@ -331,7 +335,7 @@ const NationalSymbols = ({ section = null }) => {
                 {/* TAB 1: ALL 26 NATIONAL SYMBOLS */}
                 {activeModalTab === "symbols" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {ALL_26_NATIONAL_SYMBOLS.map((s) => (
+                    {allSymbols.map((s) => (
                       <div
                         key={s.id}
                         className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5 flex flex-col justify-between hover:border-amber-400/50 transition-all shadow-md"

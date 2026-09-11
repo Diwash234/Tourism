@@ -8,7 +8,11 @@ import CMSIntro from "../components/cms/CMSIntro"
 import PageHeader from "../components/common/PageHeader"
 
 const About = () => {
-  const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
+  const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro", "values"])
+  const VALUE_ICONS = { target: FiTarget, users: FiUsers, globe: FiGlobe }
+  const valueCards = block("values")?.config?.cards?.length
+    ? block("values").config.cards.map((c) => ({ icon: VALUE_ICONS[c.icon] || FiGlobe, title: c.title, desc: c.desc }))
+    : null
   return (
   <div className="container-app section-space fade-in theme-maroon">
     <CMSPageIntro pageKey="about" />
@@ -26,7 +30,7 @@ const About = () => {
     </p>
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 sm:mb-10">
-      {[
+      {(valueCards || [
         {
           icon: FiTarget,
           title: "Our Mission",
@@ -42,7 +46,7 @@ const About = () => {
           title: "Our Reach",
           desc: "Covering destinations across Nepal with real-time alerts and translations.",
         },
-      ].map(({ icon: Icon, title, desc }) => (
+      ]).map(({ icon: Icon, title, desc }) => (
         <div key={title} className="card-base p-6 text-center">
           <div className="inline-flex p-3 rounded-full bg-forest-50 text-forest-500 mb-4">
             <Icon size={24} />

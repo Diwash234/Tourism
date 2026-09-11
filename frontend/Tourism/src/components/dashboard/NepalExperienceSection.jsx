@@ -85,6 +85,8 @@ const AUTHENTIC_FESTIVALS = [
 ]
 
 export default function NepalExperienceSection({ section = null }) {
+  const foods = section?.config?.foods?.length ? section.config.foods : AUTHENTIC_FOODS
+  const festivals = section?.config?.festivals?.length ? section.config.festivals : AUTHENTIC_FESTIVALS
   const [recordedTreks, setRecordedTreks] = useState([])
   const [activeTrek, setActiveTrek] = useState(null)
   const [activeTab, setActiveTab] = useState("trekking")
@@ -217,7 +219,7 @@ export default function NepalExperienceSection({ section = null }) {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {AUTHENTIC_FOODS.map((food) => (
+          {foods.map((food) => (
             <BorderBeamCard key={food.id} className="bg-white overflow-hidden flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="h-44 w-full relative overflow-hidden rounded-2xl bg-black">
@@ -247,7 +249,7 @@ export default function NepalExperienceSection({ section = null }) {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {AUTHENTIC_FESTIVALS.map((fest) => (
+          {festivals.map((fest) => (
             <BorderBeamCard key={fest.id} className="bg-white overflow-hidden flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="h-48 w-full relative overflow-hidden rounded-2xl bg-black">
