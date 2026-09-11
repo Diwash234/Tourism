@@ -7,7 +7,7 @@ import userApi from "../../api/userApi"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 import PlaceholderImage from "../common/PlaceholderImage"
 
-export default function CaseStudiesSection() {
+export default function CaseStudiesSection({ section = null }) {
   const [items, setItems] = useState([])
 
   useEffect(() => {
@@ -57,10 +57,10 @@ export default function CaseStudiesSection() {
             Recorded journeys
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-            Live packages and destinations
+            {section?.title || "Live packages and destinations"}
           </h2>
           <p className="text-gray-500 text-sm mt-2">
-            These cards come from published marketplace offers or featured destinations. Costs and days are shown only when recorded.
+            {section?.subtitle || "These cards come from published marketplace offers or featured destinations. Costs and days are shown only when recorded."}
           </p>
         </div>
       </SlideUp>

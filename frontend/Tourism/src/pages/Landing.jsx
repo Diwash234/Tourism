@@ -96,6 +96,9 @@ export default function Landing() {
   const navigate = useNavigate()
   const publicConfig = usePublicConfig()
   const { showBlock, copy, extras, block } = publicConfig.pageCMS("home", HOME_KEYS)
+  // Admin-managed overrides (section config) win; constants are fallbacks only.
+  const provinceCards = block("provinces")?.config?.cards?.length ? block("provinces").config.cards : PROVINCES
+  const faqItems = block("faq")?.config?.items?.length ? block("faq").config.items : FAQ_ITEMS
   // Admin-editable feature boxes: a published card_grid block on the `features`
   // section replaces the built-in boxes (any count, own titles/images/links).
   const cmsFeatureItems = (() => {
@@ -243,28 +246,29 @@ export default function Landing() {
         <FeaturedEditorialGrid
           destinations={destinations}
           featuredCards={featuredCards}
+          section={block("featured")}
         />
       )}
 
-      {showBlock("case-studies") && <CaseStudiesSection />}
+      {showBlock("case-studies") && <CaseStudiesSection section={block("case-studies")} />}
       {showBlock("highlights") && <NepalHighlights section={block("highlights")} />}
       {(showBlock("symbols") || showBlock("culture")) && <section className="container-app section-space">
-        {showBlock("symbols") && <NationalSymbols />}
-        {showBlock("culture") && <NepalExperienceSection />}
+        {showBlock("symbols") && <NationalSymbols section={block("symbols")} />}
+        {showBlock("culture") && <NepalExperienceSection section={block("culture")} />}
       </section>}
 
       {showBlock("provinces") && <section className="container-app section-space">
         <div className="text-center max-w-2xl mx-auto section-head">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Explore Destinations by Province
+            {copy("provinces", "title", "Explore Destinations by Province")}
           </h2>
           <p className="text-gray-500 text-sm mt-1">
-            Discover regional attractions from the eastern tea hills to the western wilderness.
+            {copy("provinces", "body", "Discover regional attractions from the eastern tea hills to the western wilderness.")}
           </p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {PROVINCES.map((prov) => (
+          {provinceCards.map((prov) => (
             <Link
               key={prov.name}
               to={`/destinations?q=${encodeURIComponent(prov.city)}`}
@@ -278,7 +282,7 @@ export default function Landing() {
       </section>}
 
       {showBlock("marquee") && <ProvinceMarquee />}
-      {showBlock("testimonials") && <TestimonialsSection />}
+      {showBlock("testimonials") && <TestimonialsSection section={block("testimonials")} />}
 
       {showBlock("faq") && <section className="container-app section-space">
         <div className="text-center max-w-2xl mx-auto section-head">
@@ -290,11 +294,11 @@ export default function Landing() {
           </p>
         </div>
         <div className="max-w-3xl mx-auto">
-          <FAQAccordion items={FAQ_ITEMS} />
+          <FAQAccordion items={faqItems} />
         </div>
       </section>}
 
-      {showBlock("cta") && <StickyCTA />}
+      {showBlock("cta") && <StickyCTA section={block("cta")} />}
       {extras?.length > 0 && <section className="container-app section-space"><CMSExtras sections={extras} /></section>}
     </div>
   )

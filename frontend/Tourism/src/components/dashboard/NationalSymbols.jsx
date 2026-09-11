@@ -164,7 +164,7 @@ const MARQUEE_ITEMS = [
   "🍚 Dal Bhat Power, 24 Hour",
 ];
 
-const NationalSymbols = () => {
+const NationalSymbols = ({ section = null }) => {
   const publicConfig = usePublicConfig();
   // Admin-editable symbol boxes: a published card_grid block on the
   // discover-nepal page's `symbols` section replaces the built-in 8 boxes —
@@ -193,10 +193,10 @@ const NationalSymbols = () => {
               Discover Nepal — Beyond Everest
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-1.5">
-              Nepal's National Identity & Cultural Symbols
+              {section?.title || "Nepal's National Identity & Cultural Symbols"}
             </h2>
             <p className="text-white/80 text-xs sm:text-sm mt-0.5">
-              Official emblems, natural heritage, sacred animals, and national symbols.
+              {section?.subtitle || "Official emblems, natural heritage, sacred animals, and national symbols."}
             </p>
           </div>
 

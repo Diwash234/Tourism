@@ -84,7 +84,7 @@ const AUTHENTIC_FESTIVALS = [
   },
 ]
 
-export default function NepalExperienceSection() {
+export default function NepalExperienceSection({ section = null }) {
   const [recordedTreks, setRecordedTreks] = useState([])
   const [activeTrek, setActiveTrek] = useState(null)
   const [activeTab, setActiveTab] = useState("trekking")
@@ -120,10 +120,10 @@ export default function NepalExperienceSection() {
             Authentic Nepal Culture & Terrain
           </ShimmerBadge>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-2">
-            🏔️ Himalayan Treks, Culinary Heritage & Festivals
+            {section?.title || "🏔️ Himalayan Treks, Culinary Heritage & Festivals"}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Visual elevation profiles of Nepal's legendary trekking circuits, authentic regional foods, and vibrant cultural festivals.
+            {section?.subtitle || "Visual elevation profiles of Nepal's legendary trekking circuits, authentic regional foods, and vibrant cultural festivals."}
           </p>
         </div>
 

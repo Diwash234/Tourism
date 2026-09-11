@@ -3821,3 +3821,50 @@ class DynamicPageFlowRegressionTests(TestCase):
         pub = self.client.get("/api/v1/config/public/").json()
         labels = [n.get("label") for n in pub.get("navigation", [])]
         self.assertIn("Winter Nav Proof", labels)
+
+
+class RBACAttackRegressionTests(TestCase):
+    """Blueprint §9-10: backend enforcement, not hidden buttons. ID-swapping
+    must never expose another user's private records."""
+
+    def setUp(self):
+        self.a = User.objects.create_user(email="user-a@test.local", password="Passw0rd!Aa", role="TRAVELLER")
+        self.b = User.objects.create_user(email="user-b@test.local", password="Passw0rd!Bb", role="TRAVELLER")
+        self.dest = Destination.objects.create(name="RBAC Dest", latitude=27.7, longitude=85.3)
+
+    def _client(self, user):
+        c = APIClient()
+        c.force_authenticate(user=user)
+        return c
+
+    def test_traveller_cannot_create_or_publish_cms(self):
+        c = self._client(self.a)
+        self.assertIn(c.post("/api/v1/admin/cms/", {
+            "resource": "pages", "key": "hacked", "route": "/hacked", "title": "Hacked",
+        }, format="json").status_code, (401, 403))
+
+    def test_traveller_cannot_write_data_explorer(self):
+        c = self._client(self.a)
+        self.assertIn(c.patch("/api/v1/admin/data-explorer/", {
+            "resource": "hospitals", "id": 1, "fields": {"name": "hacked"},
+        }, format="json").status_code, (401, 403))
+
+    def test_id_swap_cannot_see_other_users_favorites(self):
+        from .models import Favorite
+        fav = Favorite.objects.create(user=self.a, destination=self.dest)
+        cb = self._client(self.b)
+        # list isolation
+        listed = cb.get("/api/v1/favorites/").json()
+        rows = listed.get("results", listed) if isinstance(listed, dict) else listed
+        self.assertNotIn(fav.pk, [r["id"] for r in rows])
+        # direct ID access + delete must not expose or destroy
+        self.assertEqual(cb.get(f"/api/v1/favorites/{fav.pk}/").status_code, 404)
+        self.assertEqual(cb.delete(f"/api/v1/favorites/{fav.pk}/").status_code, 404)
+        self.assertTrue(Favorite.objects.filter(pk=fav.pk).exists())
+        # owner still can
+        ca = self._client(self.a)
+        self.assertEqual(ca.get(f"/api/v1/favorites/{fav.pk}/").status_code, 200)
+
+    def test_anonymous_cannot_reach_admin_cms_at_all(self):
+        c = APIClient()
+        self.assertEqual(c.get("/api/v1/admin/cms/", {"resource": "pages"}).status_code, 401)

@@ -2,7 +2,7 @@ import React from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { FiArrowRight, FiStar, FiCompass } from "react-icons/fi"
 
-export default function FeaturedEditorialGrid({ destinations = [], featuredCards = [] }) {
+export default function FeaturedEditorialGrid({ destinations = [], featuredCards = [], section = null }) {
   const navigate = useNavigate()
 
   // Use provided featured destinations or fallback to landmark destinations
@@ -52,10 +52,10 @@ export default function FeaturedEditorialGrid({ destinations = [], featuredCards
             HANDPICKED WONDERS
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-[#172022] mt-2 tracking-tight">
-            Featured Himalayan Destinations
+            {section?.title || "Featured Himalayan Destinations"}
           </h2>
           <p className="text-sm text-[#697675] mt-1">
-            Editorial showcase of Nepal's most iconic mountain peaks, sanctuaries, and forbidden kingdoms.
+            {section?.subtitle || "Editorial showcase of Nepal's most iconic mountain peaks, sanctuaries, and forbidden kingdoms."}
           </p>
         </div>
 

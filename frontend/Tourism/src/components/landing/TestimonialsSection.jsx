@@ -24,7 +24,7 @@ const DEFAULT_VERIFIED_REVIEWS = [
   },
 ]
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ section = null }) {
   const [reviews, setReviews] = useState([])
 
   useEffect(() => {
@@ -47,10 +47,10 @@ export default function TestimonialsSection() {
             Traveler Experience
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-            Real Stories & Reviews from Nepal Travelers
+            {section?.title || "Real Stories & Reviews from Nepal Travelers"}
           </h2>
           <p className="text-gray-600 text-sm mt-2">
-            Verified experiences and reviews shared by travelers exploring Nepal's 7 provinces.
+            {section?.subtitle || "Verified experiences and reviews shared by travelers exploring Nepal's 7 provinces."}
           </p>
         </div>
       </SlideUp>
