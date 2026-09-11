@@ -611,12 +611,9 @@ code {
 .admin-green-theme main .card-base { background-color: #fff; border-color: #bbf7d0; color: #0f172a; }
 
 /* ---- Dark theme (class-driven; ThemeContext toggles .dark on <html>) ---- */
-html.dark body { background-color: #0f172a; color: #e2e8f0; }
-html.dark .card-base { background-color: #1e293b; border-color: #334155; color: #e2e8f0; }
-html.dark .input-field { background-color: #1e293b; border-color: #475569; color: #f1f5f9; }
-html.dark .input-field::placeholder { color: #94a3b8; }
-html.dark .btn-secondary { background-color: #334155; border-color: #475569; color: #f1f5f9; }
-html.dark .container-app { color: #e2e8f0; }
+html.dark body { background-color: var(--bg); }
+html.dark .btn-secondary { background-color: var(--surface); border-color: var(--border); color: var(--text-h); }
+html.dark .container-app { color: var(--text); }
 
 /* ==========================================
    Dark theme — shared variable overrides (Tailwind class strategy).
@@ -681,64 +678,98 @@ html.dark .container-app { color: #e2e8f0; }
    call sites, this layer re-maps the common light patterns onto the dark
    tokens above. Accent buttons keep their explicit pairs (they use
    *-950/black/white text, which is intentionally NOT remapped).
+   Every selector is :where()-wrapped so the layer stays weaker than an
+   authored `dark:` variant — components that style their own dark
+   appearance (CommandPalette, Sidebar, ...) keep it.
    ========================================== */
 
 /* Light card/page surfaces -> raised dark surface */
-html.dark .bg-white,
-html.dark .bg-gray-50,
-html.dark .bg-slate-50,
-html.dark .bg-stone-50,
-html.dark .bg-\[\#F7F8F5\] { background-color: var(--surface); }
+html.dark :where(.bg-white),
+html.dark :where(.bg-gray-50),
+html.dark :where(.bg-slate-50),
+html.dark :where(.bg-stone-50),
+html.dark :where(.bg-\[\#F7F8F5\]) { background-color: var(--surface); }
 
-html.dark .bg-gray-100,
-html.dark .bg-slate-100,
-html.dark .bg-stone-100 { background-color: #1b2740; }
+html.dark :where(.bg-gray-100),
+html.dark :where(.bg-slate-100),
+html.dark :where(.bg-stone-100) { background-color: #1b2740; }
 
 /* Soft tinted panels -> dark tints (kept hue-familiar) */
-html.dark .bg-emerald-50 { background-color: #06281e; }
-html.dark .bg-green-50   { background-color: #06281a; }
-html.dark .bg-teal-50    { background-color: #062a28; }
-html.dark .bg-cyan-50    { background-color: #08283a; }
-html.dark .bg-sky-50     { background-color: #0d2233; }
-html.dark .bg-blue-50    { background-color: #0d2233; }
-html.dark .bg-indigo-50  { background-color: #141a38; }
-html.dark .bg-purple-50  { background-color: #1c1433; }
-html.dark .bg-amber-50,
-html.dark .bg-amber-50\/70 { background-color: #2c2208; }
-html.dark .bg-yellow-50  { background-color: #2c2708; }
-html.dark .bg-orange-50  { background-color: #2e1c0c; }
-html.dark .bg-rose-50,
-html.dark .bg-red-50     { background-color: #33131a; }
-html.dark .bg-pink-50    { background-color: #321324; }
+html.dark :where(.bg-emerald-50) { background-color: #06281e; }
+html.dark :where(.bg-green-50)   { background-color: #06281a; }
+html.dark :where(.bg-teal-50)    { background-color: #062a28; }
+html.dark :where(.bg-cyan-50)    { background-color: #08283a; }
+html.dark :where(.bg-sky-50)     { background-color: #0d2233; }
+html.dark :where(.bg-blue-50)    { background-color: #0d2233; }
+html.dark :where(.bg-indigo-50)  { background-color: #141a38; }
+html.dark :where(.bg-purple-50)  { background-color: #1c1433; }
+html.dark :where(.bg-amber-50),
+html.dark :where(.bg-amber-50\/70) { background-color: #2c2208; }
+html.dark :where(.bg-yellow-50)  { background-color: #2c2708; }
+html.dark :where(.bg-orange-50)  { background-color: #2e1c0c; }
+html.dark :where(.bg-rose-50),
+html.dark :where(.bg-red-50)     { background-color: #33131a; }
+html.dark :where(.bg-pink-50)    { background-color: #321324; }
 
 /* Gradient endpoints used by hero/feature cards */
-html.dark .from-white   { --tw-gradient-from: var(--surface) var(--tw-gradient-from-position); }
-html.dark .from-emerald-50 { --tw-gradient-from: #06281e var(--tw-gradient-from-position); }
-html.dark .from-amber-50 { --tw-gradient-from: #2c2208 var(--tw-gradient-from-position); }
-html.dark .from-purple-50 { --tw-gradient-from: #1c1433 var(--tw-gradient-from-position); }
-html.dark .to-green-50  { --tw-gradient-to: #06281a var(--tw-gradient-to-position); }
-html.dark .to-purple-50\/30 { --tw-gradient-to: rgb(28 20 51 / 0.3) var(--tw-gradient-to-position); }
+html.dark :where(.from-white)   { --tw-gradient-from: var(--surface) var(--tw-gradient-from-position); }
+html.dark :where(.from-emerald-50) { --tw-gradient-from: #06281e var(--tw-gradient-from-position); }
+html.dark :where(.from-amber-50) { --tw-gradient-from: #2c2208 var(--tw-gradient-from-position); }
+html.dark :where(.from-purple-50) { --tw-gradient-from: #1c1433 var(--tw-gradient-from-position); }
+html.dark :where(.to-green-50)  { --tw-gradient-to: #06281a var(--tw-gradient-to-position); }
+html.dark :where(.to-purple-50\/30) { --tw-gradient-to: rgb(28 20 51 / 0.3) var(--tw-gradient-to-position); }
 
 /* Dark ink -> light ink (950/black/white intentionally untouched) */
-html.dark .text-gray-900,
-html.dark .text-gray-800 { color: #e7e5e4; }
-html.dark .text-gray-700,
-html.dark .text-gray-600 { color: #d6d3d1; }
-html.dark .text-gray-500 { color: #a8a29e; }
-html.dark .text-slate-900,
-html.dark .text-slate-800 { color: #e2e8f0; }
-html.dark .text-slate-700,
-html.dark .text-slate-600 { color: #cbd5e1; }
-html.dark .text-slate-500 { color: #94a3b8; }
-html.dark .text-purple-950 { color: #ddd6fe; }
+html.dark :where(.text-gray-900),
+html.dark :where(.text-gray-800) { color: #e7e5e4; }
+html.dark :where(.text-gray-700),
+html.dark :where(.text-gray-600) { color: #d6d3d1; }
+html.dark :where(.text-gray-500) { color: #a8a29e; }
+html.dark :where(.text-slate-900),
+html.dark :where(.text-slate-800) { color: #e2e8f0; }
+html.dark :where(.text-slate-700),
+html.dark :where(.text-slate-600) { color: #cbd5e1; }
+html.dark :where(.text-slate-500) { color: #94a3b8; }
+html.dark :where(.text-purple-950) { color: #ddd6fe; }
 
 /* Hairline light borders -> dark border token */
-html.dark .border-gray-100,
-html.dark .border-gray-200,
-html.dark .border-slate-100,
-html.dark .border-slate-200,
-html.dark .border-stone-100,
-html.dark .border-\[\#E5E0D5\] { border-color: var(--border); }
+html.dark :where(.border-gray-100),
+html.dark :where(.border-gray-200),
+html.dark :where(.border-gray-300),
+html.dark :where(.border-slate-100),
+html.dark :where(.border-slate-200),
+html.dark :where(.border-stone-100),
+html.dark :where(.border-\[\#E5E0D5\]) { border-color: var(--border); }
+html.dark :where(.divide-gray-50) > :not([hidden]) ~ :not([hidden]),
+html.dark :where(.divide-gray-100) > :not([hidden]) ~ :not([hidden]),
+html.dark :where(.divide-gray-200) > :not([hidden]) ~ :not([hidden]),
+html.dark :where(.divide-slate-100) > :not([hidden]) ~ :not([hidden]),
+html.dark :where(.divide-slate-200) > :not([hidden]) ~ :not([hidden]) { border-color: var(--border); }
+
+/* Translucent white panels — sticky bars, sheets, overlays. The surface
+   remap above only matches opaque `bg-white`, so these stayed light. */
+html.dark :where(.bg-white\/95) { background-color: rgb(19 28 46 / 0.95); }
+html.dark :where(.bg-white\/90) { background-color: rgb(19 28 46 / 0.9); }
+html.dark :where(.bg-white\/80) { background-color: rgb(19 28 46 / 0.8); }
+html.dark :where(.bg-white\/70) { background-color: rgb(19 28 46 / 0.7); }
+html.dark :where(.bg-white\/60) { background-color: rgb(19 28 46 / 0.6); }
+html.dark :where(.bg-white\/50) { background-color: rgb(19 28 46 / 0.5); }
+html.dark :where(.bg-\[\#E5E0D5\]),
+html.dark :where(.bg-\[\#D9C7A3\]) { background-color: #1b2740; }
+
+/* Hover/focus states on those same light surfaces, which otherwise flashed
+   white under the cursor. */
+html.dark :where(.hover\:bg-white):hover,
+html.dark :where(.hover\:bg-gray-50):hover,
+html.dark :where(.hover\:bg-slate-50):hover { background-color: #1b2740; }
+html.dark :where(.hover\:bg-gray-100):hover,
+html.dark :where(.hover\:bg-gray-200):hover,
+html.dark :where(.hover\:bg-slate-100):hover { background-color: #24334f; }
+html.dark :where(.hover\:text-gray-600):hover,
+html.dark :where(.hover\:text-gray-700):hover { color: #e7e5e4; }
+html.dark :where(.placeholder-gray-400)::placeholder { color: #64748b; }
+html.dark :where(.ring-gray-100),
+html.dark :where(.ring-gray-200) { --tw-ring-color: var(--border); }
 
 /* Navbar search: the Ctrl+K badge only exists when the form itself is wide
    enough to hold it (container query), so no squeeze — long brand name, many
