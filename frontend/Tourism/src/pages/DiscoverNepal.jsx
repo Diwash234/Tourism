@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
@@ -119,6 +120,11 @@ export default function DiscoverNepal() {
   const cuisine = payload?.cuisine?.items?.length ? payload.cuisine.items : DEFAULT_FOODS
   const festivals = payload?.festivals?.items?.length ? payload.festivals.items : DEFAULT_FESTIVALS
   const provinces = payload?.provinces || []
+  // Admin-editable copy (CMS page + intro section config), fallbacks = old strings.
+  const { block } = usePublicConfig().pageCMS("discover-nepal", [])
+  const intro = block("page-intro") || block("intro")
+  const st = intro?.config?.section_titles || {}
+  const sectionTitle = (key, fallback) => st[key] || fallback
 
   return (
     <div className="container-app py-10 fade-in space-y-8">
@@ -127,11 +133,11 @@ export default function DiscoverNepal() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
         <div>
           <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
-            Himalayan Atlas & National Identity
+            {intro?.config?.badge || "Himalayan Atlas & National Identity"}
           </span>
-          <PageHeader title="Discover Nepal — Beyond Everest" subtitle="Curated experiences across every province." icon={FiCompass} />
+          <PageHeader title={intro?.title || "Discover Nepal — Beyond Everest"} subtitle={intro?.subtitle || "Curated experiences across every province."} icon={FiCompass} />
           <p className="text-gray-600 text-sm mt-1 max-w-2xl">
-            Explore Nepal's 26 national symbols, 8,000m Himalayan mountain ranges, UNESCO heritage, living cultural traditions, wildlife reserves, and culinary culture.
+            {intro?.body || "Explore Nepal's 26 national symbols, 8,000m Himalayan mountain ranges, UNESCO heritage, living cultural traditions, wildlife reserves, and culinary culture."}
           </p>
         </div>
 
@@ -202,7 +208,7 @@ export default function DiscoverNepal() {
       </section>
 
       {/* CULTURAL & LIVING HERITAGE SECTION */}
-      <Section id="cultural-heritage" icon={FiFeather} title="Nepali Cultural & Living Heritage">
+      <Section id="cultural-heritage" icon={FiFeather} title={sectionTitle("cultural-heritage", "Nepali Cultural & Living Heritage")}>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
           {culture.map((item, idx) => (
             <div key={item.slug || idx} className="card-base p-4 bg-white border border-slate-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
@@ -230,7 +236,7 @@ export default function DiscoverNepal() {
       </Section>
 
       {/* FESTIVALS */}
-      <Section id="festivals" icon={FiSun} title="Vibrant Cultural Festivals">
+      <Section id="festivals" icon={FiSun} title={sectionTitle("festivals", "Vibrant Cultural Festivals")}>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
           {festivals.map((fest, idx) => (
             <div key={idx} className="card-base p-5 bg-white border border-slate-200 space-y-2">
@@ -250,7 +256,7 @@ export default function DiscoverNepal() {
       </Section>
 
       {/* WILDLIFE & PARKS */}
-      <Section id="wildlife" icon={FiAward} title="Wildlife Reserves & National Parks">
+      <Section id="wildlife" icon={FiAward} title={sectionTitle("wildlife", "Wildlife Reserves & National Parks")}>
         {wildlife.length ? (
           <div className="grid sm:grid-cols-2 gap-4 mt-2">
             {wildlife.map((dest) => <DestCard key={dest.id} dest={dest} icon={FiAward} />)}
@@ -266,7 +272,7 @@ export default function DiscoverNepal() {
       </Section>
 
       {/* HERITAGE SITES */}
-      <Section id="unesco" icon={FiHome} title="UNESCO Heritage & Palaces">
+      <Section id="unesco" icon={FiHome} title={sectionTitle("unesco", "UNESCO Heritage & Palaces")}>
         {heritage.length ? (
           <div className="flex flex-wrap gap-2 mt-2">
             {heritage.map((dest) => <DestChip key={dest.id} dest={dest} />)}
@@ -283,7 +289,7 @@ export default function DiscoverNepal() {
       </Section>
 
       {/* LOCAL FOOD */}
-      <Section id="local-food" icon={FiCoffee} title="Authentic Nepali Culinary Heritage">
+      <Section id="local-food" icon={FiCoffee} title={sectionTitle("local-food", "Authentic Nepali Culinary Heritage")}>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-2">
           {cuisine.map((food, i) => (
             <div key={food.slug || i} className="card-base p-4 bg-white border border-slate-200 space-y-3">
@@ -309,7 +315,7 @@ export default function DiscoverNepal() {
       </Section>
 
       {/* PROVINCE INFORMATION */}
-      <Section id="provinces" icon={FiMap} title="7 Provinces of Nepal">
+      <Section id="provinces" icon={FiMap} title={sectionTitle("provinces", "7 Provinces of Nepal")}>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
           {provinces.map((province) => (
             <Link
@@ -331,7 +337,7 @@ export default function DiscoverNepal() {
         </div>
       </Section>
 
-      <Section id="districts" icon={FiMap} title="77 Districts of Nepal">
+      <Section id="districts" icon={FiMap} title={sectionTitle("districts", "77 Districts of Nepal")}>
         <p className="text-sm text-slate-600 mt-1">
           Every district has a data-driven profile built from recorded tourism data —
           nothing is fabricated where verified information is unavailable.

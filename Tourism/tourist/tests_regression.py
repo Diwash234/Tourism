@@ -4034,3 +4034,42 @@ class RoleDifferentiatedApprovalTests(TestCase):
         self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "submit_review"}, format="json").status_code, 200)
         self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "approve"}, format="json").status_code, 200)
         self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "publish"}, format="json").status_code, 200)
+
+
+class SectionConfigSanitizerRegressionTests(TestCase):
+    """Panel saves must PRESERVE admin content collections (cards, badge,
+    section_titles, foods, all_symbols) while sanitizing them — the old
+    whitelist silently destroyed them on every save."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.page = ManagedPage.objects.create(key="san-page", route="/san-page", title="San", status="published", is_enabled=True)
+        self.sec = ContentSection.objects.create(page=self.page, key="s1", title="S", section_type="cards", status="published", is_visible=True)
+
+    def test_content_collections_survive_save(self):
+        cfg = {
+            "badge": "Test Badge",
+            "section_titles": {"unesco": "Heritage", "bad key!!": "x"},
+            "cards": [{"title": "Card <script>alert(1)</script>One", "image_url": "/images/x.jpg", "to": "/destinations", "items": [{"name": "Sub", "to": "/d"}]}],
+            "foods": [{"name": "MoMo", "image": "https://cdn.test/m.jpg"}],
+            "all_symbols": [{"title": "Flag", "image": "javascript:alert(1)"}],
+            "visibility": {"end_date": "2030-01-01"},
+        }
+        r = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk, "config": cfg}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.sec.refresh_from_db()
+        c = self.sec.config
+        self.assertEqual(c["badge"], "Test Badge")
+        self.assertEqual(c["section_titles"], {"unesco": "Heritage", "badkey": "x"})  # key normalized
+        self.assertEqual(c["cards"][0]["title"], "Card One")  # script stripped
+        self.assertEqual(c["cards"][0]["image_url"], "/images/x.jpg")
+        self.assertEqual(c["cards"][0]["items"][0]["name"], "Sub")
+        self.assertEqual(c["foods"][0]["image"], "https://cdn.test/m.jpg")
+        self.assertNotIn("image", c["all_symbols"][0])  # javascript: URL dropped
+        self.assertEqual(c["visibility"], {"end_date": "2030-01-01"})
+
+    def test_media_url_rule_still_enforced(self):
+        r = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk,
+            "config": {"media_url": "http://insecure.test/x.jpg"}}, format="json")
+        self.assertEqual(r.status_code, 400)

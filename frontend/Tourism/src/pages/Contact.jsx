@@ -9,6 +9,8 @@ import adminApi from "../api/adminApi"
 import usePublicConfig from "../hooks/usePublicConfig"
 
 const Contact = () => {
+  const { block: __block } = usePublicConfig().pageCMS("contact", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { branding } = usePublicConfig()
   const { showToast } = useToast()
   const [evidence, setEvidence] = useState([])
@@ -53,7 +55,7 @@ const Contact = () => {
           <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
             Official Contact & Help Desk
           </span>
-          <PageHeader title={<>Get in Touch with {siteTitle}</>} subtitle="Have questions about a destination, itinerary, or need customer support? Reach out to our team directly or send us feedback." />
+          <PageHeader title={__intro?.title || <>Get in Touch with {siteTitle}</>} subtitle={__intro?.subtitle || __intro?.body || "Have questions about a destination, itinerary, or need customer support? Reach out to our team directly or send us feedback."} />
         </div>
 
         <div className="space-y-4 text-sm text-gray-700 p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">

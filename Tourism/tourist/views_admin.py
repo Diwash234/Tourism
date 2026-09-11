@@ -2642,6 +2642,52 @@ class AdminCMSView(APIView):
                 vis["devices"] = devices
             if vis:
                 safe["visibility"] = vis
+        # Admin-managed content collections (the CMS migration keys). These are
+        # sanitized, not dropped — previously a panel save silently destroyed
+        # seeded cards/badges/section titles because they were not whitelisted.
+        _strip_scripts = lambda value: re.sub(r"(?is)<script.*?>.*?</script>", "", str(value))
+        badge = str(config.get("badge") or "").strip()
+        if badge:
+            safe["badge"] = _strip_scripts(badge)[:200]
+        if isinstance(config.get("section_titles"), dict):
+            titles = {}
+            for k, v in list(config["section_titles"].items())[:30]:
+                tkey = re.sub(r"[^a-z0-9_-]", "", str(k).lower())[:60]
+                if tkey and isinstance(v, str):
+                    titles[tkey] = _strip_scripts(v)[:200]
+            if titles:
+                safe["section_titles"] = titles
+
+        def _clean_record(rec):
+            out = {}
+            for k, v in rec.items():
+                rkey = re.sub(r"[^a-z0-9_]", "", str(k).lower())[:30]
+                if not rkey:
+                    continue
+                if isinstance(v, bool):
+                    out[rkey] = v
+                elif isinstance(v, str):
+                    vv = v.strip()
+                    if rkey in {"image_url", "image", "to", "url", "bgimg"}:
+                        if vv.startswith("https://") or vv.startswith("/"):
+                            out[rkey] = vv[:600]
+                    else:
+                        out[rkey] = _strip_scripts(vv)[:400]
+                elif isinstance(v, (int, float)):
+                    out[rkey] = v
+                elif isinstance(v, list):
+                    out[rkey] = [
+                        _clean_record(x) if isinstance(x, dict) else _strip_scripts(x)[:200]
+                        for x in v[:12]
+                    ]
+            return out
+
+        for list_key in ("cards", "foods", "festivals", "all_symbols"):
+            if isinstance(config.get(list_key), list):
+                cleaned = [_clean_record(r) for r in config[list_key][:40] if isinstance(r, dict)]
+                cleaned = [r for r in cleaned if r]
+                if cleaned:
+                    safe[list_key] = cleaned
         return safe
 
     def _import_layout(self, request, page):
