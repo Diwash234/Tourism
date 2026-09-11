@@ -106,8 +106,9 @@ export default function AdminRouteManagerPanel() {
       })
       setCalcResult(data)
       showToast("Route calculated!", "success")
-    } catch {
-      showToast("Could not calculate route.", "error")
+    } catch (err) {
+      setCalcResult(null)
+      showToast(err?.response?.data?.detail || "Could not calculate route.", "error")
     } finally {
       setCalculating(false)
     }
@@ -267,9 +268,17 @@ export default function AdminRouteManagerPanel() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-300">
               <div><b>Distance:</b> {calcResult.distance_km != null ? `${calcResult.distance_km} km` : "Distance unavailable"}</div>
               <div><b>Duration:</b> {calcResult.estimated_duration}</div>
+              <div><b>Straight line:</b> {calcResult.straight_line_km != null ? `${calcResult.straight_line_km} km` : "Unavailable"}</div>
+              <div><b>Engine:</b> {calcResult.routing_engine || "None"}</div>
               <div><b>Fare:</b> {calcResult.fare_npr != null ? `NPR ${calcResult.fare_npr}` : "Information unavailable"}</div>
-              <div><b>Source:</b> {calcResult.fare_source}</div>
+              <div><b>Fare source:</b> {calcResult.fare_source}</div>
             </div>
+            {calcResult.route_note && (
+              <p className="text-[11px] text-amber-300">{calcResult.route_note}</p>
+            )}
+            {calcResult.duration_note && (
+              <p className="text-[11px] text-slate-400">{calcResult.duration_note}</p>
+            )}
           </div>
         )}
       </div>

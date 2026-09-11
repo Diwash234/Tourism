@@ -641,7 +641,10 @@ class NearbyPlacesCompatView(APIView):
                 lat = float(geo["latitude"])
                 lon = float(geo["longitude"])
             else:
-                lat, lon = 28.2096, 83.9856
+                return Response(
+                    {"detail": "lat and lng query params are required — your location could not be determined."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Accept both radius (metres) and radius_km (kilometres, what the
         # Navigation page sends) — previously radius_km was silently ignored
