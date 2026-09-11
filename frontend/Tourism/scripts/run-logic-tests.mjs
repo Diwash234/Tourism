@@ -120,6 +120,17 @@ check("has direct jump input", pg.includes('placeholder="Jump to…"'))
 check("validates numeric input", pg.includes("/^\\d+$/"))
 check("shows Page X of Y", pg.includes("Page {currentPage} of {totalPages}"))
 
+console.log("Dark-mode compatibility layer (index.css source scan):")
+const css = readFileSync("src/index.css", "utf8")
+const compat = css.slice(css.indexOf("Global dark-mode compatibility layer"))
+check("remaps translucent white panels", /\.bg-white\\\/80/.test(compat))
+check("remaps hover states off light surfaces", /\.hover\\:bg-gray-50\)?:hover/.test(compat))
+check("remaps divide- hairlines", /\.divide-gray-200\)? > :not/.test(compat))
+check(
+  "every remap is :where()-wrapped so authored dark: variants win",
+  compat.split("\n").filter((l) => /^html\.dark \./.test(l)).length === 0,
+)
+
 if (failures) {
   console.error(`\n${failures} test(s) FAILED`)
   process.exit(1)
