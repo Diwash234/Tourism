@@ -19,6 +19,7 @@ from rest_framework.test import APIClient
 from .location.search_service import LocationSearchService
 from .models import (
     User,
+    SiteSetting,
     StaffCapabilityProfile,
     Category,
     Destination,
@@ -3714,3 +3715,51 @@ class DestinationRichTextHardeningTests(TestCase):
         d.refresh_from_db()
         self.assertNotIn("javascript:", d.description.lower())
         self.assertIn("<p>ok</p>", d.description)
+
+
+class CMSDuplicateRegressionTests(TestCase):
+    """Blueprint: admin can duplicate pages (with sections) and sections."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/cms/"
+        self.page = ManagedPage.objects.create(key="dup-source", route="/dup-source", title="Dup Source", status="published", is_enabled=True)
+        ContentSection.objects.create(page=self.page, key="hero", title="Hero", section_type="hero", display_order=1)
+        ContentSection.objects.create(page=self.page, key="faq", title="FAQ", section_type="faq", display_order=2)
+
+    def test_duplicate_page_copies_sections_as_draft(self):
+        resp = self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        new_id = resp.json()["id"]
+        new_page = ManagedPage.objects.get(pk=new_id)
+        self.assertEqual(new_page.status, "draft")
+        self.assertFalse(new_page.is_enabled)
+        self.assertNotEqual(new_page.key, self.page.key)
+        self.assertEqual(new_page.sections.count(), 2)
+        self.assertEqual(set(new_page.sections.values_list("title", flat=True)), {"Hero", "FAQ"})
+        # source untouched
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "published")
+
+    def test_duplicate_twice_gets_unique_keys(self):
+        r1 = self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": "duplicate"}, format="json")
+        r2 = self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+        self.assertNotEqual(r1.json()["id"], r2.json()["id"])
+
+    def test_duplicate_section_appends_draft_copy(self):
+        hero = self.page.sections.get(key="hero")
+        resp = self.client.patch(self.url, {"resource": "sections", "id": hero.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.page.sections.count(), 3)
+        copy = ContentSection.objects.get(pk=resp.json()["id"])
+        self.assertEqual(copy.status, "draft")
+        self.assertNotEqual(copy.key, hero.key)
+        self.assertGreater(copy.display_order, hero.display_order)
+
+    def test_duplicate_rejected_for_settings(self):
+        setting = SiteSetting.objects.create(key="dup-test", value="x")
+        resp = self.client.patch(self.url, {"resource": "settings", "id": setting.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(resp.status_code, 400)

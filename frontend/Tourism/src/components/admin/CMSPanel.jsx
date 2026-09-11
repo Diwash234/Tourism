@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { diffSnapshots, formatSnapshotValue } from "../../utils/revisionDiff"
-import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
+import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX, FiCopy } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
@@ -481,6 +481,7 @@ export default function CMSPanel() {
                   </button>
                   <input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} className="border border-emerald-200 rounded-lg px-2 text-xs" />
                   <button disabled={!scheduleAt} onClick={() => workflow("schedule", { scheduled_publish_at: new Date(scheduleAt).toISOString() })} className="px-3 py-2 rounded-lg bg-sky-700 disabled:opacity-40 text-xs font-bold text-white">Schedule</button>
+                  <button onClick={async () => { try { await adminApi.runCMSAction({ resource: "pages", id: selected.id, action: "duplicate" }); showToast("Page duplicated as draft", "success"); await load(selected.id) } catch { showToast("Duplicate failed", "error") } }} className="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-xs font-bold text-white flex gap-1"><FiCopy /> Duplicate page</button>
                 </div>
               )}
             </div>
@@ -1608,6 +1609,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
                   <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
+                  <button type="button" onClick={async () => { try { await adminApi.runCMSAction({ resource: "sections", id: draft.id, action: "duplicate" }); onToast("Section duplicated as draft", "success"); await loadSections(); setOpenId(null); setDraft(null) } catch { onToast("Duplicate failed", "error") } }} className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 text-xs font-bold flex gap-1"><FiCopy /> Duplicate</button>
                   <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
               </div>

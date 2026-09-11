@@ -2,7 +2,7 @@ import re
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import Count, Sum, F, Q
+from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
 from django.conf import settings
 from rest_framework.views import APIView
@@ -2756,6 +2756,47 @@ class AdminCMSView(APIView):
         if action == "reorder":
             page = obj if resource == "pages" else getattr(obj, "page", None)
             return self._reorder_sections(request, page)
+        if action == "duplicate":
+            if resource == "pages":
+                base_key = f"{obj.key}-copy"
+                route_base = f"{obj.route.rstrip('/')}-copy" if obj.route else ""
+                n = 2
+                while ManagedPage.objects.filter(key=base_key).exists() or (route_base and ManagedPage.objects.filter(route=route_base).exists()):
+                    base_key = f"{obj.key}-copy-{n}"
+                    route_base = f"{obj.route.rstrip('/')}-copy-{n}" if obj.route else ""
+                    n += 1
+                route = route_base
+                new_page = ManagedPage.objects.create(
+                    key=base_key, route=route, title=f"{obj.title} (copy)",
+                    meta_description=obj.meta_description, seo_title=obj.seo_title,
+                    og_image_url=obj.og_image_url, search_visible=obj.search_visible,
+                    status="draft", is_enabled=False, updated_by=request.user,
+                )
+                for sec in obj.sections.order_by("display_order"):
+                    ContentSection.objects.create(
+                        page=new_page, key=self._unique_section_key(new_page, sec.key),
+                        title=sec.title, subtitle=sec.subtitle, body=sec.body,
+                        image_url=sec.image_url, cta_text=sec.cta_text, cta_url=sec.cta_url,
+                        icon=sec.icon, section_type=sec.section_type, layout_variant=sec.layout_variant,
+                        config=dict(sec.config or {}), display_order=sec.display_order,
+                        is_visible=sec.is_visible, is_reusable=sec.is_reusable, status=sec.status,
+                    )
+                self._revision("pages", new_page, request.user, "create")
+                return Response({"id": new_page.pk, "message": "Page duplicated as draft", "record": self._row("pages", new_page)})
+            if resource == "sections":
+                page = obj.page
+                new_sec = ContentSection.objects.create(
+                    page=page, key=self._unique_section_key(page, obj.key),
+                    title=f"{obj.title or obj.key} (copy)"[:240], subtitle=obj.subtitle, body=obj.body,
+                    image_url=obj.image_url, cta_text=obj.cta_text, cta_url=obj.cta_url,
+                    icon=obj.icon, section_type=obj.section_type, layout_variant=obj.layout_variant,
+                    config=dict(obj.config or {}),
+                    display_order=(page.sections.aggregate(m=Max("display_order"))["m"] or 0) + 1,
+                    is_visible=obj.is_visible, is_reusable=obj.is_reusable, status="draft",
+                )
+                self._revision("sections", new_sec, request.user, "create")
+                return Response({"id": new_sec.pk, "message": "Section duplicated", "record": self._row("sections", new_sec)})
+            return Response({"detail": "Duplication applies to pages and sections"}, status=400)
         # Seed a baseline for records that predate revision tracking, so the
         # first edit can always be safely undone.
         if not CMSRevision.objects.filter(resource=resource, object_id=obj.pk).exists():
