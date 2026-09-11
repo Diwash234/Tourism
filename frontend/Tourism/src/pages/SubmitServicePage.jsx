@@ -1,4 +1,5 @@
 import { useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { FiCamera, FiMapPin, FiSend, FiVideo } from "react-icons/fi"
@@ -16,6 +17,8 @@ const TYPES = [
 const PROVINCES = ["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"]
 
 export default function SubmitServicePage() {
+  const { block: __block } = usePublicConfig().pageCMS("submit-service", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { showToast } = useToast()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ place_type: "hospital", name: "", description: "", phone: "", website: "", address: "", city: "", municipality: "", municipality_type: "municipality", ward_number: "", district: "", province: "Gandaki", latitude: "", longitude: "", transport_mode: "", route_origin: "", travel_time_minutes: "", distance_km: "", road_condition: "", price_npr: "", opening_hours: "", source_notes: "" })
@@ -49,7 +52,7 @@ export default function SubmitServicePage() {
   return <div className="container-app py-8 space-y-6" data-testid="submit-service-page">
       <CMSPageIntro pageKey="submit-service" />
     <Breadcrumbs items={[{ label: "Submit Local Service", to: "/submit-service" }]} />
-    <PageHeader title="Help Map Local Nepal" subtitle="Send a hospital, hotel, police station, bank, emergency service or destination with GPS and evidence. Admin approval is required before database and CSV publication." icon={FiMapPin} />
+    <PageHeader title={__intro?.title || "Help Map Local Nepal"} subtitle={__intro?.subtitle || __intro?.body || "Send a hospital, hotel, police station, bank, emergency service or destination with GPS and evidence. Admin approval is required before database and CSV publication."} icon={FiMapPin} />
     <form onSubmit={submit} className="rounded-3xl bg-white border shadow-sm p-6 space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
         <label className="text-xs font-bold">Place type<select className="input-field mt-1" value={form.place_type} onChange={(e) => update("place_type", e.target.value)}>{TYPES.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></label>

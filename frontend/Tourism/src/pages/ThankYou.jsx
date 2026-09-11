@@ -1,4 +1,5 @@
 import { motion } from "framer-motion"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
 import { FiCheckCircle, FiCompass, FiPhoneCall, FiArrowRight, FiShield } from "react-icons/fi"
@@ -7,6 +8,8 @@ import { FadeIn, HoverCard } from "../components/common/MotionSystem"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function ThankYou() {
+  const { block: __block } = usePublicConfig().pageCMS("thank-you", [])
+  const __intro = __block("page-intro") || __block("intro")
   return (
     <div className="container-app py-12 max-w-3xl animate-fadeIn">
       <Breadcrumbs items={[{ label: "Submission Confirmed", to: "/thank-you" }]} />
@@ -21,7 +24,7 @@ export default function ThankYou() {
             Submission Received
           </span>
           <CMSPageIntro pageKey="thank-you" />
-          <PageHeader title="Dhanyabad! Your Submission is in Good Hands 🙏" subtitle="Our team reviews every submission before it goes live." icon={FiCheckCircle} />
+          <PageHeader title={__intro?.title || "Dhanyabad! Your Submission is in Good Hands 🙏"} subtitle={__intro?.subtitle || __intro?.body || "Our team reviews every submission before it goes live."} icon={FiCheckCircle} />
           <p className="text-gray-600 text-sm max-w-lg mx-auto mt-2 leading-relaxed">
             Thank you for contributing to the Nepal Tourism portal. Your submission has been securely queued in the Admin Moderation & Verification Sentinel.
           </p>

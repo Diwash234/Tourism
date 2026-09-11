@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from "react"
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom"
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom"
 import usePublicConfig from "./hooks/usePublicConfig"
 import ErrorBoundary from "./components/common/ErrorBoundary"
 import { installGlobalErrorHandlers } from "./utils/errorLogger"
@@ -121,6 +121,31 @@ function RedirectHandler() {
   return null
 }
 
+
+// Per-route SEO: applies ManagedPage seo_title / meta_description / og_image
+// (already exposed by the public config API) to the live document head.
+function RouteSEO() {
+  const { pathname } = useLocation()
+  const { pages } = usePublicConfig()
+  useEffect(() => {
+    const page = (pages || []).find((p) => p.route === pathname)
+    if (!page) return
+    const t = page.seo_title || page.title
+    if (t) document.title = `${t} | Nepal Yatra`
+    const setMeta = (selector, attr, key, val) => {
+      if (!val) return
+      let el = document.head.querySelector(selector)
+      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el) }
+      el.setAttribute("content", val)
+    }
+    setMeta('meta[name="description"]', "name", "description", page.meta_description)
+    setMeta('meta[property="og:title"]', "property", "og:title", t)
+    setMeta('meta[property="og:description"]', "property", "og:description", page.meta_description)
+    setMeta('meta[property="og:image"]', "property", "og:image", page.og_image_url)
+  }, [pathname, pages])
+  return null
+}
+
 function App() {
   useEffect(() => {
     installGlobalErrorHandlers()
@@ -146,6 +171,7 @@ function App() {
   return (
     <ErrorBoundary name="App">
       <ScrollToTop />
+      <RouteSEO />
       <RedirectRules />
       <CommandPalette />
       <RedirectHandler />

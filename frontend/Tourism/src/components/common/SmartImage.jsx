@@ -64,18 +64,21 @@ const SmartImage = ({
   const [status, setStatus] = useState(src ? "backend" : "loading")
   const [fetchedImage, setFetchedImage] = useState(null)
 
-  // Reset when the backend src actually changes (e.g. list re-fetch)
-  useEffect(() => {
+  // Reset when the backend src actually changes (e.g. list re-fetch).
+  // Render-phase adjust (React docs pattern) instead of an effect, to avoid
+  // cascading renders flagged by react-hooks/set-state-in-effect.
+  const [prevSrc, setPrevSrc] = useState(src)
+  if (src !== prevSrc) {
+    setPrevSrc(src)
     setStatus(src ? "backend" : "loading")
     setFetchedImage(null)
-  }, [src])
+  }
+  // No name to resolve against -> settle on placeholder without an effect round-trip
+  if (status === "loading" && !name) setStatus("placeholder")
 
   useEffect(() => {
     let cancelled = false
-    if (status !== "loading" || !name) {
-      if (status === "loading" && !name) setStatus("placeholder")
-      return
-    }
+    if (status !== "loading" || !name) return
 
     resolvePlaceImages(name, { context, orientation, count: 1 })
       .then((results) => {
@@ -94,7 +97,7 @@ const SmartImage = ({
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [status, name, context, orientation])
 
   if (status === "backend") {

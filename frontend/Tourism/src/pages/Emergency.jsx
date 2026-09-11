@@ -113,7 +113,7 @@ export default function Emergency() {
       setLoading(false)
       setLoadedInitial(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, 0)
     return () => clearTimeout(t)
   }, [position])

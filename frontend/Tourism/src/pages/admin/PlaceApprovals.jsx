@@ -34,6 +34,7 @@ const PlaceApprovals = () => {
       .finally(() => setLoading(false))
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch kicks off loading state once on mount
   useEffect(load, [])
 
   const handleDecision = async (slug, decision) => {

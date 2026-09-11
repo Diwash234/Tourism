@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
@@ -17,6 +18,8 @@ import {
 } from "../utils/nepalGeocoder"
 
 export default function SubmitPlacePage() {
+  const { block: __block } = usePublicConfig().pageCMS("submit-place", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { showToast } = useToast()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -246,7 +249,7 @@ export default function SubmitPlacePage() {
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           All 77 Districts & 753 Local Bodies
         </span>
-        <PageHeader title="Submit a New Nepal Destination" subtitle="Share a place with evidence — admin approval keeps the map trustworthy." icon={FiMapPin} />
+        <PageHeader title={__intro?.title || "Submit a New Nepal Destination"} subtitle={__intro?.subtitle || __intro?.body || "Share a place with evidence — admin approval keeps the map trustworthy."} icon={FiMapPin} />
         <p className="text-gray-500 text-sm max-w-2xl mx-auto mt-1">
           Select or manually enter any district, municipality, village, or ward across Nepal to auto-calculate coordinates, attach photos, and submit for Admin Verification.
         </p>
