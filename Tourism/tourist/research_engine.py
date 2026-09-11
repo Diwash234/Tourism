@@ -258,8 +258,12 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
     if vault_match:
         data = vault_match
     else:
-        # Autonomous research using Nepal Administrative Geocoder
-        rev = reverse_geocode(28.2096, 83.9856)
+        # Autonomous research: first try to geocode the ACTUAL query anywhere in
+        # Nepal; only if the name is unknown everywhere do we fall back to a
+        # Pokhara-area placeholder (never presented as verified coordinates).
+        from .geocoding import geocode as _fwd_geocode
+        _geo = _fwd_geocode(clean_query) or {}
+        rev = reverse_geocode(_geo.get("latitude", 28.2096), _geo.get("longitude", 83.9856))
         data = {
             "name": clean_query.title(),
             "aliases": f"{clean_query.title()} / {clean_query.title()} Village",
@@ -307,8 +311,14 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
     ktm_lat, ktm_lng = 27.7172, 85.3240
     dist_ktm = haversine_distance_km(ktm_lat, ktm_lng, data["latitude"], data["longitude"])
     nearest_ap, dist_ap = find_nearest_airport(data["latitude"], data["longitude"])
-    nearest_city = "Pokhara" if data["province"] == "Gandaki" else "Kathmandu" if data["province"] == "Bagmati" else data["district"]
-    dist_city = haversine_distance_km(data["latitude"], data["longitude"], 28.2096 if nearest_city == "Pokhara" else 27.7172, 83.9856 if nearest_city == "Pokhara" else 85.3240)
+    # Nationwide: resolve the district seat from the 77-district boundaries
+    # table instead of a Pokhara/Kathmandu-only ternary.
+    from .administrative_boundaries import get_district_info as _district_info
+    _dinfo = _district_info(data.get("district") or "") or {}
+    nearest_city = _dinfo.get("district") or data["district"]
+    _city_lat = _dinfo.get("lat", 27.7172)
+    _city_lng = _dinfo.get("lng", 85.3240)
+    dist_city = haversine_distance_km(data["latitude"], data["longitude"], _city_lat, _city_lng)
 
     # Step 4: Resolve Category
     category_obj, _ = Category.objects.get_or_create(
