@@ -598,7 +598,7 @@ export const deriveImageCategory = (destination) => {
   const slug = destination.category?.slug || destination.category_slug || ""
   if (slug && CATEGORY_TYPES[slug]) return slug
   const catName = (destination.category_name || destination.category?.name || "").toLowerCase()
-  for (const [cat, types] of Object.entries(CATEGORY_TYPES)) {
+  for (const [cat, _types] of Object.entries(CATEGORY_TYPES)) {
     if (catName.includes(cat)) return cat
   }
   return null

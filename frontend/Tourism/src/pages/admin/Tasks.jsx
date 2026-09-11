@@ -5,7 +5,6 @@ import adminPanelApi from "../../api/adminPanelApi"
 import hotelApi from "../../api/hotelApi"
 import adminApi from "../../api/adminApi"
 import Loader from "../../components/common/Loader"
-import EmptyState from "../../components/common/EmptyState"
 import SearchSelect from "../../components/common/SearchSelect"
 import useToast from "../../hooks/useToast"
 

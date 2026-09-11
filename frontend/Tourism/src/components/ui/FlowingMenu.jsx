@@ -41,7 +41,7 @@ export default function FlowingMenu({
      
   }, [activeKey])
 
-  const onKey = (e, idx) => {
+  const onKey = (e, _idx) => {
     const i = items.findIndex(x => x.key === activeKey)
     if (e.key === "ArrowRight") {
       e.preventDefault()

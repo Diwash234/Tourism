@@ -5,7 +5,6 @@ import {
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
-import axiosClient from "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 
 const TABS = [

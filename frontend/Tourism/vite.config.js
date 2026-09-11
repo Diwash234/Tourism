@@ -25,6 +25,18 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Stable vendor chunks: the framework rarely changes, so returning
+        // visitors re-download only the app code that actually changed.
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-motion': ['framer-motion'],
+        },
+      },
+    },
+  },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react/jsx-runtime', 'react-icons/fi', 'react-icons/bs'],
     force: true,

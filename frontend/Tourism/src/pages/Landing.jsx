@@ -1,19 +1,14 @@
 import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
 import {
   FiMapPin, FiShield, FiDollarSign, FiNavigation, FiArrowRight
 } from "react-icons/fi"
 import { useI18n } from "../i18n"
 
-import SearchBar from "../components/common/SearchBar"
-import DestinationCard from "../components/cards/DestinationCard"
-import DestinationCardSkeleton from "../components/cards/DestinationCardSkeleton"
 import FAQAccordion from "../components/common/FAQAccordion"
 import NepalHighlights from "../components/dashboard/NepalHighlights"
 import NepalExperienceSection from "../components/dashboard/NepalExperienceSection"
 import NationalSymbols from "../components/dashboard/NationalSymbols"
-import HeroEffects from "../components/dashboard/HeroEffects"
 import destinationApi from "../api/destinationApi"
 import userApi from "../api/userApi"
 import adminApi from "../api/adminApi"
@@ -90,7 +85,7 @@ const FAQ_ITEMS = [
 const HOME_KEYS = ["hero", "features", "featured", "case-studies", "highlights", "symbols", "culture", "provinces", "marquee", "testimonials", "faq", "cta"]
 
 export default function Landing() {
-  const { t } = useI18n()
+  const { _t } = useI18n()
   const _navigate = useNavigate()
   const publicConfig = usePublicConfig()
   const { showBlock, copy, extras, block } = publicConfig.pageCMS("home", HOME_KEYS)
@@ -111,7 +106,7 @@ export default function Landing() {
   const [destinations, setDestinations] = useState([])
   const [featuredCards, setFeaturedCards] = useState([])
   const [packages, setPackages] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const _cmsHero = { title: copy("hero", "title"), subtitle: copy("hero", "subtitle", copy("hero", "body")) }
 
   // Search-as-you-type suggestions + did-you-mean autocorrect from the API

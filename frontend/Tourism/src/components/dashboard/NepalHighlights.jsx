@@ -120,7 +120,7 @@ const NepalHighlights = ({ bare = false, section = null }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {cards.map((card, i) => {
           const Icon = ICONS[card.icon] || FiMapPin
-          const { title, key } = card
+          const { title, _key } = card
           const bgImg = card.image_url || card.bgImg
           const dests = tagsFor(card)
           return (

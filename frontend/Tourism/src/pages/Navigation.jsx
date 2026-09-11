@@ -5,7 +5,6 @@ import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
-import MapillaryImages from "../components/map/MapillaryImages"
 import useGeolocation from "../hooks/useGeolocation"
 import {
   FiNavigation, FiMapPin, FiShield,
@@ -23,7 +22,6 @@ import { loadPacks, persistPacks, addPack, removePack, findPackForDestination } 
 import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
-import { formatDistance } from "../utils/formatDistance"
 import { hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
@@ -286,7 +284,7 @@ export default function Navigation() {
   }
   const [alertsLoaded, setAlertsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [, setError] = useState("")
   const [_emergencyDir, setEmergencyDir] = useState(null)
   const [_nearbyDests, _setNearbyDests] = useState([])
   const [_featuredDests, setFeaturedDests] = useState([])

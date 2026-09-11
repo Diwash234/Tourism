@@ -20,7 +20,7 @@ export default function CrazyButton({
   className = "",
   variant = "primary",
   onClick,
-  magnetic = 30,
+  magnetic: _magnetic = 30,
   burstCount = 8,
   as: As = "button",
   type = "button",

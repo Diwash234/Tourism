@@ -7,9 +7,7 @@ import {
   FiLayers, FiCompass, FiInfo, FiExternalLink, FiPlay
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
-import adminPanelApi from "../../api/adminPanelApi"
 import destinationApi from "../../api/destinationApi"
-import Loader from "../../components/common/Loader"
 import useToast from "../../hooks/useToast"
 import useAuth from "../../hooks/useAuth"
 import InfrastructureModerationPanel from "../../components/admin/InfrastructureModerationPanel"

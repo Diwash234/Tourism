@@ -222,7 +222,7 @@ const Dashboard = () => {
 
     setModifyingPlan(true)
     try {
-      const { data } = await axiosClient.post("/ml/itinerary/modify/", {
+      const { _data } = await axiosClient.post("/ml/itinerary/modify/", {
         plan_id: targetPlan.id,
         action: actionPrompt,
         itinerary: targetPlan.itinerary_data || targetPlan,

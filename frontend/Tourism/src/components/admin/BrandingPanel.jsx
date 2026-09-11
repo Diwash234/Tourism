@@ -31,7 +31,7 @@ export default function BrandingPanel() {
     secondary_color: "#0B3D91",
   })
   const [assets, setAssets] = useState({})
-  const [presets, setPresets] = useState({})
+  const [, setPresets] = useState({})
   const [busy, setBusy] = useState(false)
 
   const load = async () => {

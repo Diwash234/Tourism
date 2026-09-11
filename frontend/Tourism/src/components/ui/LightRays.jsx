@@ -15,7 +15,7 @@ export default function LightRays({
   speed = 18, // seconds per full rotation
   children,
 }) {
-  const rays = Array.from({ length: count })
+  const _rays = Array.from({ length: count })
   return (
     <div className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)} aria-hidden="true">
       {/* Slow rotating ray bundle */}

@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { motion } from "framer-motion"
 import { FiShield } from "react-icons/fi"
 
 export default function RiskPrediction({ _placeName = "Annapurna Circuit" }) {

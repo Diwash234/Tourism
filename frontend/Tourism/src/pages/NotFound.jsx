@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import { FiCompass, FiHome } from "react-icons/fi"

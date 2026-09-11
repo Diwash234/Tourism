@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence } from "framer-motion"
 import { FiMaximize2, FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi"
 
 export default function DestinationGallery({ images = [], name = "Destination" }) {

@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"

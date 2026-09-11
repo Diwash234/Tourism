@@ -111,7 +111,7 @@ export default function DiscoverNepal() {
 
   const wildlife = payload?.wildlife?.items || []
   const heritage = payload?.heritage?.items || []
-  const mountains = payload?.mountains?.items || []
+  const _mountains = payload?.mountains?.items || []
   const culture = payload?.culture?.items?.length ? payload.culture.items : DEFAULT_CULTURE
   const cuisine = payload?.cuisine?.items?.length ? payload.cuisine.items : DEFAULT_FOODS
   const festivals = payload?.festivals?.items?.length ? payload.festivals.items : DEFAULT_FESTIVALS

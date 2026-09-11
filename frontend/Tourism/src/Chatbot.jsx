@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import PageHeader from "./components/common/PageHeader"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
-import { motion } from "framer-motion"
 import {
   FiSend, FiShield, FiPhoneCall, FiMapPin, FiImage, FiCalendar, FiTruck, FiMessageCircle,
 } from "react-icons/fi"

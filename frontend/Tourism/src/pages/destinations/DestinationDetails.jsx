@@ -20,8 +20,6 @@ import SafeHtml from "../../components/cms/SafeHtml"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
-import WeatherCard from "../../components/cards/WeatherCard"
-import HotelCard from "../../components/cards/HotelCard"
 import MapillaryImages from "../../components/map/MapillaryImages"
 import Breadcrumbs from "../../components/common/Breadcrumbs"
 import Loader from "../../components/common/Loader"
@@ -109,7 +107,7 @@ export default function DestinationDetails() {
     await fetchNearbyDestinations(nearbyPage + 1, destination)
     setNearbyBusy(false)
   }
-  const [budget, setBudget] = useState(null)
+  const [, setBudget] = useState(null)
   const [essentials, setEssentials] = useState(null)
   const [emergency, setEmergency] = useState(null)
 

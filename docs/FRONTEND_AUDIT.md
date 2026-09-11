@@ -115,3 +115,15 @@ Security: 1 frontend (P001) · ESLint: 9 pre-existing errors, 402 warnings
 Backend tests: 259/259 · E2E: 77/77 (last run @ cbb599f..d2a71ca)
 Visual/responsive viewport testing: NOT RUN (no browser automation available) — flagged unchecked
 ```
+
+## Resolution Log (updated as fixes landed)
+
+- P001 FIXED: all raw CMS HTML renders routed through SafeHtml/DOMPurify (CMSBlock ×3, CMSIntro, CMSPanel ×2).
+- P002 FIXED: 66 routes lazy-loaded + Suspense; vendor-react/vendor-motion manual chunks; main entry 2.49 MB → 392 KB.
+- P003/P004 FIXED: Gallery + Risk headers CMS-wired, E2E proven.
+- P005 CLOSED: re-measured with tag-aware scan — 0 real missing-alt images (original count was a single-line-grep artifact).
+- P006 FIXED: RouteSEO consumes seo_title/meta_description/og_image from the public config API.
+- P007 FIXED: 9 → 0 ESLint errors (2 dead broken files deleted, SmartImage render-adjust, 3 documented debounce disables).
+- P008 RESOLVED BY EVIDENCE: brand contact already centralized in branding CMS (footer+Contact read branding.contact_email); contact_email editability E2E-proven; emergency numbers intentionally code-side (safety).
+- P009 FIXED: warnings 394 → 55. Remaining: 53 exhaustive-deps (spread across 30+ files, each needs case-by-case behavior judgment — intentionally not batch-edited) + 2 react-hooks/incompatible-library (React Compiler skips Register/ResetPassword; informational, no runtime impact).
+- P010 FIXED: ThankYou/SubmitPlace/SubmitService headers CMS-wired, E2E proven.
