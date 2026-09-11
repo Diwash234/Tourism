@@ -31,6 +31,7 @@ from .models import (
     ManagedNavigationItem,
     ManagedPage,
     ContentSection,
+    NewsletterSignup,
     UserRoute,
 )
 
@@ -3610,3 +3611,106 @@ class TravelOptionsMultiStopTests(TestCase):
             ],
         })
         self.assertEqual(resp.status_code, 400)
+
+
+class AdminDataExplorerCRUDRegressionTests(TestCase):
+    """Pins the generic Data Explorer CRUD + rich-text hardening (post-8cc83d4)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/data-explorer/"
+
+    def _destination(self):
+        return Destination.objects.create(name="CRUD Fixture City", latitude=27.7, longitude=85.3)
+
+    def _hospital(self, **kw):
+        defaults = dict(name="Regression Test Hospital", district="Kathmandu", latitude=27.71, longitude=85.32, phone="01-4000000", address="Regression Test Road", destination=self._destination())
+        defaults.update(kw)
+        return Hospital.objects.create(**defaults)
+
+    def test_unauthenticated_rejected(self):
+        c = APIClient()
+        self.assertEqual(c.get(self.url, {"resource": "hospitals"}).status_code, 401)
+
+    def test_schema_lists_editable_fields(self):
+        resp = self.client.get(self.url, {"resource": "hospitals", "schema": "1"})
+        self.assertEqual(resp.status_code, 200)
+        names = [f["name"] for f in resp.json()["editable"]]
+        self.assertIn("name", names)
+        self.assertIn("district", names)
+
+    def test_patch_updates_and_reports_changed_fields(self):
+        h = self._hospital()
+        resp = self.client.patch(self.url, {
+            "resource": "hospitals", "id": h.id, "fields": {"district": "Lalitpur"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["message"], "Record updated")
+        self.assertIn("district", body["changed"])
+        h.refresh_from_db()
+        self.assertEqual(h.district, "Lalitpur")
+
+    def test_patch_rejects_unknown_field(self):
+        h = self._hospital()
+        resp = self.client.patch(self.url, {
+            "resource": "hospitals", "id": h.id, "fields": {"definitely_not_a_field": "x"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_patch_rejects_out_of_bounds_integer(self):
+        h = self._hospital()
+        resp = self.client.patch(self.url, {
+            "resource": "hospitals", "id": h.id, "fields": {"latitude": 999999999999}
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_post_creates_then_delete_removes(self):
+        # newsletter_signups has no required FKs, so generic create applies
+        resp = self.client.post(self.url, {
+            "resource": "newsletter_signups", "fields": {"email": "crud-created@test.local"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+        new_id = resp.json()["id"]
+        resp = self.client.delete(f"{self.url}?resource=newsletter_signups&id={new_id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(NewsletterSignup.objects.filter(id=new_id).exists())
+
+    def test_post_missing_required_returns_400(self):
+        resp = self.client.post(self.url, {"resource": "hospitals", "fields": {"district": "Kathmandu"}}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_unknown_resource_rejected(self):
+        self.assertEqual(self.client.get(self.url, {"resource": "not_a_model"}).status_code, 400)
+
+    def test_destination_writes_routed_to_dedicated_editor(self):
+        d = Destination.objects.create(name="CRUD Guard Dest", latitude=27.7, longitude=85.3)
+        resp = self.client.patch(self.url, {
+            "resource": "destinations", "id": d.id, "fields": {"name": "hacked"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("dedicated", str(resp.json()))
+
+
+class DestinationRichTextHardeningTests(TestCase):
+    """javascript: URLs in rich-text fields are neutralized on save."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+
+    def test_javascript_href_neutralized(self):
+        d = Destination.objects.create(name="RichText Guard", latitude=27.7, longitude=85.3)
+        resp = self.client.put(
+            f"/api/v1/admin/destinations/{d.id}",
+            {
+                "name": "RichText Guard",
+                "description": '<p>ok</p><a href="javascript:alert(1)">x</a>',
+            },
+            format="json",
+        )
+        self.assertIn(resp.status_code, (200, 201))
+        d.refresh_from_db()
+        self.assertNotIn("javascript:", d.description.lower())
+        self.assertIn("<p>ok</p>", d.description)

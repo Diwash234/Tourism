@@ -1593,7 +1593,16 @@ class AdminDataExplorerView(APIView):
         if isinstance(field, models.BooleanField):
             return bool(raw) if not isinstance(raw, str) else str(raw).lower() in {"1", "true", "yes", "on"}
         if isinstance(field, models.DecimalField):
-            return None if raw in ("", None) else Decimal(str(raw))
+            if raw in ("", None):
+                return None
+            value = Decimal(str(raw))
+            max_digits = getattr(field, "max_digits", None)
+            decimal_places = getattr(field, "decimal_places", 0) or 0
+            if max_digits is not None and abs(value) >= 10 ** (max_digits - decimal_places):
+                raise ValueError(f"too large (max {max_digits - decimal_places} integer digits)")
+            if decimal_places:
+                value = value.quantize(Decimal(1).scaleb(-decimal_places))
+            return value
         if isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
             return None if raw in ("", None) and field.null else int(raw)
         value = "" if raw is None else str(raw)
