@@ -4,13 +4,18 @@ import adminApi from "../../api/adminApi"
 import { NEPAL_ALL_PROVINCES, NEPAL_ALL_DISTRICTS, DISTRICT_DEFAULTS } from "../../utils/nepalGeocoder"
 import useToast from "../../hooks/useToast"
 
+import RichTextEditor from "./RichTextEditor"
+
 const GROUPS = [
-  ["Core", [["destinations","Destinations"],["destination_features","Destination Features"],["destination_images","Destination Images"],["destination_translations","Translations"],["categories","Categories"],["languages","Languages"],["restaurants","Restaurants"],["transit_routes","Transport Routes"]]],
-  ["Hotels & Bookings", [["hotels","Hotels"],["bookings","Bookings"],["hotel_reviews","Hotel Reviews"],["marketplace_listings","Marketplace offers"],["marketplace_partners","Marketplace partners"],["marketplace_orders","Trip requests"]]],
-  ["Users", [["reviews","Destination Reviews"],["ratings","Ratings"],["favorites","Favorites"],["visit_history","Visit History"],["family_links","Family Links"],["email_tokens","Email Tokens"]]],
-  ["Safety & Services", [["alerts","Alerts"],["current_hazards","Current Hazards"],["emergency_contacts","Emergency Contacts"],["osm_services","OSM Essential Services"],["osm_places","OSM Tourism Places"],["hospitals","Hospitals"],["police_stations","Police Stations"]]],
-  ["Finance & Feedback", [["budgets","Budgets"],["feedback","User Feedback"],["feedback_evidence","Feedback Evidence"]]],
-  ["Audit", [["audit_logs","Audit Log Entries"],["error_events","Error Events"]]],
+  ["Content", [["categories","Categories"],["languages","Languages"]]],
+  ["Places", [["destinations","Destinations"],["destination_features","Destination Features"],["destination_images","Destination Images"],["destination_translations","Translations"],["osm_places","Tourism Places (OSM)"],["transit_routes","Transport Routes"]]],
+  ["Services", [["hotels","Hotels"],["restaurants","Restaurants"],["hospitals","Hospitals"],["police_stations","Police Stations"],["osm_services","Essential Services (Pharmacy/ATM…)"],["emergency_contacts","Emergency Contacts"]]],
+  ["Tourism", [["marketplace_listings","Packages & Offers"],["marketplace_partners","Partners"],["marketplace_orders","Trip Requests"],["reviews","Destination Reviews"],["ratings","Ratings"]]],
+  ["Travel", [["bookings","Bookings"],["hotel_reviews","Hotel Reviews"],["budgets","Budgets"],["favorites","Favorites"],["visit_history","Visit History"]]],
+  ["Safety", [["alerts","Alerts"],["current_hazards","Current Hazards"]]],
+  ["Users", [["family_links","Family Links"],["email_tokens","Email Tokens"],["newsletter_signups","Newsletter Signups"]]],
+  ["Feedback", [["feedback","User Feedback"],["feedback_evidence","Feedback Evidence"]]],
+  ["System", [["audit_logs","Audit Log Entries"],["error_events","Error Events"]]],
 ]
 
 export default function DataExplorerPanel() {
@@ -65,7 +70,8 @@ export default function DataExplorerPanel() {
         if(f.choices?.length)return <label key={f.name} className={labelCls}>{f.name.replace(/_/g," ")}<select value={val??""} onChange={e=>setV(e.target.value)} className="input-field mt-1"><option value="">— empty —</option>{f.choices.map(c=><option key={c} value={c}>{c}</option>)}</select></label>
         if(f.type==="textarea")return <label key={f.name} className={`${labelCls} md:col-span-2`}>{f.name.replace(/_/g," ")}<textarea rows="4" value={val??""} onChange={e=>setV(e.target.value)} className="input-field mt-1"/></label>
         return <label key={f.name} className={labelCls}>{f.name.replace(/_/g," ")}<input type={f.type==="integer"||f.type==="decimal"?"number":f.type==="url"?"url":f.type==="email"?"email":"text"} step={f.type==="decimal"?"0.01":undefined} value={val??""} onChange={e=>setV(f.type==="integer"||f.type==="decimal"?e.target.value:e.target.value)} className="input-field mt-1"/></label>
-      })}</div><div className="flex gap-2 mt-4"><button onClick={saveGenericEdit} className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-black">{genericEdit.id?"Save changes":"Create record"}</button>{genericEdit.id&&<button onClick={deleteGenericEdit} className="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-sm font-black">Delete</button>}<button onClick={()=>setGenericEdit(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Cancel</button></div></div>}
+      })}</div>{genericEdit.id&&genericEdit.fields.some(f=>f.name==="status"&&f.choices?.length)>0&&<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] uppercase text-slate-400 font-black">Quick status:</span>{(genericEdit.fields.find(f=>f.name==="status").choices||[]).map(c=><button key={c} onClick={async()=>{try{const{data}=await adminApi.updateExploreRow({resource,id:genericEdit.id,fields:{status:c}});showToast(data.changed?.length?`Status → ${c}`:`Already ${c}`,"success");setGenericEdit(null);load()}catch(e){showToast(e.response?.data?.detail||"Status update failed","error")}}} className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold capitalize">{c.replace(/_/g," ")}</button>)}</div>}
+      <div className="flex gap-2 mt-4"><button onClick={saveGenericEdit} className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-black">{genericEdit.id?"Save changes":"Create record"}</button>{genericEdit.id&&<button onClick={()=>setGenericEdit({id:null,fields:genericEdit.fields,values:{...genericEdit.values,name:genericEdit.values.name?`${genericEdit.values.name} (copy)`:genericEdit.values.name}})} className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-black">Duplicate</button>}{genericEdit.id&&<button onClick={deleteGenericEdit} className="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-sm font-black">Delete</button>}<button onClick={()=>setGenericEdit(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold">Cancel</button></div></div>}
       {detail&&<div className="mt-5 rounded-2xl bg-slate-900 border border-amber-500/30 p-5"><div className="flex justify-between"><h3 className="text-white text-lg font-black">{detail.id?`Edit ${detail.name}`:"Add Destination"}</h3><button onClick={()=>setDetail(null)} className="text-slate-400"><FiX/></button></div><div className="grid md:grid-cols-2 gap-3 mt-4">{["name","city","province","district","municipality","ward_number","latitude","longitude","altitude","best_time_to_visit","opening_hours","entry_fee","cover_image_url","short_description"].map(key=>{
                 const cls="text-[10px] uppercase text-slate-400 font-bold"
                 if(key==="province"){
@@ -87,9 +93,9 @@ export default function DataExplorerPanel() {
                   return <label key={key} className={cls}>ward number (1-35, optional)<input type="number" min="1" max="35" value={edit.ward_number??""} onChange={e=>setEdit({...edit,ward_number:e.target.value})} className="input-field mt-1"/></label>
                 }
                 return <label key={key} className={cls}>{key.replace('_',' ')}<input value={edit[key]??""} onChange={e=>setEdit({...edit,[key]:e.target.value})} className="input-field mt-1"/></label>
-              })}<label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Description<textarea rows="4" value={edit.description??""} onChange={e=>setEdit({...edit,description:e.target.value})} className="input-field mt-1"/></label>
-        <label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">History<textarea rows="3" value={edit.history??""} onChange={e=>setEdit({...edit,history:e.target.value})} className="input-field mt-1"/></label>
-        <label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Culture / food<textarea rows="3" value={edit.cultural_significance??""} onChange={e=>setEdit({...edit,cultural_significance:e.target.value})} className="input-field mt-1"/></label>
+              })}<div className="md:col-span-2"><RichTextEditor label="Description" value={edit.description??""} onChange={html=>setEdit({...edit,description:html})}/></div>
+        <div className="md:col-span-2"><RichTextEditor label="History" value={edit.history??""} onChange={html=>setEdit({...edit,history:html})}/></div>
+        <div className="md:col-span-2"><RichTextEditor label="Culture / food" value={edit.cultural_significance??""} onChange={html=>setEdit({...edit,cultural_significance:html})}/></div>
         <div className="md:col-span-2 p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[11px] space-y-1">
           <p className="font-bold text-amber-300">💡 Content Integrity Guidelines:</p>
           <ul className="list-disc pl-4 space-y-0.5 text-[10px]">

@@ -17,6 +17,7 @@ import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, str
 import { photoApi } from "../../services/api"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { CMSExtras } from "../../components/cms/CMSBlock"
+import SafeHtml from "../../components/cms/SafeHtml"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
@@ -443,7 +444,7 @@ export default function DestinationDetails() {
               <FiCompass className="text-primary-700" /> About {destination.name}
             </h2>
             <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-              {destination.description || `${INFO_UNAVAILABLE} — we will update soon`}
+              {destination.description ? <SafeHtml html={destination.description} className="[&>p]:mb-2" /> : `${INFO_UNAVAILABLE} — we will update soon`}
             </p>
 
             {destination.tourism_importance && (
@@ -464,7 +465,7 @@ export default function DestinationDetails() {
                 <div className="space-y-1.5">
                   <h4 className="font-bold text-sm text-primary-900">Historical Origins & Heritage:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                    {destination.history}
+                    <SafeHtml html={destination.history} className="[&>p]:mb-2" />
                   </p>
                 </div>
               )}
@@ -473,7 +474,7 @@ export default function DestinationDetails() {
                 <div className="space-y-1.5 pt-2 border-t">
                   <h4 className="font-bold text-sm text-primary-900">Cultural Customs & Traditions:</h4>
                   <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
-                    {destination.cultural_significance}
+                    <SafeHtml html={destination.cultural_significance} className="[&>p]:mb-2" />
                   </p>
                 </div>
               )}
@@ -560,7 +561,7 @@ export default function DestinationDetails() {
                     <FiCoffee className="text-amber-600" /> Food & Local Cuisine
                   </h3>
                   <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
-                    {destination.food_cuisine_info}
+                    <SafeHtml html={destination.food_cuisine_info} className="[&>p]:mb-2" />
                   </p>
                 </div>
               )}

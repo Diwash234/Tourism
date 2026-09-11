@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Count, Sum, F, Q
@@ -770,6 +772,12 @@ class AdminDestinationDetailView(APIView):
             "nearest_police_info", "recommended_days",
         }
         payload = dict(request.data)
+        # Rich text editor hardening (same rule as CMS body): neutralize
+        # javascript: URLs in admin-authored rich text fields.
+        _rich_fields = ("description", "short_description", "history", "cultural_significance", "food_cuisine_info", "travel_safety_tips")
+        for _field in _rich_fields:
+            if isinstance(payload.get(_field), str):
+                payload[_field] = re.sub(r"(?is)(href|src)\s*=\s*([\"\']?)\s*javascript:[^\"\'>\s]*\2", r"\1=\2#\2", payload[_field])
         lat_in = payload.get("latitude", destination.latitude)
         lng_in = payload.get("longitude", destination.longitude)
 
