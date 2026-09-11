@@ -3893,3 +3893,39 @@ class ScheduledExpiryRegressionTests(TestCase):
         self.assertIn("now", served)
         self.assertEqual(expired.status, "published")  # record intact, just hidden
         self.assertEqual(upcoming.status, "published")
+
+
+class MediaDeletionProtectionTests(TestCase):
+    """Media referenced by published CMS content cannot be blindly deleted."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.dest = Destination.objects.create(name="Media Guard Dest", latitude=27.7, longitude=85.3)
+
+    def _image(self, url):
+        from tourist.models import DestinationImage
+        return DestinationImage.objects.create(destination=self.dest, external_url=url, source="test")
+
+    def test_referenced_image_blocked_then_forced(self):
+        from tourist.models import DestinationImage
+        url = "https://cdn.test/used-by-cms.jpg"
+        img = self._image(url)
+        page = ManagedPage.objects.create(key="media-guard", route="/media-guard", title="Media Guard", status="published", is_enabled=True)
+        ContentSection.objects.create(page=page, key="hero", title="Hero", section_type="hero",
+                                      image_url=url, status="published", is_visible=True)
+        r = self.client.delete(f"/api/v1/admin/images/{img.pk}")
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Media Guard", str(r.json().get("used_by")))
+        self.assertTrue(DestinationImage.objects.filter(pk=img.pk).exists())
+        # explicit force override still available
+        r = self.client.delete(f"/api/v1/admin/images/{img.pk}?force=1")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(DestinationImage.objects.filter(pk=img.pk).exists())
+
+    def test_unreferenced_image_deletes_normally(self):
+        from tourist.models import DestinationImage
+        img = self._image("https://cdn.test/not-used-anywhere.jpg")
+        r = self.client.delete(f"/api/v1/admin/images/{img.pk}")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(DestinationImage.objects.filter(pk=img.pk).exists())

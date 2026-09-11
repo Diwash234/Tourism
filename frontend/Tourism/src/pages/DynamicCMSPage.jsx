@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { useParams, Navigate } from "react-router-dom"
 import usePublicConfig from "../hooks/usePublicConfig"
 import { CMSExtras } from "../components/cms/CMSBlock"
@@ -14,6 +15,14 @@ export default function DynamicCMSPage() {
   const page = (config.pages || []).find(
     (p) => p.key === slug || p.route === `/${slug}` || p.route === slug
   )
+  // SEO: title/meta straight from the CMS record (spec §28).
+  useEffect(() => {
+    if (!page) return
+    document.title = page.seo_title || page.title || "Nepal Yatra"
+    let tag = document.querySelector('meta[name="description"]')
+    if (!tag) { tag = document.createElement("meta"); tag.name = "description"; document.head.appendChild(tag) }
+    tag.content = page.meta_description || ""
+  }, [page])
   if (!page) return <Navigate to="/404" replace />
   const sections = (page.sections || [])
     .slice()

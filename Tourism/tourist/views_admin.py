@@ -1,3 +1,4 @@
+import json
 import re
 
 from django.contrib.auth import get_user_model
@@ -4011,6 +4012,28 @@ class DeleteImageView(APIView):
         img = DestinationImage.objects.filter(pk=id).first()
         if not img:
             return Response({"detail": "not found"}, status=404)
+        # Deletion protection (spec: media referenced by published pages must
+        # not be blindly destroyed). Scan published CMS content for this exact
+        # image URL; refuse unless the admin explicitly confirms with ?force=1.
+        url = (img.external_url or "").strip()
+        if url and request.query_params.get("force") != "1":
+            referencing = []
+            published = ContentSection.objects.filter(status="published", is_visible=True).select_related("page")
+            for sec in published.iterator():
+                haystack = " ".join(filter(None, [
+                    sec.image_url,
+                    sec.body if isinstance(sec.body, str) else "",
+                    json.dumps(sec.config) if isinstance(sec.config, dict) else "",
+                    json.dumps(sec.published_snapshot) if isinstance(sec.published_snapshot, dict) else "",
+                ]))
+                if url and url in haystack:
+                    referencing.append(f"{sec.page.title} → {sec.title or sec.key}")
+            if referencing:
+                return Response({
+                    "detail": "This image is used by published content and was NOT deleted.",
+                    "used_by": referencing[:10],
+                    "hint": "Remove it from those sections first, or retry with ?force=1 to delete anyway.",
+                }, status=409)
         was_cover = img.is_cover
         dest = img.destination
         img.delete()

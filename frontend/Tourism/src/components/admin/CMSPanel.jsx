@@ -1428,6 +1428,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
   const [sections, setSections] = useState([])
   const [openId, setOpenId] = useState(null)
   const [draft, setDraft] = useState(null)
+  const [secPreview, setSecPreview] = useState(false)
   const [previewId, setPreviewId] = useState(null)
   const dragFrom = useRef(null)
 
@@ -1630,10 +1631,22 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 )}
                 <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
+                  <button type="button" onClick={() => setSecPreview(true)} className="rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 text-xs font-bold flex gap-1"><FiEye /> Preview draft</button>
                   <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
                   <button type="button" onClick={async () => { try { await adminApi.runCMSAction({ resource: "sections", id: draft.id, action: "duplicate" }); onToast("Section duplicated as draft", "success"); await loadSections(); setOpenId(null); setDraft(null) } catch { onToast("Duplicate failed", "error") } }} className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 text-xs font-bold flex gap-1"><FiCopy /> Duplicate</button>
                   <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
+                {secPreview && draft && (
+                  <div className="fixed inset-0 z-[90] bg-black/80 overflow-y-auto p-4" onClick={() => setSecPreview(false)}>
+                    <div className="max-w-4xl mx-auto my-8 bg-white rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between px-4 py-3 bg-slate-900 text-white">
+                        <p className="text-xs font-black">Draft preview — "{draft.title || draft.key}" (unsaved changes shown, not public)</p>
+                        <button type="button" onClick={() => setSecPreview(false)} className="px-3 py-1 rounded-lg bg-slate-700 text-xs font-bold">Close</button>
+                      </div>
+                      <div className="p-4 bg-white text-slate-900"><CMSExtras sections={[{ ...draft, section_type: draft.section_type || "text" }]} /></div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
