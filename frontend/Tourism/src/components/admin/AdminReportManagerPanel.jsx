@@ -1,8 +1,4 @@
 import { useEffect, useState } from "react"
-import {
-  _FiAlertTriangle, _FiCheckCircle, _FiXCircle, _FiFilter, _FiSearch,
-  _FiMessageSquare, _FiSend, _FiClock
-} from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 

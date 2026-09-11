@@ -4,9 +4,9 @@ import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import {
-  FiMapPin, FiUploadCloud, FiClock, _FiDollarSign, FiShield,
-  FiCompass, FiInfo, _FiCheckCircle, FiCrosshair, FiHome, FiPhoneCall,
-  FiLayers, FiImage, _FiX, FiEdit3
+  FiMapPin, FiUploadCloud, FiClock, FiShield,
+  FiCompass, FiInfo, FiCrosshair, FiHome, FiPhoneCall,
+  FiLayers, FiImage, FiEdit3
 } from "react-icons/fi"
 import { getCurrentPosition } from "../services/api.js"
 import destinationApi from "../api/destinationApi"

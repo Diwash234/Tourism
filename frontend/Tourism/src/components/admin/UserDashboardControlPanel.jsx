@@ -4,13 +4,11 @@ import {
   FiEye,
   FiEyeOff,
   FiVolume2,
-  _FiCheck,
   FiRefreshCw,
   FiToggleLeft,
   FiToggleRight,
   FiSave,
   FiLayout,
-  _FiActivity,
   FiZap,
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"

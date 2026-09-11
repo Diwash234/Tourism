@@ -3,7 +3,7 @@ import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import {
-  _FiShare2, FiAlertTriangle, FiCopy, FiStopCircle, FiUserPlus,
+  FiAlertTriangle, FiCopy, FiStopCircle, FiUserPlus,
   FiUsers, FiMapPin, FiClock, FiShield, FiCheck, FiX, FiLink2,
 } from "react-icons/fi"
 import safetyApi, { familyApi } from "../api/safetyApi"

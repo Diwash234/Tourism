@@ -12,20 +12,14 @@ import {
   FiCalendar,
   FiDollarSign,
   FiCompass,
-  _FiSettings,
   FiStar,
   FiShield,
   FiPlus,
-  _FiEdit3,
-  _FiCheckCircle,
-  _FiClock,
   FiSliders,
   FiTag,
   FiAlertTriangle,
   FiZap,
-  _FiRefreshCw,
-  _FiShare2,
-} from "react-icons/fi"
+  } from "react-icons/fi"
 
 import useAuth from "../hooks/useAuth"
 import useGeolocation from "../hooks/useGeolocation"

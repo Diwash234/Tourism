@@ -3,10 +3,7 @@ import PageHeader from "./components/common/PageHeader"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import {
-  FiSend, _FiCompass, FiShield, _FiDollarSign, FiPhoneCall, _FiSun,
-  FiMapPin, FiImage, _FiNavigation, _FiArrowRight, _FiGlobe, _FiKey,
-  FiCalendar, _FiClock, _FiCheck, FiTruck, _FiExternalLink, _FiMaximize2,
-  FiMessageCircle,
+  FiSend, FiShield, FiPhoneCall, FiMapPin, FiImage, FiCalendar, FiTruck, FiMessageCircle,
 } from "react-icons/fi"
 import { Link } from "react-router-dom"
 import chatbotApi from "./api/chatbotApi"

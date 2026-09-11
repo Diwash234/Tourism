@@ -11,7 +11,6 @@ import {
   Calendar,
   MessageSquare,
   Search,
-  _SlidersHorizontal,
   X,
   Sparkles,
   Command,

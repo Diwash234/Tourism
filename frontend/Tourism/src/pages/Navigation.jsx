@@ -10,8 +10,7 @@ import useGeolocation from "../hooks/useGeolocation"
 import {
   FiNavigation, FiMapPin, FiShield,
   FiArrowLeft, FiArrowRight, FiArrowUp, FiRotateCcw, FiChevronLeft,
-  FiChevronRight, FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
-  _FiCheckCircle, _FiAlertTriangle, _FiPhoneCall, _FiSun, _FiZap, _FiTruck, _FiCoffee
+  FiChevronRight, FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat
 } from "react-icons/fi"
 import navigationApi from "../api/navigationApi"
 import TravelOptionsPanel from "../components/navigation/TravelOptionsPanel"

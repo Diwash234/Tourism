@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link, useSearchParams } from "react-router-dom"
 import {
-  FiPhoneCall, FiAlertTriangle, FiMapPin, FiNavigation, _FiShield,
-  _FiPlusSquare, FiActivity, FiSearch, FiCheckCircle, FiExternalLink
+  FiPhoneCall, FiAlertTriangle, FiMapPin, FiNavigation, FiActivity, FiSearch, FiCheckCircle, FiExternalLink
 } from "react-icons/fi"
 import useGeolocation from "../hooks/useGeolocation"
 import Loader from "../components/common/Loader"

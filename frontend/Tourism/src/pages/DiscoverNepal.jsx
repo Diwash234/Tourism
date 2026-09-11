@@ -12,12 +12,8 @@ import {
   FiImage,
   FiMap,
   FiSun,
-  _FiTriangle,
-  _FiCheckCircle,
-  _FiInfo,
   FiBookOpen,
   FiX,
-  _FiCalendar,
   FiCompass,
 } from "react-icons/fi"
 

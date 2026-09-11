@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T16:28:43.863138+00:00",
+  "generated_at": "2026-09-11T16:30:15.887080+00:00",
   "count": 8523,
   "note": "Recorded destination locations. Clones apply this file with: python manage.py fill_missing_place_coords. Tourism/db.sqlite3 stays local and is not the Git source of these fills.",
   "destinations": {

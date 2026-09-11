@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import {
-  _FiActivity, _FiCheckCircle, FiAlertTriangle, FiRefreshCw, FiMapPin,
-  FiTruck, _FiDollarSign, _FiFileText, FiShield, _FiX, FiTrendingUp, FiSave
+  FiAlertTriangle, FiRefreshCw, FiMapPin,
+  FiTruck, FiShield, FiTrendingUp, FiSave
 } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import adminApi from "../../api/adminApi"

@@ -3,10 +3,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Link, useSearchParams } from "react-router-dom"
 import {
   FiUsers, FiMapPin, FiAlertTriangle, FiDollarSign, FiCheck, FiX,
-  FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, _FiEdit3,
-  FiNavigation, _FiPhoneCall, _FiUserCheck, _FiUserX, FiSearch, FiRefreshCw,
-  _FiClock, _FiTrendingUp, FiLayers, _FiFileText, _FiCalendar, _FiHome,
-  FiCompass, FiInfo, _FiChevronRight, FiExternalLink, FiPlay
+  FiEye, FiShield, FiActivity, FiImage, FiPlus, FiTrash2, FiNavigation, FiSearch, FiRefreshCw,
+  FiLayers, FiCompass, FiInfo, FiExternalLink, FiPlay
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import adminPanelApi from "../../api/adminPanelApi"

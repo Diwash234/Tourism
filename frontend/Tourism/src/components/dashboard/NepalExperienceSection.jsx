@@ -2,8 +2,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 import {
-  FiCompass, _FiTrendingUp, _FiCoffee, _FiSun, _FiMapPin,
-  _FiArrowRight, _FiShield, _FiCheck, _FiHeart, FiCalendar
+  FiCompass, FiCalendar
 } from "react-icons/fi"
 import destinationApi from "../../api/destinationApi"
 import ShimmerBadge from "../ui/ShimmerBadge"

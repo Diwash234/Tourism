@@ -3,8 +3,7 @@ import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiShield, _FiAlertTriangle, FiPlus, _FiCheckCircle, _FiActivity,
-  _FiUserCheck, _FiSmile, _FiTruck, FiX
+  FiShield, FiPlus, FiX
 } from "react-icons/fi";
 
 import alertApi from "../api/alertApi";

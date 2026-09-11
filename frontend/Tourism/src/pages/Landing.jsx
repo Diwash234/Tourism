@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
-  FiMapPin, FiShield, FiDollarSign, FiNavigation, _FiStar,
-  _FiCompass, FiArrowRight, _FiCheckCircle, _FiPhoneCall, _FiSun
+  FiMapPin, FiShield, FiDollarSign, FiNavigation, FiArrowRight
 } from "react-icons/fi"
 import { useI18n } from "../i18n"
 
@@ -22,8 +21,7 @@ import usePublicConfig from "../hooks/usePublicConfig"
 import VisitorNoticeBanner from "../components/common/VisitorNoticeBanner"
 import { CMSExtras } from "../components/cms/CMSBlock"
 import {
-  _FadeIn, SlideUp, _Stagger, _StaggerItem, HoverCard,
-  _BurnGlowBadge, _InteractiveHeroCanvas
+  SlideUp, HoverCard
 } from "../components/common/MotionSystem"
 import CaseStudiesSection from "../components/landing/CaseStudiesSection"
 import TestimonialsSection from "../components/landing/TestimonialsSection"

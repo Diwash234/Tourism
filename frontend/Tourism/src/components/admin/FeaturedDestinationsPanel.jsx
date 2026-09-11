@@ -2,8 +2,7 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FiStar, FiPlus, FiTrash2, FiEdit3, FiArrowUp, FiArrowDown,
-  FiCheck, FiX, FiSearch, _FiEye, _FiImage, _FiExternalLink, _FiCompass,
-  _FiCalendar, _FiCheckCircle, _FiInfo, _FiSliders
+  FiCheck, FiX, FiSearch
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"

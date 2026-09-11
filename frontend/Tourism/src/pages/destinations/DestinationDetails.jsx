@@ -2,11 +2,10 @@ import { useEffect, useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  _FiStar, FiMapPin, _FiHeart, FiPhoneCall, FiDollarSign,
-  FiShield, _FiHome, FiCoffee, _FiShoppingBag, FiGlobe, FiClock,
-  FiNavigation, _FiLayers, _FiMaximize2, FiChevronLeft, FiChevronRight,
-  FiX, _FiCalendar, FiActivity, _FiAlertTriangle, _FiCheckCircle,
-  FiTruck, FiCompass, FiExternalLink, _FiInfo, FiBookOpen, _FiShare2, FiSun
+  FiMapPin, FiPhoneCall, FiDollarSign,
+  FiShield, FiCoffee, FiGlobe, FiClock,
+  FiNavigation, FiChevronLeft, FiChevronRight,
+  FiX, FiActivity, FiTruck, FiCompass, FiExternalLink, FiBookOpen, FiSun
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"

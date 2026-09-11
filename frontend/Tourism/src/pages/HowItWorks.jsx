@@ -4,10 +4,9 @@ import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  FiHelpCircle, FiMapPin, FiCompass, _FiShield, _FiDollarSign,
-  FiBookOpen, FiUserCheck, FiCheckCircle, FiAlertCircle, FiInfo,
-  FiSearch, _FiDatabase, _FiCpu, FiMessageSquare, FiSettings,
-  FiLock, FiSliders, _FiFileText, FiCalendar, FiArrowRight, FiChevronDown
+  FiHelpCircle, FiMapPin, FiCompass, FiBookOpen, FiUserCheck, FiCheckCircle, FiAlertCircle, FiInfo,
+  FiSearch, FiMessageSquare, FiSettings,
+  FiLock, FiSliders, FiCalendar, FiArrowRight, FiChevronDown
 } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import CMSPageIntro from "../components/cms/CMSPageIntro"

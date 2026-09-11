@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import {
-  _FiTruck, FiPlus, _FiEdit3, _FiTrash2, _FiSearch, _FiCheckCircle,
-  _FiMapPin, FiCompass, _FiDollarSign, _FiClock, _FiX, _FiCheck
+  FiPlus, FiCompass
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import destinationApi from "../../api/destinationApi"
