@@ -1,4 +1,5 @@
 import React from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import { FiShield } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
@@ -6,6 +7,8 @@ import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function PrivacyPolicy() {
+  const { block: __block } = usePublicConfig().pageCMS("privacy-policy", [])
+  const __intro = __block("page-intro") || __block("intro")
   return (
     <ResponsiveContainer className="py-8 space-y-6">
       <Breadcrumbs items={[
@@ -19,7 +22,7 @@ export default function PrivacyPolicy() {
             Data Protection & Privacy
           </span>
           <CMSPageIntro pageKey="privacy-policy" />
-          <PageHeader title="Privacy Policy" subtitle="Last updated: August 2026 · Official Nepal Yatra Platform" icon={FiShield} />
+          <PageHeader title={__intro?.title || "Privacy Policy"} subtitle={__intro?.subtitle || __intro?.body || "Last updated: August 2026 · Official Nepal Yatra Platform"} icon={FiShield} />
         </div>
 
         <div className="space-y-4 text-xs leading-relaxed text-slate-700 border-t border-slate-100 pt-4">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import { FiDollarSign, FiPlus } from "react-icons/fi"
 import adminApi from "../api/adminApi"
@@ -7,6 +8,8 @@ import EmptyState from "../components/common/EmptyState"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function Expenditure() {
+  const { block: __block } = usePublicConfig().pageCMS("expenditure", [])
+  const __intro = __block("page-intro") || __block("intro")
   const [reports, setReports] = useState([])
   const [showForm, setShowForm] = useState(false)
 
@@ -25,7 +28,7 @@ export default function Expenditure() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <CMSPageIntro pageKey="expenditure" />
-          <PageHeader title="Travel Expenditure History" icon={FiDollarSign} />
+          <PageHeader title={__intro?.title || "Travel Expenditure History"} subtitle={__intro?.subtitle || __intro?.body || undefined} icon={FiDollarSign} />
           <p className="text-gray-500 text-sm mt-1">
             Track your actual trip spending and train ML prediction models.
           </p>

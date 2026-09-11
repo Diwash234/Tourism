@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import { Link } from "react-router-dom"
 import { FiBriefcase } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -24,6 +25,8 @@ const empty = {
 }
 
 export default function PartnerDesk() {
+  const { block: __block } = usePublicConfig().pageCMS("partner-desk", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { showToast } = useToast()
   const [desk, setDesk] = useState(null)
   const [missing, setMissing] = useState(false)
@@ -77,7 +80,7 @@ export default function PartnerDesk() {
     return (
       <div className="container-app py-10">
         <CMSPageIntro pageKey="partner-desk" />
-        <PageHeader title="Partner desk" subtitle="Apply first. After an administrator approves your business you can add packages here." icon={FiBriefcase} theme="forest" />
+        <PageHeader title={__intro?.title || "Partner desk"} subtitle={__intro?.subtitle || __intro?.body || "Apply first. After an administrator approves your business you can add packages here."} icon={FiBriefcase} theme="forest" />
         <div data-testid="partner-desk-missing" />
         <div className="card-base p-6 max-w-xl space-y-3">
           <p className="text-slate-600">No partner application is linked to this account.</p>

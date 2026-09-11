@@ -10,6 +10,8 @@ import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 
 const Hotels = () => {
+  const { block: __block } = usePublicConfig().pageCMS("hotels", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { block: cmsBlock } = usePublicConfig().pageCMS("hotels", ["intro", "page-intro"])
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
@@ -48,7 +50,7 @@ const Hotels = () => {
       <CMSIntro section={cmsBlock("intro")} />
 
       <div>
-        <PageHeader title="Hotels & Stays" subtitle="From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal." />
+        <PageHeader title={__intro?.title || "Hotels & Stays"} subtitle={__intro?.subtitle || __intro?.body || "From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal."} />
       </div>
 
 

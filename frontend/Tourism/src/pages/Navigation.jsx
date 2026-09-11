@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
@@ -151,6 +152,8 @@ const TURN_ICONS = {
 }
 
 export default function Navigation() {
+  const { block: __block } = usePublicConfig().pageCMS("navigation", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { position, error: geoError, locating, retry: retryGeo } = useGeolocation()
   const [searchParams] = useSearchParams()
   const requestedDest = searchParams.get("dest") || searchParams.get("destination") || ""
@@ -387,8 +390,8 @@ export default function Navigation() {
       setRouteWaypoints(Array.isArray(response.data.waypoints) ? response.data.waypoints : [])
 
       // Cache an offline pack of this calculation (newest first, capped).
-      // eslint-disable-next-line react-hooks/purity -- runs in an async event handler after await, never during render
       const offlinePack = {
+        // eslint-disable-next-line react-hooks/purity -- runs in an async event handler after await, never during render
         id: Date.now(),
         destination_name: dest?.name || destName,
         destination: dest,
@@ -697,7 +700,7 @@ export default function Navigation() {
             </span>
             <span className="text-xs text-gray-500 font-medium">Any Origin ➔ Any Destination in 7 Provinces</span>
           </div>
-          <PageHeader title="Maps & Navigation" icon={FiNavigation} />
+          <PageHeader title={__intro?.title || "Maps & Navigation"} subtitle={__intro?.subtitle || __intro?.body || undefined} icon={FiNavigation} />
         </div>
 
         {/* HUD & Map Tools Switcher */}

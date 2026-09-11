@@ -1,4 +1,5 @@
 import { useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion, AnimatePresence } from "framer-motion"
@@ -111,6 +112,8 @@ const INITIAL_PHRASES = [
 const CATEGORIES = ["All", "Greetings", "Directions", "Food", "Shopping", "Emergency"]
 
 const Language = () => {
+  const { block: __block } = usePublicConfig().pageCMS("phrasebook", [])
+  const __intro = __block("page-intro") || __block("intro")
   const { showToast } = useToast()
   const [selectedDialect, setSelectedDialect] = useState("ne")
   const [activeCategory, setActiveCategory] = useState("All")
@@ -190,7 +193,7 @@ const Language = () => {
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-bold uppercase tracking-wider">
             Multi-Dialect Cultural Phrasebook
           </span>
-          <PageHeader title="Languages of Nepal & Local Dialects" icon={FiGlobe} />
+          <PageHeader title={__intro?.title || "Languages of Nepal & Local Dialects"} subtitle={__intro?.subtitle || __intro?.body || undefined} icon={FiGlobe} />
           <p className="text-gray-500 text-sm mt-1">
             Learn authentic local phrases in Nepali, Newari, Sherpa, Maithili, Tamang, and Gurung with instant pronunciation audio.
           </p>

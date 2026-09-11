@@ -1,4 +1,5 @@
 import { useForm, useWatch } from "react-hook-form"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useRef, useState } from "react"
@@ -68,6 +69,8 @@ const CATEGORY_META = [
 ]
 
 const BudgetEstimator = () => {
+  const { block: __block } = usePublicConfig().pageCMS("budget-estimator", [])
+  const __intro = __block("page-intro") || __block("intro")
   const {
     register,
     handleSubmit,
@@ -169,7 +172,7 @@ const BudgetEstimator = () => {
       <CMSPageIntro pageKey="budget-estimator" />
       {/* FORM */}
       <div>
-        <PageHeader title="Budget Estimator" subtitle={<>Plan your Nepal trip expenses. The estimate updates automatically when
+        <PageHeader title={__intro?.title || "Budget Estimator"} subtitle={__intro?.subtitle || __intro?.body || <>Plan your Nepal trip expenses. The estimate updates automatically when
           you change your trip details.</>} icon={ FiDollarSign } />
 
         <form

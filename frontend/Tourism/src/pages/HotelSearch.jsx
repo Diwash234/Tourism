@@ -1,4 +1,5 @@
 import { useState } from "react";
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -9,6 +10,8 @@ import HotelMedia from "../components/cards/HotelMedia";
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const HotelSearch = () => {
+  const { block: __block } = usePublicConfig().pageCMS("hotel-search", [])
+  const __intro = __block("page-intro") || __block("intro")
   const [query, setQuery] = useState("");
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -35,7 +38,7 @@ const HotelSearch = () => {
   return (
     <div className="container-app py-10 fade-in">
       <CMSPageIntro pageKey="hotel-search" />
-      <PageHeader title="Find a Hotel" />
+      <PageHeader title={__intro?.title || "Find a Hotel"} subtitle={__intro?.subtitle || __intro?.body || undefined} />
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-2xl">
         <div className="relative flex-1">
