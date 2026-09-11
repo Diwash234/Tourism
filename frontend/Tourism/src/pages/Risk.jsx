@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
 import PageHeader from "../components/common/PageHeader"
 
 import { getRisk as predictRisk } from "../services/mlService"
@@ -8,6 +9,8 @@ import EmptyState from "../components/common/EmptyState"
 
 
 const Risk = () => {
+  const { block: __block } = usePublicConfig().pageCMS("risk", [])
+  const __intro = __block("page-intro") || __block("intro")
 
   const [risk, setRisk] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -110,7 +113,7 @@ const Risk = () => {
     <div className="container-app py-10 theme-amber">
 
 
-      <PageHeader title="Travel Safety Risk" />
+      <PageHeader title={__intro?.title || "Travel Safety Risk"} subtitle={__intro?.subtitle || __intro?.body || undefined} />
 
 
 

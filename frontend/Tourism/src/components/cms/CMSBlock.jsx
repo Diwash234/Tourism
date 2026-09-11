@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import SafeHtml from "./SafeHtml"
 import { Link } from "react-router-dom"
 import axiosClient from "../../api/axiosClient"
 
@@ -90,10 +91,7 @@ export function ContentBlockItem({ block }) {
 
     case "rich_text":
       return (
-        <div
-          className="prose prose-sm max-w-none mt-3"
-          dangerouslySetInnerHTML={{ __html: data.html || data.text || block.title || "" }}
-        />
+        <SafeHtml className="prose prose-sm max-w-none mt-3" html={data.html || data.text || block.title || ""} />
       )
 
     case "image": {
@@ -296,10 +294,7 @@ export function ContentBlockItem({ block }) {
 
     case "html":
       return (
-        <div
-          className="mt-3 prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: data.html || data.text || "" }}
-        />
+        <SafeHtml className="mt-3 prose prose-sm max-w-none" html={data.html || data.text || ""} />
       )
 
     default:
@@ -392,7 +387,7 @@ export default function CMSBlock({ section }) {
           )}
           {type === "heading" && section.body && <p className="mt-3 text-base opacity-90">{section.body}</p>}
           {["text", "animation", "cards", "faq", "testimonials", "contact"].includes(type) && section.body && (
-            <div className="prose prose-sm mt-3 max-w-none" dangerouslySetInnerHTML={{ __html: section.body }} />
+            <SafeHtml className="prose prose-sm mt-3 max-w-none" html={section.body} />
           )}
           {type === "image" && media && <img src={media} alt="" className="mt-4 max-h-80 w-full rounded-2xl object-cover" />}
           {type === "gallery" && media && <img src={media} alt="" className="mt-4 max-h-64 w-full rounded-2xl object-cover" />}

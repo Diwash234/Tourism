@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import SafeHtml from "../cms/SafeHtml"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { diffSnapshots, formatSnapshotValue } from "../../utils/revisionDiff"
 import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX, FiCopy } from "react-icons/fi"
@@ -532,7 +533,7 @@ export default function CMSPanel() {
                         <CMSExtras sections={preview.sections} />
                       </div>
                     )}
-                    {!preview.sections && <div className="prose prose-sm mt-5" dangerouslySetInnerHTML={{ __html: preview.body || "" }} />}
+                    {!preview.sections && <SafeHtml className="prose prose-sm mt-5" html={preview.body || ""} />}
                   </div>
                 )}
               </div>
@@ -1579,7 +1580,7 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                 <h4 className="text-base font-black">{section.title}</h4>
                 <p className="text-slate-500">{section.subtitle}</p>
                 {section.image_url && <img src={section.image_url} alt="" className="mt-2 max-h-40 w-full rounded-lg object-cover" />}
-                <div className="prose prose-sm mt-2" dangerouslySetInnerHTML={{ __html: section.body || "" }} />
+                <SafeHtml className="prose prose-sm mt-2" html={section.body || ""} />
               </article>
             )}
             {openId === section.id && draft && (

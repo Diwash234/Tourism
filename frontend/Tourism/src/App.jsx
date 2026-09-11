@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, lazy, Suspense } from "react"
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom"
 import usePublicConfig from "./hooks/usePublicConfig"
 import ErrorBoundary from "./components/common/ErrorBoundary"
@@ -18,38 +18,38 @@ import AdminRoute from "./routes/AdminRoute"
 import StaffRoute from "./routes/StaffRoute"
 
 // Public Pages
-import Landing from "./pages/Landing"
-import About from "./pages/About"
-import Contact from "./pages/Contact"
-import HowItWorks from "./pages/HowItWorks"
-import PrivacyPolicy from "./pages/PrivacyPolicy"
-import TermsOfService from "./pages/TermsOfService"
-import CustomerSupport from "./pages/CustomerSupport"
-import ThankYou from "./pages/ThankYou"
-import NotFound from "./pages/NotFound"
-import DynamicCMSPage from "./pages/DynamicCMSPage"
+const Landing = lazy(() => import("./pages/Landing"))
+const About = lazy(() => import("./pages/About"))
+const Contact = lazy(() => import("./pages/Contact"))
+const HowItWorks = lazy(() => import("./pages/HowItWorks"))
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"))
+const TermsOfService = lazy(() => import("./pages/TermsOfService"))
+const CustomerSupport = lazy(() => import("./pages/CustomerSupport"))
+const ThankYou = lazy(() => import("./pages/ThankYou"))
+const NotFound = lazy(() => import("./pages/NotFound"))
+const DynamicCMSPage = lazy(() => import("./pages/DynamicCMSPage"))
 
 // Authentication
-import Login from "./pages/auth/Login"
-import UserLogin from "./pages/auth/UserLogin"
-import StaffLogin from "./pages/auth/StaffLogin"
-import AdminLogin from "./pages/auth/AdminLogin"
-import Register from "./pages/auth/Register"
-import ForgotPassword from "./pages/auth/ForgotPassword"
-import OAuthCallback from "./pages/auth/OAuthCallback"
-import VerifyPhone from "./pages/VerifyPhone"
+const Login = lazy(() => import("./pages/auth/Login"))
+const UserLogin = lazy(() => import("./pages/auth/UserLogin"))
+const StaffLogin = lazy(() => import("./pages/auth/StaffLogin"))
+const AdminLogin = lazy(() => import("./pages/auth/AdminLogin"))
+const Register = lazy(() => import("./pages/auth/Register"))
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"))
+const OAuthCallback = lazy(() => import("./pages/auth/OAuthCallback"))
+const VerifyPhone = lazy(() => import("./pages/VerifyPhone"))
 
 // Destination Pages
-import DestinationList from "./pages/destinations/DestinationList"
-import DestinationDetails from "./pages/destinations/DestinationDetails"
-import SubmitPlacePage from "./pages/SubmitPlacePage"
-import SubmitServicePage from "./pages/SubmitServicePage"
-import DiscoverNepal from "./pages/DiscoverNepal"
-import Districts from "./pages/Districts"
-import DistrictDetail from "./pages/DistrictDetail"
-import ExploreNepalMap from "./pages/ExploreNepalMap"
-import CompareDestinations from "./pages/CompareDestinations"
-import Gallery from "./pages/Gallery"
+const DestinationList = lazy(() => import("./pages/destinations/DestinationList"))
+const DestinationDetails = lazy(() => import("./pages/destinations/DestinationDetails"))
+const SubmitPlacePage = lazy(() => import("./pages/SubmitPlacePage"))
+const SubmitServicePage = lazy(() => import("./pages/SubmitServicePage"))
+const DiscoverNepal = lazy(() => import("./pages/DiscoverNepal"))
+const Districts = lazy(() => import("./pages/Districts"))
+const DistrictDetail = lazy(() => import("./pages/DistrictDetail"))
+const ExploreNepalMap = lazy(() => import("./pages/ExploreNepalMap"))
+const CompareDestinations = lazy(() => import("./pages/CompareDestinations"))
+const Gallery = lazy(() => import("./pages/Gallery"))
 
 // Features
 import Chatbot from "./Chatbot"
@@ -57,53 +57,53 @@ import MyBooking from "./MyBookings"
 import BookHotel from "./BookHotel"
 
 // User Dashboard Pages
-import Dashboard from "./pages/Dashboard"
-import Profile from "./pages/Profile"
-import Recommendation from "./pages/Recommendation"
-import BudgetEstimator from "./pages/BudgetEstimator"
-import RiskAlertDashboard from "./pages/RiskAlertDashboard"
-import Hotels from "./pages/Hotels"
-import HotelSearch from "./pages/HotelSearch"
-import Navigation from "./pages/Navigation"
-import Language from "./pages/Language"
-import Emergency from "./pages/Emergency"
-import NearbyPlaces from "./pages/NearbyPlaces"
-import Translation from "./pages/Translation"
-import Settings from "./pages/Settings"
-import Favorites from "./pages/Favorites"
-import History from "./pages/History"
-import Notifications from "./pages/Notifications"
-import Expenditure from "./pages/Expenditure"
-import MySubmissions from "./pages/MySubmissions"
-import StaffDashboard from "./pages/StaffDashboard"
-import Itinerary from "./pages/Itinerary"
-import FamilySafety from "./pages/FamilySafety"
-import SharedTripView from "./pages/SharedTripView"
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const Profile = lazy(() => import("./pages/Profile"))
+const Recommendation = lazy(() => import("./pages/Recommendation"))
+const BudgetEstimator = lazy(() => import("./pages/BudgetEstimator"))
+const RiskAlertDashboard = lazy(() => import("./pages/RiskAlertDashboard"))
+const Hotels = lazy(() => import("./pages/Hotels"))
+const HotelSearch = lazy(() => import("./pages/HotelSearch"))
+const Navigation = lazy(() => import("./pages/Navigation"))
+const Language = lazy(() => import("./pages/Language"))
+const Emergency = lazy(() => import("./pages/Emergency"))
+const NearbyPlaces = lazy(() => import("./pages/NearbyPlaces"))
+const Translation = lazy(() => import("./pages/Translation"))
+const Settings = lazy(() => import("./pages/Settings"))
+const Favorites = lazy(() => import("./pages/Favorites"))
+const History = lazy(() => import("./pages/History"))
+const Notifications = lazy(() => import("./pages/Notifications"))
+const Expenditure = lazy(() => import("./pages/Expenditure"))
+const MySubmissions = lazy(() => import("./pages/MySubmissions"))
+const StaffDashboard = lazy(() => import("./pages/StaffDashboard"))
+const Itinerary = lazy(() => import("./pages/Itinerary"))
+const FamilySafety = lazy(() => import("./pages/FamilySafety"))
+const SharedTripView = lazy(() => import("./pages/SharedTripView"))
 
 // New Features (Remote Repository Updates)
-import Packages from "./pages/Packages"
-import Guides from "./pages/Guides"
-import GuidePortal from "./pages/GuidePortal"
-import TourismJobs from "./pages/TourismJobs"
-import GuideBookings from "./pages/GuideBookings"
-import PackageDetail from "./pages/PackageDetail"
-import Collaborate from "./pages/Collaborate"
-import Checkout from "./pages/Checkout"
-import PartnerDesk from "./pages/PartnerDesk"
-import TripStatus from "./pages/TripStatus"
+const Packages = lazy(() => import("./pages/Packages"))
+const Guides = lazy(() => import("./pages/Guides"))
+const GuidePortal = lazy(() => import("./pages/GuidePortal"))
+const TourismJobs = lazy(() => import("./pages/TourismJobs"))
+const GuideBookings = lazy(() => import("./pages/GuideBookings"))
+const PackageDetail = lazy(() => import("./pages/PackageDetail"))
+const Collaborate = lazy(() => import("./pages/Collaborate"))
+const Checkout = lazy(() => import("./pages/Checkout"))
+const PartnerDesk = lazy(() => import("./pages/PartnerDesk"))
+const TripStatus = lazy(() => import("./pages/TripStatus"))
 // TripPlanner was merged into Itinerary (single dataset-driven planner).
 // The old /trip-planner route now redirects to /itinerary below.
-import PersonalDetails from "./pages/PersonalDetails"
-import LocalDashboard from "./pages/local/LocalDashboard"
+const PersonalDetails = lazy(() => import("./pages/PersonalDetails"))
+const LocalDashboard = lazy(() => import("./pages/local/LocalDashboard"))
 import LocalRoute from "./routes/LocalRoute"
 
 // Admin
-import AdminDashboard from "./pages/admin/AdminDashboard"
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"))
 import AdminLayout from "./components/admin/AdminLayout"
 import StaffLayout from "./components/admin/StaffLayout"
-import DiagnosticsCenter from "./pages/admin/DiagnosticsCenter"
-import HotelAssignments from "./pages/admin/HotelAssignments"
-import AdminTasks from "./pages/admin/Tasks"
+const DiagnosticsCenter = lazy(() => import("./pages/admin/DiagnosticsCenter"))
+const HotelAssignments = lazy(() => import("./pages/admin/HotelAssignments"))
+const AdminTasks = lazy(() => import("./pages/admin/Tasks"))
 
 
 // Admin-managed URL redirects (RedirectRule) arrive through the public config;
@@ -149,6 +149,7 @@ function App() {
       <RedirectRules />
       <CommandPalette />
       <RedirectHandler />
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><span className="animate-pulse text-sm text-gray-400">Loading Nepal Yatra…</span></div>}>
       <Routes>
 
       {/* Auth portals — no traveller navbar/sidebar so Admin, Staff and Traveller look different */}
@@ -328,6 +329,7 @@ function App() {
       </Route>
 
       </Routes>
+      </Suspense>
     </ErrorBoundary>
   )
 }

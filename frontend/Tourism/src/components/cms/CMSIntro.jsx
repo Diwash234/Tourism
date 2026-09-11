@@ -1,3 +1,4 @@
+import SafeHtml from "./SafeHtml"
 // Shared CMS intro block — renders the `intro` section (tolerantly matched to
 // `page-intro` by usePublicConfig) for pages that previously had no CMS
 // consumption at all. Renders NOTHING when the section is empty, so pages keep
@@ -53,10 +54,7 @@ export default function CMSIntro({ section: s }) {
           </HeadingTag>
         )}
         {s.body && (
-          <div
-            className="prose prose-sm md:prose-base mt-3 max-w-none text-gray-600"
-            dangerouslySetInnerHTML={{ __html: s.body }}
-          />
+          <SafeHtml className="prose prose-sm md:prose-base mt-3 max-w-none text-gray-600" html={s.body} />
         )}
       </div>
       {s.image_url && (
