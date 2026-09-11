@@ -563,25 +563,35 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         radius_km = query_serializer.validated_data["radius_km"]
 
         box = bounding_box(lat, lon, radius_km)
+        # Perf: the distance pass reads coordinates only — a 250 km box can
+        # match thousands of rows and full instances (with descriptions) made
+        # this the slowest public endpoint. Full rows are fetched for the
+        # returned page only, preserving order and the exact same contract.
         candidates = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED,
             latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
             longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
-        )
+        ).only("id", "latitude", "longitude")
 
         results = []
-        for dest in candidates:
+        for dest in candidates.iterator(chunk_size=1000):
             distance = haversine_distance(lat, lon, dest.latitude, dest.longitude)
             if distance <= radius_km:
-                results.append((distance, dest))
+                results.append((distance, dest.id))
         results.sort(key=lambda pair: pair[0])
-        destinations = [dest for _, dest in results]
+        ordered_ids = [dest_id for _, dest_id in results]
 
-        page = self.paginate_queryset(destinations)
+        def _full_rows(ids):
+            rows = Destination.objects.filter(id__in=ids)
+            by_id = {row.id: row for row in rows}
+            return [by_id[i] for i in ids if i in by_id]
+
+        page_ids = self.paginate_queryset(ordered_ids)
+        destinations = _full_rows(page_ids if page_ids is not None else ordered_ids)
         serializer = DestinationListSerializer(
-            page or destinations, many=True, context={"request": request, "user_lat": lat, "user_lon": lon}
+            destinations, many=True, context={"request": request, "user_lat": lat, "user_lon": lon}
         )
-        if page is not None:
+        if page_ids is not None:
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
    
@@ -2187,11 +2197,23 @@ class MoodRecommendationsView(generics.ListAPIView):
         # destinations automatically participate without retraining a CSV model.
         qs = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED
-        ).select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
-            hospital_total=Count("hospitals", distinct=True),
-            police_total=Count("police_stations", distinct=True),
-            hotel_total=Count("hotels", distinct=True),
-        )
+        ).select_related("category", "risk_analysis")
+
+        # Perf: scoring used to run three COUNT joins + a transit-routes join
+        # across all 7,500+ rows. The same values are now precomputed with one
+        # grouped query per relation — identical scores, far fewer row reads.
+        from .models import Hospital as _Hospital, PoliceStation as _PoliceStation
+        hospital_counts = dict(_Hospital.objects.values_list("destination_id").annotate(c=Count("id")))
+        police_counts = dict(_PoliceStation.objects.values_list("destination_id").annotate(c=Count("id")))
+        hotel_counts = dict(Hotel.objects.values_list("destination_id").annotate(c=Count("id")))
+        route_rows = DestinationTransitRoute.objects.values_list("destination_id", "road_condition")
+        route_info = {}
+        _bad_words = ("blocked", "closed", "landslide", "impassable", "dangerous")
+        for dest_id, road_condition in route_rows:
+            entry = route_info.setdefault(dest_id, {"count": 0, "bad": False, "first": road_condition})
+            entry["count"] += 1
+            if any(word in (road_condition or "").lower() for word in _bad_words):
+                entry["bad"] = True
 
         exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
         qs = qs.exclude(category__slug__in=exclude_slugs)
@@ -2335,11 +2357,13 @@ class MoodRecommendationsView(generics.ListAPIView):
                 score += current_warning_adjustment
             breakdown["current_warning_adjustment"] = current_warning_adjustment
 
-            service_count = destination.hospital_total + destination.police_total + destination.hotel_total
+            hospital_total = hospital_counts.get(destination.id, 0)
+            police_total = police_counts.get(destination.id, 0)
+            service_count = hospital_total + police_total + hotel_counts.get(destination.id, 0)
             emergency_score = min(service_count * 0.015, 0.09)
             score += emergency_score
             breakdown["services"] = round(emergency_score, 3)
-            if destination.hospital_total and destination.police_total:
+            if hospital_total and police_total:
                 reasons.append("Verified hospital and police coverage")
 
             dist_key = (destination.district or destination.city or destination.name or "").lower()
@@ -2363,16 +2387,15 @@ class MoodRecommendationsView(generics.ListAPIView):
             if destination.short_description:
                 reasons.append(destination.short_description[:120])
 
-            route_records = list(destination.transit_routes.all())
-            route_text = " ".join((route.road_condition or "") for route in route_records).lower()
-            route_penalty = -0.10 if any(word in route_text for word in ["blocked", "closed", "landslide", "impassable", "dangerous"]) else 0.04 if route_records else 0.0
+            route_entry = route_info.get(destination.id)
+            route_penalty = -0.10 if route_entry and route_entry["bad"] else 0.04 if route_entry else 0.0
             score += route_penalty
             breakdown["route_condition"] = route_penalty
             safety_context = {
-                "hospital_count": destination.hospital_total,
-                "police_count": destination.police_total,
-                "hotel_count": destination.hotel_total,
-                "route_condition": route_records[0].road_condition if (route_records and route_records[0].road_condition) else official_highway,
+                "hospital_count": hospital_total,
+                "police_count": police_total,
+                "hotel_count": hotel_counts.get(destination.id, 0),
+                "route_condition": (route_entry["first"] if route_entry and route_entry["first"] else official_highway),
                 "availability": availability,
                 "current_warning": {
                     "title": warning["title"], "severity": warning["severity"],
