@@ -481,6 +481,16 @@ export default function CMSPanel() {
                   </button>
                   <input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} className="border border-emerald-200 rounded-lg px-2 text-xs" />
                   <button disabled={!scheduleAt} onClick={() => workflow("schedule", { scheduled_publish_at: new Date(scheduleAt).toISOString() })} className="px-3 py-2 rounded-lg bg-sky-700 disabled:opacity-40 text-xs font-bold text-white">Schedule</button>
+                  {["draft", "changes_requested"].includes(selected.status) && (
+                    <button onClick={() => workflow("submit_review")} className="px-3 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-xs font-bold text-white">Submit for review</button>
+                  )}
+                  {selected.status === "in_review" && (
+                    <>
+                      <button onClick={() => workflow("approve")} className="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-xs font-bold text-white">Approve</button>
+                      <button onClick={() => workflow("request_changes")} className="px-3 py-2 rounded-lg bg-rose-700 hover:bg-rose-600 text-xs font-bold text-white">Request changes</button>
+                    </>
+                  )}
+                  {selected.status === "approved" && <span className="px-3 py-2 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black">✓ Approved — ready to publish</span>}
                   <button onClick={async () => { try { await adminApi.runCMSAction({ resource: "pages", id: selected.id, action: "duplicate" }); showToast("Page duplicated as draft", "success"); await load(selected.id) } catch { showToast("Duplicate failed", "error") } }} className="px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-xs font-bold text-white flex gap-1"><FiCopy /> Duplicate page</button>
                 </div>
               )}

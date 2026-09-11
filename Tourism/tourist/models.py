@@ -2644,7 +2644,7 @@ class ManagedPage(TimeStampedModel):
     og_image_url = models.URLField(max_length=600, blank=True)
     search_visible = models.BooleanField(default=True)
     is_enabled = models.BooleanField(default=True)
-    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("in_review","In Review"),("changes_requested","Changes Requested"),("approved","Approved"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_pages_updated")
@@ -2687,7 +2687,7 @@ class ContentSection(TimeStampedModel):
     display_order = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
     is_reusable = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("in_review","In Review"),("changes_requested","Changes Requested"),("approved","Approved"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     published_snapshot = models.JSONField(

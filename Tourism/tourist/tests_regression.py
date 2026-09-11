@@ -3946,3 +3946,63 @@ class SEOSitemapRegressionTests(TestCase):
         body = self.client.get("/api/v1/seo/robots.txt").content.decode()
         self.assertIn("Sitemap:", body)
         self.assertIn("Disallow: /admin", body)
+
+
+class LocalizationRegressionTests(TestCase):
+    """Blueprint §14: one record, many languages — ?lang=ne serves the
+    translation; English falls back to the source fields."""
+
+    def test_translation_served_per_language(self):
+        page = ManagedPage.objects.create(key="loc-page", route="/loc-page", title="Visit Nepal", status="published", is_enabled=True)
+        sec = ContentSection.objects.create(page=page, key="intro", title="Welcome", body="Hello", section_type="text", status="published", is_visible=True)
+        from .models import CMSContentTranslation
+        CMSContentTranslation.objects.create(target_resource="pages", object_id=page.pk, language_code="ne", content={"title": "नेपाल भ्रमण"})
+        CMSContentTranslation.objects.create(target_resource="sections", object_id=sec.pk, language_code="ne", content={"title": "स्वागत छ", "body": "नमस्ते"})
+        en = self.client.get("/api/v1/config/public/").json()
+        page_en = next(p for p in en["pages"] if p["key"] == "loc-page")
+        self.assertEqual(page_en["title"], "Visit Nepal")
+        ne = self.client.get("/api/v1/config/public/?lang=ne").json()
+        page_ne = next(p for p in ne["pages"] if p["key"] == "loc-page")
+        self.assertEqual(page_ne["title"], "नेपाल भ्रमण")
+        sec_ne = next(s for s in page_ne["sections"] if s["key"] == "intro")
+        self.assertEqual(sec_ne["title"], "स्वागत छ")
+        self.assertEqual(sec_ne["body"], "नमस्ते")
+        # untranslated language falls back to source, never to another translation
+        hi = self.client.get("/api/v1/config/public/?lang=hi").json()
+        page_hi = next(p for p in hi["pages"] if p["key"] == "loc-page")
+        self.assertEqual(page_hi["title"], "Visit Nepal")
+
+
+class ReviewWorkflowRegressionTests(TestCase):
+    """Blueprint §7: draft -> in_review -> approved -> published, with
+    changes_requested loop; review states never public."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/cms/"
+        self.page = ManagedPage.objects.create(key="wf-page", route="/wf-page", title="WF", status="draft", is_enabled=True)
+
+    def _act(self, action):
+        return self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": action}, format="json")
+
+    def test_full_workflow_and_public_exposure(self):
+        self.assertEqual(self._act("submit_review").status_code, 200)
+        self.page.refresh_from_db(); self.assertEqual(self.page.status, "in_review")
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNone(next((p for p in pub["pages"] if p["key"] == "wf-page"), None))
+        self.assertEqual(self._act("request_changes").status_code, 200)
+        self.page.refresh_from_db(); self.assertEqual(self.page.status, "changes_requested")
+        self.assertEqual(self._act("submit_review").status_code, 200)
+        self.assertEqual(self._act("approve").status_code, 200)
+        self.page.refresh_from_db(); self.assertEqual(self.page.status, "approved")
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNone(next((p for p in pub["pages"] if p["key"] == "wf-page"), None))
+        self.assertEqual(self._act("publish").status_code, 200)
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNotNone(next((p for p in pub["pages"] if p["key"] == "wf-page"), None))
+
+    def test_invalid_transition_rejected(self):
+        # draft cannot be "request_changes" target from published-only states
+        self.page.status = "published"; self.page.save()
+        self.assertEqual(self._act("approve").status_code, 400)

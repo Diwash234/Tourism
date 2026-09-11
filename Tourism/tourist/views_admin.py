@@ -2810,6 +2810,18 @@ class AdminCMSView(APIView):
             payload.pop("published_at", None)
             payload.pop("scheduled_publish_at", None)
             action_name = "rollback"
+        elif action in {"submit_review", "approve", "request_changes"}:
+            if resource not in {"pages", "sections"}:
+                return Response({"detail": "Review workflow applies to pages and sections"}, status=400)
+            current = obj.status
+            allowed_from = {"submit_review": {"draft", "changes_requested", "in_review"},
+                            "approve": {"in_review", "draft"},
+                            "request_changes": {"in_review", "draft", "approved"}}
+            if current not in allowed_from[action]:
+                return Response({"detail": f"Cannot {action.replace('_', ' ')} a record with status '{current}'"}, status=400)
+            payload = {"status": {"submit_review": "in_review", "approve": "approved", "request_changes": "changes_requested"}[action],
+                       "scheduled_publish_at": None}
+            action_name = action
         elif action in {"publish", "unpublish", "schedule"}:
             if resource not in {"pages", "sections"}:
                 return Response({"detail": "Publication workflow applies to pages and sections"}, status=400)
