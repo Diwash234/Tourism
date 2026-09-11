@@ -974,6 +974,76 @@ class TransportModeHonestyTests(TestCase):
                 self.assertGreater(body["duration_min"], 1500)
 
 
+class RouteCalculatorHonestyTests(TestCase):
+    """POST /navigation/calculate/ must never invent an origin, a
+    destination, or road geometry."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Destination
+        cls.dest = Destination.objects.create(
+            name="Phewa Lake Calculator", slug="phewa-calc", city="Pokhara",
+            latitude=28.2117, longitude=83.9517, is_active=True,
+        )
+        cls.no_coords = Destination.objects.create(
+            name="Coordinateless Place", slug="no-coords-calc", city="Kathmandu",
+            is_active=True,
+        )
+
+    def _calculate(self, payload):
+        return self.client.post("/api/v1/navigation/calculate/", payload, content_type="application/json")
+
+    def test_missing_origin_is_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("origin", resp.json()["detail"].lower())
+
+    def test_invalid_origin_coordinates_are_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_lat": "not-a-number", "origin_lng": "85.3"})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_out_of_range_origin_coordinates_are_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_lat": 987.0, "origin_lng": 85.3})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_unresolvable_origin_name_is_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_name": "zzz-nonexistent-ville"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("origin", resp.json()["detail"].lower())
+
+    def test_unresolvable_destination_is_a_404(self):
+        resp = self._calculate({"destination_name": "zzz-nonexistent-ville", "origin_lat": 27.7172, "origin_lng": 85.3240})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_destination_without_coordinates_is_reported(self):
+        resp = self._calculate({"destination_id": self.no_coords.pk, "origin_lat": 27.7172, "origin_lng": 85.3240})
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("coordinates", resp.json()["detail"].lower())
+
+    def test_geometry_is_never_fabricated(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_lat": 27.7172, "origin_lng": 85.3240})
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn(body["confidence_level"], ("ROUTED", "GRAPH_APPROXIMATION", "STRAIGHT_LINE"))
+        coordinates = body["geometry"]["coordinates"]
+        if body["geometry"]["kind"] == "straight_line":
+            # The two real endpoints only: no invented intermediate
+            # waypoints, and no turn-by-turn directions nobody routed.
+            self.assertEqual(coordinates, [[27.7172, 85.324], [28.2117, 83.9517]])
+            self.assertEqual(body["steps"], [])
+            self.assertIsNone(body["distance_km"])
+            self.assertEqual(body["confidence_level"], "STRAIGHT_LINE")
+        else:
+            self.assertGreaterEqual(len(coordinates), 2)
+            self.assertIsNotNone(body["distance_km"])
+        self.assertAlmostEqual(body["straight_line_km"], 143.0, delta=5.0)
+
+    def test_nearby_places_without_coordinates_is_rejected(self):
+        resp = self.client.get("/api/v1/nearby/places")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("lat", resp.json()["detail"].lower())
+
+
 class UserRouteHistoryTests(TestCase):
     """Saved routes + navigation history (spec items 15/16)."""
 
