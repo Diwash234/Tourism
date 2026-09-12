@@ -2880,9 +2880,12 @@ class DistrictItineraryFallbackTests(TestCase):
         self.assertFalse(a & b, "Rolpa and Kaski plans must not share stops")
 
     def test_unknown_place_is_labelled_not_fabricated(self):
+        # Contract (data-completion phase): an unknown requested place gets an
+        # empty plan with an explanatory detail — never stops from somewhere
+        # else, even labelled ones.
         data = self._plan("Atlantis")
-        self.assertEqual(data["source"], "internal_db_engine")
-        self.assertIn("No verified places", data["data_note"])
+        self.assertEqual(data["itinerary"], [])
+        self.assertIn("No verified destinations", data["detail"])
 
     def test_fallback_days_are_time_aware(self):
         """§12: stops carry start/end times, travel legs and an honest
