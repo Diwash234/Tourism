@@ -295,5 +295,12 @@
  ],
  "dest_missing_coords": 67,
  "dest_missing_category": 131,
- "unresolved_municipality_mappings": 133
+ "unresolved_municipality_mappings": 133,
+ "osm_services": {
+  "total": 500,
+  "hospital": 250,
+  "pharmacy": 250,
+  "verified": 0,
+  "note": "first 250 per category by OSM id; remaining rows resumable via same pipeline"
+ }
 }

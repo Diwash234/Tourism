@@ -12,7 +12,7 @@ All numbers below were regenerated from the live database/API this session — n
 
 ## C. Real OSM import status
 - Pipeline: `import_osm_services` (validate → bbox/Nepal check → nearest-district ≤80 km → `osm_id` canonical → report). Now accepts both full Overpass JSON and NDJSON relay files.
-- **This session's real batch: 250 Nepal hospitals** (Overpass `area ISO3166-1=NP`, `out skel center 250`, osm_base 2026-09-12T06:42:51Z). Imported: 250 created / 0 rejected; **idempotent rerun: 0 created, 250 duplicate** (IDs stable).
+- **This session's real batches: 250 Nepal hospitals + 250 Nepal pharmacies** (Overpass `area ISO3166-1=NP`, `out skel center 250` per category, osm_base 2026-09-12T06:42:51Z / 06:51:02Z). Each: created / 0 rejected; **idempotent rerun: 0 created, 250 duplicate** (IDs stable). DB now holds **500 OSM service rows, 0 auto-verified** (admin queue).
 - Every row: `osm_id` = node/<id>, `source_url` to the OSM element, `is_verified=False` until admin verification. Names pending enrichment (skel output carries no tags) — honest placeholder labels, never invented names.
 - Network limitation: sandbox has no direct internet; Overpass reachable only via the page-relay (non-deterministic proxy). Remaining categories (pharmacies, ATMs=1,122 known, police, transport) follow the same resumable batch pattern.
 
@@ -53,10 +53,11 @@ Authoritative-source pipeline + `MunicipalityMapping` (source/date/raw/normalize
 - **Research-endpoint fabrication pipeline closed** (`b7022b9`): unknown place → pending stub (no coords, no municipality, no marketing copy, invisible in public search); real place → existing record. AI never auto-becomes authoritative.
 
 ## L. Trekking
-- No trekking route/stage/waypoint model or dataset exists. **TREKKING DATA DEPENDENCY = EXTERNAL AUTHORITATIVE SOURCE REQUIRED** (e.g., Nepal Tourism Board/TAAN trails). Road routing ≠ trekking; no trekking coverage is claimed.
+- **Implemented this session**: `TrekkingRoute` + `TrekkingStage` models (migration 0076: stages, waypoints/coords, elevation gain/loss, distance, difficulty, duration, season, permits, accommodation, safety, provenance, verification state) and the `import_trekking` pipeline (dry-run default, idempotent on slug, imports never self-verify, out-of-Nepal coords nulled not clamped) — regression-tested (`TrekkingImportTrustTests`).
+- **TREKKING DATA DEPENDENCY = EXTERNAL AUTHORITATIVE SOURCE REQUIRED** (e.g., Nepal Tourism Board/TAAN trails): the DB contains **0 routes** — pipeline ready, no coverage claimed. Road routing ≠ trekking; the road navigation engine never serves these.
 
 ## M. Gaps (classified)
-1. **Missing external data**: pharmacies/ATMs/police/transport OSM batches (relay-limited); municipality gazetteer; trekking trails.
+1. **Missing external data**: remaining OSM batches (hospitals/pharmacies beyond first 250 each; ATMs=1,122 known, police, transport — relay-limited, resumable); municipality gazetteer; trekking trails dataset.
 2. **Database**: 67 missing coords; 131 missing categories; 3 districts reachable only via alias; district-string alias sprawl; hospital names pending tag enrichment.
 3. **Network limitation**: no direct sandbox internet; relay proxy non-deterministic (batches are resumable).
 4. **Code**: none known open — every audit finding this session was fixed + regression-tested.
