@@ -4153,3 +4153,28 @@ class MunicipalityMappingTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         m.refresh_from_db()
         self.assertTrue(m.verified)
+
+class UniversalSearchNationwideTests(TestCase):
+    """Text search must not be silently centered on Pokhara when no GPS given."""
+
+    def test_search_without_gps_finds_far_provinces(self):
+        from tourist.location.search_service import LocationSearchService
+        cat, _ = Category.objects.get_or_create(name="Pilgrimage")
+        Destination.objects.create(name="Lumbini Test Temple", slug="lumbini-test-temple",
+                                   category=cat, province="Lumbini", district="Rupandehi",
+                                   latitude=27.47, longitude=83.28, is_active=True, status="approved")
+        results = LocationSearchService.search_places(query="lumbini", limit=10)
+        names = [r["name"] for r in results]
+        self.assertIn("Lumbini Test Temple", names)
+
+    def test_search_with_gps_still_respects_radius(self):
+        from tourist.location.search_service import LocationSearchService
+        cat, _ = Category.objects.get_or_create(name="Pilgrimage")
+        Destination.objects.create(name="Faraway Lumbini Place", slug="faraway-lumbini-place",
+                                   category=cat, province="Lumbini", district="Rupandehi",
+                                   latitude=27.47, longitude=83.28, is_active=True, status="approved")
+        # GPS in Kathmandu, 10 km radius -> Lumbini (150+ km away) must be excluded
+        results = LocationSearchService.search_places(query="lumbini", user_lat=27.7172,
+                                                      user_lng=85.324, radius_km=10, limit=10)
+        names = [r["name"] for r in results]
+        self.assertNotIn("Faraway Lumbini Place", names)

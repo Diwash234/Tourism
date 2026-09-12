@@ -313,9 +313,11 @@ class LocationSearchService:
             row["distance_text"] = "0 km (Here)" if dist_km < 0.1 else f"{dist_km} km"
             processed.append(row)
 
-        # Honour the requested radius — previously accepted but never applied,
-        # so "nearby" lists could contain places hundreds of km away.
-        if radius_km:
+        # Honour the requested radius — but ONLY when the caller supplied GPS.
+        # Without GPS the reference point defaults to Pokhara, and filtering by
+        # distance-from-Pokhara silently made text search Pokhara-centric
+        # ("lumbini" returned 0 while 46 active Lumbini records exist).
+        if radius_km and has_gps:
             processed = [row for row in processed if row["distance_km"] <= radius_km]
 
         # Sort nearest first if user provided GPS or category filter was selected

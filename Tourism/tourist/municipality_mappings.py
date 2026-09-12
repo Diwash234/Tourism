@@ -23,6 +23,22 @@ from .models import Destination, MunicipalityMapping
 
 CANON_DISTRICTS = {k.lower(): k for k in NEPAL_DISTRICTS_DATA}  # lowercase -> canonical name
 
+# Documented 2018-era administrative renames (not guesses): data uses both
+# old and new spellings; map them onto the canonical 77-district table.
+DISTRICT_ALIASES = {
+    "rukum east": "Eastern Rukum",
+    "eastern rukum district": "Eastern Rukum",
+    "rukum west": "Western Rukum",
+    "western rukum district": "Western Rukum",
+    "nawalparasi west": "Parasi",
+    "nawalparasi (west)": "Parasi",
+    "parasi district": "Parasi",
+    "nawalparasi east": "Nawalpur",
+    "nawalparasi (east)": "Nawalpur",
+}
+for _alias, _canon in DISTRICT_ALIASES.items():
+    CANON_DISTRICTS.setdefault(_alias, _canon)
+
 
 def import_csv(text):
     """Parse and upsert admin CSV rows. Returns {created, updated, rejected}."""
