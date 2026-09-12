@@ -4531,3 +4531,60 @@ class TrekkingImportTrustTests(TestCase):
         self.assertEqual(stages.count(), 2)
         self.assertIsNotNone(stages.get(day_number=1).latitude)
         self.assertIsNone(stages.get(day_number=2).latitude)  # foreign coords nulled, not clamped
+
+
+class OSMEnrichmentTrustTests(TestCase):
+    """§2/§6: enrichment fills real OSM tags only, never invents values,
+    never overwrites admin-verified rows (queues ADMIN_REVIEW instead),
+    and never auto-upgrades past SOURCE_VERIFIED."""
+
+    def _mk(self, osm_id="node/1", name="Hospital (node/1)", state=None):
+        from .models import OSMEssentialService as S
+        row = S.objects.create(osm_id=osm_id, category="hospital", name=name,
+                               latitude=27.7, longitude=85.3,
+                               source_url="https://www.openstreetmap.org/node/1")
+        if state:
+            row.verification_state = state
+            row.save()
+        return row
+
+    def _write(self, path, elements):
+        import json
+        path.write_text(json.dumps({"elements": elements}))
+
+    def test_placeholder_replaced_real_name_and_no_fabrication(self):
+        from django.core.management import call_command
+        import tempfile, pathlib
+        self._mk()
+        d = pathlib.Path(tempfile.mkdtemp())
+        f = d / "tagged.json"
+        self._write(f, [{"type": "node", "id": 1, "lat": 27.7, "lon": 85.3,
+                         "tags": {"amenity": "hospital", "name": "Bir Hospital",
+                                  "phone": "+977-1-4221119"}}])
+        call_command("enrich_osm_services", "--source", str(d))
+        from .models import OSMEssentialService as S
+        row = S.objects.get(osm_id="node/1")
+        self.assertEqual(row.name, "Bir Hospital")
+        self.assertEqual(row.phone, "+977-1-4221119")
+        self.assertEqual(row.website, "")          # absent in OSM -> stays empty
+        self.assertEqual(row.operator, "")         # never invented
+        self.assertIsNotNone(row.last_enriched_at)
+        self.assertEqual(row.verification_state, S.VerificationState.SOURCE_VERIFIED)
+        self.assertNotEqual(row.verification_state, S.VerificationState.VERIFIED)
+
+    def test_verified_row_never_overwritten_conflict_queued(self):
+        from django.core.management import call_command
+        import tempfile, pathlib
+        from .models import OSMEssentialService as S
+        row = self._mk(name="Admin Curated Name", state=S.VerificationState.VERIFIED)
+        row.phone = "+977-1-0000000"
+        row.save()
+        d = pathlib.Path(tempfile.mkdtemp())
+        self._write(d / "t.json", [{"type": "node", "id": 1, "lat": 27.7, "lon": 85.3,
+                                    "tags": {"name": "Different OSM Name",
+                                             "phone": "+977-1-9999999"}}])
+        call_command("enrich_osm_services", "--source", str(d))
+        row.refresh_from_db()
+        self.assertEqual(row.name, "Admin Curated Name")   # untouched
+        self.assertEqual(row.phone, "+977-1-0000000")      # untouched
+        self.assertEqual(row.verification_state, S.VerificationState.ADMIN_REVIEW)

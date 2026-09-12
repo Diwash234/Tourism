@@ -1507,6 +1507,26 @@ class OSMEssentialService(TimeStampedModel):
     emergency_available = models.BooleanField(default=False)
     raw_tags = models.JSONField(default=dict, blank=True)
 
+    # --- Trust state (§6): OSM imports are NEVER automatically authoritative.
+    class VerificationState(models.TextChoices):
+        IMPORTED = "imported", "Imported from OSM (unverified)"
+        SOURCE_VERIFIED = "source_verified", "Cross-checked against source extract"
+        ADMIN_REVIEW = "admin_review", "Queued for admin review"
+        VERIFIED = "verified", "Admin verified (authoritative)"
+        REJECTED = "rejected", "Rejected / stale"
+
+    verification_state = models.CharField(
+        max_length=20, choices=VerificationState.choices,
+        default=VerificationState.IMPORTED, db_index=True,
+        help_text="Only admin action may set VERIFIED/REJECTED; imports stay IMPORTED.")
+    last_enriched_at = models.DateTimeField(
+        null=True, blank=True, help_text="When OSM tags were last re-read into this row.")
+    # --- Enrichment fields (§2): populated only from real OSM tags, never invented.
+    name_en = models.CharField(max_length=255, blank=True)
+    name_ne = models.CharField(max_length=255, blank=True)
+    website = models.URLField(max_length=600, blank=True)
+    operator = models.CharField(max_length=180, blank=True)
+
     class Meta:
         ordering = ["category", "name"]
         indexes = [models.Index(fields=["latitude", "longitude"]), models.Index(fields=["category"])]
