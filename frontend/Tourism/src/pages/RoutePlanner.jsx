@@ -167,7 +167,15 @@ export default function RoutePlanner() {
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { if (source && destination) fetchRoute(source, destination) }, [source, destination, fetchRoute])
+  // Deferred one tick: fetchRoute/loadNearby flip loading/list state
+  // synchronously at the start, and doing that inside the effect body
+  // triggers a cascading render (react-hooks/set-state-in-effect). A 0ms
+  // timeout moves the kick-off off the render pass; behaviour is identical.
+  useEffect(() => {
+    if (!source || !destination) return
+    const t = setTimeout(() => fetchRoute(source, destination), 0)
+    return () => clearTimeout(t)
+  }, [source, destination, fetchRoute])
 
   const loadNearby = async (center) => {
     try {
@@ -175,7 +183,12 @@ export default function RoutePlanner() {
       setNearby((data.items || data.results || []).slice(0, 30))
     } catch { setNearby([]) }
   }
-  useEffect(() => { if (destination) loadNearby(destination) }, [destination, category])
+  useEffect(() => {
+    if (!destination) return
+    const t = setTimeout(() => loadNearby(destination), 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination, category])
 
   const points = useMemo(() => {
     const pts = []

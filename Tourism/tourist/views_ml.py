@@ -554,6 +554,29 @@ def attach_canonical_ids(payload):
     return payload
 
 
+def _place_spellings(place):
+    """Requested place name plus every known district alias spelling.
+
+    The 2018 administrative renames mean the DB stores e.g. "Rukum East"
+    while the canonical 77-district table says "Eastern Rukum" (likewise
+    "Rukum West"/"Western Rukum", "Nawalparasi West"/"Parasi"). Without
+    this, district requests for those three silently miss their own data.
+    """
+    from .municipality_mappings import CANON_DISTRICTS, DISTRICT_ALIASES
+    out = [place]
+    canon = CANON_DISTRICTS.get((place or "").strip().lower())
+    if canon:
+        out.append(canon)
+        out.extend(alias for alias, target in DISTRICT_ALIASES.items() if target == canon)
+    seen, res = set(), []
+    for sp in out:
+        key = sp.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            res.append(sp.strip())
+    return res
+
+
 def _ml_plan_matches_place(payload, place):
     """True when the ML plan actually visits the requested place.
 
@@ -562,8 +585,8 @@ def _ml_plan_matches_place(payload, place):
     be able to detect that and prefer the internal district-scoped engine
     instead of serving a plan for the wrong place.
     """
-    needle = (place or "").strip().lower()
-    if not needle:
+    needles = [sp.lower() for sp in _place_spellings(place)]
+    if not any(needles):
         return True  # no place constraint - any plan is on-topic
     days = payload.get("itinerary") or payload.get("days") or []
     if not isinstance(days, list):
@@ -578,7 +601,7 @@ def _ml_plan_matches_place(payload, place):
                 candidates.append(stop.get("district"))
         for value in candidates:
             text = str(value or "").strip().lower()
-            if text and (needle in text or text in needle):
+            if text and any(n and (n in text or text in n) for n in needles):
                 return True
     return False
 
@@ -648,13 +671,20 @@ class ItineraryView(APIView):
         # never fall through to a generic nationwide plan.
         from django.db.models import Q
         place = district or start_city
-        scope = qs.filter(Q(district__icontains=place) | Q(city__icontains=place) | Q(province__icontains=place))
+        # Alias-aware: a canonical district name also matches its recorded
+        # alias spellings (2018 renames), so "Eastern Rukum" finds the places
+        # stored as "Rukum East" instead of missing them.
+        place_q = Q()
+        for spelling in _place_spellings(place):
+            place_q |= Q(district__icontains=spelling)
+        scope = qs.filter(place_q | Q(city__icontains=place) | Q(province__icontains=place))
         scope_label = f"places recorded in “{place}”"
         scoped = scope.exists()
-        if not scoped and district and district != start_city:
-            scope = qs.filter(Q(district__icontains=start_city) | Q(city__icontains=start_city))
-            scope_label = f"places recorded in “{start_city}”"
-            scoped = scope.exists()
+        # NOTE: the old silent "district empty -> plan start_city instead"
+        # fallback was removed: substituting another city's plan for the
+        # requested district violates the audit rule (never serve a plan for
+        # a different place). An empty district now gets the honest
+        # "no verified destinations recorded" response below.
         if not scoped:
             # An explicitly requested place with zero verified records must
             # NOT be silently replaced by a plan for somewhere else (audit

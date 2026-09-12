@@ -2695,6 +2695,11 @@ class RecordedPlaceHonestyTests(APITestCase):
         self.assertIn("longitude", row)
 
     def test_fill_missing_coords_uses_district_mean(self):
+        """Coordinate-integrity contract (437392a): inferred coords are
+        candidates for admin review by default — the DB is only touched with
+        an explicit --publish."""
+        import json as _json
+        import tempfile
         from django.core.management import call_command
         missing = Destination.objects.create(
             name="Honesty Missing Peak",
@@ -2703,7 +2708,22 @@ class RecordedPlaceHonestyTests(APITestCase):
             district="Kaski",
             created_by=self.user,
         )
-        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        with tempfile.TemporaryDirectory() as tmp:
+            candidates_path = f"{tmp}/candidates.json"
+            # 1) Default run: nothing fabricated into the DB.
+            call_command("fill_missing_place_coords", "--no-apply", "--no-export",
+                         "--candidates-out", candidates_path)
+            missing.refresh_from_db()
+            self.assertIsNone(missing.latitude)
+            self.assertIsNone(missing.longitude)
+            rows = _json.load(open(candidates_path))
+            rows = rows.get("candidates", rows) if isinstance(rows, dict) else rows
+            entry = next(r for r in rows if r.get("name") == "Honesty Missing Peak")
+            self.assertEqual(entry.get("approval_state"), "pending_admin")
+            self.assertIn(entry.get("basis"), {"same_name_twin", "district_or_city_mean"})
+            # 2) Explicit admin publish: district mean is persisted.
+            call_command("fill_missing_place_coords", "--no-apply", "--no-export",
+                         "--candidates-out", candidates_path, "--publish")
         missing.refresh_from_db()
         self.assertIsNotNone(missing.latitude)
         self.assertIsNotNone(missing.longitude)
@@ -3252,3 +3272,61 @@ class HeroSlidePublicConfigTests(APITestCase):
         s = HeroSlide(title="PRIO", image_url="https://example.com/a.jpg", local_image="/images/x.jpg")
         self.assertEqual(s.resolve_image(), "https://example.com/a.jpg")
         self.assertEqual(HeroSlide(title="LOCAL", local_image="/images/x.jpg").resolve_image(), "/images/x.jpg")
+
+
+class DistrictAliasItineraryTests(APITestCase):
+    """77-district itinerary coverage across the 2018 district renames.
+
+    The canonical district table says "Eastern Rukum"/"Western Rukum"/
+    "Parasi" while recorded destinations use "Rukum East"/"Rukum West"/
+    "Nawalparasi West". The internal itinerary engine must resolve those
+    aliases to the district's OWN places — never silently substitute a
+    different city's plan (audit rule).
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="alias@example.com", password="StrongPass123!", is_verified=True,
+        )
+        self.category = Category.objects.create(name="Alias Sites")
+        self.rukum_site = Destination.objects.create(
+            name="Hukam Village", category=self.category, description="Rukum East site",
+            latitude=28.63, longitude=82.43, city="Hukam", district="Rukum East",
+            country="Nepal", created_by=self.user,
+        )
+        self.ktm_site = Destination.objects.create(
+            name="Kathmandu Durbar Square", category=self.category, description="KTM site",
+            latitude=27.70, longitude=85.30, city="Kathmandu", district="Kathmandu",
+            country="Nepal", created_by=self.user,
+        )
+
+    @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
+    def test_canonical_district_name_matches_alias_spellings(self, _mock):
+        response = self.client.post(reverse("ml-itinerary"), {
+            "days": 1, "district": "Eastern Rukum", "interests": ["culture"],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [d["name"] for day in response.data.get("itinerary", []) for d in day.get("destinations", [])]
+        self.assertIn("Hukam Village", names)
+        # Never silently substituted with the start city's plan.
+        self.assertNotIn("Kathmandu Durbar Square", names)
+        self.assertIn("Eastern Rukum", response.data.get("data_note", ""))
+
+    @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
+    def test_unrecorded_district_gets_honest_empty_response(self, _mock):
+        response = self.client.post(reverse("ml-itinerary"), {
+            "days": 2, "district": "Mustang Aliasland", "interests": ["culture"],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("itinerary"), [])
+        self.assertIn("No verified destinations", response.data.get("detail", ""))
+        # Nothing from anywhere else was substituted.
+        self.assertNotIn("Kathmandu Durbar Square", str(response.data))
+
+    def test_ml_plan_matching_is_alias_aware(self):
+        from .views_ml import _ml_plan_matches_place, _place_spellings
+        self.assertIn("rukum east", [s.lower() for s in _place_spellings("Eastern Rukum")])
+        plan = {"itinerary": [{"district": "Rukum East", "destinations": []}]}
+        self.assertTrue(_ml_plan_matches_place(plan, "Eastern Rukum"))
+        wrong = {"itinerary": [{"district": "Kathmandu", "destinations": []}]}
+        self.assertFalse(_ml_plan_matches_place(wrong, "Eastern Rukum"))
