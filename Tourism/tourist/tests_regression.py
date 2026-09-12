@@ -4852,3 +4852,122 @@ class OSMVerificationWorkflowTests(TestCase):
         self.rec.refresh_from_db()
         self.assertEqual(self.rec.verification_state, "source_verified")
         self.assertEqual(self.rec.name, "Real Name Hospital")
+
+
+class CMSPlaceImageTests(TestCase):
+    """V6 CMS: admin-managed place galleries, coordinate safety, provenance."""
+
+    def _service(self, **kw):
+        from tourist.models import OSMEssentialService
+        defaults = dict(osm_id="node/9001", category="hospital", name="CMS Test Hospital (node/9001)",
+                        latitude=27.71, longitude=85.32, verification_state="imported",
+                        source_url="https://www.openstreetmap.org/node/9001")
+        defaults.update(kw)
+        return OSMEssentialService.objects.create(**defaults)
+
+    def _image(self, obj, **kw):
+        from django.contrib.contenttypes.models import ContentType
+        from tourist.models import PlaceImage
+        ct = ContentType.objects.get_for_model(obj)
+        defaults = dict(external_url="https://example.org/photo.jpg", caption="Admin upload",
+                        source="admin_link", source_url="https://example.org/page")
+        defaults.update(kw)
+        return PlaceImage.objects.create(content_type=ct, object_id=obj.pk, **defaults)
+
+    def test_gallery_create_primary_order_remove(self):
+        svc = self._service()
+        a = self._image(svc, caption="A", ordering=1)
+        b = self._image(svc, caption="B", ordering=0, is_primary=True)
+        from tourist.models import PlaceImage
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(svc)
+        rows = list(PlaceImage.objects.filter(content_type=ct, object_id=svc.pk))
+        self.assertEqual(rows[0].pk, b.pk)  # primary first, then ordering
+        self.assertEqual(rows[1].pk, a.pk)
+        a.delete()
+        self.assertEqual(PlaceImage.objects.filter(content_type=ct, object_id=svc.pk).count(), 1)
+
+    def test_place_without_image_gets_no_fabricated_image(self):
+        svc = self._service()
+        from tourist.location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(query="CMS Test Hospital", limit=10)
+        hit = next((r for r in results if r["id"] == f"osm-{svc.id}"), None)
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit.get("image_url"), "")  # honest empty, never invented
+
+    def test_gallery_image_flows_into_search_payload(self):
+        svc = self._service()
+        self._image(svc, is_primary=True)
+        from tourist.location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(query="CMS Test Hospital", limit=10)
+        hit = next((r for r in results if r["id"] == f"osm-{svc.id}"), None)
+        self.assertEqual(hit.get("image_url"), "https://example.org/photo.jpg")
+
+    def test_empty_image_and_url_rejected(self):
+        from django.core.exceptions import ValidationError
+        from tourist.models import PlaceImage
+        img = PlaceImage(caption="no source at all")
+        with self.assertRaises(ValidationError):
+            img.clean()
+
+    def test_coordinates_validated_outside_nepal_rejected(self):
+        from tourist.admin import OSMEssentialServiceAdminForm
+        svc = self._service()
+        form = OSMEssentialServiceAdminForm(instance=svc, data={
+            "osm_id": svc.osm_id, "category": "hospital", "name": svc.name,
+            "latitude": "24.95", "longitude": "86.2",  # India-side latitude
+            "verification_state": "imported",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("outside Nepal", str(form.errors))
+
+    def test_admin_coordinate_edit_flags_source_verified_for_review(self):
+        from django.contrib.admin.sites import AdminSite
+        from django.test import RequestFactory
+        from tourist.admin import OSMEssentialServiceAdmin
+        from tourist.models import OSMEssentialService
+        svc = self._service(verification_state="source_verified")
+        ma = OSMEssentialServiceAdmin(OSMEssentialService, AdminSite())
+        svc.latitude = 27.75
+        req = RequestFactory().post("/")
+        ma.save_model(req, svc, form=None, change=True)
+        svc.refresh_from_db()
+        self.assertEqual(svc.verification_state, "admin_review")
+
+    def test_provenance_fields_are_readonly_in_admin(self):
+        from django.contrib.admin.sites import AdminSite
+        from tourist.admin import OSMEssentialServiceAdmin
+        from tourist.models import OSMEssentialService
+        ma = OSMEssentialServiceAdmin(OSMEssentialService, AdminSite())
+        for f in ("osm_id", "source_url", "source_name", "raw_tags"):
+            self.assertIn(f, ma.readonly_fields)
+
+    def test_coordinate_update_appears_in_nearby_and_search(self):
+        svc = self._service(name="Moved CMS Hospital (node/9001)")
+        svc.latitude, svc.longitude = 28.2096, 83.9856
+        svc.save()
+        from tourist.location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(query="Moved CMS Hospital", limit=10)
+        hit = next(r for r in results if r["id"] == f"osm-{svc.id}")
+        self.assertAlmostEqual(hit["latitude"], 28.2096, places=4)
+        near = LocationSearchService.search_places(query="", user_lat=28.21, user_lng=83.99,
+                                                   radius_km=5, limit=30)
+        self.assertIn(f"osm-{svc.id}", [r["id"] for r in near])
+
+    def test_rename_appears_in_search(self):
+        svc = self._service()
+        svc.name = "Corrected CMS Hospital Name"
+        svc.save()
+        from tourist.location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(query="Corrected CMS Hospital", limit=10)
+        self.assertIn(f"osm-{svc.id}", [r["id"] for r in results])
+
+    def test_deleting_place_removes_gallery_rows(self):
+        svc = self._service()
+        self._image(svc)
+        from tourist.models import PlaceImage
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(svc)
+        self.assertEqual(PlaceImage.objects.filter(content_type=ct, object_id=svc.pk).count(), 1)
+        svc.delete()
+        self.assertEqual(PlaceImage.objects.filter(content_type=ct, object_id=svc.pk).count(), 0)

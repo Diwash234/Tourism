@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
@@ -3642,3 +3643,70 @@ class ConfigPlace(TimeStampedModel):
 
     def __str__(self):
         return f"{self.kind}:{self.config_key}"
+
+
+class PlaceImage(TimeStampedModel):
+    """Admin-managed gallery images for any place type (generic).
+
+    Complements DestinationImage (destinations) by covering hotels,
+    hospitals, police stations, essential services, trekking routes and
+    other place records with one canonical gallery model. Uploaded or
+    linked by admins only; missing images stay missing — nothing here is
+    ever auto-generated or fabricated.
+    """
+
+    SOURCE_CHOICES = [
+        ("admin_upload", "Admin upload"),
+        ("admin_link", "Admin-provided external URL"),
+    ]
+
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    place = GenericForeignKey("content_type", "object_id")
+
+    image = models.ImageField(upload_to="places/gallery/", blank=True, null=True)
+    external_url = models.URLField(blank=True, help_text="Used instead of `image` for externally-hosted photos.")
+    caption = models.CharField(max_length=200, blank=True)
+    alt_text = models.CharField(max_length=255, blank=True)
+    ordering = models.PositiveIntegerField(default=0)
+    is_primary = models.BooleanField(default=False, help_text="Primary/cover image for the place.")
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="admin_upload")
+    source_url = models.URLField(max_length=500, blank=True, help_text="Provenance page for externally-hosted images.")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="place_images_uploaded")
+
+    class Meta:
+        ordering = ["-is_primary", "ordering", "id"]
+        indexes = [models.Index(fields=["content_type", "object_id"])]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.image and not self.external_url:
+            raise ValidationError("Provide an uploaded image file or an external URL — never both empty, never fabricated.")
+
+    @property
+    def resolved_url(self):
+        if self.image:
+            from .utils import resolve_image_url
+            return resolve_image_url(self.image)
+        return self.external_url or ""
+
+    def __str__(self):
+        return f"PlaceImage({self.content_type.model}:{self.object_id}) {self.caption or self.pk}"
+
+
+def _cleanup_place_images(sender, instance, **kwargs):
+    """Delete gallery rows when their place is deleted (generic FKs do not
+    cascade on their own — this prevents orphan image references)."""
+    from django.contrib.contenttypes.models import ContentType
+    try:
+        ct = ContentType.objects.get_for_model(sender)
+    except Exception:
+        return
+    PlaceImage.objects.filter(content_type=ct, object_id=instance.pk).delete()
+
+
+for _sender in (OSMEssentialService, Hotel, Hospital, PoliceStation, Destination):
+    models.signals.post_delete.connect(_cleanup_place_images, sender=_sender,
+                                       dispatch_uid=f"placeimage_cleanup_{_sender.__name__}")

@@ -57,6 +57,38 @@ def _safe_image_url(field):
         return ""
 
 
+def _destination_gallery_image(d):
+    """Approved gallery cover (or first approved image) for a destination."""
+    try:
+        img = (d.gallery.filter(verification_status="approved")
+               .order_by("-is_cover", "ordering", "id").first())
+        if img is None:
+            return ""
+        if img.image:
+            return _safe_image_url(img.image)
+        return img.external_url or ""
+    except Exception:
+        return ""
+
+
+def _place_primary_image(obj, field_value):
+    """Real image URL for a place: its own image field, else the admin
+    gallery (primary/cover first). Returns '' when there is genuinely no
+    image — never a fabricated placeholder URL."""
+    url = _safe_image_url(field_value)
+    if url:
+        return url
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from tourist.models import PlaceImage
+        ct = ContentType.objects.get_for_model(obj)
+        img = (PlaceImage.objects.filter(content_type=ct, object_id=obj.pk)
+               .order_by("-is_primary", "ordering", "id").first())
+        return img.resolved_url if img else ""
+    except Exception:
+        return ""
+
+
 def compute_bearing(lat1, lng1, lat2, lng2):
     """Calculates compass bearing in degrees and 8-cardinal direction text."""
     try:
@@ -168,9 +200,9 @@ class LocationSearchService:
                 "latitude": float(d.latitude),
                 "longitude": float(d.longitude),
                 "address": f"{d.city or ''}, {d.district or 'Nepal'}".strip(", "),
-                "city": d.city or "Pokhara",
+                "city": d.city or "",
                 "slug": d.slug,
-                "image_url": _safe_image_url(d.cover_image),
+                "image_url": (_safe_image_url(d.cover_image) or _destination_gallery_image(d)),
                 "source": "verified_database",
                 "is_destination": True,
             })
@@ -199,7 +231,7 @@ class LocationSearchService:
                 "address": getattr(s, "address", "") or getattr(s, "district", "") or "Nepal",
                 "city": getattr(s, "district", "") or getattr(s, "municipality", "") or "Nepal",
                 "phone": s.phone or "",
-                "image_url": _safe_image_url(getattr(s, "image", "")),
+                "image_url": _place_primary_image(s, getattr(s, "image", "")),
                 "source": "osm_essential_service",
                 "is_destination": False,
             })

@@ -666,3 +666,151 @@ class DistrictAdmin(admin.ModelAdmin):
             "description": "Only enter text verified from a trustworthy source. Blank shows as 'Information unavailable' publicly.",
         }),
     )
+
+
+# ---------------------------------------------------------------------------
+# V6 CMS: generic place galleries + coordinate safety (admin-only content)
+# ---------------------------------------------------------------------------
+from django.contrib.contenttypes.admin import GenericTabularInline
+from django import forms as dj_forms
+from .models import PlaceImage, Hotel, Hospital, PoliceStation
+
+
+class PlaceImageInline(GenericTabularInline):
+    model = PlaceImage
+    extra = 0
+    fields = ["image", "external_url", "caption", "alt_text", "ordering",
+              "is_primary", "source", "source_url", "preview"]
+    readonly_fields = ["preview"]
+    max_num = 20
+    ordering = ["-is_primary", "ordering"]
+
+    def preview(self, obj):
+        url = obj.resolved_url
+        if not url:
+            return "—"
+        return format_html('<img src="{}" style="max-height:60px" alt="preview">', url)
+
+
+NEPAL_BBOX = (26.30, 30.55, 79.90, 88.35)  # lat_min, lat_max, lng_min, lng_max
+
+
+def _validate_nepal_coords(cleaned, lat_key="latitude", lng_key="longitude"):
+    from django.core.exceptions import ValidationError
+    lat, lng = cleaned.get(lat_key), cleaned.get(lng_key)
+    if lat is None or lng is None:
+        return  # missing stays missing — never invented
+    lat, lng = float(lat), float(lng)
+    lo_la, hi_la, lo_ln, hi_ln = NEPAL_BBOX
+    if not (lo_la <= lat <= hi_la and lo_ln <= lng <= hi_ln):
+        raise ValidationError(
+            f"Coordinates ({lat}, {lng}) fall outside Nepal's bounds "
+            f"(lat {lo_la}..{hi_la}, lng {lo_ln}..{hi_ln}). "
+            "Fix the source value — coordinates are never clamped or substituted."
+        )
+
+
+class NepalCoordsForm(dj_forms.ModelForm):
+    def clean(self):
+        cleaned = super().clean()
+        _validate_nepal_coords(cleaned)
+        return cleaned
+
+
+class OSMEssentialServiceAdminForm(NepalCoordsForm):
+    class Meta:
+        from .models import OSMEssentialService
+        model = OSMEssentialService
+        fields = "__all__"
+
+
+@admin.action(description="Flag selected records for admin review")
+def flag_for_review(modeladmin, request, queryset):
+    from .models import OSMEssentialService
+    if modeladmin.model is OSMEssentialService:
+        queryset.update(verification_state="admin_review")
+
+
+class MissingImageFilter(admin.SimpleListFilter):
+    title = "image completeness"
+    parameter_name = "missing_image"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Missing image"), ("no", "Has image")]
+
+    def queryset(self, request, qs):
+        from django.db.models import Q
+        img_q = Q(image__isnull=True) | Q(image="")
+        if self.value() == "yes":
+            return qs.filter(img_q)
+        if self.value() == "no":
+            return qs.exclude(img_q)
+        return qs
+
+
+class MissingCoordsFilter(admin.SimpleListFilter):
+    title = "coordinate completeness"
+    parameter_name = "missing_coords"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Missing coordinates"), ("no", "Has coordinates")]
+
+    def queryset(self, request, qs):
+        from django.db.models import Q
+        if self.value() == "yes":
+            return qs.filter(Q(latitude__isnull=True) | Q(longitude__isnull=True))
+        if self.value() == "no":
+            return qs.exclude(Q(latitude__isnull=True) | Q(longitude__isnull=True))
+        return qs
+
+
+# Upgrade the registered OSM admin: coords validation, provenance readonly,
+# gallery inline, verification filters, coordinate-change flagging.
+admin.site.unregister(OSMEssentialService)
+
+
+@admin.register(OSMEssentialService)
+class OSMEssentialServiceAdmin(admin.ModelAdmin):
+    form = OSMEssentialServiceAdminForm
+    list_display = ["name", "category", "phone", "address", "verification_state", "has_image"]
+    list_filter = ["category", "verification_state", MissingImageFilter, MissingCoordsFilter]
+    search_fields = ["name", "address", "osm_id"]
+    readonly_fields = ["osm_id", "source_url", "source_name", "raw_tags", "last_enriched_at"]
+    inlines = [PlaceImageInline]
+    actions = [flag_for_review]
+
+    def has_image(self, obj):
+        if obj.image:
+            return True
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(obj)
+        return PlaceImage.objects.filter(content_type=ct, object_id=obj.pk).exists()
+    has_image.boolean = True
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            orig = OSMEssentialService.objects.filter(pk=obj.pk).first()
+            if orig is not None:
+                coords_changed = (orig.latitude, orig.longitude) != (obj.latitude, obj.longitude)
+                if coords_changed and obj.verification_state == "source_verified":
+                    # provenance-preserving review flag: an admin coordinate edit
+                    # on source-verified data goes back through review, never
+                    # silently republished.
+                    obj.verification_state = "admin_review"
+        super().save_model(request, obj, form, change)
+
+
+for _model in (Hotel, Hospital, PoliceStation):
+    try:
+        _existing = admin.site._registry.get(_model)
+    except Exception:
+        _existing = None
+    if _existing is not None and not any(
+        isinstance(i, PlaceImageInline) for i in getattr(_existing, "inlines", [])
+    ):
+        _existing.inlines = list(getattr(_existing, "inlines", [])) + [PlaceImageInline]
+
+# Destination: add the CMS completeness filters alongside the existing ones
+_dest_admin = admin.site._registry.get(Destination)
+if _dest_admin is not None:
+    _dest_admin.list_filter = list(_dest_admin.list_filter) + [MissingCoordsFilter]
