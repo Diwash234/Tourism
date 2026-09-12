@@ -178,7 +178,13 @@ class LocationSearchService:
         # 2. Search OSMEssentialService (Banks, ATMs, Pharmacies, Stores, Gas Stations, etc.)
         osm_qs = OSMEssentialService.objects.exclude(is_archived=True)
         if cat_filter:
-            osm_qs = osm_qs.filter(category__icontains=cat_filter)
+            # "bank" intent must also surface category="atm" rows (and vice
+            # versa): text like "ATM near me" is normalized to cat_filter
+            # "bank", which previously hid every atm-category record.
+            if cat_filter in ("bank", "atm"):
+                osm_qs = osm_qs.filter(category__in=["bank", "atm"])
+            else:
+                osm_qs = osm_qs.filter(category__icontains=cat_filter)
         elif search_term:
             osm_qs = osm_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(category__icontains=search_term))
 
@@ -190,10 +196,10 @@ class LocationSearchService:
                 "category": s.category.replace("_", " ").title(),
                 "latitude": float(s.latitude),
                 "longitude": float(s.longitude),
-                "address": s.address or f"{s.district or 'Nepal'}",
-                "city": s.district or "Pokhara",
+                "address": getattr(s, "address", "") or getattr(s, "district", "") or "Nepal",
+                "city": getattr(s, "district", "") or getattr(s, "municipality", "") or "Nepal",
                 "phone": s.phone or "",
-                "image_url": _safe_image_url(s.image),
+                "image_url": _safe_image_url(getattr(s, "image", "")),
                 "source": "osm_essential_service",
                 "is_destination": False,
             })

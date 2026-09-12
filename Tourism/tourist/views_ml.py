@@ -660,6 +660,8 @@ class ItineraryView(APIView):
                 "name": dest.name,
                 "city": dest.city or (dest.district or start_city),
                 "district": dest.district or "",
+                "destination_id": dest.id,
+                "slug": dest.slug,
                 "latitude": float(dest.latitude) if dest.latitude is not None else None,
                 "longitude": float(dest.longitude) if dest.longitude is not None else None,
                 "category": dest.category.name if dest.category_id else "Attraction",

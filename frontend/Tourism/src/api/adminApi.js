@@ -8,6 +8,7 @@ const adminApi = {
   runRetentionPolicy: (dry_run = true) => axiosClient.post("/admin/retention/", { dry_run }),
   getTravelServices: (params) => axiosClient.get("/admin/travel-services/", { params }),
   updateTravelServiceStatus: (payload) => axiosClient.patch("/admin/travel-services/", payload),
+  createTravelService: (payload) => axiosClient.post("/admin/travel-services/create/", payload),
   getRestaurants: (params) => axiosClient.get("/restaurants/", { params }),
   getRestaurant: (id) => axiosClient.get(`/restaurants/${id}/`),
   createRestaurant: (payload) => axiosClient.post("/restaurants/", payload),

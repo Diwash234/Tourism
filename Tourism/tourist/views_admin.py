@@ -3289,14 +3289,19 @@ class AdminNotificationManagementView(APIView):
 
 class AdminTravelServicesView(APIView):
     permission_classes = [IsAdminOrStaff]
-    RESOURCES = {"restaurants": (Restaurant, "restaurants"), "transportation": (DestinationTransitRoute, "transportation"), "travel_plans": (TravelPlan, "travel_plans")}
+    RESOURCES = {"restaurants": (Restaurant, "restaurants"), "transportation": (DestinationTransitRoute, "transportation"), "travel_plans": (TravelPlan, "travel_plans"), "osm_services": (OSMEssentialService, "restaurants")}
 
     def get(self, request):
         resource=request.query_params.get("resource","restaurants");config=self.RESOURCES.get(resource)
         if not config:return Response({"detail":"Unknown travel service resource"},status=400)
         model,module=config;_require_capability(request,module,"view")
         q=(request.query_params.get("q") or "").strip();state=request.query_params.get("status")
-        if resource=="restaurants":
+        if resource=="osm_services":
+            queryset=model.objects.exclude(is_archived=True).order_by("-updated_at")
+            cat=(request.query_params.get("category") or "").strip()
+            if cat:queryset=queryset.filter(category=cat)
+            if q:queryset=queryset.filter(Q(name__icontains=q)|Q(address__icontains=q))
+        elif resource=="restaurants":
             queryset=model.objects.select_related("destination").order_by("-updated_at")
             if q:queryset=queryset.filter(Q(name__icontains=q)|Q(destination__name__icontains=q)|Q(address__icontains=q))
             if state:queryset=queryset.filter(status=state)
@@ -3312,7 +3317,8 @@ class AdminTravelServicesView(APIView):
         except ValueError:return Response({"detail":"Invalid pagination"},status=400)
         count=queryset.count();rows=[]
         for obj in queryset[(page-1)*size:page*size]:
-            if resource=="restaurants": rows.append({"id":obj.id,"name":obj.name,"destination":obj.destination.name,"destination_id":obj.destination_id,"status":obj.status,"is_verified":obj.is_verified,"subtitle":obj.address,"updated_at":obj.updated_at})
+            if resource=="osm_services": rows.append({"id":obj.id,"name":obj.name,"category":obj.category,"phone":obj.phone,"subtitle":obj.address,"latitude":str(obj.latitude),"longitude":str(obj.longitude),"status":"published","updated_at":obj.updated_at})
+            elif resource=="restaurants": rows.append({"id":obj.id,"name":obj.name,"destination":obj.destination.name,"destination_id":obj.destination_id,"status":obj.status,"is_verified":obj.is_verified,"subtitle":obj.address,"updated_at":obj.updated_at})
             elif resource=="transportation": rows.append({"id":obj.id,"name":f"{obj.origin} → {obj.destination.name}","destination":obj.destination.name,"destination_id":obj.destination_id,"status":"active" if obj.is_active else "inactive","is_verified":obj.is_verified,"subtitle":obj.transport_mode,"fare":obj.estimated_fare_npr,"updated_at":obj.updated_at})
             else: rows.append({"id":obj.id,"name":obj.title,"user":obj.user.email,"status":obj.status,"subtitle":f"{obj.travelers} traveler(s)","budget":obj.budget_npr,"source":obj.generation_source,"updated_at":obj.updated_at})
         return Response({"resource":resource,"count":count,"page":page,"pages":max(1,(count+size-1)//size),"results":rows})
@@ -3324,6 +3330,10 @@ class AdminTravelServicesView(APIView):
         obj=model.objects.filter(pk=request.data.get("id")).first()
         if not obj:return Response({"detail":"Record not found"},status=404)
         before={"status":getattr(obj,"status",None),"is_verified":getattr(obj,"is_verified",None),"is_active":getattr(obj,"is_active",None)}
+        if resource=="osm_services" and action in {"archive","restore"}:
+            obj.is_archived = (action=="archive")
+            obj.save(update_fields=["is_archived","updated_at"])
+            return Response({"message":f"osm service {action}d","id":obj.id})
         if resource=="restaurants" and action in {"publish","archive","restore","verify"}:
             if action=="publish":obj.status="published"
             elif action=="archive":obj.status="archived"
@@ -3375,6 +3385,58 @@ class AdminRetentionPolicyView(APIView):
             from audit.models import AuditLog
             AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="security",severity="warning",source="backend",action="retention.apply",message=f"Applied retention policy to {result['total']} records",object_type="DataRetentionPolicy",extra=result)
         return Response(result)
+
+
+class AdminTravelServiceCreateView(APIView):
+    """Admin creation for restaurants and OSM essential services (ATM, bank,
+    pharmacy, ...). Fills the previously empty tables from the admin side with
+    real, admin-entered data — never fabricated."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        # Same capability module as the travel-services panel itself.
+        _require_capability(request, "restaurants", "change")
+        kind = request.data.get("kind")
+        if kind == "restaurant":
+            _require_capability(request, "restaurants", "create")
+            dest = Destination.objects.filter(pk=request.data.get("destination_id")).first()
+            name = (request.data.get("name") or "").strip()
+            if not dest or not name:
+                return Response({"detail": "destination_id and name are required"}, status=400)
+            obj = Restaurant.objects.create(
+                destination=dest, name=name[:220],
+                address=(request.data.get("address") or "")[:300],
+                phone=(request.data.get("phone") or "")[:60],
+                price_range=request.data.get("price_range") if request.data.get("price_range") in {"budget", "mid", "premium"} else "mid",
+                latitude=request.data.get("latitude") or dest.latitude,
+                longitude=request.data.get("longitude") or dest.longitude,
+                opening_hours=(request.data.get("opening_hours") or "")[:200],
+                cuisine_types=request.data.get("cuisine_types") if isinstance(request.data.get("cuisine_types"), list) else [],
+                status="pending",
+            )
+            return Response({"message": "restaurant created (pending review)", "id": obj.id}, status=201)
+        if kind == "osm_service":
+            _require_capability(request, "restaurants", "create")
+            from .models import OSMEssentialService
+            name = (request.data.get("name") or "").strip()
+            category = request.data.get("category")
+            try:
+                lat = float(request.data.get("latitude")); lng = float(request.data.get("longitude"))
+            except (TypeError, ValueError):
+                return Response({"detail": "valid latitude/longitude required"}, status=400)
+            if not name or category not in OSMEssentialService.Category.values:
+                return Response({"detail": f"name and a valid category required ({', '.join(OSMEssentialService.Category.values)})"}, status=400)
+            import time
+            obj = OSMEssentialService.objects.create(
+                osm_id=f"admin/{int(time.time()*1000)}",
+                category=category, name=name[:255],
+                phone=(request.data.get("phone") or "")[:50],
+                address=(request.data.get("address") or "")[:300] if hasattr(OSMEssentialService, "address") else "",
+                latitude=lat, longitude=lng,
+            )
+            return Response({"message": "service created", "id": obj.id}, status=201)
+        return Response({"detail": "kind must be 'restaurant' or 'osm_service'"}, status=400)
 
 
 class AdminReportsView(APIView):

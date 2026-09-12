@@ -155,6 +155,7 @@ urlpatterns = [
     path("admin/search/", views_admin.AdminGlobalSearchView.as_view(), name="admin-global-search"),
     path("admin/media-library/", views_admin.AdminMediaLibraryView.as_view(), name="admin-media-library"),
     path("admin/poi-categories/", views_admin.AdminPOICategoriesView.as_view(), name="admin-poi-categories"),
+    path("admin/travel-services/create/", views_admin.AdminTravelServiceCreateView.as_view(), name="admin-travel-service-create"),
     path("admin/trip-interests/", views_admin.AdminTripInterestsView.as_view(), name="admin-trip-interests"),
     path("admin/service-media/", views_admin.AdminServiceMediaView.as_view(), name="admin-service-media"),
     path("admin/sections/<int:section_id>/blocks/", views_admin.AdminContentBlockView.as_view(), name="admin-section-blocks"),

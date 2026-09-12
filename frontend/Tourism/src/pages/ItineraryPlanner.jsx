@@ -509,6 +509,10 @@ Number of Days
 
 type="number"
 
+min={1}
+
+max={30}
+
 value={days}
 
 onChange={

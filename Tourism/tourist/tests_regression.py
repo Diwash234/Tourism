@@ -4178,3 +4178,124 @@ class UniversalSearchNationwideTests(TestCase):
                                                       user_lng=85.324, radius_km=10, limit=10)
         names = [r["name"] for r in results]
         self.assertNotIn("Faraway Lumbini Place", names)
+
+
+class AdminTravelServiceCreateRegressionTests(TestCase):
+    """Admin-side entry of ATM / restaurant data (the Restaurant and
+    OSMEssentialService tables ship empty; admins must be able to populate
+    them without a CSV import), and the rows must reach nearby + search."""
+
+    def setUp(self):
+        from .models import OSMEssentialService  # noqa: F401
+        self.admin = make_superuser()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin)
+
+    def test_admin_can_create_atm_and_it_reaches_nearby_and_search(self):
+        from .models import OSMEssentialService
+        resp = self.client.post(
+            "/api/v1/admin/travel-services/create/",
+            {"kind": "osm_service", "category": "atm", "name": "Test ATM Kushma",
+             "phone": "067-520000", "address": "Kushma Bazaar, Parbat",
+             "latitude": 28.2233, "longitude": 83.6671},
+            format="json")
+        self.assertEqual(resp.status_code, 201)
+        self.assertTrue(OSMEssentialService.objects.filter(name="Test ATM Kushma").exists())
+        # visible via nearby essentials
+        nearby = self.client.get("/api/v1/places/nearby/?lat=28.2233&lng=83.6671&radius_km=5")
+        self.assertEqual(nearby.status_code, 200)
+        self.assertIn("Test ATM Kushma", nearby.content.decode())
+        # visible via unified search typed as "ATM ..." (category intent path)
+        results = LocationSearchService.search_places(query="Test ATM Kushma atm", limit=10)
+        self.assertIn("Test ATM Kushma", [r["name"] for r in results])
+        # admin listing for the osm_services resource
+        listing = self.client.get("/api/v1/admin/travel-services/?resource=osm_services&category=atm")
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(listing.json()["count"], 1)
+
+    def test_admin_can_create_restaurant_for_destination(self):
+        from .models import Restaurant
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        dest = Destination.objects.create(name="Kushma Hill View", slug="kushma-hill-view",
+                                          category=cat, province="Gandaki", district="Parbat",
+                                          latitude=28.22, longitude=83.66, is_active=True,
+                                          status="approved")
+        resp = self.client.post(
+            "/api/v1/admin/travel-services/create/",
+            {"kind": "restaurant", "destination_id": dest.id, "name": "Test Cafe Parbat",
+             "address": "Near Kushma Hill View", "phone": "067-521111",
+             "price_range": "mid", "cuisine_types": ["Nepali"]},
+            format="json")
+        self.assertEqual(resp.status_code, 201)
+        rest = Restaurant.objects.get(name="Test Cafe Parbat")
+        self.assertEqual(rest.status, "pending")  # review state, not auto-published
+        self.assertEqual(rest.destination_id, dest.id)
+
+    def test_non_admin_cannot_create_travel_services(self):
+        anon = APIClient()
+        resp = anon.post("/api/v1/admin/travel-services/create/",
+                         {"kind": "osm_service", "category": "atm", "name": "X",
+                          "latitude": 28.2, "longitude": 83.6}, format="json")
+        # unauthenticated -> 401/403, never 201
+        self.assertIn(resp.status_code, (401, 403))
+
+
+class OsmServiceSearchIntentRegressionTests(TestCase):
+    """'ATM near me' is normalized to cat_filter='bank'; that must still
+    surface category='atm' rows (live bug: every atm row was hidden)."""
+
+    def test_atm_query_matches_atm_category_rows(self):
+        from .models import OSMEssentialService
+        OSMEssentialService.objects.create(osm_id="node/999901", category="atm",
+                                           name="Himalaya ATM Biratnagar", address="Main Road",
+                                           latitude=26.4567, longitude=87.2718)
+        results = LocationSearchService.search_places(query="atm", limit=10)
+        self.assertIn("Himalaya ATM Biratnagar", [r["name"] for r in results])
+
+    def test_osm_rows_without_district_field_do_not_crash_search(self):
+        from .models import OSMEssentialService
+        OSMEssentialService.objects.create(osm_id="node/999902", category="pharmacy",
+                                           name="Test Pharmacy Ilam", address="Ilam Bazaar",
+                                           latitude=26.9112, longitude=87.9237)
+        results = LocationSearchService.search_places(query="Test Pharmacy Ilam", limit=10)
+        hit = next((r for r in results if r["name"] == "Test Pharmacy Ilam"), None)
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit["source"], "osm_essential_service")
+
+
+class DistrictItineraryNationwideRegressionTests(TestCase):
+    """Any of the 77 districts must produce a district-scoped itinerary,
+    with long trips (20 days) supported, and spots must carry destination_id."""
+
+    def _make_places(self, district, n):
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        for i in range(n):
+            Destination.objects.create(
+                name=f"{district} Spot {i}", slug=f"{district.lower().replace(' ', '-')}-spot-{i}",
+                category=cat, province="Karnali", district=district,
+                latitude=29.0 + i * 0.01, longitude=82.0 + i * 0.01,
+                is_active=True, status="approved")
+
+    def test_twenty_day_district_itinerary(self):
+        self._make_places("Humla", 24)
+        client = APIClient()
+        resp = client.post("/api/v1/ml/itinerary/",
+                           {"district": "Humla", "start_city": "Humla", "days": 20},
+                           format="json")
+        self.assertEqual(resp.status_code, 200)
+        plan = resp.json()
+        self.assertEqual(len(plan["itinerary"]), 20)
+        spot = plan["itinerary"][0]["destinations"][0]
+        self.assertIn("destination_id", spot)
+        self.assertTrue(spot["destination_id"])
+        # every day stays inside the requested district
+        for day in plan["itinerary"]:
+            for stop in day["destinations"]:
+                self.assertEqual(stop["district"], "Humla")
+
+    def test_days_above_thirty_rejected(self):
+        client = APIClient()
+        resp = client.post("/api/v1/ml/itinerary/",
+                           {"district": "Humla", "start_city": "Humla", "days": 45},
+                           format="json")
+        self.assertEqual(resp.status_code, 400)
