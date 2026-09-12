@@ -1472,6 +1472,23 @@ class OSMEssentialService(TimeStampedModel):
         AMBULANCE = "ambulance", "Ambulance"
         MUNICIPALITY_OFFICE = "municipality_office", "Municipality Office"
         TOURISM_OFFICE = "tourism_office", "Tourism Information Office"
+        # Tourism-service categories added for the OSM import pipeline
+        # (import_osm_services). Extending choices is a schema no-op but keeps
+        # validation + admin pickers in sync with what real OSM data carries.
+        RESTAURANT = "restaurant", "Restaurant"
+        CAFE = "cafe", "Cafe"
+        FAST_FOOD = "fast_food", "Fast Food"
+        BAKERY = "bakery", "Bakery"
+        BAR = "bar", "Bar / Pub"
+        DOCTORS = "doctors", "Doctors"
+        DENTIST = "dentist", "Dentist"
+        FUEL = "fuel", "Fuel Station"
+        BUS_STATION = "bus_station", "Bus Station"
+        TAXI = "taxi", "Taxi"
+        SUPERMARKET = "supermarket", "Supermarket"
+        MARKETPLACE = "marketplace", "Marketplace"
+        CHARGING_STATION = "charging_station", "EV Charging Station"
+        GUEST_HOUSE = "guest_house", "Guest House / Hostel"
 
     osm_id = models.CharField(max_length=50, unique=True, help_text="OSM type/id, e.g. 'node/123456'")
     category = models.CharField(max_length=30, choices=Category.choices)

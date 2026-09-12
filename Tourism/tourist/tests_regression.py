@@ -12,6 +12,7 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
   8. Plan a Trip dropdown exposes Destinations / Budget / Hotels / Risk Alerts
   9. CMS PATCH -> publish -> public config serves the new content
 """
+import json
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -4299,3 +4300,105 @@ class DistrictItineraryNationwideRegressionTests(TestCase):
                            {"district": "Humla", "start_city": "Humla", "days": 45},
                            format="json")
         self.assertEqual(resp.status_code, 400)
+
+
+class OsmServicesImporterRegressionTests(TestCase):
+    """The OSM import pipeline must be idempotent, reject unverifiable rows,
+    and keep source tracking on every imported record."""
+
+    def _write_extract(self, tmpdir):
+        import json
+        from pathlib import Path
+        d = Path(tmpdir)
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "atm.json").write_text(json.dumps({"elements": [
+            {"type": "node", "id": 424242, "lat": 27.71, "lon": 85.31,
+             "tags": {"amenity": "atm", "operator": "Nabil Bank"}},
+            # cross-border bleed: inside generous bbox but far from any district
+            {"type": "node", "id": 424243, "lat": 26.47, "lon": 80.31,
+             "tags": {"amenity": "atm", "operator": "Foreign Bank"}},
+            # no coordinates at all
+            {"type": "node", "id": 424244, "tags": {"amenity": "atm"}},
+            # skel-style element: category comes from --default-category
+            {"type": "node", "id": 424245, "lat": 28.21, "lon": 83.99, "tags": {}},
+        ]}), encoding="utf-8")
+        return str(d)
+
+    def test_import_is_idempotent_and_rejects_bad_rows(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from .models import District, Province, OSMEssentialService
+        prov, _ = Province.objects.get_or_create(name="Bagmati", defaults={"slug": "bagmati"})
+        District.objects.get_or_create(name="Kathmandu", slug="kathmandu",
+                                       province=prov, latitude=27.7172, longitude=85.3240)
+        prov2, _ = Province.objects.get_or_create(name="Gandaki", defaults={"slug": "gandaki"})
+        District.objects.get_or_create(name="Kaski", slug="kaski",
+                                       province=prov2, latitude=28.2096, longitude=83.9856)
+        src = self._write_extract(self.tmpdir if hasattr(self, "tmpdir") else "/tmp/osm_test_src")
+        out = StringIO()
+        call_command("import_osm_services", source=src, default_category="atm",
+                     report_dir="/tmp/osm_test_reports", stdout=out)
+        self.assertEqual(OSMEssentialService.objects.count(), 2)  # Kathmandu atm + skel atm
+        atm = OSMEssentialService.objects.get(osm_id="node/424242")
+        self.assertEqual(atm.name, "Nabil Bank")
+        self.assertEqual(atm.source_name, "OpenStreetMap")
+        self.assertIn("openstreetmap.org/node/424242", atm.source_url)
+        self.assertEqual(atm.raw_tags.get("operator"), "Nabil Bank")
+        # second run: nothing created, nothing spuriously "updated"
+        out2 = StringIO()
+        call_command("import_osm_services", source=src, default_category="atm",
+                     report_dir="/tmp/osm_test_reports", stdout=out2)
+        self.assertEqual(OSMEssentialService.objects.count(), 2)
+        report = json.loads(out2.getvalue().split("Report:")[0])
+        self.assertEqual(report["created"], 0)
+        self.assertEqual(report["duplicate"], 2)
+        self.assertEqual(report["rejected_no_district"], 1)
+        self.assertEqual(report["rejected_no_coords"], 1)
+        # skel row named honestly from category + OSM id, never invented
+        skel = OSMEssentialService.objects.get(osm_id="node/424245")
+        self.assertIn("424245", skel.name)
+
+    def test_extended_service_categories_exist(self):
+        from .models import OSMEssentialService
+        values = {c.value for c in OSMEssentialService.Category}
+        for needed in ("restaurant", "cafe", "atm", "bank", "pharmacy", "fuel",
+                       "bus_station", "charging_station", "supermarket"):
+            self.assertIn(needed, values)
+
+
+class ItineraryUnknownPlaceRejectionTests(TestCase):
+    """An explicitly requested place with no verified records must return an
+    honest empty plan — never a silently substituted plan for another place,
+    and never persist anything."""
+
+    def test_unknown_district_returns_empty_plan_with_detail(self):
+        from .models import Category
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        Destination.objects.create(name="Some Real Place", slug="some-real-place",
+                                   category=cat, province="Karnali", district="Jumla",
+                                   latitude=29.28, longitude=82.18, is_active=True,
+                                   status="approved")
+        client = APIClient()
+        resp = client.post("/api/v1/ml/itinerary/",
+                           {"district": "Xylophonistan", "start_city": "Xylophonistan", "days": 3},
+                           format="json")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["itinerary"], [])
+        self.assertIn("No verified destinations", body["detail"])
+        # nothing invented in the database
+        self.assertFalse(Destination.objects.filter(name__icontains="xylophon").exists())
+
+    def test_known_district_still_plans(self):
+        from .models import Category
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        Destination.objects.create(name="Jumla Lake", slug="jumla-lake",
+                                   category=cat, province="Karnali", district="Jumla",
+                                   latitude=29.28, longitude=82.18, is_active=True,
+                                   status="approved")
+        client = APIClient()
+        resp = client.post("/api/v1/ml/itinerary/",
+                           {"district": "Jumla", "start_city": "Jumla", "days": 2},
+                           format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(len(resp.json()["itinerary"]), 1)

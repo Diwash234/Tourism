@@ -622,8 +622,19 @@ class ItineraryView(APIView):
             scope_label = f"places recorded in “{start_city}”"
             scoped = scope.exists()
         if not scoped:
-            scope = qs
-            scope_label = None
+            # An explicitly requested place with zero verified records must
+            # NOT be silently replaced by a plan for somewhere else (audit
+            # rule: AI never invents/substitutes authoritative places).
+            return Response({
+                "itinerary": [],
+                "days": days,
+                "place": place,
+                "scope_label": None,
+                "detail": (f"No verified destinations are recorded for "
+                           f"\u201c{place}\u201d yet, so no itinerary was generated. "
+                           "Nothing was substituted — only verified database "
+                           "records are served."),
+            }, status=status.HTTP_200_OK)
 
         def interest_score(dest):
             hay = " ".join(filter(None, [
