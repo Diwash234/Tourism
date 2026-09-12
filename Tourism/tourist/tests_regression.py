@@ -4495,3 +4495,39 @@ class ItineraryCanonicalIdTests(TestCase):
         self.assertNotIn("destination_id", stops[1])
         self.assertEqual(stops[1]["canonical_source"], "ml_suggested_unverified")
         self.assertEqual(stops[2]["canonical_source"], "verified_database")
+
+
+class TrekkingImportTrustTests(TestCase):
+    """§13/§14: trekking imports land UNVERIFIED (never auto-authoritative),
+    idempotent on slug, and out-of-Nepal stage coords are nulled, not clamped."""
+
+    def _run(self, apply=False):
+        from django.core.management import call_command
+        import json, tempfile, os
+        payload = [{
+            "name": "Fixture Trek", "slug": "fixture-trek", "region": "Annapurna",
+            "max_elevation_m": 3000, "difficulty": "moderate",
+            "source_name": "test", "source_url": "https://example.invalid/t",
+            "stages": [{"day_number": 1, "latitude": 28.2, "longitude": 83.9},
+                       {"day_number": 2, "latitude": 45.0, "longitude": 12.0}],
+        }]
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with os.fdopen(fd, "w") as fh:
+            json.dump(payload, fh)
+        try:
+            args = ["import_trekking", "--source", path] + (["--apply"] if apply else [])
+            call_command(*args)
+        finally:
+            os.unlink(path)
+
+    def test_import_never_self_verifies_and_is_idempotent(self):
+        from .models import TrekkingRoute, TrekkingStage
+        self._run(apply=True)
+        self._run(apply=True)  # idempotent rerun
+        route = TrekkingRoute.objects.get(slug="fixture-trek")
+        self.assertEqual(route.verification_state, TrekkingRoute.VerificationState.UNVERIFIED)
+        self.assertEqual(TrekkingRoute.objects.filter(slug="fixture-trek").count(), 1)
+        stages = TrekkingStage.objects.filter(route=route)
+        self.assertEqual(stages.count(), 2)
+        self.assertIsNotNone(stages.get(day_number=1).latitude)
+        self.assertIsNone(stages.get(day_number=2).latitude)  # foreign coords nulled, not clamped

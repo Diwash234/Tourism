@@ -3493,3 +3493,92 @@ class District(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} ({self.province.name})"
+
+
+class TrekkingRoute(models.Model):
+    """Verified trekking route. Distinct from road routing: trekking legs are
+    trails, not drivable roads, and are never served by the road navigation
+    engine. No routes exist until an authoritative source is imported
+    (TREKKING DATA DEPENDENCY = EXTERNAL AUTHORITATIVE SOURCE REQUIRED).
+
+    Trust contract: rows are created only by the import/verification pipeline
+    (dataset + audit.SourceTier), default unverified, admin promotes. AI or
+    user suggestions may never set verification_state to 'verified'."""
+
+    class VerificationState(models.TextChoices):
+        UNVERIFIED = "unverified", "Unverified import"
+        PENDING = "pending", "Pending admin review"
+        VERIFIED = "verified", "Verified against authoritative source"
+        REJECTED = "rejected", "Rejected / stale"
+
+    class Difficulty(models.TextChoices):
+        EASY = "easy", "Easy"
+        MODERATE = "moderate", "Moderate"
+        STRENUOUS = "strenuous", "Strenuous"
+        EXPEDITION = "expedition", "Expedition grade"
+
+    name = models.CharField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=255, unique=True)
+    region = models.CharField(max_length=120, blank=True,
+                              help_text="e.g. Annapurna, Everest, Langtang, Kanchenjunga, Far West.")
+    district = models.CharField(max_length=120, blank=True)
+    start_point = models.CharField(max_length=180, blank=True)
+    end_point = models.CharField(max_length=180, blank=True)
+    total_distance_km = models.FloatField(null=True, blank=True)
+    total_duration_days = models.IntegerField(null=True, blank=True)
+    max_elevation_m = models.IntegerField(null=True, blank=True)
+    difficulty = models.CharField(max_length=20, choices=Difficulty.choices, blank=True)
+    best_season = models.CharField(max_length=120, blank=True,
+                                   help_text="e.g. 'Mar-May, Sep-Nov'. Blank until verified.")
+    permits = models.JSONField(default=list, blank=True,
+                               help_text="List of {name, issuer, cost_note}. Empty until verified.")
+    accommodation = models.TextField(blank=True)
+    safety_notes = models.TextField(blank=True)
+    description = models.TextField(
+        blank=True,
+        help_text="Verified text only. Blank renders 'Information unavailable', never fabricated copy.")
+    # Provenance / trust
+    source_name = models.CharField(max_length=180, blank=True)
+    source_url = models.URLField(max_length=500, blank=True)
+    source_imported_at = models.DateTimeField(null=True, blank=True)
+    verification_state = models.CharField(
+        max_length=20, choices=VerificationState.choices,
+        default=VerificationState.UNVERIFIED)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} [{self.verification_state}]"
+
+
+class TrekkingStage(models.Model):
+    """One leg/day of a TrekkingRoute, ordered, with waypoint coordinates."""
+    route = models.ForeignKey(TrekkingRoute, on_delete=models.CASCADE, related_name="stages")
+    day_number = models.PositiveIntegerField()
+    name = models.CharField(max_length=180, blank=True,
+                            help_text="e.g. 'Jomsom to Kalopani'. Blank until verified.")
+    from_place = models.CharField(max_length=180, blank=True)
+    to_place = models.CharField(max_length=180, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    distance_km = models.FloatField(null=True, blank=True)
+    elevation_gain_m = models.IntegerField(null=True, blank=True)
+    elevation_loss_m = models.IntegerField(null=True, blank=True)
+    duration_hours = models.FloatField(null=True, blank=True)
+    verification_state = models.CharField(
+        max_length=20, choices=TrekkingRoute.VerificationState.choices,
+        default=TrekkingRoute.VerificationState.UNVERIFIED)
+
+    class Meta:
+        ordering = ["route", "day_number"]
+        constraints = [
+            models.UniqueConstraint(fields=["route", "day_number"], name="uniq_trek_stage_day"),
+        ]
+
+    def __str__(self):
+        return f"{self.route_id} day {self.day_number}: {self.name or self.to_place or '?'}"

@@ -1,0 +1,10 @@
+{
+  "source": "/tmp/tmpibl_czfs.json",
+  "dry_run": false,
+  "found": 1,
+  "created": 0,
+  "updated": 1,
+  "rejected": 0,
+  "stages": 1,
+  "finished": "2026-09-12T06:59:19.782849+00:00"
+}
