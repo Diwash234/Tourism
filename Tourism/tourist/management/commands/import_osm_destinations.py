@@ -33,6 +33,7 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from tourist.models import Destination, Category
+from tourist.municipality_mappings import canonical_district, canonical_province
 
 
 # CSV file (relative to Tourism/ app dir)
@@ -169,8 +170,11 @@ class Command(BaseCommand):
 
                 cat = get_category(row.get("Tourism_Category"))
                 city = (row.get("City") or "").strip()
-                district = (row.get("District") or "").strip()
-                province = (row.get("Province") or "").strip()
+                # OSM dataset stores district/province in Devanagari (often
+                # "जिल्ला"-suffixed); normalize to the canonical 77-district
+                # table so English district queries find these rows.
+                district = canonical_district(row.get("District"))
+                province = canonical_province(row.get("Province"))
                 lat = row.get("Latitude")
                 lon = row.get("Longitude")
 

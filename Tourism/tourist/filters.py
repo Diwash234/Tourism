@@ -38,7 +38,7 @@ class DestinationFilter(df.FilterSet):
     category = df.CharFilter(field_name="category__slug", lookup_expr="iexact")
     city = df.CharFilter(field_name="city", lookup_expr="icontains")
     city_english = df.CharFilter(field_name="city_english", lookup_expr="icontains")
-    district = df.CharFilter(field_name="district", lookup_expr="icontains")
+    district = df.CharFilter(method="filter_district")
     province = df.CharFilter(field_name="province", lookup_expr="icontains")
     country = df.CharFilter(field_name="country", lookup_expr="icontains")
     min_rating = df.NumberFilter(field_name="average_rating", lookup_expr="gte")
@@ -58,6 +58,33 @@ class DestinationFilter(df.FilterSet):
         fields = ["category", "city", "city_english", "district", "province", "country",
                   "min_rating", "max_entry_fee", "is_active", "featured", "type",
                   "letter", "starts_with"]
+
+    def filter_district(self, queryset, name, value):
+        """Alias-aware district match.
+
+        The DB stores district strings in several spellings (canonical
+        English, pre-2018 names, and Devanagari from the OSM import, often
+        "जिल्ला"-suffixed). Plain icontains misses all of them; expand the
+        requested district through the canonical table + alias list (same
+        spellings the itinerary engine uses) and OR the substring matches.
+        """
+        v = (value or "").strip()
+        if not v:
+            return queryset
+        from django.db.models import Q
+
+        from .municipality_mappings import CANON_DISTRICTS, DISTRICT_ALIASES
+
+        spellings = {v}
+        canon = CANON_DISTRICTS.get(v.lower())
+        if canon:
+            spellings.add(canon)
+            spellings.update(a for a, t in DISTRICT_ALIASES.items() if t == canon)
+        q = Q()
+        for sp in spellings:
+            if sp:
+                q |= Q(district__icontains=sp)
+        return queryset.filter(q)
 
     def filter_featured(self, queryset, name, value):
         """?featured=true -> owner-pinned places first; otherwise highly-rated fallback."""

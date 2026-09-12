@@ -36,8 +36,85 @@ DISTRICT_ALIASES = {
     "nawalparasi east": "Nawalpur",
     "nawalparasi (east)": "Nawalpur",
 }
+
+# Official Devanagari names of the 77 districts (as published with the 2015
+# constitution / federal restructuring), plus spelling variants observed in
+# the bundled OSM dataset. OSM-sourced destinations store ``district`` in
+# Devanagari (sometimes suffixed "जिल्ला"); without these aliases, English
+# district queries silently miss that data. Substring matching means the base
+# form also covers the "जिल्ला" suffix. Compound names (पूर्वी/पश्चिम रुकुम)
+# must precede the bare "रुकुम" so the substring scan resolves them first.
+NEPALI_DISTRICT_ALIASES = {
+    "ताप्लेजुङ": "Taplejung", "पाँचथर": "Panchthar", "इलाम": "Ilam", "झापा": "Jhapa",
+    "मोरङ": "Morang", "सुनसरी": "Sunsari", "धनकुटा": "Dhankuta", "तेह्रथुम": "Terhathum",
+    "सङ्खुवासभा": "Sankhuwasabha", "भोजपुर": "Bhojpur", "सोलुखुम्बु": "Solukhumbu",
+    "ओखलढुङ्गा": "Okhaldhunga", "खोटाङ": "Khotang", "उदयपुर": "Udayapur",
+    "सप्तरी": "Saptari", "सिरहा": "Siraha", "सिराहा": "Siraha", "धनुषा": "Dhanusha",
+    "महोत्तरी": "Mahottari", "सर्लाही": "Sarlahi", "रौतहट": "Rautahat", "बारा": "Bara",
+    "पर्सा": "Parsa",
+    "सिन्धुली": "Sindhuli", "रामेछाप": "Ramechhap", "दोलखा": "Dolakha",
+    "भक्तपुर": "Bhaktapur", "धादिङ": "Dhading", "काठमाडौं": "Kathmandu",
+    "काठमाडौँ": "Kathmandu", "काभ्रेपलाञ्चोक": "Kavrepalanchok", "ललितपुर": "Lalitpur",
+    "सिन्धुपाल्चोक": "Sindhupalchok", "चितवन": "Chitwan", "चितवान": "Chitwan",
+    "नुवाकोट": "Nuwakot", "रसुवा": "Rasuwa", "मकवानपुर": "Makwanpur",
+    "गोरखा": "Gorkha", "कास्की": "Kaski", "लमजुङ": "Lamjung", "मनाङ": "Manang",
+    "मुस्ताङ": "Mustang", "म्याग्दी": "Myagdi", "नवलपुर": "Nawalpur", "पर्वत": "Parbat",
+    "स्याङ्जा": "Syangja", "तनहुँ": "Tanahun", "बागलुङ": "Baglung",
+    "कपिलवस्तु": "Kapilvastu", "नवलपरासी": "Parasi", "रुपन्देही": "Rupandehi",
+    "अर्घाखाँची": "Arghakhanchi", "गुल्मी": "Gulmi", "पाल्पा": "Palpa", "दाङ": "Dang",
+    "प्युठान": "Pyuthan", "रोल्पा": "Rolpa", "पूर्वी रुकुम": "Eastern Rukum",
+    "बाँके": "Banke", "बर्दिया": "Bardiya",
+    "पश्चिम रुकुम": "Western Rukum", "सल्यान": "Salyan", "डोल्पा": "Dolpa",
+    "जुम्ला": "Jumla", "कालिकोट": "Kalikot", "कालीकोट": "Kalikot", "मुगु": "Mugu",
+    "हुम्ला": "Humla", "दैलेख": "Dailekh", "जाजरकोट": "Jajarkot", "सुर्खेत": "Surkhet",
+    "दार्चुला": "Darchula", "बझाङ": "Bajhang", "बाजुरा": "Bajura", "डोटी": "Doti",
+    "अछाम": "Achham", "कैलाली": "Kailali", "बैतडी": "Baitadi",
+    "डडेल्धुरा": "Dadeldhura", "डडेलधुरा": "Dadeldhura", "कञ्चनपुर": "Kanchanpur",
+    # bare "रुकुम" last: it is ambiguous but the dataset uses it for the
+    # former unified Rukum district whose remainder is Western Rukum.
+    "रुकुम": "Western Rukum",
+}
+DISTRICT_ALIASES.update(NEPALI_DISTRICT_ALIASES)
 for _alias, _canon in DISTRICT_ALIASES.items():
     CANON_DISTRICTS.setdefault(_alias, _canon)
+
+# Nepali province names as they appear in the bundled OSM dataset.
+NEPALI_PROVINCE_ALIASES = {
+    "कोशी प्रदेश": "Koshi", "मधेश प्रदेश": "Madhesh", "बागमती प्रदेश": "Bagmati",
+    "गण्डकी प्रदेश": "Gandaki", "लुम्बिनी प्रदेश": "Lumbini",
+    "कर्णाली प्रदेश": "Karnali", "सुदूरपश्चिम प्रदेश": "Sudurpashchim",
+}
+
+
+def canonical_district(text):
+    """Map any known district spelling (incl. Devanagari, "जिल्ला" suffix) to
+    the canonical 77-district name. Unknown text is returned unchanged."""
+    t = (text or "").strip()
+    if not t:
+        return ""
+    hit = CANON_DISTRICTS.get(t.lower())
+    if hit:
+        return hit
+    for alias, canon in DISTRICT_ALIASES.items():
+        if alias and alias in t:
+            return canon
+    return t
+
+
+def canonical_province(text):
+    """Map a Nepali (or English) province name to the canonical English name.
+    Unknown text is returned unchanged."""
+    t = (text or "").strip()
+    if not t:
+        return ""
+    hit = NEPALI_PROVINCE_ALIASES.get(t)
+    if hit:
+        return hit
+    low = t.lower()
+    for name in ("Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"):
+        if name.lower() == low:
+            return name
+    return t
 
 
 def import_csv(text):
