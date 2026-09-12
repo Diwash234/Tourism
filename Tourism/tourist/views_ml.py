@@ -520,6 +520,40 @@ def enrich_itinerary_with_services(payload):
     return payload
 
 
+def attach_canonical_ids(payload):
+    """Map every itinerary stop to its canonical Destination record.
+
+    Contract (nationwide audit §11): itinerary items must point at real
+    database records. Internal-engine stops already carry destination_id;
+    ML-suggested stops are free text from the model, so each is matched
+    against the Destination table by exact name. Unmatched ML stops are
+    explicitly labelled ml_suggested_unverified — never silently presented
+    as authoritative database places.
+    """
+    for day in payload.get("itinerary", []) or []:
+        for stop in day.get("destinations", []) or []:
+            if stop.get("destination_id"):
+                stop.setdefault("canonical_source", "verified_database")
+                continue
+            name = (stop.get("name") or "").strip()
+            if not name:
+                continue
+            dest = (Destination.objects.filter(name__iexact=name, is_active=True)
+                    .order_by("id").first())
+            if dest:
+                stop["destination_id"] = dest.id
+                stop["slug"] = dest.slug
+                stop["district"] = dest.district or stop.get("district")
+                stop["province"] = dest.province or stop.get("province")
+                if dest.latitude is not None and not stop.get("latitude"):
+                    stop["latitude"] = float(dest.latitude)
+                    stop["longitude"] = float(dest.longitude)
+                stop["canonical_source"] = "verified_database"
+            else:
+                stop["canonical_source"] = "ml_suggested_unverified"
+    return payload
+
+
 def _ml_plan_matches_place(payload, place):
     """True when the ML plan actually visits the requested place.
 
@@ -592,7 +626,7 @@ class ItineraryView(APIView):
         requested_place = ((data.get("district") or data.get("start_city")) or "").strip()
         if ml_payload is not None:
             if _ml_plan_matches_place(ml_payload, requested_place):
-                return Response(enrich_itinerary_with_services(ml_payload))
+                return Response(enrich_itinerary_with_services(attach_canonical_ids(ml_payload)))
             # The ML planner silently defaulted to another city (e.g. it does
             # not know the district name "Kaski" → Pokhara). Never serve a
             # plan for a different place than the traveller asked for.
@@ -884,4 +918,4 @@ class AIItineraryModificationView(APIView):
         result["modified_action"] = action
         result["modified_at"] = timezone.now().isoformat()
 
-        return Response(enrich_itinerary_with_services(result))
+        return Response(enrich_itinerary_with_services(attach_canonical_ids(result)))

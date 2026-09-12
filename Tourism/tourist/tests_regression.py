@@ -4467,3 +4467,31 @@ class NavigationUnresolvedDestinationTests(TestCase):
         body = resp.json()
         self.assertTrue(body["origin_assumed"])  # no GPS -> explicitly flagged
         self.assertAlmostEqual(body["destination_latitude"], 29.53, places=2)
+
+
+class ItineraryCanonicalIdTests(TestCase):
+    """Every itinerary stop must expose its canonical database record;
+    ML-suggested text stops are matched to Destination rows or explicitly
+    labelled unverified — never silently authoritative."""
+
+    def test_attach_canonical_ids_matches_and_labels(self):
+        from .models import Category, Destination
+        from .views_ml import attach_canonical_ids
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        dest = Destination.objects.create(name="Real Gorkha Viewpoint", slug="real-gorkha-vp",
+                                          category=cat, province="Gandaki", district="Gorkha",
+                                          latitude=28.0, longitude=84.6, is_active=True,
+                                          status="approved")
+        payload = {"itinerary": [{"day": 1, "destinations": [
+            {"name": "Real Gorkha Viewpoint"},          # matches DB
+            {"name": "Invented ML Place"},              # no DB record
+            {"name": "X", "destination_id": dest.id},   # already canonical
+        ]}]}
+        out = attach_canonical_ids(payload)
+        stops = out["itinerary"][0]["destinations"]
+        self.assertEqual(stops[0]["destination_id"], dest.id)
+        self.assertEqual(stops[0]["canonical_source"], "verified_database")
+        self.assertEqual(stops[0]["district"], "Gorkha")
+        self.assertNotIn("destination_id", stops[1])
+        self.assertEqual(stops[1]["canonical_source"], "ml_suggested_unverified")
+        self.assertEqual(stops[2]["canonical_source"], "verified_database")
