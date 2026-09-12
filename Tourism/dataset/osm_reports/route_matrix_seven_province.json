@@ -136,5 +136,5 @@
  ],
  "unknown_source_http": 404,
  "unknown_source_status": "PLACE_NOT_FOUND",
- "note": "Provider unconfigured in sandbox -> honest 503 ROUTE_UNAVAILABLE with canonical echo; browser-side OSRM demo provides real geometry in the live preview."
+ "note": "Provider configured to public OSRM (https://router.project-osrm.org) but unreachable from the sandbox -> honest 503 ROUTE_UNAVAILABLE with canonical+coords echo verified in all 7 provinces; unknown source -> 404. Real road geometry renders in the live preview via the opt-in browser-side OSRM demo. E2E 77/77 after restoring the provider setting."
 }
