@@ -4971,3 +4971,48 @@ class CMSPlaceImageTests(TestCase):
         self.assertEqual(PlaceImage.objects.filter(content_type=ct, object_id=svc.pk).count(), 1)
         svc.delete()
         self.assertEqual(PlaceImage.objects.filter(content_type=ct, object_id=svc.pk).count(), 0)
+
+
+class CoordinateCandidateWorkflowTests(TestCase):
+    """V6 §11: inferred coordinates are candidates, never silently published."""
+
+    _seq = 0
+
+    def _mk(self, name, lat=None, lng=None, district="Kaski"):
+        from tourist.models import Destination, Category
+        import uuid
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        return Destination.objects.create(
+            name=name, slug=f"{name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:8]}",
+            category=cat, province="Gandaki", district=district,
+            latitude=lat, longitude=lng, is_active=True, status="approved")
+
+    def test_default_run_writes_candidates_not_db(self):
+        import json, os
+        from io import StringIO
+        from django.core.management import call_command
+        self._mk("Twin Lake", 28.1, 83.9)
+        target = self._mk("Twin Lake", None, None)
+        out = "dataset/osm_reports/_test_coord_candidates.json"
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export",
+                     candidates_out=out, stdout=StringIO())
+        target.refresh_from_db()
+        self.assertIsNone(target.latitude)  # DB untouched by default
+        payload = json.load(open(out))
+        os.remove(out)
+        cand = next(c for c in payload["candidates"] if c["id"] == target.id)
+        self.assertEqual(cand["basis"], "same_name_twin")
+        self.assertEqual(cand["approval_state"], "pending_admin")
+
+    def test_publish_flag_is_explicit_admin_decision(self):
+        from io import StringIO
+        from django.core.management import call_command
+        self._mk("Twin Lake B", 28.1, 83.9)
+        target = self._mk("Twin Lake B", None, None)
+        out = "dataset/osm_reports/_test_coord_candidates2.json"
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export",
+                     "--publish", candidates_out=out, stdout=StringIO())
+        import os
+        os.remove(out)
+        target.refresh_from_db()
+        self.assertIsNotNone(target.latitude)

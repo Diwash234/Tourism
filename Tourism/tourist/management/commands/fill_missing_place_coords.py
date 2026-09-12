@@ -1,9 +1,12 @@
-"""Fill missing destination city/coords from other recorded destinations.
+"""Propose (never silently publish) missing destination coordinates.
 
-Does not invent coordinates. Uses:
-  1. another destination with the same name that already has coords
-  2. the mean of recorded destinations in the same district/city
-  3. city from municipality / recorded neighbour (never a district name)
+V6 §11 workflow: coordinates inferred from same-name twins or district
+means are CANDIDATES — written to dataset/osm_reports/coordinate_
+candidates.json with basis + confidence and approval_state=
+pending_admin. Nothing is written to Destination.latitude/longitude
+unless an operator explicitly passes --publish (an admin decision).
+City fill from municipality / recorded neighbour stays automatic
+(labelled metadata, not coordinates).
 Also writes Tourism/dataset/destination_locations.json so clones can
 re-apply the same recorded fields without committing db.sqlite3.
 """
@@ -27,6 +30,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--no-export", action="store_true", help="Skip writing destination_locations.json")
         parser.add_argument("--no-apply", action="store_true", help="Skip applying destination_locations.json first")
+        parser.add_argument("--publish", action="store_true",
+                            help="Admin decision: write inferred coordinates to the DB "
+                                 "(default: candidates JSON only, DB untouched)")
+        parser.add_argument("--candidates-out",
+                            default="dataset/osm_reports/coordinate_candidates.json")
 
     def handle(self, *args, **options):
         applied = 0
@@ -37,10 +45,35 @@ class Command(BaseCommand):
         filled_distance = 0
         qs = Destination.objects.filter(is_active=True)
 
+        import json
+        from decimal import Decimal
+        from pathlib import Path
+        candidates = []
         for dest in (qs.filter(latitude__isnull=True) | qs.filter(longitude__isnull=True)).distinct():
+            before = (dest.latitude, dest.longitude)
             if fill_coords_from_records(dest):
-                dest.save(update_fields=["latitude", "longitude", "updated_at"])
-                filled_coords += 1
+                basis = "same_name_twin" if Destination.objects.filter(
+                    name__iexact=dest.name, latitude__isnull=False).exclude(pk=dest.pk).exists() \
+                    else "district_or_city_mean"
+                cand = {"id": dest.id, "name": dest.name, "district": dest.district,
+                        "province": dest.province,
+                        "candidate_latitude": float(dest.latitude),
+                        "candidate_longitude": float(dest.longitude),
+                        "basis": basis, "confidence": "low",
+                        "approval_state": "pending_admin"}
+                if options.get("publish"):
+                    dest.save(update_fields=["latitude", "longitude", "updated_at"])
+                    filled_coords += 1
+                    cand["approval_state"] = "published_via_--publish"
+                else:
+                    # never persist inferred coordinates by default
+                    dest.latitude, dest.longitude = before
+                candidates.append(cand)
+        out = Path(options.get("candidates_out"))
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps({"policy": "inferred coordinates are candidates; "
+                                              "admin approval required before publication",
+                                   "candidates": candidates}, indent=1, ensure_ascii=False))
 
         for dest in (qs.filter(city__isnull=True) | qs.filter(city="")).distinct():
             if fill_city_from_records(dest):
