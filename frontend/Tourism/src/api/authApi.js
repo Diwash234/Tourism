@@ -39,6 +39,10 @@ const authApi = {
   verifyPhone: (code) => axiosClient.post("/auth/verify-phone/", { code }),
   resendPhoneOtp: () => axiosClient.post("/auth/resend-phone-otp/"),
 
+  // Resend the signup verification email (logged-in, unverified users).
+  // Backend: ResendVerificationEmailView — IsAuthenticated, throttled.
+  resendVerificationEmail: () => axiosClient.post("/auth/resend-verification-email/"),
+
   // NEW: OAuth callbacks — matches views_oauth.py exactly, including
   // its own docstring's described frontend flow:
   //   1. Frontend redirects to the provider's OAuth consent screen

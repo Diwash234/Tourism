@@ -38,6 +38,7 @@ const Register = lazy(() => import("./pages/auth/Register"))
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"))
 const OAuthCallback = lazy(() => import("./pages/auth/OAuthCallback"))
 const VerifyPhone = lazy(() => import("./pages/VerifyPhone"))
+const VerifyEmail = lazy(() => import("./pages/auth/VerifyEmail"))
 
 // Destination Pages
 const DestinationList = lazy(() => import("./pages/destinations/DestinationList"))
@@ -189,6 +190,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
+        {/* The signup email links to /verify-email?token=... and the visitor
+            is not logged in yet — public route, inside AuthLayout. Without
+            this every verification email link 404s. */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
       </Route>
 
       {/* Public traveller chrome */}

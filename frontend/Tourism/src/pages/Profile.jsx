@@ -11,6 +11,7 @@ import { favoriteApi } from "../services/api.js"
 import Loader from "../components/common/Loader"
 import MandalaBackground from "../components/branding/MandalaBackground"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+import authApi from "../api/authApi"
 
 // NEW: "traveler stats, badges, travel points" from the brief. There is
 // no backend model for any of this (checked tourist/models.py — no
@@ -34,6 +35,19 @@ const Profile = () => {
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm()
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [resending, setResending] = useState(false)
+
+  const resendVerification = async () => {
+    setResending(true)
+    try {
+      await authApi.resendVerificationEmail()
+      showToast("Verification email sent — check your inbox.", "success")
+    } catch (err) {
+      showToast(err?.response?.data?.detail || "Could not resend verification email.", "error")
+    } finally {
+      setResending(false)
+    }
+  }
   const fileInputRef = useRef(null)
 
   const [stats, setStats] = useState({ placesVisited: 0, districtsExplored: 0, favoritesSaved: 0, bookingsMade: 0 })
@@ -100,6 +114,21 @@ const Profile = () => {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl fade-in space-y-6">
       <CMSPageIntro pageKey="profile" />
       <PageHeader title="My Profile" />
+
+      {user && !user.is_verified && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span className="font-semibold">Your email isn't verified yet.</span>
+          <span className="text-amber-800">Check your inbox for the verification link, or resend it.</span>
+          <button
+            type="button"
+            onClick={resendVerification}
+            disabled={resending}
+            className="ml-auto rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500 disabled:opacity-50"
+          >
+            {resending ? "Sending…" : "Resend verification email"}
+          </button>
+        </div>
+      )}
 
       <div className="card-base p-6 relative overflow-hidden">
         <MandalaBackground className="w-72 h-72 -top-10 -right-10 opacity-60" />
