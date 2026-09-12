@@ -1,0 +1,762 @@
+{
+ "sources_tested": 42,
+ "api_calls": 66,
+ "successful_calls": 66,
+ "incorrect_distances": 0,
+ "out_of_radius": 0,
+ "unknown_ids": 416,
+ "coordinate_mismatches": 0,
+ "duplicate_results": 0,
+ "per_province": {
+  "Koshi": [
+   {
+    "source": "dest-10",
+    "name": "Hotel Everest",
+    "district": "सोलुखुम्बु जिल्ला",
+    "lat": 27.803963,
+    "lng": 86.708474,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 25,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-23",
+    "name": "Phakding",
+    "district": "सोलुखुम्बु जिल्ला",
+    "lat": 27.743558,
+    "lng": 86.712848,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 23,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-414",
+    "name": "Mera Peak Lodge",
+    "district": "सोलुखुम्बु जिल्ला",
+    "lat": 27.578599,
+    "lng": 86.782196,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 6,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-528",
+    "name": "Hotel Sonam",
+    "district": "इलाम जिल्ला",
+    "lat": 26.895502,
+    "lng": 88.068485,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 2,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-683",
+    "name": "Hotel Gajurmukhi Resturant and Lodge",
+    "district": "धनकुटा जिल्ला",
+    "lat": 27.031434,
+    "lng": 87.313228,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 9,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-831",
+    "name": "Betana Wetlands",
+    "district": "मोरङ जिल्ला",
+    "lat": 26.658945,
+    "lng": 87.430644,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 6,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ],
+  "Madhesh": [
+   {
+    "source": "dest-171",
+    "name": "Shuk Sagar Hotel",
+    "district": "धनुषा जिल्ला",
+    "lat": 26.731555,
+    "lng": 85.92515,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 20,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-628",
+    "name": "Shamjhana Hotel",
+    "district": "पर्सा जिल्ला",
+    "lat": 27.023155,
+    "lng": 84.884067,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 14,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-696",
+    "name": "Nepal India Girl's hostel",
+    "district": "सप्तरी जिल्ला",
+    "lat": 26.531226,
+    "lng": 86.749229,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 7,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-715",
+    "name": "Sainik Hotel",
+    "district": "सिराहा जिल्ला",
+    "lat": 26.809856,
+    "lng": 86.290131,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 8,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1260",
+    "name": "Giri hotel & khaja ghar",
+    "district": "धनुषा जिल्ला",
+    "lat": 26.972179,
+    "lng": 85.924554,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 4,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1395",
+    "name": "budho peda pasal",
+    "district": "सप्तरी जिल्ला",
+    "lat": 26.589985,
+    "lng": 86.899294,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 3,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ],
+  "Bagmati": [
+   {
+    "source": "dest-4",
+    "name": "Madhuban",
+    "district": "काभ्रेपलाञ्चोक जिल्ला",
+    "lat": 27.72423,
+    "lng": 85.524485,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 14,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-37",
+    "name": "Hotel Tashi Delek",
+    "district": "रसुवा जिल्ला",
+    "lat": 28.110683,
+    "lng": 85.340283,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 13,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-159",
+    "name": "Community Lodge",
+    "district": "रामेछाप जिल्ला",
+    "lat": 27.557584,
+    "lng": 85.966928,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 7,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-410",
+    "name": "Khushi Khushi Hotel",
+    "district": "काठमाडौं जिल्ला",
+    "lat": 27.673712,
+    "lng": 85.244015,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 15,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-725",
+    "name": "New Tourist Hotel Pvt Ltd",
+    "district": "धादिङ जिल्ला",
+    "lat": 27.805502,
+    "lng": 84.905948,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 9,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-974",
+    "name": "Hotel Mahabharat",
+    "district": "सिन्धुली जिल्ला",
+    "lat": 27.21101,
+    "lng": 85.913797,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 7,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ],
+  "Gandaki": [
+   {
+    "source": "dest-1",
+    "name": "Rockland Hotel",
+    "district": "कास्की",
+    "lat": 28.21136,
+    "lng": 83.963108,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 17,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-3",
+    "name": "Yak Hotel",
+    "district": "मुस्ताङ",
+    "lat": 28.711428,
+    "lng": 83.648765,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 16,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-61",
+    "name": "Khudi",
+    "district": "लमजुङ",
+    "lat": 28.281089,
+    "lng": 84.358272,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 23,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-174",
+    "name": "Manaslu Checkpoint",
+    "district": "गोरखा",
+    "lat": 28.351427,
+    "lng": 84.895723,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 3,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-504",
+    "name": "The BABU Adventures HQ",
+    "district": "स्याङ्जा",
+    "lat": 28.021216,
+    "lng": 83.745243,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 12,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-887",
+    "name": "Bote Cottage",
+    "district": "Nawalpur",
+    "lat": 27.569964,
+    "lng": 84.104414,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 8,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ],
+  "Lumbini": [
+   {
+    "source": "dest-30",
+    "name": "The White Lake",
+    "district": "पाल्पा",
+    "lat": 27.86579,
+    "lng": 83.544262,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 23,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-356",
+    "name": "Forest Hideaway",
+    "district": "बर्दिया",
+    "lat": 28.463046,
+    "lng": 81.247276,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 7,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-482",
+    "name": "Nirvana Luxury International Pvt.Ltd.",
+    "district": "रुपन्देही",
+    "lat": 27.501122,
+    "lng": 83.448538,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 20,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-709",
+    "name": "Arje Coffee Cooperative Office",
+    "district": "गुल्मी",
+    "lat": 28.170548,
+    "lng": 83.166422,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 2,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1392",
+    "name": "472",
+    "district": "Nawalparasi West",
+    "lat": 27.44807,
+    "lng": 83.78406,
+    "results": 17,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 1,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2439",
+    "name": "Khaptad Ostrich Form",
+    "district": "बाँके",
+    "lat": 28.259372,
+    "lng": 81.687827,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 9,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ],
+  "Karnali": [
+   {
+    "source": "dest-485",
+    "name": "Lain Odar",
+    "district": "डोल्पा",
+    "lat": 28.930032,
+    "lng": 83.043213,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 0,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-629",
+    "name": "Shepherds Campground",
+    "district": "डोल्पा",
+    "lat": 29.166353,
+    "lng": 82.723292,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 4,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2259",
+    "name": "Raling hotel",
+    "district": "हुम्ला",
+    "lat": 29.972517,
+    "lng": 81.818366,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 5,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2739",
+    "name": "एम.के. होटल",
+    "district": "सुर्खेत",
+    "lat": 28.43852,
+    "lng": 81.854412,
+    "results": 23,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 4,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2866",
+    "name": "Bipana Hotel",
+    "district": "कालीकोट",
+    "lat": 29.276532,
+    "lng": 81.729662,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 8,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-5799",
+    "name": "Surkhet Municipality",
+    "district": "Surkhet",
+    "lat": 27.687801,
+    "lng": 85.376124,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 21,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ],
+  "Sudurpashchim": [
+   {
+    "source": "dest-53",
+    "name": "Sweet Dream Hotel",
+    "district": "कञ्चनपुर जिल्ला",
+    "lat": 28.970483,
+    "lng": 80.183871,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 8,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-680",
+    "name": "Sharmali Guest House",
+    "district": "बैतडी",
+    "lat": 29.361867,
+    "lng": 80.328063,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 12,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1365",
+    "name": "Hotel Green Asia",
+    "district": "कैलाली",
+    "lat": 28.536357,
+    "lng": 81.117642,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 7,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1719",
+    "name": "Riverside Hotel",
+    "district": "डोटी",
+    "lat": 29.25257,
+    "lng": 80.945502,
+    "results": 22,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 1,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-5534",
+    "name": "New Hotel Dolphin Sanfebagar,Achham",
+    "district": "Achham",
+    "lat": 29.234144,
+    "lng": 81.204185,
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 7,
+    "coord_mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-5838",
+    "name": "Saipal Himal",
+    "district": "Bajhang",
+    "lat": 29.881917,
+    "lng": 81.487756,
+    "results": 15,
+    "bad_dist": 0,
+    "oor": 0,
+    "unknown": 6,
+    "coord_mm": 0,
+    "dup": 0
+   }
+  ]
+ },
+ "radii_tests": [
+  {
+   "source": "Taleju Temple Kathmandu",
+   "radius_km": 1,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Taleju Temple Kathmandu",
+   "radius_km": 5,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Taleju Temple Kathmandu",
+   "radius_km": 10,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Taleju Temple Kathmandu",
+   "radius_km": 25,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Taleju Temple Kathmandu",
+   "radius_km": 50,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Ghan Pokhara",
+   "radius_km": 1,
+   "results": 6,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Ghan Pokhara",
+   "radius_km": 5,
+   "results": 21,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Ghan Pokhara",
+   "radius_km": 10,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Ghan Pokhara",
+   "radius_km": 25,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Ghan Pokhara",
+   "radius_km": 50,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Lain Odar",
+   "radius_km": 1,
+   "results": 1,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Lain Odar",
+   "radius_km": 5,
+   "results": 2,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Lain Odar",
+   "radius_km": 10,
+   "results": 3,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Lain Odar",
+   "radius_km": 25,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  },
+  {
+   "source": "Lain Odar",
+   "radius_km": 50,
+   "results": 30,
+   "out_of_radius": 0,
+   "bad_distances": 0
+  }
+ ],
+ "category_tests": [
+  {
+   "category": "hospital",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "pharmacy",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "atm",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "police",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "hotel",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "restaurant",
+   "http": 200,
+   "results": 0,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "temple",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "attraction",
+   "http": 200,
+   "results": 30,
+   "wrong_category_results": 0
+  },
+  {
+   "category": "nonexistent_xyz",
+   "http": 200,
+   "results": 0,
+   "wrong_category_results": 0
+  }
+ ],
+ "performance": [
+  {
+   "endpoint": "nearby",
+   "p50_ms": 3.7,
+   "p95_ms": 5.7
+  },
+  {
+   "endpoint": "search",
+   "p50_ms": 3.5,
+   "p95_ms": 5.1
+  },
+  {
+   "endpoint": "route_api(503 honest)",
+   "p50_ms": 16.3,
+   "p95_ms": 20.0
+  }
+ ],
+ "data_quality": {
+  "duplicate_osm_ids": 0,
+  "exact_coordinate_duplicates_osm": 0,
+  "missing_names_osm": 0,
+  "placeholder_names_osm": 947,
+  "outside_nepal_osm": 0,
+  "dest_missing_province": 11,
+  "dest_missing_district": 1,
+  "dest_no_coords": 71
+ }
+}
