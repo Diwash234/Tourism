@@ -109,12 +109,31 @@ class Command(BaseCommand):
         for fp in files:
             file_report = {"file": fp.name, "found": 0, "created": 0, "updated": 0,
                            "rejected": 0}
+            text = fp.read_text(encoding="utf-8")
             try:
-                payload = json.loads(fp.read_text(encoding="utf-8"))
-            except json.JSONDecodeError as exc:
-                self.stderr.write(f"Skipping {fp.name}: invalid JSON ({exc})")
-                continue
-            elements = payload.get("elements", [])
+                payload = json.loads(text)
+                elements = payload.get("elements", [])
+            except json.JSONDecodeError:
+                # NDJSON fallback: one Overpass element object per line
+                # (format produced when relaying chunked API output to disk).
+                elements = []
+                bad = 0
+                for line in text.splitlines():
+                    line = line.strip().rstrip(",")
+                    if not line or line in ("{", "}"):
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except json.JSONDecodeError:
+                        bad += 1
+                        continue
+                    if isinstance(obj, dict) and obj.get("id") is not None:
+                        elements.append(obj)
+                if bad:
+                    self.stderr.write(f"{fp.name}: {bad} unparseable lines skipped")
+                if not elements:
+                    self.stderr.write(f"Skipping {fp.name}: no element objects found")
+                    continue
             with transaction.atomic():
                 for el in elements:
                     report["found"] += 1

@@ -1,0 +1,1 @@
+{"category":"hospital","bbox":"NP area (ISO3166-1=NP)","osm_base":"2026-09-12T06:42:51Z","retrieved_at":"2026-09-12T06:45:00Z","note":"First 250 Nepal hospital elements by OSM id (Overpass out skel center 250; area-filtered, no foreign rows). Names absent in skel output - pending rows need name enrichment via full out; coords+ids verified against OSM."}
