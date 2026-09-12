@@ -48,6 +48,7 @@ const DiscoverNepal = lazy(() => import("./pages/DiscoverNepal"))
 const Districts = lazy(() => import("./pages/Districts"))
 const DistrictDetail = lazy(() => import("./pages/DistrictDetail"))
 const ExploreNepalMap = lazy(() => import("./pages/ExploreNepalMap"))
+const RoutePlanner = lazy(() => import("./pages/RoutePlanner"))
 const CompareDestinations = lazy(() => import("./pages/CompareDestinations"))
 const Gallery = lazy(() => import("./pages/Gallery"))
 
@@ -203,6 +204,7 @@ function App() {
         <Route path="/thank-you" element={<ThankYou />} />
 
         {/* Destinations */}
+        <Route path="/route-planner" element={<RoutePlanner />} />
         <Route path="/destinations" element={<DestinationList />} />
         <Route path="/destinations/:slug" element={<DestinationDetails />} />
         <Route path="/compare" element={<CompareDestinations />} />

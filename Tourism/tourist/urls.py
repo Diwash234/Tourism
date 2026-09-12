@@ -162,6 +162,7 @@ urlpatterns = [
     path("admin/blocks/<int:block_id>/", views_admin.AdminContentBlockView.as_view(), name="admin-block-detail"),
     path("admin/blocks/reorder/", views_admin.AdminContentBlockView.as_view(), name="admin-blocks-reorder"),
     path("admin/visitor-desk/", views_admin.AdminVisitorDeskView.as_view(), name="admin-visitor-desk"),
+    path("routes/", views_navigation.RoutePlanView.as_view(), name="route-plan"),
     path("navigation/calculate/", views_navigation.UserRouteCalculateView.as_view(), name="user-route-calculate"),
     path("navigation/routes/", views_navigation.UserRouteViewSet.as_view({"get": "list", "post": "create"}), name="user-route-list"),
     path("navigation/travel-options/", views_navigation.TravelOptionsView.as_view(), name="travel-options"),

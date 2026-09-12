@@ -949,3 +949,96 @@ class TravelOptionsView(APIView):
             "multi_stop": bool(via_points),
             "waypoints": via_points,
         })
+
+
+NEPAL_ROUTE_BBOX = {"min_lat": 26.30, "max_lat": 30.55, "min_lng": 79.90, "max_lng": 88.35}
+
+
+class RoutePlanView(APIView):
+    """GET /api/v1/routes/ — canonical source→destination road routing.
+
+    Resolves canonical place IDs (destination | service) to real DB
+    coordinates, validates them, then asks the admin-configured OSRM-protocol
+    provider for the route geometry + steps. NEVER substitutes another place,
+    NEVER draws a straight line as a route: without a working provider this
+    endpoint answers 503 ROUTE_UNAVAILABLE with an honest reason (§13).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    @staticmethod
+    def _resolve(request, prefix):
+        """Returns (payload, error_response)."""
+        from .models import OSMEssentialService
+        raw_id = request.query_params.get(f"{prefix}_id")
+        place_type = (request.query_params.get(f"{prefix}_type") or "destination").lower()
+        lat = request.query_params.get(f"{prefix}_lat")
+        lng = request.query_params.get(f"{prefix}_lng")
+        if raw_id:
+            if place_type == "service":
+                row = OSMEssentialService.objects.filter(pk=raw_id, is_archived=False).first()
+                if row is None:
+                    return None, ({"route_status": "PLACE_NOT_FOUND", "place": prefix,
+                                   "detail": f"No active service with id {raw_id}. No substitution performed."},
+                                  status.HTTP_404_NOT_FOUND)
+                return {"place_id": row.id, "type": "service", "name": row.name,
+                        "category": row.category, "lat": float(row.latitude),
+                        "lng": float(row.longitude),
+                        "verification_state": row.verification_state}, None
+            row = Destination.objects.filter(pk=raw_id, is_active=True).exclude(
+                status="rejected").first()
+            if row is None:
+                return None, ({"route_status": "PLACE_NOT_FOUND", "place": prefix,
+                               "detail": f"No active destination with id {raw_id}. No substitution performed."},
+                              status.HTTP_404_NOT_FOUND)
+            if row.latitude is None or row.longitude is None:
+                return None, ({"route_status": "ROUTE_COORDINATES_UNAVAILABLE", "place": prefix,
+                               "place_id": row.id, "name": row.name,
+                               "detail": "Record exists but has no coordinates; nothing substituted."},
+                              status.HTTP_422_UNPROCESSABLE_ENTITY)
+            return {"place_id": row.id, "type": "destination", "name": row.name,
+                    "district": row.district, "province": row.province,
+                    "lat": float(row.latitude), "lng": float(row.longitude)}, None
+        # raw coordinates allowed (user GPS / map click) but strictly validated
+        try:
+            la, lo = float(lat), float(lng)
+        except (TypeError, ValueError):
+            return None, ({"route_status": "COORDINATES_REQUIRED", "place": prefix,
+                           "detail": "Provide valid *_id or *_lat/*_lng."},
+                          status.HTTP_400_BAD_REQUEST)
+        if not (NEPAL_ROUTE_BBOX["min_lat"] <= la <= NEPAL_ROUTE_BBOX["max_lat"]
+                and NEPAL_ROUTE_BBOX["min_lng"] <= lo <= NEPAL_ROUTE_BBOX["max_lng"]):
+            return None, ({"route_status": "COORDINATES_OUT_OF_BOUNDS", "place": prefix,
+                           "lat": la, "lng": lo,
+                           "detail": "Coordinates are outside the supported Nepal service area."},
+                          status.HTTP_400_BAD_REQUEST)
+        return {"place_id": None, "type": "coordinates", "name": None,
+                "lat": la, "lng": lo}, None
+
+    def get(self, request):
+        from .routing_service import route_steps, provider_config
+        source, err = self._resolve(request, "source")
+        if err:
+            return Response(err[0], status=err[1])
+        destination, err = self._resolve(request, "destination")
+        if err:
+            return Response(err[0], status=err[1])
+
+        provider = provider_config()
+        plan = route_steps(source["lat"], source["lng"],
+                           destination["lat"], destination["lng"])
+        base = {"source": source, "destination": destination,
+                "profile": "driving", "eta_is_estimate": True}
+        if plan is None:
+            reason = ("No road-routing provider configured (admin site setting "
+                      "'routing_provider')." if not provider["enabled"]
+                      else "The configured routing provider did not return a route.")
+            return Response({**base, "route_status": "ROUTE_UNAVAILABLE", "reason": reason,
+                             "straight_line_km_note":
+                                 "Straight-line distance is intentionally NOT returned as a route."},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({**base, "route_status": "OK",
+                         "routing_engine": "osrm_protocol_provider",
+                         "provider_source": provider["source"],
+                         "distance_meters": round(plan["distance_km"] * 1000, 1),
+                         "duration_seconds": round(plan["duration_min"] * 60),
+                         "geometry": plan["geometry"], "steps": plan["steps"]})

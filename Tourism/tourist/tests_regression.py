@@ -4588,3 +4588,83 @@ class OSMEnrichmentTrustTests(TestCase):
         self.assertEqual(row.name, "Admin Curated Name")   # untouched
         self.assertEqual(row.phone, "+977-1-0000000")      # untouched
         self.assertEqual(row.verification_state, S.VerificationState.ADMIN_REVIEW)
+
+
+class RoutePlanEndpointTests(TestCase):
+    """§4-§6/§13/§27: /api/v1/routes/ canonical resolution + validation +
+    honest ROUTE_UNAVAILABLE. Never substitutes a place, never returns a
+    straight line as a route."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        self.cat, _ = Category.objects.get_or_create(name="Nature")
+        self.dest = Destination.objects.create(
+            name="Route Test Lake", slug="route-test-lake", category=self.cat,
+            province="Gandaki", district="Kaski", latitude=28.2096,
+            longitude=83.9856, is_active=True, status="approved")
+        self.dest_nocoord = Destination.objects.create(
+            name="No Coord Place", slug="no-coord-place", category=self.cat,
+            province="Gandaki", district="Kaski", is_active=True, status="approved")
+
+    def test_unknown_source_id_404_no_substitution(self):
+        r = self.client.get(f"/api/v1/routes/?source_id=999999&destination_id={self.dest.id}")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["route_status"], "PLACE_NOT_FOUND")
+
+    def test_destination_without_coordinates_422(self):
+        r = self.client.get(f"/api/v1/routes/?source_id={self.dest.id}"
+                            f"&destination_id={self.dest_nocoord.id}")
+        self.assertEqual(r.status_code, 422)
+        self.assertEqual(r.json()["route_status"], "ROUTE_COORDINATES_UNAVAILABLE")
+
+    def test_out_of_bounds_coordinates_400(self):
+        r = self.client.get(f"/api/v1/routes/?source_lat=48.85&source_lng=2.35"
+                            f"&destination_id={self.dest.id}")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()["route_status"], "COORDINATES_OUT_OF_BOUNDS")
+
+    def test_no_provider_returns_route_unavailable_never_straight_line(self):
+        from .models import SiteSetting
+        SiteSetting.objects.update_or_create(
+            key="routing_provider",
+            defaults={"value": {"enabled": False, "base_url": "", "api_key": ""}})
+        r = self.client.get(f"/api/v1/routes/?source_id={self.dest.id}"
+                            f"&destination_lat=28.21&destination_lng=83.99")
+        self.assertEqual(r.status_code, 503)
+        data = r.json()
+        self.assertEqual(data["route_status"], "ROUTE_UNAVAILABLE")
+        self.assertNotIn("geometry", data)
+        self.assertEqual(data["source"]["place_id"], self.dest.id)  # canonical echoed
+
+    def test_mocked_provider_returns_real_geometry_and_canonical_ids(self):
+        from unittest import mock
+        from .models import SiteSetting
+        SiteSetting.objects.update_or_create(
+            key="routing_provider",
+            defaults={"value": {"enabled": True,
+                                "base_url": "https://osrm.example.test/route/v1/driving",
+                                "api_key": ""}})
+        fake = {"routes": [{"distance": 5200.0, "duration": 900.0,
+                            "geometry": {"coordinates": [[83.9856, 28.2096], [83.96, 28.21],
+                                                          [83.9593, 28.2132]]},
+                            "legs": [{"steps": [
+                                {"maneuver": {"type": "depart"}, "name": "Lakeside Rd",
+                                 "distance": 300, "duration": 60},
+                                {"maneuver": {"type": "turn", "modifier": "left"},
+                                 "name": "Phewa Marg", "distance": 4900, "duration": 840},
+                                {"maneuver": {"type": "arrive"}, "name": "",
+                                 "distance": 0, "duration": 0}]}]}]}
+        with mock.patch("tourist.routing_service.requests.get") as m:
+            m.return_value.json.return_value = fake
+            m.return_value.raise_for_status.return_value = None
+            r = self.client.get(f"/api/v1/routes/?source_id={self.dest.id}"
+                                f"&destination_lat=28.2132&destination_lng=83.9593")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["route_status"], "OK")
+        self.assertEqual(data["distance_meters"], 5200.0)
+        self.assertEqual(data["duration_seconds"], 900)
+        self.assertEqual(len(data["geometry"]), 3)       # real geometry, not 2-pt line
+        self.assertEqual(data["source"]["place_id"], self.dest.id)
+        self.assertTrue(any("Turn left" in s["instruction"] for s in data["steps"]))
+        self.assertTrue(data["eta_is_estimate"])

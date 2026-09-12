@@ -1,0 +1,140 @@
+{
+ "matrix": [
+  {
+   "province": "Koshi",
+   "source": {
+    "id": 1411,
+    "name": "1 Room",
+    "lat": 27.332419,
+    "lng": 87.308972
+   },
+   "destination": {
+    "id": 5684,
+    "name": "3 sister hotel & lodge",
+    "lat": 27.697534,
+    "lng": 86.819222
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  },
+  {
+   "province": "Madhesh",
+   "source": {
+    "id": 7851,
+    "name": "Adhabar",
+    "lat": 27.23,
+    "lng": 84.9
+   },
+   "destination": {
+    "id": 7318,
+    "name": "Amlekhganj",
+    "lat": 27.295,
+    "lng": 85.007
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  },
+  {
+   "province": "Bagmati",
+   "source": {
+    "id": 1987,
+    "name": "\"Break the Chain\"",
+    "lat": 27.673685,
+    "lng": 85.326178
+   },
+   "destination": {
+    "id": 998,
+    "name": "3 rooms by Pauline",
+    "lat": 27.694602,
+    "lng": 85.322625
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  },
+  {
+   "province": "Gandaki",
+   "source": {
+    "id": 3518,
+    "name": "18 Saya Khola Family Guest House",
+    "lat": 28.294927,
+    "lng": 84.903796
+   },
+   "destination": {
+    "id": 803,
+    "name": "3 Sister Guesthouse",
+    "lat": 28.525181,
+    "lng": 84.353917
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  },
+  {
+   "province": "Lumbini",
+   "source": {
+    "id": 1392,
+    "name": "472",
+    "lat": 27.44807,
+    "lng": 83.78406
+   },
+   "destination": {
+    "id": 4557,
+    "name": "Aarohad Hotel & Cafe",
+    "lat": 27.628219,
+    "lng": 83.50187
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  },
+  {
+   "province": "Karnali",
+   "source": {
+    "id": 3196,
+    "name": "Aale Staff Hotel",
+    "lat": 28.891985,
+    "lng": 81.498838
+   },
+   "destination": {
+    "id": 3191,
+    "name": "Aathabise Staff Hotel",
+    "lat": 28.896203,
+    "lng": 81.491059
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  },
+  {
+   "province": "Sudurpashchim",
+   "source": {
+    "id": 4140,
+    "name": "A.p.vojanalaya",
+    "lat": 29.456155,
+    "lng": 80.910849
+   },
+   "destination": {
+    "id": 5308,
+    "name": "Aale Hotel",
+    "lat": 28.524775,
+    "lng": 81.119953
+   },
+   "http": 503,
+   "route_status": "ROUTE_UNAVAILABLE",
+   "canonical_echo_ok": true,
+   "coords_echo_ok": true
+  }
+ ],
+ "unknown_source_http": 404,
+ "unknown_source_status": "PLACE_NOT_FOUND",
+ "note": "Provider unconfigured in sandbox -> honest 503 ROUTE_UNAVAILABLE with canonical echo; browser-side OSRM demo provides real geometry in the live preview."
+}
