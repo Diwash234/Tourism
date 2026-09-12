@@ -61,13 +61,21 @@ class UserRouteCalculateView(APIView):
         origin_lng = data.get("origin_lng") or data.get("longitude") or data.get("start_longitude")
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
-        # Without GPS or explicit origin coordinates the route cannot be
-        # anchored. V6: never fabricate an origin — return an honest status.
+        # V6: origin may be explicit coordinates or a resolvable place name —
+        # never an assumed city.
         if origin_lat is None or origin_lng is None:
-            return Response({
-                "route_status": "ORIGIN_COORDINATES_REQUIRED",
-                "error": "Provide GPS position or explicit origin coordinates; no default origin is assumed.",
-            }, status=400)
+            if origin_name and origin_name.lower() not in {"current location", "my current location"}:
+                from .location.search_service import LocationSearchService
+                resolved_origin = LocationSearchService.resolve_single_place(origin_name)
+                if resolved_origin and resolved_origin.get("latitude") and resolved_origin.get("longitude"):
+                    origin_lat = float(resolved_origin["latitude"])
+                    origin_lng = float(resolved_origin["longitude"])
+                    origin_name = resolved_origin.get("name") or origin_name
+            if origin_lat is None or origin_lng is None:
+                return Response({
+                    "route_status": "ORIGIN_COORDINATES_REQUIRED",
+                    "error": "Provide GPS position, explicit origin coordinates, or a recognizable origin_name; no default origin is assumed.",
+                }, status=400)
 
         # Resolve destination
         dest_lat = None
@@ -75,7 +83,21 @@ class UserRouteCalculateView(APIView):
         dest_title = dest_name or "Destination"
         dest_city = ""
 
-        if destination and destination.latitude is not None and destination.longitude is not None:
+        # explicit destination coordinates (canonical multi-stop leg contract)
+        end_lat = data.get("end_latitude") or data.get("destination_lat") or data.get("destination_latitude")
+        end_lng = data.get("end_longitude") or data.get("destination_lng") or data.get("destination_longitude")
+        if end_lat is not None and end_lng is not None:
+            try:
+                dest_lat = float(end_lat)
+                dest_lng = float(end_lng)
+                dest_title = dest_name or data.get("end_name") or "Destination (coordinates)"
+            except (TypeError, ValueError):
+                return Response({
+                    "route_status": "COORDINATES_INVALID",
+                    "error": "Destination coordinates are invalid; no route was calculated.",
+                }, status=400)
+
+        if dest_lat is None and destination and destination.latitude is not None and destination.longitude is not None:
             dest_lat = float(destination.latitude)
             dest_lng = float(destination.longitude)
             dest_title = destination.name
