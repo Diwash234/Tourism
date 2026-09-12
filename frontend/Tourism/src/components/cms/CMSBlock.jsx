@@ -199,12 +199,17 @@ export function ContentBlockItem({ block }) {
     }
 
     case "map": {
-      const lat = data.latitude || 28.2096
-      const lng = data.longitude || 83.9856
+      const lat = data.latitude
+      const lng = data.longitude
+      const hasCoords = lat != null && lng != null
       return (
         <div className="mt-4 p-4 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-800">
           <h4 className="font-bold text-sm text-amber-300">📍 {title || data.title || "Map Location"}</h4>
-          <p className="text-xs text-slate-300">Coordinates: {lat}, {lng} (Zoom: {data.zoom || 12})</p>
+          <p className="text-xs text-slate-300">
+            {hasCoords
+              ? <>Coordinates: {lat}, {lng} (Zoom: {data.zoom || 12})</>
+              : "Coordinates not set — add them in the CMS editor."}
+          </p>
           {data.description && <p className="text-xs text-slate-400">{data.description}</p>}
         </div>
       )

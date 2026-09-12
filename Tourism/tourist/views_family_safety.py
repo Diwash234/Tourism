@@ -7,6 +7,8 @@ the frontend. Simpler to build and reason about correctly first; true
 push-based real-time is a bigger, separate addition if genuinely needed
 once this is working end-to-end.
 """
+import logging
+
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
@@ -18,6 +20,8 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from .models import TrustedContact, SharedTrip, LocationPing, SOSAlert
+
+logger = logging.getLogger(__name__)
 from .serializers_family_safety import (
     TrustedContactSerializer, SharedTripSerializer, LocationPingSerializer, SOSAlertSerializer,
 )
@@ -149,12 +153,14 @@ class SOSAlertViewSet(viewsets.ModelViewSet):
                 try:
                     send_email_notification(contact.email, "SOS Alert", message)
                 except Exception:
-                    pass  # never let one bad contact block notifying the rest
+                    # never let one bad contact block notifying the rest,
+                    # but a silent SOS email failure is invisible otherwise.
+                    logger.warning("SOS email notification failed for contact %s", contact.email, exc_info=True)
             if contact.phone_number:
                 try:
                     send_sms_notification(str(contact.phone_number), message)
                 except Exception:
-                    pass
+                    logger.warning("SOS SMS notification failed for contact %s", contact.phone_number, exc_info=True)
 
     @action(detail=True, methods=["post"])
     def resolve(self, request, pk=None):
@@ -186,7 +192,7 @@ def _notify(user, title, message):
         from .notification_delivery import queue_notification
         queue_notification(user, title, message, category="safety")
     except Exception:
-        pass
+        logger.warning("in-app safety notification failed for user %s", getattr(user, "pk", "?"), exc_info=True)
 
 
 def notify_family_members(owner, title, message, exclude=None):
@@ -204,7 +210,7 @@ def notify_family_members(owner, title, message, exclude=None):
             UserM = get_user_model()
             _notify(UserM.objects.get(id=uid), title, message)
         except Exception:
-            pass
+            logger.warning("family member notification failed for uid %s", uid, exc_info=True)
 
 
 class FamilyLinkViewSet(viewsets.ModelViewSet):

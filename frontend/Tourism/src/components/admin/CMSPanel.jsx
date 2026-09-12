@@ -1154,7 +1154,7 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
         button: { label: "Explore Now", url: "/destinations", target: "_self", style: "primary" },
         table: { columns: ["Location", "District", "Altitude"], rows: [["Pokhara", "Kaski", "822m"], ["Kathmandu", "Kathmandu", "1400m"]] },
         video: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Nepal Video Tour" },
-        map: { latitude: 28.2096, longitude: 83.9856, zoom: 13, title: "Pokhara Lakeside" },
+        map: { latitude: null, longitude: null, zoom: 12, title: "Location" },
         statistics: { items: [{ number: "8,000+", label: "Himalayan Peaks" }, { number: "100+", label: "Attractions" }] },
         alert: { variant: "info", title: "Travel Notice", body: "Check weather forecast before trekking." },
         quote: { quote: "Nepal is not just a destination; it's a spiritual experience.", author: "Himalayan Guide" },

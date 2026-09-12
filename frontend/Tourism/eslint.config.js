@@ -3,7 +3,19 @@ import globals from "globals"
 import reactHooks from "eslint-plugin-react-hooks"
 
 export default [
-  { ignores: ["dist/**", "node_modules/**", "e2e/**"] },
+  {
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "e2e/**",
+      // Known sandbox-leftover zombie files (deleted in P007, keep
+      // resurrecting as untracked copies with broken exports). Gitignored
+      // at the repo root; ignored here so a resurrection can never turn
+      // `npm run lint` red again. See .gitignore "Dead broken duplicates".
+      "src/pages/SmartImages.jsx",
+      "src/pages/ImageGallery.jsx",
+    ],
+  },
   js.configs.recommended,
   {
     files: ["**/*.{js,jsx}"],
