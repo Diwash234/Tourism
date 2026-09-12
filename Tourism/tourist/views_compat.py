@@ -397,9 +397,9 @@ class NavigationRouteView(APIView):
                 if resolved and resolved.get("latitude") and resolved.get("longitude"):
                     end_lat, end_lon = resolved["latitude"], resolved["longitude"]
                     destination_dict = {
-                        "id": resolved.get("destination_id", 99999),
+                        "id": resolved.get("destination_id"),
                         "name": resolved["name"],
-                        "city": resolved.get("city", "Pokhara"),
+                        "city": resolved.get("city", ""),
                         "latitude": end_lat,
                         "longitude": end_lon,
                         "address": resolved.get("address", "Nepal"),
@@ -641,7 +641,11 @@ class NearbyPlacesCompatView(APIView):
                 lat = float(geo["latitude"])
                 lon = float(geo["longitude"])
             else:
-                lat, lon = 28.2096, 83.9856
+                # V6: never silently center a nearby search on a default city
+                return Response({
+                    "detail": "lat/lng (or device geolocation) required; no default location is assumed.",
+                    "status": "COORDINATES_REQUIRED",
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # Accept both radius (metres) and radius_km (kilometres, what the
         # Navigation page sends) — previously radius_km was silently ignored

@@ -891,7 +891,7 @@ class NavigationOriginResolutionTests(TestCase):
 
     def test_origin_name_resolves_without_coordinates(self):
         resp = self.client.post(
-            "/api/v1/navigation/route",
+            "/api/v1/navigation/calculate/",
             {"origin_name": "Kathmandu Durbar Square", "destination_name": "Phewa Lake"},
             content_type="application/json",
         )
@@ -903,7 +903,7 @@ class NavigationOriginResolutionTests(TestCase):
 
     def test_unknown_origin_is_a_clean_404(self):
         resp = self.client.post(
-            "/api/v1/navigation/route",
+            "/api/v1/navigation/calculate/",
             {"origin_name": "zzz-nonexistent-ville", "destination_name": "Phewa Lake"},
             content_type="application/json",
         )
@@ -928,7 +928,7 @@ class TransportModeHonestyTests(TestCase):
 
     def _route(self, mode):
         return self.client.post(
-            "/api/v1/navigation/route",
+            "/api/v1/navigation/calculate/",
             {
                 "start_latitude": "27.6722", "start_longitude": "85.3066",
                 "destination_name": "Phewa Lake", "transport_mode": mode,
@@ -1002,46 +1002,46 @@ class UserRouteHistoryTests(TestCase):
         return base
 
     def test_requires_auth(self):
-        for method, url in [("get", "/api/v1/navigation/routes/"), ("post", "/api/v1/navigation/routes/")]:
+        for method, url in [("get", "/api/v1/navigation/calculates/"), ("post", "/api/v1/navigation/routes/")]:
             resp = getattr(self.client, method)(url, self._payload() if method == "post" else None,
                                                 format="json" if method == "post" else None)
             self.assertIn(resp.status_code, (401, 403))
 
     def test_log_and_list_own_history_only(self):
         self._auth()
-        resp = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json")
+        resp = self.client.post("/api/v1/navigation/calculates/", self._payload(), format="json")
         self.assertEqual(resp.status_code, 201, resp.content[:200])
         # Another user's private log stays invisible.
         self._auth(self.other)
-        self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="Sarangkot"), format="json")
+        self.client.post("/api/v1/navigation/calculates/", self._payload(destination_name="Sarangkot"), format="json")
         self._auth()
-        resp = self.client.get("/api/v1/navigation/routes/")
+        resp = self.client.get("/api/v1/navigation/calculates/")
         names = [r["destination_name"] for r in resp.json()]
         self.assertEqual(names, ["Phewa Lake"])
 
     def test_star_saved_filter_and_delete(self):
         self._auth()
-        rid = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json").json()["id"]
-        self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="Nagarkot"), format="json")
-        resp = self.client.patch(f"/api/v1/navigation/routes/{rid}/", {"is_saved": True, "label": "Home → Lakeside"}, format="json")
+        rid = self.client.post("/api/v1/navigation/calculates/", self._payload(), format="json").json()["id"]
+        self.client.post("/api/v1/navigation/calculates/", self._payload(destination_name="Nagarkot"), format="json")
+        resp = self.client.patch(f"/api/v1/navigation/calculates/{rid}/", {"is_saved": True, "label": "Home → Lakeside"}, format="json")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["label"], "Home → Lakeside")
-        saved = self.client.get("/api/v1/navigation/routes/?saved=1").json()
+        saved = self.client.get("/api/v1/navigation/calculates/?saved=1").json()
         self.assertEqual(len(saved), 1)
         self.assertEqual(saved[0]["destination_name"], "Phewa Lake")
-        self.assertEqual(self.client.delete(f"/api/v1/navigation/routes/{rid}/").status_code, 204)
-        self.assertEqual(self.client.get("/api/v1/navigation/routes/?saved=1").json(), [])
+        self.assertEqual(self.client.delete(f"/api/v1/navigation/calculates/{rid}/").status_code, 204)
+        self.assertEqual(self.client.get("/api/v1/navigation/calculates/?saved=1").json(), [])
 
     def test_cannot_touch_other_users_route(self):
         self._auth(self.other)
-        rid = self.client.post("/api/v1/navigation/routes/", self._payload(), format="json").json()["id"]
+        rid = self.client.post("/api/v1/navigation/calculates/", self._payload(), format="json").json()["id"]
         self._auth()
-        self.assertEqual(self.client.patch(f"/api/v1/navigation/routes/{rid}/", {"is_saved": True}, format="json").status_code, 404)
-        self.assertEqual(self.client.delete(f"/api/v1/navigation/routes/{rid}/").status_code, 404)
+        self.assertEqual(self.client.patch(f"/api/v1/navigation/calculates/{rid}/", {"is_saved": True}, format="json").status_code, 404)
+        self.assertEqual(self.client.delete(f"/api/v1/navigation/calculates/{rid}/").status_code, 404)
 
     def test_destination_name_required(self):
         self._auth()
-        resp = self.client.post("/api/v1/navigation/routes/", self._payload(destination_name="  "), format="json")
+        resp = self.client.post("/api/v1/navigation/calculates/", self._payload(destination_name="  "), format="json")
         self.assertEqual(resp.status_code, 400)
 
 
@@ -1670,11 +1670,11 @@ class NavigationExtensionsTests(TestCase):
         self.client = APIClient()
 
     def test_route_options_requires_coordinates(self):
-        resp = self.client.post("/api/v1/navigation/route-options/", {}, format="json")
+        resp = self.client.post("/api/v1/navigation/calculate-options/", {}, format="json")
         self.assertEqual(resp.status_code, 400)
 
     def test_route_options_honest_when_no_road_service(self):
-        resp = self.client.post("/api/v1/navigation/route-options/", {
+        resp = self.client.post("/api/v1/navigation/calculate-options/", {
             "origin_lat": 27.7172, "origin_lng": 85.3240, "dest_lat": 28.2096, "dest_lng": 83.9856,
         }, format="json")
         self.assertEqual(resp.status_code, 200)
@@ -1689,10 +1689,10 @@ class NavigationExtensionsTests(TestCase):
 
     def test_recalculate_owner_only(self):
         self.client.force_authenticate(self.other)
-        resp = self.client.post(f"/api/v1/navigation/routes/{self.route.id}/recalculate/")
+        resp = self.client.post(f"/api/v1/navigation/calculates/{self.route.id}/recalculate/")
         self.assertEqual(resp.status_code, 404)  # not the owner → not found
         self.client.force_authenticate(self.owner)
-        resp = self.client.post(f"/api/v1/navigation/routes/{self.route.id}/recalculate/")
+        resp = self.client.post(f"/api/v1/navigation/calculates/{self.route.id}/recalculate/")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data["previous"]["duration_source"], "estimated")
@@ -3379,7 +3379,7 @@ class RouteAlternativesTests(TestCase):
                                 "identical corridor must be discarded, not shown as an alternative")
 
     def test_navigation_route_attaches_alternatives(self):
-        response = self.client.post("/api/v1/navigation/route", {
+        response = self.client.post("/api/v1/navigation/calculate/", {
             "origin_name": "Kathmandu",
             "destination_name": "Pokhara",
         }, format="json")
@@ -3392,7 +3392,7 @@ class RouteAlternativesTests(TestCase):
             self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
 
     def test_tourist_bus_alternatives_get_no_invented_times(self):
-        response = self.client.post("/api/v1/navigation/route", {
+        response = self.client.post("/api/v1/navigation/calculate/", {
             "origin_name": "Kathmandu",
             "destination_name": "Pokhara",
             "transport_mode": "Tourist Bus",
@@ -3483,7 +3483,7 @@ class MultiStopRouteTests(TestCase):
     """Phase 4: multi-stop routes — every leg through the same engine and
     honesty rules; totals are leg sums; unresolvable stops are rejected."""
 
-    URL = "/api/v1/navigation/route"
+    URL = "/api/v1/navigation/calculate/"
     KTM = {"latitude": 27.7172, "longitude": 85.3240}
     PKR = {"latitude": 28.2096, "longitude": 83.9856}
 
@@ -4758,3 +4758,39 @@ class ConfigPlaceCanonicalTests(TestCase):
         self.assertNotIn('else "Pokhara"', src)
         self.assertNotIn('or "100"', src)
         self.assertNotIn('or "102"', src)
+
+
+class LegacyNavigationRouteSafetyTests(TestCase):
+    """V6: /navigation/route must not assume Pokhara origin or destination."""
+
+    def _post(self, payload):
+        from rest_framework.test import APIClient
+        return APIClient().post("/api/v1/navigation/calculate/", payload, format="json")
+
+    def test_missing_origin_is_honest_400_not_pokhara(self):
+        r = self._post({"destination_name": "Phewa Lake"})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json().get("route_status"), "ORIGIN_COORDINATES_REQUIRED")
+
+    def test_unknown_destination_no_pokhara_substitution(self):
+        r = self._post({"origin_lat": 27.7, "origin_lng": 85.3,
+                        "destination_name": "Xylophonistan Grand Palace"})
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json().get("route_status"), "UNRESOLVED_DESTINATION")
+        self.assertNotIn("Pokhara", str(r.json()))
+
+    def test_empty_destination_does_not_resolve_to_pokhara(self):
+        r = self._post({"origin_lat": 27.7, "origin_lng": 85.3, "destination_name": ""})
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json().get("route_status"), "UNRESOLVED_DESTINATION")
+
+    def test_invalid_origin_coordinates_rejected(self):
+        r = self._post({"origin_lat": "not-a-number", "origin_lng": 85.3,
+                        "destination_name": "Phewa Lake"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_compat_nearby_without_coords_is_400_not_pokhara(self):
+        from rest_framework.test import APIClient
+        r = APIClient().get("/api/v1/nearby/places", {"q": "hospital"})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json().get("status"), "COORDINATES_REQUIRED")

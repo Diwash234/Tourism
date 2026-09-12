@@ -62,31 +62,32 @@ class UserRouteCalculateView(APIView):
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
         # Without GPS or explicit origin coordinates the route cannot be
-        # anchored; use the labeled default and flag it in the response.
-        origin_assumed = origin_lat is None or origin_lng is None
-        if origin_assumed:
-            origin_lat, origin_lng = 28.2096, 83.9856
-            origin_name = origin_name or "Pokhara Center (assumed — provide GPS for accurate routing)"
+        # anchored. V6: never fabricate an origin — return an honest status.
+        if origin_lat is None or origin_lng is None:
+            return Response({
+                "route_status": "ORIGIN_COORDINATES_REQUIRED",
+                "error": "Provide GPS position or explicit origin coordinates; no default origin is assumed.",
+            }, status=400)
 
         # Resolve destination
         dest_lat = None
         dest_lng = None
         dest_title = dest_name or "Destination"
-        dest_city = "Pokhara"
+        dest_city = ""
 
         if destination and destination.latitude is not None and destination.longitude is not None:
             dest_lat = float(destination.latitude)
             dest_lng = float(destination.longitude)
             dest_title = destination.name
-            dest_city = destination.city or "Pokhara"
-        else:
+            dest_city = destination.city or ""
+        elif dest_name or dest_slug:
             from .location.search_service import LocationSearchService
-            resolved = LocationSearchService.resolve_single_place(dest_name or dest_slug or "Pokhara")
+            resolved = LocationSearchService.resolve_single_place(dest_name or dest_slug)
             if resolved:
                 dest_lat = resolved["latitude"]
                 dest_lng = resolved["longitude"]
                 dest_title = resolved["name"]
-                dest_city = resolved.get("city", "Pokhara")
+                dest_city = resolved.get("city", "")
 
         if dest_lat is None or dest_lng is None:
             # Never silently route to a default city: an unresolved
@@ -100,8 +101,17 @@ class UserRouteCalculateView(APIView):
                 "has_coordinates": False,
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Calculate coordinates-based distance
-        raw_dist = haversine_distance_km(origin_lat, origin_lng, dest_lat, dest_lng) or 5.0
+        # Calculate coordinates-based distance (labelled estimate: road-factor
+        # applied to haversine; never a fabricated distance for invalid coords)
+        try:
+            raw_dist = haversine_distance_km(float(origin_lat), float(origin_lng), dest_lat, dest_lng)
+        except (TypeError, ValueError):
+            raw_dist = None
+        if raw_dist is None:
+            return Response({
+                "route_status": "COORDINATES_INVALID",
+                "error": "Origin coordinates are invalid; no distance was calculated.",
+            }, status=400)
         distance_km = round(raw_dist * 1.35, 1)
         duration_hours = distance_km / 35.0
         duration_mins = int(duration_hours * 60)
@@ -146,7 +156,7 @@ class UserRouteCalculateView(APIView):
             "destination_latitude": dest_lat,
             "destination_longitude": dest_lng,
             "origin_name": origin_name or "Current Location",
-            "origin_assumed": origin_assumed,
+            "origin_assumed": False,  # V6: origin always explicit; no assumed default
             "origin_latitude": olat,
             "origin_longitude": olng,
             "transport_mode": transport_mode,
