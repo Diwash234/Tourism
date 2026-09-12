@@ -62,16 +62,21 @@ class SupportInboxConsumer(AsyncJsonWebsocketConsumer):
         # Auth: JWT via ?token= (frontend stores JWT in localStorage, not
         # cookies) or an authenticated session user when middleware provides one.
         user = self.scope.get("user")
-        if not (user and user.is_authenticated):
+        if not (user and getattr(user, "is_authenticated", False)):
             from urllib.parse import parse_qs
             qs = parse_qs(self.scope.get("query_string", b"").decode())
             token = (qs.get("token") or [""])[0]
             if token:
                 try:
+                    from asgiref.sync import sync_to_async
                     from rest_framework_simplejwt.tokens import AccessToken
                     from django.contrib.auth import get_user_model
                     validated = AccessToken(token)
-                    user = get_user_model().objects.filter(pk=validated["user_id"]).first()
+                    # Sync ORM is illegal in the consumer's async context
+                    # (SynchronousOnlyOperation) — hop through a thread.
+                    user = await sync_to_async(
+                        get_user_model().objects.filter(pk=validated["user_id"]).first
+                    )()
                 except Exception:
                     user = None
         is_staff = bool(user and getattr(user, "is_authenticated", False) and (

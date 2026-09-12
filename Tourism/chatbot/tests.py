@@ -313,3 +313,59 @@ class SupportWorkflowTests(APITestCase):
         res = self.client.get(reverse("support-inbox"), {"mine": "1"})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn(cid, [row["id"] for row in res.data["results"]])
+
+
+class SupportInboxWebSocketTests(APITestCase):
+    """/ws/support/ must reject non-staff and relay inbox events to staff."""
+
+    async def _scenario(self, path):
+        from channels.testing import WebsocketCommunicator
+        from Tourism.asgi import application
+        communicator = WebsocketCommunicator(application, path)
+        connected, _ = await communicator.connect()
+        return communicator, connected
+
+    def test_anonymous_is_rejected(self):
+        from asgiref.sync import async_to_sync
+
+        async def run():
+            communicator, connected = await self._scenario("/ws/support/")
+            assert not connected, "anonymous must not join the support inbox"
+        async_to_sync(run)()
+
+    def test_tourist_token_is_rejected(self):
+        from asgiref.sync import async_to_sync
+        tourist = User.objects.create_user(email="ws-tourist@example.com", password="Pass123!", role=User.Role.TOURIST)
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = str(AccessToken.for_user(tourist))
+
+        async def run():
+            communicator, connected = await self._scenario(f"/ws/support/?token={token}")
+            assert not connected, "non-staff token must not join the support inbox"
+        async_to_sync(run)()
+
+    def test_staff_connects_and_receives_inbox_events(self):
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        staff = User.objects.create_user(email="ws-staff@example.com", password="Pass123!", role=User.Role.STAFF)
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = str(AccessToken.for_user(staff))
+
+        async def run():
+            communicator, connected = await self._scenario(f"/ws/support/?token={token}")
+            assert connected, "staff must be accepted"
+            hello = await communicator.receive_json_from()
+            assert hello["type"] == "support.connected"
+            layer = get_channel_layer()
+            await layer.group_send(
+                "support_inbox",
+                {"type": "chat.message", "payload": {
+                    "type": "support.user_message", "conversation_id": 9,
+                    "message_id": 3, "content": "Help", "user_email": "t@example.com",
+                }},
+            )
+            event = await communicator.receive_json_from()
+            assert event["type"] == "support.user_message"
+            assert event["content"] == "Help"
+            await communicator.disconnect()
+        async_to_sync(run)()
