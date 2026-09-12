@@ -1,0 +1,1767 @@
+{
+ "generated_at": "2026-09-12T10:04:01.037647+00:00",
+ "authoritative_internal_source": "tourist.District (77 rows, official federal structure)",
+ "policy": "No auto-resolution. Admin must approve each candidate before MunicipalityMapping.verified is set.",
+ "stats": {
+  "total_unresolved": 133,
+  "exact_district_match": 0,
+  "ambiguous": 17,
+  "unmatched_needs_external_source": 114,
+  "junk_recommended_reject": 2
+ },
+ "candidates": [
+  {
+   "mapping_id": 1,
+   "raw_value": "50-150",
+   "normalized_value": "50-150",
+   "current_district": "Kanchanpur",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "reject_junk_value"
+  },
+  {
+   "mapping_id": 2,
+   "raw_value": "Chitwan/Nuwakot",
+   "normalized_value": "chitwan/nuwakot",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Chitwan",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Nuwakot",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 3,
+   "raw_value": "Dharan",
+   "normalized_value": "dharan",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 4,
+   "raw_value": "District",
+   "normalized_value": "district",
+   "current_district": "Lalitpur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "reject_junk_value"
+  },
+  {
+   "mapping_id": 5,
+   "raw_value": "Dolakha/Ramechhap",
+   "normalized_value": "dolakha/ramechhap",
+   "current_district": "Bhaktapur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Dolakha",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Ramechhap",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 6,
+   "raw_value": "Dolpo",
+   "normalized_value": "dolpo",
+   "current_district": "Mustang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 7,
+   "raw_value": "Doti/Sudurpaschim",
+   "normalized_value": "doti/sudurpaschim",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Doti",
+     "province": "Sudurpashchim",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 8,
+   "raw_value": "Gandaki",
+   "normalized_value": "gandaki",
+   "current_district": "Palpa",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 9,
+   "raw_value": "Gasa (Bhutan border)",
+   "normalized_value": "gasa",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 10,
+   "raw_value": "Gulmi/Lumbini",
+   "normalized_value": "gulmi/lumbini",
+   "current_district": "Palpa",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Gulmi",
+     "province": "Lumbini",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 11,
+   "raw_value": "Itahari",
+   "normalized_value": "itahari",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 12,
+   "raw_value": "Kanyam",
+   "normalized_value": "kanyam",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 13,
+   "raw_value": "Karnali",
+   "normalized_value": "karnali",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 14,
+   "raw_value": "Kaski/Gandaki",
+   "normalized_value": "kaski/gandaki",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Kaski",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 15,
+   "raw_value": "Kaski/Gorkha",
+   "normalized_value": "kaski/gorkha",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Kaski",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Gorkha",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 16,
+   "raw_value": "Kavre",
+   "normalized_value": "kavre",
+   "current_district": "Bhaktapur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 17,
+   "raw_value": "Koshi",
+   "normalized_value": "koshi",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 18,
+   "raw_value": "Lumbini",
+   "normalized_value": "lumbini",
+   "current_district": "Palpa",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 19,
+   "raw_value": "Makalu Region",
+   "normalized_value": "makalu region",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 20,
+   "raw_value": "Manang/Gandaki",
+   "normalized_value": "manang/gandaki",
+   "current_district": "Mustang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Manang",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 21,
+   "raw_value": "Manang/Mustang",
+   "normalized_value": "manang/mustang",
+   "current_district": "Mustang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Manang",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Mustang",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 22,
+   "raw_value": "Manang/Mustang/Myagdi",
+   "normalized_value": "manang/mustang/myagdi",
+   "current_district": "Manang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Manang",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Mustang",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Myagdi",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 23,
+   "raw_value": "Nawalparasi",
+   "normalized_value": "nawalparasi",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 24,
+   "raw_value": "Nawalparasi W",
+   "normalized_value": "nawalparasi w",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 25,
+   "raw_value": "Nawalparasi West",
+   "normalized_value": "nawalparasi west",
+   "current_district": "Chitwan",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 26,
+   "raw_value": "Nepalgunj",
+   "normalized_value": "nepalgunj",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 27,
+   "raw_value": "Nuwakot/Bhaktapur",
+   "normalized_value": "nuwakot/bhaktapur",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Nuwakot",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Bhaktapur",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 28,
+   "raw_value": "Nuwakot/Budhanilkantha",
+   "normalized_value": "nuwakot/budhanilkantha",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Nuwakot",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 29,
+   "raw_value": "Palpa/Rupandehi",
+   "normalized_value": "palpa/rupandehi",
+   "current_district": "Palpa",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Palpa",
+     "province": "Lumbini",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Rupandehi",
+     "province": "Lumbini",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 30,
+   "raw_value": "Parbat/Gandaki",
+   "normalized_value": "parbat/gandaki",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Parbat",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 31,
+   "raw_value": "Pardaha/Madhesh",
+   "normalized_value": "pardaha/madhesh",
+   "current_district": "Parsa",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "unmatched_ambiguous"
+  },
+  {
+   "mapping_id": 32,
+   "raw_value": "Pathibhara",
+   "normalized_value": "pathibhara",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 33,
+   "raw_value": "Rasuwa/Dhading",
+   "normalized_value": "rasuwa/dhading",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Rasuwa",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Dhading",
+     "province": "Bagmati",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 34,
+   "raw_value": "Rukum",
+   "normalized_value": "rukum",
+   "current_district": "Dolpa",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 35,
+   "raw_value": "Rukum East",
+   "normalized_value": "rukum east",
+   "current_district": "Dolpa",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 36,
+   "raw_value": "Rukum West",
+   "normalized_value": "rukum west",
+   "current_district": "Dolpa",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 37,
+   "raw_value": "Saptari/Morang",
+   "normalized_value": "saptari/morang",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Saptari",
+     "province": "Madhesh",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Morang",
+     "province": "Koshi",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 38,
+   "raw_value": "Solu Khumbu",
+   "normalized_value": "solu khumbu",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 39,
+   "raw_value": "Sudurpashchim",
+   "normalized_value": "sudurpashchim",
+   "current_district": "Kailali",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 40,
+   "raw_value": "Surkhet/Jumla",
+   "normalized_value": "surkhet/jumla",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Surkhet",
+     "province": "Karnali",
+     "basis": "district_table_exact_part"
+    },
+    {
+     "district": "Jumla",
+     "province": "Karnali",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 41,
+   "raw_value": "Syangja/Gandaki",
+   "normalized_value": "syangja/gandaki",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [
+    {
+     "district": "Syangja",
+     "province": "Gandaki",
+     "basis": "district_table_exact_part"
+    }
+   ],
+   "confidence": "low",
+   "approval_state": "pending_admin",
+   "recommendation": "ambiguous_value_split_required"
+  },
+  {
+   "mapping_id": 42,
+   "raw_value": "Tehrathum",
+   "normalized_value": "tehrathum",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 43,
+   "raw_value": "Tpalejung",
+   "normalized_value": "tpalejung",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 44,
+   "raw_value": "अछाम",
+   "normalized_value": "अछाम",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 45,
+   "raw_value": "अर्घाखाँची",
+   "normalized_value": "अर्घाखाँची",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 46,
+   "raw_value": "इलाम जिल्ला",
+   "normalized_value": "इलाम जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 47,
+   "raw_value": "उदयपुर जिल्ला",
+   "normalized_value": "उदयपुर जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 48,
+   "raw_value": "ओखलढुङ्गा जिल्ला",
+   "normalized_value": "ओखलढुङ्गा जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 49,
+   "raw_value": "कञ्चनपुर जिल्ला",
+   "normalized_value": "कञ्चनपुर जिल्ला",
+   "current_district": "Kanchanpur",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 50,
+   "raw_value": "कपिलवस्तु",
+   "normalized_value": "कपिलवस्तु",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 51,
+   "raw_value": "काठमाडौं",
+   "normalized_value": "काठमाडौं",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 52,
+   "raw_value": "काठमाडौं जिल्ला",
+   "normalized_value": "काठमाडौं जिल्ला",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 53,
+   "raw_value": "काभ्रेपलाञ्चोक",
+   "normalized_value": "काभ्रेपलाञ्चोक",
+   "current_district": "Bhaktapur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 54,
+   "raw_value": "काभ्रेपलाञ्चोक जिल्ला",
+   "normalized_value": "काभ्रेपलाञ्चोक जिल्ला",
+   "current_district": "Bhaktapur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 55,
+   "raw_value": "कालीकोट",
+   "normalized_value": "कालीकोट",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 56,
+   "raw_value": "कास्की",
+   "normalized_value": "कास्की",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 57,
+   "raw_value": "कैलाली",
+   "normalized_value": "कैलाली",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 58,
+   "raw_value": "खोटाङ",
+   "normalized_value": "खोटाङ",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 59,
+   "raw_value": "खोटाङ जिल्ला",
+   "normalized_value": "खोटाङ जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 60,
+   "raw_value": "गुल्मी",
+   "normalized_value": "गुल्मी",
+   "current_district": "Palpa",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 61,
+   "raw_value": "गोरखा",
+   "normalized_value": "गोरखा",
+   "current_district": "Manang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 62,
+   "raw_value": "चितवन",
+   "normalized_value": "चितवन",
+   "current_district": "Chitwan",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 63,
+   "raw_value": "चितवन जिल्ला",
+   "normalized_value": "चितवन जिल्ला",
+   "current_district": "Chitwan",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 64,
+   "raw_value": "जाजरकोट",
+   "normalized_value": "जाजरकोट",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 65,
+   "raw_value": "जुम्ला",
+   "normalized_value": "जुम्ला",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 66,
+   "raw_value": "झापा जिल्ला",
+   "normalized_value": "झापा जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 67,
+   "raw_value": "डडेलधुरा",
+   "normalized_value": "डडेलधुरा",
+   "current_district": "Kanchanpur",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 68,
+   "raw_value": "डोटी",
+   "normalized_value": "डोटी",
+   "current_district": "Kailali",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 69,
+   "raw_value": "डोल्पा",
+   "normalized_value": "डोल्पा",
+   "current_district": "Dolpa",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 70,
+   "raw_value": "तनहुँ",
+   "normalized_value": "तनहुँ",
+   "current_district": "Tanahun",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 71,
+   "raw_value": "ताप्लेजुङ जिल्ला",
+   "normalized_value": "ताप्लेजुङ जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 72,
+   "raw_value": "तेह्रथुम जिल्ला",
+   "normalized_value": "तेह्रथुम जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 73,
+   "raw_value": "दाङ",
+   "normalized_value": "दाङ",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 74,
+   "raw_value": "दाङ देउखुरी",
+   "normalized_value": "दाङ देउखुरी",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 75,
+   "raw_value": "दार्चुला",
+   "normalized_value": "दार्चुला",
+   "current_district": "Kanchanpur",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 76,
+   "raw_value": "दैलेख",
+   "normalized_value": "दैलेख",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 77,
+   "raw_value": "दोलखा",
+   "normalized_value": "दोलखा",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 78,
+   "raw_value": "दोलखा जिल्ला",
+   "normalized_value": "दोलखा जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 79,
+   "raw_value": "धनकुटा",
+   "normalized_value": "धनकुटा",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 80,
+   "raw_value": "धनकुटा जिल्ला",
+   "normalized_value": "धनकुटा जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 81,
+   "raw_value": "धनुषा",
+   "normalized_value": "धनुषा",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 82,
+   "raw_value": "धनुषा जिल्ला",
+   "normalized_value": "धनुषा जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 83,
+   "raw_value": "धादिङ जिल्ला",
+   "normalized_value": "धादिङ जिल्ला",
+   "current_district": "Gorkha",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 84,
+   "raw_value": "नवलपुर",
+   "normalized_value": "नवलपुर",
+   "current_district": "Chitwan",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 85,
+   "raw_value": "नुवाकोट जिल्ला",
+   "normalized_value": "नुवाकोट जिल्ला",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 86,
+   "raw_value": "पर्वत",
+   "normalized_value": "पर्वत",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 87,
+   "raw_value": "पर्सा जिल्ला",
+   "normalized_value": "पर्सा जिल्ला",
+   "current_district": "Parsa",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 88,
+   "raw_value": "पश्चिमी रुकुम",
+   "normalized_value": "पश्चिमी रुकुम",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 89,
+   "raw_value": "पाँचथर जिल्ला",
+   "normalized_value": "पाँचथर जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 90,
+   "raw_value": "पाल्पा",
+   "normalized_value": "पाल्पा",
+   "current_district": "Palpa",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 91,
+   "raw_value": "पूर्वी रुकुम",
+   "normalized_value": "पूर्वी रुकुम",
+   "current_district": "Dolpa",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 92,
+   "raw_value": "प्युठान",
+   "normalized_value": "प्युठान",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 93,
+   "raw_value": "बझाङ",
+   "normalized_value": "बझाङ",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 94,
+   "raw_value": "बर्दिया",
+   "normalized_value": "बर्दिया",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 95,
+   "raw_value": "बाँके",
+   "normalized_value": "बाँके",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 96,
+   "raw_value": "बागलुङ",
+   "normalized_value": "बागलुङ",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 97,
+   "raw_value": "बाजुरा",
+   "normalized_value": "बाजुरा",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 98,
+   "raw_value": "बारा जिल्ला",
+   "normalized_value": "बारा जिल्ला",
+   "current_district": "Parsa",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 99,
+   "raw_value": "बैतडी",
+   "normalized_value": "बैतडी",
+   "current_district": "Kanchanpur",
+   "current_province": "Sudurpashchim",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 100,
+   "raw_value": "भक्तपुर",
+   "normalized_value": "भक्तपुर",
+   "current_district": "Lalitpur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 101,
+   "raw_value": "भक्तपुर जिल्ला",
+   "normalized_value": "भक्तपुर जिल्ला",
+   "current_district": "Bhaktapur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 102,
+   "raw_value": "भोजपुर जिल्ला",
+   "normalized_value": "भोजपुर जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 103,
+   "raw_value": "मकवानपुर",
+   "normalized_value": "मकवानपुर",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 104,
+   "raw_value": "मकवानपुर जिल्ला",
+   "normalized_value": "मकवानपुर जिल्ला",
+   "current_district": "Chitwan",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 105,
+   "raw_value": "मनाङ",
+   "normalized_value": "मनाङ",
+   "current_district": "Manang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 106,
+   "raw_value": "महोत्तरी",
+   "normalized_value": "महोत्तरी",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 107,
+   "raw_value": "महोत्तरी जिल्ला",
+   "normalized_value": "महोत्तरी जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 108,
+   "raw_value": "मुगु",
+   "normalized_value": "मुगु",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 109,
+   "raw_value": "मुस्ताङ",
+   "normalized_value": "मुस्ताङ",
+   "current_district": "Mustang",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 110,
+   "raw_value": "मोरङ जिल्ला",
+   "normalized_value": "मोरङ जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 111,
+   "raw_value": "म्याग्दी",
+   "normalized_value": "म्याग्दी",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 112,
+   "raw_value": "रसुवा",
+   "normalized_value": "रसुवा",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 113,
+   "raw_value": "रसुवा जिल्ला",
+   "normalized_value": "रसुवा जिल्ला",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 114,
+   "raw_value": "रामेछाप",
+   "normalized_value": "रामेछाप",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 115,
+   "raw_value": "रामेछाप जिल्ला",
+   "normalized_value": "रामेछाप जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 116,
+   "raw_value": "रुपन्देही",
+   "normalized_value": "रुपन्देही",
+   "current_district": "Rupandehi",
+   "current_province": "Lumbini",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 117,
+   "raw_value": "लमजुङ",
+   "normalized_value": "लमजुङ",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 118,
+   "raw_value": "ललितपुर",
+   "normalized_value": "ललितपुर",
+   "current_district": "Lalitpur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 119,
+   "raw_value": "ललितपुर जिल्ला",
+   "normalized_value": "ललितपुर जिल्ला",
+   "current_district": "Lalitpur",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 120,
+   "raw_value": "सङ्खुवासभा जिल्ला",
+   "normalized_value": "सङ्खुवासभा जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 121,
+   "raw_value": "सप्तरी जिल्ला",
+   "normalized_value": "सप्तरी जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 122,
+   "raw_value": "सर्लाही",
+   "normalized_value": "सर्लाही",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 123,
+   "raw_value": "सर्लाही जिल्ला",
+   "normalized_value": "सर्लाही जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 124,
+   "raw_value": "सल्यान",
+   "normalized_value": "सल्यान",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 125,
+   "raw_value": "सिन्धुपाल्चोक जिल्ला",
+   "normalized_value": "सिन्धुपाल्चोक जिल्ला",
+   "current_district": "Kathmandu",
+   "current_province": "Bagmati",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 126,
+   "raw_value": "सिन्धुली जिल्ला",
+   "normalized_value": "सिन्धुली जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 127,
+   "raw_value": "सिराहा जिल्ला",
+   "normalized_value": "सिराहा जिल्ला",
+   "current_district": "Dhanusha",
+   "current_province": "Madhesh",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 128,
+   "raw_value": "सुनसरी जिल्ला",
+   "normalized_value": "सुनसरी जिल्ला",
+   "current_district": "Ilam",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 129,
+   "raw_value": "सुर्खेत",
+   "normalized_value": "सुर्खेत",
+   "current_district": "Surkhet",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 130,
+   "raw_value": "सोलुखुम्बु",
+   "normalized_value": "सोलुखुम्बु",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 131,
+   "raw_value": "सोलुखुम्बु जिल्ला",
+   "normalized_value": "सोलुखुम्बु जिल्ला",
+   "current_district": "Solukhumbu",
+   "current_province": "Koshi",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 132,
+   "raw_value": "स्याङ्जा",
+   "normalized_value": "स्याङ्जा",
+   "current_district": "Kaski",
+   "current_province": "Gandaki",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  },
+  {
+   "mapping_id": 133,
+   "raw_value": "हुम्ला",
+   "normalized_value": "हुम्ला",
+   "current_district": "Mugu",
+   "current_province": "Karnali",
+   "source": "coordinate_derived",
+   "candidates": [],
+   "confidence": null,
+   "approval_state": "pending_admin",
+   "recommendation": "needs_external_authoritative_source"
+  }
+ ]
+}

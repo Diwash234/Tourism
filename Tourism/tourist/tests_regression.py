@@ -4668,3 +4668,46 @@ class RoutePlanEndpointTests(TestCase):
         self.assertEqual(data["source"]["place_id"], self.dest.id)
         self.assertTrue(any("Turn left" in s["instruction"] for s in data["steps"]))
         self.assertTrue(data["eta_is_estimate"])
+
+
+class MunicipalityMappingProposalTests(TestCase):
+    """V4 §6: candidate proposal must never guess or auto-resolve."""
+
+    def setUp(self):
+        from tourist.models import District, Province
+        self.prov = Province.objects.create(name="Koshi Test")
+        self.dist = District.objects.create(name="Sunsari", province=self.prov)
+
+    def test_no_auto_resolution_and_honest_classification(self):
+        import json
+        from io import StringIO
+        from django.core.management import call_command
+        from tourist.models import MunicipalityMapping
+
+        MunicipalityMapping.objects.create(
+            name="Dharan", district="Ilam", province="Koshi",
+            source="coordinate_derived", verified=False)
+        MunicipalityMapping.objects.create(
+            name="50-150", district="Kanchanpur", province="Sudurpashchim",
+            source="coordinate_derived", verified=False)
+        MunicipalityMapping.objects.create(
+            name="Sunsari/Ilam", district="Ilam", province="Koshi",
+            source="coordinate_derived", verified=False)
+
+        out = "dataset/osm_reports/_test_muni_candidates.json"
+        call_command("propose_municipality_mappings", out=out, stdout=StringIO())
+        payload = json.load(open(out))
+        import os
+        os.remove(out)
+
+        # Nothing auto-resolved: rows remain unverified
+        self.assertEqual(MunicipalityMapping.objects.filter(verified=False).count(), 3)
+        by_raw = {c["raw_value"]: c for c in payload["candidates"]}
+        self.assertEqual(by_raw["Dharan"]["recommendation"], "needs_external_authoritative_source")
+        self.assertEqual(by_raw["50-150"]["recommendation"], "reject_junk_value")
+        amb = by_raw["Sunsari/Ilam"]
+        self.assertEqual(amb["recommendation"], "ambiguous_value_split_required")
+        # exact district-table part is proposed with provenance, never applied
+        self.assertTrue(any(c["district"] == "Sunsari" for c in amb["candidates"]))
+        self.assertTrue(all(c["approval_state"] == "pending_admin"
+                            for c in payload["candidates"]))
