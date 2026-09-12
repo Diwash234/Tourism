@@ -1,0 +1,83 @@
+{
+  "source": "openstreetmap.org (ODbL) via Overpass API extracts",
+  "started": "2026-09-12T07:21:19.575246+00:00",
+  "dry_run": false,
+  "found": 250,
+  "created": 250,
+  "updated": 0,
+  "duplicate": 0,
+  "rejected_outside_nepal": 0,
+  "rejected_no_coords": 0,
+  "rejected_unknown_category": 0,
+  "rejected_no_district": 0,
+  "by_category": {
+    "atm": 250
+  },
+  "by_province": {
+    "Bagmati": 153,
+    "Gandaki": 75,
+    "Lumbini": 7,
+    "Koshi": 10,
+    "Sudurpashchim": 2,
+    "Madhesh": 2,
+    "Karnali": 1
+  },
+  "by_district": {
+    "Kathmandu": 102,
+    "Lalitpur": 33,
+    "Bhaktapur": 10,
+    "Chitwan": 7,
+    "Syangja": 2,
+    "Kavrepalanchok": 1,
+    "Rupandehi": 3,
+    "Bhojpur": 1,
+    "Gulmi": 1,
+    "Lamjung": 1,
+    "Kaski": 69,
+    "Palpa": 2,
+    "Morang": 3,
+    "Kanchanpur": 2,
+    "Dhankuta": 1,
+    "Tanahun": 1,
+    "Parbat": 1,
+    "Banke": 1,
+    "Terhathum": 2,
+    "Nawalpur": 1,
+    "Jhapa": 1,
+    "Solukhumbu": 2,
+    "Saptari": 1,
+    "Parsa": 1,
+    "Dailekh": 1
+  },
+  "files": [
+    {
+      "file": "atms_np_0000000000.json",
+      "found": 91,
+      "created": 91,
+      "updated": 0,
+      "rejected": 0
+    },
+    {
+      "file": "atms_np_0000000001.json",
+      "found": 95,
+      "created": 95,
+      "updated": 0,
+      "rejected": 0
+    },
+    {
+      "file": "atms_np_0000000002.json",
+      "found": 64,
+      "created": 64,
+      "updated": 0,
+      "rejected": 0
+    },
+    {
+      "file": "manifest.json",
+      "found": 0,
+      "created": 0,
+      "updated": 0,
+      "rejected": 0
+    }
+  ],
+  "finished": "2026-09-12T07:21:19.811150+00:00"
+}

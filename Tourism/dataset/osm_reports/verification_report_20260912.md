@@ -12,7 +12,7 @@ All numbers below were regenerated from the live database/API this session — n
 
 ## C. Real OSM import status
 - Pipeline: `import_osm_services` (validate → bbox/Nepal check → nearest-district ≤80 km → `osm_id` canonical → report). Now accepts both full Overpass JSON and NDJSON relay files.
-- **This session's real batches: 250 Nepal hospitals + 250 Nepal pharmacies** (Overpass `area ISO3166-1=NP`, `out skel center 250` per category, osm_base 2026-09-12T06:42:51Z / 06:51:02Z). Each: created / 0 rejected; **idempotent rerun: 0 created, 250 duplicate** (IDs stable). DB now holds **500 OSM service rows, 0 auto-verified** (admin queue).
+- **Real batches imported (4 categories × 250 = 1,000 rows)**: Nepal hospitals, pharmacies, ATMs (250 of 1,122 known), police — each via Overpass `area ISO3166-1=NP` `out skel center 250` (osm_base 2026-09-12T06:42–07:20Z). Every batch: created / 0 rejected; **idempotent rerun per batch: 0 created, 250 duplicate** (IDs stable). All 1,000 rows `is_verified=False` (admin queue), provenance kept (osm_id + source_url).
 - Every row: `osm_id` = node/<id>, `source_url` to the OSM element, `is_verified=False` until admin verification. Names pending enrichment (skel output carries no tags) — honest placeholder labels, never invented names.
 - Network limitation: sandbox has no direct internet; Overpass reachable only via the page-relay (non-deterministic proxy). Remaining categories (pharmacies, ATMs=1,122 known, police, transport) follow the same resumable batch pattern.
 
@@ -57,7 +57,7 @@ Authoritative-source pipeline + `MunicipalityMapping` (source/date/raw/normalize
 - **TREKKING DATA DEPENDENCY = EXTERNAL AUTHORITATIVE SOURCE REQUIRED** (e.g., Nepal Tourism Board/TAAN trails): the DB contains **0 routes** — pipeline ready, no coverage claimed. Road routing ≠ trekking; the road navigation engine never serves these.
 
 ## M. Gaps (classified)
-1. **Missing external data**: remaining OSM batches (hospitals/pharmacies beyond first 250 each; ATMs=1,122 known, police, transport — relay-limited, resumable); municipality gazetteer; trekking trails dataset.
+1. **Missing external data**: remaining OSM rows beyond the first 250 per category (ATMs: 872 known-remaining; hospitals/pharmacies/police: further batches — relay-limited, resumable); municipality gazetteer; trekking trails dataset.
 2. **Database**: 67 missing coords; 131 missing categories; 3 districts reachable only via alias; district-string alias sprawl; hospital names pending tag enrichment.
 3. **Network limitation**: no direct sandbox internet; relay proxy non-deterministic (batches are resumable).
 4. **Code**: none known open — every audit finding this session was fixed + regression-tested.
