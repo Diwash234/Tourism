@@ -4711,3 +4711,50 @@ class MunicipalityMappingProposalTests(TestCase):
         self.assertTrue(any(c["district"] == "Sunsari" for c in amb["candidates"]))
         self.assertTrue(all(c["approval_state"] == "pending_admin"
                             for c in payload["candidates"]))
+
+
+class ConfigPlaceCanonicalTests(TestCase):
+    """V6 §2: landmark/municipality search results must be DB-backed, not dicts."""
+
+    def test_seeder_idempotent_and_search_is_db_backed(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from tourist.models import ConfigPlace, Category, Province
+        from tourist.location.search_service import LocationSearchService
+
+        # minimal categories the seeder references
+        for cname in ("City Tourism", "Lakes & Water Activities", "Temples & Hindu Sites",
+                      "Buddhist Sites & Monasteries", "UNESCO & Historical Heritage",
+                      "Pilgrimage Sites", "National Park", "Viewpoints & Lookouts"):
+            Category.objects.get_or_create(name=cname)
+        Province.objects.get_or_create(name="Bagmati")
+
+        call_command("seed_config_places", stdout=StringIO())
+        n1 = ConfigPlace.objects.count()
+        call_command("seed_config_places", stdout=StringIO())
+        self.assertEqual(ConfigPlace.objects.count(), n1)  # idempotent
+        self.assertGreaterEqual(n1, 46)
+
+        # delete every DB row -> search must NOT fall back to the dicts
+        ConfigPlace.objects.all().delete()
+        results = LocationSearchService.search_places(query="kathmandu metropolitan") or []
+        self.assertFalse(any(str(r.get("id", "")).startswith("muni-") for r in results),
+                         "muni results served without DB backing")
+
+        # reseed -> muni result returns with DB-backed coordinates + provenance
+        call_command("seed_config_places", stdout=StringIO())
+        results = LocationSearchService.search_places(query="kathmandu metropolitan") or []
+        muni = next((r for r in results if str(r.get("id", "")) == "muni-kathmandu metropolitan city"), None)
+        self.assertIsNotNone(muni, "DB-backed muni hub missing from search")
+        cp = ConfigPlace.objects.get(config_key="muni-kathmandu metropolitan city")
+        self.assertEqual(float(muni["latitude"]), float(cp.latitude))
+        self.assertEqual(float(muni["longitude"]), float(cp.longitude))
+        self.assertIn("administrative_boundaries.py", cp.provenance)
+
+    def test_no_pokhara_city_fallback_in_service_results(self):
+        # V6 §2: hotels/hospitals/police without a linked destination must not
+        # inherit a hardcoded 'Pokhara' city or emergency-number phone defaults
+        src = open("tourist/location/search_service.py").read()
+        self.assertNotIn('else "Pokhara"', src)
+        self.assertNotIn('or "100"', src)
+        self.assertNotIn('or "102"', src)

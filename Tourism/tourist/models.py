@@ -3602,3 +3602,43 @@ class TrekkingStage(models.Model):
 
     def __str__(self):
         return f"{self.route_id} day {self.day_number}: {self.name or self.to_place or '?'}"
+
+
+class ConfigPlace(TimeStampedModel):
+    """DB-backed home for former hardcoded config place dictionaries.
+
+    V6 §2: MUNICIPALITY_COORDINATES / NEPAL_LANDMARKS previously lived as
+    Python dicts inside search code. These rows are canonical database
+    records (admin-editable, provenance-tracked) that the search/nearby
+    layer now serves instead. Seeded idempotently from the config via
+    `manage.py seed_config_places`; coordinates are migrated verbatim from
+    the config (provenance recorded), never invented.
+    """
+
+    KIND_CHOICES = [
+        ("municipality_hub", "Municipality / administrative hub"),
+        ("landmark", "Nepal landmark"),
+    ]
+
+    config_key = models.CharField(max_length=120, unique=True)
+    kind = models.CharField(max_length=30, choices=KIND_CHOICES)
+    name = models.CharField(max_length=180)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    district = models.CharField(max_length=80, blank=True)
+    province = models.CharField(max_length=60, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    category_name = models.CharField(max_length=120, blank=True)
+    provenance = models.CharField(
+        max_length=300, blank=True,
+        help_text="Where these coordinates originally came from (config file + migration date).")
+    linked_destination = models.ForeignKey(
+        "Destination", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="config_place_aliases",
+        help_text="Existing canonical destination this config entry duplicates, if any.")
+
+    class Meta:
+        ordering = ["kind", "name"]
+
+    def __str__(self):
+        return f"{self.kind}:{self.config_key}"

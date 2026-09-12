@@ -218,8 +218,8 @@ class LocationSearchService:
                     "latitude": float(h.latitude),
                     "longitude": float(h.longitude),
                     "address": h.address or "Nepal",
-                    "city": h.destination.city if getattr(h, "destination", None) else "Pokhara",
-                    "phone": h.phone or "102",
+                    "city": h.destination.city if getattr(h, "destination", None) else (h.address or ""),
+                    "phone": h.phone or "",
                     "source": "verified_hospital",
                     "is_destination": False,
                 })
@@ -237,8 +237,8 @@ class LocationSearchService:
                     "latitude": float(p.latitude),
                     "longitude": float(p.longitude),
                     "address": p.address or "Nepal",
-                    "city": p.destination.city if getattr(p, "destination", None) else "Pokhara",
-                    "phone": p.phone or "100",
+                    "city": p.destination.city if getattr(p, "destination", None) else (p.address or ""),
+                    "phone": p.phone or "",
                     "source": "verified_police",
                     "is_destination": False,
                 })
@@ -257,42 +257,46 @@ class LocationSearchService:
                     "latitude": float(ht.latitude),
                     "longitude": float(ht.longitude),
                     "address": ht.address or (ht.destination.city if ht.destination else "Nepal"),
-                    "city": ht.destination.city if ht.destination else "Pokhara",
+                    "city": ht.destination.city if ht.destination else "",
                     "phone": ht.phone or "",
                     "source": "verified_hotel",
                     "is_destination": False,
                 })
 
-        # 5. Search Nepal Landmarks & Administrative Boundaries
+        # 5. Landmarks & administrative hubs — served from DB-backed
+        #    ConfigPlace rows (V6 §2: no hardcoded production place dicts).
         from django.utils.text import slugify
-        for k, v in NEPAL_LANDMARKS.items():
-            if not cat_filter and (k in q or search_term in k):
+        from tourist.models import ConfigPlace
+        for cp in ConfigPlace.objects.filter(kind="landmark"):
+            key = cp.config_key.removeprefix("landmark-")
+            if not cat_filter and (key in q or search_term in key):
                 raw_results.append({
-                    "id": f"landmark-{k.replace(' ', '-')}",
-                    "name": v["name"],
+                    "id": cp.config_key,
+                    "name": cp.name,
                     "category": "Nepal Landmark",
                     "type": "landmark",
-                    "slug": slugify(v["name"]),
-                    "latitude": v["lat"],
-                    "longitude": v["lng"],
-                    "address": f"{v['city']}, {v['province']}",
-                    "city": v["city"],
+                    "slug": slugify(cp.name),
+                    "latitude": float(cp.latitude),
+                    "longitude": float(cp.longitude),
+                    "address": f"{cp.city}, {cp.province}",
+                    "city": cp.city,
                     "source": "nepal_landmark",
                     "is_destination": True,
                 })
 
-        for muni_key, m_data in MUNICIPALITY_COORDINATES.items():
+        for cp in ConfigPlace.objects.filter(kind="municipality_hub"):
+            muni_key = cp.config_key.removeprefix("muni-")
             if not cat_filter and (muni_key in q or search_term in muni_key):
                 raw_results.append({
-                    "id": f"muni-{muni_key}",
-                    "name": muni_key.title(),
+                    "id": cp.config_key,
+                    "name": cp.name,
                     "category": "Administrative Hub",
                     "type": "administrative",
                     "slug": slugify(muni_key),
-                    "latitude": m_data["lat"],
-                    "longitude": m_data["lng"],
-                    "address": f"{m_data['district']}, {m_data['province']}",
-                    "city": m_data["district"],
+                    "latitude": float(cp.latitude),
+                    "longitude": float(cp.longitude),
+                    "address": f"{cp.district}, {cp.province}",
+                    "city": cp.district,
                     "source": "administrative_boundary",
                     "is_destination": True,
                 })
