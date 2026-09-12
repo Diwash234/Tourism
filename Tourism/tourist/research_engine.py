@@ -258,59 +258,49 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
     if vault_match:
         data = vault_match
     else:
-        # Autonomous research: first try to geocode the ACTUAL query anywhere in
-        # Nepal; only if the name is unknown everywhere do we fall back to a
-        # Pokhara-area placeholder (never presented as verified coordinates).
-        from .geocoding import geocode as _fwd_geocode
-        _geo = _fwd_geocode(clean_query) or {}
-        rev = reverse_geocode(_geo.get("latitude", 28.2096), _geo.get("longitude", 83.9856))
+        # Autonomous research: geocode the ACTUAL query. When the name matches
+        # the gazetteer we keep the resolved coordinates + reverse-geocoded
+        # administration. When it is unknown EVERYWHERE the record is an
+        # honest unverified stub: no coordinates, no administrative claims,
+        # no fabricated copy, no images — and it stays pending review, so it
+        # never reaches search/nearby/itinerary (which serve approved only).
+        # Exact gazetteer match only: the loose substring geocoder would
+        # "match" invented names and hand back unrelated coordinates.
+        from .geocoding import MUNICIPALITY_GEO_INDEX
+        _hit = MUNICIPALITY_GEO_INDEX.get(clean_query.lower().strip())
+        _known = bool(_hit)
+        _geo = {"latitude": _hit["lat"], "longitude": _hit["lng"]} if _known else {}
+        rev = reverse_geocode(_geo["latitude"], _geo["longitude"]) if _known else {}
         data = {
             "name": clean_query.title(),
-            "aliases": f"{clean_query.title()} / {clean_query.title()} Village",
-            "category": "Nature & Trekking" if "hill" in q_lower or "peak" in q_lower or "trail" in q_lower else "Heritage & Temples",
-            "province": "Gandaki",
-            "district": "Kaski",
-            "municipality": f"{clean_query.title()} Rural Municipality",
-            "ward": 1,
-            "city": clean_query.title(),
-            "latitude": 28.2096,
-            "longitude": 83.9856,
-            "altitude": "1,400m",
-            "short_description": f"Scenic destination in Nepal offering rich cultural heritage and panoramic mountain landscapes.",
-            "description": f"{clean_query.title()} is an authentic destination in Nepal renowned for its tranquil natural environment, local hospitality, and cultural traditions. Visitors can explore scenic trails, interact with welcoming communities, and experience the timeless beauty of the Himalayas.",
-            "history": f"Established as an ancient settlement along historic trade routes connecting Nepal's mountain valleys.",
-            "cultural_significance": "Preserves authentic ethnic customs, traditional architecture, and seasonal festivals.",
-            "religious_significance": "Features revered community shrines and sacred cultural landmarks.",
-            "tourism_importance": "Growing eco-tourism and trekking destination popular for peaceful retreats and nature photography.",
-            "best_time_to_visit": "October to April (Crisp mountain air, clear skies)",
-            "food_cuisine_info": "Traditional Nepali Dal Bhat, fresh organic mountain vegetables, and local herbal teas.",
-            "travel_safety_tips": "Verify local road and trail conditions before departure; use registered local guides for extended hikes.",
-            "images": [
-                {
-                    "url": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80",
-                    "source_url": "https://unsplash.com/photos/nepal-himalayas",
-                    "platform": "Unsplash",
-                    "photographer": "Nepal Community Archive",
-                    "license": "Unsplash Reusable License",
-                    "category": "hero",
-                    "caption": f"Scenic landscape view of {clean_query.title()}",
-                },
-                {
-                    "url": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&auto=format&fit=crop&q=80",
-                    "source_url": "https://commons.wikimedia.org/wiki/Category:Nepal",
-                    "platform": "Wikimedia Commons",
-                    "photographer": "Public Heritage Archive",
-                    "license": "Creative Commons CC BY-SA 4.0",
-                    "category": "landscape",
-                    "caption": f"Mountain vistas around {clean_query.title()}",
-                }
-            ]
+            "aliases": "",
+            "category": "Unclassified",
+            "province": rev.get("province", ""),
+            "district": rev.get("district", ""),
+            "municipality": "",
+            "ward": None,
+            "city": rev.get("city", ""),
+            "latitude": _geo.get("latitude") if _known else None,
+            "longitude": _geo.get("longitude") if _known else None,
+            "altitude": "",
+            "short_description": "",
+            "description": "",
+            "history": "",
+            "cultural_significance": "",
+            "religious_significance": "",
+            "tourism_importance": "",
+            "best_time_to_visit": "",
+            "food_cuisine_info": "",
+            "travel_safety_tips": "",
+            "images": [],
+            "location_verified": _known,
         }
 
     # Step 3: Calculate Spatial Distances & Nearest Airport
     ktm_lat, ktm_lng = 27.7172, 85.3240
-    dist_ktm = haversine_distance_km(ktm_lat, ktm_lng, data["latitude"], data["longitude"])
-    nearest_ap, dist_ap = find_nearest_airport(data["latitude"], data["longitude"])
+    _has_coords = data.get("latitude") is not None and data.get("longitude") is not None
+    dist_ktm = haversine_distance_km(ktm_lat, ktm_lng, data["latitude"], data["longitude"]) if _has_coords else None
+    nearest_ap, dist_ap = find_nearest_airport(data["latitude"], data["longitude"]) if _has_coords else (None, None)
     # Nationwide: resolve the district seat from the 77-district boundaries
     # table instead of a Pokhara/Kathmandu-only ternary.
     from .administrative_boundaries import get_district_info as _district_info
@@ -318,7 +308,7 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
     nearest_city = _dinfo.get("district") or data["district"]
     _city_lat = _dinfo.get("lat", 27.7172)
     _city_lng = _dinfo.get("lng", 85.3240)
-    dist_city = haversine_distance_km(data["latitude"], data["longitude"], _city_lat, _city_lng)
+    dist_city = haversine_distance_km(data["latitude"], data["longitude"], _city_lat, _city_lng) if _has_coords else None
 
     # Step 4: Resolve Category
     category_obj, _ = Category.objects.get_or_create(
@@ -327,8 +317,10 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
     )
 
     # Step 5: Save Destination Record
-    dest_status = Destination.SubmissionStatus.APPROVED if auto_publish else Destination.SubmissionStatus.APPROVED
-    res_status = "published" if auto_publish else "review_required"
+    # AI/research-suggested records are NEVER auto-authoritative: they stay
+    # pending admin review unless a staff user explicitly auto-publishes.
+    dest_status = Destination.SubmissionStatus.APPROVED if auto_publish else Destination.SubmissionStatus.PENDING
+    res_status = "published" if auto_publish else ("researched_geocoded" if data.get("location_verified", True) else "unverified_stub")
 
     base_slug = slugify(data["name"])
     dest_slug = base_slug
@@ -348,8 +340,8 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
         ward_number=data.get("ward", 1),
         city=data.get("city", data.get("district")),
         country="Nepal",
-        latitude=Decimal(str(data["latitude"])),
-        longitude=Decimal(str(data["longitude"])),
+        latitude=Decimal(str(data["latitude"])) if data.get("latitude") is not None else None,
+        longitude=Decimal(str(data["longitude"])) if data.get("longitude") is not None else None,
         altitude=data.get("altitude", "1,400m"),
         short_description=data.get("short_description"),
         description=data.get("description"),
@@ -360,13 +352,14 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
         best_time_to_visit=data.get("best_time_to_visit"),
         food_cuisine_info=data.get("food_cuisine_info"),
         travel_safety_tips=data.get("travel_safety_tips"),
-        distance_from_kathmandu_km=Decimal(str(dist_ktm)),
-        distance_from_nearest_city_km=Decimal(str(dist_city)),
+        distance_from_kathmandu_km=Decimal(str(dist_ktm)) if dist_ktm is not None else None,
+        distance_from_nearest_city_km=Decimal(str(dist_city)) if dist_city is not None else None,
         nearest_major_city=nearest_city,
-        distance_from_nearest_airport_km=Decimal(str(dist_ap)),
-        nearest_airport_name=nearest_ap["name"],
-        approx_travel_time=f"{round(dist_ktm / 40.0, 1)} hours by road / {nearest_ap['city']} hub",
-        recommended_days=3 if dist_ktm > 150 else 2,
+        distance_from_nearest_airport_km=Decimal(str(dist_ap)) if dist_ap is not None else None,
+        nearest_airport_name=nearest_ap["name"] if nearest_ap else "",
+        approx_travel_time=(f"{round(dist_ktm / 40.0, 1)} hours by road / {nearest_ap['city']} hub"
+                            if dist_ktm is not None and nearest_ap else ""),
+        recommended_days=0 if dist_ktm is None else (3 if dist_ktm > 150 else 2),
         entry_fee=Decimal("0.00"),
         average_rating=Decimal("4.85"),
         ratings_count=32,
@@ -437,27 +430,29 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
             difficulty_level=act["diff"],
         )
 
-    # Step 9: Create Transit Routes
-    DestinationTransitRoute.objects.create(
-        destination=dest,
-        origin="Kathmandu (Kalanki / Gongabu)",
-        transport_mode="Public Deluxe Coach / Tourist Bus",
-        distance_km=Decimal(str(dist_ktm)),
-        approx_duration=f"{round(dist_ktm / 38.0, 1)} hrs",
-        road_condition="Paved Highway with scenic river corridor",
-        key_stops="Kathmandu ➔ Naubise ➔ Malekhu ➔ Highway Junction ➔ Destination",
-        estimated_fare_npr=Decimal("1200.00"),
-    )
-    DestinationTransitRoute.objects.create(
-        destination=dest,
-        origin=f"{nearest_city} City Center",
-        transport_mode="Shared 4WD Jeep / Local Taxi",
-        distance_km=Decimal(str(dist_city)),
-        approx_duration=f"{max(1.0, round(dist_city / 35.0, 1))} hrs",
-        road_condition="Metalled Blacktopped & Hill Feeder Road",
-        key_stops=f"{nearest_city} ➔ Local Feeder ➔ {dest.name}",
-        estimated_fare_npr=Decimal("450.00"),
-    )
+    # Step 9: Create Transit Routes (only when we actually know where the
+    # place is — distances/fares for an unlocated stub would be invented)
+    if _has_coords:
+        DestinationTransitRoute.objects.create(
+            destination=dest,
+            origin="Kathmandu (Kalanki / Gongabu)",
+            transport_mode="Public Deluxe Coach / Tourist Bus",
+            distance_km=Decimal(str(dist_ktm)),
+            approx_duration=f"{round(dist_ktm / 38.0, 1)} hrs",
+            road_condition="Paved Highway with scenic river corridor",
+            key_stops="Kathmandu ➔ Naubise ➔ Malekhu ➔ Highway Junction ➔ Destination",
+            estimated_fare_npr=Decimal("1200.00"),
+        )
+        DestinationTransitRoute.objects.create(
+            destination=dest,
+            origin=f"{nearest_city} City Center",
+            transport_mode="Shared 4WD Jeep / Local Taxi",
+            distance_km=Decimal(str(dist_city)),
+            approx_duration=f"{max(1.0, round(dist_city / 35.0, 1))} hrs",
+            road_condition="Metalled Blacktopped & Hill Feeder Road",
+            key_stops=f"{nearest_city} ➔ Local Feeder ➔ {dest.name}",
+            estimated_fare_npr=Decimal("450.00"),
+        )
 
     # Step 10: Budget Estimation Breakdown (Low / Mid / Comfort Tiers)
     BudgetEstimation.objects.create(
@@ -473,26 +468,29 @@ def research_and_build_destination(query_name: str, auto_publish: bool = False, 
         estimated_trip_budget=Decimal("135.00"),
     )
 
-    # Step 11: Risk & Safety Analysis
-    RiskAnalysis.objects.create(
-        destination=dest,
-        accidents=2,
-        landslide=1,
-        avalanche=0 if dist_ktm < 200 else 2,
-        flood=1,
-        earthquake_damage=1,
-        hospital_count=3,
-        police_count=2,
-        fire_station_count=1,
-        emergency_risk=12.0,
-        natural_disaster_risk=14.0,
-        tourism_risk_index=16.5,
-        risk_category="LOW",
-    )
+    # Step 11: Risk & Safety Analysis (skipped for unlocated stubs — the
+    # modelled counts below assume a known location context)
+    if _has_coords:
+        RiskAnalysis.objects.create(
+            destination=dest,
+            accidents=2,
+            landslide=1,
+            avalanche=0 if dist_ktm < 200 else 2,
+            flood=1,
+            earthquake_damage=1,
+            hospital_count=3,
+            police_count=2,
+            fire_station_count=1,
+            emergency_risk=12.0,
+            natural_disaster_risk=14.0,
+            tourism_risk_index=16.5,
+            risk_category="LOW",
+        )
 
     return {
         "status": "researched",
-        "message": f"Successfully researched and saved '{dest.name}' to database with full citations & images.",
+        "message": (f"Saved '{dest.name}' for admin verification." if dest.status == Destination.SubmissionStatus.PENDING
+                    else f"Successfully researched and saved '{dest.name}' to database with full citations & images."),
         "destination_id": dest.id,
         "slug": dest.slug,
         "name": dest.name,

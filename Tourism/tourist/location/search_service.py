@@ -141,7 +141,7 @@ class LocationSearchService:
             OSMEssentialService, OSMTourismPlace
         )
 
-        dest_qs = Destination.objects.filter(is_active=True).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        dest_qs = Destination.objects.filter(is_active=True, status="approved").exclude(latitude__isnull=True).exclude(longitude__isnull=True)
         # Destination-type categories filter the curated table by category name;
         # any OTHER category filter must never leak arbitrary destinations into
         # a "nearby hospitals/hotels" result list.

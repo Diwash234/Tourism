@@ -4405,3 +4405,65 @@ class ItineraryUnknownPlaceRejectionTests(TestCase):
                            format="json")
         self.assertEqual(resp.status_code, 200)
         self.assertGreaterEqual(len(resp.json()["itinerary"]), 1)
+
+
+class ResearchFabricationRegressionTests(TestCase):
+    """POST /destinations/research/ must never turn an unknown name into a
+    published authoritative destination with fabricated coordinates,
+    administration or copy (live bug: both status branches were APPROVED and
+    the fallback invented a Kaski/Pokhara profile)."""
+
+    def test_unknown_place_creates_pending_stub_not_published_profile(self):
+        from .models import Destination
+        client = APIClient()
+        resp = client.post("/api/v1/destinations/research/",
+                           {"query": "Quandangle Bristlemoor"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        dest = Destination.objects.get(name="Quandangle Bristlemoor")
+        self.assertEqual(dest.status, Destination.SubmissionStatus.PENDING)
+        self.assertIsNone(dest.latitude)   # no fabricated coordinates
+        self.assertIsNone(dest.longitude)
+        self.assertEqual(dest.municipality or "", "")  # no invented local level
+        self.assertEqual(dest.short_description or "", "")
+        # pending stubs must never surface in public search
+        search = client.get("/api/v1/places/search/?q=Quandangle").json()
+        self.assertEqual(search["count"], 0)
+
+    def test_pending_destinations_never_appear_in_public_search(self):
+        from .models import Destination, Category
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        Destination.objects.create(name="Hidden Pending Lodge", slug="hidden-pending-lodge",
+                                   category=cat, province="Bagmati", district="Kathmandu",
+                                   latitude=27.71, longitude=85.31, is_active=True,
+                                   status="pending")
+        results = LocationSearchService.search_places(query="Hidden Pending Lodge", limit=10)
+        self.assertNotIn("Hidden Pending Lodge", [r["name"] for r in results])
+
+
+class NavigationUnresolvedDestinationTests(TestCase):
+    """Route calculation must fail honestly for an unresolvable destination
+    instead of silently routing to Pokhara (28.2096, 83.9856)."""
+
+    def test_unresolved_destination_returns_404(self):
+        client = APIClient()
+        resp = client.post("/api/v1/navigation/calculate/",
+                           {"destination_name": "Nonexistent Place Zzz",
+                            "origin_lat": 27.71, "origin_lng": 85.32}, format="json")
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.json()["route_status"], "UNRESOLVED_DESTINATION")
+        self.assertNotIn(28.2096, resp.json().values())
+
+    def test_real_destination_routes_with_assumed_origin_flag(self):
+        from .models import Destination, Category
+        cat, _ = Category.objects.get_or_create(name="Nature")
+        Destination.objects.create(name="Routed Test Lake", slug="routed-test-lake",
+                                   category=cat, province="Karnali", district="Mugu",
+                                   latitude=29.53, longitude=82.05, is_active=True,
+                                   status="approved")
+        client = APIClient()
+        resp = client.post("/api/v1/navigation/calculate/",
+                           {"destination_name": "Routed Test Lake"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertTrue(body["origin_assumed"])  # no GPS -> explicitly flagged
+        self.assertAlmostEqual(body["destination_latitude"], 29.53, places=2)

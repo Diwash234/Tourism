@@ -61,10 +61,12 @@ class UserRouteCalculateView(APIView):
         origin_lng = data.get("origin_lng") or data.get("longitude") or data.get("start_longitude")
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
-        # Default fallback origin if GPS or origin coordinates are missing
-        if origin_lat is None or origin_lng is None:
+        # Without GPS or explicit origin coordinates the route cannot be
+        # anchored; use the labeled default and flag it in the response.
+        origin_assumed = origin_lat is None or origin_lng is None
+        if origin_assumed:
             origin_lat, origin_lng = 28.2096, 83.9856
-            origin_name = origin_name or "Pokhara Center"
+            origin_name = origin_name or "Pokhara Center (assumed — provide GPS for accurate routing)"
 
         # Resolve destination
         dest_lat = None
@@ -87,7 +89,16 @@ class UserRouteCalculateView(APIView):
                 dest_city = resolved.get("city", "Pokhara")
 
         if dest_lat is None or dest_lng is None:
-            dest_lat, dest_lng = 28.2096, 83.9856
+            # Never silently route to a default city: an unresolved
+            # destination returns an honest failure the UI can surface.
+            return Response({
+                "route_status": "UNRESOLVED_DESTINATION",
+                "detail": (f"No verified place matches “{dest_name or dest_slug}”, "
+                           "so no route was generated. Check the spelling or "
+                           "pick the destination from search results."),
+                "destination_name": dest_name or dest_slug,
+                "has_coordinates": False,
+            }, status=status.HTTP_404_NOT_FOUND)
 
         # Calculate coordinates-based distance
         raw_dist = haversine_distance_km(origin_lat, origin_lng, dest_lat, dest_lng) or 5.0
@@ -135,6 +146,7 @@ class UserRouteCalculateView(APIView):
             "destination_latitude": dest_lat,
             "destination_longitude": dest_lng,
             "origin_name": origin_name or "Current Location",
+            "origin_assumed": origin_assumed,
             "origin_latitude": olat,
             "origin_longitude": olng,
             "transport_mode": transport_mode,
