@@ -138,6 +138,7 @@ urlpatterns = [
     path("admin/users/<int:id>/actions", views_admin.AdminUserAccessActionView.as_view(), name="admin-user-access-action"),
     path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
     path("admin/data-explorer/", views_admin.AdminDataExplorerView.as_view(), name="admin-data-explorer"),
+    path("admin/geo/municipalities/", views_admin.AdminMunicipalityMappingView.as_view(), name="admin-municipality-mappings"),
     path("admin/branding/", views_admin.AdminBrandingView.as_view(), name="admin-branding"),
     path("admin/routing-provider/", views_admin.AdminRoutingProviderView.as_view(), name="admin-routing-provider"),
     path("admin/redirects/", views_admin.AdminRedirectsView.as_view(), name="admin-redirects"),

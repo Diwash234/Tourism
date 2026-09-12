@@ -2095,6 +2095,63 @@ class AdminRoutingProviderView(APIView):
             return Response({"ok": False, "error": str(exc)[:200]})
 
 
+class AdminMunicipalityMappingView(APIView):
+    """Admin workflow for municipality -> district/province mappings.
+
+    GET  : list mappings (optionally ?verified=0 for the review queue)
+    POST : body {"csv": "name,district,province\n..."} — validated import
+    PATCH: {"id": .., "verified": true/false} — admin verification decision
+    """
+
+    def get(self, request):
+        _require_capability(request, "settings", "change")
+        from .models import MunicipalityMapping
+        qs = MunicipalityMapping.objects.all()
+        if request.query_params.get("verified") in ("0", "1"):
+            qs = qs.filter(verified=request.query_params["verified"] == "1")
+        return Response({"count": qs.count(), "results": [
+            {"id": m.id, "name": m.name, "district": m.district, "province": m.province,
+             "source": m.source, "verified": m.verified,
+             "matched_destination_count": m.matched_destination_count}
+            for m in qs[:500]
+        ]})
+
+    def post(self, request):
+        _require_capability(request, "settings", "change")
+        from .municipality_mappings import import_csv
+        text = request.data.get("csv") or ""
+        if not isinstance(text, str) or not text.strip():
+            return Response({"detail": "csv text is required"}, status=400)
+        result = import_csv(text)
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email, actor_role=request.user.role,
+            category="content", severity="info", source="backend",
+            action="geo.municipality_import",
+            message=f"Municipality mapping import: {result['created']} created, {result['updated']} updated, {len(result['rejected'])} rejected",
+            object_type="MunicipalityMapping", object_id="", extra=result)
+        return Response(result)
+
+    def patch(self, request):
+        _require_capability(request, "settings", "change")
+        from .models import MunicipalityMapping
+        obj = MunicipalityMapping.objects.filter(pk=request.data.get("id")).first()
+        if not obj:
+            return Response({"detail": "mapping not found"}, status=404)
+        if "verified" in request.data:
+            obj.verified = bool(request.data["verified"])
+        if request.data.get("district"):
+            from .administrative_boundaries import NEPAL_DISTRICTS_DATA
+            canon = NEPAL_DISTRICTS_DATA.get(str(request.data["district"]).strip())
+            if not canon:
+                return Response({"detail": "unknown district"}, status=400)
+            obj.district = canon["district"]
+            obj.province = canon["province"]
+        obj.source = "admin" if obj.verified else obj.source
+        obj.save()
+        return Response({"message": "updated", "id": obj.id, "verified": obj.verified})
+
+
 class AdminBrandingView(APIView):
     """Safe branding assets and allowlisted theme presets; never accepts CSS or scripts."""
     permission_classes = [IsAdminOrStaff]

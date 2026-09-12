@@ -2552,6 +2552,33 @@ class DataRetentionPolicy(TimeStampedModel):
     def __str__(self): return self.name
 
 
+class MunicipalityMapping(TimeStampedModel):
+    """Maps municipality/local-level names to canonical district + province.
+
+    Populated three ways: admin CSV import (verified), admin manual entry
+    (verified), or coordinate-derived candidates from destination clusters
+    (unverified until an admin confirms). Never fabricated.
+    """
+
+    SOURCE_CHOICES = [
+        ("csv_import", "Admin CSV import"),
+        ("admin", "Admin manual"),
+        ("coordinate_derived", "Coordinate-derived candidate"),
+    ]
+    name = models.CharField(max_length=180, unique=True)
+    district = models.CharField(max_length=100)
+    province = models.CharField(max_length=60)
+    source = models.CharField(max_length=30, choices=SOURCE_CHOICES, default="admin")
+    verified = models.BooleanField(default=False)
+    matched_destination_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} -> {self.district}, {self.province}"
+
+
 class SiteSetting(TimeStampedModel):
     key = models.SlugField(max_length=120, unique=True)
     value = models.JSONField(default=dict, blank=True)

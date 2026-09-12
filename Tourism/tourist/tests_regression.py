@@ -34,7 +34,8 @@ from .models import (
     ContentSection,
     NewsletterSignup,
     UserRoute,
-)
+
+    MunicipalityMapping,)
 
 
 def make_superuser():
@@ -4103,3 +4104,52 @@ class SectionConfigSanitizerRegressionTests(TestCase):
         self.assertNotIn("<script>", rec["title"])
         self.assertNotIn("image_url", rec)  # javascript: URL dropped
         self.assertLessEqual(len(rec["highlights"]), 12)
+
+class MunicipalityMappingTests(TestCase):
+    """Admin-verified municipality -> district mapping workflow (V3)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+
+    def test_csv_import_validates_districts(self):
+        csv_text = (
+            "name,district,province\n"
+            "Besisahar Municipality,Lamjung,\n"
+            "Fakeville,Not A District,\n"
+            ",Kaski,\n"
+        )
+        resp = self.client.post("/api/v1/admin/geo/municipalities/", {"csv": csv_text}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["created"], 1)
+        self.assertEqual(len(data["rejected"]), 2)
+        m = MunicipalityMapping.objects.get(name="Besisahar Municipality")
+        self.assertEqual(m.district, "Lamjung")
+        self.assertEqual(m.province, "Gandaki")  # derived from district table
+        self.assertTrue(m.verified)
+
+    def test_unverified_candidates_never_write_destinations(self):
+        from tourist.municipality_mappings import backfill_provinces
+        MunicipalityMapping.objects.create(
+            name="Somegaun", district="Kaski", province="Gandaki",
+            source="coordinate_derived", verified=False)
+        dest = Destination.objects.create(name="Test Place", district="Somegaun",
+                                          latitude=28.2, longitude=83.99, province=None)
+        result = backfill_provinces(dry_run=False)
+        dest.refresh_from_db()
+        self.assertIsNone(dest.province)  # unverified -> no write
+        self.assertEqual(result["pending_verification"], 1)
+        MunicipalityMapping.objects.filter(name="Somegaun").update(verified=True)
+        backfill_provinces(dry_run=False)
+        dest.refresh_from_db()
+        self.assertEqual(dest.province, "Gandaki")  # verified -> backfilled
+
+    def test_admin_can_verify_via_api(self):
+        m = MunicipalityMapping.objects.create(name="Xgaun", district="Kaski",
+                                               province="Gandaki", source="coordinate_derived")
+        resp = self.client.patch("/api/v1/admin/geo/municipalities/",
+                                 {"id": m.pk, "verified": True}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        m.refresh_from_db()
+        self.assertTrue(m.verified)
