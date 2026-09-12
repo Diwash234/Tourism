@@ -4794,3 +4794,59 @@ class LegacyNavigationRouteSafetyTests(TestCase):
         r = APIClient().get("/api/v1/nearby/places", {"q": "hospital"})
         self.assertEqual(r.status_code, 400)
         self.assertEqual(r.json().get("status"), "COORDINATES_REQUIRED")
+
+
+class OSMVerificationWorkflowTests(TestCase):
+    """V6 §22/§24: OSM records cannot be verified/published through the public
+    API; only staff via Django admin can change verification_state."""
+
+    def setUp(self):
+        from tourist.models import OSMEssentialService
+        self.rec = OSMEssentialService.objects.create(
+            osm_id="node/1", category="hospital", name="Test Hospital (node/1)",
+            latitude=27.7, longitude=85.3, verification_state="source_verified")
+
+    def test_public_api_is_read_only(self):
+        from rest_framework.test import APIClient
+        c = APIClient()
+        url = f"/api/v1/osm-essentials/{self.rec.id}/"
+        self.assertEqual(c.get(url).status_code, 200)
+        self.assertIn(c.patch(url, {"verification_state": "verified"}, format="json").status_code, (403, 405))
+        self.assertIn(c.put(url, {"verification_state": "verified"}, format="json").status_code, (403, 405))
+        self.assertIn(c.delete(url).status_code, (403, 405))
+        self.rec.refresh_from_db()
+        self.assertEqual(self.rec.verification_state, "source_verified")
+
+    def test_admin_requires_staff(self):
+        from django.contrib.auth import get_user_model
+        from rest_framework.test import APIClient
+        U = get_user_model()
+        user = U.objects.create_user(email="plain@example.com", password="x12345678", role="tourist")
+        staff = U.objects.create_user(email="admin2@example.com", password="x12345678",
+                                      role="admin", is_staff=True, is_superuser=True)
+        # permission gate (template-free): non-staff cannot access admin,
+        # staff can; the OSM model is registered for staff editing
+        from django.contrib import admin as dj_admin
+        from django.test import RequestFactory
+        from tourist.models import OSMEssentialService
+        self.assertIn(OSMEssentialService, dj_admin.site._registry)
+        rf = RequestFactory()
+        req = rf.get("/admin/")
+        req.user = user
+        self.assertFalse(dj_admin.site.has_permission(req))
+        req.user = staff
+        self.assertTrue(dj_admin.site.has_permission(req))
+
+    def test_enrichment_never_auto_promotes_to_verified(self):
+        # re-running enrichment on a source_verified record must not set 'verified'
+        from io import StringIO
+        from django.core.management import call_command
+        import tempfile, os, json
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, "x.ndjson"), "w") as f:
+            f.write(json.dumps({"type": "node", "id": 1, "lat": 27.7, "lon": 85.3,
+                                "tags": {"amenity": "hospital", "name": "Real Name Hospital"}}) + "\n")
+        call_command("enrich_osm_services", source=d, stdout=StringIO())
+        self.rec.refresh_from_db()
+        self.assertEqual(self.rec.verification_state, "source_verified")
+        self.assertEqual(self.rec.name, "Real Name Hospital")

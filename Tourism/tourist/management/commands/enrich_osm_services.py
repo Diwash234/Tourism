@@ -32,20 +32,28 @@ from tourist.models import OSMEssentialService
 def load_elements(fp: Path):
     text = fp.read_text(encoding="utf-8")
     try:
-        return json.loads(text).get("elements", [])
+        parsed = json.loads(text)
     except json.JSONDecodeError:
-        els = []
-        for line in text.splitlines():
-            line = line.strip().rstrip(",")
-            if not line or line in ("{", "}"):
-                continue
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(obj, dict) and obj.get("id") is not None and obj.get("tags") is not None:
-                els.append(obj)
-        return els
+        parsed = None
+    if isinstance(parsed, dict):
+        if isinstance(parsed.get("elements"), list):
+            return parsed["elements"]
+        # single-element file (whole file is one tagged element)
+        if parsed.get("id") is not None and parsed.get("tags") is not None:
+            return [parsed]
+        return []
+    els = []
+    for line in text.splitlines():
+        line = line.strip().rstrip(",")
+        if not line or line in ("{", "}"):
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and obj.get("id") is not None and obj.get("tags") is not None:
+            els.append(obj)
+    return els
 
 
 class Command(BaseCommand):
