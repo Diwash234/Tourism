@@ -1,0 +1,657 @@
+{
+ "coverage_matrix": {
+  "Koshi": {
+   "districts_known": 41,
+   "districts_with_coord_data": 40,
+   "districts_zero_coord_data": 1,
+   "destinations_with_coords": 1130,
+   "top_districts": {
+    "सोलुखुम्बु जिल्ला": 435,
+    "Solukhumbu": 90,
+    "ताप्लेजुङ जिल्ला": 83,
+    "इलाम जिल्ला": 48,
+    "Ilam": 46
+   }
+  },
+  "Madhesh": {
+   "districts_known": 19,
+   "districts_with_coord_data": 19,
+   "districts_zero_coord_data": 0,
+   "destinations_with_coords": 190,
+   "top_districts": {
+    "Dhanusha": 24,
+    "Saptari": 24,
+    "Bara": 19,
+    "Rautahat": 19,
+    "धनुषा जिल्ला": 19
+   }
+  },
+  "Bagmati": {
+   "districts_known": 43,
+   "districts_with_coord_data": 42,
+   "districts_zero_coord_data": 1,
+   "destinations_with_coords": 2990,
+   "top_districts": {
+    "काठमाडौं जिल्ला": 987,
+    "Kathmandu": 240,
+    "काभ्रेपलाञ्चोक जिल्ला": 239,
+    "चितवन जिल्ला": 168,
+    "ललितपुर जिल्ला": 129
+   }
+  },
+  "Gandaki": {
+   "districts_known": 30,
+   "districts_with_coord_data": 30,
+   "districts_zero_coord_data": 0,
+   "destinations_with_coords": 2757,
+   "top_districts": {
+    "कास्की": 1443,
+    "मनाङ": 185,
+    "गोरखा": 183,
+    "मुस्ताङ": 170,
+    "Kaski": 90
+   }
+  },
+  "Lumbini": {
+   "districts_known": 29,
+   "districts_with_coord_data": 29,
+   "districts_zero_coord_data": 0,
+   "destinations_with_coords": 736,
+   "top_districts": {
+    "रुपन्देही": 206,
+    "बाँके": 144,
+    "दाङ": 57,
+    "Rupandehi": 40,
+    "Kapilvastu": 33
+   }
+  },
+  "Karnali": {
+   "districts_known": 24,
+   "districts_with_coord_data": 24,
+   "districts_zero_coord_data": 0,
+   "destinations_with_coords": 501,
+   "top_districts": {
+    "डोल्पा": 76,
+    "हुम्ला": 57,
+    "Surkhet": 47,
+    "दैलेख": 44,
+    "Dolpa": 39
+   }
+  },
+  "Sudurpashchim": {
+   "districts_known": 21,
+   "districts_with_coord_data": 21,
+   "districts_zero_coord_data": 0,
+   "destinations_with_coords": 205,
+   "top_districts": {
+    "कैलाली": 33,
+    "कञ्चनपुर जिल्ला": 20,
+    "Baitadi": 16,
+    "Dadeldhura": 14,
+    "Darchula": 14
+   }
+  }
+ },
+ "nearby_and_map_validation": {
+  "Koshi": {
+   "source": {
+    "canonical_id": "dest-7853",
+    "db_id": 7853,
+    "name": "Birtamod",
+    "district": "Jhapa",
+    "lat": 26.63,
+    "lng": 87.98
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-7853",
+     "name": "Birtamod",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-4532",
+     "name": "Gurung Niwas",
+     "api_distance_km": 0.63,
+     "computed_distance_km": 0.628,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-3368",
+     "name": "Hotel The Kingsbury",
+     "api_distance_km": 1.11,
+     "computed_distance_km": 1.111,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-4514",
+     "name": "Pal creations",
+     "api_distance_km": 1.28,
+     "computed_distance_km": 1.278,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-2773",
+     "name": "C P Hotel",
+     "api_distance_km": 1.44,
+     "computed_distance_km": 1.445,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-2709",
+     "name": "SPOT ON Kohinoor",
+     "api_distance_km": 1.82,
+     "computed_distance_km": 1.823,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-5969",
+     "name": "My Home",
+     "api_distance_km": 2.14,
+     "computed_distance_km": 2.138,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-4865",
+     "name": "Hotel Heaven",
+     "api_distance_km": 2.25,
+     "computed_distance_km": 2.251,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  },
+  "Madhesh": {
+   "source": {
+    "canonical_id": "dest-7852",
+    "db_id": 7852,
+    "name": "Surunga Baba",
+    "district": "Saptari",
+    "lat": 26.6,
+    "lng": 86.72
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-7852",
+     "name": "Surunga Baba",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7795",
+     "name": "Seta Devi Temple",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "osm-61",
+     "name": "Hospital (node/2803058057)",
+     "api_distance_km": 0.29,
+     "computed_distance_km": 0.287,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7798",
+     "name": "Musharniya Daha",
+     "api_distance_km": 0.99,
+     "computed_distance_km": 0.994,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7796",
+     "name": "Bhediya Children's Park",
+     "api_distance_km": 1.49,
+     "computed_distance_km": 1.492,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7797",
+     "name": "Bisnariya Daha",
+     "api_distance_km": 2.28,
+     "computed_distance_km": 2.278,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7380",
+     "name": "Kataiya",
+     "api_distance_km": 2.98,
+     "computed_distance_km": 2.983,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-4545",
+     "name": "Sambhunath hotel",
+     "api_distance_km": 3.28,
+     "computed_distance_km": 3.275,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  },
+  "Bagmati": {
+   "source": {
+    "canonical_id": "dest-8350",
+    "db_id": 8350,
+    "name": "Mathurapati Shiva Shrine",
+    "district": "Kavrepalanchok",
+    "lat": 27.6,
+    "lng": 85.58
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-8350",
+     "name": "Mathurapati Shiva Shrine",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8027",
+     "name": "Dugdheshwari Temple",
+     "api_distance_km": 0.59,
+     "computed_distance_km": 0.59,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8028",
+     "name": "Suvarneshwari Temple",
+     "api_distance_km": 1.75,
+     "computed_distance_km": 1.749,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8011",
+     "name": "Namobuddha Monastery",
+     "api_distance_km": 1.93,
+     "computed_distance_km": 1.931,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8029",
+     "name": "Kotdevi",
+     "api_distance_km": 2.67,
+     "computed_distance_km": 2.674,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8009",
+     "name": "Devisthan Dhulikhel",
+     "api_distance_km": 3.06,
+     "computed_distance_km": 3.065,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8010",
+     "name": "Kavrebhanjyang",
+     "api_distance_km": 3.66,
+     "computed_distance_km": 3.661,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8008",
+     "name": "Bhagwati Temple Dhulikhel",
+     "api_distance_km": 3.84,
+     "computed_distance_km": 3.845,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  },
+  "Gandaki": {
+   "source": {
+    "canonical_id": "dest-8531",
+    "db_id": 8531,
+    "name": "CG Shashwat Dham",
+    "district": "Nawalpur",
+    "lat": 27.6,
+    "lng": 84.05
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-8531",
+     "name": "CG Shashwat Dham",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-265",
+     "name": "Police Station Arunkhola",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7463",
+     "name": "Madhyabindu",
+     "api_distance_km": 3.09,
+     "computed_distance_km": 3.087,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-270",
+     "name": "Police Station Madhyabindu",
+     "api_distance_km": 3.7,
+     "computed_distance_km": 3.7,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-889",
+     "name": "Solitary river view cottage",
+     "api_distance_km": 4.01,
+     "computed_distance_km": 4.008,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8411",
+     "name": "Palhi Bhagwati Temple",
+     "api_distance_km": 4.93,
+     "computed_distance_km": 4.927,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "osm-180",
+     "name": "Hospital (node/4418397309)",
+     "api_distance_km": 4.99,
+     "computed_distance_km": 4.987,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "osm-220",
+     "name": "Hospital (node/4633977090)",
+     "api_distance_km": 5.3,
+     "computed_distance_km": 5.301,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  },
+  "Lumbini": {
+   "source": {
+    "canonical_id": "dest-8453",
+    "db_id": 8453,
+    "name": "Rukumkot Durbar",
+    "district": "Rukum East",
+    "lat": 28.62,
+    "lng": 82.6
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-8453",
+     "name": "Rukumkot Durbar",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7445",
+     "name": "Rukumkot",
+     "api_distance_km": 1.69,
+     "computed_distance_km": 1.693,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "ht-1420",
+     "name": "Rukum Mountain Homestay",
+     "api_distance_km": 1.95,
+     "computed_distance_km": 1.952,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-511",
+     "name": "District Police Office Rukum East",
+     "api_distance_km": 3.13,
+     "computed_distance_km": 3.132,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-513",
+     "name": "Police Station Rukum East",
+     "api_distance_km": 3.13,
+     "computed_distance_km": 3.132,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-512",
+     "name": "Police Station Kol",
+     "api_distance_km": 3.34,
+     "computed_distance_km": 3.336,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-5835",
+     "name": "Rukum East",
+     "api_distance_km": 5.18,
+     "computed_distance_km": 5.18,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7628",
+     "name": "Kamal Daha",
+     "api_distance_km": 5.36,
+     "computed_distance_km": 5.364,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  },
+  "Karnali": {
+   "source": {
+    "canonical_id": "dest-8348",
+    "db_id": 8348,
+    "name": "Pathangini",
+    "district": "Dailekh",
+    "lat": 28.855,
+    "lng": 81.695
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-8348",
+     "name": "Pathangini",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8347",
+     "name": "Dullu Malika",
+     "api_distance_km": 0.74,
+     "computed_distance_km": 0.739,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8241",
+     "name": "Tiyadi Temple",
+     "api_distance_km": 0.74,
+     "computed_distance_km": 0.739,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8212",
+     "name": "Panchakoshi Dham",
+     "api_distance_km": 0.74,
+     "computed_distance_km": 0.739,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-8214",
+     "name": "Dhuleshwar Mahadev",
+     "api_distance_km": 1.56,
+     "computed_distance_km": 1.563,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7653",
+     "name": "Bhairabi Temple Dailekh",
+     "api_distance_km": 1.56,
+     "computed_distance_km": 1.563,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7651",
+     "name": "Pancha Koshi",
+     "api_distance_km": 1.56,
+     "computed_distance_km": 1.563,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "hosp-220",
+     "name": "Dailekh District Hospital",
+     "api_distance_km": 1.56,
+     "computed_distance_km": 1.563,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  },
+  "Sudurpashchim": {
+   "source": {
+    "canonical_id": "dest-8352",
+    "db_id": 8352,
+    "name": "Patan Baitadi",
+    "district": "Baitadi",
+    "lat": 29.44,
+    "lng": 80.53
+   },
+   "results": 30,
+   "checks": [
+    {
+     "canonical_id": "dest-8352",
+     "name": "Patan Baitadi",
+     "api_distance_km": 0.0,
+     "computed_distance_km": 0.0,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "ht-1650",
+     "name": "Patan Village Lodge",
+     "api_distance_km": 4.97,
+     "computed_distance_km": 4.968,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7668",
+     "name": "Jagannath Temple Baitadi",
+     "api_distance_km": 8.24,
+     "computed_distance_km": 8.243,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "ht-1651",
+     "name": "Shivnath Rural Retreat",
+     "api_distance_km": 8.93,
+     "computed_distance_km": 8.934,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-580",
+     "name": "Police Station Patan",
+     "api_distance_km": 9.51,
+     "computed_distance_km": 9.51,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7666",
+     "name": "Niglasaini Temple",
+     "api_distance_km": 10.05,
+     "computed_distance_km": 10.054,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "pol-600",
+     "name": "Police Station Ganyapdhura",
+     "api_distance_km": 10.19,
+     "computed_distance_km": 10.193,
+     "within_radius": true,
+     "distance_consistent": true
+    },
+    {
+     "canonical_id": "dest-7667",
+     "name": "Patal Bhumeshwar Cave",
+     "api_distance_km": 10.32,
+     "computed_distance_km": 10.32,
+     "within_radius": true,
+     "distance_consistent": true
+    }
+   ],
+   "all_distances_consistent": true,
+   "all_within_radius": true,
+   "marker_coords_match_canonical_db": true
+  }
+ }
+}
