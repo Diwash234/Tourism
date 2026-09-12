@@ -57,7 +57,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         src = Path(opts["source"])
-        files = sorted(src.glob("*.json")) if src.is_dir() else [src]
+        if src.is_dir():
+            files = sorted(list(src.glob("*.json")) + list(src.glob("*.ndjson")))
+        else:
+            files = [src]
         report = {"started": datetime.now(timezone.utc).isoformat(), "dry_run": opts["dry_run"],
                   "seen": 0, "matched": 0, "unknown_osm_id": 0, "names_filled": 0,
                   "fields_filled": 0, "verified_conflicts_queued": 0, "files": []}
