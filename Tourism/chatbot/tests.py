@@ -219,6 +219,97 @@ class ChatWebSocketTests(APITestCase):
             response = self.client.post(reverse("chatbot-message"), {"message": "Hello live chat"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         conversation_id = response.data["conversation_id"]
-        self.assertEqual([group for group, _ in captured], [f"chat_{conversation_id}"] * 2)
-        self.assertEqual([event["payload"]["type"] for _, event in captured], ["user_message", "bot_reply"])
-        self.assertEqual(captured[1][1]["payload"]["message_id"], response.data["message_id"])
+        # A user message now fans out to BOTH the conversation socket and the
+        # live support inbox group (V6 support workflow), then the bot reply
+        # goes to the conversation socket.
+        self.assertEqual(
+            [group for group, _ in captured],
+            [f"chat_{conversation_id}", "support_inbox", f"chat_{conversation_id}"],
+        )
+        self.assertEqual(
+            [event["payload"]["type"] for _, event in captured],
+            ["user_message", "support.user_message", "bot_reply"],
+        )
+        self.assertEqual(captured[2][1]["payload"]["message_id"], response.data["message_id"])
+
+
+class SupportWorkflowTests(APITestCase):
+    """Human support workflow (V6): inbox, admin reply, assignment."""
+
+    def _staff(self, email="staff@example.com"):
+        return User.objects.create_user(email=email, password="Pass123!", role=User.Role.STAFF)
+
+    def _guide(self, email="guide@example.com"):
+        return User.objects.create_user(email=email, password="Pass123!", role=User.Role.GUIDE)
+
+    def _seed_conversation(self):
+        # A traveller (anonymous) starts a chat -> persisted conversation.
+        res = self.client.post(reverse("chatbot-message"), {"message": "Help, I lost my bag"})
+        return res.data["conversation_id"]
+
+    def test_inbox_requires_staff(self):
+        cid = self._seed_conversation()
+        self.client.logout()
+        res = self.client.get(reverse("support-inbox"))
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_sees_inbox_with_last_message(self):
+        cid = self._seed_conversation()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.get(reverse("support-inbox"))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        ids = [row["id"] for row in res.data["results"]]
+        self.assertIn(cid, ids)
+
+    def test_admin_reply_is_persisted_as_admin_role(self):
+        cid = self._seed_conversation()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-reply"), {"conversation_id": cid, "content": "We're on it!"})
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        conv = ChatConversation.objects.get(pk=cid)
+        admin_msgs = conv.messages.filter(role=ChatMessage.Role.ADMIN)
+        self.assertEqual(admin_msgs.count(), 1)
+        self.assertEqual(admin_msgs.first().content, "We're on it!")
+        # Reply shows up in the staff thread view too.
+        thread = self.client.get(reverse("support-thread", args=[cid]))
+        roles = [m["role"] for m in thread.data["messages"]]
+        self.assertIn(ChatMessage.Role.ADMIN, roles)
+
+    def test_reply_requires_content(self):
+        cid = self._seed_conversation()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-reply"), {"conversation_id": cid, "content": "  "})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_assign_to_guide_sets_assigned_status(self):
+        cid = self._seed_conversation()
+        guide = self._guide()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": guide.email})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["status"], ChatConversation.Status.ASSIGNED)
+        self.assertEqual(res.data["assigned_to"], guide.email)
+
+    def test_assign_to_non_staff_rejected(self):
+        cid = self._seed_conversation()
+        tourist = User.objects.create_user(email="plain@example.com", password="Pass123!", role=User.Role.TOURIST)
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": tourist.email})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_assign_to_self(self):
+        cid = self._seed_conversation()
+        staff = self._staff(email="me@example.com")
+        self.client.force_authenticate(user=staff)
+        res = self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": "me"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["assigned_to"], "me@example.com")
+
+    def test_mine_filter(self):
+        cid = self._seed_conversation()
+        staff = self._staff(email="owner@example.com")
+        self.client.force_authenticate(user=staff)
+        self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": "me"})
+        res = self.client.get(reverse("support-inbox"), {"mine": "1"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(cid, [row["id"] for row in res.data["results"]])

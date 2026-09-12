@@ -33,6 +33,13 @@ const FloatingChatbot = () => {
         package_cards: event.package_cards || [],
         emergency_cards: event.emergency_cards || [],
       }])
+    } else if (event.type === "admin_reply") {
+      // Human support reply from the admin dashboard (live, no polling)
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: event.reply || "",
+        from_support: true,
+      }])
     } else if (event.type === "user_message") {
       setMessages((prev) => {
         const last = prev[prev.length - 1]

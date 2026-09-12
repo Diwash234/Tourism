@@ -44,3 +44,51 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def chat_message(self, event):
         """Fan-out handler for events sent via channel_layer.group_send."""
         await self.send_json(event["payload"])
+
+
+class SupportInboxConsumer(AsyncJsonWebsocketConsumer):
+    """Admin/staff live support inbox.
+
+    Joins the `support_inbox` group: every user chat message is fanned out
+    here so the admin dashboard sees new messages within seconds (no
+    polling). REST stays the source of truth — this socket only relays
+    events the API already persisted.
+    """
+
+    GROUP = "support_inbox"
+
+    async def connect(self):
+        _MAIN_LOOP["loop"] = asyncio.get_running_loop()
+        # Auth: JWT via ?token= (frontend stores JWT in localStorage, not
+        # cookies) or an authenticated session user when middleware provides one.
+        user = self.scope.get("user")
+        if not (user and user.is_authenticated):
+            from urllib.parse import parse_qs
+            qs = parse_qs(self.scope.get("query_string", b"").decode())
+            token = (qs.get("token") or [""])[0]
+            if token:
+                try:
+                    from rest_framework_simplejwt.tokens import AccessToken
+                    from django.contrib.auth import get_user_model
+                    validated = AccessToken(token)
+                    user = get_user_model().objects.filter(pk=validated["user_id"]).first()
+                except Exception:
+                    user = None
+        is_staff = bool(user and getattr(user, "is_authenticated", False) and (
+            user.is_staff or getattr(user, "role", "") in {"admin", "super_admin", "tourism_admin", "content_moderator", "staff"}))
+        if not is_staff:
+            await self.close(code=4403)
+            return
+        await self.channel_layer.group_add(self.GROUP, self.channel_name)
+        await self.accept()
+        await self.send_json({"type": "support.connected"})
+
+    async def disconnect(self, code):
+        await self.channel_layer.group_discard(self.GROUP, self.channel_name)
+
+    async def receive_json(self, content, **kwargs):
+        if content.get("type") == "ping":
+            await self.send_json({"type": "pong"})
+
+    async def chat_message(self, event):
+        await self.send_json(event["payload"])

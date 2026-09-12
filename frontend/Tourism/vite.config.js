@@ -23,7 +23,7 @@ export default defineConfig({
   // Prevent invalid-hook-call / null React dispatcher errors when linked
   // packages or Vite dependency optimization resolve React more than once.
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'chart.js', 'react-chartjs-2'],
   },
   build: {
     rollupOptions: {

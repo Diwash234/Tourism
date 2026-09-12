@@ -11,6 +11,12 @@ const api = axios.create({
         "Content-Type": "application/json",
     },
 
+    // Safety net: never let a stalled request hang the UI for 30-60s. The
+    // fast endpoints (login, search, discover) return well under this; it
+    // only trips when the server/AI layer genuinely stalls, so callers get
+    // a clean rejection (and their error UI) instead of a frozen spinner.
+    timeout: 20000,
+
 })
 
 

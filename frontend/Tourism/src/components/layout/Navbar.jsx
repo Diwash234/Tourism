@@ -162,9 +162,12 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Desktop User Actions */}
-        <div className="hidden md:flex items-center gap-3 shrink-0 ml-auto">
-          {features.language_switcher && <LanguageSwitcher compact />}
+        {/* User Actions — visible at ALL sizes (mobile fix): the cluster used
+            to be `hidden md:flex`, which hid profile/notifications/theme for
+            logged-in users and login/signup for guests on phones. Only the
+            language switcher is tucked away below `md` to save width. */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+          <span className="hidden md:inline-flex">{features.language_switcher && <LanguageSwitcher compact />}</span>
           {isAuthenticated ? (
             <>
               {isAdmin && (

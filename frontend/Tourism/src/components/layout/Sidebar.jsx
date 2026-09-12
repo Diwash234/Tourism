@@ -86,21 +86,27 @@ const GROUPS = [
   },
 ]
 
+// Unified sidebar accent (V6): every icon chip renders the same green as
+// the Admin sidebar regardless of the per-link `color` key, so the user
+// site, local/staff portals and admin all share one consistent green theme.
+// The distinct keys are kept so existing links stay valid — they just all
+// resolve to the shared emerald treatment now.
+const SIDEBAR_GREEN = "text-emerald-700 bg-emerald-50 group-hover:bg-emerald-100"
 const COLOR_MAP = {
-  himalaya: "text-blue-600 bg-blue-50 group-hover:bg-blue-100",
-  forest: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
-  saffron: "text-amber-600 bg-amber-50 group-hover:bg-amber-100",
-  nepalred: "text-rose-600 bg-rose-50 group-hover:bg-rose-100",
-  red: "text-red-600 bg-red-50 group-hover:bg-red-100",
-  orange: "text-orange-600 bg-orange-50 group-hover:bg-orange-100",
-  pink: "text-pink-600 bg-pink-50 group-hover:bg-pink-100",
-  emerald: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
-  sky: "text-sky-600 bg-sky-50 group-hover:bg-sky-100",
-  violet: "text-nav-active bg-[#F7F8F5] group-hover:bg-nav-tintStrong",
-  purple: "text-nav-active bg-[#F7F8F5] group-hover:bg-nav-tintStrong",
-  terracotta: "text-orange-700 bg-orange-50 group-hover:bg-orange-100",
-  cyan: "text-cyan-600 bg-cyan-50 group-hover:bg-cyan-100",
-  stone: "text-gray-600 bg-gray-50 group-hover:bg-gray-100",
+  himalaya: SIDEBAR_GREEN,
+  forest: SIDEBAR_GREEN,
+  saffron: SIDEBAR_GREEN,
+  nepalred: SIDEBAR_GREEN,
+  red: SIDEBAR_GREEN,
+  orange: SIDEBAR_GREEN,
+  pink: SIDEBAR_GREEN,
+  emerald: SIDEBAR_GREEN,
+  sky: SIDEBAR_GREEN,
+  violet: SIDEBAR_GREEN,
+  purple: SIDEBAR_GREEN,
+  terracotta: SIDEBAR_GREEN,
+  cyan: SIDEBAR_GREEN,
+  stone: SIDEBAR_GREEN,
 }
 
 const isDesktop = () =>

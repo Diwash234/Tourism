@@ -17,11 +17,12 @@ django_asgi_app = get_asgi_application()
 from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
 from django.urls import path  # noqa: E402
 
-from chatbot.consumers import ChatConsumer  # noqa: E402
+from chatbot.consumers import ChatConsumer, SupportInboxConsumer  # noqa: E402
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": URLRouter([
         path("ws/chat/<int:conversation_id>/", ChatConsumer.as_asgi()),
+        path("ws/support/", SupportInboxConsumer.as_asgi()),
     ]),
 })

@@ -30,10 +30,10 @@ import {
 /*
  * Footer redesign (task-79 §33): one cohesive premium identity instead of
  * stacked color blocks.
- *   Navy  #07101F  = structure/background (deep Nepal-night)
- *   Teal  #19C7A5  = brand, links, accents
+ *   Emerald-950 #022c22 = structure/background (deep Nepal-night, matches project green)
+ *   Emerald-400 #34d399 = brand, links, accents
  *   Gold  #F5C542  = action/highlight only (small CTA)
- * plus a barely-there Himalayan silhouette and a subtle radial teal glow so
+ * plus a barely-there Himalayan silhouette and a subtle radial emerald glow so
  * the footer connects to the dark page instead of fighting it.
  */
 
@@ -65,8 +65,8 @@ const EMERGENCY_NUMBERS = [
   { label: "Fire", number: "101", icon: "🔥" },
 ];
 
-const linkClass = "text-[#91A0B5] hover:text-[#19C7A5] transition-colors";
-const headingClass = "text-[11px] font-bold uppercase tracking-[0.14em] text-[#19C7A5] mb-3";
+const linkClass = "text-[#9DB8AC] hover:text-[#34d399] transition-colors";
+const headingClass = "text-[11px] font-bold uppercase tracking-[0.14em] text-[#34d399] mb-3";
 
 const Footer = () => {
   const { branding, navigation, pageCMS } = usePublicConfig()
@@ -136,7 +136,7 @@ const Footer = () => {
       className="relative mt-16 text-[#F5F7FA] overflow-hidden"
       style={{
         background:
-          "radial-gradient(circle at 50% 0%, rgba(25, 199, 165, 0.08), transparent 45%), #07101F",
+          "radial-gradient(circle at 50% 0%, rgba(52, 211, 153, 0.12), transparent 45%), #022c22",
       }}
     >
       {/* Very subtle Himalayan silhouette — identity, not decoration noise */}
@@ -154,7 +154,7 @@ const Footer = () => {
 
       {showBlock("symbols") && (
         <div className="relative container-app py-9 border-b border-white/[0.08]">
-          <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-[#19C7A5] mb-6">
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-[#34d399] mb-6">
             Discover Nepal
           </p>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-3 sm:gap-5">
@@ -166,7 +166,7 @@ const Footer = () => {
                   loading="lazy"
                   className="w-14 h-14 rounded-full object-cover border border-[rgba(25,199,165,0.35)]"
                 />
-                <span className="text-xs mt-2 text-[#91A0B5] font-medium">{item.title}</span>
+                <span className="text-xs mt-2 text-[#9DB8AC] font-medium">{item.title}</span>
               </div>
             ))}
           </div>
@@ -175,11 +175,11 @@ const Footer = () => {
             {/* Gold is the action accent — kept deliberately small (§33 rule 3) */}
             <Link
               to="/discover-nepal"
-              className="px-4 py-2 rounded-lg bg-[#F5C542] hover:bg-[#f7d06a] text-[#07101F] font-bold text-xs shadow transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg bg-[#F5C542] hover:bg-[#f7d06a] text-[#022c22] font-bold text-xs shadow transition-colors flex items-center gap-2"
             >
               <FiBookOpen size={14} /> Explore Nepal →
             </Link>
-            <p className="text-sm italic text-[#91A0B5] font-medium">
+            <p className="text-sm italic text-[#9DB8AC] font-medium">
               {copy("symbols", "body", "Discover Nepal — Beyond Everest")}
             </p>
           </div>
@@ -223,7 +223,7 @@ const Footer = () => {
                 <li key={link.route}>
                   <Link
                     to={link.route}
-                    className={link.bold ? "text-[#F5F7FA] font-semibold hover:text-[#19C7A5] transition-colors" : linkClass}
+                    className={link.bold ? "text-[#F5F7FA] font-semibold hover:text-[#34d399] transition-colors" : linkClass}
                   >
                     {link.label}
                   </Link>
@@ -241,7 +241,7 @@ const Footer = () => {
             <ul className="space-y-1.5 text-sm">
               {EMERGENCY_NUMBERS.map((item) => (
                 <li key={item.label} className="flex items-center justify-between gap-3">
-                  <span className="text-[#91A0B5]">
+                  <span className="text-[#9DB8AC]">
                     {item.icon} {item.label}
                   </span>
                   <a href={`tel:${item.number}`} className="font-bold text-white hover:text-[#FCA5A5] transition-colors">
@@ -256,11 +256,11 @@ const Footer = () => {
             <div>
               <h4 className={headingClass}>{copy("contact", "title", "Contact")}</h4>
               <ul className="space-y-2.5 text-sm">
-                <li className="flex gap-2 items-center text-[#91A0B5]"><FiMapPin className="text-[#19C7A5] shrink-0" /> {contactAddress}</li>
-                <li className="flex gap-2 items-center text-[#91A0B5]"><FiMail className="text-[#19C7A5] shrink-0" /> {contactEmail}</li>
-                <li className="flex gap-2 items-center text-[#91A0B5]"><FiPhone className="text-[#19C7A5] shrink-0" /> {contactPhone}</li>
+                <li className="flex gap-2 items-center text-[#9DB8AC]"><FiMapPin className="text-[#34d399] shrink-0" /> {contactAddress}</li>
+                <li className="flex gap-2 items-center text-[#9DB8AC]"><FiMail className="text-[#34d399] shrink-0" /> {contactEmail}</li>
+                <li className="flex gap-2 items-center text-[#9DB8AC]"><FiPhone className="text-[#34d399] shrink-0" /> {contactPhone}</li>
               </ul>
-              <div className="flex gap-4 mt-4 text-lg text-[#19C7A5]">
+              <div className="flex gap-4 mt-4 text-lg text-[#34d399]">
                 {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Facebook"><FiFacebook /></a>}
                 {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Instagram"><FiInstagram /></a>}
                 {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="X or Twitter"><FiTwitter /></a>}
@@ -279,8 +279,8 @@ const Footer = () => {
             style={{ background: "rgba(25, 199, 165, 0.08)", border: "1px solid rgba(25, 199, 165, 0.25)" }}
           >
             <div className="mr-auto">
-              <h4 className="text-[#19C7A5] font-bold text-sm uppercase tracking-wider">{copy("newsletter", "title", "Travel Insights")}</h4>
-              <p className="text-sm text-[#91A0B5] mt-1">{copy("newsletter", "subtitle", "Trip ideas, festivals and safety updates — straight to your inbox.")}</p>
+              <h4 className="text-[#34d399] font-bold text-sm uppercase tracking-wider">{copy("newsletter", "title", "Travel Insights")}</h4>
+              <p className="text-sm text-[#9DB8AC] mt-1">{copy("newsletter", "subtitle", "Trip ideas, festivals and safety updates — straight to your inbox.")}</p>
             </div>
             <form onSubmit={handleNewsletter} className="flex gap-2 w-full md:w-auto">
               <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
@@ -291,26 +291,26 @@ const Footer = () => {
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="rounded-xl bg-[#0B1728] border border-[rgba(255,255,255,0.12)] px-3 py-2 text-sm text-[#F5F7FA] placeholder:text-[#91A0B5]/70 focus:outline-none focus:ring-2 focus:ring-[#19C7A5] w-full md:w-64"
+                className="rounded-xl bg-[#064e3b] border border-[rgba(255,255,255,0.12)] px-3 py-2 text-sm text-[#F5F7FA] placeholder:text-[#9DB8AC]/70 focus:outline-none focus:ring-2 focus:ring-[#34d399] w-full md:w-64"
               />
               <button
                 type="submit"
                 disabled={newsletterBusy}
-                className="rounded-xl bg-[#F5C542] hover:bg-[#f7d06a] disabled:opacity-50 text-[#07101F] font-bold text-sm px-4 py-2 whitespace-nowrap transition-colors"
+                className="rounded-xl bg-[#F5C542] hover:bg-[#f7d06a] disabled:opacity-50 text-[#022c22] font-bold text-sm px-4 py-2 whitespace-nowrap transition-colors"
               >
                 {newsletterBusy ? "Signing up…" : "Subscribe"}
               </button>
             </form>
           </div>
-          {newsletterMessage && <p role="status" className="mt-2 text-sm font-bold text-[#19C7A5]">{newsletterMessage}</p>}
+          {newsletterMessage && <p role="status" className="mt-2 text-sm font-bold text-[#34d399]">{newsletterMessage}</p>}
         </div>
       )}
 
-      {filteredExtras?.length > 0 && <div className="relative container-app pb-8 text-[#91A0B5]"><CMSExtras sections={filteredExtras} /></div>}
+      {filteredExtras?.length > 0 && <div className="relative container-app pb-8 text-[#9DB8AC]"><CMSExtras sections={filteredExtras} /></div>}
 
       {/* Simple bottom bar — a proper visual ending (§33 §9) */}
       <div className="relative border-t border-white/[0.08] py-4">
-        <div className="container-app flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#91A0B5]">
+        <div className="container-app flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#9DB8AC]">
           <p>© {new Date().getFullYear()} {siteTitle}. {branding.footer_text || "Made for exploring Nepal 🇳🇵"}</p>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className={linkClass}>Privacy</Link>
@@ -318,7 +318,7 @@ const Footer = () => {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="font-bold text-[#19C7A5] hover:text-white hover:underline"
+              className="font-bold text-[#34d399] hover:text-white hover:underline"
             >
               Back to top
             </button>

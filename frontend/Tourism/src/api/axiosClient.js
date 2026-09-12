@@ -13,6 +13,10 @@ export const isGuestPreview = () => {
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
+  // Safety net against 30-60s hangs: fast endpoints return in well under
+  // this, and only a genuinely stalled server/AI call trips the timeout so
+  // the caller rejects cleanly instead of leaving a frozen spinner.
+  timeout: 20000,
 })
 
 export const clearAuthStorage = () => {

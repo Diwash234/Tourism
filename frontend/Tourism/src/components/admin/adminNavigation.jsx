@@ -55,6 +55,7 @@ export const ADMIN_NAV_GROUPS = [
     ["expenses", "Expense & Budget Data", BsBarChart],
   ]},
   { label: "People & Operations", items: [
+    ["support_inbox", "Support Inbox & Live Chat", BsChatDots],
     ["users", "Users", BsPeople, [
       { label: "Pending verification", query: { verified: "false" } },
       { label: "Verified", query: { verified: "true" } },

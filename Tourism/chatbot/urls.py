@@ -10,3 +10,10 @@ urlpatterns = [
         name="nearby-emergency"
     ),
 ]
+
+urlpatterns += [
+    path("support/inbox/", views.SupportInboxView.as_view(), name="support-inbox"),
+    path("support/thread/<int:conversation_id>/", views.SupportThreadView.as_view(), name="support-thread"),
+    path("support/reply/", views.SupportReplyView.as_view(), name="support-reply"),
+    path("support/assign/", views.SupportAssignView.as_view(), name="support-assign"),
+]

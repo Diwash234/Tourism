@@ -32,7 +32,7 @@ export default function useChatSocket(conversationId, onEvent) {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          if (data.type === "user_message" || data.type === "bot_reply") handler.current?.(data)
+          if (data.type === "user_message" || data.type === "bot_reply" || data.type === "admin_reply") handler.current?.(data)
         } catch {
           /* ignore malformed frames */
         }
