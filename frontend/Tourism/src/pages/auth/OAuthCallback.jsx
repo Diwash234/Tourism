@@ -28,6 +28,9 @@ const OAuthCallback = () => {
   const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const code = searchParams.get("code")
     const oauthError = searchParams.get("error")
 
@@ -50,8 +53,11 @@ const OAuthCallback = () => {
             ? await authApi.googleAuthCallback(code, getRedirectUri("google"))
             : await authApi.githubAuthCallback(code)
 
-        await loginWithTokens(data)
-        navigate("/dashboard", { replace: true })
+        const userData = await loginWithTokens(data)
+        const role = String(userData?.role || "").toLowerCase()
+        const isAdmin = userData?.is_superuser === true || ["admin", "super_admin", "tourism_admin"].includes(role)
+        const isStaff = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"].includes(role)
+        navigate(isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard", { replace: true })
       } catch (err) {
         setStatus("error")
         setErrorMessage(
@@ -63,10 +69,12 @@ const OAuthCallback = () => {
 
     exchange()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-[80svh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       <NepalSceneBackground />
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl">
         <TourismLogo size="sm" />

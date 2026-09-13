@@ -240,6 +240,16 @@ class Command(BaseCommand):
 
                 for field, new_val in incoming.items():
                     cur = _current(field)
+                    if field in ("latitude", "longitude") and cur:
+                        # Coordinate equality with ~11 m tolerance: sub-metre
+                        # float/CSV rounding differences are not real
+                        # conflicts and must not pollute the admin queue.
+                        try:
+                            if abs(float(cur) - float(new_val)) < 1e-4:
+                                snapshot[field] = new_val
+                                continue
+                        except (TypeError, ValueError):
+                            pass
                     if not cur:
                         if field == "category":
                             dest.category = cat

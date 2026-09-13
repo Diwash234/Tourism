@@ -2,24 +2,28 @@ import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 import { FiUsers, FiTarget, FiGlobe, FiArrowRight } from "react-icons/fi"
 import { APP_NAME } from "../utils/constants"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
+import PageHeader from "../components/common/PageHeader"
 
-const About = () => (
-  <div className="container-app py-16 fade-in theme-maroon">
-    <motion.h1
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="section-title text-center mx-auto w-fit"
-    >
-      About {APP_NAME}
-    </motion.h1>
+const About = () => {
+  const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
+  return (
+  <div className="container-app section-space fade-in theme-maroon">
+    <CMSIntro section={block("intro")} />
+    <PageHeader
+      title={<>About {APP_NAME}</>}
+      subtitle="Who we are, what we stand for, and how we help you travel Nepal safely."
+      icon={FiGlobe}
+    />
 
-    <p className="max-w-2xl mx-auto text-center text-gray-500 mb-12">
+    <p className="max-w-2xl mx-auto text-center text-gray-500 mb-8 sm:mb-10">
       {APP_NAME} is a local tourism information portal built to help travelers
       discover Nepal's destinations, plan budgets, stay safe, and navigate
       confidently — all from a single platform.
     </p>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 sm:mb-10">
       {[
         {
           icon: FiTarget,
@@ -76,6 +80,7 @@ const About = () => (
     </div>
 
   </div>
-)
+  )
+}
 
 export default About

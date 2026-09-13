@@ -64,4 +64,28 @@ const safetyApi = {
 }
 
 
+// --- Family linking (account <-> account) ---
+export const familyApi = {
+
+  // Links involving me (sent + received)
+  getLinks: () =>
+    axiosClient.get("/safety/family-links/"),
+
+  sendLinkRequest: (payload) =>
+    axiosClient.post("/safety/family-links/", payload),
+
+  acceptLink: (id) =>
+    axiosClient.post(`/safety/family-links/${id}/accept/`),
+
+  declineLink: (id) =>
+    axiosClient.post(`/safety/family-links/${id}/decline/`),
+
+  removeLink: (id) =>
+    axiosClient.delete(`/safety/family-links/${id}/`),
+
+  // Live status of every accepted family member
+  getFamilyMembers: () =>
+    axiosClient.get("/safety/family/members/"),
+}
+
 export default safetyApi

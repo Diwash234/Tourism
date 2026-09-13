@@ -19,8 +19,8 @@ export default function PlaceSuggestionForm({ onSuccess }) {
       formData.append("name", name)
       formData.append("district", district)
       formData.append("description", description)
-      formData.append("latitude", "28.209600")
-      formData.append("longitude", "83.985600")
+      // No coordinates: the suggestion goes to the admin approval desk
+      // without a guessed location (never fabricate coordinates).
       await destinationApi.submit(formData)
       showToast("Place suggested! Sent to Admin Approval Desk.", "success")
       setName("")
@@ -67,7 +67,7 @@ export default function PlaceSuggestionForm({ onSuccess }) {
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full py-2.5 text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-md"
+        className="btn-primary w-full py-2.5 text-xs font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow-md"
       >
         {loading ? "Submitting..." : "Submit Suggestion to Admin"}
       </button>

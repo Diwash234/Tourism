@@ -25,16 +25,16 @@ export default function Phrasebook({ dialect = "ne" }) {
   return (
     <div className="space-y-3">
       {PHRASES.map((p, i) => (
-        <div key={i} className="card-base p-4 rounded-2xl border border-purple-100 flex items-center justify-between shadow-sm">
+        <div key={i} className="card-base p-4 rounded-2xl border border-[#E5E0D5] flex items-center justify-between shadow-sm">
           <div>
             <p className="text-xs text-gray-500">{p.en}</p>
             <p className="text-base font-bold text-purple-950 mt-0.5">{p[dialect] || p.ne}</p>
           </div>
           <div className="flex gap-1.5">
-            <button onClick={() => speak(p[dialect] || p.ne)} className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700">
+            <button onClick={() => speak(p[dialect] || p.ne)} className="p-2 rounded-xl bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E]">
               <FiVolume2 size={16} />
             </button>
-            <button onClick={() => { navigator.clipboard.writeText(p[dialect] || p.ne); showToast("Copied! 📋", "success"); }} className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700">
+            <button onClick={() => { navigator.clipboard.writeText(p[dialect] || p.ne); showToast("Copied! 📋", "success"); }} className="p-2 rounded-xl bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E]">
               <FiCopy size={16} />
             </button>
           </div>

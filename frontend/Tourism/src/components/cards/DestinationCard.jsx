@@ -9,6 +9,7 @@ import {
 import { motion } from "framer-motion"
 import PlaceholderImage from "../common/PlaceholderImage"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
+import { formatCoords, placeLocationLabel } from "../../utils/placeUtils"
 
 const RISK_STYLES = {
   low: {
@@ -88,21 +89,21 @@ const DestinationCard = ({
     city = "",
     country = "Nepal",
     cover_image_url = "",
-    average_rating = 4.5,
-    entry_fee = 0,
+    average_rating = null,
+    entry_fee = null,
     distance_km = null,
     category = null,
     category_name = "",
     weather = null,
     budget_estimate = null,
-    risk_level = "low",
+    risk_level = null,
     recommended_season = "",
   } = destination || {}
 
 
   const risk =
     RISK_STYLES[risk_level] ||
-    RISK_STYLES.low
+    { label: "Information unavailable", dot: "bg-gray-400", className: "text-gray-500" }
 
 
   const categoryKey =
@@ -112,8 +113,7 @@ const DestinationCard = ({
   const theme =
     CATEGORY_THEMES[categoryKey] ||
     CATEGORY_THEMES.mountains
-
-
+  const imageUrl = getDestinationImageUrl(destination)
 
   return (
 
@@ -143,15 +143,11 @@ const DestinationCard = ({
 
       {/* IMAGE */}
       <div className="relative h-48 overflow-hidden bg-slate-900">
-        <img
-          src={getDestinationImageUrl(destination)}
-          alt={name}
-          loading="lazy"
-          onError={(e) => {
-            e.target.src = "/images/destinations/pokhara/img1.jpg"
-          }}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
+        {imageUrl ? (
+          <PlaceholderImage src={imageUrl} title={name} alt={name} className="w-full h-full group-hover:scale-110 transition-transform duration-500" />
+        ) : (
+          <PlaceholderImage title={name} className="w-full h-full" />
+        )}
 
         <div className="
         absolute inset-0 
@@ -223,7 +219,7 @@ const DestinationCard = ({
             "
           />
 
-          {average_rating || "0"}
+          {average_rating != null ? average_rating : "—"}
 
         </div>
 
@@ -251,7 +247,7 @@ const DestinationCard = ({
 
           >
 
-          {category}
+          {category_name || category}
 
           </span>
 
@@ -269,16 +265,22 @@ const DestinationCard = ({
       <div className="p-4">
 
 
-        <h3 className="
+        <h3
+          className="
         font-bold
         text-dark
         text-lg
         truncate
-        ">
+        "
+          title={name}
+        >
 
           {name}
 
         </h3>
+        {formatCoords(destination.latitude, destination.longitude) && (
+          <p className="text-[11px] font-mono text-emerald-800 mt-1">{formatCoords(destination.latitude, destination.longitude)}</p>
+        )}
 
 
 
@@ -289,17 +291,14 @@ const DestinationCard = ({
         items-center
         gap-1
         mt-1
+        min-w-0
         ">
 
-          <FiMapPin size={14}/>
+          <FiMapPin size={14} className="shrink-0"/>
 
-          {city}
-
-          {
-          country &&
-          `, ${country}`
-          }
-
+          <span className="truncate">
+          {placeLocationLabel({ display_city: destination.display_city, city, district: destination.district, municipality: destination.municipality, province: destination.province })}
+          </span>
 
           {
           distance_km != null &&
@@ -353,11 +352,15 @@ const DestinationCard = ({
           <FiDollarSign/>
 
           {
-          budget_estimate
+          budget_estimate != null
           ?
-          `$${budget_estimate}`
+          `Recorded NPR ${budget_estimate}`
           :
-          `NPR ${entry_fee || 0}`
+          entry_fee
+          ?
+          `NPR ${entry_fee}`
+          :
+          "Information unavailable"
           }
 
 

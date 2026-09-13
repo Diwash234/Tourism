@@ -8,6 +8,8 @@ import axiosClient from "./axiosClient"
 // every form change (debounced) for continuous updates.
 const itineraryApi = {
   build: (payload) => axiosClient.post("/ml/itinerary/", payload),
+  savePlan: (payload) => axiosClient.post("/travel-plans/", payload),
+  listPlans: () => axiosClient.get("/travel-plans/"),
 }
 
 export default itineraryApi

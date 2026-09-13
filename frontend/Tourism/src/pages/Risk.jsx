@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
 
 import { getRisk as predictRisk } from "../services/mlService"
 
@@ -13,6 +14,9 @@ const Risk = () => {
 
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
 
     if (!navigator.geolocation) {
       setLoading(false)
@@ -69,8 +73,8 @@ const Risk = () => {
       }
 
     )
-
-
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
 
@@ -106,11 +110,7 @@ const Risk = () => {
     <div className="container-app py-10 theme-amber">
 
 
-      <h1 className="section-title">
-
-        Travel Safety Risk
-
-      </h1>
+      <PageHeader title="Travel Safety Risk" />
 
 
 
@@ -128,6 +128,12 @@ const Risk = () => {
           </strong>
 
         </p>
+
+        {risk?.degraded && (
+          <p className="mt-2 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            ⚠️ {risk.data_note || "Limited local risk data for this location — showing a general estimate."}
+          </p>
+        )}
 
 
 

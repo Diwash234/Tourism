@@ -9,7 +9,7 @@ const ScrollToTop = () => {
       if ("scrollRestoration" in window.history) {
         window.history.scrollRestoration = "manual"
       }
-    } catch (_) {}
+    } catch { /* scrollRestoration unsupported — ignore */ }
 
     const id = hash.replace(/^#/, "")
 

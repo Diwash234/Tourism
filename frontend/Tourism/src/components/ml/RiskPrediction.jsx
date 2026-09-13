@@ -20,11 +20,11 @@ export default function RiskPrediction({ placeName = "Annapurna Circuit" }) {
   const color = category === "LOW" ? "text-emerald-700 bg-emerald-50 border-emerald-200" : category === "MODERATE" ? "text-amber-700 bg-amber-50 border-amber-200" : "text-rose-700 bg-rose-50 border-rose-200"
 
   return (
-    <div className="card-base p-6 space-y-4 bg-gradient-to-br from-white to-rose-50/30 border border-purple-100 rounded-3xl shadow-xl">
+    <div className="card-base p-6 space-y-4 bg-gradient-to-br from-white to-rose-50/30 border border-[#E5E0D5] rounded-3xl shadow-xl">
       <div className="flex items-center justify-between border-b pb-3">
         <div>
           <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-            <FiShield className="text-purple-600" /> ML Risk & Hazard Index
+            <FiShield className="text-emerald-700" /> ML Risk & Hazard Index
           </h3>
           <p className="text-xs text-gray-500">Real-time hazard calculation calibrated on environmental datasets</p>
         </div>

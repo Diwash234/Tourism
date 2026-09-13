@@ -5,11 +5,79 @@ const adminPanelApi = {
   assignHotel: (hotelId, adminId, notes) =>
     axiosClient.post("/admin-panel/hotel-assignments/", { hotel: hotelId, admin: adminId, notes }),
   removeAssignment: (id) => axiosClient.delete(`/admin-panel/hotel-assignments/${id}/`),
+  // Assignment-driven staff workflow (Staff Operations spec)
+  taskAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/tasks/${id}/action/`, { action, note }),
+  myPerformance: () => axiosClient.get("/admin-panel/my-performance/"),
+  // Customer Support Center (Staff Ops spec §7-10)
+  supportTickets: (status = "") =>
+    axiosClient.get("/admin-panel/support/tickets/", status ? { params: { status } } : {}),
+  supportAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/support/tickets/${id}/action/`, { action, note }),
+  // Hotels & bookings scope-restricted ops (Staff Ops spec §11-12)
+  myHotels: () => axiosClient.get("/admin-panel/my-hotels/"),
+  myBookings: (status = "") =>
+    axiosClient.get("/admin-panel/my-bookings/", status ? { params: { status } } : {}),
+  bookingAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/my-bookings/${id}/action/`, { action, note }),
+  // Destination data entry + media manager (Staff Ops spec §13-15)
+  dataEntries: (status = "") =>
+    axiosClient.get("/admin-panel/data-entry/", status ? { params: { status } } : {}),
+  dataEntryCreate: (payload) => axiosClient.post("/admin-panel/data-entry/", payload),
+  dataEntryAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/data-entry/${id}/action/`, { action, note }),
+  mediaQueue: (status = "") =>
+    axiosClient.get("/admin-panel/media/", status ? { params: { status } } : {}),
+  mediaAdd: (payload) => axiosClient.post("/admin-panel/media/", payload),
+  mediaAction: (id, action) => axiosClient.post(`/admin-panel/media/${id}/action/`, { action }),
+  // Safety operations (Staff Ops spec §16)
+  safetyQueue: () => axiosClient.get("/admin-panel/safety/"),
+  safetyAction: (kind, id, action, note = "") =>
+    axiosClient.post(`/admin-panel/safety/${kind}/${id}/action/`, { action, note }),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>
     axiosClient.patch(`/admin-panel/tasks/${id}/`, { status }),
   getDashboardStats: () => axiosClient.get("/admin-panel/dashboard-summary/"),
+
+  // FIXED: PlaceApprovals.jsx already called these two methods, but
+  // neither was ever defined here -- the page threw
+  // "adminPanelApi.getPendingDestinations is not a function" the
+  // moment an admin opened it. There's no dedicated backend
+  // "pending destinations" endpoint, so this reuses the normal
+  // destinations list (staff accounts see pending ones too, per
+  // DestinationViewSet.get_queryset) and the real approve action.
+  getPendingDestinations: () => axiosClient.get("/destinations/", { params: { page_size: 100 } }),
+  approveDestination: (slug, status, reviewNote) =>
+    axiosClient.post(`/destinations/${slug}/approve/`, { status, review_note: reviewNote || "" }),
+
+  // ADDED -- Destination Media Manager triage list (see
+  // admin_panel.views.DestinationsMissingImagesView).
+  getDestinationsMissingImages: (page = 1) =>
+    axiosClient.get("/admin-panel/destinations-missing-images/", { params: { page } }),
+
+  // FIXED: UserManagement.jsx already called all four of these methods
+  // and had a whole "backend endpoint not built yet" fallback UI ready
+  // for exactly this situation -- none of them were defined here, and
+  // nothing existed on the backend either (see
+  // admin_panel.views.UserManagementViewSet, newly added).
+  getUsers: (page = 1) => axiosClient.get("/admin-panel/users/", { params: { page, page_size: 100 } }),
+  updateUserRole: (userId, role) => axiosClient.patch(`/admin-panel/users/${userId}/`, { role }),
+  deactivateUser: (userId) => axiosClient.post(`/admin-panel/users/${userId}/deactivate/`),
+  activateUser: (userId) => axiosClient.post(`/admin-panel/users/${userId}/activate/`),
+
+  // ADDED -- lets an admin view a specific user's activity across
+  // parts of the site that were previously invisible to admins
+  // entirely. Favorite/VisitHistory/Budget viewsets used to hard-scope
+  // to request.user with no staff override at all -- fixed on the
+  // backend to accept ?user=<id> for staff. Reviews/Bookings were
+  // already globally visible to staff, just never had a ?user filter
+  // wired up on this side either.
+  getUserFavorites: (userId) => axiosClient.get("/favorites/", { params: { user: userId, page_size: 50 } }),
+  getUserVisitHistory: (userId) => axiosClient.get("/history/", { params: { user: userId, page_size: 50 } }),
+  getUserBudgets: (userId) => axiosClient.get("/budgets/", { params: { user: userId, page_size: 50 } }),
+  getUserReviews: (userId) => axiosClient.get("/reviews/", { params: { user: userId, page_size: 50 } }),
+  getUserBookings: (userId) => axiosClient.get("/bookings/", { params: { user: userId, page_size: 50 } }),
 };
 
 export default adminPanelApi;

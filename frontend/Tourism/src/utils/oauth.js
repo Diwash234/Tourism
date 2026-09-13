@@ -27,7 +27,7 @@ export function getGoogleAuthUrl() {
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
-    prompt: "consent",
+    prompt: "select_account",
   })
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
 }

@@ -114,15 +114,15 @@ export default function TravelExpenditureForm({ onSuccess }) {
         </div>
       </div>
 
-      <div className="p-3.5 rounded-2xl bg-purple-50 flex items-center justify-between">
-        <span className="font-bold text-purple-900">Total Calculated Cost:</span>
+      <div className="p-3.5 rounded-2xl bg-[#F7F8F5] flex items-center justify-between">
+        <span className="font-bold text-[#102A2E]">Total Calculated Cost:</span>
         <span className="text-lg font-black text-purple-950">NPR {total.toLocaleString()}</span>
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="btn-primary w-full py-3 text-sm font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-lg"
+        className="btn-primary w-full py-3 text-sm font-bold bg-[#102A2E] hover:bg-[#1D5146] text-white rounded-xl shadow-lg"
       >
         {loading ? "Recording..." : "Feed Ground Truth into ML Budget Engine"}
       </button>

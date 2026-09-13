@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
 import { useParams } from "react-router-dom"
 import { FiMapPin, FiClock } from "react-icons/fi"
 import safetyApi from "../api/safetyApi"
 import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 // How often this page re-fetches the latest position. Polling, matching
 // the backend's design (see safety/views.py) -- not a WebSocket.
@@ -53,7 +55,7 @@ const SharedTripView = () => {
 
   if (error) {
     return (
-      <div className="container-app py-16 text-center">
+      <div className="container-app section-space text-center">
         <p className="text-gray-500">{error}</p>
       </div>
     )
@@ -63,10 +65,8 @@ const SharedTripView = () => {
 
   return (
     <div className="container-app py-10 max-w-2xl">
-      <h1 className="section-title flex items-center gap-2">
-        <FiMapPin className="text-himalaya-500" />
-        {trip.label || "Shared Trip"}
-      </h1>
+      <CMSPageIntro pageKey="shared-trip" />
+      <PageHeader title={<>{trip.label || "Shared Trip"}</>} icon={ FiMapPin } />
 
       {ping ? (
         <>

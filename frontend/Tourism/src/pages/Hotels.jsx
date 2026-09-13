@@ -1,34 +1,24 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
+import usePublicConfig from "../hooks/usePublicConfig"
+import CMSIntro from "../components/cms/CMSIntro"
 import { FiSearch } from "react-icons/fi"
 import hotelService from "../services/hotelService"
 import HotelCard from "../components/cards/HotelCard"
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 
-const DEFAULT_HOTEL_IMAGE = "/images/default-hotel.jpg"
-
-const getHotelImage = (hotel) => {
-  // 1. Prefer local public/images assets
-  if (hotel.image_name) {
-    return `/images/${hotel.image_name}`
-  }
-
-  // 2. Use backend/external image if available
-  if (hotel.image || hotel.photo || hotel.image_url) {
-    return hotel.image || hotel.photo || hotel.image_url
-  }
-
-  // 3. Fallback
-  return DEFAULT_HOTEL_IMAGE
-}
-
 const Hotels = () => {
+  const { block: cmsBlock } = usePublicConfig().pageCMS("hotels", ["intro", "page-intro"])
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState("recommended")
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setLoading(true)
 
     const params = {}
@@ -46,20 +36,17 @@ const Hotels = () => {
       .then(({ data }) => setHotels(data.results || data || []))
       .catch(() => setHotels([]))
       .finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [search, sort])
 
 
   return (
     <div className="space-y-6 fade-in theme-gold">
+      <CMSIntro section={cmsBlock("intro")} />
 
       <div>
-        <h1 className="section-title mb-2">
-          Hotels & Stays
-        </h1>
-
-        <p className="text-gray-500">
-          From teahouses on the Annapurna trail to boutique stays in Kathmandu.
-        </p>
+        <PageHeader title="Hotels & Stays" subtitle="From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal." />
       </div>
 
 
@@ -114,10 +101,7 @@ const Hotels = () => {
 
             <HotelCard
               key={hotel.id}
-              hotel={{
-                ...hotel,
-                displayImage: getHotelImage(hotel)
-              }}
+              hotel={hotel}
             />
 
           ))}

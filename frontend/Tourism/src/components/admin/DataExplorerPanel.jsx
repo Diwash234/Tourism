@@ -1,0 +1,88 @@
+import { useEffect, useState } from "react"
+import { FiDatabase, FiSave, FiSearch, FiUpload, FiX } from "react-icons/fi"
+import adminApi from "../../api/adminApi"
+import { NEPAL_ALL_PROVINCES, NEPAL_ALL_DISTRICTS, DISTRICT_DEFAULTS } from "../../utils/nepalGeocoder"
+import useToast from "../../hooks/useToast"
+
+const GROUPS = [
+  ["Core", [["destinations","Destinations"],["destination_features","Destination Features"],["destination_images","Destination Images"],["destination_translations","Translations"],["categories","Categories"],["languages","Languages"]]],
+  ["Hotels & Bookings", [["hotels","Hotels"],["bookings","Bookings"],["hotel_reviews","Hotel Reviews"],["marketplace_listings","Marketplace offers"],["marketplace_partners","Marketplace partners"],["marketplace_orders","Trip requests"]]],
+  ["Users", [["reviews","Destination Reviews"],["ratings","Ratings"],["favorites","Favorites"],["visit_history","Visit History"],["family_links","Family Links"],["email_tokens","Email Tokens"]]],
+  ["Safety & Services", [["alerts","Alerts"],["current_hazards","Current Hazards"],["emergency_contacts","Emergency Contacts"],["osm_services","OSM Essential Services"],["osm_places","OSM Tourism Places"]]],
+  ["Finance & Feedback", [["budgets","Budgets"],["feedback","User Feedback"],["feedback_evidence","Feedback Evidence"]]],
+  ["Audit", [["audit_logs","Audit Log Entries"],["error_events","Error Events"]]],
+]
+
+export default function DataExplorerPanel() {
+  const { showToast } = useToast()
+  const [resource,setResource]=useState("destinations"), [query,setQuery]=useState(""), [page,setPage]=useState(1), [data,setData]=useState({results:[],count:0,total_pages:1}), [loading,setLoading]=useState(false)
+  const [detail,setDetail]=useState(null), [edit,setEdit]=useState({}), [upload,setUpload]=useState(null)
+  // §21: province -> district -> municipality cascade. Changing a parent drops
+  // child values that would form an invalid combination; legacy free-text
+  // values stay selectable so existing rows remain editable.
+  const geoChange=(key,value)=>setEdit(prev=>{
+    const next={...prev,[key]:value}
+    if(key==="province"){
+      const districts=NEPAL_ALL_DISTRICTS[value]||[]
+      if(next.district&&!districts.includes(next.district)){next.district="";next.municipality=""}
+    }
+    if(key==="district"){
+      const munis=DISTRICT_DEFAULTS[value]?.munis||[]
+      if(next.municipality&&munis.length&&!munis.includes(next.municipality))next.municipality=""
+    }
+    return next
+  })
+  const load=(targetPage=page)=>{setLoading(true);adminApi.exploreData({resource,q:query,page:targetPage,page_size:25}).then(({data})=>{setData(data);setPage(data.page||1)}).catch(()=>setData({results:[],count:0,total_pages:1})).finally(()=>setLoading(false))}
+  useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {load();setDetail(null)
+    }, 0)
+    return () => clearTimeout(t)
+  }, [resource]) // eslint-disable-line react-hooks/exhaustive-deps
+  const openDestination=async(id)=>{if(resource!=="destinations")return;try{const{data}=await adminApi.getAdminDestination(id);setDetail(data);setEdit({name:data.name||"",short_description:data.short_description||"",description:data.description||"",city:data.city||"",district:data.district||"",province:data.province||"",municipality:data.municipality||"",ward_number:data.ward_number??"",latitude:data.latitude??"",longitude:data.longitude??"",altitude:data.altitude||"",best_time_to_visit:data.best_time_to_visit||"",opening_hours:data.opening_hours||"",entry_fee:data.entry_fee??"",history:data.history||"",cultural_significance:data.cultural_significance||"",food_cuisine_info:data.food_cuisine_info||""})}catch{showToast("Could not load destination details","error")}}
+  const save=async()=>{try{if(detail.id){await adminApi.updateAdminDestination(detail.id,edit);showToast("Database, dataset/data.json and destination_locations.json updated","success");await openDestination(detail.id)}else{const{data}=await adminApi.createAdminDestination(edit);showToast(data.message||"Destination created","success");await openDestination(data.id)}load()}catch(e){showToast(e.response?.data?.detail||(detail?.id?"Update failed":"Create failed"),"error")}}
+  const startCreate=()=>{setDetail({id:null,name:""});setEdit({name:"",short_description:"",description:"",city:"",district:"",province:"",municipality:"",ward_number:"",latitude:"",longitude:"",altitude:"",best_time_to_visit:"",opening_hours:"",entry_fee:"",history:"",cultural_significance:"",food_cuisine_info:""})}
+  const archive=async()=>{if(!detail?.id)return;if(!window.confirm(`Archive "${detail.name}"? Travellers will no longer see it. Related bookings, reviews, routes and safety records are kept.`))return;try{const{data}=await adminApi.archiveAdminDestination(detail.id);showToast(data.message||"Destination archived","success");setDetail(null);load()}catch(e){showToast(e.response?.data?.detail||"Archive failed","error")}}
+  const fillFromRecords=async()=>{try{const{data}=await adminApi.fillAdminDestinationLocation(detail.id);showToast(data.message||"Filled from recorded neighbours","success");await openDestination(detail.id);load()}catch(e){showToast(e.response?.data?.detail||"Fill failed","error")}}
+  const uploadImage=async()=>{if(!upload||!detail)return;const form=new FormData();form.append("image",upload);form.append("caption",`${detail.name} admin upload`);form.append("is_cover","true");try{await adminApi.addAdminDestinationImage(detail.id,form);showToast("Image uploaded and set as cover","success");setUpload(null);openDestination(detail.id)}catch(e){showToast(e.response?.data?.detail||"Upload failed","error")}}
+  return <div className="grid lg:grid-cols-[270px_1fr] gap-5">
+    <aside className="rounded-2xl bg-slate-950 border border-slate-700 p-4 max-h-[75vh] overflow-y-auto">{GROUPS.map(([group,items])=><div key={group} className="mb-4"><h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-black mb-2">{group}</h3>{items.map(([id,label])=><button key={id} onClick={()=>setResource(id)} className={`block w-full text-left px-3 py-2 rounded-lg text-xs mb-1 ${resource===id?'bg-amber-400 text-slate-950 font-black':'text-slate-300 hover:bg-slate-800'}`}>{label}</button>)}</div>)}</aside>
+    <section className="rounded-2xl bg-slate-950 border border-slate-700 p-5 overflow-hidden"><div className="flex flex-wrap gap-2 justify-between mb-4"><div><h2 className="text-xl text-white font-black flex items-center gap-2"><FiDatabase/>Database Explorer</h2><p className="text-xs text-slate-400">{data.count} records · click destinations for details</p></div><div className="flex"><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&load()} className="rounded-l-xl bg-slate-800 border border-slate-600 px-3 text-sm text-white" placeholder="Search records…"/><button onClick={load} className="rounded-r-xl bg-amber-400 px-4"><FiSearch/></button></div></div>
+      {resource==="destinations"&&<button onClick={startCreate} className="text-xs bg-emerald-600 text-white font-black rounded-xl px-4 py-2 mb-3">+ Add Destination</button>}
+      <div className="overflow-auto max-h-[45vh]"><table className="min-w-full text-xs"><thead className="sticky top-0 bg-slate-900"><tr>{data.columns?.map(c=><th key={c} className="text-left text-slate-400 px-3 py-2 whitespace-nowrap">{c}</th>)}</tr></thead><tbody>{loading?<tr><td className="text-slate-400 p-5">Loading…</td></tr>:data.results.map((row,i)=><tr onClick={()=>openDestination(row.id)} key={row.id||i} className={`border-t border-slate-800 ${resource==='destinations'?'cursor-pointer hover:bg-slate-800':''}`}>{data.columns?.map(c=><td key={c} className="text-slate-300 px-3 py-2 max-w-72 truncate">{row[c]===null?'—':String(row[c]??'')}</td>)}</tr>)}</tbody></table></div><div className="flex items-center justify-between mt-3 text-xs text-slate-400"><button disabled={page<=1} onClick={()=>load(page-1)} className="px-3 py-2 bg-slate-800 rounded disabled:opacity-30">Previous</button><span>Page {page} of {data.total_pages||1}</span><button disabled={page>=(data.total_pages||1)} onClick={()=>load(page+1)} className="px-3 py-2 bg-slate-800 rounded disabled:opacity-30">Next</button></div>
+      {detail&&<div className="mt-5 rounded-2xl bg-slate-900 border border-amber-500/30 p-5"><div className="flex justify-between"><h3 className="text-white text-lg font-black">{detail.id?`Edit ${detail.name}`:"Add Destination"}</h3><button onClick={()=>setDetail(null)} className="text-slate-400"><FiX/></button></div><div className="grid md:grid-cols-2 gap-3 mt-4">{["name","city","province","district","municipality","ward_number","latitude","longitude","altitude","best_time_to_visit","opening_hours","entry_fee","short_description"].map(key=>{
+                const cls="text-[10px] uppercase text-slate-400 font-bold"
+                if(key==="province"){
+                  const opts=NEPAL_ALL_PROVINCES.includes(edit.province)||!edit.province?NEPAL_ALL_PROVINCES:[edit.province,...NEPAL_ALL_PROVINCES]
+                  return <label key={key} className={cls}>province<select value={edit.province??""} onChange={e=>geoChange("province",e.target.value)} className="input-field mt-1"><option value="">— Select province —</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
+                }
+                if(key==="district"){
+                  const list=NEPAL_ALL_DISTRICTS[edit.province]||[]
+                  const opts=list.includes(edit.district)||!edit.district?list:[edit.district,...list]
+                  return <label key={key} className={cls}>district<select value={edit.district??""} onChange={e=>geoChange("district",e.target.value)} className="input-field mt-1" disabled={!edit.province}><option value="">— Select district —</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
+                }
+                if(key==="municipality"){
+                  const munis=DISTRICT_DEFAULTS[edit.district]?.munis||[]
+                  if(!munis.length)return <label key={key} className={cls}>municipality<input value={edit.municipality??""} onChange={e=>geoChange("municipality",e.target.value)} className="input-field mt-1"/></label>
+                  const opts=munis.includes(edit.municipality)||!edit.municipality?munis:[edit.municipality,...munis]
+                  return <label key={key} className={cls}>municipality<select value={edit.municipality??""} onChange={e=>geoChange("municipality",e.target.value)} className="input-field mt-1" disabled={!edit.district}><option value="">— Select municipality —</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></label>
+                }
+                if(key==="ward_number"){
+                  return <label key={key} className={cls}>ward number (1-35, optional)<input type="number" min="1" max="35" value={edit.ward_number??""} onChange={e=>setEdit({...edit,ward_number:e.target.value})} className="input-field mt-1"/></label>
+                }
+                return <label key={key} className={cls}>{key.replace('_',' ')}<input value={edit[key]??""} onChange={e=>setEdit({...edit,[key]:e.target.value})} className="input-field mt-1"/></label>
+              })}<label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Description<textarea rows="4" value={edit.description??""} onChange={e=>setEdit({...edit,description:e.target.value})} className="input-field mt-1"/></label>
+        <label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">History<textarea rows="3" value={edit.history??""} onChange={e=>setEdit({...edit,history:e.target.value})} className="input-field mt-1"/></label>
+        <label className="md:col-span-2 text-[10px] uppercase text-slate-400 font-bold">Culture / food<textarea rows="3" value={edit.cultural_significance??""} onChange={e=>setEdit({...edit,cultural_significance:e.target.value})} className="input-field mt-1"/></label>
+        <div className="md:col-span-2 p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-[11px] space-y-1">
+          <p className="font-bold text-amber-300">💡 Content Integrity Guidelines:</p>
+          <ul className="list-disc pl-4 space-y-0.5 text-[10px]">
+            <li><b>Coordinates:</b> Leave Latitude/Longitude empty if verified GPS is unavailable. The destination safely renders as <i>"Map location unavailable"</i> instead of placing a false pin.</li>
+            <li><b>Empty Fields:</b> Unrecorded costs, opening hours, or contact details gracefully render as <i>"Information unavailable"</i>. Never invent prices or schedules.</li>
+          </ul>
+        </div>
+        <p className="md:col-span-2 text-[11px] text-amber-200">Empty fields show as “Information unavailable — we will update soon” to travellers. Saving writes SQLite plus destination_locations.json.</p></div><div className="flex flex-wrap gap-3 mt-4"><button onClick={save} className="bg-emerald-600 text-white rounded-xl px-4 py-2 text-xs font-black"><FiSave className="inline"/> {detail.id?"Save DB + JSON":"Create Destination"}</button>{detail.id&&<button onClick={archive} className="bg-rose-700 text-white rounded-xl px-4 py-2 text-xs font-black">Archive destination</button>}{detail.id&&<><button onClick={fillFromRecords} className="bg-amber-400 text-slate-950 rounded-xl px-4 py-2 text-xs font-black">Fill city from recorded GPS</button><input type="file" accept="image/*" onChange={e=>setUpload(e.target.files?.[0]||null)} className="text-xs text-slate-300"/><button disabled={!upload} onClick={uploadImage} className="bg-blue-600 disabled:opacity-40 text-white rounded-xl px-4 py-2 text-xs font-black"><FiUpload className="inline"/> Upload cover</button></>}</div><div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-4">{detail.gallery?.map(image=><div key={image.id} className="rounded-lg overflow-hidden bg-slate-800"><img src={image.url} alt={image.caption} className="h-24 w-full object-cover"/><p className="text-[9px] text-slate-300 p-1 truncate">{image.caption||`Image #${image.id}`}</p><button type="button" onClick={async()=>{if(!window.confirm("Remove this image?"))return;try{await adminApi.deleteAdminDestinationImage(detail.id,image.id);showToast("Image removed","success");openDestination(detail.id)}catch(e){showToast(e.response?.data?.detail||"Remove failed","error")}}} className="w-full bg-rose-700 text-white text-[10px] font-bold py-1">Remove</button></div>)}</div>{detail.videos?.length>0&&<div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">{detail.videos.map(video=><div key={video.id} className="rounded-lg bg-slate-800 p-2 text-[10px] text-slate-200"><p className="font-bold truncate">{video.title||"Video"}</p><p className="text-amber-300">{video.verification_status}</p><button type="button" onClick={async()=>{if(!window.confirm("Remove this video?"))return;try{await adminApi.deleteAdminDestinationVideo(detail.id,video.id);showToast("Video removed","success");openDestination(detail.id)}catch(e){showToast(e.response?.data?.detail||"Remove failed","error")}}} className="mt-1 w-full bg-rose-700 text-white font-bold py-1">Remove</button></div>)}</div>}</div>}
+    </section>
+  </div>
+}

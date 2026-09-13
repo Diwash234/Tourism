@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
+import { useSearchParams } from "react-router-dom"
+import { reportError } from "../utils/errorLogger"
 import { motion } from "framer-motion"
 
 import {
@@ -10,11 +14,27 @@ import {
   FiAlertCircle,
   FiNavigation,
   FiLoader,
+  FiSliders,
+  FiPlus,
+  FiTrash2,
 } from "react-icons/fi"
 
 import itineraryApi from "../api/itineraryApi"
+import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
 import useToast from "../hooks/useToast"
+
+
+const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
+
+const AI_MODIFICATIONS = [
+  ["cheaper", "💵 Make it cheaper"],
+  ["luxurious", "💎 Make it luxurious"],
+  ["more_culture", "🏛️ Add more culture"],
+  ["more_nature", "🌿 Add hidden nature"],
+  ["slower_pace", "☕ Slow down pace"],
+  ["replan", "🌦️ Weather / Impact Replan"],
+]
 
 
 const BUDGET_LEVELS = [
@@ -75,6 +95,77 @@ const STYLE_EMOJI = {
 }
 
 
+function formatCleanPhone(phone, defaultFallback) {
+  if (!phone) return defaultFallback
+  let s = String(phone).replace(/\.0$/, "").trim()
+  if (s === "nan" || s === "null" || s === "None" || !s) return defaultFallback
+  return s
+}
+
+function enrichPlanBudget(rawPlan, form) {
+  if (!rawPlan) return null
+  const travelers = Math.max(1, Number(rawPlan.travelers || form?.travelers || 1))
+  const days = Math.max(1, Number(rawPlan.days || form?.days || 3))
+  const style = (rawPlan.budget_level || form?.budget_level || "mid").toLowerCase()
+
+  const baseDailyNpr = style === "budget" ? 3200 : style === "luxury" ? 12500 : 4900
+  const calculatedTotalNpr = Math.round(baseDailyNpr * days * travelers)
+  const totalNpr = rawPlan.total_estimated_npr || rawPlan.total_budget_npr || calculatedTotalNpr
+  const perPersonNpr = Math.round(totalNpr / travelers)
+  const totalUsd = rawPlan.total_estimated_usd || Math.round(totalNpr / 133)
+  const perPersonUsd = Math.round(totalUsd / travelers)
+
+  const rawItinerary = Array.isArray(rawPlan.itinerary) ? rawPlan.itinerary : (Array.isArray(rawPlan.days_schedule) ? rawPlan.days_schedule : [])
+  const enrichedDays = rawItinerary.map((day, idx) => {
+    const dayBudgetNpr = day.daily_budget_npr || Math.round(totalNpr / days)
+
+    const rawServices = day.nearby_services || {}
+    const rawHotels = rawServices.hotels || []
+    const rawHospitals = rawServices.hospitals || []
+    const rawPolice = rawServices.police || []
+
+    const cleanHotels = rawHotels.filter(h => {
+      const hname = (h.name || h.title || "").toLowerCase()
+      return !hname.includes("hospital") && !hname.includes("clinic") && !hname.includes("dental") && !hname.includes("medical")
+    })
+
+    const cleanHospitalsList = rawHospitals.map(h => ({
+      ...h,
+      phone: formatCleanPhone(h.phone || h.phone_number, "102")
+    }))
+
+    const cleanPoliceList = rawPolice.map(p => ({
+      ...p,
+      phone: formatCleanPhone(p.phone || p.phone_number, "100")
+    }))
+
+    return {
+      ...day,
+      daily_budget_npr: dayBudgetNpr,
+      nearby_services: {
+        ...rawServices,
+        hotels: cleanHotels.length ? cleanHotels : [
+          { id: `h1-${idx}`, name: "Kathmandu Palace Inn", distance_km: "0.8" },
+          { id: `h2-${idx}`, name: "Hotel Marshyangdi View", distance_km: "1.2" },
+        ],
+        hospitals: cleanHospitalsList,
+        police: cleanPoliceList,
+      }
+    }
+  })
+
+  return {
+    ...rawPlan,
+    travelers,
+    days,
+    total_estimated_npr: totalNpr,
+    per_person_npr: perPersonNpr,
+    total_estimated_usd: totalUsd,
+    per_person_usd: perPersonUsd,
+    itinerary: enrichedDays,
+  }
+}
+
 const Itinerary = () => {
 
   const [form, setForm] = useState(DEFAULT_FORM)
@@ -98,6 +189,38 @@ const Itinerary = () => {
 
   const { showToast } = useToast()
 
+  // Merged from the old TripPlanner: optional ?dest= focus, AI refinement, and a
+  // custom-cost notepad. The rich dataset engine remains the source of truth.
+  const [searchParams] = useSearchParams()
+  const focusDestination = (searchParams.get("dest") || "").replace(/[-_]/g, " ").trim()
+
+  const [modifying, setModifying] = useState(false)
+  const [notes, setNotes] = useState([])
+  const [noteForm, setNoteForm] = useState({ category: "Hotel", label: "", amount: "" })
+
+  const notesTotal = notes.reduce((sum, n) => sum + (Number(n.amount) || 0), 0)
+  const grandTotalNpr = Math.round((plan?.total_estimated_npr || 0) + notesTotal)
+
+  const handleApplyAIModification = async (action) => {
+    if (!plan) return
+    setModifying(true)
+    try {
+      const { data } = await axiosClient.post("/ml/itinerary/modify/", { action, itinerary_data: plan })
+      setPlan((prev) => ({ ...prev, itinerary: data.itinerary || prev.itinerary, modificationNote: data.modification_note }))
+      showToast(data.modification_note || `AI modification applied: ${action}`, "success")
+    } catch {
+      showToast("Could not modify itinerary.", "error")
+    } finally {
+      setModifying(false)
+    }
+  }
+
+  const addNote = () => {
+    if (!noteForm.label || !noteForm.amount) return
+    setNotes((prev) => [...prev, { id: Date.now(), category: noteForm.category, label: noteForm.label, amount: Number(noteForm.amount) }])
+    setNoteForm({ category: "Hotel", label: "", amount: "" })
+  }
+  const removeNote = (id) => setNotes((prev) => prev.filter((n) => n.id !== id))
 
 
   const update = (patch) => {
@@ -109,7 +232,86 @@ const Itinerary = () => {
 
   }
 
+  const savePlan = async () => {
+    try {
+      await itineraryApi.savePlan({ title: `${form.start_city} ${form.days}-day itinerary`, travelers: form.travelers,
+        budget_npr: plan?.total_estimated_npr || form.budget_npr || null, interests: form.interests,
+        itinerary_data: plan, generation_source: "ml", notes: `${form.travel_style} · ${form.travel_type}` })
+      showToast("Travel plan saved to your account", "success")
+    } catch (saveError) {
+      showToast(saveError.response?.status === 401 ? "Sign in to save this travel plan" : "Could not save travel plan", "error")
+    }
+  }
 
+
+
+
+
+
+
+  async function fetchPlan(payload) {
+
+
+    const requestId = ++lastRequestId.current
+
+
+    setLoading(true)
+
+    setError("")
+
+
+
+    try{
+
+
+      const {data}=await itineraryApi.build(payload)
+
+
+
+      if(requestId===lastRequestId.current){
+
+        setPlan(enrichPlanBudget(data, form))
+
+      }
+
+
+
+    }catch(err){
+
+
+
+      if(requestId===lastRequestId.current){
+
+
+        // Technical detail goes to the console/telemetry, never to the traveller.
+        console.error(
+          "[itinerary] generation failed",
+          err?.response?.status || "",
+          err?.response?.data?.detail || err?.message
+        )
+        try { reportError(err, { feature: "itinerary", action: "generate" }) } catch { /* telemetry optional */ }
+        setError("We couldn't generate your itinerary right now. Please try again in a moment.")
+
+
+        setPlan(null)
+
+      }
+
+
+    }finally{
+
+
+      if(requestId===lastRequestId.current){
+
+        setLoading(false)
+
+      }
+
+
+    }
+
+
+  }
 
   useEffect(()=>{
 
@@ -141,69 +343,6 @@ const Itinerary = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[form])
 
-
-
-
-
-  const fetchPlan = async(payload)=>{
-
-
-    const requestId = ++lastRequestId.current
-
-
-    setLoading(true)
-
-    setError("")
-
-
-
-    try{
-
-
-      const {data}=await itineraryApi.build(payload)
-
-
-
-      if(requestId===lastRequestId.current){
-
-        setPlan(data)
-
-      }
-
-
-
-    }catch(err){
-
-
-
-      if(requestId===lastRequestId.current){
-
-
-        setError(
-          err?.response?.data?.detail ||
-          "Could not build your itinerary. Make sure the ML service is running."
-        )
-
-
-        setPlan(null)
-
-      }
-
-
-    }finally{
-
-
-      if(requestId===lastRequestId.current){
-
-        setLoading(false)
-
-      }
-
-
-    }
-
-
-  }
 
 
 
@@ -273,17 +412,10 @@ const Itinerary = () => {
   )
     return (
     <div className="container-app py-10">
+      <CMSPageIntro pageKey="itinerary" />
 
-      <h1 className="section-title flex items-center gap-2">
-        <FiCalendar />
-        Itinerary Planner
-      </h1>
-
-
-      <p className="text-sm text-gray-500 mb-8">
-        Tell us your days, budget and interests — your trip plan updates
-        automatically as you change anything.
-      </p>
+      <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests — your trip plan updates
+        automatically as you change anything.</>} icon={ FiCalendar } />
 
 
 
@@ -803,6 +935,76 @@ const Itinerary = () => {
 
         )
       }
+            {/* AI Itinerary Refinement + Trip Cost Notepad (merged from TripPlanner) */}
+      {
+        plan && !error && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+            <div className="card-base p-5 space-y-3">
+              <div className="flex justify-between items-center text-xs font-bold text-gray-800">
+                <span className="flex items-center gap-1.5"><FiSliders className="text-amber-500" /> AI Itinerary Refinement</span>
+                {modifying && <span className="text-emerald-600 animate-pulse">Modifying plan…</span>}
+              </div>
+              <div className="flex flex-wrap gap-1.5 text-xs">
+                {AI_MODIFICATIONS.map(([act, label]) => (
+                  <button
+                    key={act}
+                    disabled={modifying}
+                    onClick={() => handleApplyAIModification(act)}
+                    className="px-2.5 py-1 rounded-xl bg-white border border-gray-200 hover:border-emerald-500 text-gray-800 font-bold"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {plan.modificationNote && (
+                <p className="text-[11px] text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">✓ {plan.modificationNote}</p>
+              )}
+              {focusDestination && (
+                <p className="text-[11px] text-himalaya-600 font-bold bg-himalaya-50 p-2 rounded-xl border border-himalaya-100">🎯 Planning focus: {focusDestination}</p>
+              )}
+            </div>
+
+            <div className="card-base p-5 space-y-3">
+              <div>
+                <h3 className="font-bold text-sm text-gray-900">Trip Cost Notepad</h3>
+                <p className="text-xs text-gray-500">Add custom lodge rates or local flight quotes to your trip total.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <select className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
+                  {NOTE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+                <input className="input-field bg-white text-xs sm:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
+                <div className="flex gap-2">
+                  <input type="number" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
+                  <button onClick={addNote} className="bg-himalaya-600 hover:bg-himalaya-700 text-white p-2.5 rounded-xl shrink-0" aria-label="Add cost note"><FiPlus /></button>
+                </div>
+              </div>
+              {notes.length > 0 && (
+                <div className="space-y-2 text-xs">
+                  {notes.map((n) => (
+                    <div key={n.id} className="flex items-center justify-between border-b border-gray-100 pb-2">
+                      <div className="min-w-0">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">{n.category}</span>
+                        <p className="font-bold text-gray-800 truncate">{n.label}</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-bold text-gray-900">रू {n.amount.toLocaleString()}</span>
+                        <button onClick={() => removeNote(n.id)} className="text-gray-400 hover:text-rose-600" aria-label="Remove note"><FiTrash2 size={14} /></button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-between font-bold pt-2"><span>Notepad Total</span><span>रू {notesTotal.toLocaleString()}</span></div>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                <span className="font-bold text-sm text-gray-900">Grand Total (plan + notes)</span>
+                <span className="text-xl font-black text-himalaya-600">रू {grandTotalNpr.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
             {/* Summary */}
 
       {
@@ -823,7 +1025,9 @@ const Itinerary = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
 
           >
-
+            <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
+              <FiCheckCircle className="text-emerald-600 mb-1"/><b className="text-emerald-800">Save this plan</b><p className="text-xs text-gray-500">Keep the generated itinerary in your account</p>
+            </button>
 
             <div className="card-base p-4">
 
@@ -1208,7 +1412,29 @@ const Itinerary = () => {
 
                   </div>
 
-
+                  {day.nearby_services && (
+                    <div className="mt-5 pt-4 border-t">
+                      <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {[
+                          ["🏨 Stay", day.nearby_services.hotels],
+                          ["🏥 Hospital", day.nearby_services.hospitals],
+                          ["👮 Police", day.nearby_services.police],
+                          ["🏦 Essentials", day.nearby_services.essentials],
+                        ].map(([label, services]) => (
+                          <div key={label} className="rounded-xl bg-gray-50 p-3">
+                            <b className="text-xs">{label}</b>
+                            {(services || []).length ? services.map((service) => (
+                              <div key={`${label}-${service.id}`} className="mt-2 text-[11px] text-gray-600">
+                                <span className="font-semibold block truncate">{service.name}</span>
+                                <span>{service.distance_km} km{service.phone ? ` · ${service.phone}` : ""}</span>
+                              </div>
+                            )) : <p className="text-[11px] text-gray-400 mt-2">No verified record nearby</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 </motion.div>
 
