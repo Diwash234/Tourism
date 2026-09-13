@@ -134,6 +134,37 @@ def _ml_check():
         return {"ok": None, "note": "ML service not configured"}
 
 
+def _backup_check(max_age_hours: float = 24.0):
+    """🔴 BACKUP WARNING when the newest backup archive is stale/missing.
+
+    Reads the backups/ directory written by `manage.py backup_database`
+    (gzip + .sha256 sidecar). Reports last backup age and archive count.
+    """
+    backup_dir = os.path.join(str(settings.BASE_DIR.parent), "backups")
+    try:
+        archives = [
+            os.path.join(backup_dir, n) for n in os.listdir(backup_dir)
+            if n.endswith(".sqlite3.gz")
+        ]
+    except FileNotFoundError:
+        return {"ok": False, "warning": "BACKUP WARNING", "note": "No backups directory — run manage.py backup_database (and schedule it)."}
+    if not archives:
+        return {"ok": False, "warning": "BACKUP WARNING", "note": "No backup archives found.", "archives": 0}
+    from datetime import datetime as _dt, timezone as _dt_tz
+    newest = max(archives, key=os.path.getmtime)
+    age_hours = (time.time() - os.path.getmtime(newest)) / 3600.0
+    stale = age_hours > max_age_hours
+    return {
+        "ok": not stale,
+        "warning": "BACKUP WARNING" if stale else None,
+        "last_backup_at": _dt.fromtimestamp(os.path.getmtime(newest), _dt_tz.utc).isoformat(),
+        "last_backup_age_hours": round(age_hours, 2),
+        "archives": len(archives),
+        "note": (f"Last successful backup was {age_hours:.1f} h ago (>{max_age_hours:.0f} h limit)."
+                 if stale else "Backups fresh."),
+    }
+
+
 def run_all_checks() -> dict[str, Any]:
     """Return the full live status dict the React diagnostics page uses."""
     db = _db_check()
@@ -148,6 +179,7 @@ def run_all_checks() -> dict[str, Any]:
     dhm = _http_check(settings.DHM_FEED_URL, timeout=3.0) if settings.DHM_FEED_URL else {"ok": True, "configured": False, "note": "DHM feed not configured"}
     bipad = _http_check(settings.BIPAD_FEED_URL, timeout=3.0) if settings.BIPAD_FEED_URL else {"ok": True, "configured": False, "note": "BIPAD feed not configured"}
     routing = _http_check(settings.ROUTING_API_URL, timeout=3.0) if settings.ROUTING_API_URL else {"ok": True, "configured": False, "note": "Road routing not configured"}
+    backup = _backup_check()
 
     overall_ok = db["ok"] and disk["ok"] and media["ok"]
     if errs.get("errors_per_minute", 0) > 10:
@@ -168,6 +200,7 @@ def run_all_checks() -> dict[str, Any]:
             "dhm_feed": dhm,
             "bipad_feed": bipad,
             "routing_service": routing,
+            "backup": backup,
             "error_rate": errs,
         },
     }

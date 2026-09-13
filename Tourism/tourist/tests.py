@@ -3761,3 +3761,53 @@ class ProvenanceConflictTests(APITestCase):
         self.assertEqual(self.dest2.city, "")
         conflict.refresh_from_db()
         self.assertEqual(conflict.status, "kept")
+
+
+class ProductionConfigValidationTests(TestCase):
+    """§15: production config validator fails loudly, never prints secrets."""
+
+    def test_dev_settings_fail_loudly(self):
+        from django.core.management import call_command
+        with self.assertRaises(SystemExit) as ctx:
+            call_command("validate_production_config", "--json")
+        self.assertEqual(ctx.exception.code, 1)
+
+    def test_production_shaped_settings_pass(self):
+        import io
+        import json as jsonlib
+        from django.core.management import call_command
+        out = io.StringIO()
+        with self.settings(
+            DEBUG=False, SECRET_KEY="x" * 64, ALLOWED_HOSTS=["tourism.gov.np"],
+            CORS_ALLOW_ALL_ORIGINS=False,
+            DATABASES={"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "db"}},
+            ML_SERVICE_API_KEY="real-ml-key", ML_WEBHOOK_SECRET="real-shared-secret",
+        ):
+            call_command("validate_production_config", "--json", stdout=out)
+        result = jsonlib.loads(out.getvalue())
+        self.assertTrue(result["passed"], result["fail"])
+        # secrets never appear in the output
+        self.assertNotIn("x" * 64, out.getvalue())
+
+    def test_backup_health_check_fresh_and_stale(self):
+        import os
+        import time
+        from system_health.checks import _backup_check
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            bdir = os.path.join(tmp, "backups")
+            os.makedirs(bdir)
+            from pathlib import Path
+            with self.settings(BASE_DIR=Path(os.path.join(tmp, "Tourism"))):
+                stale = _backup_check()
+                self.assertFalse(stale["ok"])  # no archives yet
+                path = os.path.join(bdir, "db-fresh.sqlite3.gz")
+                open(path, "wb").write(b"x")
+                fresh = _backup_check()
+                self.assertTrue(fresh["ok"])
+                self.assertEqual(fresh["archives"], 1)
+                old = time.time() - 25 * 3600
+                os.utime(path, (old, old))
+                aged = _backup_check()
+                self.assertFalse(aged["ok"])
+                self.assertEqual(aged["warning"], "BACKUP WARNING")
