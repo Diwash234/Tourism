@@ -5233,7 +5233,7 @@ class AdminDestinationBulkView(APIView):
         return Response({"action": action, "affected": affected, "reason": reason})
 
 
-class AdminDataHealthView(APIView):
+class AdminDataIntegrityView(APIView):
     """GET /api/v1/admin/data-health/ — §14 data health dashboard numbers.
 
     Each count links (via matching filters) to the records behind it."""

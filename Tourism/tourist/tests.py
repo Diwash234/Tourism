@@ -3869,7 +3869,7 @@ class DuplicateCMSBulkHealthTests(APITestCase):
         self.assertEqual(r.status_code, 400)
 
     def test_data_health_counts(self):
-        resp = self.client.get(reverse("admin-data-health"))
+        resp = self.client.get(reverse("admin-data-integrity"))
         self.assertEqual(resp.status_code, 200)
         d = resp.data
         self.assertEqual(d["published"], 2)
@@ -3931,3 +3931,43 @@ class AdminLifecycleImmediacyTests(APITestCase):
             "ids": [dest.pk], "action": "restore", "reason": "reopened"}, format="json")
         listing = public.get("/api/v1/destinations/", {"search": "Lifecycle Lake", "type": "all"})
         self.assertIn("Lifecycle Lake", str(listing.data))
+
+
+class OAuthProviderValidationTests(TestCase):
+    """§16: supplied credentials are validated against the real endpoints;
+    unconfigured providers skip honestly; nothing is fabricated."""
+
+    def _resp(self, payload, status=400):
+        from unittest.mock import MagicMock
+        m = MagicMock()
+        m.status_code = status
+        m.headers = {"content-type": "application/json"}
+        m.json.return_value = payload
+        return m
+
+    def test_accepted_and_rejected_credentials(self):
+        import io
+        from django.core.management import call_command
+        # Google accepts client (invalid_grant), GitHub rejects (unknown app)
+        with patch("tourist.management.commands.validate_oauth_providers.requests.post",
+                   side_effect=[self._resp({"error": "invalid_grant"}),
+                                self._resp({"error": "unauthorized_client"})]), \
+             self.settings(GOOGLE_CLIENT_ID="gid", GOOGLE_CLIENT_SECRET="gsec",
+                           GITHUB_CLIENT_ID="hid", GITHUB_CLIENT_SECRET="hsec"):
+            out = io.StringIO()
+            with self.assertRaises(SystemExit):
+                call_command("validate_oauth_providers", stdout=out)
+            text = out.getvalue()
+            self.assertIn("OK    google", text)
+            self.assertIn("FAIL  github", text)
+
+    def test_unconfigured_providers_skip_honestly(self):
+        import io
+        from django.core.management import call_command
+        with self.settings(GOOGLE_CLIENT_ID="", GOOGLE_CLIENT_SECRET="",
+                           GITHUB_CLIENT_ID="", GITHUB_CLIENT_SECRET=""):
+            out = io.StringIO()
+            call_command("validate_oauth_providers", stdout=out)  # no SystemExit
+            text = out.getvalue()
+            self.assertIn("SKIP  google", text)
+            self.assertIn("SKIP  github", text)
