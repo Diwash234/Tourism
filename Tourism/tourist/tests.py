@@ -1,6 +1,8 @@
 from unittest.mock import patch
+from pathlib import Path
 
-from django.test import TestCase, override_settings
+from django.conf import settings
+from django.test import TestCase, TransactionTestCase, override_settings
 import requests
 from django.urls import reverse
 from rest_framework import status
@@ -3508,3 +3510,119 @@ class RevisionRestoreTests(APITestCase):
         audit = DestinationAuditLog.objects.filter(destination=dest, note__startswith="Restored").first()
         self.assertIsNotNone(audit)
         self.assertTrue(any(c["field"] == "name" for c in audit.field_changes))
+
+
+class OpsLayerTests(TestCase):
+    """Production config validation, backup/restore integrity, backup health."""
+
+    def test_config_validator_fails_loudly_on_dev_and_never_prints_secret(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        with self.assertRaises(SystemExit):
+            call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertGreaterEqual(text.count("FAIL  "), 3)  # loud on the dev config
+        self.assertNotIn(str(settings.SECRET_KEY)[:20], text)  # secret never printed
+
+    def test_config_validator_passes_on_production_shape(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        with self.settings(DEBUG=False,
+                           SECRET_KEY="p" * 64,
+                           ALLOWED_HOSTS=["tourism.example.org"],
+                           CORS_ALLOW_ALL_ORIGINS=False,
+                           DATABASES={"default": {"ENGINE": "django.db.backends.postgresql",
+                                                  "NAME": "tourism"}},
+                           ML_SERVICE_API_KEY="real-ml-key-value",
+                           ML_WEBHOOK_SECRET="real-webhook-secret"):
+            call_command("validate_production_config", stdout=out)  # no SystemExit
+        self.assertIn("RESULT: PASS", out.getvalue())
+
+    def _noop(self):
+        pass
+
+
+class BackupRestoreTests(TransactionTestCase):
+    """Runs non-atomically: the scratch-DB drill executes real DDL."""
+
+    def test_backup_restore_roundtrip_and_corrupt_rejection(self):
+        import io, os, tempfile
+        from django.core.management import call_command
+        d = Destination.objects.create(name="Backup Probe", slug="backup-probe",
+                                       district="Kaski", status="approved", is_active=True)
+        tmpdir = tempfile.mkdtemp()
+        out = io.StringIO()
+        call_command("backup_database", "--dir", tmpdir, stdout=out)
+        self.assertIn("verified", out.getvalue())
+        archives = [f for f in os.listdir(tmpdir) if f.endswith(".gz")]
+        self.assertEqual(len(archives), 1)
+        # corrupt backup must be refused
+        path = os.path.join(tmpdir, archives[0])
+        with open(path + ".sha256", "w") as fh:
+            fh.write("0" * 64 + "  " + archives[0] + "\n")
+        with self.assertRaises(SystemExit) as ctx:
+            call_command("restore_database", "--file", path, "--confirm")
+        self.assertIn("checksum mismatch", str(ctx.exception))
+        # restore drill into a scratch db works with the genuine checksum
+        call_command("backup_database", "--dir", tmpdir, stdout=io.StringIO())
+        real = sorted(f for f in os.listdir(tmpdir) if f.endswith(".gz"))[-1]
+        out = io.StringIO()
+        call_command("restore_database", "--file", os.path.join(tmpdir, real),
+                     "--target", os.path.join(tmpdir, "scratch.sqlite3"), stdout=out)
+        self.assertIn("Restore drill OK", out.getvalue())
+        self.assertIn("1 destinations", out.getvalue())
+        # without --confirm or --target: refused, live db untouched
+        with self.assertRaises(SystemExit) as ctx:
+            call_command("restore_database", "--file", os.path.join(tmpdir, real))
+        self.assertIn("REFUSED", str(ctx.exception))
+        self.assertTrue(Destination.objects.filter(id=d.id).exists())
+
+    def test_backup_health_check_fresh_and_missing(self):
+        import os, tempfile, time
+        from system_health.checks import _backup_check
+        tmp = tempfile.mkdtemp()
+        with self.settings(BASE_DIR=Path(tmp).parent):
+            os.makedirs(Path(tmp).parent / "backups", exist_ok=True)
+            open(Path(tmp).parent / "backups" / "backup-x.sqlite.gz", "w").write("x")
+            fresh = _backup_check()
+            self.assertTrue(fresh["ok"])
+            self.assertIsNone(fresh["warning"])
+            # stale: rewrite mtime to 30 h ago
+            old = time.time() - 30 * 3600
+            os.utime(Path(tmp).parent / "backups" / "backup-x.sqlite.gz", (old, old))
+            stale = _backup_check()
+            self.assertFalse(stale["ok"])
+            self.assertEqual(stale["warning"], "BACKUP WARNING")
+
+
+class OAuthProviderValidationTests(TestCase):
+    def _resp(self, payload, status=400):
+        from unittest.mock import MagicMock
+        m = MagicMock()
+        m.status_code = status
+        m.headers = {"content-type": "application/json"}
+        m.json.return_value = payload
+        return m
+
+    def test_accepted_rejected_and_unconfigured(self):
+        import io
+        from django.core.management import call_command
+        with patch("tourist.management.commands.validate_oauth_providers.requests.post",
+                   side_effect=[self._resp({"error": "invalid_grant"}),
+                                self._resp({"error": "unauthorized_client"})]), \
+             self.settings(GOOGLE_CLIENT_ID="gid", GOOGLE_CLIENT_SECRET="gsec",
+                           GITHUB_CLIENT_ID="hid", GITHUB_CLIENT_SECRET="hsec"):
+            out = io.StringIO()
+            with self.assertRaises(SystemExit):
+                call_command("validate_oauth_providers", stdout=out)
+            text = out.getvalue()
+            self.assertIn("OK    google", text)
+            self.assertIn("FAIL  github", text)
+        with self.settings(GOOGLE_CLIENT_ID="", GOOGLE_CLIENT_SECRET="",
+                           GITHUB_CLIENT_ID="", GITHUB_CLIENT_SECRET=""):
+            out = io.StringIO()
+            call_command("validate_oauth_providers", stdout=out)
+            self.assertIn("SKIP  google", out.getvalue())
