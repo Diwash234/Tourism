@@ -676,7 +676,21 @@ const AdminDashboard = () => {
         <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
           <label className="text-xs font-black uppercase text-emerald-800">Admin section
             <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
-              {[["overview","Overview & Stats"],["content_lifecycle","Content Lifecycle CMS"],["cms_overview","CMS Overview"],["homepage_manager","Website — Pages"],["redirects","Redirects & URLs"],["content_translations","Content Translations"],["user_dashboard_control","User Dashboard Controls"],["ai_engine","Central AI Engine Studio"],["data_health","Data Health & Provenance"],["transport_routes","Transportation & Routes"],["data_reports","User Reports & Corrections"],["featured_destinations","Featured Destinations Studio"],["reports","Reports & Analytics"],["data_explorer","Database & Records"],["visitor_desk","Visitor notices & featured"],["branding","Branding & Theme"],["header_navbar","Header & Navbar"],["cookie_consent","Cookie Consent"],["cms","Website Content & Navigation"],["research","AI Destination Discovery"],["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"],["tracking","Live Tracking & SOS"],["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["infrastructure","Community Services & ML"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"],["travel_services","Restaurants, Transport & Plans"],["review_moderation","Review Moderation"],["expenses","Expense ML Data"],["datasets","Dataset & CSV Manager"],["feedback_workspace","Feedback Workspace"],["risks","Safety & Hazard ML"],["safety_management","Alerts & Safety"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]].map(([id,label])=><option key={id} value={id}>{label}</option>)}
+              {[
+              ["Overview", [["overview","Overview & Stats"],["content_lifecycle","Content Lifecycle CMS"]]],
+              ["Content", [["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["transport_routes","Transportation & Routes"],["featured_destinations","Featured Destinations Studio"],["travel_services","Restaurants, Transport & Plans"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"]]],
+              ["Publication", [["cms_overview","CMS Overview"],["homepage_manager","Website — Pages"],["cms","Website Content & Navigation"],["header_navbar","Header & Navbar"],["redirects","Redirects & URLs"],["content_translations","Content Translations"],["user_dashboard_control","User Dashboard Controls"],["cookie_consent","Cookie Consent"],["visitor_desk","Visitor notices & featured"]]],
+              ["Media", [["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"]]],
+              ["Data Management", [["data_explorer","Database & Records"],["data_health","Data Health & Provenance"],["datasets","Dataset & CSV Manager"],["research","AI Destination Discovery"],["ai_engine","Central AI Engine Studio"]]],
+              ["Review", [["data_reports","User Reports & Corrections"],["review_moderation","Review Moderation"],["guide_verification","Guide Verification"],["reports","Reports & Analytics"],["feedback_workspace","Feedback Workspace"],["infrastructure","Community Services & ML"]]],
+              ["Users & Access", [["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"]]],
+              ["Audit & Safety", [["tracking","Live Tracking & SOS"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["safety_management","Alerts & Safety"],["risks","Safety & Hazard ML"],["expenses","Expense ML Data"]]],
+              ["System", [["branding","Branding & Theme"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]]],
+            ].map(([group, items]) => (
+              <optgroup key={group} label={group}>
+                {items.map(([id,label])=><option key={id} value={id}>{label}</option>)}
+              </optgroup>
+            ))}
             </select>
           </label>
         </div>
