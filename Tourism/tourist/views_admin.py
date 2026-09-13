@@ -2,7 +2,7 @@ import json
 import re
 
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
 from django.conf import settings
@@ -4893,3 +4893,77 @@ class AdminRedirectsView(APIView):
             return Response({"error": "Redirect not found"}, status=status.HTTP_404_NOT_FOUND)
         rule.delete()
         return Response({"message": "Redirect deleted"})
+
+
+class AdminDestinationMergeView(APIView):
+    """POST /api/v1/admin/destinations/merge/  {source_id, target_id, reason}
+
+    Safe entity merge for duplicate destinations (see the
+    detect_duplicate_destinations command for candidate reporting):
+      * every concrete FK pointing at the source (reviews, images,
+        bookmarks, itineraries, alerts...) is reassigned to the target;
+        audit rows are deliberately NOT reassigned so history stays intact
+      * one-to-one collisions keep the TARGET's row (the source row is
+        dropped) rather than crashing the merge
+      * the source is soft-deleted (is_active=False) with an explanatory
+        review_note — never hard-deleted, so old links stay diagnosable
+      * the action is written to the audit log with the admin's reason
+    """
+
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        _require_capability(request, "destinations", "edit")
+        source_id = request.data.get("source_id")
+        target_id = request.data.get("target_id")
+        reason = (request.data.get("reason") or "").strip()
+        if not source_id or not target_id or source_id == target_id:
+            return Response({"detail": "Distinct source_id and target_id are required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not reason:
+            return Response({"detail": "A reason is required — merges must be explainable."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        source = Destination.objects.filter(pk=source_id).first()
+        target = Destination.objects.filter(pk=target_id).first()
+        if not source or not target:
+            return Response({"detail": "Source or target destination not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        moved = {}
+        with transaction.atomic():
+            for rel in Destination._meta.related_objects:
+                field = getattr(rel, "field", None)
+                if field is None or rel.field.many_to_many:
+                    continue
+                related_model = rel.related_model
+                if related_model._meta.app_label == "audit":
+                    continue  # audit history is never rewritten
+                fk_name = rel.field.name
+                rows = related_model.objects.filter(**{fk_name: source})
+                count = rows.count()
+                if count == 0:
+                    continue
+                try:
+                    rows.update(**{fk_name: target})
+                except IntegrityError:
+                    # One-to-one collision: the target already has this row.
+                    transaction.set_rollback(False)
+                    related_model.objects.filter(**{fk_name: source}).delete()
+                moved[related_model.__name__] = count
+
+            source.is_active = False
+            note = f"Merged into #{target.pk} '{target.name}' on {timezone.now():%Y-%m-%d} by {request.user.email}: {reason}"
+            source.review_note = f"{source.review_note}\n{note}".strip() if source.review_note else note
+            source.save(update_fields=["is_active", "review_note", "updated_at"])
+
+        from audit.logging_services import log_action
+        log_action(
+            request, "destination_merge", category="destinations", severity="warning",
+            message=note, obj=target, object_type="Destination", object_id=target.pk,
+            user=request.user, extra={"source_id": source.pk, "moved": moved, "reason": reason},
+        )
+        return Response({
+            "merged_source_id": source.pk, "target_id": target.pk,
+            "moved_relations": moved, "note": note,
+        })

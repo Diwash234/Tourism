@@ -80,3 +80,23 @@ class AdminTask(models.Model):
 
     def __str__(self):
         return f"{self.title} -> {self.assigned_to.email} ({self.status})"
+
+class FeatureFlag(models.Model):
+    """Deployment feature flags — flip functionality on/off without a redeploy.
+
+    Admins toggle `enabled` in the Django admin; the public config endpoint
+    (`/api/v1/config/public/`) exposes {key: enabled} so the frontend can
+    hide or disable gated features immediately. Defaults are seeded by
+    `manage.py seed_feature_flags`.
+    """
+
+    key = models.SlugField(max_length=80, unique=True, help_text="e.g. ai_itinerary, live_navigation")
+    enabled = models.BooleanField(default=False)
+    description = models.CharField(max_length=255, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key}={'ON' if self.enabled else 'OFF'}"

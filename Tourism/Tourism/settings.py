@@ -396,6 +396,10 @@ GITHUB_OAUTH_API_URL = config("GITHUB_OAUTH_API_URL", default="https://api.githu
 # official cover image (see utils.py::maybe_promote_photo()).
 PHOTO_PROMOTION_IMPRESSION_THRESHOLD = config("PHOTO_PROMOTION_IMPRESSION_THRESHOLD", default=50, cast=int)
 
+# Data freshness: how long a "verified" record stays verified before
+# `manage.py flag_stale_verifications` considers it stale (days).
+VERIFICATION_INTERVAL_DAYS = config("VERIFICATION_INTERVAL_DAYS", default=180, cast=int)
+
 # ------------------------------------------------------------------
 # ML microservice integration (separate FastAPI/Flask service run by
 # the ML teammate). The backend calls OUT to it for recommendations,

@@ -284,8 +284,11 @@ class PublicConfigView(APIView):
         ]
         redirects = [{"old_path": r.old_path, "new_path": r.new_path, "permanent": r.is_permanent}
             for r in RedirectRule.objects.filter(is_active=True)]
+        from admin_panel.models import FeatureFlag
+        feature_flags = {f.key: f.enabled for f in FeatureFlag.objects.all()}
         return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
+            "feature_flags": feature_flags,
             "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog,
             "hero_slides": hero_slides, "redirects": redirects})
 

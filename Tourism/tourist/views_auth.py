@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -19,6 +20,8 @@ from .serializers import (
     UpdateLocationSerializer,
 )
 from .utils import send_email_notification, resolve_location, issue_phone_verification
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -266,6 +269,37 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class AccountDeleteView(APIView):
+    """DELETE /api/v1/auth/account/  {"password": "..."}
+
+    Privacy: permanent account + personal data deletion (GDPR-style right
+    to erasure). Requires the current password to prevent session-hijack
+    deletions, and refuses to delete the last remaining superuser so the
+    platform can never be locked out of its own admin.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        password = request.data.get("password")
+        if not password or not user.check_password(password):
+            return Response({"detail": "Current password is required and must be correct."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        if user.is_superuser:
+            if not User.objects.filter(is_superuser=True).exclude(pk=user.pk).exists():
+                return Response(
+                    {"detail": "You are the only superuser. Promote another admin before deleting this account."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        email = user.email
+        user.delete()  # cascades to trips, plans, reviews, tokens, etc.
+        logger.info("Account deleted on user request: %s", email)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UpdateLocationView(APIView):

@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
-from django.test import override_settings
+from datetime import timedelta
+
+from django.test import TestCase, override_settings
+from django.utils import timezone
 import requests
 from django.urls import reverse
 from rest_framework import status
@@ -3432,3 +3435,196 @@ class OAuthCallbackTests(APITestCase):
             )
         self.assertEqual(resp.status_code, 400)
         self.assertIn("detail", resp.data)
+
+
+class BackupRestoreTests(TestCase):
+    """#16 disaster recovery: backup_database / restore_database commands."""
+
+    def test_backup_creates_valid_gzip_with_checksum_and_retention(self):
+        import gzip
+        import os
+        import sqlite3
+        import tempfile
+        from django.core.management import call_command
+        with tempfile.TemporaryDirectory() as tmp:
+            call_command("backup_database", "--dir", tmp, "--keep", "2")
+            archives = [n for n in os.listdir(tmp) if n.endswith(".sqlite3.gz")]
+            self.assertEqual(len(archives), 1)
+            path = os.path.join(tmp, archives[0])
+            self.assertTrue(os.path.exists(path + ".sha256"))
+            # the archive must be a valid gzip-wrapped sqlite database
+            raw_path = os.path.join(tmp, "extracted.sqlite3")
+            with gzip.open(path, "rb") as gz, open(raw_path, "wb") as out:
+                out.write(gz.read())
+            con = sqlite3.connect(raw_path)
+            self.assertEqual(con.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertGreater(con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0], 0)
+            con.close()
+
+    def test_restore_requires_yes_and_validates_archive(self):
+        import gzip
+        import os
+        import tempfile
+        from django.core.management import CommandError, call_command
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = os.path.join(tmp, "corrupt.sqlite3.gz")
+            with gzip.open(bad, "wb") as f:
+                f.write(b"this is not a database at all")
+            target = os.path.join(tmp, "target.sqlite3")
+            with self.settings(DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": target}}):
+                with self.assertRaises(CommandError):
+                    call_command("restore_database", "--from", bad)  # missing --yes
+                with self.assertRaises(CommandError):
+                    call_command("restore_database", "--from", bad, "--yes")  # corrupt
+            self.assertFalse(os.path.exists(target))  # corrupt archive never touched the DB
+
+
+class StaleVerificationTests(TestCase):
+    """#4 data freshness: flag_stale_verifications expires old verifications only."""
+
+    def setUp(self):
+        from .models import Category, Hospital
+        self.category = Category.objects.create(name="Temples", slug="temples-fresh")
+        self.dest = Destination.objects.create(
+            name="Freshness Temple", category=self.category, latitude=27.7, longitude=85.3,
+            district="Kathmandu", country="Nepal",
+        )
+        now = timezone.now()
+        self.stale = Hospital.objects.create(
+            destination=self.dest, name="Stale Hospital", address="a", phone="1",
+            latitude=27.7, longitude=85.3, district="Kathmandu",
+            is_verified=True, verified_at=now - timedelta(days=200),
+        )
+        self.recent = Hospital.objects.create(
+            destination=self.dest, name="Recent Hospital", address="a", phone="1",
+            latitude=27.7, longitude=85.3, district="Kathmandu",
+            is_verified=True, verified_at=now - timedelta(days=10),
+        )
+        self.never = Hospital.objects.create(
+            destination=self.dest, name="Never Hospital", address="a", phone="1",
+            latitude=27.7, longitude=85.3, district="Kathmandu",
+            is_verified=True, verified_at=None,
+        )
+
+    def test_flag_expires_only_stale_rows(self):
+        from django.core.management import call_command
+        call_command("flag_stale_verifications", "--interval-days", "180", "--flag")
+        self.stale.refresh_from_db()
+        self.recent.refresh_from_db()
+        self.never.refresh_from_db()
+        self.assertFalse(self.stale.is_verified)   # expired
+        self.assertTrue(self.recent.is_verified)   # untouched
+        self.assertTrue(self.never.is_verified)    # never-verified not invented/expired
+
+    def test_report_only_mode_changes_nothing(self):
+        from django.core.management import call_command
+        call_command("flag_stale_verifications", "--interval-days", "180")
+        self.stale.refresh_from_db()
+        self.assertTrue(self.stale.is_verified)
+
+
+class AccountDeletionTests(APITestCase):
+    """#9 privacy: password-confirmed permanent account deletion."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="erase@example.com", password="Passw0rd!x")
+
+    def test_wrong_password_is_rejected(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.delete(reverse("auth-account-delete"), {"password": "nope"}, format="json")
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_correct_password_deletes_account(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.delete(reverse("auth-account-delete"), {"password": "Passw0rd!x"}, format="json")
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_last_superuser_cannot_self_delete(self):
+        admin = User.objects.create_user(email="last@admin.example", password="Passw0rd!x", is_superuser=True)
+        self.client.force_authenticate(user=admin)
+        resp = self.client.delete(reverse("auth-account-delete"), {"password": "Passw0rd!x"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=admin.pk).exists())
+
+
+class FeatureFlagTests(APITestCase):
+    """#17 feature flags: seeded defaults + public exposure."""
+
+    def test_seed_is_idempotent_and_public_config_exposes_flags(self):
+        from django.core.management import call_command
+        call_command("seed_feature_flags")
+        call_command("seed_feature_flags")  # second run must not duplicate
+        from admin_panel.models import FeatureFlag
+        self.assertEqual(FeatureFlag.objects.filter(key="ai_itinerary").count(), 1)
+        resp = self.client.get(reverse("public-config"))
+        self.assertEqual(resp.status_code, 200)
+        flags = resp.data["feature_flags"]
+        self.assertTrue(flags["ai_itinerary"])
+        self.assertFalse(flags["offline_maps"])
+        # toggling in admin flips the public value immediately
+        FeatureFlag.objects.filter(key="offline_maps").update(enabled=True)
+        flags2 = self.client.get(reverse("public-config")).data["feature_flags"]
+        self.assertTrue(flags2["offline_maps"])
+
+
+class DuplicateDetectMergeTests(APITestCase):
+    """#5 duplicate detection + safe admin merge."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Temples", slug="temples-dupes")
+        self.a = Destination.objects.create(
+            name="Pashupatinath Temple", category=self.category, latitude=27.7111, longitude=85.3482,
+            district="Kathmandu", country="Nepal", status=Destination.SubmissionStatus.APPROVED,
+        )
+        self.b = Destination.objects.create(
+            name="Pashupati Temple", category=self.category, latitude=27.7115, longitude=85.3485,
+            district="Kathmandu", country="Nepal", status=Destination.SubmissionStatus.APPROVED,
+        )
+        self.far = Destination.objects.create(
+            name="Pashupati Temple", category=self.category, latitude=28.6, longitude=81.6,
+            district="Surkhet", country="Nepal", status=Destination.SubmissionStatus.APPROVED,
+        )
+        self.admin = User.objects.create_user(email="merge@admin.example", password="x", is_superuser=True)
+
+    def test_detect_flags_near_pair_not_far_pair(self):
+        import io
+        import json as jsonlib
+        import tempfile
+        import os
+        from django.core.management import call_command
+        with tempfile.TemporaryDirectory() as tmp:
+            report = os.path.join(tmp, "dupes.json")
+            out = io.StringIO()
+            call_command("detect_duplicate_destinations", "--report", report, stdout=out)
+            data = jsonlib.load(open(report))
+        pairs = {(c["a"]["id"], c["b"]["id"]) for c in data["candidates"]}
+        self.assertIn((self.a.pk, self.b.pk), pairs)
+        for pair in pairs:
+            self.assertNotIn(self.far.pk, pair)
+
+    def test_merge_moves_relations_and_soft_deletes_source(self):
+        from .models import Review
+        reviewer = User.objects.create_user(email="rev@example.com", password="x")
+        review = Review.objects.create(destination=self.a, user=reviewer, comment="Ancient and sacred.")
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.post(reverse("admin-destination-merge"), {
+            "source_id": self.a.pk, "target_id": self.b.pk, "reason": "Same temple, two records",
+        }, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        review.refresh_from_db()
+        self.assertEqual(review.destination_id, self.b.pk)  # relation reassigned
+        self.a.refresh_from_db()
+        self.assertFalse(self.a.is_active)                   # soft-deleted
+        self.assertIn("Merged into", self.a.review_note)
+        self.assertEqual(resp.data["moved_relations"].get("Review"), 1)
+
+    def test_merge_requires_reason_and_distinct_ids(self):
+        self.client.force_authenticate(user=self.admin)
+        r1 = self.client.post(reverse("admin-destination-merge"), {
+            "source_id": self.a.pk, "target_id": self.b.pk}, format="json")
+        self.assertEqual(r1.status_code, 400)  # no reason
+        r2 = self.client.post(reverse("admin-destination-merge"), {
+            "source_id": self.a.pk, "target_id": self.a.pk, "reason": "x"}, format="json")
+        self.assertEqual(r2.status_code, 400)  # same id
