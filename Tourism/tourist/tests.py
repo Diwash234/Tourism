@@ -3628,3 +3628,19 @@ class DuplicateDetectMergeTests(APITestCase):
         r2 = self.client.post(reverse("admin-destination-merge"), {
             "source_id": self.a.pk, "target_id": self.a.pk, "reason": "x"}, format="json")
         self.assertEqual(r2.status_code, 400)  # same id
+
+
+class DataPipelineTests(TestCase):
+    """Production data pipeline orchestrator runs every stage in safe mode."""
+
+    def test_run_data_pipeline_report_mode(self):
+        import io
+        import tempfile
+        from django.core.management import call_command
+        with tempfile.TemporaryDirectory() as tmp:
+            out = io.StringIO()
+            call_command("run_data_pipeline", "--report-dir", tmp, stdout=out)
+            text = out.getvalue()
+        for stage in ("1/5 import", "2/5 normalize", "3/5 freshness", "4/5 deduplicate", "5/5 verification queue"):
+            self.assertIn(stage, text)
+        self.assertIn("NEXT HUMAN STEPS", text)

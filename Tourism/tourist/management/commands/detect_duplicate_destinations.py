@@ -61,13 +61,15 @@ class Command(BaseCommand):
         candidates = []
         seen_pairs = set()
 
-        def add_pair(a, b, key, evidence):
+        def add_pair(a, b, key, evidence, confidence, distance_km=None):
             pair = (min(a["id"], b["id"]), max(a["id"], b["id"]))
             if pair in seen_pairs:
                 return
             seen_pairs.add(pair)
             candidates.append({
                 "normalized_name": key,
+                "confidence": confidence,          # high | medium | needs_review
+                "distance_km": distance_km,
                 "a": {"id": a["id"], "name": a["name"], "district": a["district"]},
                 "b": {"id": b["id"], "name": b["name"], "district": b["district"]},
                 "evidence": evidence,
@@ -90,9 +92,13 @@ class Command(BaseCommand):
                         if not (near or same_district):
                             continue
                         evidence = f"{dist:.1f} km apart" + (" + same district" if same_district else "")
+                        # Confidence triage: identical names at (near-)identical
+                        # coordinates are almost certainly the same place.
+                        confidence = "high" if dist <= 0.5 else ("medium" if near else "needs_review")
+                        add_pair(a, b, key, evidence, confidence, round(dist, 2))
                     else:
                         evidence = "distance unknown (missing coordinates)"
-                    add_pair(a, b, key, evidence)
+                        add_pair(a, b, key, evidence, "needs_review")
 
         # Rule 2: high name similarity WITHIN the same district (catches
         # "Pashupatinath Temple" vs "Pashupati Temple" style variants).
@@ -120,18 +126,30 @@ class Command(BaseCommand):
                     ratio = sm.ratio()
                     if ratio >= 0.85:
                         add_pair(rows[i], rows[j], f"{ni} ~ {nj}",
-                                 f"same district ({district}), name similarity {ratio:.2f}")
+                                 f"same district ({district}), name similarity {ratio:.2f}",
+                                 "needs_review")
+
+        # Priority order for admin review: high confidence first, then by
+        # proximity (closest pairs are the safest merges).
+        tier_rank = {"high": 0, "medium": 1, "needs_review": 2}
+        candidates.sort(key=lambda c: (tier_rank[c["confidence"]],
+                                       c["distance_km"] if c["distance_km"] is not None else 9e9))
+        tier_counts = {t: sum(1 for c in candidates if c["confidence"] == t)
+                       for t in ("high", "medium", "needs_review")}
 
         self.stdout.write(f"Scanned {qs.count()} approved destinations; "
-                          f"{len(candidates)} candidate duplicate pair(s).")
+                          f"{len(candidates)} candidate duplicate pair(s): "
+                          f"high={tier_counts['high']} medium={tier_counts['medium']} "
+                          f"needs_review={tier_counts['needs_review']}")
         for c in candidates[:15]:
-            self.stdout.write(f"  #{c['a']['id']} '{c['a']['name']}' <-> #{c['b']['id']} "
-                              f"'{c['b']['name']}' ({c['evidence']})")
+            self.stdout.write(f"  [{c['confidence']}] #{c['a']['id']} '{c['a']['name']}' <-> "
+                              f"#{c['b']['id']} '{c['b']['name']}' ({c['evidence']})")
         if len(candidates) > 15:
             self.stdout.write(f"  ... and {len(candidates) - 15} more (use --report for the full list)")
 
         if options["report"]:
             os.makedirs(os.path.dirname(options["report"]) or ".", exist_ok=True)
             with open(options["report"], "w", encoding="utf-8") as f:
-                json.dump({"candidates": candidates, "total": len(candidates)}, f, indent=2, ensure_ascii=False)
+                json.dump({"tier_counts": tier_counts, "candidates": candidates,
+                           "total": len(candidates)}, f, indent=2, ensure_ascii=False)
             self.stdout.write(f"Report: {options['report']}")

@@ -1,117 +1,123 @@
-# Production Operations
+# Production Launch & Data Operations
 
-## Principles
+The final operational section of the master specification. Everything here
+is implemented and tested in code; this runbook is how operations run it in
+production. Feature development is **frozen** — this is the maintain-the-
+platform phase.
 
-- Missing official feeds, local contacts, road routes or images remain unavailable; never synthesize safety data.
-- Only HTTPS authority feeds are accepted (localhost is allowed for development).
-- User submissions and feedback are not ML-eligible until admin verification.
-- News remains separate from official warnings.
+---
 
-## Environment
+## 1. OAuth (Google / GitHub) — one-time credential setup
 
-```env
-DHM_FEED_URL=
-DHM_API_KEY=
-BIPAD_FEED_URL=
-BIPAD_API_KEY=
-EXTERNAL_SYNC_TIMEOUT=15
-ROUTING_API_URL=
-ROUTING_API_KEY=
-```
+1. **Google**: Google Cloud Console → APIs & Services → Credentials →
+   *OAuth client ID (Web application)*.
+   - Authorized redirect URI: `https://<production-domain>/auth/callback/google`
+2. **GitHub**: github.com/settings/developers → *New OAuth App*.
+   - Authorization callback URL: `https://<production-domain>/auth/callback/github`
+3. Configure:
+   - Frontend `.env` (public values only): `VITE_GOOGLE_CLIENT_ID`, `VITE_GITHUB_CLIENT_ID`
+   - Backend `.env` (secrets — **never in frontend code or git**):
+     `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+4. Verify: click *Continue with Google* → Google's account chooser appears →
+   sign in → lands on `/dashboard`. The flow carries a CSRF `state`, links
+   by verified email, and disabled-button UX shows while unconfigured.
 
-Feed URLs must return the normalized `records` schema accepted by `risk_ingestion.py`. Configure them only after the authority confirms endpoint access and data-use conditions.
+## 2. Automated backups + periodic restore drill
 
-The bundled `ml_service/model/route/nepal_graph.graphml` is used automatically when `LOCAL_GRAPH_ROUTING_ENABLED=True`. It returns an approximate graph route, route distance, duration and polyline, but is explicitly not labeled as street-level road distance. `ROUTING_API_URL` can optionally expose an OSRM-compatible `/route/v1/driving/...` API for true road metrics. If neither backend can route the coordinates, the application returns `road_distance_km: null` and labels the displayed value as straight-line distance.
-
-## Scheduled jobs
-
-Example cron entries (adjust the virtualenv and project paths):
+Daily cron (RPO = 24 h; tune `--keep` for retention):
 
 ```cron
-*/15 * * * * cd /app/Tourism && /app/.venv/bin/python manage.py sync_official_risk --provider all
-0 2 * * * cd /app/Tourism && /app/.venv/bin/python manage.py health_snapshot
-0 3 * * 0 cd /app/Tourism && /app/.venv/bin/python manage.py audit_data_quality --output /app/reports/data-gaps.csv
+30 2 * * *  cd /srv/tourism/Tourism && /srv/tourism/.venv/bin/python manage.py backup_database --keep 14 --dir /mnt/offsite/tourism-backups >> /var/log/tourism-backup.log 2>&1
 ```
 
-Use a platform scheduler or systemd timer in production rather than relying on a web process.
+Each run: consistent SQLite snapshot → gzip → SHA-256 sidecar → retention
+prune. Copy the backups directory **off-site** (the `--dir` mount above).
 
-## Commands
+**Monthly restore drill** (RTO verified ≈ seconds for a 5.6 MB DB):
 
 ```bash
-python manage.py migrate
-python manage.py sync_official_risk --provider all --dry-run
-python manage.py sync_official_risk --provider all
-python manage.py audit_data_quality --output reports/data-gaps.csv
-python manage.py acceptance_check_nepal
-python manage.py health_snapshot
+python manage.py restore_database --from /mnt/offsite/tourism-backups/db-<stamp>.sqlite3.gz --yes
+# then: python manage.py check && restart the service
 ```
 
-## Routing API
+`restore_database` validates integrity *before* touching the live file and
+preserves the pre-restore DB alongside it.
 
-```http
-POST /api/v1/routing/metrics/
-{
-  "start_latitude": 28.2096,
-  "start_longitude": 83.9856,
-  "end_latitude": 28.2380,
-  "end_longitude": 83.9956
-}
+## 3. Duplicate review workflow (data quality)
+
+```
+detect_duplicate_destinations  →  candidate report (confidence-tiered)
+        →  admin review (highest confidence first)
+        →  POST /api/v1/admin/destinations/merge/ {source_id, target_id, reason}
+        →  audit-logged merge (relations move, source soft-deleted)
 ```
 
-The response always distinguishes `straight_line_km` from `road_distance_km` and reports routing status.
+Tiers: `high` (identical normalized names ≤ 0.5 km — safe to batch-review),
+`medium` (identical names, near or same district), `needs_review` (≥ 0.85
+name similarity within one district). **Never merge blind** — every merge
+requires a human reason and is audit-logged.
 
-## ML operations
+## 4. Data enrichment (national dataset breadth)
 
-The admin ML registry records dataset size, version, previous version, status and logs. Only whitelisted trainers run. Before promotion in a production deployment:
+The bundled OSM CSV (12,838 rows; 8,597 destinations) is the *current*
+dataset, not the final national one. To enrich beyond it:
 
-1. Export approved records.
-2. Train into a staging artifact directory.
-3. Require model-specific holdout metrics.
-4. Compare to the previous version.
-5. Promote atomically only if thresholds pass.
-6. Keep the previous artifact for rollback.
+1. Run from a network that can reach Overpass:
+   `python manage.py enrich_osm_services` / `import_trekking` / re-run the
+   `ml_service` extraction to refresh `destinations_clean.csv`.
+2. `python manage.py import_osm_destinations` — dedupes by OSM external_id,
+   skips unnamed nodes (never fabricates names), writes honest descriptions.
+3. `python manage.py normalize_district_names` — canonical spellings.
+4. New records enter `pending`/candidate queues → admin review → publish.
 
-The current trainers do not all emit comparable quality metrics. A successful process exit is recorded but must not be treated as proof that a model is better.
+The whole chain is one command: **`python manage.py run_data_pipeline`**
+(report mode) / `run_data_pipeline --apply`. Publishing always stays a
+human step.
 
-## Backups and rollback
+## 5. Routing validation (pre-launch checklist)
 
-- Back up SQLite using SQLite's online backup API or `sqlite3 .backup`, not a live filesystem copy.
-- Back up media and model artifacts separately.
-- Apply migrations before starting web workers.
-- Keep at least one prior database, media and model snapshot.
+Verified behaviour (see acceptance runs):
 
-## Monitoring
+| Check | Result |
+|---|---|
+| Lakeside → Davis Falls | `graph_routed`, 6.97 km, 21 turn instructions |
+| Pokhara → Sarangkot | `graph_routed`, 26.76 km, 18 instructions |
+| Pokhara → Begnas | `graph_routed`, 11.6 km |
+| Kathmandu → Pokhara | `graph_routed`, 255.16 km, 60 instructions, ETA 437 min |
+| Pokhara → Chitwan | `graph_routed`, 147.9 km, ETA 254 min |
+| Out-of-network (Delhi→Pokhara) | `routing_unavailable` — **no invented route**, straight-line explicitly labelled "not road distance" |
 
-Admin health output includes database, storage, ML service, Overpass, Wikimedia, DHM feed, BIPAD feed and routing configuration/reachability. Unconfigured optional integrations are reported as unconfigured, not as healthy live feeds.
+The bundled engine is a **tourism graph, not street-level** — every response
+says so in its `note`. For street-level road geometry/ETA in production,
+configure an OSRM/GraphHopper provider in admin → site setting
+`routing_provider` (HTTPS base URL); the app prefers it automatically and
+falls back honestly (`routing_unavailable`) rather than dressing up
+straight-line distances as navigation.
 
-### GraphHopper clarification
+## 6. Monitoring
 
-GraphHopper is a valid routing option, but the Java GraphHopper server normally imports an OpenStreetMap `.osm.pbf` road network and builds its own graph. It does not directly consume the project's tourism GraphML as a production road graph. The application therefore uses the existing GraphML through NetworkX for immediate approximate routing, while retaining OSRM/GraphHopper/OpenRouteService as optional street-routing backends through a configured service URL/adapter.
+- `GET /api/v1/system/health/` — DB/disk/error-rate liveness (alert if `ok=false`)
+- Admin → audit app — action/error/latency logs; alert on severity ≥ error
+- Routing: watch for `routing_unavailable` spikes (provider outage)
+- Freshness: schedule `flag_stale_verifications --flag` weekly so stale
+  "verified" badges expire (`VERIFICATION_INTERVAL_DAYS`, default 180)
 
-## Notification delivery worker
+## 7. Staging → production
 
-External email, SMS, and push broadcasts are stored as queued deliveries and are only marked sent after provider confirmation. Run the bounded queue processor from cron or a scheduler (for example every minute):
+- Separate `.env` per environment (both `.env.example` files document 100%
+  of keys); `DEBUG=False`, explicit `ALLOWED_HOSTS`, strong `SECRET_KEY`,
+  `ML_SERVICE_API_KEY`/`ML_WEBHOOK_SECRET` rotated per environment.
+- Deploy gate: `manage.py test` (593) + `npm run test:e2e` (77) +
+  `manage.py check` + `makemigrations --check` all green.
+- Postgres in production: set `DB_ENGINE=postgres` + `DB_*`; the SQLite
+  backup command steps aside for `pg_dump` in that case.
 
-```bash
-python manage.py process_notification_queue --limit 200
-```
+## 8. Final acceptance (launch checklist)
 
-Failed deliveries use exponential retry timestamps and stop after `max_attempts`. Configure `DEFAULT_FROM_EMAIL`, SMTP settings, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `FCM_SERVER_KEY` only through deployment secrets. If a provider is unavailable or unconfigured, the record remains failed with an honest failure reason; the application does not fabricate successful delivery.
-
-## Data retention and protected deletion
-
-Preview retention eligibility before every purge:
-
-```bash
-python manage.py apply_retention_policy
-```
-
-Apply configured retention windows only after reviewing the dry-run counts:
-
-```bash
-python manage.py apply_retention_policy --apply
-```
-
-The database policy is managed from Admin Control Center → Retention & Protected Deletion. The operation only removes expired ephemeral personal records such as old read notifications, location pings, recommendation telemetry, resolved SOS records, and routine low-severity audit entries. It does not purge active SOS incidents, bookings, security/error audit evidence, or official risk records. Destination, hotel, restaurant, transport, review, feedback, and travel-plan deletion uses archival/deactivation.
-
-User anonymization is separate and irreversible. It removes direct identifiers, credentials, tokens, precise location, device registrations, notifications, favorites, and visit history while preserving booking/review relationships under an anonymized account identifier. Administrators must type the current email address to confirm it.
+- [ ] OAuth live with production redirect URIs (section 1)
+- [ ] Backup cron running + first off-site copy + restore drill PASS (2)
+- [ ] High-confidence duplicates reviewed/merged (3)
+- [ ] Enrichment run from unrestricted network; coverage report re-run (4)
+- [ ] Routing provider configured + checklist re-run (5)
+- [ ] Monitoring alerts wired (6)
+- [ ] Staging deploy green, then production (7)
