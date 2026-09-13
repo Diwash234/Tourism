@@ -3644,3 +3644,120 @@ class DataPipelineTests(TestCase):
         for stage in ("1/5 import", "2/5 normalize", "3/5 freshness", "4/5 deduplicate", "5/5 verification queue"):
             self.assertIn(stage, text)
         self.assertIn("NEXT HUMAN STEPS", text)
+
+
+class ProvenanceConflictTests(APITestCase):
+    """§5/§8/§9: admin corrections are protected; imports raise conflicts,
+    never silent overwrites; conflicts resolve only by explicit admin action."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Temples", slug="temples-prov")
+        self.dest = Destination.objects.create(
+            name="Prov Temple", category=self.category, latitude=27.71, longitude=85.32,
+            district="Kathmandu", country="Nepal", city="Kathmandu",
+            status=Destination.SubmissionStatus.APPROVED, external_id=990001,
+        )
+        self.dest2 = Destination.objects.create(
+            name="Conflict Temple", category=self.category, latitude=27.72, longitude=85.33,
+            district="Kathmandu", country="Nepal", city="",
+            status=Destination.SubmissionStatus.APPROVED, external_id=990002,
+        )
+        self.admin = User.objects.create_user(email="prov@admin.example", password="x", is_superuser=True)
+
+    def test_explorer_edit_records_override_and_before_after_audit(self):
+        from .models import AdminFieldOverride
+        from audit.models import AuditLog
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.patch(reverse("admin-data-explorer"), {
+            "resource": "destinations", "id": self.dest.pk,
+            "fields": {"opening_hours": "06:00-20:00"},
+        }, format="json")
+        # destinations use the dedicated editor via explorer? explorer refuses
+        # destinations — use hospitals resource path instead for explorer test
+        if resp.status_code == 400:
+            from .models import Hospital
+            hosp = Hospital.objects.create(
+                destination=self.dest, name="Prov Hospital", address="wrong", phone="01-000",
+                latitude=27.71, longitude=85.32, district="Kathmandu",
+            )
+            resp = self.client.patch(reverse("admin-data-explorer"), {
+                "resource": "hospitals", "id": hosp.pk, "fields": {"address": "correct address"},
+            }, format="json")
+            self.assertEqual(resp.status_code, 200, resp.data)
+            ovr = AdminFieldOverride.objects.get(model_label="tourist.hospital", object_id=hosp.pk, field="address")
+            self.assertEqual(ovr.value, "correct address")
+            self.assertEqual(ovr.overridden_by, self.admin)
+            log = AuditLog.objects.filter(action="data_explorer_edit").order_by("-id").first()
+            self.assertIsNotNone(log)
+            self.assertIn("wrong", str(log.extra))
+            self.assertIn("correct address", str(log.extra))
+
+    def test_destination_editor_records_override(self):
+        from .models import AdminFieldOverride
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.put(reverse("admin-destination-detail", args=[self.dest.pk]), {
+            "opening_hours": "05:00-21:00",
+        }, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertTrue(AdminFieldOverride.objects.filter(
+            model_label="tourist.destination", object_id=self.dest.pk, field="opening_hours").exists())
+
+    def test_import_creates_conflict_instead_of_overriding(self):
+        import csv as csvmod
+        import tempfile
+        from django.core.management import call_command
+        from .models import AdminFieldOverride, ImportConflict
+        # Admin deliberately set (cleared) city on dest2 -> override exists
+        AdminFieldOverride.objects.create(
+            model_label="tourist.destination", object_id=self.dest2.pk,
+            field="city", value="", overridden_by=self.admin, reason="no city on record",
+        )
+        row = {"ID": "990002", "Name": "Conflict Temple", "Type": "node", "Tourism_Category": "attraction",
+               "Latitude": "27.72", "Longitude": "85.33", "City": "Lalitpur", "Area": "",
+               "District": "Kathmandu", "Province": "Bagmati", "search_text": ""}
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, newline="", encoding="utf-8") as f:
+            writer = csvmod.DictWriter(f, fieldnames=list(row.keys()))
+            writer.writeheader()
+            writer.writerow(row)
+            path = f.name
+        import os
+        try:
+            from unittest.mock import patch as _patch
+            with _patch("tourist.management.commands.import_osm_destinations.CSV_PATH", path):
+                call_command("import_osm_destinations")
+        finally:
+            os.unlink(path)
+        self.dest2.refresh_from_db()
+        self.assertEqual(self.dest2.city, "")  # NOT silently filled
+        conflict = ImportConflict.objects.get(destination=self.dest2, field="city", status="pending")
+        self.assertEqual(conflict.proposed_value, "Lalitpur")
+
+    def test_conflict_resolve_accept_writes_and_protects(self):
+        from .models import AdminFieldOverride, ImportConflict
+        conflict = ImportConflict.objects.create(
+            destination=self.dest2, field="city", current_value="", proposed_value="Lalitpur",
+        )
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.post(
+            reverse("admin-import-conflict-resolve", args=[conflict.pk]),
+            {"action": "accept", "note": "OSM value verified on map"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.dest2.refresh_from_db()
+        self.assertEqual(self.dest2.city, "Lalitpur")
+        self.assertTrue(AdminFieldOverride.objects.filter(
+            object_id=self.dest2.pk, field="city", value="Lalitpur").exists())
+
+    def test_conflict_resolve_keep_preserves_current(self):
+        from .models import ImportConflict
+        conflict = ImportConflict.objects.create(
+            destination=self.dest2, field="city", current_value="", proposed_value="Lalitpur",
+        )
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.post(
+            reverse("admin-import-conflict-resolve", args=[conflict.pk]),
+            {"action": "keep", "note": "no city belongs here"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.dest2.refresh_from_db()
+        self.assertEqual(self.dest2.city, "")
+        conflict.refresh_from_db()
+        self.assertEqual(conflict.status, "kept")

@@ -3710,3 +3710,59 @@ def _cleanup_place_images(sender, instance, **kwargs):
 for _sender in (OSMEssentialService, Hotel, Hospital, PoliceStation, Destination):
     models.signals.post_delete.connect(_cleanup_place_images, sender=_sender,
                                        dispatch_uid=f"placeimage_cleanup_{_sender.__name__}")
+
+
+class AdminFieldOverride(TimeStampedModel):
+    """Provenance: an admin-corrected value that imports must never clobber.
+
+    Recorded whenever an admin edits a record through the CMS (destination
+    editor or data explorer). The OSM/import pipeline checks these before
+    writing: a differing incoming value becomes an ImportConflict for admin
+    review instead of a silent overwrite (spec §8).
+    """
+
+    model_label = models.CharField(max_length=80, db_index=True)   # e.g. "tourist.hospital"
+    object_id = models.PositiveIntegerField(db_index=True)
+    field = models.CharField(max_length=80)
+    value = models.TextField(blank=True)
+    overridden_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="field_overrides"
+    )
+    reason = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ("model_label", "object_id", "field")
+
+    def __str__(self):
+        return f"{self.model_label}#{self.object_id}.{self.field}"
+
+
+class ImportConflict(TimeStampedModel):
+    """A pending 'suggested update': import value differs from the admin's.
+
+    Only after an admin resolves the conflict (keep current / accept new /
+    edit) may the database value change (spec §9).
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending Review"
+        KEPT = "kept", "Kept Current"
+        ACCEPTED = "accepted", "Accepted New"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="import_conflicts")
+    field = models.CharField(max_length=80)
+    current_value = models.TextField(blank=True)
+    proposed_value = models.TextField(blank=True)
+    source = models.CharField(max_length=80, default="osm_csv")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="resolved_import_conflicts"
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolution_note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["destination", "field", "status"])]
+
+    def __str__(self):
+        return f"{self.destination_id}.{self.field}: {self.current_value!r} -> {self.proposed_value!r} [{self.status}]"

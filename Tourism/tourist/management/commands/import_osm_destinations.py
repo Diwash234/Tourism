@@ -32,7 +32,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
 
-from tourist.models import Destination, Category
+from tourist.models import Destination, Category, ImportConflict
 from tourist.municipality_mappings import canonical_district, canonical_province
 
 
@@ -158,6 +158,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Loaded {len(rows)} CSV rows from {os.path.basename(CSV_PATH)}")
 
         created = 0
+        conflicts = 0
         enriched = 0
         unchanged = 0
 
@@ -207,37 +208,66 @@ class Command(BaseCommand):
                 elif dest is None:
                     continue
 
-                # Enrich missing fields
+                # Enrich missing fields — but NEVER clobber admin corrections:
+                # a field with an AdminFieldOverride is skipped, and a
+                # differing incoming value becomes a pending ImportConflict
+                # for admin review instead of a silent overwrite (spec §8/§9).
+                from tourist.provenance import overrides_for
+                ovr = overrides_for(dest)
+
+                def guarded(field, incoming):
+                    """True when the write must be skipped (admin override)."""
+                    nonlocal conflicts
+                    o = ovr.get(field)
+                    if o is None:
+                        return False
+                    current = getattr(dest, field, None)
+                    proposed = "" if incoming is None else str(incoming)
+                    if proposed != (o.value or "") and str("" if current is None else current) != proposed:
+                        ImportConflict.objects.get_or_create(
+                            destination=dest, field=field,
+                            status=ImportConflict.Status.PENDING,
+                            defaults={
+                                "current_value": "" if current is None else str(current),
+                                "proposed_value": proposed,
+                                "source": "osm_csv",
+                            },
+                        )
+                        conflicts += 1
+                    return True
+
                 update = []
-                if not dest.category_id and cat:
+                if not dest.category_id and cat and not guarded("category", cat.name):
                     dest.category = cat
                     update.append("category")
-                if not dest.city and city:
+                if not dest.city and city and not guarded("city", city):
                     dest.city = city
                     update.append("city")
-                if not dest.district and district:
+                if not dest.district and district and not guarded("district", district):
                     dest.district = district
                     update.append("district")
-                if not dest.province and province:
+                if not dest.province and province and not guarded("province", province):
                     dest.province = province
                     update.append("province")
-                if not dest.latitude and lat:
+                if not dest.latitude and lat and not guarded("latitude", lat):
                     dest.latitude = lat
                     update.append("latitude")
-                if not dest.longitude and lon:
+                if not dest.longitude and lon and not guarded("longitude", lon):
                     dest.longitude = lon
                     update.append("longitude")
-                if not dest.country:
+                if not dest.country and not guarded("country", "Nepal"):
                     dest.country = "Nepal"
                     update.append("country")
 
                 if not dest.description:
                     cat_name = dest.category.name if dest.category_id else (row.get("Tourism_Category") or "")
-                    dest.description = generate_description(
+                    new_desc = generate_description(
                         dest.name, cat_name, dest.district, dest.province, dest.city
                     )
-                    dest.short_description = dest.description[:280]
-                    update.extend(["description", "short_description"])
+                    if not guarded("description", new_desc):
+                        dest.description = new_desc
+                        dest.short_description = new_desc[:280]
+                        update.extend(["description", "short_description"])
 
                 if dest.status != "approved":
                     dest.status = "approved"
@@ -259,7 +289,7 @@ class Command(BaseCommand):
                 self.stderr.write(f"  row {i} ({row.get('Name','?')}): {type(exc).__name__}: {exc}")
 
         self.stdout.write(self.style.SUCCESS(
-            f"Done. created={created} enriched={enriched} unchanged={unchanged} total_destinations={Destination.objects.count()}"
+            f"Done. created={created} enriched={enriched} unchanged={unchanged} import_conflicts={conflicts} total_destinations={Destination.objects.count()}"
         ))
 
         if options["photos"]:

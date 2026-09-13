@@ -842,10 +842,13 @@ class AdminDestinationDetailView(APIView):
                 cover_url_changed = True
 
         changed = []
+        change_diff = {}
         for key, value in payload.items():
             if key in editable and hasattr(destination, key):
-                if getattr(destination, key) != value:
+                before = getattr(destination, key)
+                if before != value:
                     changed.append(key)
+                    change_diff[key] = (before, value)
                 setattr(destination, key, value)
         if cover_url_changed:
             changed.append("cover_image_url")
@@ -857,6 +860,12 @@ class AdminDestinationDetailView(APIView):
                 action=DestinationAuditLog.Action.EDITED,
                 note=f"Admin updated fields: {', '.join(changed)}",
             )
+            # Provenance: admin corrections become import-protected overrides
+            # with field-level before/after audit (spec §8/§25).
+            from .provenance import record_admin_edit
+            if cover_url_changed:
+                change_diff.setdefault("cover_image_url", ("", cover_url or ""))
+            record_admin_edit(request, destination, change_diff, source_view="destination_editor")
         return Response({"message": "Destination updated successfully", "changed": changed})
 
     def post(self, request, id):
@@ -1573,6 +1582,7 @@ class AdminDataExplorerView(APIView):
             return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
         editable = {f.name: f for f in self._editable_fields(model)}
         changed = []
+        change_diff = {}
         for name, raw in fields_in.items():
             field = editable.get(name)
             if field is None:
@@ -1583,10 +1593,14 @@ class AdminDataExplorerView(APIView):
             except (InvalidOperation, TypeError, ValueError) as exc:
                 return Response({"detail": f"{name}: invalid value ({exc})"}, status=status.HTTP_400_BAD_REQUEST)
             if getattr(obj, name) != value:
+                change_diff[name] = (getattr(obj, name), value)
                 setattr(obj, name, value)
                 changed.append(name)
         if changed:
             obj.save()
+            # Provenance: import-protected overrides + before/after audit
+            from .provenance import record_admin_edit
+            record_admin_edit(request, obj, change_diff, source_view="data_explorer")
         return Response({"message": "Record updated", "changed": changed})
 
     def _coerce_field(self, field, raw):
@@ -4967,3 +4981,110 @@ class AdminDestinationMergeView(APIView):
             "merged_source_id": source.pk, "target_id": target.pk,
             "moved_relations": moved, "note": note,
         })
+
+
+class AdminImportConflictListView(APIView):
+    """GET /api/v1/admin/import-conflicts/?status=pending — review queue for
+    suggested updates raised when an import disagreed with an admin value."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "destinations", "view")
+        from .models import ImportConflict
+        status_filter = request.query_params.get("status", "pending")
+        qs = (ImportConflict.objects.select_related("destination", "resolved_by")
+              .order_by("-created_at"))
+        if status_filter != "all":
+            qs = qs.filter(status=status_filter)
+        rows = [{
+            "id": c.pk,
+            "destination_id": c.destination_id,
+            "destination_name": c.destination.name,
+            "field": c.field,
+            "current_value": c.current_value,
+            "proposed_value": c.proposed_value,
+            "source": c.source,
+            "status": c.status,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "resolved_by": (c.resolved_by.email if c.resolved_by else None),
+            "resolution_note": c.resolution_note,
+        } for c in qs[:200]]
+        return Response({"count": qs.count(), "results": rows})
+
+
+class AdminImportConflictResolveView(APIView):
+    """POST /api/v1/admin/import-conflicts/<id>/resolve/
+    {action: "keep" | "accept" | "edit", value?, note?}
+
+    Only after this explicit admin decision may the database value change:
+      keep   -> current value stays (override preserved)
+      accept -> proposed import value is written
+      edit   -> admin-provided value is written instead
+    Every resolution updates the AdminFieldOverride (provenance) and is
+    audit-logged with before/after.
+    """
+
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request, pk):
+        _require_capability(request, "destinations", "edit")
+        from .models import ImportConflict
+        from .provenance import AdminFieldOverride
+        conflict = ImportConflict.objects.select_related("destination").filter(pk=pk).first()
+        if not conflict or conflict.status != ImportConflict.Status.PENDING:
+            return Response({"detail": "Pending conflict not found."}, status=status.HTTP_404_NOT_FOUND)
+        action = request.data.get("action")
+        note = str(request.data.get("note") or "")[:255]
+        if action not in ("keep", "accept", "edit"):
+            return Response({"detail": "action must be keep, accept or edit."}, status=status.HTTP_400_BAD_REQUEST)
+
+        dest = conflict.destination
+        field = conflict.field
+        before = getattr(dest, field, None)
+        if action == "keep":
+            final = conflict.current_value
+        elif action == "accept":
+            final = conflict.proposed_value
+        else:
+            final = str(request.data.get("value", ""))
+
+        if action != "keep":
+            # Coerce numerics for known decimal/int fields; everything else is text.
+            from decimal import Decimal, InvalidOperation
+            db_field = dest._meta.get_field(field) if any(f.name == field for f in dest._meta.get_fields()) else None
+            value = final
+            if isinstance(db_field, models.DecimalField) and final not in ("", None):
+                try:
+                    value = Decimal(final)
+                except InvalidOperation:
+                    return Response({"detail": f"{field}: proposed value is not a valid number."}, status=status.HTTP_400_BAD_REQUEST)
+            elif isinstance(db_field, models.IntegerField) and final not in ("", None):
+                try:
+                    value = int(float(final))
+                except (TypeError, ValueError):
+                    return Response({"detail": f"{field}: proposed value is not a valid integer."}, status=status.HTTP_400_BAD_REQUEST)
+            setattr(dest, field, value)
+            dest.save(update_fields=[field, "updated_at"])
+            _sync_destination_json(dest)
+
+        # provenance: the resolved value is now the admin-blessed one
+        AdminFieldOverride.objects.update_or_create(
+            model_label="tourist.destination", object_id=dest.pk, field=field,
+            defaults={"value": str(final or ""), "overridden_by": request.user,
+                      "reason": f"conflict#{conflict.pk}:{action}"},
+        )
+        conflict.status = ImportConflict.Status.KEPT if action == "keep" else ImportConflict.Status.ACCEPTED
+        conflict.resolved_by = request.user
+        conflict.resolved_at = timezone.now()
+        conflict.resolution_note = note
+        conflict.save(update_fields=["status", "resolved_by", "resolved_at", "resolution_note", "updated_at"])
+
+        from audit.logging_services import log_action
+        log_action(
+            request, f"import_conflict_{action}", category="data_edits", severity="info",
+            message=f"Conflict#{conflict.pk} {dest.name}.{field}: {before!r} -> {final!r} ({action})",
+            obj=dest, object_type="Destination", object_id=dest.pk, user=request.user,
+            extra={"action": action, "field": field, "before": str(before), "after": str(final), "note": note},
+        )
+        return Response({"id": conflict.pk, "action": action, "field": field, "final_value": str(final or "")})
