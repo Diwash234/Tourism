@@ -1708,11 +1708,14 @@ class NearbyPOIsView(APIView):
         if setting:
             config_version = str(setting.updated_at.timestamp())
         cache_key = f"osm-pois-c:{round(lat, 3)}:{round(lon, 3)}:{radius_km}:{','.join(cats or [])}:{config_version}"
+        # Cache ONLY the external OSM results. Admin-managed database places
+        # are merged fresh on every request so CMS edits are immediate (§21).
         cached = cache.get(cache_key)
         if cached is not None:
-            return Response(cached)
-
-        groups, meta, error = search_pois(lat, lon, radius_km * 1000, cats)
+            groups, meta, error = cached["groups"], cached["meta"], cached["error"]
+        else:
+            groups, meta, error = search_pois(lat, lon, radius_km * 1000, cats)
+            cache.set(cache_key, {"groups": groups, "meta": meta, "error": error}, 900)
         meta_by_key = {item["key"]: item for item in meta}
 
         # Verified database places (spec §9): admin-managed destinations near
@@ -1754,7 +1757,6 @@ class NearbyPOIsView(APIView):
             "verified_database_places": db_rows[:15],
             "provider_error": error,
         }
-        cache.set(cache_key, payload, 900)
         return Response(payload)
 
 
@@ -1832,9 +1834,11 @@ class DestinationNearbyPOIsView(APIView):
         radius_m = int(radius_km * 1000)
 
         cache_key = f"osm-pois:{round(float(lat), 3)}:{round(float(lon), 3)}:{radius_m}:{','.join(wanted)}"
+        # Cache only the external OSM grouping; destination metadata is
+        # merged fresh so admin renames are immediate (§21).
         cached = cache.get(cache_key)
         if cached is not None:
-            return Response(cached)
+            return Response({**cached, "destination": destination.name})
 
         parts = "".join(f"{self.CATEGORIES[key][0]}(around:{radius_m},{lat},{lon});" for key in wanted)
         query = f"[out:json][timeout:15];({parts});out body 300;"
@@ -1875,7 +1879,7 @@ class DestinationNearbyPOIsView(APIView):
             "source": "OpenStreetMap (Overpass API)",
             "categories": categories,
         }
-        cache.set(cache_key, payload, 900)
+        cache.set(cache_key, {k: v for k, v in payload.items() if k != "destination"}, 900)
         return Response(payload)
 
 

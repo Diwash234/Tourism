@@ -43,8 +43,8 @@ export default function SubmitPlacePage() {
     ward_number: 6,
     province: "Gandaki",
     city: "Pokhara",
-    latitude: "28.209600",
-    longitude: "83.985600",
+    latitude: "",
+    longitude: "",
     altitude: "822m",
     entry_fee: "0",
     opening_hours: "6:00 AM - 6:00 PM",
@@ -163,8 +163,12 @@ export default function SubmitPlacePage() {
     setLoading(true)
 
     // Sanitize numbers to prevent nan-08 errors
-    const latNum = parseFloat(form.latitude) || 28.2096
-    const lonNum = parseFloat(form.longitude) || 83.9856
+    // No fabricated coordinates: blank/invalid coords are omitted and the
+    // suggestion goes to the approval desk without a guessed location.
+    const latParsed = parseFloat(form.latitude)
+    const lonParsed = parseFloat(form.longitude)
+    const latNum = Number.isFinite(latParsed) && latParsed >= -90 && latParsed <= 90 ? latParsed : null
+    const lonNum = Number.isFinite(lonParsed) && lonParsed >= -180 && lonParsed <= 180 ? lonParsed : null
     const feeNum = parseFloat(form.entry_fee) || 0.0
     const muniFinal = manualMuniMode ? (manualMuniText.trim() || selectedDistrict) : selectedMunicipality
 
@@ -176,8 +180,10 @@ export default function SubmitPlacePage() {
     formData.append("municipality", muniFinal)
     formData.append("ward_number", selectedWard)
     formData.append("city", villageTole.trim() ? `${villageTole.trim()}, ${selectedDistrict}` : selectedDistrict)
-    formData.append("latitude", latNum.toFixed(6))
-    formData.append("longitude", lonNum.toFixed(6))
+    if (latNum !== null && lonNum !== null) {
+      formData.append("latitude", latNum.toFixed(6))
+      formData.append("longitude", lonNum.toFixed(6))
+    }
     formData.append("altitude", form.altitude.trim())
     formData.append("entry_fee", feeNum.toFixed(2))
     formData.append("opening_hours", form.opening_hours.trim())
@@ -205,8 +211,8 @@ export default function SubmitPlacePage() {
         ward_number: selectedWard,
         province: selectedProvince,
         city: selectedDistrict,
-        latitude: "28.209600",
-        longitude: "83.985600",
+        latitude: "",
+        longitude: "",
         altitude: "822m",
         entry_fee: "0",
         opening_hours: "",
