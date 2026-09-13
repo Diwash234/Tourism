@@ -5088,3 +5088,180 @@ class AdminImportConflictResolveView(APIView):
             extra={"action": action, "field": field, "before": str(before), "after": str(final), "note": note},
         )
         return Response({"id": conflict.pk, "action": action, "field": field, "final_value": str(final or "")})
+
+
+class AdminDuplicateCandidatesView(APIView):
+    """GET /api/v1/admin/duplicates/?confidence=high|medium|needs_review&limit=50
+
+    Duplicate review as a real CMS feature (§10): confidence-tiered
+    candidates, dismissed pairs excluded."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "destinations", "view")
+        from .duplicates import find_duplicates
+        confidence = request.query_params.get("confidence")
+        try:
+            limit = min(int(request.query_params.get("limit", 50)), 200)
+        except (TypeError, ValueError):
+            limit = 50
+        candidates = find_duplicates(limit=None)
+        tiers = {t: sum(1 for c in candidates if c["confidence"] == t)
+                 for t in ("high", "medium", "needs_review")}
+        if confidence in tiers:
+            candidates = [c for c in candidates if c["confidence"] == confidence]
+        return Response({"tier_counts": tiers, "count": len(candidates),
+                         "results": candidates[:limit]})
+
+
+class AdminDuplicateCompareView(APIView):
+    """GET /api/v1/admin/duplicates/compare/?a=<id>&b=<id>
+
+    Field-by-field comparison of the two records so the admin can choose
+    Keep A / Keep B / Merge / Not Duplicate with full context (§10)."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "destinations", "view")
+        a = Destination.objects.filter(pk=request.query_params.get("a")).first()
+        b = Destination.objects.filter(pk=request.query_params.get("b")).first()
+        if not a or not b:
+            return Response({"detail": "Both destination ids are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        def profile(d):
+            return {
+                "id": d.pk, "name": d.name, "district": d.district, "province": d.province,
+                "city": d.city, "address": d.address,
+                "latitude": str(d.latitude) if d.latitude is not None else None,
+                "longitude": str(d.longitude) if d.longitude is not None else None,
+                "description": (d.description or "")[:400],
+                "opening_hours": d.opening_hours, "entry_fee": str(d.entry_fee) if d.entry_fee is not None else None,
+                "website": d.website,
+                "images": d.gallery.count(), "reviews": d.reviews.count(),
+                "category": d.category.name if d.category_id else None,
+                "status": d.status, "source": d.source, "external_id": d.external_id,
+                "is_verified": bool(getattr(d, "research_status", "") == "verified"),
+            }
+        return Response({"a": profile(a), "b": profile(b)})
+
+
+class AdminDuplicateDecisionView(APIView):
+    """POST /api/v1/admin/duplicates/decision/ {a_id, b_id, note?}
+
+    Marks a reviewed pair as NOT a duplicate so it never resurfaces in the
+    review queue. (Merges go through the audited merge endpoint instead.)"""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        _require_capability(request, "destinations", "edit")
+        from .models import DuplicateDecision
+        try:
+            a_id, b_id = int(request.data.get("a_id")), int(request.data.get("b_id"))
+        except (TypeError, ValueError):
+            return Response({"detail": "a_id and b_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+        if a_id == b_id:
+            return Response({"detail": "a_id and b_id must differ."}, status=status.HTTP_400_BAD_REQUEST)
+        decision, created = DuplicateDecision.objects.get_or_create(
+            id_a=min(a_id, b_id), id_b=max(a_id, b_id),
+            defaults={"decided_by": request.user, "note": str(request.data.get("note") or "")[:255]},
+        )
+        from audit.logging_services import log_action
+        log_action(request, "duplicate_not_duplicate", category="data_quality", severity="info",
+                   message=f"Marked #{decision.id_a}/#{decision.id_b} as NOT duplicate",
+                   user=request.user, extra={"a": decision.id_a, "b": decision.id_b})
+        return Response({"dismissed": [decision.id_a, decision.id_b], "created": created})
+
+
+class AdminDestinationBulkView(APIView):
+    """POST /api/v1/admin/destinations/bulk/ — §12 bulk operations.
+
+    {ids: [...], action, confirm?, category_id?, district?, reason}
+    Destructive actions (delete) require confirm=true. Every bulk run is
+    audit-logged with the id list and reason."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    ACTIONS = {"publish", "unpublish", "archive", "restore", "delete",
+               "assign_category", "assign_district"}
+
+    def post(self, request):
+        _require_capability(request, "destinations", "edit")
+        ids = request.data.get("ids") or []
+        action = request.data.get("action")
+        reason = str(request.data.get("reason") or "").strip()
+        confirm = bool(request.data.get("confirm"))
+        if action not in self.ACTIONS:
+            return Response({"detail": f"action must be one of {sorted(self.ACTIONS)}."}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(ids, list) or not ids or len(ids) > 500:
+            return Response({"detail": "ids must be a non-empty list (max 500)."}, status=status.HTTP_400_BAD_REQUEST)
+        if action == "delete" and not confirm:
+            return Response({"detail": "Bulk delete is destructive — resend with confirm=true."}, status=status.HTTP_400_BAD_REQUEST)
+        if not reason:
+            return Response({"detail": "A reason is required for bulk operations."}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = Destination.objects.filter(pk__in=ids)
+        affected = qs.count()
+        if action == "publish":
+            qs.update(status=Destination.SubmissionStatus.APPROVED, is_active=True)
+        elif action == "unpublish":
+            qs.update(is_active=False)
+        elif action == "archive":
+            qs.update(is_active=False)
+        elif action == "restore":
+            qs.update(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        elif action == "delete":
+            qs.delete()
+        elif action == "assign_category":
+            cat = Category.objects.filter(pk=request.data.get("category_id")).first()
+            if not cat:
+                return Response({"detail": "category_id not found."}, status=status.HTTP_400_BAD_REQUEST)
+            qs.update(category=cat)
+        elif action == "assign_district":
+            district = str(request.data.get("district") or "").strip()
+            if not district:
+                return Response({"detail": "district is required."}, status=status.HTTP_400_BAD_REQUEST)
+            qs.update(district=district)
+
+        from audit.logging_services import log_action
+        log_action(request, f"bulk_{action}", category="data_edits",
+                   severity="warning" if action == "delete" else "info",
+                   message=f"Bulk {action} on {affected} destinations: {reason}",
+                   user=request.user, extra={"ids": list(ids)[:500], "action": action, "reason": reason})
+        return Response({"action": action, "affected": affected, "reason": reason})
+
+
+class AdminDataHealthView(APIView):
+    """GET /api/v1/admin/data-health/ — §14 data health dashboard numbers.
+
+    Each count links (via matching filters) to the records behind it."""
+
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "destinations", "view")
+        from .models import DestinationCandidate, DuplicateDecision, ImportConflict
+        from .duplicates import find_duplicates
+        approved = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        conflicts_pending = ImportConflict.objects.filter(status="pending").count()
+        try:
+            dup_count = len(find_duplicates(limit=None))
+        except Exception:
+            dup_count = None
+        from .models import DataReport
+        reports_open = DataReport.objects.exclude(status__in=("fixed", "rejected", "duplicate")).count()
+        return Response({
+            "total_records": Destination.objects.count(),
+            "published": approved.count(),
+            "pending_review": Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).count(),
+            "archived_or_unpublished": Destination.objects.filter(is_active=False).count(),
+            "missing_coordinates": Destination.objects.filter(latitude__isnull=True).count(),
+            "missing_images": approved.filter(gallery__isnull=True).distinct().count(),
+            "possible_duplicates": dup_count,
+            "duplicate_dismissals": DuplicateDecision.objects.count(),
+            "import_conflicts_pending": conflicts_pending,
+            "user_reports_open": reports_open,
+            "research_candidates": DestinationCandidate.objects.count(),
+        })

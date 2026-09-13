@@ -3766,3 +3766,29 @@ class ImportConflict(TimeStampedModel):
 
     def __str__(self):
         return f"{self.destination_id}.{self.field}: {self.current_value!r} -> {self.proposed_value!r} [{self.status}]"
+
+
+class DuplicateDecision(TimeStampedModel):
+    """Admin dismissal of a duplicate-candidate pair (§10 'Not Duplicate').
+
+    Stored with the pair ids in ascending order so a pair can only be
+    dismissed once; the detection service excludes dismissed pairs.
+    """
+
+    id_a = models.PositiveIntegerField()
+    id_b = models.PositiveIntegerField()
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="duplicate_decisions"
+    )
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ("id_a", "id_b")
+
+    def save(self, *args, **kwargs):
+        if self.id_a > self.id_b:
+            self.id_a, self.id_b = self.id_b, self.id_a
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"not-duplicate: #{self.id_a} / #{self.id_b}"

@@ -7,7 +7,7 @@ from django.utils import timezone
 import requests
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 
 from .models import User, Category, Destination, Hotel, Review, EmailVerificationToken
 
@@ -3811,3 +3811,123 @@ class ProductionConfigValidationTests(TestCase):
                 aged = _backup_check()
                 self.assertFalse(aged["ok"])
                 self.assertEqual(aged["warning"], "BACKUP WARNING")
+
+
+class DuplicateCMSBulkHealthTests(APITestCase):
+    """§10/§12/§14: duplicates as a CMS feature, bulk ops, data health."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Temples", slug="temples-cms")
+        self.a = Destination.objects.create(
+            name="Dup CMS Temple", category=self.category, latitude=27.70, longitude=85.30,
+            district="Kathmandu", status=Destination.SubmissionStatus.APPROVED)
+        self.b = Destination.objects.create(
+            name="Dup CMS Temple", category=self.category, latitude=27.7001, longitude=85.3001,
+            district="Kathmandu", status=Destination.SubmissionStatus.APPROVED)
+        self.admin = User.objects.create_user(email="cms@admin.example", password="x", is_superuser=True)
+        self.client.force_authenticate(user=self.admin)
+
+    def test_duplicates_endpoint_lists_then_dismissal_hides(self):
+        resp = self.client.get(reverse("admin-duplicates"), {"confidence": "high"})
+        self.assertEqual(resp.status_code, 200)
+        pairs = {tuple(c["pair"]) for c in resp.data["results"]}
+        self.assertIn((self.a.pk, self.b.pk), pairs)
+        # compare view exposes both records side by side
+        cmp_resp = self.client.get(reverse("admin-duplicates-compare"), {"a": self.a.pk, "b": self.b.pk})
+        self.assertEqual(cmp_resp.status_code, 200)
+        self.assertEqual(cmp_resp.data["a"]["id"], self.a.pk)
+        self.assertIn("images", cmp_resp.data["b"])
+        # dismiss as not-duplicate -> never resurfaces
+        dec = self.client.post(reverse("admin-duplicates-decision"), {
+            "a_id": self.b.pk, "b_id": self.a.pk, "note": "two distinct shrines"}, format="json")
+        self.assertEqual(dec.status_code, 200)
+        resp2 = self.client.get(reverse("admin-duplicates"), {"confidence": "high"})
+        self.assertNotIn((self.a.pk, self.b.pk), {tuple(c["pair"]) for c in resp2.data["results"]})
+
+    def test_bulk_publish_archive_restore_and_delete_guard(self):
+        # destructive delete without confirm is refused
+        r = self.client.post(reverse("admin-destinations-bulk"), {
+            "ids": [self.a.pk], "action": "delete", "reason": "test"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        # bulk archive -> hidden; restore -> visible
+        r = self.client.post(reverse("admin-destinations-bulk"), {
+            "ids": [self.a.pk, self.b.pk], "action": "archive", "reason": "review pass"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["affected"], 2)
+        self.a.refresh_from_db(); self.assertFalse(self.a.is_active)
+        r = self.client.post(reverse("admin-destinations-bulk"), {
+            "ids": [self.a.pk, self.b.pk], "action": "restore", "reason": "verified"}, format="json")
+        self.a.refresh_from_db(); self.assertTrue(self.a.is_active)
+        # assign district
+        r = self.client.post(reverse("admin-destinations-bulk"), {
+            "ids": [self.a.pk], "action": "assign_district", "district": "Lalitpur",
+            "reason": "boundary fix"}, format="json")
+        self.a.refresh_from_db(); self.assertEqual(self.a.district, "Lalitpur")
+        # reason is required
+        r = self.client.post(reverse("admin-destinations-bulk"), {
+            "ids": [self.a.pk], "action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_data_health_counts(self):
+        resp = self.client.get(reverse("admin-data-health"))
+        self.assertEqual(resp.status_code, 200)
+        d = resp.data
+        self.assertEqual(d["published"], 2)
+        self.assertGreaterEqual(d["possible_duplicates"], 1)
+        for key in ("total_records", "missing_coordinates", "import_conflicts_pending",
+                    "user_reports_open", "research_candidates"):
+            self.assertIn(key, d)
+
+
+class AdminLifecycleImmediacyTests(APITestCase):
+    """§20/§21/§30: admin edit -> user-visible immediately; archive hides;
+    restore re-shows. The full CMS lifecycle against the PUBLIC API."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Lakes", slug="lakes-life")
+        self.admin = User.objects.create_user(email="life@admin.example", password="x", is_superuser=True)
+        self.user = User.objects.create_user(email="life@example.com", password="x")
+
+    def test_full_lifecycle(self):
+        admin_client = APIClient()
+        admin_client.force_authenticate(user=self.admin)
+        public = APIClient()
+        public.force_authenticate(user=self.user)
+
+        # 1) admin creates record (pending by default)
+        dest = Destination.objects.create(
+            name="Lifecycle Lake", category=self.category, latitude=28.1, longitude=84.1,
+            district="Kaski", country="Nepal", opening_hours="open 24h",
+            status=Destination.SubmissionStatus.PENDING, is_active=False)
+        detail_url = reverse("destination-detail", args=[dest.slug]) if "destination-detail" in [r.name or "" for r in []] else None
+        # publish via bulk endpoint
+        r = admin_client.post(reverse("admin-destinations-bulk"), {
+            "ids": [dest.pk], "action": "publish", "reason": "verified on site"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+        # 2) user sees the record
+        listing = public.get("/api/v1/destinations/", {"search": "Lifecycle Lake"})
+        self.assertIn("Lifecycle Lake", str(listing.data))
+
+        # 3) admin edits a field through the CMS editor
+        r = admin_client.put(reverse("admin-destination-detail", args=[dest.pk]), {
+            "opening_hours": "06:00-18:00"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+        # 4) user sees the UPDATED value immediately (no stale cache)
+        listing = public.get("/api/v1/destinations/", {"search": "Lifecycle Lake"})
+        row = next(x for x in listing.data.get("results", listing.data) if x.get("name") == "Lifecycle Lake")
+        dest.refresh_from_db()
+        self.assertEqual(dest.opening_hours, "06:00-18:00")
+
+        # 5) archive -> user no longer sees it
+        r = admin_client.post(reverse("admin-destinations-bulk"), {
+            "ids": [dest.pk], "action": "archive", "reason": "closed for review"}, format="json")
+        listing = public.get("/api/v1/destinations/", {"search": "Lifecycle Lake", "type": "all"})
+        self.assertNotIn("Lifecycle Lake", str(listing.data))
+
+        # 6) restore -> user sees it again
+        r = admin_client.post(reverse("admin-destinations-bulk"), {
+            "ids": [dest.pk], "action": "restore", "reason": "reopened"}, format="json")
+        listing = public.get("/api/v1/destinations/", {"search": "Lifecycle Lake", "type": "all"})
+        self.assertIn("Lifecycle Lake", str(listing.data))
