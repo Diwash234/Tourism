@@ -772,10 +772,26 @@ class AdminDestinationDetailView(APIView):
 
         from .location_sync import display_city, has_map_pin
         _is_public, _why_not = _public_explanation(destination)
+        # §20 data completeness: what an admin still needs to fill in.
+        _checks = {
+            "name": bool((destination.name or "").strip()),
+            "description": bool((destination.description or "").strip()),
+            "coordinates": destination.latitude is not None and destination.longitude is not None,
+            "category": destination.category_id is not None,
+            "district": bool((destination.district or "").strip()),
+            "images": destination.gallery.filter(verification_status="approved").exists(),
+            "opening_hours": bool((destination.opening_hours or "").strip()),
+            "contact_or_website": bool((destination.website or "").strip()),
+        }
+        _completeness = {
+            "percent": round(100 * sum(_checks.values()) / len(_checks)),
+            "fields": _checks,
+        }
         return Response({
             "id": destination.id,
             "public": _is_public,
             "not_public_reason": _why_not,
+            "completeness": _completeness,
             "public_url": f"/destinations/{destination.slug}" if _is_public else None,
             "name": destination.name,
             "slug": destination.slug,
@@ -5072,3 +5088,25 @@ class AdminDestinationPreviewView(APIView):
             "public_url": f"/destinations/{d.slug}" if is_public else None,
             "preview": DestinationDetailSerializer(d, context={"request": request}).data,
         })
+
+
+class AdminAuditActivityView(APIView):
+    """§25 publication activity panel — real audit events, newest first."""
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request):
+        _require_capability(request, "dashboard", "view")
+        qs = (DestinationAuditLog.objects.select_related("destination", "actor")
+              .order_by("-created_at")[:50])
+        return Response({"results": [{
+            "id": log.id,
+            "destination": {"id": log.destination_id, "name": log.destination.name},
+            "action": log.action,
+            "actor": getattr(log.actor, "email", None) or "system",
+            "note": log.note,
+            "reason": log.reason,
+            "previous_status": log.previous_status,
+            "new_status": log.new_status,
+            "field_changes": log.field_changes,
+            "created_at": log.created_at,
+        } for log in qs]})

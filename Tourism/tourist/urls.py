@@ -237,6 +237,7 @@ urlpatterns = [
     path("admin/import-conflicts/", views_admin.AdminImportConflictsView.as_view(), name="admin-import-conflicts"),
     path("admin/approvals/", views_admin.AdminApprovalCenterView.as_view(), name="admin-approvals"),
     path("admin/data-integrity/", views_admin.AdminDataIntegrityView.as_view(), name="admin-data-integrity"),
+    path("admin/audit-activity/", views_admin.AdminAuditActivityView.as_view(), name="admin-audit-activity"),
     path("admin/duplicates/", views_admin.AdminDuplicateCandidatesView.as_view(), name="admin-duplicates"),
     path("admin/duplicates/compare/", views_admin.AdminDuplicateCompareView.as_view(), name="admin-duplicates-compare"),
     path("admin/duplicates/decision/", views_admin.AdminDuplicateDecisionView.as_view(), name="admin-duplicates-decision"),

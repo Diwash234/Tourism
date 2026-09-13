@@ -826,15 +826,24 @@ class RecommendationAndRiskArchitectureTests(APITestCase):
         data = DestinationListSerializer(self.trek).data
         self.assertIsNone(data["cover_image_url"])
 
-    def test_destination_linked_unverified_media_remains_visible_for_admin_review(self):
+    def test_destination_linked_unverified_media_hidden_publicly_visible_to_admins(self):
+        """Superseded contract: pending media must NOT surface on the public
+        serializer (approval required first); admins review it through the
+        admin detail view / pending-images queue instead."""
         from .models import DestinationImage
         from .serializers import DestinationListSerializer
-        DestinationImage.objects.create(
+        img = DestinationImage.objects.create(
             destination=self.trek, external_url="https://images.example.com/asset-abc123.jpg",
             is_cover=True, is_verified=False, verification_status="pending",
         )
         data = DestinationListSerializer(self.trek).data
-        self.assertEqual(data["cover_image_url"], "https://images.example.com/asset-abc123.jpg")
+        self.assertIsNone(data["cover_image_url"])  # pending never public
+        # ...but the admin detail view still exposes it for moderation
+        admin = User.objects.create_superuser(email="media-admin@example.com", password="AdminPass123!")
+        self.client.force_authenticate(user=admin)
+        resp = self.client.get(f"/api/v1/admin/destinations/{self.trek.id}")
+        gallery = resp.data.get("gallery") or resp.data.get("images") or []
+        self.assertTrue(any(g.get("id") == img.id for g in gallery))
 
     def test_district_gallery_uses_canonical_77_districts(self):
         from .models import DestinationImage
@@ -3744,3 +3753,23 @@ class LifecycleEndpointsTests(APITestCase):
         ids_p1 = {row["id"] for row in r1.data["results"]}
         ids_p3 = {row["id"] for row in r3.data["results"]}
         self.assertFalse(ids_p1 & ids_p3)  # pages do not overlap
+
+
+class ImagePublicationTests(APITestCase):
+    """§5/§7: an image saved in the DB is NOT public until approved."""
+
+    def test_pending_image_hidden_approved_visible(self):
+        dest = Destination.objects.create(name="Gallery Place", slug="gallery-place",
+                                          district="Kaski", description="d",
+                                          latitude=28.2, longitude=83.99,
+                                          status="approved", is_active=True)
+        pending = DestinationImage.objects.create(
+            destination=dest, external_url="https://example.com/pending.jpg",
+            verification_status="pending")
+        r = self.client.get("/api/v1/destinations/gallery-place/")
+        urls = r.data.get("images") or []
+        self.assertNotIn("https://example.com/pending.jpg", urls)
+        pending.verification_status = "approved"
+        pending.save(update_fields=["verification_status"])
+        r = self.client.get("/api/v1/destinations/gallery-place/")
+        self.assertTrue(any("pending.jpg" in u for u in (r.data.get("images") or [])))

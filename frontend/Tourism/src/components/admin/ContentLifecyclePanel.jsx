@@ -56,6 +56,7 @@ export default function ContentLifecyclePanel() {
   const [dupes, setDupes] = useState(null)
   const [dupeFilter, setDupeFilter] = useState("high")
   const [integrity, setIntegrity] = useState(null)
+  const [activity, setActivity] = useState(null)
   const [revisionsFor, setRevisionsFor] = useState(null)
   const [revisions, setRevisions] = useState(null)
   const [subTab, setSubTab] = useState("content")
@@ -90,6 +91,11 @@ export default function ContentLifecyclePanel() {
       .then(({ data }) => setIntegrity(data))
       .catch(() => showToast("Could not load data integrity counts.", "error"))
   }, [showToast])
+  const loadActivity = useCallback(() => {
+    axiosClient.get("/admin/audit-activity/")
+      .then(({ data }) => setActivity(data.results))
+      .catch(() => showToast("Could not load activity feed.", "error"))
+  }, [showToast])
 
   useEffect(() => { loadContent() }, [loadContent])
   useEffect(() => {
@@ -97,7 +103,8 @@ export default function ContentLifecyclePanel() {
     if (subTab === "conflicts") loadConflicts()
     if (subTab === "duplicates") loadDupes()
     if (subTab === "quality") loadIntegrity()
-  }, [subTab, loadApprovals, loadConflicts, loadDupes, loadIntegrity])
+    if (subTab === "activity") loadActivity()
+  }, [subTab, loadApprovals, loadConflicts, loadDupes, loadIntegrity, loadActivity])
 
   const [preview, setPreview] = useState(null)
 
@@ -229,7 +236,7 @@ export default function ContentLifecyclePanel() {
 
   const TABS = [["content", "All Content", <FiLayers key="i" />], ["approvals", "Approval Center", <FiCheckCircle key="i" />],
     ["conflicts", "Import Conflicts", <FiAlertTriangle key="i" />], ["duplicates", "Duplicate Review", <FiGitMerge key="i" />],
-    ["quality", "Data Quality", <FiActivity key="i" />]]
+    ["quality", "Data Quality", <FiActivity key="i" />], ["activity", "Activity", <FiCheckCircle key="i" />]]
 
   return (
     <div className="space-y-5">
@@ -468,6 +475,22 @@ export default function ContentLifecyclePanel() {
             <pre className="text-xs text-slate-300 bg-slate-950/60 rounded-xl p-3 overflow-x-auto">{JSON.stringify(preview.preview, null, 1).slice(0, 3000)}</pre>
           </div>
         </div>
+      )}
+
+      {subTab === "activity" && (
+        <SectionCard title="Publication Activity" icon={<FiCheckCircle />} count={activity?.length}>
+          {activity?.length === 0 && <p className="text-slate-400 text-sm">No admin actions recorded yet.</p>}
+          <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+            {activity?.map((a) => (
+              <div key={a.id} className="text-sm border-b border-slate-800 pb-1 flex flex-wrap gap-x-2">
+                <span className="text-slate-500 text-xs">{new Date(a.created_at).toLocaleString()}</span>
+                <span className="text-amber-300">{a.actor}</span>
+                <span className="text-slate-300">{a.note}</span>
+                {a.previous_status && <span className="text-slate-500 text-xs">{a.previous_status} → {a.new_status}</span>}
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       )}
 
       {revisions && (

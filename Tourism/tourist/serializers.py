@@ -680,7 +680,7 @@ class HotelSerializer(serializers.ModelSerializer):
             else:
                 photos = list(obj.destination.gallery.all())
                 approved = [photo for photo in photos if photo.verification_status in {"approved", "verified"}]
-                candidates = approved or [photo for photo in photos if photo.verification_status != "rejected"]
+                candidates = approved  # pending/rejected photos never surface publicly
                 candidates.sort(key=lambda photo: (not photo.is_cover, photo.ordering, photo.id))
                 if candidates:
                     photo = candidates[0]
@@ -764,9 +764,13 @@ def is_destination_specific_image(destination, photo):
 
 
 def verified_destination_photos(destination):
+    """Public galleries show APPROVED photos only.
+
+    Pending uploads (staff/community) stay in the moderation queue and must
+    never appear publicly before an admin approves them; rejected never."""
     return [
         photo for photo in destination.gallery.all()
-        if photo.verification_status != DestinationImage.ImageStatus.REJECTED
+        if photo.verification_status == DestinationImage.ImageStatus.APPROVED
         and is_destination_specific_image(destination, photo)
     ]
 
