@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { FiAlertCircle } from "react-icons/fi"
 import authApi from "../../api/authApi"
 import useAuth from "../../hooks/useAuth"
-import { getRedirectUri } from "../../utils/oauth"
+import { getRedirectUri, consumeOAuthState } from "../../utils/oauth"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 
@@ -33,6 +33,7 @@ const OAuthCallback = () => {
     const t = setTimeout(() => {
     const code = searchParams.get("code")
     const oauthError = searchParams.get("error")
+    const returnedState = searchParams.get("state")
 
     // User clicked "Cancel" on the provider's consent screen
     if (oauthError) {
@@ -43,6 +44,16 @@ const OAuthCallback = () => {
     if (!code) {
       setStatus("error")
       setErrorMessage("No authorization code was returned.")
+      return
+    }
+
+    // CSRF check: the state we generated before the redirect must come
+    // back unchanged (see utils/oauth.js generateOAuthState).
+    if (!consumeOAuthState(provider, returnedState)) {
+      setStatus("error")
+      setErrorMessage(
+        "Security check failed: the sign-in response did not match this session. Please try again from the login page."
+      )
       return
     }
 

@@ -19,6 +19,45 @@ export function getRedirectUri(provider) {
   return `${window.location.origin}/auth/callback/${provider}`
 }
 
+// --- OAuth CSRF protection (state parameter) -------------------------
+// A random state is generated before the redirect, stored in
+// sessionStorage, sent to the provider, and verified when the provider
+// redirects back (OAuthCallback.jsx). Without it, an attacker could
+// complete their own OAuth flow and trick a victim's browser into logging
+// into the attacker's account (login CSRF).
+export function generateOAuthState(provider) {
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  const state = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
+  try {
+    sessionStorage.setItem(`oauth_state_${provider}`, state)
+  } catch {
+    /* private mode with sessionStorage disabled: state check is skipped */
+  }
+  return state
+}
+
+export function consumeOAuthState(provider, returnedState) {
+  /** Returns true when the returned state matches the stored one.
+   *  When no state was stored (e.g. sessionStorage unavailable) we cannot
+   *  verify — callers treat that as "unverifiable" and refuse the login. */
+  try {
+    const expected = sessionStorage.getItem(`oauth_state_${provider}`)
+    sessionStorage.removeItem(`oauth_state_${provider}`)
+    return Boolean(expected) && expected === returnedState
+  } catch {
+    return false
+  }
+}
+
+export function isProviderConfigured(provider) {
+  const clientId =
+    provider === "google"
+      ? import.meta.env.VITE_GOOGLE_CLIENT_ID
+      : import.meta.env.VITE_GITHUB_CLIENT_ID
+  return Boolean(clientId)
+}
+
 export function getGoogleAuthUrl() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const params = new URLSearchParams({
@@ -27,7 +66,11 @@ export function getGoogleAuthUrl() {
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
+    // select_account makes Google show the full account chooser (every
+    // Google account signed in on this phone/desktop browser) instead of
+    // silently reusing the last-used account.
     prompt: "select_account",
+    state: generateOAuthState("google"),
   })
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
 }
@@ -38,6 +81,7 @@ export function getGithubAuthUrl() {
     client_id: clientId || "",
     redirect_uri: getRedirectUri("github"),
     scope: "read:user user:email",
+    state: generateOAuthState("github"),
   })
   return `https://github.com/login/oauth/authorize?${params.toString()}`
 }

@@ -383,6 +383,13 @@ GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
 GITHUB_CLIENT_ID = config("GITHUB_CLIENT_ID", default="")
 GITHUB_CLIENT_SECRET = config("GITHUB_CLIENT_SECRET", default="")
+# Provider endpoint URLs — defaults are the real provider endpoints.
+# Overridable so integration tests can point the exchange at a local mock
+# provider (and enterprises can route through a proxy) without code changes.
+GOOGLE_OAUTH_TOKEN_URL = config("GOOGLE_OAUTH_TOKEN_URL", default="https://oauth2.googleapis.com/token")
+GOOGLE_OAUTH_USERINFO_URL = config("GOOGLE_OAUTH_USERINFO_URL", default="https://www.googleapis.com/oauth2/v3/userinfo")
+GITHUB_OAUTH_TOKEN_URL = config("GITHUB_OAUTH_TOKEN_URL", default="https://github.com/login/oauth/access_token")
+GITHUB_OAUTH_API_URL = config("GITHUB_OAUTH_API_URL", default="https://api.github.com")
 
 # Community photo promotion: once a user-submitted photo's view count
 # crosses this threshold, it's automatically promoted to the destination's

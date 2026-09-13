@@ -3330,3 +3330,105 @@ class DistrictAliasItineraryTests(APITestCase):
         self.assertTrue(_ml_plan_matches_place(plan, "Eastern Rukum"))
         wrong = {"itinerary": [{"district": "Kathmandu", "destinations": []}]}
         self.assertFalse(_ml_plan_matches_place(wrong, "Eastern Rukum"))
+
+
+class OAuthCallbackTests(APITestCase):
+    """End-to-end tests for the custom OAuth callback half (views_oauth.py).
+
+    The provider HTTP calls are patched at the views_oauth namespace; the
+    exchange URLs are overridden to a mock provider base so the test proves
+    the configurable-endpoint wiring (settings.GOOGLE_OAUTH_TOKEN_URL etc.)
+    without touching the real internet.
+    """
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    MOCK_SETTINGS = {
+        "GOOGLE_CLIENT_ID": "test-google-client",
+        "GOOGLE_CLIENT_SECRET": "test-google-secret",
+        "GITHUB_CLIENT_ID": "test-github-client",
+        "GITHUB_CLIENT_SECRET": "test-github-secret",
+        "GOOGLE_OAUTH_TOKEN_URL": "http://mock-provider/token",
+        "GOOGLE_OAUTH_USERINFO_URL": "http://mock-provider/userinfo",
+        "GITHUB_OAUTH_TOKEN_URL": "http://mock-provider/token",
+        "GITHUB_OAUTH_API_URL": "http://mock-provider",
+    }
+
+    @staticmethod
+    def _resp(json_payload, status_code=200):
+        from unittest.mock import MagicMock
+        m = MagicMock()
+        m.status_code = status_code
+        m.json.return_value = json_payload
+        m.raise_for_status.return_value = None
+        return m
+
+    @override_settings(**MOCK_SETTINGS)
+    def test_google_callback_creates_user_and_issues_jwt(self):
+        profile = {"sub": "g-123", "email": "asha@example.com", "given_name": "Asha", "family_name": "Gurung"}
+        with patch("tourist.views_oauth.requests.post", return_value=self._resp({"access_token": "tok"})) as post, \
+             patch("tourist.views_oauth.requests.get", return_value=self._resp(profile)) as get:
+            resp = self.client.post(
+                reverse("auth-google-callback"),
+                {"code": "auth-code", "redirect_uri": "http://localhost:5173/auth/callback/google"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertIn("access", resp.data)
+        self.assertIn("refresh", resp.data)
+        self.assertEqual(resp.data["user"]["email"], "asha@example.com")
+        # endpoint wiring: token POST went to the overridden mock URL
+        self.assertEqual(post.call_args[0][0], "http://mock-provider/token")
+        self.assertEqual(get.call_args[0][0], "http://mock-provider/userinfo")
+        user = self.User.objects.get(email="asha@example.com")
+        self.assertEqual(user.auth_provider, self.User.AuthProvider.GOOGLE)
+        self.assertEqual(user.provider_uid, "g-123")
+        self.assertTrue(user.is_verified)
+
+    @override_settings(**MOCK_SETTINGS)
+    def test_google_callback_links_existing_email_account(self):
+        self.User.objects.create_user(email="link@example.com", password="x", first_name="Old")
+        profile = {"sub": "g-999", "email": "link@example.com", "given_name": "Link", "family_name": "Ed"}
+        with patch("tourist.views_oauth.requests.post", return_value=self._resp({"access_token": "tok"})), \
+             patch("tourist.views_oauth.requests.get", return_value=self._resp(profile)):
+            resp = self.client.post(
+                reverse("auth-google-callback"),
+                {"code": "c", "redirect_uri": "http://x/auth/callback/google"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(self.User.objects.filter(email="link@example.com").count(), 1)  # no duplicate
+        u = self.User.objects.get(email="link@example.com")
+        self.assertEqual(u.provider_uid, "g-999")
+
+    @override_settings(**MOCK_SETTINGS)
+    def test_github_callback_uses_emails_endpoint_when_email_private(self):
+        profile = {"id": 42, "login": "dev", "name": "Dev Tamang", "email": None}
+        emails = [{"email": "dev@example.com", "primary": True}, {"email": "other@example.com", "primary": False}]
+        with patch("tourist.views_oauth.requests.post", return_value=self._resp({"access_token": "tok"})), \
+             patch("tourist.views_oauth.requests.get", side_effect=[self._resp(profile), self._resp(emails)]) as get:
+            resp = self.client.post(reverse("auth-github-callback"), {"code": "gh-code"}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data["user"]["email"], "dev@example.com")
+        self.assertEqual(get.call_args_list[0][0][0], "http://mock-provider/user")
+        self.assertEqual(get.call_args_list[1][0][0], "http://mock-provider/user/emails")
+
+    @override_settings(**MOCK_SETTINGS)
+    def test_callbacks_require_code(self):
+        r1 = self.client.post(reverse("auth-google-callback"), {}, format="json")
+        r2 = self.client.post(reverse("auth-github-callback"), {}, format="json")
+        self.assertEqual(r1.status_code, 400)
+        self.assertEqual(r2.status_code, 400)
+
+    @override_settings(**MOCK_SETTINGS)
+    def test_provider_failure_returns_honest_400(self):
+        import requests as req_lib
+        with patch("tourist.views_oauth.requests.post", side_effect=req_lib.RequestException("boom")):
+            resp = self.client.post(
+                reverse("auth-google-callback"),
+                {"code": "c", "redirect_uri": "http://x/auth/callback/google"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("detail", resp.data)

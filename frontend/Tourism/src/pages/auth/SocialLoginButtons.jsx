@@ -1,5 +1,5 @@
 import { FiGithub } from "react-icons/fi"
-import { getGoogleAuthUrl, getGithubAuthUrl } from "../../utils/oauth"
+import { getGoogleAuthUrl, getGithubAuthUrl, isProviderConfigured } from "../../utils/oauth"
 
 // A simple original "G" mark instead of importing Google's actual logo
 // asset (brand guidelines require using their exact provided SVG, which
@@ -18,30 +18,66 @@ const GoogleMark = () => (
  * SocialLoginButtons
  * Redirects the browser (not a popup) to the provider's consent screen —
  * see utils/oauth.js. OAuthCallback.jsx handles the return trip.
+ *
+ * When a provider's client ID isn't configured (VITE_GOOGLE_CLIENT_ID /
+ * VITE_GITHUB_CLIENT_ID missing), its button is rendered disabled with an
+ * honest explanation instead of redirecting to a provider error page.
  */
-const SocialLoginButtons = () => (
-  <div className="space-y-3">
-    <div className="flex items-center gap-3">
-      <div className="flex-1 h-px bg-gray-200" />
-      <span className="text-xs text-gray-400">or continue with</span>
-      <div className="flex-1 h-px bg-gray-200" />
-    </div>
+const SocialLoginButtons = () => {
+  const googleReady = isProviderConfigured("google")
+  const githubReady = isProviderConfigured("github")
 
-    <div className="grid grid-cols-2 gap-3">
-      <a
-        href={getGoogleAuthUrl()}
-        className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
-        <GoogleMark /> Google
-      </a>
-      <a
-        href={getGithubAuthUrl()}
-        className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
-        <FiGithub size={18} /> GitHub
-      </a>
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span className="text-xs text-gray-400">or continue with</span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {googleReady ? (
+          <a
+            href={getGoogleAuthUrl()}
+            className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <GoogleMark /> Google
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="Google sign-in is not configured on this deployment yet (set VITE_GOOGLE_CLIENT_ID). Use email login below."
+            className="flex items-center justify-center gap-2 border border-gray-100 rounded-xl py-2.5 text-sm font-medium text-gray-300 cursor-not-allowed"
+          >
+            <GoogleMark /> Google
+          </button>
+        )}
+        {githubReady ? (
+          <a
+            href={getGithubAuthUrl()}
+            className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <FiGithub size={18} /> GitHub
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="GitHub sign-in is not configured on this deployment yet (set VITE_GITHUB_CLIENT_ID). Use email login below."
+            className="flex items-center justify-center gap-2 border border-gray-100 rounded-xl py-2.5 text-sm font-medium text-gray-300 cursor-not-allowed"
+          >
+            <FiGithub size={18} /> GitHub
+          </button>
+        )}
+      </div>
+      {!googleReady && !githubReady && (
+        <p className="text-[11px] text-gray-400 text-center">
+          Social sign-in is not enabled on this deployment yet — email &amp; password login works as usual.
+        </p>
+      )}
     </div>
-  </div>
-)
+  )
+}
 
 export default SocialLoginButtons
