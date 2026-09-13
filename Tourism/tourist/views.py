@@ -509,11 +509,12 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         if user.is_authenticated and user.is_staff:
             return qs  # staff see everything, including pending submissions
         if user.is_authenticated:
-            # Public approved places + this user's own submissions (any status)
+            # Canonical public rule + this user's own submissions (any status)
             from django.db.models import Q
-            qs = qs.filter(Q(is_active=True, status=Destination.SubmissionStatus.APPROVED) | Q(created_by=user))
+            public_ids = Destination.publicly_visible(qs).values("id")
+            qs = qs.filter(Q(id__in=public_ids) | Q(created_by=user))
         else:
-            qs = qs.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+            qs = Destination.publicly_visible(qs)
 
         # Default destination listing: show real attractions, not hotels/info/noise.
         # Pass ?type=all or ?type=hotel to override (see DestinationFilter).
@@ -813,7 +814,8 @@ class DestinationSearchDiscoverView(APIView):
             | Q(city__icontains=query)
             | Q(district__icontains=query)
             | Q(district__icontains=expanded_query)
-        ).filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)[:10]
+        )
+        matches = Destination.publicly_visible(matches)[:10]
 
         if matches.exists():
             serialized = DestinationListSerializer(matches, many=True, context={"request": request}).data

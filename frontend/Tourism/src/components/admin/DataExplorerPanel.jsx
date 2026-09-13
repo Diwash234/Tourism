@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { FiDatabase, FiSave, FiSearch, FiUpload, FiX } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import { NEPAL_ALL_PROVINCES, NEPAL_ALL_DISTRICTS, DISTRICT_DEFAULTS } from "../../utils/nepalGeocoder"
@@ -15,7 +16,9 @@ const GROUPS = [
 
 export default function DataExplorerPanel() {
   const { showToast } = useToast()
-  const [resource,setResource]=useState("destinations"), [query,setQuery]=useState(""), [page,setPage]=useState(1), [data,setData]=useState({results:[],count:0,total_pages:1}), [loading,setLoading]=useState(false)
+  const [searchParams] = useSearchParams()
+  const [resource,setResource]=useState(searchParams.get("resource") || "destinations"), [query,setQuery]=useState(""), [page,setPage]=useState(1), [data,setData]=useState({results:[],count:0,total_pages:1}), [loading,setLoading]=useState(false)
+  const openDestinationRef = useRef(null)
   const [detail,setDetail]=useState(null), [edit,setEdit]=useState({}), [upload,setUpload]=useState(null)
   // §21: province -> district -> municipality cascade. Changing a parent drops
   // child values that would form an invalid combination; legacy free-text
@@ -40,7 +43,17 @@ export default function DataExplorerPanel() {
     }, 0)
     return () => clearTimeout(t)
   }, [resource]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Deep link support: /admin?section=data_explorer&resource=destinations&open=<id>
+  // jumps straight into the editor for one record ("I know the id, take me there").
+  useEffect(() => {
+    const open = searchParams.get("open")
+    if (open && /^\d+$/.test(open)) {
+      const t = setTimeout(() => openDestinationRef.current?.(parseInt(open, 10)), 60)
+      return () => clearTimeout(t)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const openDestination=async(id)=>{if(resource!=="destinations")return;try{const{data}=await adminApi.getAdminDestination(id);setDetail(data);setEdit({name:data.name||"",short_description:data.short_description||"",description:data.description||"",city:data.city||"",district:data.district||"",province:data.province||"",municipality:data.municipality||"",ward_number:data.ward_number??"",latitude:data.latitude??"",longitude:data.longitude??"",altitude:data.altitude||"",best_time_to_visit:data.best_time_to_visit||"",opening_hours:data.opening_hours||"",entry_fee:data.entry_fee??"",history:data.history||"",cultural_significance:data.cultural_significance||"",food_cuisine_info:data.food_cuisine_info||""})}catch{showToast("Could not load destination details","error")}}
+  useEffect(() => { openDestinationRef.current = openDestination })
   const save=async()=>{try{if(detail.id){await adminApi.updateAdminDestination(detail.id,edit);showToast("Database, dataset/data.json and destination_locations.json updated","success");await openDestination(detail.id)}else{const{data}=await adminApi.createAdminDestination(edit);showToast(data.message||"Destination created","success");await openDestination(data.id)}load()}catch(e){showToast(e.response?.data?.detail||(detail?.id?"Update failed":"Create failed"),"error")}}
   const startCreate=()=>{setDetail({id:null,name:""});setEdit({name:"",short_description:"",description:"",city:"",district:"",province:"",municipality:"",ward_number:"",latitude:"",longitude:"",altitude:"",best_time_to_visit:"",opening_hours:"",entry_fee:"",history:"",cultural_significance:"",food_cuisine_info:""})}
   const archive=async()=>{if(!detail?.id)return;if(!window.confirm(`Archive "${detail.name}"? Travellers will no longer see it. Related bookings, reviews, routes and safety records are kept.`))return;try{const{data}=await adminApi.archiveAdminDestination(detail.id);showToast(data.message||"Destination archived","success");setDetail(null);load()}catch(e){showToast(e.response?.data?.detail||"Archive failed","error")}}

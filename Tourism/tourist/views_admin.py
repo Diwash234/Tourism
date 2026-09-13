@@ -593,6 +593,7 @@ class AdminDestinationsView(APIView):
                 lookup |= Q(id=int(q)) | Q(external_id=int(q))
             qs = qs.filter(lookup).distinct()
 
+        base_qs = qs  # search/filter scope for the status-tab counts
         status_filter = request.query_params.get("status")
         if status_filter in dict(Destination.SubmissionStatus.choices):
             qs = qs.filter(status=status_filter)
@@ -668,9 +669,15 @@ class AdminDestinationsView(APIView):
                     "updated_at": d.updated_at,
                     "pending_conflicts": d.import_conflicts.filter(status="pending").count(),
                     "pending_proposals": d.proposals.filter(status="pending").count(),
+                    "public": d.status == Destination.SubmissionStatus.APPROVED and d.is_active,
                 }
                 for d in page.object_list
             ],
+            "status_counts": {
+                key: base_qs.filter(status=key).count()
+                for key, _ in Destination.SubmissionStatus.choices
+            } | {"published": base_qs.filter(status="approved", is_active=True).count(),
+                 "unpublished": base_qs.filter(status="approved", is_active=False).count()},
         })
 
     # Fields the in-app Database Explorer may set on create. Mirrors the PUT
@@ -759,8 +766,12 @@ class AdminDestinationDetailView(APIView):
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
         from .location_sync import display_city, has_map_pin
+        _is_public, _why_not = _public_explanation(destination)
         return Response({
             "id": destination.id,
+            "public": _is_public,
+            "not_public_reason": _why_not,
+            "public_url": f"/destinations/{destination.slug}" if _is_public else None,
             "name": destination.name,
             "slug": destination.slug,
             "description": destination.description,
@@ -4950,3 +4961,109 @@ class AdminDestinationRevisionsView(APIView):
         return Response({"message": f"Revision {rev.revision_number} restored",
                          "changed": [c["field"] for c in changes],
                          "before": before})
+
+
+def _public_explanation(d):
+    """(is_public, reason) — honest answer to 'why isn't this on the website?'"""
+    if d.status == Destination.SubmissionStatus.APPROVED and d.is_active:
+        return True, ""
+    if d.status == Destination.SubmissionStatus.DRAFT:
+        return False, "Draft — not submitted for publication. Action: Publish (or Submit for Review for staff edits)."
+    if d.status in (Destination.SubmissionStatus.SUBMITTED, Destination.SubmissionStatus.PENDING):
+        return False, "Waiting for administrator approval. Action: approve in the Approval Center / Place Approvals."
+    if d.status == Destination.SubmissionStatus.REJECTED:
+        return False, "Rejected — returned to the editor. Action: fix and submit again."
+    if d.status == Destination.SubmissionStatus.ARCHIVED:
+        return False, "Archived — hidden from the public site. Action: Restore."
+    return False, "Approved but unpublished. Action: Publish to Website."
+
+
+class AdminDestinationLifecycleView(APIView):
+    """POST {action, reason} — explicit single-record publication controls.
+
+    publish / unpublish / archive / restore / submit_review.
+    Publishing requires the mandatory public fields (name, description,
+    coordinates) — a record can never go public half-empty.
+    """
+    permission_classes = [IsAdminOrStaff]
+    CAPS = {
+        "publish": ("destinations", "approve"),
+        "unpublish": ("destinations", "approve"),
+        "archive": ("destinations", "delete"),
+        "restore": ("destinations", "approve"),
+        "submit_review": ("destinations", "change"),
+    }
+
+    def post(self, request, id):
+        action = request.data.get("action")
+        if action not in self.CAPS:
+            return Response({"detail": f"Unsupported action. Use one of {sorted(self.CAPS)}."}, status=400)
+        _require_capability(request, *self.CAPS[action])
+        reason = str(request.data.get("reason") or "").strip()
+        d = Destination.objects.filter(id=id).first()
+        if not d:
+            return Response({"detail": "Destination not found."}, status=404)
+        previous = d.status
+        if action == "publish":
+            missing = []
+            if not (d.name or "").strip():
+                missing.append("name")
+            if not (d.description or "").strip():
+                missing.append("description")
+            if d.latitude is None or d.longitude is None:
+                missing.append("coordinates")
+            if missing:
+                return Response({"detail": f"Cannot publish: missing {', '.join(missing)}. "
+                                            "Complete the record first — nothing was published."}, status=400)
+            d.status = Destination.SubmissionStatus.APPROVED
+            d.is_active = True
+        elif action == "unpublish":
+            d.is_active = False
+        elif action == "archive":
+            d.status = Destination.SubmissionStatus.ARCHIVED
+            d.is_active = False
+        elif action == "restore":
+            d.status = Destination.SubmissionStatus.APPROVED
+            d.is_active = True
+        elif action == "submit_review":
+            if d.status not in (Destination.SubmissionStatus.DRAFT, Destination.SubmissionStatus.REJECTED):
+                return Response({"detail": "Only drafts or rejected records can be submitted for review."}, status=400)
+            d.status = Destination.SubmissionStatus.PENDING
+        d.save()
+        _sync_destination_json(d)
+        _dest_revision(d, "publish" if action == "publish" else "unpublish" if action == "unpublish" else "update",
+                       request.user)
+        DestinationAuditLog.objects.create(
+            destination=d, actor=request.user,
+            action=(DestinationAuditLog.Action.APPROVED if action == "publish"
+                    else DestinationAuditLog.Action.ARCHIVED if action == "archive"
+                    else DestinationAuditLog.Action.SUBMITTED if action == "submit_review"
+                    else DestinationAuditLog.Action.EDITED),
+            note=f"Lifecycle {action}" + (f": {reason}" if reason else ""),
+            previous_status=previous, new_status=d.status, reason=reason)
+        is_public, why = _public_explanation(d)
+        return Response({"message": f"Lifecycle action '{action}' applied", "id": d.id,
+                         "status": d.status, "is_active": d.is_active,
+                         "public": is_public, "not_public_reason": why})
+
+
+class AdminDestinationPreviewView(APIView):
+    """GET — admin-only preview: exactly what the public API would return for
+    this record right now, plus whether it is actually public and why not.
+    Previewing never changes publication state."""
+    permission_classes = [IsAdminOrStaff]
+
+    def get(self, request, id):
+        _require_capability(request, "destinations", "view")
+        d = Destination.objects.filter(id=id).first()
+        if not d:
+            return Response({"detail": "Destination not found."}, status=404)
+        from .serializers import DestinationDetailSerializer
+        is_public, why = _public_explanation(d)
+        return Response({
+            "id": d.id,
+            "public": is_public,
+            "not_public_reason": why,
+            "public_url": f"/destinations/{d.slug}" if is_public else None,
+            "preview": DestinationDetailSerializer(d, context={"request": request}).data,
+        })

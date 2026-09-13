@@ -3626,3 +3626,121 @@ class OAuthProviderValidationTests(TestCase):
             out = io.StringIO()
             call_command("validate_oauth_providers", stdout=out)
             self.assertIn("SKIP  google", out.getvalue())
+
+
+class LifecycleEndpointsTests(APITestCase):
+    """Explicit single-record lifecycle: draft->publish->unpublish->archive
+    ->restore, preview, diagnostics, permissions, and no-public-leak."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="lc-admin@example.com", password="AdminPass123!")
+        self.editor = User.objects.create_user(email="lc-editor@example.com", password="EditorPass123!",
+                                               is_verified=True, role="content_moderator", is_staff=True)
+        StaffCapabilityProfile.objects.create(
+            user=self.editor, capabilities={"destinations": ["view", "change"]})
+        self.dest = Destination.objects.create(
+            name="Test Tourism Destination", slug="test-tourism-destination",
+            description="This is an administrator-created destination.",
+            district="Kaski", latitude=28.2, longitude=83.99,
+            status="draft", is_active=False)
+
+    def _public_ids(self):
+        self.client.force_authenticate(user=None)  # the public sees only published
+        r = self.client.get("/api/v1/destinations/", {"type": "all"})
+        return [row["id"] for row in r.data.get("results", [])]
+
+    def test_full_lifecycle_and_diagnostics(self):
+        self.client.force_authenticate(user=self.admin)
+        base = f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/"
+        # DRAFT: not public, honest reason
+        r = self.client.get(f"/api/v1/admin/destinations/{self.dest.id}")
+        self.assertFalse(r.data["public"])
+        self.assertIn("Draft", r.data["not_public_reason"])
+        self.assertNotIn(self.dest.id, self._public_ids())
+        self.client.force_authenticate(user=self.admin)
+        # PUBLISH -> public immediately (no restart, no cache staleness)
+        r = self.client.post(base, {"action": "publish", "reason": "Ready"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["public"])
+        self.assertIn(self.dest.id, self._public_ids())
+        pub = self.client.get("/api/v1/destinations/test-tourism-destination/")
+        self.assertEqual(pub.status_code, 200)
+        # UNPUBLISH -> hidden immediately
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(base, {"action": "unpublish", "reason": "Season closure"}, format="json")
+        self.assertNotIn(self.dest.id, self._public_ids())
+        # ARCHIVE -> hidden + reason
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(base, {"action": "archive", "reason": "Closed permanently"}, format="json")
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get(f"/api/v1/admin/destinations/{self.dest.id}")
+        self.assertIn("Archived", r.data["not_public_reason"])
+        # RESTORE -> public again
+        r = self.client.post(base, {"action": "restore", "reason": "Reopened"}, format="json")
+        self.assertTrue(r.data["public"])
+        self.assertIn(self.dest.id, self._public_ids())
+        self.client.force_authenticate(user=self.admin)
+        # audit chain
+        actions = list(DestinationAuditLog.objects.filter(destination=self.dest)
+                       .order_by("created_at").values_list("note", flat=True))
+        self.assertTrue(any("publish" in a for a in actions))
+        self.assertTrue(any("archive" in a for a in actions))
+
+    def test_publish_blocked_without_mandatory_fields(self):
+        self.client.force_authenticate(user=self.admin)
+        empty = Destination.objects.create(name="", slug="no-name-yet", status="draft", is_active=False)
+        r = self.client.post(f"/api/v1/admin/destinations/{empty.id}/lifecycle/",
+                             {"action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("missing", r.data["detail"])
+        empty.refresh_from_db()
+        self.assertEqual(empty.status, "draft")
+
+    def test_staff_cannot_publish_but_can_submit_review(self):
+        self.client.force_authenticate(user=self.editor)
+        r = self.client.post(f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+                             {"action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 403)
+        r = self.client.post(f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+                             {"action": "submit_review", "reason": "Ready for review"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.status, "pending")
+        self.assertNotIn(self.dest.id, self._public_ids())  # helper logged us out; pending stays hidden
+
+    def test_preview_never_publishes(self):
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get(f"/api/v1/admin/destinations/{self.dest.id}/preview/")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.data["public"])
+        self.assertIsNone(r.data["public_url"])
+        self.assertEqual(r.data["preview"]["name"], "Test Tourism Destination")
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.status, "draft")  # unchanged
+
+    def test_status_counts_in_content_table(self):
+        Destination.objects.create(name="Pub One", slug="pub-one", district="Kaski",
+                                   description="d", latitude=28.1, longitude=84.0,
+                                   status="approved", is_active=True)
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get("/api/v1/admin/destinations")
+        counts = r.data["status_counts"]
+        self.assertEqual(counts["draft"], 1)
+        self.assertEqual(counts["published"], 1)
+        self.assertEqual(counts["approved"], 1)
+
+    def test_public_pagination_covers_every_record(self):
+        for i in range(5):
+            Destination.objects.create(name=f"Paged Place {i}", slug=f"paged-place-{i}",
+                                       district="Kaski", description="d",
+                                       latitude=28.1, longitude=84.0,
+                                       status="approved", is_active=True)
+        self.client.force_authenticate(user=None)
+        r1 = self.client.get("/api/v1/destinations/", {"type": "all", "page_size": 2})
+        self.assertEqual(r1.data["count"], 5)  # setUp record is a draft: never public
+        self.assertEqual(r1.data["total_pages"], 3)
+        self.assertIsNotNone(r1.data["next"])
+        r3 = self.client.get("/api/v1/destinations/", {"type": "all", "page_size": 2, "page": 3})
+        ids_p1 = {row["id"] for row in r1.data["results"]}
+        ids_p3 = {row["id"] for row in r3.data["results"]}
+        self.assertFalse(ids_p1 & ids_p3)  # pages do not overlap

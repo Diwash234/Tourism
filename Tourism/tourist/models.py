@@ -698,6 +698,19 @@ class Destination(TimeStampedModel):
         )
 
 
+    @classmethod
+    def publicly_visible(cls, queryset=None):
+        """THE canonical public-visibility rule.
+
+        Every public endpoint (listing, detail, search, map, featured,
+        related, sitemap, galleries) must filter through this — a record is
+        public only when explicitly approved AND active. Draft, submitted,
+        pending, rejected and archived records are never public.
+        """
+        qs = queryset if queryset is not None else cls.objects.all()
+        return qs.filter(is_active=True, status=cls.SubmissionStatus.APPROVED)
+
+
 class DestinationTranslation(models.Model):
     """Stores machine-translated copies of a destination's text fields."""
 

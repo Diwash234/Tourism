@@ -99,6 +99,29 @@ export default function ContentLifecyclePanel() {
     if (subTab === "quality") loadIntegrity()
   }, [subTab, loadApprovals, loadConflicts, loadDupes, loadIntegrity])
 
+  const [preview, setPreview] = useState(null)
+
+  const runLifecycle = async (row, action) => {
+    const reason = window.prompt(`Reason for '${action}' on "${row.name}":`)
+    if (reason === null) return
+    try {
+      const { data } = await axiosClient.post(`/admin/destinations/${row.id}/lifecycle/`, { action, reason })
+      showToast(`${action}: now ${data.public ? "PUBLIC" : "not public"}.`, "success")
+      loadContent()
+    } catch (e) {
+      showToast(e.response?.data?.detail || `${action} failed.`, "error")
+    }
+  }
+
+  const openPreview = async (row) => {
+    try {
+      const { data } = await axiosClient.get(`/admin/destinations/${row.id}/preview/`)
+      setPreview(data)
+    } catch {
+      showToast("Preview failed.", "error")
+    }
+  }
+
   const runBulk = async (action) => {
     if (!selected.length) return showToast("Select rows first.", "error")
     if (!bulkReason.trim()) return showToast("A reason is required for bulk operations.", "error")
@@ -221,6 +244,20 @@ export default function ContentLifecyclePanel() {
 
       {subTab === "content" && (
         <SectionCard title="All Content — Destinations" icon={<FiLayers />} count={meta.count}>
+          <div className="flex flex-wrap gap-2">
+            {[["", "All"], ["draft", "Draft"], ["pending", "Pending Review"], ["approved", "Published"],
+              ["rejected", "Rejected"], ["archived", "Archived"]].map(([value, label]) => {
+              const n = meta.status_counts
+                ? (value === "" ? meta.count : meta.status_counts[value])
+                : null
+              return (
+                <button key={value || "all"} onClick={() => { setFilters((f) => ({ ...f, status: value })); setPage(1) }}
+                  className={`text-xs px-3 py-1.5 rounded-lg border ${filters.status === value ? "bg-amber-400/20 text-amber-300 border-amber-400/50" : "border-slate-600/50 text-slate-300 hover:border-slate-400"}`}>
+                  {label}{n != null ? ` ${n}` : ""}
+                </button>
+              )
+            })}
+          </div>
           <div className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[220px]">
               <FiSearch className="absolute left-3 top-3 text-slate-400" />
@@ -286,9 +323,22 @@ export default function ContentLifecyclePanel() {
                       {r.pending_conflicts > 0 && <span className="text-rose-400 mr-1">{r.pending_conflicts}⚠</span>}
                       {r.pending_proposals > 0 && <span className="text-amber-300">{r.pending_proposals}📝</span>}
                     </td>
-                    <td className="p-2">
-                      <Link className="text-amber-300 text-xs flex items-center gap-1" to={`/admin/destinations/${r.id}`}><FiEdit3 size={12} />Edit</Link>
-                      <button onClick={() => openRevisions(r.id)} className="text-slate-400 text-xs flex items-center gap-1 mt-1 hover:text-white"><FiClock size={12} />History</button>
+                    <td className="p-2 space-y-1">
+                      <span className={`block text-[10px] font-bold ${r.public ? "text-emerald-400" : "text-slate-500"}`}>
+                        Public: {r.public ? "YES" : "NO"}
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        <Link className="text-amber-300 text-xs flex items-center gap-1" to={`/admin?section=data_explorer&resource=destinations&open=${r.id}`}><FiEdit3 size={11} />Edit</Link>
+                        {r.status === "approved" && r.is_active
+                          ? <button onClick={() => runLifecycle(r, "unpublish")} className="text-slate-300 text-xs border border-slate-600 rounded px-1.5">Unpublish</button>
+                          : <button onClick={() => runLifecycle(r, "publish")} className="text-emerald-300 text-xs border border-emerald-500/50 rounded px-1.5">Publish</button>}
+                        {r.status === "archived"
+                          ? <button onClick={() => runLifecycle(r, "restore")} className="text-sky-300 text-xs border border-sky-500/50 rounded px-1.5">Restore</button>
+                          : <button onClick={() => runLifecycle(r, "archive")} className="text-slate-400 text-xs border border-slate-600 rounded px-1.5">Archive</button>}
+                        <button onClick={() => openPreview(r)} className="text-slate-300 text-xs border border-slate-600 rounded px-1.5">Preview</button>
+                        {r.public && <a href={`/destinations/${r.slug}`} target="_blank" rel="noreferrer" className="text-emerald-400 text-xs border border-emerald-500/40 rounded px-1.5">View ↗</a>}
+                        <button onClick={() => openRevisions(r.id)} className="text-slate-400 text-xs flex items-center gap-1 hover:text-white"><FiClock size={11} />History</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -393,6 +443,31 @@ export default function ContentLifecyclePanel() {
             </div>
           )}
         </SectionCard>
+      )}
+
+      {preview && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setPreview(null)}>
+          <div className="bg-slate-900 border border-slate-600 rounded-2xl p-5 max-w-2xl w-full space-y-3 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center">
+              <h3 className="text-white font-bold">Public preview — {preview.preview?.name}</h3>
+              <span className={`text-xs px-2 py-1 rounded-full border ${preview.public ? "text-emerald-300 border-emerald-400/50" : "text-amber-300 border-amber-400/50"}`}>
+                {preview.public ? "PUBLIC" : "NOT PUBLIC"}
+              </span>
+            </div>
+            {!preview.public && (
+              <div className="bg-slate-800/70 border border-slate-700 rounded-xl p-3 text-sm">
+                <div className="text-amber-300 font-semibold">Why isn&apos;t this public?</div>
+                <div className="text-slate-300">{preview.not_public_reason}</div>
+              </div>
+            )}
+            {preview.public && preview.public_url && (
+              <a className="text-emerald-400 text-sm underline" href={preview.public_url} target="_blank" rel="noreferrer">
+                View on public website ↗
+              </a>
+            )}
+            <pre className="text-xs text-slate-300 bg-slate-950/60 rounded-xl p-3 overflow-x-auto">{JSON.stringify(preview.preview, null, 1).slice(0, 3000)}</pre>
+          </div>
+        </div>
       )}
 
       {revisions && (
