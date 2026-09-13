@@ -182,13 +182,23 @@ const DestinationMediaManager = () => {
   // Debounced destination search — searches ALL destinations (not just
   // the missing-images queue), so staff can find and preview a place
   // that already has photos.
-  useEffect(() => {
-    const query = searchQuery.trim()
-    if (query.length < 2) {
+  const debouncedQuery = searchQuery.trim()
+  const [prevQuery, setPrevQuery] = useState(debouncedQuery)
+  if (prevQuery !== debouncedQuery) {
+    setPrevQuery(debouncedQuery)
+    if (debouncedQuery.length < 2) {
       setSearchResults([])
+      setSearching(false)
+    } else {
+      setSearching(true)
+    }
+  }
+
+  useEffect(() => {
+    const query = debouncedQuery
+    if (query.length < 2) {
       return
     }
-    setSearching(true)
     const timeout = setTimeout(() => {
       destinationApi
         .search(query)
@@ -197,7 +207,7 @@ const DestinationMediaManager = () => {
         .finally(() => setSearching(false))
     }, 300)
     return () => clearTimeout(timeout)
-  }, [searchQuery])
+  }, [debouncedQuery])
 
   const openDestination = (dest) => {
     setSelected(dest)

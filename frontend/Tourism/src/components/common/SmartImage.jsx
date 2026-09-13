@@ -64,16 +64,22 @@ const SmartImage = ({
   const [status, setStatus] = useState(src ? "backend" : "loading")
   const [fetchedImage, setFetchedImage] = useState(null)
 
-  // Reset when the backend src actually changes (e.g. list re-fetch)
-  useEffect(() => {
+  // Reset when the backend src actually changes (e.g. list re-fetch).
+  // Adjusting state during render (prev-value pattern) instead of a sync
+  // setState inside an effect avoids the cascading-render lint error.
+  const [prevSrc, setPrevSrc] = useState(src)
+  if (prevSrc !== src) {
+    setPrevSrc(src)
     setStatus(src ? "backend" : "loading")
     setFetchedImage(null)
-  }, [src])
+  }
+
+  // No name to search with -> behave as placeholder without extra state churn.
+  const effectiveStatus = status === "loading" && !name ? "placeholder" : status
 
   useEffect(() => {
     let cancelled = false
-    if (status !== "loading" || !name) {
-      if (status === "loading" && !name) setStatus("placeholder")
+    if (effectiveStatus !== "loading") {
       return
     }
 
@@ -95,9 +101,9 @@ const SmartImage = ({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, name, context, orientation])
+  }, [effectiveStatus, name, context, orientation])
 
-  if (status === "backend") {
+  if (effectiveStatus === "backend") {
     return (
       <img
         src={src}
@@ -109,7 +115,7 @@ const SmartImage = ({
     )
   }
 
-  if (status === "fetched" && fetchedImage) {
+  if (effectiveStatus === "fetched" && fetchedImage) {
     return (
       <div className="relative w-full h-full">
         <img
@@ -128,7 +134,7 @@ const SmartImage = ({
     )
   }
 
-  if (status === "loading") {
+  if (effectiveStatus === "loading") {
     return <div className={`skeleton ${className}`} />
   }
 

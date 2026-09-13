@@ -262,6 +262,45 @@ RULES = [
 ]
 
 
+
+# Nepali-language and business-name heuristics for OSM-style records whose
+# descriptions are too short for the English rules above.
+NAME_RULES = [
+    ("cafe", "food-culinary"), ("restaurant", "food-culinary"), ("bhatti", "food-culinary"),
+    ("restro", "food-culinary"), ("khaja", "food-culinary"), ("bakery", "food-culinary"),
+    ("hotel", "cities"), ("guest house", "cities"), ("guesthouse", "cities"),
+    ("lodge", "cities"), ("resort", "cities"), ("chowk", "cities"), ("chok", "cities"),
+    ("bazaar", "shopping"), ("bazar", "shopping"), ("market", "shopping"),
+    ("pasal", "shopping"), ("mall", "shopping"),
+    ("gaun", "villages"), ("tola", "villages"), ("basti", "villages"), ("gau ", "villages"),
+    ("pokhari", "lakes"), ("tal ", "lakes"), (" taal", "lakes"), ("lake", "lakes"), ("kund", "lakes"),
+    ("khola", "rivers"), ("nadi", "rivers"), ("ghat", "rivers"), ("dovan", "rivers"),
+    ("jharana", "waterfalls"), ("jharna", "waterfalls"), ("falls", "waterfalls"),
+    ("danda", "hills"), ("dado", "hills"), ("lek", "hills"), ("kot", "heritage"),
+    ("gadhi", "heritage"), ("kothi", "heritage"), ("durbar", "heritage"),
+    ("deurali", "viewpoints"), ("thum", "viewpoints"), ("view tower", "viewpoints"),
+    ("bhanjyang", "trekking"), ("bhanjyang", "trekking"), ("pauwa", "trekking"),
+    ("mandir", "temples"), ("devi", "temples"), ("devta", "temples"), ("devsthan", "temples"),
+    ("gumba", "buddhist-sites"), ("stupa", "buddhist-sites"), ("chhorten", "buddhist-sites"),
+    ("jatra", "festivals"), ("mela", "festivals"),
+    ("bagicha", "forests"), ("bagan", "forests"), ("park", "forests"),
+    ("kunda", "hot-springs"), ("tato pani", "hot-springs"),
+    ("khet", "agriculture"), ("bari", "agriculture"), ("farm", "agriculture"),
+    ("school", "culture"), ("campus", "culture"), ("library", "culture"),
+    ("simtal", "valleys"), ("besi", "valleys"),
+]
+
+FALLBACK_SLUG = "attraction"
+
+
+def match_by_name(name: str):
+    low = (name or "").lower()
+    for kw, slug in NAME_RULES:
+        if kw in low:
+            return slug
+    return None
+
+
 def match_category(name: str, desc: str) -> str | None:
     blob = f"{name} {desc}".lower()
     for kw, slug in RULES:
@@ -299,8 +338,11 @@ class Command(BaseCommand):
             slug = match_category(dest.name or "",
                                  f"{dest.short_description or ''} {dest.description or ''}")
             if not slug:
+                slug = match_by_name(dest.name or "")
+            if not slug:
+                slug = FALLBACK_SLUG  # honest generic bucket, never an empty set
+            if slug == FALLBACK_SLUG:
                 unmatched += 1
-                continue
             cat = cat_cache.get(slug)
             if not cat:
                 self.stderr.write(f"  category slug not found: {slug}")
