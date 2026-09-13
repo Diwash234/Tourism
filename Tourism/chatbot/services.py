@@ -14,7 +14,8 @@ from typing import Dict, List, Optional, Tuple, Any
 from .ai_service import ask_ai
 from tourist.models import (
     Destination, DestinationImage, DestinationTransitRoute,
-    Hospital, PoliceStation, BudgetEstimation, RiskAnalysis, Category
+    Hospital, PoliceStation, BudgetEstimation, RiskAnalysis, Category,
+    MarketplaceListing,
 )
 from tourist.discovery_pipeline import haversine_distance_km
 
@@ -74,6 +75,103 @@ def find_matching_destinations(query: str, limit: int = 4) -> List[Destination]:
     return matches[:limit]
 
 
+def parse_trip_constraints(message: str):
+    """Extract requested days and a budget in NPR from a traveller question."""
+    text = (message or "").lower()
+    days = None
+    days_match = re.search(r"(\d+)\s*[- ]?\s*days?", text)
+    if days_match:
+        days = max(1, min(60, int(days_match.group(1))))
+    budget_npr = None
+    usd_match = re.search(r"\$\s*([\d,]+)", text)
+    npr_match = re.search(r"(?:npr|rs\.?)\s*([\d,]+)", text)
+    if usd_match:
+        budget_npr = float(usd_match.group(1).replace(",", "")) * USD_TO_NPR
+    elif npr_match:
+        budget_npr = float(npr_match.group(1).replace(",", ""))
+    return days, budget_npr
+
+
+def is_budget_trip_intent(message: str, days=None, budget_npr=None) -> bool:
+    text = (message or "").lower()
+    trip_words = any(word in text for word in ("trip", "package", "tour", "holiday", "vacation"))
+    under = any(word in text for word in ("under", "below", "less than", "budget", "cheap"))
+    return bool((days and budget_npr) or (trip_words and budget_npr) or (days and under and trip_words))
+
+
+KNOWN_PLACE_WORDS = set(CITY_COORDS.keys()) | {
+    "annapurna", "mustang", "chitwan", "lumbini", "everest", "langtang",
+    "bandipur", "nagarkot", "bhaktapur", "patan", "ilam", "rara",
+    "janakpur", "kathmandu", "pokhara", "lukla", "jomsom", "phewa",
+}
+
+
+def package_card(listing: MarketplaceListing, is_alternative: bool = False) -> dict:
+    return {
+        "id": listing.id,
+        "slug": listing.slug,
+        "title": listing.title,
+        "kind": listing.kind,
+        "price_npr": str(listing.price_npr),
+        "duration_days": listing.duration_days,
+        "city": listing.city or (listing.destination.city if listing.destination else "Nepal"),
+        "partner_name": listing.partner.name,
+        "summary": listing.summary,
+        "image_url": listing.image_url,
+        "is_alternative": bool(is_alternative),
+    }
+
+
+def _listing_haystack(listing: MarketplaceListing) -> str:
+    hay = f"{listing.title} {listing.summary} {listing.city} {listing.district} {listing.partner.name}".lower()
+    if listing.destination_id:
+        dest = listing.destination
+        hay += f" {dest.name} {dest.city or ''} {dest.district or ''}"
+    return hay
+
+
+def match_published_packages(query: str, days=None, budget_npr=None, limit: int = 6):
+    """Return published, in-budget packages. Exact duration is primary; ±1 day is alternative."""
+    listings = list(
+        MarketplaceListing.objects.filter(
+            status="published", partner__status="approved",
+        ).select_related("partner", "destination")
+    )
+    words = [w for w in re.split(r"\W+", (query or "").lower()) if len(w) > 2]
+    skip = {
+        "want", "with", "from", "that", "this", "nepal", "trip", "days", "day",
+        "under", "below", "less", "than", "package", "packages", "travel",
+        "holiday", "vacation", "tour", "tours", "add", "the",
+    }
+    dest_words = [w for w in words if w not in skip and w in KNOWN_PLACE_WORDS]
+    primaries, alternatives = [], []
+    for listing in listings:
+        price = float(listing.price_npr)
+        if budget_npr is not None and price > float(budget_npr):
+            continue
+        hay = _listing_haystack(listing)
+        if dest_words and not any(word in hay for word in dest_words):
+            continue
+        duration = listing.duration_days or 1
+        if days:
+            if duration == days:
+                primaries.append(listing)
+            elif abs(duration - days) == 1:
+                alternatives.append(listing)
+        else:
+            primaries.append(listing)
+
+    def score(listing):
+        points = 2 if listing.is_featured else 0
+        hay = _listing_haystack(listing)
+        points += sum(1 for word in dest_words if word in hay)
+        return points
+
+    primaries.sort(key=score, reverse=True)
+    alternatives.sort(key=score, reverse=True)
+    return primaries[:limit], alternatives[:limit]
+
+
 def get_destination_image_url(dest: Destination) -> str:
     """Returns the cover or first high-res image URL for a destination."""
     img = dest.gallery.filter(is_cover=True).first() or dest.gallery.first()
@@ -125,57 +223,96 @@ def generate_structured_itinerary(dest_name: str, days: int = 5, budget_npr: Opt
     }
 
 
-def compute_distance_and_transit(origin_name: str, dest_name: str) -> Dict[str, Any]:
-    """Calculates straight-line and highway road distance, estimated drive time, and fares."""
-    o_key = origin_name.lower().strip()
-    d_key = dest_name.lower().strip()
+def compute_distance_and_transit(origin_name: str, dest_name: str, origin_coords=None) -> Dict[str, Any]:
+    """Answer distance questions from the real navigation service.
 
-    c1 = CITY_COORDS.get(o_key, (27.7172, 85.3240))
-    c2 = CITY_COORDS.get(d_key, (28.2096, 83.9856))
+    Spec rule: the assistant never supplies geographic facts of its own —
+    every number comes from coordinate resolution + the routing engine (the
+    same services that power /navigation/route), each with its source label.
+    The old implementation hardcoded corridor distances (Pokhara 204.5 km,
+    Lumbini 290 km), a 1.42x winding factor, km-multiplied fares and flight
+    times; all of that is gone. Unresolvable places and unroutable pairs say
+    so explicitly instead of falling back to invented values.
+    """
+    from tourist.location.search_service import LocationSearchService
+    from tourist.utils import get_ml_best_route
 
-    straight_km = haversine_distance_km(c1[0], c1[1], c2[0], c2[1])
-    # Road winding factor across Himalayan terrain is approximately 1.35x - 1.6x straight distance
-    road_km = round(straight_km * 1.42, 1)
-
-    # Calculate realistic driving hours (average 35-45 km/h on mountain highways)
-    drive_hours = max(0.5, round(road_km / 35.0, 1))
-    flight_mins = 25 if straight_km < 250 else 45
-
-    # Highway corridor identification
-    corridor = "National Highway Corridor"
-    if ("kathmandu" in o_key and "pokhara" in d_key) or ("pokhara" in o_key and "kathmandu" in d_key):
-        corridor = "Prithvi Highway (H04) via Mugling"
-        road_km = 204.5
-        drive_hours = "6 – 7 hours"
-    elif "everest" in d_key or "lukla" in d_key:
-        corridor = "Tribhuvan Int'l to Tenzing-Hillary Airport (Lukla Flight / Trekking Trail)"
-        drive_hours = "35 mins flight + Trek"
-    elif "mustang" in d_key or "jomsom" in d_key:
-        corridor = "Beni-Jomsom-Muktinath Highway (Kali Gandaki Corridor)"
-        drive_hours = "8 – 10 hours (4WD Jeep)"
-    elif "chitwan" in d_key:
-        corridor = "Prithvi & Narayanghat-Mugling Highway (H05)"
-        road_km = 165.0
-        drive_hours = "5 – 6 hours"
-    elif "lumbini" in d_key:
-        corridor = "East-West Highway (Mahendra Highway H01)"
-        road_km = 290.0
-        drive_hours = "7 – 8 hours"
-
-    estimated_bus_npr = max(600, round(road_km * 7.5))
-    estimated_jeep_npr = max(1800, round(road_km * 28.0))
-
-    return {
-        "origin": origin_name.title(),
-        "destination": dest_name.title(),
-        "straight_distance_km": round(straight_km, 1),
-        "road_distance_km": road_km,
-        "estimated_drive_time": f"{drive_hours} hrs" if isinstance(drive_hours, (int, float)) else str(drive_hours),
-        "flight_time": f"{flight_mins} mins (Domestic Flight)",
-        "highway_corridor": corridor,
-        "fare_bus_npr": estimated_bus_npr,
-        "fare_jeep_npr": estimated_jeep_npr,
+    card = {
+        "origin": (origin_name or "").title(),
+        "destination": (dest_name or "").title(),
+        "straight_distance_km": None,
+        "road_distance_km": None,
+        "estimated_drive_time": None,
+        "duration_source": "unavailable",
+        "flight_time": None,
+        "highway_corridor": None,
+        "fare_bus_npr": None,
+        "fare_jeep_npr": None,
+        "fare_note": "",
+        "status": "ok",
+        "note": "",
     }
+
+    origin = None
+    if origin_coords and origin_coords[0] is not None and origin_coords[1] is not None:
+        origin = {"name": "Your Location", "latitude": float(origin_coords[0]), "longitude": float(origin_coords[1])}
+    elif origin_name:
+        origin = LocationSearchService.resolve_single_place(origin_name)
+    dest = LocationSearchService.resolve_single_place(dest_name) if dest_name else None
+
+    missing = []
+    if not origin:
+        missing.append(origin_name or "the origin")
+    if not dest:
+        missing.append(dest_name or "the destination")
+    if missing:
+        card["status"] = "unresolved"
+        card["note"] = (
+            f"I could not find recorded coordinates for: {', '.join(missing)}. "
+            "Name a known place (e.g. Pokhara, Lumbini, Phewa Lake) or use the "
+            "Navigation page with your GPS location."
+        )
+        return card
+
+    o_lat, o_lng = float(origin["latitude"]), float(origin["longitude"])
+    d_lat, d_lng = float(dest["latitude"]), float(dest["longitude"])
+    card["origin"] = origin.get("name") or card["origin"]
+    card["destination"] = dest.get("name") or card["destination"]
+
+    straight_km = haversine_distance_km(o_lat, o_lng, d_lat, d_lng)
+    card["straight_distance_km"] = round(straight_km, 1)
+
+    # Road distance & duration: real routing engine only.
+    result = get_ml_best_route(o_lat, o_lng, d_lat, d_lng, route_type="fastest")
+    if result and result.get("distance_km") is not None:
+        card["road_distance_km"] = round(float(result["distance_km"]), 1)
+        duration = result.get("duration_min")
+        if duration is not None:
+            total_min = int(duration)
+            hours, mins = divmod(total_min, 60)
+            card["estimated_drive_time"] = f"{hours} h {mins} min" if hours else f"{mins} min"
+            card["duration_source"] = "routing_engine" if result.get("routing_engine") else "estimated"
+        if result.get("note"):
+            card["highway_corridor"] = None
+            card["note"] = result["note"]
+
+    # Fares: curated transit fares first; otherwise an explicitly labelled
+    # fare-index estimate (never presented as a quoted price).
+    dest_id = dest.get("destination_id")
+    if dest_id:
+        transit = DestinationTransitRoute.objects.filter(
+            destination_id=dest_id, is_verified=True
+        ).exclude(estimated_fare_npr__isnull=True).first()
+        if transit:
+            card["fare_bus_npr"] = int(transit.estimated_fare_npr)
+            card["fare_note"] = f"Curated fare ({transit.route_name or 'transit route'})"
+
+    if card["fare_bus_npr"] is None and card["road_distance_km"]:
+        card["fare_bus_npr"] = max(600, round(card["road_distance_km"] * 7.5))
+        card["fare_jeep_npr"] = max(1800, round(card["road_distance_km"] * 28.0))
+        card["fare_note"] = "Fare-index estimate — not a quoted price"
+
+    return card
 
 
 def get_chatbot_reply(
@@ -203,6 +340,7 @@ def get_chatbot_reply(
             "itinerary_cards": None,
             "distance_cards": None,
             "emergency_cards": [],
+            "package_cards": [],
         }
 
     last_user_msg = history[-1]["content"] if history else ""
@@ -215,12 +353,29 @@ def get_chatbot_reply(
     is_itinerary_intent = any(w in msg_lower for w in ["itinerary", "plan", "days trip", "day trip", "schedule", "build my trip", "tour plan", "day 1", "day-by-day"])
     is_emergency_intent = any(w in msg_lower for w in ["emergency", "hospital", "police", "ambulance", "doctor", "rescue", "sos", "danger", "helpline", "1144"])
     is_budget_intent = any(w in msg_lower for w in ["budget", "cost", "price", "how much", "npr", "dollar", "expenses", "cheap"])
+    requested_days, requested_budget = parse_trip_constraints(msg_lower)
+    is_package_intent = any(w in msg_lower for w in [
+        "package", "packages", "marketplace", "book a tour", "travel package",
+        "add to trip", "trip basket", "collaborate",
+    ])
+    is_budget_trip = is_budget_trip_intent(msg_lower, requested_days, requested_budget)
+    if is_budget_trip:
+        is_package_intent = True
+        is_itinerary_intent = False
 
     destination_cards = []
     image_cards = []
     itinerary_card = None
     distance_card = None
     emergency_cards = []
+    package_cards = []
+
+    if is_package_intent:
+        matched, alternatives = match_published_packages(
+            msg_clean, days=requested_days, budget_npr=requested_budget, limit=6,
+        )
+        package_cards = [package_card(listing, is_alternative=False) for listing in matched]
+        package_cards.extend(package_card(listing, is_alternative=True) for listing in alternatives)
 
     # Match relevant destinations in DB
     matched_destinations = find_matching_destinations(msg_clean, limit=4)
@@ -255,17 +410,26 @@ def get_chatbot_reply(
                     "destination_name": dest.name,
                 })
 
-    # Pack Distance & Route Card
+    # Pack Distance & Route Card — parsed from the actual message, resolved
+    # by the place service. Never a silent Kathmandu->Pokhara default.
     if is_distance_intent:
-        origin = "Kathmandu"
-        dest_target = "Pokhara"
-        for c_name in CITY_COORDS.keys():
-            if c_name in msg_lower and c_name != "kathmandu":
-                dest_target = c_name
-                break
-        if "from pokhara" in msg_lower:
-            origin = "Pokhara"
-        distance_card = compute_distance_and_transit(origin, dest_target)
+        origin_phrase = None
+        dest_phrase = None
+        m = re.search(r"\bfrom\s+([\w\s&\-']+?)\s+\bto\s+([\w\s&\-\'?]+?)(?:\?|\.|$)", msg_clean, re.I)
+        if m:
+            origin_phrase, dest_phrase = m.group(1).strip(), m.group(2).strip().rstrip("?")
+        else:
+            m = re.search(r"\bhow far is\s+([\w\s&\-']+?)\s+\bfrom\s+([\w\s&\-\'?]+?)(?:\?|\.|$)", msg_clean, re.I)
+            if m:
+                dest_phrase, origin_phrase = m.group(1).strip(), m.group(2).strip().rstrip("?")
+            else:
+                m = re.search(r"\b(?:distance|route|drive|travel|trip)\s+(?:to|from|for)\s+([\w\s&\-\'?]+?)(?:\?|\.|$)", msg_clean, re.I)
+                if m:
+                    dest_phrase = m.group(1).strip().rstrip("?")
+        if not dest_phrase and matched_destinations:
+            dest_phrase = matched_destinations[0].name
+        gps_origin = (latitude, longitude) if (latitude is not None and longitude is not None) else None
+        distance_card = compute_distance_and_transit(origin_phrase or "", dest_phrase or "", origin_coords=gps_origin)
 
     # Pack Itinerary Card
     if is_itinerary_intent:
@@ -278,27 +442,35 @@ def get_chatbot_reply(
 
     # Pack Emergency Cards
     if is_emergency_intent:
-        for h in Hospital.objects.all()[:3]:
+        for h in Hospital.objects.exclude(is_archived=True)[:3]:
+            phone = str(h.phone or "").strip()
             emergency_cards.append({
                 "name": h.name,
                 "type": "Emergency Hospital",
-                "phone": h.phone or "+977-1-4412404",
-                "district": h.district or "Kathmandu",
+                "phone": phone or "102",
+                "phone_is_national_fallback": not phone,
+                "district": h.district or "",
             })
-        for p in PoliceStation.objects.all()[:2]:
+        for p in PoliceStation.objects.exclude(is_archived=True)[:2]:
+            phone = str(p.phone or "").strip()
             emergency_cards.append({
                 "name": p.name,
                 "type": "Tourist & Civil Police",
-                "phone": p.phone or "1144",
-                "district": "Nationwide / Tourist Police",
+                "phone": phone or "100",
+                "phone_is_national_fallback": not phone,
+                "district": p.destination.district if p.destination_id else "",
             })
 
     # 1. Attempt calling configured AI providers (OpenRouter, Gemini, Grok, Groq, Hugging Face, OpenAI)
+    # Package questions stay on the live marketplace so travellers see published offers.
     ai_text_reply = None
-    try:
-        ai_text_reply = ask_ai(msg_clean, context=f"Coordinates: lat={latitude}, lng={longitude}", history=history)
-    except Exception as e:
-        logger.warning(f"AI Provider execution failed: {e}")
+    # Distance questions are answered deterministically from the navigation
+    # service — the LLM must never supply geographic numbers of its own.
+    if not is_package_intent and not is_distance_intent:
+        try:
+            ai_text_reply = ask_ai(msg_clean, context=f"Coordinates: lat={latitude}, lng={longitude}", history=history)
+        except Exception as e:
+            logger.warning(f"AI Provider execution failed: {e}")
 
     # 2. Autonomous Local Engine Fallback if AI providers unavailable or hit free rate limit
     if not ai_text_reply:
@@ -309,16 +481,33 @@ def get_chatbot_reply(
                 "destination page instead."
             )
         elif is_distance_intent and distance_card:
-            ai_text_reply = (
-                f"🚗 **Distance & Road Transit Route: {distance_card['origin']} ➔ {distance_card['destination']}**\n\n"
-                f"• **Road Distance:** `{distance_card['road_distance_km']} km` (Straight-line: `{distance_card['straight_distance_km']} km`)\n"
-                f"• **Highway Corridor:** {distance_card['highway_corridor']}\n"
-                f"• **Estimated Drive Time:** {distance_card['estimated_drive_time']}\n"
-                f"• **Domestic Flight Time:** {distance_card['flight_time']}\n"
-                f"• **Estimated Public Deluxe Bus Fare:** `NPR {distance_card['fare_bus_npr']:,}`\n"
-                f"• **Estimated Private 4WD Jeep Fare:** `NPR {distance_card['fare_jeep_npr']:,}`\n\n"
-                f"💡 *Travel Tip:* Mountain highways can experience landslide delays during monsoon (July-August). Start early in the morning (6:30 AM - 7:30 AM) to beat highway congestion!"
-            )
+            if distance_card.get("status") == "unresolved":
+                ai_text_reply = f"📍 {distance_card['note']}"
+            else:
+                road = distance_card["road_distance_km"]
+                drive = distance_card["estimated_drive_time"]
+                src = distance_card["duration_source"]
+                road_text = f"`{road} km`" if road is not None else "Information unavailable (no route on the road network)"
+                drive_text = (drive + f" _(source: {src})_") if drive else "Information unavailable"
+                lines = [
+                    f"🚗 **Route: {distance_card['origin']} ➔ {distance_card['destination']}**\n",
+                    f"• **Road Distance:** {road_text}",
+                    f"• **Straight-line Distance:** `{distance_card['straight_distance_km']} km`",
+                    f"• **Drive Time:** {drive_text}",
+                ]
+                if distance_card.get("fare_bus_npr") is not None:
+                    fare_line = f"• **Bus Fare:** `NPR {distance_card['fare_bus_npr']:,}`"
+                    if distance_card.get("fare_jeep_npr") is not None:
+                        fare_line += f"  ·  **4WD Jeep:** `NPR {distance_card['fare_jeep_npr']:,}`"
+                    if distance_card.get("fare_note"):
+                        fare_line += f"  ·  _{distance_card['fare_note']}_"
+                    lines.append(fare_line)
+                if distance_card.get("note"):
+                    lines.append(f"\n_ℹ️ {distance_card['note']}_")
+                lines.append(
+                    "\n💡 Open the **Navigation page** for the live map, turn-by-turn steps and your GPS position."
+                )
+                ai_text_reply = "\n".join(lines)
         elif is_itinerary_intent and itinerary_card:
             ai_text_reply = (
                 f"🗓️ **Custom {itinerary_card['days_count']}-Day Itinerary for {itinerary_card['destination']}**\n\n"
@@ -334,16 +523,54 @@ def get_chatbot_reply(
             ai_text_reply += "💡 *Permits & Logistics:* Ensure you have valid TIMS and conservation park permits before departure!"
         elif is_emergency_intent:
             ai_text_reply = (
-                "🚨 **NEPAL 24/7 EMERGENCY SENTINEL & HOTLINES**\n\n"
-                "• **Tourist Police Nepal:** `1144` or `+977-1-4247041` (Nationwide Tourist Protection)\n"
-                "• **Nepal Police Hotline:** `100`\n"
-                "• **Ambulance Emergency:** `102`\n"
-                "• **Fire Brigade Service:** `101`\n"
-                "• **Traffic Police:** `103`\n"
-                "• **Himalayan Rescue Association (HRA):** `+977-1-4440292` (Helicopter evacuation & AMS)\n"
-                "• **TUTH Teaching Hospital:** `+977-1-4412404` (Maharajgunj, Kathmandu)\n"
-                "• **CIWEC Travel Hospital:** `+977-1-4424111` (Lazimpat, Kathmandu & Pokhara)"
+                "🚨 **Nepal national emergency hotlines**\n\n"
+                "• **Tourist Police Nepal:** `1144`\n"
+                "• **Nepal Police:** `100`\n"
+                "• **Ambulance:** `102`\n"
+                "• **Fire Brigade:** `101`\n"
+                "• **Traffic Police:** `103`\n\n"
+                "Facility cards below use stored directory phones only. "
+                "If a local number is missing, the national 102 / 100 line is shown instead. "
+                "This assistant does not invent hospital or pharmacy numbers."
             )
+        elif is_package_intent:
+            primaries = [offer for offer in package_cards if not offer.get("is_alternative")]
+            alt_offers = [offer for offer in package_cards if offer.get("is_alternative")]
+            if primaries:
+                constraint = []
+                if requested_days:
+                    constraint.append(f"{requested_days}-day")
+                if requested_budget:
+                    constraint.append(f"under NPR {int(requested_budget):,}")
+                heading = " and ".join(constraint) or "live"
+                lines = [
+                    f"🎒 **Published packages matching your {heading} request**",
+                    "These are live offers from approved partners. Use View or Add to trip. No payment is processed here.",
+                    "",
+                ]
+                for offer in primaries:
+                    lines.append(
+                        f"• **{offer['title']}** ({offer['duration_days']} day(s)) — NPR {offer['price_npr']} · {offer['partner_name']}"
+                    )
+                if alt_offers:
+                    lines.append("")
+                    lines.append("Nearby-duration published alternatives (not an exact match):")
+                    for offer in alt_offers:
+                        lines.append(
+                            f"• **{offer['title']}** ({offer['duration_days']} day(s), alternative) — NPR {offer['price_npr']}"
+                        )
+                lines.append("")
+                lines.append("Open /packages to add offers to a trip basket, or /collaborate if you run a hotel or tour.")
+                ai_text_reply = "\n".join(lines)
+            elif requested_budget or requested_days:
+                ai_text_reply = (
+                    "I couldn't find a published package matching those requirements right now."
+                )
+            else:
+                ai_text_reply = (
+                    "No published packages are live yet. An administrator can add them from "
+                    "Admin → Packages & partners, or a hotel can apply at /collaborate."
+                )
         elif is_budget_intent:
             ai_text_reply = (
                 "💰 **Nepal Travel Budget Tiers (Per Person / Day)**:\n\n"
@@ -387,4 +614,5 @@ def get_chatbot_reply(
         "itinerary_cards": itinerary_card,
         "distance_cards": distance_card,
         "emergency_cards": emergency_cards,
+        "package_cards": package_cards,
     }

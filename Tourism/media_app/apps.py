@@ -1,6 +1,7 @@
 from django.apps import AppConfig
 
 
-class TranslationConfig(AppConfig):
+class MediaAppConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "translation"
+    name = "media_app"
+    label = "media_app"

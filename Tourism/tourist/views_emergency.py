@@ -45,7 +45,7 @@ def nearest_emergency(request):
 
     if category == "hospital":
 
-        places = Hospital.objects.all()
+        places = Hospital.objects.exclude(is_archived=True)
 
 
     elif category == "police":

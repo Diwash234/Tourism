@@ -69,6 +69,29 @@ class IsRoleOrAbove(BasePermission):
         )
 
 
+class IsRoleOrAboveForWriteOnly(IsRoleOrAbove):
+    """
+    ADDED: same role gate as IsRoleOrAbove, but GET/HEAD/OPTIONS are
+    always allowed through, for anyone (including anonymous visitors).
+
+    Fixes a real bug: HotelViewSet's own docstring says "Public read;
+    admin write", but it was using plain IsRoleOrAbove, which has no
+    read/write distinction at all -- has_permission() rejects everyone
+    below the minimum role regardless of HTTP method. That meant an
+    anonymous tourist browsing hotels (the actual public-facing
+    Hotels/HotelSearch pages) got a 401 trying to just list them,
+    confirmed live against the real API. Kept as a separate class
+    rather than changing IsRoleOrAbove itself, since the other two
+    call sites (destination approval, emergency-role actions) are
+    legitimately gated for both read and write by design.
+    """
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return super().has_permission(request, view)
+
+
 class IsEmergencyRole(BasePermission):
     """
     Emergency-related roles only.
@@ -119,6 +142,46 @@ class IsDistrictManagerForOwnDistrict(BasePermission):
             bool(obj_district)
             and obj_district == user.managed_district
         )
+
+
+class HasCapabilityOrReadOnly(BasePermission):
+    """Public/authenticated reads remain compatible; writes require module capability."""
+    message = "You do not have permission to modify this resource."
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        module = getattr(view, "capability_module", None)
+        action = {"POST":"add","PUT":"change","PATCH":"change","DELETE":"delete"}.get(request.method, "view")
+        try:
+            return bool(module and user.capability_profile.allows(module, action))
+        except Exception:
+            return False
+
+
+class HasCapability(BasePermission):
+    """Backend-enforced module/action permission for staff; admins bypass."""
+    message = "You do not have the required staff capability."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        module = getattr(view, "capability_module", None)
+        action_map = {"GET": "view", "HEAD": "view", "OPTIONS": "view", "POST": "add", "PUT": "change", "PATCH": "change", "DELETE": "delete"}
+        action = getattr(view, "capability_action", action_map.get(request.method, "view"))
+        if not module:
+            return False
+        try:
+            return user.capability_profile.allows(module, action)
+        except Exception:
+            return False
 
 
 # ---------------------------------------------------------------------

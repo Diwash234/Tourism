@@ -89,10 +89,17 @@ def predict_risk(
     incident_count=0,
 ):
     if model is None:
-        return {"risk": "unknown", "message": "Risk model not trained"}
+        return {
+            "risk": "unknown",
+            "risk_category": "unknown",
+            "degraded": True,
+            "data_note": "Risk model not trained on this deployment.",
+            "message": "Risk model not trained",
+        }
 
     place_row = _lookup_nearest_place(latitude, longitude, city)
 
+    degraded = False
     if place_row is not None:
         data = pd.DataFrame([[place_row.get(col, 0) for col in FEATURE_COLUMNS]], columns=FEATURE_COLUMNS)
         matched_place = place_row.get("place")
@@ -100,7 +107,9 @@ def predict_risk(
     else:
         # No CSV / no location given at all -- fall back to the previous
         # placeholder behaviour rather than crashing, but at least use the
-        # real incident_count the caller sent.
+        # real incident_count the caller sent. Flag the result as degraded so
+        # the API/frontend can say "limited risk data" instead of fake precision.
+        degraded = True
         data = pd.DataFrame(
             [[incident_count, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0]], columns=FEATURE_COLUMNS
         )
@@ -114,5 +123,10 @@ def predict_risk(
         "matched_place": matched_place,
         "matched_district": matched_district,
         "risk_category": result,
+        "degraded": degraded,
+        "data_note": (
+            "Limited local risk data for this location — showing a general estimate."
+            if degraded else None
+        ),
         "features_used": data.iloc[0].to_dict(),
     }

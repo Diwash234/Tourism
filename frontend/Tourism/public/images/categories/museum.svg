@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a89270"/><stop offset="60%" stop-color="#6e5e40"/><stop offset="100%" stop-color="#2c2617"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <polygon points="400,140 200,240 600,240" fill="#5a4a2a"/>
+  <rect x="200" y="240" width="400" height="170" fill="#d4c4a0"/>
+  <rect x="230" y="280" width="40" height="130" fill="#4a3d24"/>
+  <rect x="300" y="280" width="40" height="130" fill="#4a3d24"/>
+  <rect x="380" y="260" width="40" height="150" fill="#4a3d24"/>
+  <rect x="460" y="280" width="40" height="130" fill="#4a3d24"/>
+  <rect x="530" y="280" width="40" height="130" fill="#4a3d24"/>
+  <rect x="200" y="240" width="400" height="15" fill="#8c7850"/>
+  <rect x="0" y="410" width="800" height="90" fill="#2c2617"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".9" font-style="italic">Nepal Museum</text>
+</svg>

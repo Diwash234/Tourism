@@ -9,15 +9,7 @@ from .serializers import TranslateRequestSerializer
 class TranslateTextView(APIView):
     """
     POST /api/v1/translate/
-    Same path as before the app split -- moved from tourist/views.py,
-    URL unchanged so nothing that already calls this needs to change.
-
-    Now also accepts an optional `provider` field ("auto" | "gemini" |
-    "groq" | "openai" | "standard") -- previously translate_text()
-    supported this param but nothing in the request chain actually
-    exposed it to the frontend. translationPreference.js already reads/
-    writes a provider preference client-side; this is what lets that
-    preference actually reach the translation call.
+    Moved from tourist/views.py -- same path, same response shape.
     """
     permission_classes = [permissions.AllowAny]
     serializer_class = TranslateRequestSerializer
