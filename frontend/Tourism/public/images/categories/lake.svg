@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2f6f7f"/><stop offset="60%" stop-color="#1f6b4d"/><stop offset="100%" stop-color="#0f3828"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <path d="M0,250 Q200,220 400,250 T800,240 L800,500 L0,500 Z" fill="#4f9bb0" opacity=".85"/>
+  <path d="M0,260 Q200,230 400,260 T800,250 L800,500 L0,500 Z" fill="#2f6f7f" opacity=".9"/>
+  <path d="M100,260 Q300,250 500,265" stroke="#e0f0ee" stroke-width="1.5" fill="none" opacity=".5"/>
+  <circle cx="620" cy="120" r="38" fill="#f7e9b8" opacity=".85"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".85" font-style="italic">Himalayan Lake</text>
+</svg>

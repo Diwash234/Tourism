@@ -5,18 +5,35 @@ import {
   Popup,
   Polyline,
   useMap,
+  useMapEvents,
 } from "react-leaflet"
 
 import { useEffect, useState } from "react"
 
 import configApi from "../../api/configApi"
 import MapillaryImages from "./MapillaryImages"
-
 import {
-  MAP_TILE_URL,
   MAPILLARY_ACCESS_TOKEN,
   DEFAULT_MAP_CENTER,
 } from "../../utils/constants"
+
+const TILE_PROVIDERS = {
+  detailed: {
+    name: "Detailed Road Map",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attr: "&copy; OpenStreetMap contributors",
+  },
+  standard: {
+    name: "Standard Light",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attr: "&copy; OpenStreetMap contributors",
+  },
+  satellite: {
+    name: "Satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attr: "Tiles &copy; Esri &mdash; Source: Esri, USGS",
+  },
+}
 
 import {
   userIcon,
@@ -24,47 +41,19 @@ import {
   hospitalIcon,
   policeIcon,
   attractionIcon,
+  waypointIcon,
 } from "./icons"
 
 
-/**
- * Convert different location formats into one consistent format.
- *
- * Supports:
- * {
- *   lat,
- *   lng,
- *   name
- * }
- *
- * or:
- * {
- *   latitude,
- *   longitude,
- *   Name
- * }
- */
 const normalizeLocation = (place) => {
+
   if (!place) return null
 
-  const latValue =
-    place.lat ??
-    place.latitude
+  const lat = Number(place.lat) || Number(place.latitude)
+  const lng = Number(place.lng) || Number(place.longitude)
 
-  const lngValue =
-    place.lng ??
-    place.longitude
-
-  const lat = Number(latValue)
-  const lng = Number(lngValue)
-
-  // Reject missing, NaN, or 0/0 coordinates
-  if (
-    !Number.isFinite(lat) ||
-    !Number.isFinite(lng) ||
-    lat === 0 ||
-    lng === 0
-  ) {
+  // Prevent invalid coordinates like [0,0]
+  if (!lat || !lng || Number.isNaN(lat) || Number.isNaN(lng)) {
     return null
   }
 
@@ -74,462 +63,458 @@ const normalizeLocation = (place) => {
     name:
       place.name ||
       place.Name ||
-      place.title ||
-      "Location",
+      "Location"
   }
 }
 
 
-/**
- * Recenter map whenever center changes.
- */
 const Recenter = ({ center }) => {
   const map = useMap()
-
   useEffect(() => {
-    if (!center) return
-
-    map.setView(
-      [center.lat, center.lng],
-      13
-    )
+    if (center) {
+      map.setView([center.lat, center.lng], 13)
+    }
   }, [center, map])
-
   return null
+}
+
+const MapMeasureEvents = ({ active, onPoint }) => {
+  useMapEvents({
+    click(e) {
+      if (active) {
+        onPoint([e.latlng.lat, e.latlng.lng])
+      }
+    },
+  })
+  return null
+}
+
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const r = 6371.0
+  const dlat = ((lat2 - lat1) * Math.PI) / 180.0
+  const dlon = ((lon2 - lon1) * Math.PI) / 180.0
+  const a =
+    Math.sin(dlat / 2.0) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180.0) *
+      Math.cos((lat2 * Math.PI) / 180.0) *
+      Math.sin(dlon / 2.0) ** 2
+  return r * 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a))
 }
 
 
 const MapView = ({
   center,
-
   userLocation,
-
   destination,
-
   nearbyAttractions = [],
-
   hospitals = [],
-
   policeStations = [],
-
   route = [],
-
-  height = "420px",
+  waypoints = [],
+  height = "420px"
 }) => {
+  const [mapStyle, setMapStyle] = useState("detailed")
+  const [measureMode, setMeasureMode] = useState(false)
+  const [measurePoints, setMeasurePoints] = useState([])
+  const [layers] = useState({
+    route: true,
+    destination: true,
+    attractions: true,
+    hospitals: true,
+    police: true,
+    mapillary: true,
+  })
 
-  /**
-   * Satellite/map toggle
-   * Restored from your first version.
-   */
-  const [satellite, setSatellite] = useState(false)
 
-
-  /**
-   * Mapillary token.
-   *
-   * First try the frontend constant.
-   * Then try fetching the public token from backend config.
-   */
   const [mapillaryToken, setMapillaryToken] = useState(
     MAPILLARY_ACCESS_TOKEN || ""
   )
 
 
-  /**
-   * Load Mapillary token from backend.
-   */
   useEffect(() => {
+
     let ignore = false
 
     configApi
       .getPublicConfig()
       .then(({ data }) => {
-        if (
-          !ignore &&
-          data?.mapillary_access_token
-        ) {
+
+        if (!ignore && data?.mapillary_access_token) {
           setMapillaryToken(
             data.mapillary_access_token
           )
         }
+
       })
       .catch(() => {
+
         if (!ignore) {
           setMapillaryToken(
             MAPILLARY_ACCESS_TOKEN || ""
           )
         }
+
       })
+
 
     return () => {
       ignore = true
     }
+
   }, [])
 
 
-  /**
-   * Normalize user and destination.
-   */
+
   const user =
     normalizeLocation(userLocation)
+
 
   const dest =
     normalizeLocation(destination)
 
 
-  /**
-   * Determine map center.
-   *
-   * Priority:
-   * 1. Explicit center
-   * 2. User location
-   * 3. Default Nepal center
-   */
+
   const mapCenter =
-    normalizeLocation(center) ||
-    user ||
+    normalizeLocation(center)
+    ||
+    user
+    ||
     DEFAULT_MAP_CENTER
 
 
-  /**
-   * Normalize route coordinates.
-   *
-   * Supports:
-   *
-   * [[lat, lng], [lat, lng]]
-   *
-   * OR:
-   *
-   * [
-   *   { lat, lng },
-   *   { latitude, longitude }
-   * ]
-   */
-  const fixedRoute = route
-    .map((point) => {
+
+  const fixedRoute =
+    route.map(point => {
+
       if (Array.isArray(point)) {
-        const lat = Number(point[0])
-        const lng = Number(point[1])
-
-        if (
-          !Number.isFinite(lat) ||
-          !Number.isFinite(lng)
-        ) {
-          return null
-        }
-
-        return [lat, lng]
+        return point
       }
 
-      if (!point) {
-        return null
-      }
+      return [
+        Number(point.lat || point.latitude),
+        Number(point.lng || point.longitude)
+      ]
 
-      const lat = Number(
-        point.lat ??
-        point.latitude
-      )
-
-      const lng = Number(
-        point.lng ??
-        point.longitude
-      )
-
-      if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lng)
-      ) {
-        return null
-      }
-
-      return [lat, lng]
     })
-    .filter(Boolean)
 
+
+
+  const activeTile = TILE_PROVIDERS[mapStyle] || TILE_PROVIDERS.detailed
+
+  const totalMeasuredKm = measurePoints.reduce((acc, curr, idx) => {
+    if (idx === 0) return 0
+    const prev = measurePoints[idx - 1]
+    return acc + haversineKm(prev[0], prev[1], curr[0], curr[1])
+  }, 0)
 
   return (
     <div
       style={{ height }}
-      className="relative rounded-xl overflow-hidden shadow-card"
+      className="rounded-xl overflow-hidden shadow-card relative"
     >
-
-      {/* =========================================
-          MAP CONTROLS
-      ========================================== */}
-
-      <button
-        type="button"
-        onClick={() =>
-          setSatellite((current) => !current)
-        }
-        className="
-          absolute
-          top-3
-          right-3
-          z-[1000]
-          bg-white
-          shadow-md
-          text-xs
-          font-semibold
-          px-3
-          py-1.5
-          rounded-full
-          hover:bg-gray-50
-        "
-      >
-        {satellite
-          ? "Map View"
-          : "Satellite View"}
-      </button>
-
-
-      {/* Mapillary status */}
-
-      {mapillaryToken && (
-        <div
-          className="
-            absolute
-            top-14
-            right-3
-            z-[1000]
-            rounded-lg
-            bg-white/90
-            px-3
-            py-1
-            text-[10px]
-            font-semibold
-            text-gray-700
-            shadow-sm
-          "
+      {/* Map Style Selector & Ruler Tool */}
+      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-1.5 shadow-md flex items-center gap-1.5 text-[11px] font-bold">
+        {Object.entries(TILE_PROVIDERS).map(([key, provider]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMapStyle(key)}
+            className={`px-2.5 py-1 rounded-lg transition-all ${
+              mapStyle === key ? "bg-slate-900 text-white shadow" : "text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {provider.name}
+          </button>
+        ))}
+        <div className="h-4 w-px bg-slate-200 mx-1" />
+        <button
+          type="button"
+          onClick={() => {
+            setMeasureMode(!measureMode)
+            if (measureMode) setMeasurePoints([])
+          }}
+          className={`px-2.5 py-1 rounded-lg transition-all ${
+            measureMode ? "bg-amber-500 text-slate-950 font-black shadow" : "text-slate-700 hover:bg-slate-100"
+          }`}
         >
+          📏 {measureMode ? "Cancel Ruler" : "Measure Distance"}
+        </button>
+      </div>
+
+      {measureMode && (
+        <div className="absolute top-14 left-3 z-[1000] bg-slate-950/90 text-white border border-amber-400/50 rounded-xl p-2.5 text-xs shadow-xl space-y-1">
+          <p className="font-bold text-amber-300">Click points on the map to measure geodesic distance</p>
+          <p className="text-[11px] text-slate-200">
+            Measured: <b className="text-white text-sm">{totalMeasuredKm.toFixed(2)} km</b> ({ (totalMeasuredKm * 0.621371).toFixed(2) } mi)
+          </p>
+          {measurePoints.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMeasurePoints([])}
+              className="text-[10px] text-amber-300 underline font-bold"
+            >
+              Clear points ({measurePoints.length})
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Mapillary Badge */}
+      {mapillaryToken && layers.mapillary && (
+        <div className="absolute right-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
           Mapillary enabled
         </div>
       )}
 
-
-      {/* =========================================
-          LEAFLET MAP
-      ========================================== */}
-
       <MapContainer
-        center={[
-          mapCenter.lat,
-          mapCenter.lng,
-        ]}
+        center={[mapCenter.lat, mapCenter.lng]}
         zoom={13}
         scrollWheelZoom={true}
-        style={{
-          height: "100%",
-          width: "100%",
-        }}
+        style={{ height: "100%", width: "100%" }}
       >
+        <TileLayer
+          key={mapStyle}
+          attribution={activeTile.attr}
+          url={activeTile.url}
+        />
 
-        {/* =======================================
-            BASE MAP
-        ======================================== */}
+        <MapMeasureEvents active={measureMode} onPoint={(pt) => setMeasurePoints((prev) => [...prev, pt])} />
 
-        {satellite ? (
-          <TileLayer
-            attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          />
-        ) : (
-          <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url={MAP_TILE_URL}
+        {measurePoints.length > 1 && (
+          <Polyline
+            positions={measurePoints}
+            color="#f59e0b"
+            weight={4}
+            dashArray="6, 6"
           />
         )}
-
-
-        {/* =======================================
-            RECENTER
-        ======================================== */}
 
         <Recenter center={mapCenter} />
 
 
-        {/* =======================================
-            USER LOCATION
-        ======================================== */}
 
-        {user && (
-          <Marker
-            position={[
-              user.lat,
-              user.lng,
-            ]}
-            icon={userIcon}
-          >
-            <Popup>
-              <div className="font-medium">
+        {
+          user && (
+
+            <Marker
+
+              position={[
+                user.lat,
+                user.lng
+              ]}
+
+              icon={userIcon}
+
+            >
+
+              <Popup>
                 You are here
-              </div>
-            </Popup>
-          </Marker>
-        )}
+              </Popup>
+
+            </Marker>
+
+          )
+        }
 
 
-        {/* =======================================
-            DESTINATION
-        ======================================== */}
-
-        {dest && (
-          <Marker
-            position={[
-              dest.lat,
-              dest.lng,
-            ]}
-            icon={destinationIcon}
-          >
-
-            <Popup>
-              <div className="min-w-[220px]">
-
-                <p className="font-semibold text-sm mb-2">
-                  {dest.name}
-                </p>
 
 
-                {/* =================================
-                    MAPILLARY STREET IMAGES
-                ================================= */}
+        {waypoints.map((waypoint, index) => {
+          const stop = normalizeLocation(waypoint)
+          if (!stop) return null
+          return (
+            <Marker
+              key={`waypoint-${index}`}
+              position={[stop.lat, stop.lng]}
+              icon={waypointIcon(index + 1)}
+            >
+              <Popup>
+                <p className="font-semibold text-sm">Stop {index + 1}: {waypoint?.name || "Waypoint"}</p>
+              </Popup>
+            </Marker>
+          )
+        })}
 
-                {mapillaryToken ? (
-                  <MapillaryImages
-                    latitude={dest.lat}
-                    longitude={dest.lng}
-                    limit={3}
-                    accessToken={mapillaryToken}
-                  />
-                ) : (
-                  <p className="text-xs text-gray-500">
-                    Mapillary images unavailable.
-                  </p>
-                )}
+        {
+          dest && (
 
-              </div>
-            </Popup>
+            <Marker
 
-          </Marker>
-        )}
+              position={[
+                dest.lat,
+                dest.lng
+              ]}
+
+              icon={destinationIcon}
+
+            >
+
+              <Popup>
+                <div className="min-w-[160px]">
+                  <p className="font-semibold text-sm mb-2">{dest.name}</p>
+                  {/* Mapillary street imagery (uses VITE_MAPILLARY_ACCESS_TOKEN
+                      from env / backend public config) */}
+                  <MapillaryImages latitude={dest.lat} longitude={dest.lng} limit={3} />
+                </div>
+              </Popup>
+
+            </Marker>
+
+          )
+        }
 
 
-        {/* =======================================
-            NEARBY ATTRACTIONS
-        ======================================== */}
 
-        {nearbyAttractions.map(
-          (p, index) => {
+
+        {
+          nearbyAttractions.map((p, index) => {
+
             const place =
               normalizeLocation(p)
 
-            if (!place) {
+
+            if (!place || !place.lat || !place.lng)
               return null
-            }
+
 
             return (
+
               <Marker
-                key={`attr-${index}`}
+
+                key={"attr" + index}
+
                 position={[
                   place.lat,
-                  place.lng,
+                  place.lng
                 ]}
+
                 icon={attractionIcon}
+
               >
+
                 <Popup>
-                  <div className="font-medium">
-                    {place.name}
-                  </div>
+                  {place.name}
                 </Popup>
+
               </Marker>
+
             )
-          }
-        )}
+
+          })
+        }
 
 
-        {/* =======================================
-            HOSPITALS
-        ======================================== */}
 
-        {hospitals.map(
-          (p, index) => {
+
+        {
+          hospitals.map((p, index) => {
+
             const place =
               normalizeLocation(p)
 
-            if (!place) {
+
+            if (!place || !place.lat || !place.lng)
               return null
-            }
+
 
             return (
+
               <Marker
-                key={`hospital-${index}`}
+
+                key={"hospital" + index}
+
                 position={[
                   place.lat,
-                  place.lng,
+                  place.lng
                 ]}
+
                 icon={hospitalIcon}
+
               >
+
                 <Popup>
-                  <div className="font-medium">
-                    🏥 {place.name}
-                  </div>
+                  🏥 {place.name}
                 </Popup>
+
               </Marker>
+
             )
-          }
-        )}
+
+          })
+        }
 
 
-        {/* =======================================
-            POLICE STATIONS
-        ======================================== */}
 
-        {policeStations.map(
-          (p, index) => {
+
+        {
+          policeStations.map((p, index) => {
+
             const place =
               normalizeLocation(p)
 
-            if (!place) {
+
+            if (!place || !place.lat || !place.lng)
               return null
-            }
+
 
             return (
+
               <Marker
-                key={`police-${index}`}
+
+                key={"police" + index}
+
                 position={[
                   place.lat,
-                  place.lng,
+                  place.lng
                 ]}
+
                 icon={policeIcon}
+
               >
+
                 <Popup>
-                  <div className="font-medium">
-                    🚓 {place.name}
-                  </div>
+                  🚓 {place.name}
                 </Popup>
+
               </Marker>
+
             )
-          }
+
+          })
+        }
+
+
+
+
+        {fixedRoute.length > 1 && layers.route && (
+          <>
+            <Polyline
+              positions={fixedRoute}
+              color="#0f172a"
+              weight={8}
+              opacity={0.3}
+              lineCap="round"
+              lineJoin="round"
+            />
+            <Polyline
+              positions={fixedRoute}
+              color="#2563eb"
+              weight={5}
+              opacity={0.9}
+              lineCap="round"
+              lineJoin="round"
+            />
+          </>
         )}
 
-
-        {/* =======================================
-            ROUTE / DIRECTIONS
-        ======================================== */}
-
-        {fixedRoute.length > 1 && (
-          <Polyline
-            positions={fixedRoute}
-            color="red"
-            weight={5}
-            opacity={0.8}
-          />
-        )}
 
       </MapContainer>
 
+
     </div>
+
   )
+
 }
 
 

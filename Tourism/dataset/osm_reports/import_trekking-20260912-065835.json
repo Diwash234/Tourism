@@ -1,0 +1,10 @@
+{
+  "source": "/tmp/trek_sample.json",
+  "dry_run": true,
+  "found": 1,
+  "created": 1,
+  "updated": 0,
+  "rejected": 0,
+  "stages": 1,
+  "finished": "2026-09-12T06:58:35.706032+00:00"
+}

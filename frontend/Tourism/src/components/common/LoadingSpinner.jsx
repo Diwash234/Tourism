@@ -12,9 +12,9 @@ export default function LoadingSpinner({ size = "md", text = "Loading..." }) {
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-        className={`${sizeClasses[size] || sizeClasses.md} border-purple-200 border-t-purple-700 rounded-full`}
+        className={`${sizeClasses[size] || sizeClasses.md} border-[#E5E0D5] border-t-purple-700 rounded-full`}
       />
-      {text && <p className="text-xs font-semibold text-purple-800">{text}</p>}
+      {text && <p className="text-xs font-semibold text-[#1D5146]">{text}</p>}
     </div>
   )
 }

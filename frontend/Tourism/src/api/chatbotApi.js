@@ -31,6 +31,14 @@ const chatbotApi = {
 
   },
 
+  // ---- Human support workflow (admin dashboard) ----
+  supportInbox: (params) => axiosClient.get("/chatbot/support/inbox/", { params }),
+  supportThread: (conversationId) =>
+    axiosClient.get(`/chatbot/support/thread/${conversationId}/`),
+  supportReply: (conversationId, content) =>
+    axiosClient.post("/chatbot/support/reply/", { conversation_id: conversationId, content }),
+  supportAssign: (payload) =>
+    axiosClient.post("/chatbot/support/assign/", payload),
 
 }
 

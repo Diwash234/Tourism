@@ -1,0 +1,53 @@
+{
+  "interval_days": 180,
+  "cutoff": "2026-03-17T01:04:36.840685+00:00",
+  "flagged": false,
+  "models": {
+    "tourist.Hotel": {
+      "verified": 0,
+      "stale": 0,
+      "flagged": 0,
+      "verified_without_timestamp": 0,
+      "unverified": 1653
+    },
+    "tourist.Hospital": {
+      "verified": 0,
+      "stale": 0,
+      "flagged": 0,
+      "verified_without_timestamp": 0,
+      "unverified": 393
+    },
+    "tourist.PoliceStation": {
+      "verified": 0,
+      "stale": 0,
+      "flagged": 0,
+      "verified_without_timestamp": 0,
+      "unverified": 641
+    },
+    "tourist.OSMEssentialService": {
+      "verified": 0,
+      "stale": 0,
+      "flagged": 0,
+      "verified_without_timestamp": 0,
+      "unverified": 1001
+    },
+    "tourist.DestinationTransitRoute": {
+      "verified": 0,
+      "stale": 0,
+      "flagged": 0,
+      "verified_without_timestamp": 0,
+      "unverified": 0
+    },
+    "tourist.DestinationFeatureProfile": {
+      "verified": 0,
+      "stale": 0,
+      "flagged": 0,
+      "verified_without_timestamp": 0,
+      "unverified": 0
+    }
+  },
+  "totals": {
+    "stale": 0,
+    "flagged": 0
+  }
+}

@@ -5,8 +5,9 @@
  * Accepts numbers or numeric strings. Returns "—" for invalid input.
  */
 export function formatDistance(km) {
+  if (km === null || km === undefined || km === "") return "—"
   const value = Number(km)
-  if (value === null || value === undefined || Number.isNaN(value)) return "—"
+  if (Number.isNaN(value)) return "—"
   if (value < 1) {
     return `${Math.max(1, Math.round(value * 1000))} m`
   }

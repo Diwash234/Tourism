@@ -44,3 +44,328 @@ class ChatbotTests(APITestCase):
     def test_history_requires_auth(self):
         response = self.client.get(reverse("chatbot-history"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_package_question_uses_published_marketplace(self):
+        from tourist.models import MarketplaceListing, MarketplacePartner
+        partner = MarketplacePartner.objects.create(
+            name="Lakeside Lodge", kind="hotel", email="lodge@example.com", status="approved",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Phewa Weekend Stay", kind="package",
+            summary="Two nights", price_npr="12000.00", status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Hidden Draft", price_npr="1.00", status="draft",
+        )
+        response = self.client.post(reverse("chatbot-message"), {"message": "What travel packages can I add to a trip?"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Phewa Weekend Stay", response.data["reply"])
+        self.assertNotIn("Hidden Draft", response.data["reply"])
+        titles = [row["title"] for row in response.data.get("package_cards", [])]
+        self.assertIn("Phewa Weekend Stay", titles)
+        self.assertNotIn("Hidden Draft", titles)
+
+    def test_budget_trip_matches_published_listing(self):
+        from tourist.models import MarketplaceListing, MarketplacePartner
+        partner = MarketplacePartner.objects.create(
+            name="Budget Treks", kind="operator", email="budget@example.com", status="approved",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Five Day Nepal Circuit", kind="package",
+            summary="Kathmandu and Pokhara", price_npr="50000.00", duration_days=5, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Luxury Over Budget", kind="package",
+            summary="Too expensive", price_npr="200000.00", duration_days=5, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Unpublished Bargain", kind="package",
+            summary="Hidden", price_npr="10000.00", duration_days=5, status="pending",
+        )
+        response = self.client.post(reverse("chatbot-message"), {
+            "message": "I want a 5-day trip to Nepal under $500",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Five Day Nepal Circuit", response.data["reply"])
+        self.assertNotIn("Luxury Over Budget", response.data["reply"])
+        self.assertNotIn("Unpublished Bargain", response.data["reply"])
+        titles = [row["title"] for row in response.data.get("package_cards", [])]
+        self.assertIn("Five Day Nepal Circuit", titles)
+        self.assertNotIn("Luxury Over Budget", titles)
+        self.assertNotIn("Unpublished Bargain", titles)
+        self.assertFalse(any(row.get("is_alternative") for row in response.data.get("package_cards", []) if row["title"] == "Five Day Nepal Circuit"))
+
+    def test_wrong_duration_is_not_a_primary_match(self):
+        from tourist.models import MarketplaceListing, MarketplacePartner
+        partner = MarketplacePartner.objects.create(
+            name="Duration Treks", kind="operator", email="duration@example.com", status="approved",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Five Day Nepal Circuit", kind="package",
+            summary="Kathmandu and Pokhara", price_npr="50000.00", duration_days=5, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Twelve Day Circuit", kind="package",
+            summary="Long trek", price_npr="40000.00", duration_days=12, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=partner, title="Six Day Nearby", kind="package",
+            summary="Almost five", price_npr="45000.00", duration_days=6, status="published",
+        )
+        response = self.client.post(reverse("chatbot-message"), {
+            "message": "I want a 5-day trip to Nepal under $500",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        cards = response.data.get("package_cards", [])
+        by_title = {row["title"]: row for row in cards}
+        self.assertIn("Five Day Nepal Circuit", by_title)
+        self.assertFalse(by_title["Five Day Nepal Circuit"].get("is_alternative"))
+        self.assertNotIn("Twelve Day Circuit", by_title)
+        self.assertNotIn("Twelve Day Circuit", response.data["reply"])
+        if "Six Day Nearby" in by_title:
+            self.assertTrue(by_title["Six Day Nearby"].get("is_alternative"))
+
+    def test_suspended_partner_and_pending_listing_are_excluded(self):
+        from tourist.models import MarketplaceListing, MarketplacePartner
+        suspended = MarketplacePartner.objects.create(
+            name="Suspended Treks", kind="operator", email="susp@example.com", status="suspended",
+        )
+        approved = MarketplacePartner.objects.create(
+            name="Live Treks", kind="operator", email="live@example.com", status="approved",
+        )
+        MarketplaceListing.objects.create(
+            partner=suspended, title="Suspended Five Day", price_npr="10000.00",
+            duration_days=5, status="published",
+        )
+        MarketplaceListing.objects.create(
+            partner=approved, title="Archived Five Day", price_npr="10000.00",
+            duration_days=5, status="archived",
+        )
+        MarketplaceListing.objects.create(
+            partner=approved, title="Pending Five Day", price_npr="10000.00",
+            duration_days=5, status="pending",
+        )
+        response = self.client.post(reverse("chatbot-message"), {
+            "message": "I want a 5-day trip to Nepal under $500",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("I couldn't find a published package matching those requirements right now.", response.data["reply"])
+        self.assertNotIn("Suspended Five Day", response.data["reply"])
+        self.assertNotIn("Invented Himalayan Special", response.data["reply"])
+        titles = [row["title"] for row in response.data.get("package_cards", [])]
+        self.assertEqual(titles, [])
+
+    def test_emergency_cards_do_not_invent_hospital_phones(self):
+        from tourist.models import Category, Destination, Hospital
+        category = Category.objects.create(name="Chat Emergency")
+        dest = Destination.objects.create(
+            name="Chat Valley", category=category, description="Test",
+            latitude=28.2, longitude=83.9, status="approved", is_active=True,
+        )
+        Hospital.objects.create(
+            destination=dest, name="Silent Clinic", address="Ward 1",
+            phone="", latitude=28.2, longitude=83.9, district="Kaski",
+        )
+        response = self.client.post(reverse("chatbot-message"), {"message": "nearest hospital emergency"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("4412404", response.data["reply"])
+        self.assertNotIn("4424111", response.data["reply"])
+        cards = response.data.get("emergency_cards", [])
+        self.assertTrue(cards)
+        for card in cards:
+            self.assertNotIn("4412404", card["phone"])
+            self.assertNotIn("4424111", card["phone"])
+            if card["name"] == "Silent Clinic":
+                self.assertEqual(card["phone"], "102")
+                self.assertTrue(card["phone_is_national_fallback"])
+
+class ChatWebSocketTests(APITestCase):
+    """Master spec §30: live full-duplex socket push per conversation."""
+
+    def test_consumer_accepts_and_receives_group_broadcasts(self):
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from channels.testing import WebsocketCommunicator
+        from Tourism.asgi import application
+
+        async def scenario():
+            communicator = WebsocketCommunicator(application, "/ws/chat/4242/")
+            connected, _ = await communicator.connect()
+            assert connected, "websocket should accept the connection"
+            welcome = await communicator.receive_json_from()
+            assert welcome["type"] == "chat.connected"
+            assert welcome["conversation_id"] == 4242
+            layer = get_channel_layer()
+            await layer.group_send(
+                "chat_4242",
+                {"type": "chat.message", "payload": {"type": "bot_reply", "message_id": 7, "reply": "Namaste"}},
+            )
+            event = await communicator.receive_json_from()
+            assert event == {"type": "bot_reply", "message_id": 7, "reply": "Namaste"}
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()
+
+    def test_message_post_broadcasts_user_and_bot_events(self):
+        from unittest.mock import patch
+
+        captured = []
+
+        class FakeLayer:
+            async def group_send(self, group, event):
+                captured.append((group, event))
+
+        with patch("channels.layers.get_channel_layer", return_value=FakeLayer()):
+            response = self.client.post(reverse("chatbot-message"), {"message": "Hello live chat"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        conversation_id = response.data["conversation_id"]
+        # A user message now fans out to BOTH the conversation socket and the
+        # live support inbox group (V6 support workflow), then the bot reply
+        # goes to the conversation socket.
+        self.assertEqual(
+            [group for group, _ in captured],
+            [f"chat_{conversation_id}", "support_inbox", f"chat_{conversation_id}"],
+        )
+        self.assertEqual(
+            [event["payload"]["type"] for _, event in captured],
+            ["user_message", "support.user_message", "bot_reply"],
+        )
+        self.assertEqual(captured[2][1]["payload"]["message_id"], response.data["message_id"])
+
+
+class SupportWorkflowTests(APITestCase):
+    """Human support workflow (V6): inbox, admin reply, assignment."""
+
+    def _staff(self, email="staff@example.com"):
+        return User.objects.create_user(email=email, password="Pass123!", role=User.Role.STAFF)
+
+    def _guide(self, email="guide@example.com"):
+        return User.objects.create_user(email=email, password="Pass123!", role=User.Role.GUIDE)
+
+    def _seed_conversation(self):
+        # A traveller (anonymous) starts a chat -> persisted conversation.
+        res = self.client.post(reverse("chatbot-message"), {"message": "Help, I lost my bag"})
+        return res.data["conversation_id"]
+
+    def test_inbox_requires_staff(self):
+        cid = self._seed_conversation()
+        self.client.logout()
+        res = self.client.get(reverse("support-inbox"))
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_sees_inbox_with_last_message(self):
+        cid = self._seed_conversation()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.get(reverse("support-inbox"))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        ids = [row["id"] for row in res.data["results"]]
+        self.assertIn(cid, ids)
+
+    def test_admin_reply_is_persisted_as_admin_role(self):
+        cid = self._seed_conversation()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-reply"), {"conversation_id": cid, "content": "We're on it!"})
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        conv = ChatConversation.objects.get(pk=cid)
+        admin_msgs = conv.messages.filter(role=ChatMessage.Role.ADMIN)
+        self.assertEqual(admin_msgs.count(), 1)
+        self.assertEqual(admin_msgs.first().content, "We're on it!")
+        # Reply shows up in the staff thread view too.
+        thread = self.client.get(reverse("support-thread", args=[cid]))
+        roles = [m["role"] for m in thread.data["messages"]]
+        self.assertIn(ChatMessage.Role.ADMIN, roles)
+
+    def test_reply_requires_content(self):
+        cid = self._seed_conversation()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-reply"), {"conversation_id": cid, "content": "  "})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_assign_to_guide_sets_assigned_status(self):
+        cid = self._seed_conversation()
+        guide = self._guide()
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": guide.email})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["status"], ChatConversation.Status.ASSIGNED)
+        self.assertEqual(res.data["assigned_to"], guide.email)
+
+    def test_assign_to_non_staff_rejected(self):
+        cid = self._seed_conversation()
+        tourist = User.objects.create_user(email="plain@example.com", password="Pass123!", role=User.Role.TOURIST)
+        self.client.force_authenticate(user=self._staff())
+        res = self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": tourist.email})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_assign_to_self(self):
+        cid = self._seed_conversation()
+        staff = self._staff(email="me@example.com")
+        self.client.force_authenticate(user=staff)
+        res = self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": "me"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["assigned_to"], "me@example.com")
+
+    def test_mine_filter(self):
+        cid = self._seed_conversation()
+        staff = self._staff(email="owner@example.com")
+        self.client.force_authenticate(user=staff)
+        self.client.post(reverse("support-assign"), {"conversation_id": cid, "assigned_to": "me"})
+        res = self.client.get(reverse("support-inbox"), {"mine": "1"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(cid, [row["id"] for row in res.data["results"]])
+
+
+class SupportInboxWebSocketTests(APITestCase):
+    """/ws/support/ must reject non-staff and relay inbox events to staff."""
+
+    async def _scenario(self, path):
+        from channels.testing import WebsocketCommunicator
+        from Tourism.asgi import application
+        communicator = WebsocketCommunicator(application, path)
+        connected, _ = await communicator.connect()
+        return communicator, connected
+
+    def test_anonymous_is_rejected(self):
+        from asgiref.sync import async_to_sync
+
+        async def run():
+            communicator, connected = await self._scenario("/ws/support/")
+            assert not connected, "anonymous must not join the support inbox"
+        async_to_sync(run)()
+
+    def test_tourist_token_is_rejected(self):
+        from asgiref.sync import async_to_sync
+        tourist = User.objects.create_user(email="ws-tourist@example.com", password="Pass123!", role=User.Role.TOURIST)
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = str(AccessToken.for_user(tourist))
+
+        async def run():
+            communicator, connected = await self._scenario(f"/ws/support/?token={token}")
+            assert not connected, "non-staff token must not join the support inbox"
+        async_to_sync(run)()
+
+    def test_staff_connects_and_receives_inbox_events(self):
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        staff = User.objects.create_user(email="ws-staff@example.com", password="Pass123!", role=User.Role.STAFF)
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = str(AccessToken.for_user(staff))
+
+        async def run():
+            communicator, connected = await self._scenario(f"/ws/support/?token={token}")
+            assert connected, "staff must be accepted"
+            hello = await communicator.receive_json_from()
+            assert hello["type"] == "support.connected"
+            layer = get_channel_layer()
+            await layer.group_send(
+                "support_inbox",
+                {"type": "chat.message", "payload": {
+                    "type": "support.user_message", "conversation_id": 9,
+                    "message_id": 3, "content": "Help", "user_email": "t@example.com",
+                }},
+            )
+            event = await communicator.receive_json_from()
+            assert event["type"] == "support.user_message"
+            assert event["content"] == "Help"
+            await communicator.disconnect()
+        async_to_sync(run)()

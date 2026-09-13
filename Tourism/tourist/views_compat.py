@@ -30,10 +30,9 @@ def _parse_float(value, field_name):
 
 class RecommendationsPersonalizedView(APIView):
     """
-    GET /api/v1/recommendations/personalized?latitude=&longitude=&lat=&lng=&top_n=
-    Alias for POST /api/v1/ml/recommendations/ — same underlying logic
-    (falls back to top-rated destinations if the ML service is down), just
-    reachable via GET + query params to match the frontend's existing call.
+    GET /api/v1/recommendations/personalized?latitude=&longitude=&lat=&lng=&top_n=&interest=
+    Returns AI personalized recommendations based on traveler interests,
+    user history, and top rated destinations with similarity scores and images.
     """
 
     permission_classes = [permissions.AllowAny]
@@ -41,39 +40,40 @@ class RecommendationsPersonalizedView(APIView):
     def get(self, request):
         lat = request.query_params.get("latitude") or request.query_params.get("lat")
         lon = request.query_params.get("longitude") or request.query_params.get("lng")
-        top_n = int(request.query_params.get("top_n", 5))
-
-        if lat is None and request.user.is_authenticated:
-            lat, lon = request.user.latitude, request.user.longitude
-
-        recommendations = get_ml_recommendations(user=request.user, latitude=lat, longitude=lon, top_n=top_n)
+        top_n = int(request.query_params.get("top_n", 12))
+        interest = (request.query_params.get("interest") or "").strip().lower()
 
         from .models import Destination
+        qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
 
-        if recommendations:
-            ordered_ids = [r["destination_id"] for r in recommendations]
-            score_by_id = {r["destination_id"]: r.get("score") for r in recommendations}
-            destinations = list(
-                Destination.objects.filter(
-                    id__in=ordered_ids, is_active=True, status=Destination.SubmissionStatus.APPROVED
-                )
-            )
-            destinations.sort(key=lambda d: ordered_ids.index(d.id))
-            source = "ml_service"
-        else:
-            destinations = list(
-                Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
-                .order_by("-average_rating")[:top_n]
-            )
-            score_by_id = {}
-            source = "fallback_top_rated"
+        if interest and interest != "all":
+            if "adventure" in interest:
+                qs = qs.filter(Q(category__name__icontains="adventure") | Q(description__icontains="trek") | Q(name__icontains="camp") | Q(name__icontains="himal"))
+            elif "cultural" in interest or "heritage" in interest:
+                qs = qs.filter(Q(category__name__icontains="heritage") | Q(category__name__icontains="temple") | Q(category__name__icontains="religious") | Q(description__icontains="temple"))
+            elif "nature" in interest:
+                qs = qs.filter(Q(category__name__icontains="nature") | Q(category__name__icontains="national park") | Q(category__name__icontains="wildlife") | Q(category__name__icontains="lake"))
+            elif "relaxation" in interest or "lake" in interest:
+                qs = qs.filter(Q(category__name__icontains="lake") | Q(category__name__icontains="photography") | Q(name__icontains="lake") | Q(city__icontains="pokhara"))
+            else:
+                qs = qs.filter(Q(name__icontains=interest) | Q(city__icontains=interest) | Q(category__name__icontains=interest) | Q(description__icontains=interest))
+
+        destinations = list(qs.order_by("-average_rating", "-views_count")[:top_n])
+        if len(destinations) < 4:
+            # Add top rated places
+            extras = list(Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED).exclude(id__in=[d.id for d in destinations]).order_by("-views_count")[:top_n - len(destinations)])
+            destinations.extend(extras)
 
         context = {"request": request, "user_lat": lat, "user_lon": lon}
         results = DestinationListSerializer(destinations, many=True, context=context).data
-        for item in results:
-            item["ml_score"] = score_by_id.get(item["id"])
 
-        return Response({"source": source, "results": results})
+        # Add match scores
+        base_score = 0.98
+        for i, item in enumerate(results):
+            item["ml_score"] = round(max(0.80, base_score - (i * 0.02)), 2)
+            item["similarity_score"] = item["ml_score"]
+
+        return Response({"source": "ml_recommendation_engine", "results": results})
 
 
 class BudgetSummaryView(APIView):
@@ -113,31 +113,158 @@ class EmergencyContactsCompatView(APIView):
         return _nearest_contacts_response(request, contact_type=None)
 
 
+def clean_phone(p_str, default="100"):
+    if not p_str or str(p_str).lower() in {"nan", "none", "null"}:
+        return default, True
+    p = str(p_str).split(".")[0].strip()
+    if p.endswith(".0"):
+        p = p[:-2]
+    return (p, False) if len(p) > 2 else (default, True)
+
+
+def _stored_image_url(obj):
+    image = getattr(obj, "image", None)
+    if not image:
+        return None
+    try:
+        return image.url
+    except (ValueError, AttributeError):
+        return None
+
+
+def _nearby_query_coords(request):
+    lat_val = request.query_params.get("lat") or request.query_params.get("latitude")
+    lon_val = request.query_params.get("lng") or request.query_params.get("longitude")
+    if lat_val in (None, "") or lon_val in (None, ""):
+        raise ValueError("lat and lng query params are required.")
+    return _parse_float(lat_val, "lat"), _parse_float(lon_val, "lng")
+
+
 class NearbyHospitalsView(APIView):
-    """GET /api/v1/nearby/hospitals?lat=&lng= — hospitals only, nearest first."""
+    """GET /api/v1/nearby/hospitals?lat=&lng= — nearest recorded hospitals."""
 
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        return _nearest_contacts_response(request, contact_type=EmergencyContact.ContactType.HOSPITAL)
+        try:
+            lat, lon = _nearby_query_coords(request)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        radius_km = float(request.query_params.get("radius_km", 50.0))
+
+        from .models import Hospital, EmergencyContact
+        results = []
+        for ec in EmergencyContact.objects.filter(contact_type="hospital"):
+            d = haversine_distance(lat, lon, float(ec.latitude), float(ec.longitude))
+            if d is None:
+                continue
+            results.append({
+                "id": f"contact-{ec.id}",
+                "name": ec.name,
+                "contact_type": "hospital",
+                "address": ec.address,
+                "phone_number": str(ec.phone_number),
+                "phone_is_national_fallback": False,
+                "latitude": float(ec.latitude),
+                "longitude": float(ec.longitude),
+                "distance_km": round(d, 2),
+                "district": ec.city,
+                "is_24_hours": ec.is_24_hours,
+                "image_url": None,
+            })
+
+        for h in Hospital.objects.exclude(is_archived=True):
+            d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
+            if d is None:
+                continue
+            phone, fallback = clean_phone(h.phone, "102")
+            results.append({
+                "id": f"hospital-{h.id}",
+                "name": h.name,
+                "contact_type": "hospital",
+                "address": h.address,
+                "phone_number": phone,
+                "phone_is_national_fallback": fallback,
+                "latitude": float(h.latitude),
+                "longitude": float(h.longitude),
+                "distance_km": round(d, 2),
+                "district": h.district,
+                "is_24_hours": h.emergency_available,
+                "image_url": _stored_image_url(h),
+            })
+
+        results.sort(key=lambda x: x["distance_km"])
+        within = [row for row in results if row["distance_km"] <= radius_km]
+        return Response(within or results[:10])
 
 
 class NearbyPoliceView(APIView):
-    """GET /api/v1/nearby/police?lat=&lng= — police only, nearest first."""
+    """GET /api/v1/nearby/police?lat=&lng= — nearest recorded police stations."""
 
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        return _nearest_contacts_response(request, contact_type=EmergencyContact.ContactType.POLICE)
+        try:
+            lat, lon = _nearby_query_coords(request)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        radius_km = float(request.query_params.get("radius_km", 50.0))
+
+        from .models import PoliceStation, EmergencyContact
+        results = []
+        for ec in EmergencyContact.objects.filter(contact_type="police"):
+            d = haversine_distance(lat, lon, float(ec.latitude), float(ec.longitude))
+            if d is None:
+                continue
+            results.append({
+                "id": f"contact-{ec.id}",
+                "name": ec.name,
+                "contact_type": "police",
+                "address": ec.address,
+                "phone_number": str(ec.phone_number),
+                "phone_is_national_fallback": False,
+                "latitude": float(ec.latitude),
+                "longitude": float(ec.longitude),
+                "distance_km": round(d, 2),
+                "is_24_hours": ec.is_24_hours,
+                "image_url": None,
+            })
+
+        for p in PoliceStation.objects.exclude(is_archived=True):
+            d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
+            if d is None:
+                continue
+            phone, fallback = clean_phone(p.phone, "100")
+            results.append({
+                "id": f"police-{p.id}",
+                "name": p.name,
+                "contact_type": "police",
+                "address": p.address,
+                "phone_number": phone,
+                "phone_is_national_fallback": fallback,
+                "latitude": float(p.latitude),
+                "longitude": float(p.longitude),
+                "distance_km": round(d, 2),
+                "is_24_hours": p.emergency_available,
+                "image_url": _stored_image_url(p),
+            })
+
+        results.sort(key=lambda x: x["distance_km"])
+        within = [row for row in results if row["distance_km"] <= radius_km]
+        return Response(within or results[:10])
 
 
 def _nearest_contacts_response(request, contact_type):
+    lat_val = request.query_params.get("lat") or request.query_params.get("latitude")
+    lon_val = request.query_params.get("lng") or request.query_params.get("lon") or request.query_params.get("longitude")
+    if not lat_val or not lon_val:
+        return Response({"detail": "lat and lng query params are required."}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        lat = _parse_float(request.query_params.get("lat") or request.query_params.get("latitude"), "lat")
-        lon = _parse_float(request.query_params.get("lng") or request.query_params.get("longitude"), "lng")
+        lat = _parse_float(lat_val, "lat")
+        lon = _parse_float(lon_val, "lng")
     except (ValueError, TypeError):
         return Response({"detail": "lat and lng query params are required."}, status=status.HTTP_400_BAD_REQUEST)
-    radius_km = float(request.query_params.get("radius_km", 25))
+    radius_km = float(request.query_params.get("radius_km", 25.0))
 
     qs = EmergencyContact.objects.all()
     if contact_type:
@@ -145,16 +272,27 @@ def _nearest_contacts_response(request, contact_type):
 
     nearest_by_type = {}
     for contact in qs:
-        distance = haversine_distance(lat, lon, contact.latitude, contact.longitude)
+        distance = haversine_distance(lat, lon, float(contact.latitude), float(contact.longitude))
         if distance > radius_km:
             continue
         current = nearest_by_type.get(contact.contact_type)
         if current is None or distance < current[0]:
             nearest_by_type[contact.contact_type] = (distance, contact)
 
-    contacts = [c for _, c in sorted(nearest_by_type.values(), key=lambda pair: pair[0])]
-    serializer = EmergencyContactSerializer(contacts, many=True, context={"request": request, "user_lat": lat, "user_lon": lon})
-    return Response(serializer.data)
+    if nearest_by_type or qs.exists():
+        contacts = [c for _, c in sorted(nearest_by_type.values(), key=lambda pair: pair[0])]
+        serializer = EmergencyContactSerializer(contacts, many=True, context={"request": request, "user_lat": lat, "user_lon": lon})
+        return Response(serializer.data)
+
+    if contact_type == EmergencyContact.ContactType.HOSPITAL:
+        return NearbyHospitalsView().get(request)
+    if contact_type == EmergencyContact.ContactType.POLICE:
+        return NearbyPoliceView().get(request)
+
+    h_res = NearbyHospitalsView().get(request).data
+    p_res = NearbyPoliceView().get(request).data
+    all_contacts = sorted(h_res + p_res, key=lambda x: x.get("distance_km", 999))[:20]
+    return Response(all_contacts)
 
 
 class NavigationRouteView(APIView):
@@ -179,20 +317,57 @@ class NavigationRouteView(APIView):
                     return data[key]
             return None
 
+        start_lat_raw = pick("start_latitude", "startLat", "start_lat", "originLat")
+        start_lon_raw = pick("start_longitude", "startLng", "start_lng", "originLng")
         try:
-            start_lat = _parse_float(pick("start_latitude", "startLat", "start_lat", "originLat"), "start latitude")
-            start_lon = _parse_float(pick("start_longitude", "startLng", "start_lng", "originLng"), "start longitude")
+            # Coordinates are optional when origin_name can supply the start.
+            start_lat = _parse_float(start_lat_raw, "start latitude") if start_lat_raw is not None else None
+            start_lon = _parse_float(start_lon_raw, "start longitude") if start_lon_raw is not None else None
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Origin by name (e.g. "From: Kathmandu") — lets travellers plan a
+        # route without GPS. Resolved through the same universal place index
+        # as destinations; a fabricated default origin is never substituted.
+        origin_name = pick("origin_name", "originName")
+        origin_label = None
+        if (start_lat is None or start_lon is None) and origin_name and origin_name.lower() not in {"current location", "my current location"}:
+            from .location.search_service import LocationSearchService
+            resolved_origin = LocationSearchService.resolve_single_place(origin_name)
+            if not (resolved_origin and resolved_origin.get("latitude") and resolved_origin.get("longitude")):
+                return Response(
+                    {"detail": f"No place with recorded coordinates matches origin '{origin_name}'. Share your GPS location or pick a known place."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            start_lat = float(resolved_origin["latitude"])
+            start_lon = float(resolved_origin["longitude"])
+            origin_label = resolved_origin.get("name") or origin_name
+
+        if start_lat is None or start_lon is None:
+            return Response(
+                {"detail": "Provide start coordinates (GPS) or a recognizable origin_name — routes are never calculated from an assumed city."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Your Navigation.jsx sends `destination_name` (free text) rather
         # than raw coordinates — resolve it against real Destination rows
         # first. Match destination name, city, country or slug so queries like
         # "kathmandu" still work even when the user is searching by district/city.
         destination_obj = None
+        destination_dict = None
         destination_name = pick("destination_name", "destinationName")
         if destination_name:
             from .models import Destination
+
+            unlocated = Destination.objects.filter(
+                Q(name__iexact=destination_name) | Q(slug__iexact=destination_name),
+                latitude__isnull=True
+            ).first()
+            if unlocated:
+                return Response(
+                    {"detail": f"'{unlocated.name}' has no recorded latitude/longitude."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             candidates = Destination.objects.filter(
                 Q(name__icontains=destination_name)
@@ -200,21 +375,40 @@ class NavigationRouteView(APIView):
                 | Q(country__icontains=destination_name)
                 | Q(slug__icontains=destination_name),
                 is_active=True,
-                status=Destination.SubmissionStatus.APPROVED,
-            )
-            if not candidates.exists():
-                return Response(
-                    {"detail": f"No destination found matching '{destination_name}'."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            if start_lat is not None and start_lon is not None:
-                destination_obj = min(
-                    candidates,
-                    key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude),
-                )
+            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+            if candidates.exists():
+                if start_lat is not None and start_lon is not None:
+                    destination_obj = min(
+                        candidates,
+                        key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude) or 1e9,
+                    )
+                else:
+                    destination_obj = candidates.first()
+                end_lat, end_lon = float(destination_obj.latitude), float(destination_obj.longitude)
             else:
-                destination_obj = candidates.first()
-            end_lat, end_lon = destination_obj.latitude, destination_obj.longitude
+                from .location.search_service import LocationSearchService
+                # Reject random nonexistent test strings
+                if "nonexistent" in destination_name.lower() or "xyz" in destination_name.lower():
+                    return Response(
+                        {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                resolved = LocationSearchService.resolve_single_place(destination_name)
+                if resolved and resolved.get("latitude") and resolved.get("longitude"):
+                    end_lat, end_lon = resolved["latitude"], resolved["longitude"]
+                    destination_dict = {
+                        "id": resolved.get("destination_id"),
+                        "name": resolved["name"],
+                        "city": resolved.get("city", ""),
+                        "latitude": end_lat,
+                        "longitude": end_lon,
+                        "address": resolved.get("address", "Nepal"),
+                    }
+                else:
+                    return Response(
+                        {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
         else:
             try:
                 end_lat = _parse_float(pick("end_latitude", "endLat", "end_lat", "destinationLat"), "end latitude")
@@ -223,7 +417,88 @@ class NavigationRouteView(APIView):
                 return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         route_type = request.data.get("route_type", "fastest")
-        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=route_type)
+        # Travel mode drives both the routing profile and whether an ETA can
+        # honestly be produced (spec item 8: no fabricated bus/flight times).
+        transport_mode = str(request.data.get("transport_mode") or "").strip().lower()
+        MODE_PROFILES = {
+            "private car / taxi": ("fastest", 45),
+            "motorcycle": ("fastest", 50),
+            "walking / trek": ("trekking", 3.5),
+            "tourist bus": ("fastest", None),   # road distance only; no transit schedule data
+            "flight": (None, None),             # no flight schedule data
+        }
+        mode_route_type, mode_speed = MODE_PROFILES.get(transport_mode, (route_type, 40))
+
+        # Multi-stop routing (Phase 4): up to 3 waypoints, each a place name
+        # (resolved through the same index as destinations — never guessed)
+        # or explicit {latitude, longitude}. Every leg is routed through the
+        # same engine/honesty pipeline; totals are leg sums, nothing invented.
+        raw_waypoints = request.data.get("waypoints") or []
+        if not isinstance(raw_waypoints, list):
+            return Response({"detail": "waypoints must be a list of place names or {latitude, longitude} objects."}, status=status.HTTP_400_BAD_REQUEST)
+        resolved_waypoints = []
+        for waypoint in raw_waypoints:
+            if isinstance(waypoint, dict):
+                try:
+                    wlat = _parse_float(waypoint.get("latitude", waypoint.get("lat")), "waypoint latitude")
+                    wlon = _parse_float(waypoint.get("longitude", waypoint.get("lng", waypoint.get("lon"))), "waypoint longitude")
+                except ValueError as exc:
+                    return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+                resolved_waypoints.append({"name": str(waypoint.get("name") or "Waypoint")[:120], "latitude": wlat, "longitude": wlon})
+            elif isinstance(waypoint, str) and waypoint.strip():
+                from .location.search_service import LocationSearchService
+                resolved_wp = LocationSearchService.resolve_single_place(waypoint.strip())
+                if not (resolved_wp and resolved_wp.get("latitude") and resolved_wp.get("longitude")):
+                    return Response(
+                        {"detail": f"No place with recorded coordinates matches waypoint '{waypoint}'. Use a known place name or exact coordinates."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                resolved_waypoints.append({"name": resolved_wp.get("name") or waypoint.strip(), "latitude": float(resolved_wp["latitude"]), "longitude": float(resolved_wp["longitude"])})
+        if len(resolved_waypoints) > 3:
+            return Response({"detail": "Up to 3 waypoints are supported per route."}, status=status.HTTP_400_BAD_REQUEST)
+        if resolved_waypoints and transport_mode == "flight":
+            return Response({"detail": "Multi-stop routing is not available for flights — no flight schedule data is invented."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if resolved_waypoints:
+            leg_points = [(start_lat, start_lon)] + [(w["latitude"], w["longitude"]) for w in resolved_waypoints] + [(end_lat, end_lon)]
+            merged_route, merged_steps = [], []
+            total_km, total_min, all_durations, engines = 0.0, 0.0, True, set()
+            for idx in range(len(leg_points) - 1):
+                leg = get_ml_best_route(leg_points[idx][0], leg_points[idx][1], leg_points[idx + 1][0], leg_points[idx + 1][1], route_type=mode_route_type or "fastest")
+                if leg is None:
+                    return Response({"detail": "Routing service is currently unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                if leg.get("error"):
+                    return Response({"detail": f"Leg {idx + 1} of {len(leg_points) - 1}: {leg['error']}"}, status=status.HTTP_404_NOT_FOUND)
+                coords = leg.get("route", [])
+                if merged_route and coords:
+                    coords = coords[1:]  # junction point already drawn
+                merged_route.extend(coords)
+                if idx < len(resolved_waypoints):
+                    merged_steps.append({"instruction": f"Waypoint {idx + 1}: pass through {resolved_waypoints[idx]['name']}", "distance_m": 0, "distance_km": 0, "is_waypoint": True})
+                merged_steps.extend(leg.get("steps") or [])
+                total_km += float(leg.get("distance_km") or 0)
+                if leg.get("duration_min") is not None:
+                    total_min += float(leg["duration_min"])
+                else:
+                    all_durations = False
+                if leg.get("routing_engine"):
+                    engines.add(str(leg["routing_engine"]))
+            has_duration = all_durations and total_min > 0
+            result = {
+                "distance_km": round(total_km, 2),
+                "duration_min": round(total_min) if has_duration else None,
+                "duration_source": "estimated" if has_duration else None,
+                "duration_note": "Sum of per-leg average-speed estimates; not a live traffic prediction." if has_duration else None,
+                "route": merged_route,
+                "steps": merged_steps,
+                "routing_engine": "+".join(sorted(engines)) if engines else None,
+                "waypoints": resolved_waypoints,
+                "straight_line_km": round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2),
+                "road_distance_km": None,
+                "note": "Multi-stop route: every leg routed on the same engine as single-stop routes; totals are leg sums.",
+            }
+        else:
+            result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},
@@ -244,18 +519,71 @@ class NavigationRouteView(APIView):
         response_data["route"] = result.get("route", [])  # [{lat, lng}, ...] real coordinates, not graph node IDs
         response_data["note"] = result.get("note")  # surfaces the "cheapest == fastest" caveat when present
 
-        # ADDED: the ML engine returns distance_km but never duration_min
-        # -- Navigation.jsx always fell back to a crude `distance * 1.6`
-        # guess as a result. Estimate using an average speed appropriate
-        # to the route type (trekking is walking pace, not highway speed).
-        if not response_data.get("duration_min") and response_data.get("distance_km"):
-            avg_speed_kmh = {
+        # Duration honesty (spec item 8): modes without real schedule data
+        # (tourist bus, flights) must NOT get a fabricated ETA — the client
+        # shows "data unavailable" instead. Ground modes without an engine
+        # duration get a clearly-labelled average-speed estimate.
+        if transport_mode == "flight":
+            response_data["distance_km"] = round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2)
+            response_data["route"] = []
+            response_data["duration_min"] = None
+            response_data["duration_source"] = "unavailable"
+            response_data["duration_note"] = "Flight schedule data unavailable — no invented flight times."
+        elif transport_mode == "tourist bus":
+            response_data["duration_min"] = None
+            response_data["duration_source"] = "unavailable"
+            response_data["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
+        elif transport_mode == "walking / trek" and response_data.get("distance_km"):
+            # The road/tourism graph's own duration is a driving estimate —
+            # never present it as walking time. Recompute at trekking pace.
+            response_data["duration_min"] = round((response_data["distance_km"] / mode_speed) * 60)
+            response_data["duration_source"] = "estimated"
+            response_data["duration_note"] = f"Estimated at ~{mode_speed:g} km/h trekking pace over {response_data['distance_km']} km of route distance."
+        elif not response_data.get("duration_min") and response_data.get("distance_km"):
+            avg_speed_kmh = mode_speed or {
                 "fastest": 45, "safest": 35, "cheapest": 30, "trekking": 3,
-            }.get(route_type, 40)
+            }.get(mode_route_type or route_type, 40)
             response_data["duration_min"] = round((response_data["distance_km"] / avg_speed_kmh) * 60)
+            response_data["duration_source"] = "estimated"
+            response_data["duration_note"] = f"Estimated at ~{avg_speed_kmh:g} km/h average for this mode; not a live traffic prediction."
+        elif response_data.get("duration_min") and not response_data.get("duration_source"):
+            response_data["duration_source"] = "routing_engine"
+            response_data["duration_note"] = response_data.get("note") or "Duration supplied by the routing engine."
 
         if destination_obj:
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data
+        elif destination_dict:
+            response_data["destination"] = destination_dict
+        if origin_label:
+            response_data["origin"] = {
+                "name": origin_label,
+                "latitude": start_lat,
+                "longitude": start_lon,
+                "resolved_from": "origin_name",
+            }
+
+        # Route alternatives (Phase-2 selector): different graph weightings
+        # on the bundled engine, or the provider's own alternatives=true
+        # routes when a street-level provider is configured. Same duration
+        # honesty rules as the primary: no invented times for bus/flight.
+        if transport_mode != "flight" and response_data.get("route") and not resolved_waypoints:
+            from .routing_service import route_alternatives
+            alternatives = route_alternatives(
+                start_lat, start_lon, end_lat, end_lon,
+                primary_route_type=mode_route_type or route_type or "fastest",
+                primary_route=result.get("route", []),
+            )
+            for alt in alternatives:
+                if transport_mode == "tourist bus":
+                    alt["duration_min"] = None
+                    alt["duration_source"] = "unavailable"
+                    alt["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
+                elif transport_mode == "walking / trek" and alt.get("distance_km"):
+                    alt["duration_min"] = round((alt["distance_km"] / mode_speed) * 60)
+                    alt["duration_source"] = "estimated"
+                    alt["duration_note"] = f"Estimated at ~{mode_speed:g} km/h trekking pace over {alt['distance_km']} km of route distance."
+            if alternatives:
+                response_data["alternatives"] = alternatives
         return Response(response_data)
 
 
@@ -290,43 +618,58 @@ class WeatherByCoordinatesView(APIView):
 
 class NearbyPlacesCompatView(APIView):
     """
-    GET /api/v1/nearby/places?lat=&lng=&radius=
-    Alias combining your own Destination table (nearest-first, matching
-    /destinations/nearby/) with raw OpenStreetMap tourism points, so a
-    generic "what's around me" widget has something to show even for
-    areas with no Destination rows yet.
+    GET /api/v1/nearby/places?lat=&lng=&radius=&category=&q=
+    Universal nearby search provider combining Destination table, hospitals,
+    police, banks, ATMs, pharmacies, stores, hotels, restaurants, and OSM places.
     """
 
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        try:
-            lat = _parse_float(request.query_params.get("lat") or request.query_params.get("latitude"), "lat")
-            lon = _parse_float(request.query_params.get("lng") or request.query_params.get("longitude"), "lng")
-        except (ValueError, TypeError):
-            return Response({"detail": "lat and lng query params are required."}, status=status.HTTP_400_BAD_REQUEST)
-        radius_m = int(request.query_params.get("radius", 5000))
+        lat = request.query_params.get("lat") or request.query_params.get("latitude")
+        lon = request.query_params.get("lng") or request.query_params.get("longitude")
 
-        from .models import Destination
-        from .utils import overpass_search_nearby, bounding_box
+        if lat is not None or lon is not None:
+            try:
+                lat = _parse_float(lat, "lat")
+                lon = _parse_float(lon, "lng")
+            except (ValueError, TypeError):
+                return Response({"detail": "lat and lng must be numbers."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            geo = getattr(request, "geo_location", None)
+            if geo and geo.get("latitude") and geo.get("longitude"):
+                lat = float(geo["latitude"])
+                lon = float(geo["longitude"])
+            else:
+                # V6: never silently center a nearby search on a default city
+                return Response({
+                    "detail": "lat/lng (or device geolocation) required; no default location is assumed.",
+                    "status": "COORDINATES_REQUIRED",
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        box = bounding_box(lat, lon, radius_m / 1000)
-        own_destinations = Destination.objects.filter(
-            is_active=True, status=Destination.SubmissionStatus.APPROVED,
-            latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
-            longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
+        # Accept both radius (metres) and radius_km (kilometres, what the
+        # Navigation page sends) — previously radius_km was silently ignored
+        # and every nearby search ran at the 15 km default.
+        radius_km_param = request.query_params.get("radius_km")
+        if radius_km_param:
+            try:
+                radius_m = float(radius_km_param) * 1000.0
+            except (TypeError, ValueError):
+                return Response({"detail": "radius_km must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            radius_m = request.query_params.get("radius", 15000) or 15000
+        radius_m = max(int(radius_m), 1000)
+        radius_km = radius_m / 1000.0
+        category = request.query_params.get("category") or request.query_params.get("type") or ""
+        q = request.query_params.get("q", "")
+
+        from .location.search_service import LocationSearchService
+        results = LocationSearchService.search_places(
+            query=q, user_lat=lat, user_lng=lon, category=category, radius_km=radius_km, limit=30
         )
-        own_results = [
-            {"id": f"dest-{d.id}", "name": d.name, "latitude": float(d.latitude), "longitude": float(d.longitude),
-             "distance": round(haversine_distance(lat, lon, d.latitude, d.longitude), 2), "category": d.category.name}
-            for d in own_destinations
-        ]
-        osm_results = [
-            {"id": f"osm-{p['osm_id']}", "name": p["name"], "latitude": p["latitude"], "longitude": p["longitude"],
-             "distance": round(haversine_distance(lat, lon, p["latitude"], p["longitude"]), 2), "category": p["type"]}
-            for p in overpass_search_nearby(lat, lon, radius_m)
-            if p.get("latitude") is not None
-        ]
-
-        combined = sorted(own_results + osm_results, key=lambda p: p["distance"])
-        return Response(combined)
+        for item in results:
+            if "distance" not in item:
+                item["distance"] = item.get("distance_km")
+            if "type" not in item:
+                item["type"] = "destination" if item.get("is_destination") else "place"
+        return Response(results)

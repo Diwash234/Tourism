@@ -6,19 +6,40 @@ from decimal import Decimal
 from .administrative_boundaries import MUNICIPALITY_COORDINATES, NEPAL_DISTRICTS
 
 
+def _municipality_lookup() -> dict:
+    """Municipality hub coordinates from the DB-backed ConfigPlace table
+    (V6 §2 canonical source). Falls back to the legacy config dict only
+    when the table has not been seeded yet (fresh checkouts/tests)."""
+    try:
+        from tourist.models import ConfigPlace
+        rows = ConfigPlace.objects.filter(kind="municipality_hub")
+        if rows.exists():
+            return {
+                r.config_key.removeprefix("muni-"): {
+                    "lat": float(r.latitude), "lng": float(r.longitude),
+                    "district": r.district, "province": r.province,
+                }
+                for r in rows
+            }
+    except Exception:
+        pass
+    return MUNICIPALITY_COORDINATES
+
+
 def geocode_place(province: str, district: str, municipality: str = "", ward_number: int = 1) -> dict:
     """
     Computes accurate coordinates and altitude based on Nepal administrative units.
     """
     muni_key = (municipality or "").strip().lower()
-    
+    coords = _municipality_lookup()
+
     # Direct match
     match = None
-    if muni_key in MUNICIPALITY_COORDINATES:
-        match = MUNICIPALITY_COORDINATES[muni_key]
+    if muni_key in coords:
+        match = coords[muni_key]
     else:
         # Partial match
-        for k, v in MUNICIPALITY_COORDINATES.items():
+        for k, v in coords.items():
             if (muni_key and muni_key in k) or (district and district.lower() in v["district"].lower()):
                 match = v
                 break

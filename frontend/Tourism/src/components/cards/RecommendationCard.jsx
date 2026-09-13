@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom"
 import { FiTrendingUp, FiMapPin } from "react-icons/fi"
+import PlaceholderImage from "../common/PlaceholderImage"
 
 const RecommendationCard = ({ item }) => {
-  const matchScore = Math.round((item.score || 0) * 100)
+  const matchScore = Math.round(((item.score || item.ml_score || 0)) * 100)
 
   return (
     <div className="card-base p-5">
@@ -11,18 +12,20 @@ const RecommendationCard = ({ item }) => {
         {matchScore}% match
       </div>
 
+      {item.cover_image_url ? (
+        <img src={item.cover_image_url} alt={item.name} className="w-full h-32 object-cover rounded-xl mt-3" />
+      ) : (
+        <PlaceholderImage seed={item.id || item.name} className="w-full h-32 rounded-xl mt-3" />
+      )}
+
       <h3 className="font-bold text-lg mt-3">{item.name || "Unknown Destination"}</h3>
 
-      <p className="text-gray-500 text-sm">{item.category}</p>
+      <p className="text-gray-500 text-sm">{item.category || item.category_name}</p>
 
       <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
         <FiMapPin size={14} /> {item.city || "Nepal"}
       </p>
 
-      {/* FIXED: was `to={`/destinations/${item.name}`}` — linking by the
-          destination's NAME (e.g. "Pokhara Lakeside") instead of its
-          slug. DestinationDetails.jsx fetches by slug, so this always
-          produced a broken URL that would 404. */}
       {item.slug ? (
         <Link to={`/destinations/${item.slug}`} className="text-himalaya-500 mt-3 block font-semibold text-sm hover:underline">
           Explore Destination

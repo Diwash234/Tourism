@@ -1,0 +1,32 @@
+{
+  "source": "openstreetmap.org (ODbL) via Overpass API extracts",
+  "started": "2026-09-12T05:23:56.983144+00:00",
+  "dry_run": false,
+  "found": 1,
+  "created": 0,
+  "updated": 0,
+  "duplicate": 1,
+  "rejected_outside_nepal": 0,
+  "rejected_no_coords": 0,
+  "rejected_unknown_category": 0,
+  "rejected_no_district": 0,
+  "by_category": {
+    "atm": 1
+  },
+  "by_province": {
+    "Bagmati": 1
+  },
+  "by_district": {
+    "Kathmandu": 1
+  },
+  "files": [
+    {
+      "file": "fixture_test.json",
+      "found": 1,
+      "created": 0,
+      "updated": 1,
+      "rejected": 0
+    }
+  ],
+  "finished": "2026-09-12T05:23:56.984540+00:00"
+}

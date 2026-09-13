@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react"
+import usePublicConfig from "../hooks/usePublicConfig"
+import PageHeader from "../components/common/PageHeader"
 
-import { predictRisk } from "../services/mlService"
+import { getRisk as predictRisk } from "../services/mlService"
 
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
 
 
 const Risk = () => {
+  const { block: __block } = usePublicConfig().pageCMS("risk", [])
+  const __intro = __block("page-intro") || __block("intro")
 
   const [risk, setRisk] = useState(null)
   const [loading, setLoading] = useState(true)
 
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
 
     if (!navigator.geolocation) {
       setLoading(false)
@@ -37,11 +44,16 @@ const Risk = () => {
 
           setRisk(result)
 
+
         } catch (error) {
 
-          console.log("Risk prediction error:", error)
+          console.log(
+            "Risk prediction error:",
+            error
+          )
 
           setRisk(null)
+
 
         } finally {
 
@@ -54,15 +66,18 @@ const Risk = () => {
 
       (error) => {
 
-        console.log("Location error:", error)
+        console.log(
+          "Location error:",
+          error
+        )
 
         setLoading(false)
 
       }
 
     )
-
-
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
 
@@ -98,11 +113,7 @@ const Risk = () => {
     <div className="container-app py-10 theme-amber">
 
 
-      <h1 className="section-title">
-
-        Travel Safety Risk
-
-      </h1>
+      <PageHeader title={__intro?.title || "Travel Safety Risk"} subtitle={__intro?.subtitle || __intro?.body || undefined} />
 
 
 
@@ -120,6 +131,12 @@ const Risk = () => {
           </strong>
 
         </p>
+
+        {risk?.degraded && (
+          <p className="mt-2 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            ⚠️ {risk.data_note || "Limited local risk data for this location — showing a general estimate."}
+          </p>
+        )}
 
 
 

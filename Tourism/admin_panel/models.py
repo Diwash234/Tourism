@@ -33,6 +33,8 @@ class AdminTask(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         IN_PROGRESS = "in_progress", "In Progress"
+        BLOCKED = "blocked", "Blocked"
+        IN_REVIEW = "in_review", "Submitted for Review"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
 
@@ -58,10 +60,43 @@ class AdminTask(models.Model):
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # Assignment-driven workflow (Staff Operations spec): staff submit work
+    # for review; admins approve/reject. Notes keep the accountability trail.
+    completion_note = models.TextField(blank=True)
+    blocked_reason = models.TextField(blank=True)
+    escalation_reason = models.TextField(blank=True)
+    is_escalated = models.BooleanField(default=False)
+    review_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="tasks_reviewed",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-priority", "due_date", "-created_at"]
 
     def __str__(self):
         return f"{self.title} -> {self.assigned_to.email} ({self.status})"
+
+class FeatureFlag(models.Model):
+    """Deployment feature flags — flip functionality on/off without a redeploy.
+
+    Admins toggle `enabled` in the Django admin; the public config endpoint
+    (`/api/v1/config/public/`) exposes {key: enabled} so the frontend can
+    hide or disable gated features immediately. Defaults are seeded by
+    `manage.py seed_feature_flags`.
+    """
+
+    key = models.SlugField(max_length=80, unique=True, help_text="e.g. ai_itinerary, live_navigation")
+    enabled = models.BooleanField(default=False)
+    description = models.CharField(max_length=255, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key}={'ON' if self.enabled else 'OFF'}"

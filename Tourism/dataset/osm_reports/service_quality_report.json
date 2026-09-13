@@ -1,0 +1,116 @@
+{
+ "generated_from": "live DB",
+ "total_services": 1000,
+ "by_province": {
+  "Bagmati": {
+   "atm": 153,
+   "hospital": 113,
+   "pharmacy": 200,
+   "police": 114
+  },
+  "Gandaki": {
+   "atm": 75,
+   "hospital": 44,
+   "pharmacy": 36,
+   "police": 52
+  },
+  "Lumbini": {
+   "atm": 7,
+   "hospital": 39,
+   "pharmacy": 6,
+   "police": 20
+  },
+  "Koshi": {
+   "atm": 10,
+   "hospital": 29,
+   "pharmacy": 4,
+   "police": 29
+  },
+  "Sudurpashchim": {
+   "atm": 2,
+   "hospital": 7,
+   "pharmacy": 1,
+   "police": 7
+  },
+  "Madhesh": {
+   "atm": 2,
+   "hospital": 15,
+   "pharmacy": 3,
+   "police": 22
+  },
+  "Karnali": {
+   "atm": 1,
+   "hospital": 3,
+   "police": 6
+  }
+ },
+ "unresolved_geography_count": 0,
+ "districts_with_services": 67,
+ "districts_zero_services": [
+  "Baitadi",
+  "Bajhang",
+  "Bajura",
+  "Eastern Rukum",
+  "Humla",
+  "Jajarkot",
+  "Mahottari",
+  "Rautahat",
+  "Salyan",
+  "Sankhuwasabha"
+ ],
+ "districts_zero_classification": "SOURCE_GAP (OSM rows exist nationwide but only first-250-per-category batches imported — IMPORT_GAP for most; genuine absence cannot be claimed)",
+ "top10_districts": [
+  [
+   "Kathmandu",
+   294
+  ],
+  [
+   "Kaski",
+   125
+  ],
+  [
+   "Lalitpur",
+   122
+  ],
+  [
+   "Chitwan",
+   79
+  ],
+  [
+   "Bhaktapur",
+   28
+  ],
+  [
+   "Jhapa",
+   24
+  ],
+  [
+   "Gulmi",
+   21
+  ],
+  [
+   "Gorkha",
+   18
+  ],
+  [
+   "Morang",
+   17
+  ],
+  [
+   "Banke",
+   16
+  ]
+ ],
+ "exact_coordinate_duplicate_groups": 0,
+ "near_duplicate_suspects_under_25m": {
+  "atm": 9,
+  "hospital": 2,
+  "pharmacy": 4,
+  "police": 2
+ },
+ "placeholder_names": 1000,
+ "osm_id_duplicates": "impossible (unique constraint on osm_id)",
+ "verification_states": {
+  "imported": 1000
+ }
+}

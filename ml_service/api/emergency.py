@@ -4,7 +4,6 @@ from services.emergency_service import nearest_facilities
 
 
 router = APIRouter(
-    prefix="/emergency",
     tags=["Emergency"]
 )
 

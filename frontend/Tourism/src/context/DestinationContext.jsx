@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react"
+import { createContext, useState, useEffect } from "react"
 import destinationApi from "../api/destinationApi"
 
 export const DestinationContext = createContext(null)
@@ -6,7 +6,7 @@ export const DestinationContext = createContext(null)
 export const DestinationProvider = ({ children }) => {
   const [destinations, setDestinations] = useState([])
   const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const loadDestinations = async (params = {}) => {
     setLoading(true)
@@ -21,8 +21,13 @@ export const DestinationProvider = ({ children }) => {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     destinationApi.getCategories().then(({ data }) => setCategories(data.results || data || [])).catch(() => {})
     loadDestinations()
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   return (

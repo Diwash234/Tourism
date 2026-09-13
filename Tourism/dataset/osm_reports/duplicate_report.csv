@@ -1,0 +1,7 @@
+name,latitude,longitude,ids,provinces_districts,classification
+Jomsom Alpen Rose,28.785014,83.731651,"[6190, 4331]","[""('Gandaki', 'मुस्ताङ')""]",SAFE_MERGE
+Maya Hotel & Restaurant,28.602280,84.178744,"[6171, 4161]","[""('Gandaki', 'मनाङ')""]",SAFE_MERGE
+Namaste Lodge,27.569281,86.798672,"[5912, 5911]","[""('Koshi', 'सोलुखुम्बु जिल्ला')""]",SAFE_MERGE
+Sherpa Lodge,27.568956,86.799819,"[5913, 415]","[""('Koshi', 'सोलुखुम्बु जिल्ला')""]",SAFE_MERGE
+इको होम काठमाडौं होटल (रानीवन),27.738233,85.289806,"[6193, 4359]","[""('Bagmati', 'काठमाडौं जिल्ला')""]",SAFE_MERGE
+देवो बुटिक होटल (थमेल),27.717043,85.312590,"[6216, 4550]","[""('Bagmati', 'काठमाडौं जिल्ला')""]",SAFE_MERGE

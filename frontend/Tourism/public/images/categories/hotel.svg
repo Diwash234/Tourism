@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f6b4d"/><stop offset="60%" stop-color="#14503a"/><stop offset="100%" stop-color="#0a281d"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <rect x="200" y="200" width="400" height="220" fill="#faf8f4"/>
+  <polygon points="180,200 400,130 620,200" fill="#c2603a"/>
+  <rect x="380" y="290" width="40" height="130" fill="#6b4423"/>
+  <g fill="#b8862f">
+    <rect x="230" y="240" width="40" height="40"/><rect x="290" y="240" width="40" height="40"/>
+    <rect x="350" y="240" width="20" height="40"/><rect x="430" y="240" width="20" height="40"/>
+    <rect x="470" y="240" width="40" height="40"/><rect x="530" y="240" width="40" height="40"/>
+    <rect x="230" y="310" width="40" height="40"/><rect x="290" y="310" width="40" height="40"/>
+    <rect x="470" y="310" width="40" height="40"/><rect x="530" y="310" width="40" height="40"/>
+    <rect x="230" y="370" width="40" height="40"/><rect x="290" y="370" width="40" height="40"/>
+    <rect x="470" y="370" width="40" height="40"/><rect x="530" y="370" width="40" height="40"/>
+  </g>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".9" font-style="italic">Hotel &amp; Accommodation</text>
+</svg>

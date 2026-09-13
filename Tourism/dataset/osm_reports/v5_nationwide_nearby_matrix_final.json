@@ -1,0 +1,489 @@
+{
+ "sources_tested": 42,
+ "api_calls": 42,
+ "successful_calls": 42,
+ "incorrect_distances": 0,
+ "out_of_radius": 0,
+ "unknown_ids": 0,
+ "coordinate_mismatches": 0,
+ "duplicate_results": 0,
+ "unknown_samples": [],
+ "per_province": {
+  "Koshi": [
+   {
+    "source": "dest-10",
+    "name": "Hotel Everest",
+    "district": "सोलुखुम्बु जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-23",
+    "name": "Phakding",
+    "district": "सोलुखुम्बु जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-414",
+    "name": "Mera Peak Lodge",
+    "district": "सोलुखुम्बु जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-528",
+    "name": "Hotel Sonam",
+    "district": "इलाम जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-683",
+    "name": "Hotel Gajurmukhi Resturant and Lodge",
+    "district": "धनकुटा जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-831",
+    "name": "Betana Wetlands",
+    "district": "मोरङ जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ],
+  "Madhesh": [
+   {
+    "source": "dest-171",
+    "name": "Shuk Sagar Hotel",
+    "district": "धनुषा जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-628",
+    "name": "Shamjhana Hotel",
+    "district": "पर्सा जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-696",
+    "name": "Nepal India Girl's hostel",
+    "district": "सप्तरी जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-715",
+    "name": "Sainik Hotel",
+    "district": "सिराहा जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1260",
+    "name": "Giri hotel & khaja ghar",
+    "district": "धनुषा जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1395",
+    "name": "budho peda pasal",
+    "district": "सप्तरी जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ],
+  "Bagmati": [
+   {
+    "source": "dest-4",
+    "name": "Madhuban",
+    "district": "काभ्रेपलाञ्चोक जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-37",
+    "name": "Hotel Tashi Delek",
+    "district": "रसुवा जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-159",
+    "name": "Community Lodge",
+    "district": "रामेछाप जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-410",
+    "name": "Khushi Khushi Hotel",
+    "district": "काठमाडौं जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-725",
+    "name": "New Tourist Hotel Pvt Ltd",
+    "district": "धादिङ जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-974",
+    "name": "Hotel Mahabharat",
+    "district": "सिन्धुली जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ],
+  "Gandaki": [
+   {
+    "source": "dest-1",
+    "name": "Rockland Hotel",
+    "district": "कास्की",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-3",
+    "name": "Yak Hotel",
+    "district": "मुस्ताङ",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-61",
+    "name": "Khudi",
+    "district": "लमजुङ",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-174",
+    "name": "Manaslu Checkpoint",
+    "district": "गोरखा",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-504",
+    "name": "The BABU Adventures HQ",
+    "district": "स्याङ्जा",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-887",
+    "name": "Bote Cottage",
+    "district": "Nawalpur",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ],
+  "Lumbini": [
+   {
+    "source": "dest-30",
+    "name": "The White Lake",
+    "district": "पाल्पा",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-356",
+    "name": "Forest Hideaway",
+    "district": "बर्दिया",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-482",
+    "name": "Nirvana Luxury International Pvt.Ltd.",
+    "district": "रुपन्देही",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-709",
+    "name": "Arje Coffee Cooperative Office",
+    "district": "गुल्मी",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1392",
+    "name": "472",
+    "district": "Nawalparasi West",
+    "results": 17,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2439",
+    "name": "Khaptad Ostrich Form",
+    "district": "बाँके",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ],
+  "Karnali": [
+   {
+    "source": "dest-485",
+    "name": "Lain Odar",
+    "district": "डोल्पा",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-629",
+    "name": "Shepherds Campground",
+    "district": "डोल्पा",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2259",
+    "name": "Raling hotel",
+    "district": "हुम्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2739",
+    "name": "एम.के. होटल",
+    "district": "सुर्खेत",
+    "results": 23,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-2866",
+    "name": "Bipana Hotel",
+    "district": "कालीकोट",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-5799",
+    "name": "Surkhet Municipality",
+    "district": "Surkhet",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ],
+  "Sudurpashchim": [
+   {
+    "source": "dest-53",
+    "name": "Sweet Dream Hotel",
+    "district": "कञ्चनपुर जिल्ला",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-680",
+    "name": "Sharmali Guest House",
+    "district": "बैतडी",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1365",
+    "name": "Hotel Green Asia",
+    "district": "कैलाली",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-1719",
+    "name": "Riverside Hotel",
+    "district": "डोटी",
+    "results": 22,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-5534",
+    "name": "New Hotel Dolphin Sanfebagar,Achham",
+    "district": "Achham",
+    "results": 30,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   },
+   {
+    "source": "dest-5838",
+    "name": "Saipal Himal",
+    "district": "Bajhang",
+    "results": 15,
+    "bad_dist": 0,
+    "oor": 0,
+    "unk": 0,
+    "mm": 0,
+    "dup": 0
+   }
+  ]
+ }
+}

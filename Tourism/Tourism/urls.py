@@ -13,10 +13,11 @@ urlpatterns = [
     path("api/v1/admin-panel/", include("admin_panel.urls")),
     path("api/v1/", include("booking.urls")),
     path("api/v1/chatbot/", include("chatbot.urls")),
-    path("api/v1/safety/", include("safety.urls")),
-    path("api/v1/", include("translation.urls")),
-    path("api/v1/", include("media_app.urls")),
-    path("api/v1/", include("notifications.urls")),
+    path("api/v1/audit/", include("audit.urls")),                # audit logs / errors / health samples
+    path("api/v1/system/health/", include("system_health.urls")),  # live health checks
+    # path("api/v1/safety/", include("safety.urls")),
+    # path("api/v1/", include("translation.urls")),
+    # path("api/v1/", include("media_app.urls")),
     path("api/v1/", include("tourist.urls")),
 
     # Swagger / OpenAPI
@@ -24,6 +25,6 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
-
+    
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

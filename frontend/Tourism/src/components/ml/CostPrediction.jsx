@@ -1,8 +1,7 @@
 import { useState } from "react"
-import { motion } from "framer-motion"
-import { FiDollarSign, FiTrendingUp, FiCheckCircle } from "react-icons/fi"
+import { FiDollarSign } from "react-icons/fi"
 
-export default function CostPrediction({ onCalculate }) {
+export default function CostPrediction({ _onCalculate }) {
   const [days, setDays] = useState(7)
   const [travelers, setTravelers] = useState(2)
   const [style, setStyle] = useState("mid")
@@ -26,7 +25,7 @@ export default function CostPrediction({ onCalculate }) {
   const result = calculateEstimate()
 
   return (
-    <div className="card-base p-6 space-y-5 bg-gradient-to-br from-white to-purple-50/40 border border-purple-100 rounded-3xl shadow-xl">
+    <div className="card-base p-6 space-y-5 bg-gradient-to-br from-white to-purple-50/40 border border-[#E5E0D5] rounded-3xl shadow-xl">
       <div className="flex items-center justify-between border-b pb-3">
         <div>
           <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
@@ -84,12 +83,12 @@ export default function CostPrediction({ onCalculate }) {
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm space-y-3">
+      <div className="p-4 rounded-2xl bg-white border border-[#E5E0D5] shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500">Predicted Total Budget ({days} Days, {travelers} Ppl):</span>
           <span className="text-2xl font-black text-purple-950">${result.totalUSD.toLocaleString()} USD</span>
         </div>
-        <p className="text-xs text-purple-700 font-bold">
+        <p className="text-xs text-[#102A2E] font-bold">
           Approx. NPR {result.totalNPR.toLocaleString()}
         </p>
 

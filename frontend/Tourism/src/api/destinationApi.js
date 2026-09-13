@@ -1,165 +1,138 @@
 import axiosClient from "./axiosClient"
 
-
 const destinationApi = {
 
-
-  // Get all destinations
   getAll: (params = {}) =>
-    axiosClient.get("/destinations/", {
-      params
-    }),
+    axiosClient.get("/destinations/", { params }),
+
+  getDestinations: (params = {}) =>
+    axiosClient.get("/destinations/", { params }),
+
+  // All destinations within radius_km of a point, nearest-first, paginated,
+  // each row annotated with distance_km (straight-line).
+  getNearbyDestinations: (params = {}) =>
+    axiosClient.get("/destinations/nearby/", { params }),
+
+  // Coordinate-first nearby POIs (user location → real-world places, spec §2)
+  getPOIsByCoords: (params = {}) =>
+    axiosClient.get("/nearby/pois/", { params }),
+
+  // Real on-the-ground places (hotels/hospitals/temples/viewpoints/…) around a
+  // destination, straight from OpenStreetMap via the backend proxy.
+  getNearbyPOIs: (slugOrId, params = {}) =>
+    axiosClient.get(`/destinations/${slugOrId}/nearby-pois/`, { params }),
 
 
-
-  // Search destination autocomplete
-  // Used for itinerary search bar
-  // Example:
-  // Arun -> Arun Valley
-  // Butwal -> Butwal
-  search: (query) =>
-    axiosClient.get("/destinations/autocomplete/", {
-      params: {
-        q: query
-      }
-    }),
-
-
-
-  // Get destination categories
+  // NEW: needed to find the "Culture & Heritage" / "Local Experience"
+  // categories used by NepalExperienceSection — the CategoryViewSet was
+  // already registered on the backend (router.register("categories", ...)
+  // in tourist/urls.py), just never called from the frontend before.
   getCategories: (params = {}) =>
-    axiosClient.get("/categories/", {
-      params
-    }),
-
-  // ADDED -- staff category management (create/delete). Backend
-  // already fully supports this (CategoryViewSet, IsAdminOrReadOnly,
-  // auto-slugify on save) -- confirmed with a real POST before
-  // building this UI, no backend changes needed.
-  createCategory: (payload) => axiosClient.post("/categories/", payload),
-  deleteCategory: (slug) => axiosClient.delete(`/categories/${slug}/`),
+    axiosClient.get("/categories/", { params }),
 
 
-
-  // Get single destination details
   getById: (slug, params = {}) =>
-    axiosClient.get(`/destinations/${slug}/`, {
-      params
-    }),
+    axiosClient.get(`/destinations/${slug}/`, { params }),
 
 
-
-  // Destination essentials
   getEssentials: (slug, params = {}) =>
-    axiosClient.get(
-      `/destinations/${slug}/essentials/`,
-      {
-        params
-      }
-    ),
+    axiosClient.get(`/destinations/${slug}/essentials/`, { params }),
 
 
-
-  // Translate destination
   translate: (slug, languageCode) =>
-    axiosClient.post(
-      `/destinations/${slug}/translate/`,
-      {
-        language_code: languageCode
-      }
-    ),
+    axiosClient.post(`/destinations/${slug}/translate/`, { language_code: languageCode }),
 
 
-
-  // Nearby destinations
   getNearby: (params = {}) =>
-    axiosClient.get(
-      "/destinations/nearby/",
-      {
-        params
-      }
-    ),
+    axiosClient.get("/destinations/nearby/", { params }),
+
+  // Alias matching callers that use destinationApi.nearby(lat, lng, opts).
+  // Backend /destinations/nearby/ expects latitude, longitude, radius_km.
+  nearby: (lat, lng, params = {}) =>
+    axiosClient.get("/destinations/nearby/", {
+      params: {
+        latitude: lat,
+        longitude: lng,
+        radius_km: params.radius_km ?? 250,
+        page: params.page,
+        limit: params.limit,
+      },
+    }),
 
 
-
-  // Destination photos
-  getPhotos: (slug, params = {}) =>
-    axiosClient.get(
-      `/destinations/${slug}/photos/`,
-      {
-        params
-      }
-    ),
-
-
-
-  // Destination weather
-  getWeather: (slug, params = {}) =>
-    axiosClient.get(
-      `/destinations/${slug}/weather/`,
-      {
-        params
-      }
-    ),
-
-
-
-  // Reviews
-  // Backend uses flat reviews endpoint
+  // FIXED: the backend has no nested `/destinations/{slug}/reviews/`
+  // route — reviews are a flat resource filtered by a `destination` query
+  // param instead.
   getReviews: (slug, destinationId) =>
-    axiosClient.get(
-      "/reviews/",
-      {
-        params: {
-          destination: destinationId
-        }
+    axiosClient.get("/reviews/", { params: { destination: destinationId } }),
+
+
+  // FIXED: same issue — POST to the flat /reviews/ endpoint with the
+  // destination id in the body, not a nested URL.
+  addReview: (slug, destinationId, payload) =>
+    axiosClient.post("/reviews/", { ...payload, destination: destinationId }),
+
+
+  search: (query) =>
+    axiosClient.get("/destinations/", {
+      params: {
+        search: query
       }
-    ),
-
-
-
-  // Add review
-  addReview: (
-    slug,
-    destinationId,
-    payload
-  ) =>
-    axiosClient.post(
-      "/reviews/",
-      {
-        ...payload,
-        destination: destinationId
-      }
-    ),
-
-
-  // ADDED -- admin media management (Destination Media Manager).
-  // Backend: DestinationViewSet.photos / .history in tourist/views.py.
-  getPhotos: (slug) =>
-    axiosClient.get(`/destinations/${slug}/photos/`),
-
-  addPhoto: (slug, { externalUrl, caption, isCover }) =>
-    axiosClient.post(`/destinations/${slug}/photos/`, {
-      external_url: externalUrl,
-      caption: caption || "",
-      is_cover: !!isCover,
     }),
 
-  deletePhoto: (slug, photoId) =>
-    axiosClient.delete(`/destinations/${slug}/photos/`, {
-      params: { photo_id: photoId },
+  searchDiscover: (query) =>
+    axiosClient.get("/destinations/search-discover/", {
+      params: { query }
     }),
 
-  getHistory: (slug) =>
-    axiosClient.get(`/destinations/${slug}/history/`),
+  researchDestination: (query) =>
+    axiosClient.post("/destinations/research/", { query }),
 
-  // ADDED -- admin "Add Destination" form. Unlike SubmitPlacePage.jsx
-  // (tourist submissions -- auto-geolocated, held for review), this is
-  // for staff who know a place's exact real coordinates and want it
-  // live immediately. Backend (DestinationWriteSerializer.create())
-  // already auto-approves and publishes when request.user.is_staff.
-  create: (payload) => axiosClient.post("/destinations/", payload),
+  /** Lightweight autocomplete for search dropdown.
+   *  Returns { data: [{ id, name, slug, cover_image_url, category_name, district }] }
+   */
+  autocomplete: (query, params = {}) =>
+    axiosClient.get("/destinations/autocomplete/", {
+      params: { q: query, limit: 8, type: "attraction", ...params },
+    }),
 
+  getImages: (slugOrId) =>
+    axiosClient.get(`/destinations/${slugOrId}/images/`),
+
+  discoverImages: (slugOrId) =>
+    axiosClient.post(`/destinations/${slugOrId}/images/discover/`),
+
+  refreshImages: (slugOrId) =>
+    axiosClient.post(`/destinations/${slugOrId}/images/refresh/`),
+
+  /** Mood-based recommendations
+   *  params: { mood, days, limit }
+   *  moods: relaxed, chill, adventure, romantic, family, spiritual, cultural,
+   *         wildlife, trekking, hiking, scenic, photography, happy, excited,
+   *         solitude, sad, energetic, winter, pilgrimage, lakeside, peaceful
+   */
+  moodRecommendations: (params = {}) =>
+    axiosClient.get("/destinations/mood-recommendations/", { params }),
+
+  /** User place submission — POST multipart to the real /destinations/ endpoint.
+   *  CanSubmitPlace lets any authenticated user submit; `cover_image` travels in
+   *  the same request (see DestinationWriteSerializer). SubmitPlacePage and
+   *  LocalDashboard both use this — previously SubmitPlacePage called
+   *  destinationApi.submit() which did not exist on this wrapper. */
+  submit: (formData) => axiosClient.post("/destinations/", formData),
+
+  /** The requesting user's own submissions, incl. pending/rejected
+   *  (backend action: DestinationViewSet.my_submissions). Paginated. */
+  getMySubmissions: (params = {}) =>
+    axiosClient.get("/destinations/my_submissions/", { params }),
+
+  /** Submitter (while pending) or staff can delete a submission. */
+  deleteSubmission: (slugOrId) =>
+    axiosClient.delete(`/destinations/${slugOrId}/`),
+
+  getFeaturedGallery: () => axiosClient.get("/gallery/featured/"),
+  getDistrictGallery: () => axiosClient.get("/gallery/districts/"),
+  discoverNepal: () => axiosClient.get("/discover-nepal/"),
 
 }
 

@@ -144,9 +144,66 @@ class IsDistrictManagerForOwnDistrict(BasePermission):
         )
 
 
+class HasCapabilityOrReadOnly(BasePermission):
+    """Public/authenticated reads remain compatible; writes require module capability."""
+    message = "You do not have permission to modify this resource."
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        module = getattr(view, "capability_module", None)
+        action = {"POST":"add","PUT":"change","PATCH":"change","DELETE":"delete"}.get(request.method, "view")
+        try:
+            return bool(module and user.capability_profile.allows(module, action))
+        except Exception:
+            return False
+
+
+class HasCapability(BasePermission):
+    """Backend-enforced module/action permission for staff; admins bypass."""
+    message = "You do not have the required staff capability."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        module = getattr(view, "capability_module", None)
+        action_map = {"GET": "view", "HEAD": "view", "OPTIONS": "view", "POST": "add", "PUT": "change", "PATCH": "change", "DELETE": "delete"}
+        action = getattr(view, "capability_action", action_map.get(request.method, "view"))
+        if not module:
+            return False
+        try:
+            return user.capability_profile.allows(module, action)
+        except Exception:
+            return False
+
+
 # ---------------------------------------------------------------------
 # LEGACY PERMISSIONS
 # ---------------------------------------------------------------------
+
+class IsAdminOrStaff(BasePermission):
+    """Allows Super Admins, Admins, Tourism Admins, and Staff/Sub-admins."""
+    ALLOWED_ROLES = {
+        "admin", "super_admin", "tourism_admin", "staff",
+        "content_moderator", "district_manager", "guide",
+    }
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return (
+            request.user.is_staff
+            or request.user.is_superuser
+            or request.user.role in self.ALLOWED_ROLES
+        )
+
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """

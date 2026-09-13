@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -19,6 +20,8 @@ from .serializers import (
     UpdateLocationSerializer,
 )
 from .utils import send_email_notification, resolve_location, issue_phone_verification
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -268,10 +271,42 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+class AccountDeleteView(APIView):
+    """DELETE /api/v1/auth/account/  {"password": "..."}
+
+    Privacy: permanent account + personal data deletion (GDPR-style right
+    to erasure). Requires the current password to prevent session-hijack
+    deletions, and refuses to delete the last remaining superuser so the
+    platform can never be locked out of its own admin.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        password = request.data.get("password")
+        if not password or not user.check_password(password):
+            return Response({"detail": "Current password is required and must be correct."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        if user.is_superuser:
+            if not User.objects.filter(is_superuser=True).exclude(pk=user.pk).exists():
+                return Response(
+                    {"detail": "You are the only superuser. Promote another admin before deleting this account."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        email = user.email
+        user.delete()  # cascades to trips, plans, reviews, tokens, etc.
+        logger.info("Account deleted on user request: %s", email)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class UpdateLocationView(APIView):
     """
     Sets the user's current location. Prefers browser-supplied GPS
     coordinates; falls back to server-side GeoIP lookup when GPS is absent.
+    Automatically reverse-geocodes GPS coordinates into real Nepal cities.
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -285,15 +320,20 @@ class UpdateLocationView(APIView):
 
         location = resolve_location(request, gps_latitude=lat, gps_longitude=lon)
         user = request.user
-        user.latitude = location["latitude"]
-        user.longitude = location["longitude"]
+        if location.get("latitude") is not None:
+            user.latitude = location["latitude"]
+        if location.get("longitude") is not None:
+            user.longitude = location["longitude"]
         if location.get("country"):
             user.country = location["country"]
         if location.get("city"):
             user.city = location["city"]
-        user.location_source = location["source"]
+        user.location_source = location.get("source") or "gps"
         user.save(update_fields=["latitude", "longitude", "country", "city", "location_source"])
         return Response(UserProfileSerializer(user).data)
+
+    put = post
+    patch = post
 
 
 class DetectLocationView(APIView):
@@ -305,3 +345,20 @@ class DetectLocationView(APIView):
     def get(self, request):
         location = resolve_location(request)
         return Response(location)
+
+class MyCapabilitiesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = None
+
+    def get(self, request):
+        user = request.user
+        admin = user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}
+        if admin:
+            from .models import StaffCapabilityProfile
+            capabilities = {module: ["*"] for module in StaffCapabilityProfile.MODULES}
+            districts = []
+        else:
+            profile = getattr(user, "capability_profile", None)
+            capabilities = profile.capabilities if profile and profile.is_active else {}
+            districts = profile.managed_districts if profile else []
+        return Response({"role": user.role, "is_admin": admin, "capabilities": capabilities, "managed_districts": districts})

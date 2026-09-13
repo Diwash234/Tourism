@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FiMessageSquare, FiX, FiSend, FiMinimize2, FiMaximize2 } from "react-icons/fi"
+import { FiMessageSquare, FiX, FiSend } from "react-icons/fi"
 import chatbotApi from "../../api/chatbotApi"
 import useGeolocation from "../../hooks/useGeolocation"
+import useChatSocket from "../../hooks/useChatSocket"
+import useToast from "../../hooks/useToast"
+import HimalPackageCards from "../chat/HimalPackageCards"
 
 const FloatingChatbot = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -17,7 +20,37 @@ const FloatingChatbot = () => {
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState(null)
 
+  // Live sync across tabs/devices over WebSocket (master spec §30). The
+  // REST POST stays canonical; socket events are deduplicated by message id.
+  const seenIds = useRef(new Set())
+  useChatSocket(conversationId, (event) => {
+    if (event.message_id == null || seenIds.current.has(event.message_id)) return
+    seenIds.current.add(event.message_id)
+    if (event.type === "bot_reply") {
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: event.reply || "",
+        package_cards: event.package_cards || [],
+        emergency_cards: event.emergency_cards || [],
+      }])
+    } else if (event.type === "admin_reply") {
+      // Human support reply from the admin dashboard (live, no polling)
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: event.reply || "",
+        from_support: true,
+      }])
+    } else if (event.type === "user_message") {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        if (last?.role === "user" && last.content === event.content) return prev
+        return [...prev, { role: "user", content: event.content }]
+      })
+    }
+  })
+
   const { position } = useGeolocation()
+  const { showToast } = useToast()
   const chatScrollRef = useRef(null)
 
   useEffect(() => {
@@ -47,12 +80,15 @@ const FloatingChatbot = () => {
       if (data.conversation_id) {
         setConversationId(data.conversation_id)
       }
+      if (data.message_id != null) seenIds.current.add(data.message_id)
 
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content: data.reply || "I am here to help you explore Nepal!",
+          package_cards: data.package_cards || [],
+          emergency_cards: data.emergency_cards || [],
         },
       ])
     } catch (error) {
@@ -79,17 +115,18 @@ const FloatingChatbot = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-24 right-4 sm:right-6 lg:bottom-6 z-50" data-testid="himal-float">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.9 }}
-            className="card-base w-[360px] sm:w-[400px] h-[520px] shadow-2xl flex flex-col overflow-hidden border border-purple-200 mb-3 bg-white"
+            data-testid="himal-float-panel"
+            className="card-base w-[min(360px,calc(100vw-2rem))] sm:w-[400px] h-[min(520px,70dvh)] shadow-2xl flex flex-col overflow-hidden border border-[#E5E0D5] mb-3 bg-white"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-rose-700 text-white px-4 py-3 flex items-center justify-between shadow-md">
+            <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-purple-700 text-white px-4 py-3 flex items-center justify-between shadow-md">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
                   🏔️
@@ -123,17 +160,21 @@ const FloatingChatbot = () => {
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 whitespace-pre-wrap shadow-sm text-xs sm:text-sm ${
                       m.role === "user"
-                        ? "bg-purple-700 text-white rounded-br-none"
+                        ? "bg-[#102A2E] text-white rounded-br-none"
                         : "bg-white text-gray-800 border border-gray-100 rounded-bl-none"
                     }`}
                   >
                     {m.content}
+                    <HimalPackageCards
+                      offers={m.package_cards}
+                      onAdd={() => showToast("Added to trip basket", "success")}
+                    />
                   </div>
                 </div>
               ))}
               {sending && (
-                <div className="text-xs text-purple-600 font-medium italic flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-purple-500 animate-bounce"></span>
+                <div className="text-xs text-emerald-700 font-medium italic flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-bounce"></span>
                   Himal AI is thinking...
                 </div>
               )}
@@ -146,13 +187,15 @@ const FloatingChatbot = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about Nepal places, budgets..."
+                data-testid="himal-float-input"
                 className="input-field py-2 text-xs flex-1"
                 disabled={sending}
               />
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
-                className="bg-purple-700 hover:bg-purple-800 text-white px-3.5 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
+                data-testid="himal-float-send"
+                className="bg-[#102A2E] hover:bg-[#1D5146] text-white px-3.5 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
               >
                 <FiSend size={15} />
               </button>
@@ -166,7 +209,7 @@ const FloatingChatbot = () => {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-700 to-rose-600 text-white shadow-xl flex items-center justify-center hover:shadow-2xl transition-shadow relative"
+        className="w-14 h-14 rounded-full bg-gradient-to-r from-emerald-700 to-purple-700 text-white shadow-xl flex items-center justify-center hover:shadow-2xl transition-shadow relative"
       >
         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-900">
           !

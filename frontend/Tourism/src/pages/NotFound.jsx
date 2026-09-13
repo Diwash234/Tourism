@@ -1,24 +1,46 @@
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { FiCompass } from "react-icons/fi"
+import { FiCompass, FiHome } from "react-icons/fi"
+import { FadeIn } from "../components/common/MotionSystem"
 
-const NotFound = () => (
-  <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center"
-    >
-      <div className="p-4 rounded-full bg-himalaya-50 text-himalaya-500 mb-4">
-        <FiCompass size={32} />
-      </div>
-      <h1 className="text-6xl font-extrabold text-himalaya-500">404</h1>
-      <p className="text-gray-500 mt-3 mb-6 max-w-sm">
-        Looks like this trail doesn't exist. Let's get you back on route.
-      </p>
-      <Link to="/" className="btn-primary">Back to Home</Link>
-    </motion.div>
-  </div>
-)
+export default function NotFound() {
+  return (
+    <div className="min-h-[75vh] flex items-center justify-center container-app section-space px-4">
+      <CMSPageIntro pageKey="not-found" />
+      <FadeIn className="card-base p-8 sm:p-14 max-w-xl text-center space-y-6 rounded-3xl shadow-2xl border border-[#E5E0D5] bg-white">
+        <div className="relative inline-block">
+          <span className="text-8xl font-black bg-gradient-to-r from-purple-700 via-rose-600 to-amber-500 bg-clip-text text-transparent">
+            404
+          </span>
+          <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-bold whitespace-nowrap">
+            Himalayan Trail Lost
+          </span>
+        </div>
 
-export default NotFound
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Looks like you've wandered off the trail!
+          </h1>
+          <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+            The page or mountain route you're looking for doesn't exist or has moved. Let's get you back on the main trail.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link
+            to="/"
+            className="w-full sm:w-auto btn-primary px-6 py-3 bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-sm rounded-xl shadow-lg flex items-center justify-center gap-2"
+          >
+            <FiHome size={16} /> Return to Home
+          </Link>
+          <Link
+            to="/destinations"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E] font-bold text-sm border border-[#E5E0D5] flex items-center justify-center gap-1.5"
+          >
+            <FiCompass size={16} /> Explore Destinations
+          </Link>
+        </div>
+      </FadeIn>
+    </div>
+  )
+}

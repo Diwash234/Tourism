@@ -347,8 +347,26 @@ class Command(BaseCommand):
         "latitude": 27.6878,
         "longitude": 86.7314,
     },
-
 ]
+
+        for item in contacts:
+            EmergencyContact.objects.get_or_create(
+                name=item["name"],
+                defaults={
+                    "contact_type": item["contact_type"],
+                    "phone_number": item["phone_number"],
+                    "city": item.get("city", "Kathmandu"),
+                    "country": item.get("country", "Nepal"),
+                    "latitude": item.get("latitude"),
+                    "longitude": item.get("longitude"),
+                    "is_24_hours": True,
+                }
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS(f"Seeded {len(contacts)} emergency contacts.")
+        )
+
         destinations = [
             {
                 "name": "Phewa Lake",

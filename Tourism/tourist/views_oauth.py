@@ -82,7 +82,7 @@ class GoogleOAuthCallbackView(APIView):
 
         try:
             token_response = requests.post(
-                "https://oauth2.googleapis.com/token",
+                settings.GOOGLE_OAUTH_TOKEN_URL,
                 data={
                     "code": code,
                     "client_id": settings.GOOGLE_CLIENT_ID,
@@ -96,7 +96,7 @@ class GoogleOAuthCallbackView(APIView):
             access_token = token_response.json()["access_token"]
 
             profile_response = requests.get(
-                "https://www.googleapis.com/oauth2/v3/userinfo",
+                settings.GOOGLE_OAUTH_USERINFO_URL,
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=10,
             )
@@ -136,7 +136,7 @@ class GithubOAuthCallbackView(APIView):
 
         try:
             token_response = requests.post(
-                "https://github.com/login/oauth/access_token",
+                settings.GITHUB_OAUTH_TOKEN_URL,
                 data={
                     "code": code,
                     "client_id": settings.GITHUB_CLIENT_ID,
@@ -149,7 +149,7 @@ class GithubOAuthCallbackView(APIView):
             access_token = token_response.json()["access_token"]
 
             profile_response = requests.get(
-                "https://api.github.com/user",
+                f"{settings.GITHUB_OAUTH_API_URL.rstrip('/')}/user",
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=10,
             )
@@ -161,7 +161,7 @@ class GithubOAuthCallbackView(APIView):
                 # GitHub only returns a public email if the user set one;
                 # the dedicated emails endpoint is needed otherwise.
                 emails_response = requests.get(
-                    "https://api.github.com/user/emails",
+                    f"{settings.GITHUB_OAUTH_API_URL.rstrip('/')}/user/emails",
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10,
                 )

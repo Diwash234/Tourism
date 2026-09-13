@@ -185,6 +185,7 @@ const DestinationMediaManager = () => {
   useEffect(() => {
     const query = searchQuery.trim()
     if (query.length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronous clear is the intended UX for short queries
       setSearchResults([])
       return
     }

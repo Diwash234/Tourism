@@ -1,0 +1,38 @@
+{
+  "source": "openstreetmap.org (ODbL) via Overpass API extracts",
+  "started": "2026-09-12T05:22:59.097715+00:00",
+  "dry_run": true,
+  "found": 6,
+  "created": 4,
+  "updated": 0,
+  "duplicate": 0,
+  "rejected_outside_nepal": 0,
+  "rejected_no_coords": 1,
+  "rejected_unknown_category": 1,
+  "district_unassigned": 1,
+  "by_category": {
+    "atm": 2,
+    "restaurant": 1,
+    "hospital": 1
+  },
+  "by_province": {
+    "Bagmati": 1,
+    "Gandaki": 1,
+    "Karnali": 1
+  },
+  "by_district": {
+    "Kathmandu": 1,
+    "Kaski": 1,
+    "Dailekh": 1
+  },
+  "files": [
+    {
+      "file": "fixture_test.json",
+      "found": 6,
+      "created": 0,
+      "updated": 0,
+      "rejected": 2
+    }
+  ],
+  "finished": "2026-09-12T05:22:59.100804+00:00"
+}

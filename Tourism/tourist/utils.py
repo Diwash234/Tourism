@@ -7,7 +7,6 @@ Utility helpers used across the tourist app:
   - Email / SMS / Push notification senders
 """
 import logging
-import re
 from math import radians, cos, sin, asin, sqrt
 from django.db.models import Q
 
@@ -19,6 +18,78 @@ WIKIMEDIA_HEADERS = {
 }
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Image URL resolution
+# ---------------------------------------------------------------------------
+# A large amount of seed data stored external image URLs (Unsplash,
+# Wikimedia, Pexels, ...) directly inside ImageField columns. Django's
+# ImageField treats its value as a *relative media path*, so calling
+# .url on "https://images.unsplash.com/..." produced a broken
+# "/media/https%3A/..." link -- this is why "images exist in the
+# database but never show up". The helpers below detect external URLs
+# and return them verbatim, only building a MEDIA url for genuinely
+# local files.
+
+def _is_external_url(value):
+    if not value:
+        return False
+    s = str(value).strip()
+    return s.startswith("http://") or s.startswith("https://") or s.startswith("//")
+
+
+def resolve_image_url(image_field, request=None):
+    """
+    Return a usable URL for an ImageField/FileField value that may actually
+    hold an external URL. External URLs are returned as-is; local files are
+    resolved via .url (and made absolute when a request is available).
+    Returns None when there is no usable image.
+    """
+    if not image_field:
+        return None
+
+    # ImageFieldFile exposes the raw stored string via .name
+    raw = getattr(image_field, "name", None) or str(image_field)
+    if not raw:
+        return None
+
+    if _is_external_url(raw):
+        return raw.strip()
+
+    # Genuinely local media file
+    try:
+        url = image_field.url
+    except (ValueError, AttributeError):
+        return None
+    if request is not None:
+        try:
+            return request.build_absolute_uri(url)
+        except Exception:  # noqa: BLE001
+            return url
+    return url
+
+
+def resolve_str_image_url(value, request=None):
+    """Like resolve_image_url but accepts a plain string value."""
+    if not value:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if _is_external_url(s):
+        return s
+    # Local path -- prefix MEDIA_URL if it isn't already absolute
+    if s.startswith("/"):
+        url = s
+    else:
+        url = f"{settings.MEDIA_URL}{s}"
+    if request is not None:
+        try:
+            return request.build_absolute_uri(url)
+        except Exception:  # noqa: BLE001
+            return url
+    return url
 
 
 # ---------------------------------------------------------------------------
@@ -126,11 +197,17 @@ def resolve_location(request, gps_latitude=None, gps_longitude=None):
     Returns a dict with latitude, longitude, country, city, source.
     """
     if gps_latitude is not None and gps_longitude is not None:
+        from .location.reverse_geocoding import reverse_geocode
+        try:
+            geo = reverse_geocode(float(gps_latitude), float(gps_longitude))
+            city = geo.get("district") or geo.get("municipality") or geo.get("city") or "Kathmandu"
+        except Exception:
+            city = "Kathmandu"
         return {
-            "latitude": gps_latitude,
-            "longitude": gps_longitude,
-            "country": "",
-            "city": "",
+            "latitude": float(gps_latitude),
+            "longitude": float(gps_longitude),
+            "country": "Nepal",
+            "city": city,
             "source": "gps",
         }
 
@@ -140,7 +217,7 @@ def resolve_location(request, gps_latitude=None, gps_longitude=None):
         geo["source"] = "geoip"
         return geo
 
-    return {"latitude": None, "longitude": None, "country": "", "city": "", "source": ""}
+    return {"latitude": None, "longitude": None, "country": "Nepal", "city": "Kathmandu", "source": "default"}
 
 
 # ---------------------------------------------------------------------------
@@ -348,109 +425,41 @@ def send_push_notification(device_tokens, title, message):
 
 
 def notify_user(user, title, message, channel="in_app", related_alert=None):
-    """Creates a Notification record and dispatches it over the requested channel."""
-    from .models import Notification  # local import avoids circular import
-
-    notification = Notification.objects.create(
-        user=user, channel=channel, title=title, message=message, related_alert=related_alert
-    )
-
-    sent = False
-    if channel == "email":
-        sent = send_email_notification(user.email, title, message)
-    elif channel == "sms" and user.phone_number:
-        sent = send_sms_notification(user.phone_number, message)
-    elif channel == "push":
-        tokens = list(user.device_tokens.values_list("token", flat=True))
-        sent = send_push_notification(tokens, title, message)
-    else:
-        sent = True  # in-app notifications are considered "sent" once stored
-
-    notification.is_sent = sent
-    notification.save(update_fields=["is_sent"])
+    """Queue a preference-aware notification and honestly record provider delivery."""
+    from .notification_delivery import queue_notification, deliver_notification
+    notification = queue_notification(user, title, message, channel=channel,
+        category="safety" if related_alert else "general", related_alert=related_alert)
+    if channel != "in_app" and notification.delivery_status == "queued":
+        deliver_notification(notification.id)
+        notification.refresh_from_db()
     return notification
+
 
 
 # ---------------------------------------------------------------------------
 # ML microservice client
 # ---------------------------------------------------------------------------
-def _build_personalized_interest_string(user, fallback_interest=""):
+def get_ml_recommendations(user=None, latitude=None, longitude=None, top_n=5):
     """
-    THE ACTUAL BUG this fixes: get_ml_recommendations() used to send a
-    fixed "nearby destinations around latitude X longitude Y" string to
-    the ML service every time -- the recommendation engine is a real
-    TF-IDF/cosine-similarity text matcher (see model/recommendation/
-    recommendation_engine.py, that part was always fine), but numeric
-    coordinates carry almost no meaning to a text vectorizer trained on
-    destination names/categories/types. Every user, every request,
-    produced essentially the same noisy near-identical top-N regardless
-    of who was asking -- matching exactly "same recommendation every
-    time" as reported.
+    Calls the teammate's ML microservice (FastAPI, running separately —
+    see /ml-service) for personalized/nearby recommendations.
 
-    Also: the frontend-supplied `interest` query param was being read by
-    the Django view but never forwarded here at all -- silently dropped.
+    Contract (see ml-service/app.py):
+      POST {ML_SERVICE_URL}/recommend
+      body: {"user_id": <int|null>, "latitude": <float|null>,
+             "longitude": <float|null>, "top_n": <int>}
+      response: {"recommendations": [{"destination_id": 3, "score": 0.92}, ...]}
 
-    Fix: build a REAL text query from what the user has actually shown
-    interest in -- their most recent viewed (VisitHistory) and favorited
-    (Favorite) destinations' names/categories -- so two different users
-    genuinely get two different results, and the same user's results
-    change over time as they interact more. Falls back to the frontend's
-    typed interest, then a generic default, only if there's truly no
-    history yet (e.g. a brand new user).
+    Returns a list of {"destination_id", "score"} dicts, or [] if the ML
+    service is unreachable — callers should fall back to a simple heuristic
+    (e.g. top-rated destinations) in that case, never hard-fail the request.
     """
-    if fallback_interest:
-        return fallback_interest
-
-    if not user or not getattr(user, "is_authenticated", False):
-        return "popular destinations Nepal"
-
-    from .models import VisitHistory, Favorite
-
-    recent_visits = list(
-        VisitHistory.objects.filter(user=user).select_related("destination", "destination__category")
-        .order_by("-viewed_at")[:5]
-    )
-    favorites = list(
-        Favorite.objects.filter(user=user).select_related("destination", "destination__category")
-        .order_by("-created_at")[:5]
-    )
-
-    interest_terms = []
-    for record in recent_visits + favorites:
-        destination = record.destination
-        if destination.category:
-            interest_terms.append(destination.category.name)
-        interest_terms.append(destination.name)
-
-    if not interest_terms:
-        return "popular destinations Nepal"
-
-    # Most-repeated terms first (categories the user keeps coming back
-    # to should weigh more than a single destination visited once).
-    from collections import Counter
-    ranked = [term for term, _ in Counter(interest_terms).most_common(8)]
-    return " ".join(ranked)
-
-
-def get_ml_recommendations(user=None, latitude=None, longitude=None, top_n=5, interest=""):
-    """
-    Calls the recommendation engine (FastAPI ml_service) for
-    personalized recommendations. `interest` is the frontend-typed
-    search text if the user provided one; if blank, a real personalized
-    query is built from the user's actual visit/favorite history (see
-    _build_personalized_interest_string above) instead of the old
-    fixed lat/lon string that produced identical results for everyone.
-
-    Returns a list of recommendation dicts, or [] if the ML service is
-    unreachable -- callers should fall back to a simple heuristic (e.g.
-    top-rated destinations) in that case, never hard-fail the request.
-    """
-    query_text = _build_personalized_interest_string(user, interest)
-
     try:
         response = requests.post(
             f"{settings.ML_SERVICE_URL}/recommendation",
-            json={"interest": query_text, "limit": top_n},
+            json={
+                "interest": f"nearby destinations around latitude {latitude} longitude {longitude}",
+            },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
         response.raise_for_status()
@@ -507,7 +516,8 @@ def get_ml_safety_prediction(latitude, longitude, city=None, country=None):
 
 
 def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budget_level="mid",
-                             latitude=None, longitude=None, user_latitude=None, user_longitude=None):
+                             latitude=None, longitude=None, user_latitude=None, user_longitude=None,
+                             district=None, province=None, destination_name=None):
     """
     Calls {ML_SERVICE_URL}/budget/predict-budget for an estimated trip cost.
     Returns None if the ML service is unreachable.
@@ -515,6 +525,9 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
     FIX: signature extended to accept/forward destination coordinates and
     the traveler's own coordinates — views_ml.py was passing them and the
     ML service expects them (see ml_service/api/budget.py BudgetRequest).
+    Also forwards district/province so the ML service can match the real
+    cleaned CSV cost dataset (budget_features.csv) at the most specific
+    geographic level available.
     """
     try:
         response = requests.post(
@@ -524,6 +537,8 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
                 "latitude": latitude, "longitude": longitude,
                 "user_latitude": user_latitude, "user_longitude": user_longitude,
                 "days": days, "travelers": travelers, "budget_level": budget_level,
+                "district": district, "province": province,
+                "destination": destination_name,
             },
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
@@ -536,12 +551,8 @@ def get_ml_budget_prediction(city=None, country=None, days=3, travelers=1, budge
 
 def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitude, route_type="fastest"):
     """
-    Calls {ML_SERVICE_URL}/routes/best-route for a routed path (OSM-based
-    once the ML teammate's road graph is loaded; straight-line fallback
-    until then). Returns None if the ML service is unreachable.
-
-    FIX: added `route_type` — views_compat.py passes it and the ML service
-    (BestRouteRequest) accepts it.
+    Calls {ML_SERVICE_URL}/routes/best-route for a routed path.
+    Returns None if the ML service is unreachable.
     """
     try:
         response = requests.post(
@@ -554,10 +565,44 @@ def get_ml_best_route(start_latitude, start_longitude, end_latitude, end_longitu
             timeout=settings.ML_SERVICE_TIMEOUT,
         )
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        if result.get("route") and "routing_engine" not in result:
+            result["routing_engine"] = "bundled_nepal_graphml"
+            result["road_distance_km"] = None
+            result["duration_min"] = result.get("duration_min") or max(1, round(float(result.get("distance_km", 0)) / 35 * 60))
+            result["steps"] = result.get("steps") or result.get("directions", [])
+            result["note"] = result.get("note") or "Approximate GraphML route; not a GraphHopper/OSRM street-level road route."
+        return result
     except requests.RequestException as exc:
-        logger.warning("ML routing service unreachable: %s", exc)
-        return None
+        logger.warning("ML routing service unreachable; trying bundled GraphML: %s", exc)
+        try:
+            from .routing_service import route_metrics
+            metrics = route_metrics(start_latitude, start_longitude, end_latitude, end_longitude)
+            if metrics.get("status") not in {"graph_routed", "routed"}:
+                return None
+            directions = metrics.get("directions", [])
+            steps = []
+            for direction in directions:
+                steps.append({
+                    "turn": str(direction.get("turn", "straight")).lower(),
+                    "instruction": direction.get("instruction", "Continue along the graph route"),
+                    "distance_km": direction.get("distance_km", 0),
+                    "distance_m": round(float(direction.get("distance_km", 0)) * 1000),
+                })
+            return {
+                "distance_km": metrics.get("route_distance_km"),
+                "duration_min": metrics.get("duration_min"),
+                "route_type": route_type,
+                "route": metrics.get("route", []),
+                "steps": steps,
+                "routing_engine": metrics.get("routing_engine"),
+                "straight_line_km": metrics.get("straight_line_km"),
+                "road_distance_km": metrics.get("road_distance_km"),
+                "note": metrics.get("note"),
+            }
+        except Exception as graph_exc:  # noqa: BLE001
+            logger.warning("Bundled GraphML routing failed: %s", graph_exc)
+            return None
 
 
 def get_ml_supported_languages():
@@ -831,23 +876,35 @@ def fetch_wikimedia_photos(queries, limit=5):
                     page.get("imageinfo") or [{}]
                 )[0]
 
+
                 url = image.get("url")
 
                 if not url:
                     continue
 
-                # FIXED: this used to only block .svg by extension, plus
-                # a title-text keyword check (bad_keywords, above) --
-                # neither catches a file whose *title* looks fine but
-                # is actually a PDF. Confirmed live against the real
-                # database: 147 rows across dozens of destinations had
-                # a PDF (mostly "Wiki Loves Earth jury report" documents
-                # whose text happened to mention a place name) stored as
-                # that destination's "photo". Now allow-lists real image
-                # extensions instead of block-listing one bad one.
+
+                artist = (
+                    image
+                    .get("extmetadata", {})
+                    .get("Artist", {})
+                    .get("value", "Wikimedia contributor")
+                )
+
+                page = next(iter(pages.values()), {})
+
+                image = (
+                    page.get("imageinfo") or [{}]
+                )[0]
+
+                url = image.get("url")
+
+                if not url:
+                    continue
+
+                # Skip SVG drawings and obvious non-photo files
                 url_lower = url.lower()
 
-                if not re.search(r"\.(jpe?g|png|webp|gif)(?:$|\?)", url_lower):
+                if url_lower.endswith(".svg"):
                     continue
 
                 if any(keyword in url_lower for keyword in ("map", "flag", "logo", "icon")):
@@ -889,16 +946,6 @@ def fetch_wikimedia_photos(queries, limit=5):
 def _photo_search_queries(destination):
     """
     Build clean Wikimedia search queries without adding None values.
-
-    FIXED: the fallback queries used to drop destination.name entirely,
-    searching only "{district} Nepal" or "{province} Nepal" once the
-    full query came up empty. Confirmed live: for "Arun Valley"
-    (district="Makalu Region", no city/province), that fell back to
-    searching just "Makalu Region Nepal" and matched an 1921 geological
-    survey illustration of the *Everest* region -- topically nearby,
-    completely wrong place. Every query now keeps destination.name, so
-    a broader fallback can widen the geographic context but can never
-    drop the actual place being searched for.
     """
 
     queries = []
@@ -922,221 +969,16 @@ def _photo_search_queries(destination):
     queries.append(" ".join(parts))
 
     if getattr(destination, "city", None):
-        queries.append(f"{destination.name} {destination.city} Nepal")
+        queries.append(f"{destination.city} Nepal")
 
     if getattr(destination, "district", None):
-        queries.append(f"{destination.name} {destination.district} Nepal")
+        queries.append(f"{destination.district} Nepal")
 
     if getattr(destination, "province", None):
-        queries.append(f"{destination.name} {destination.province} Nepal")
-
-    queries.append(f"{destination.name} Nepal")
+        queries.append(f"{destination.province} Nepal")
 
     return list(dict.fromkeys(queries))
 
-
-
-import threading
-
-# ADDED: this function was called from serializers.py (get_cover_image_url,
-# both DestinationListSerializer and the detail serializer) and even had
-# an explanatory comment above the call site describing exactly what it
-# should do -- but it was never actually defined anywhere in this file.
-# That's not a small bug: `from .utils import ... queue_cover_photo_fetch`
-# in serializers.py raised ImportError at Django startup, which means
-# tourist/urls.py (which imports views.py -> serializers.py) failed to
-# load at all, taking down every single API endpoint under /api/v1/ --
-# not just images, ALL destinations, hotels, everything, on every page
-# that hits the API. This is the actual root cause behind "no destination
-# or images shown despite having API keys in .env" -- the keys were
-# never the problem, the backend wasn't serving anything at all.
-#
-# Implementation: fire-and-forget background thread that calls the
-# existing synchronous ensure_cover_photo() off the request thread, so
-# a list-page request returns immediately (this destination just won't
-# have a photo on THIS response) while the fetch completes in the
-# background and is picked up on the next request, exactly as the
-# removed comment already promised. Deduplicates concurrent calls for
-# the same destination (a list endpoint can serialize the same
-# destination via multiple overlapping requests) with a simple guarded
-# in-process set -- intentionally not Celery/Redis, since no task queue
-# is configured anywhere in this project (checked settings.py); adding
-# one is a bigger, separate infrastructure decision.
-_pending_cover_photo_fetches = set()
-_pending_cover_photo_fetches_lock = threading.Lock()
-
-
-def queue_cover_photo_fetch(destination):
-    """
-    Non-blocking version of ensure_cover_photo(): schedules the fetch on
-    a background thread and returns immediately. Safe to call many times
-    for the same destination -- duplicate concurrent calls are skipped.
-    """
-    destination_id = destination.pk
-    if destination_id is None:
-        return
-
-    with _pending_cover_photo_fetches_lock:
-        if destination_id in _pending_cover_photo_fetches:
-            return
-        _pending_cover_photo_fetches.add(destination_id)
-
-    def _run():
-        from django.db import close_old_connections
-        try:
-            # Background threads need their own DB connection state --
-            # reusing the request thread's connection here would be a
-            # real (if intermittent) source of "database is locked" /
-            # threading errors under load.
-            close_old_connections()
-            ensure_cover_photo(destination)
-        except Exception:  # noqa: BLE001 -- a failed background fetch must never surface as a 500 on some unrelated later request
-            logger.exception("Background cover photo fetch failed for destination id=%s", destination_id)
-        finally:
-            close_old_connections()
-            with _pending_cover_photo_fetches_lock:
-                _pending_cover_photo_fetches.discard(destination_id)
-
-    threading.Thread(target=_run, daemon=True).start()
-
-
-import csv
-import os
-import sys
-
-# ADDED: mirrors the sys.path setup already used successfully in
-# chatbot/views.py to import from the sibling ml_service package
-# (Tourism/tourist/utils.py -> .. -> ml_service).
-_ML_SERVICE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _ML_SERVICE_ROOT not in sys.path:
-    sys.path.append(_ML_SERVICE_ROOT)
-
-_risk_rows_cache = None
-
-
-def _load_risk_rows():
-    """
-    Lazily loads dataset/risk_features.csv once per process. Same dataset
-    ml_service/training/train_risk_model.py trains on -- this just reads
-    it directly rather than requiring a live model call, since the ask
-    here is "nearest known risk data point", not a prediction.
-    """
-    global _risk_rows_cache
-    if _risk_rows_cache is not None:
-        return _risk_rows_cache
-
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "dataset", "risk_features.csv")
-    rows = []
-    try:
-        with open(csv_path, newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                try:
-                    lat = row.get("Latitude")
-                    lon = row.get("Longitude")
-                    if not lat or not lon:
-                        continue
-                    rows.append({**row, "Latitude": float(lat), "Longitude": float(lon)})
-                except (KeyError, ValueError, TypeError):
-                    continue
-    except FileNotFoundError:
-        logger.warning("risk_features.csv not found at %s -- get_local_risk_summary will return None", csv_path)
-    _risk_rows_cache = rows
-    return rows
-
-
-def get_local_risk_summary(destination, max_distance_km=50):
-    """
-    ADDED: called from DestinationDetailSerializer.get_risk_summary(),
-    but never actually implemented (see queue_cover_photo_fetch's
-    docstring above for the wider story -- several functions were
-    referenced and called from serializers.py without ever being
-    written, which broke Django's startup entirely).
-
-    Finds the nearest row in dataset/risk_features.csv to this
-    destination's coordinates and returns it as a plain dict, or None
-    if nothing is within max_distance_km (avoids attaching, say,
-    Everest Base Camp's earthquake risk to a destination 300km away
-    just because it was the closest row in the file).
-    """
-    if destination.latitude is None or destination.longitude is None:
-        return None
-
-    rows = _load_risk_rows()
-    if not rows:
-        return None
-
-    best_row, best_distance = None, None
-    for row in rows:
-        distance = haversine_distance(
-            float(destination.latitude), float(destination.longitude),
-            row["Latitude"], row["Longitude"],
-        )
-        if distance is None:
-            continue
-        if best_distance is None or distance < best_distance:
-            best_row, best_distance = row, distance
-
-    if best_row is None or best_distance > max_distance_km:
-        return None
-
-    return {
-        "nearest_reference_place": best_row.get("Place"),
-        "district": best_row.get("District"),
-        "distance_km": round(best_distance, 1),
-        "landslide": best_row.get("landslide"),
-        "avalanche": best_row.get("avalanche"),
-        "flood": best_row.get("flood"),
-        "earthquake_damage": best_row.get("earthquake_damage"),
-        "emergency_risk": best_row.get("Emergency_Risk"),
-        "natural_disaster_risk": best_row.get("Natural_Disaster_Risk"),
-        "tourism_risk_index": best_row.get("Tourism_Risk_Index"),
-        "risk_category": best_row.get("Risk_Category"),
-    }
-
-
-def get_nearby_emergency_services(destination, limit=5):
-    """
-    ADDED: called from DestinationDetailSerializer.get_nearby_emergency_services(),
-    same missing-implementation story as get_local_risk_summary() above.
-
-    Wraps the already-working ml_service.services.emergency_service.nearest_facilities()
-    (the same function chatbot/views.py already imports and uses
-    successfully) rather than duplicating hospital/police CSV-loading
-    logic a second time here.
-    """
-    if destination.latitude is None or destination.longitude is None:
-        return []
-
-    try:
-        from ml_service.services.emergency_service import nearest_facilities
-    except ImportError:
-        logger.exception("Could not import ml_service.services.emergency_service.nearest_facilities")
-        return []
-
-    try:
-        results = nearest_facilities(
-            float(destination.latitude), float(destination.longitude), limit=limit
-        )
-        # DEFENSIVE: nearest_facilities() reads hospital/police CSVs via
-        # pandas, which leaves NaN in any column outside lat/lon that's
-        # blank in the source CSV (only lat/lon get pandas.dropna()'d in
-        # emergency_service.py). A raw NaN float can't be JSON-encoded
-        # ("Out of range float values are not JSON compliant: nan"),
-        # confirmed against a real record while testing this. Not
-        # touching emergency_service.py itself since chatbot/views.py
-        # already depends on its current behavior; just sanitizing the
-        # copy returned through this new endpoint.
-        import math
-
-        def _clean(value):
-            if isinstance(value, float) and math.isnan(value):
-                return None
-            return value
-
-        return [{k: _clean(v) for k, v in record.items()} for record in results]
-    except Exception:  # noqa: BLE001 -- a broken CSV/lookup must not 500 a destination detail page
-        logger.exception("get_nearby_emergency_services failed for destination id=%s", destination.pk)
-        return []
 
 
 def ensure_cover_photo(destination):
@@ -1222,32 +1064,17 @@ def ensure_cover_photo(destination):
 
         source = (
             DestinationImage.Source.UNSPLASH
-            if "Unsplash" in external.get("attribution", "")
+            if "Unsplash" in external.get(
+                "attribution",
+                ""
+            )
             else DestinationImage.Source.WIKIMEDIA
         )
 
-        # ADDED: Wikimedia file titles are contributor-written
-        # descriptions of the actual photographed subject -- a
-        # reasonably reliable signal that the photo genuinely depicts
-        # the named place. Unsplash search is keyword/semantic
-        # similarity over generic stock photography with no location
-        # verification at all -- for a well-known place ("Everest Base
-        # Camp") that's usually fine, but for a hyperlocal, obscure
-        # name ("Pame Picnic Site", "balbalika picnic side") Unsplash
-        # has no possibility of a genuine photo of that exact spot, so
-        # whatever it returns is a generic stand-in at best. Labeling
-        # this honestly in the caption itself (not just relying on a
-        # frontend badge) means it stays correct even if queried
-        # directly or shown somewhere the frontend badge logic doesn't
-        # reach.
-        caption = external.get("caption", "")
-        if source == DestinationImage.Source.UNSPLASH and not caption:
-            caption = f"Representative photo -- {destination.name} area"
 
         photo = DestinationImage.objects.create(
             destination=destination,
             external_url=external["url"],
-            caption=caption,
             attribution=external.get(
                 "attribution",
                 ""

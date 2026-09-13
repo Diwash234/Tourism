@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { FiAlertCircle } from "react-icons/fi"
 import authApi from "../../api/authApi"
 import useAuth from "../../hooks/useAuth"
-import { getRedirectUri } from "../../utils/oauth"
+import { getRedirectUri, consumeOAuthState } from "../../utils/oauth"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 
@@ -28,8 +28,12 @@ const OAuthCallback = () => {
   const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     const code = searchParams.get("code")
     const oauthError = searchParams.get("error")
+    const returnedState = searchParams.get("state")
 
     // User clicked "Cancel" on the provider's consent screen
     if (oauthError) {
@@ -43,6 +47,16 @@ const OAuthCallback = () => {
       return
     }
 
+    // CSRF check: the state we generated before the redirect must come
+    // back unchanged (see utils/oauth.js generateOAuthState).
+    if (!consumeOAuthState(provider, returnedState)) {
+      setStatus("error")
+      setErrorMessage(
+        "Security check failed: the sign-in response did not match this session. Please try again from the login page."
+      )
+      return
+    }
+
     const exchange = async () => {
       try {
         const { data } =
@@ -50,8 +64,11 @@ const OAuthCallback = () => {
             ? await authApi.googleAuthCallback(code, getRedirectUri("google"))
             : await authApi.githubAuthCallback(code)
 
-        await loginWithTokens(data)
-        navigate("/dashboard", { replace: true })
+        const userData = await loginWithTokens(data)
+        const role = String(userData?.role || "").toLowerCase()
+        const isAdmin = userData?.is_superuser === true || ["admin", "super_admin", "tourism_admin"].includes(role)
+        const isStaff = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"].includes(role)
+        navigate(isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard", { replace: true })
       } catch (err) {
         setStatus("error")
         setErrorMessage(
@@ -62,11 +79,13 @@ const OAuthCallback = () => {
     }
 
     exchange()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-[80svh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       <NepalSceneBackground />
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl">
         <TourismLogo size="sm" />

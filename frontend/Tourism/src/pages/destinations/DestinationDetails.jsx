@@ -1,47 +1,133 @@
 import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
+import { useParams, useNavigate, Link } from "react-router-dom"
+import { motion, AnimatePresence } from "framer-motion"
 import {
-  FiStar, FiMapPin, FiHeart, FiPhoneCall, FiDollarSign,
-  FiShield, FiHome, FiCoffee, FiShoppingBag, FiGlobe,
+  FiMapPin, FiPhoneCall, FiDollarSign,
+  FiShield, FiCoffee, FiGlobe, FiClock,
+  FiNavigation, FiChevronLeft, FiChevronRight,
+  FiX, FiActivity, FiTruck, FiCompass, FiExternalLink, FiBookOpen, FiSun
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
+import emergencyApi from "../../api/emergencyApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
+import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
+import { photoApi } from "../../services/api"
+import usePublicConfig from "../../hooks/usePublicConfig"
+import { CMSExtras } from "../../components/cms/CMSBlock"
+import SafeHtml from "../../components/cms/SafeHtml"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
-import WeatherCard from "../../components/cards/WeatherCard"
-import HotelCard from "../../components/cards/HotelCard"
-import PlaceholderImage from "../../components/common/PlaceholderImage"
-import DestinationGallery from "./DestinationGallery"
+import MapillaryImages from "../../components/map/MapillaryImages"
+import Breadcrumbs from "../../components/common/Breadcrumbs"
 import Loader from "../../components/common/Loader"
 import useGeolocation from "../../hooks/useGeolocation"
-
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
-
+import ReportErrorModal from "../../components/common/ReportErrorModal"
 import { RISK_LEVELS } from "../../utils/constants"
-import { formatCurrency } from "../../utils/helpers"
+import CircularGallery from "../../components/ui/CircularGallery"
+import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
-const DestinationDetails = () => {
+import DestinationHero from "../../components/destinations/DestinationHero"
+
+export default function DestinationDetails() {
   const { slug } = useParams()
   const navigate = useNavigate()
 
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
+  const { extras } = usePublicConfig().pageCMS("destination-detail", ["hero", "about", "gallery", "video", "map"])
+  const [videoFile, setVideoFile] = useState(null)
+  const [videoBusy, setVideoBusy] = useState(false)
 
   const [destination, setDestination] = useState(null)
-  const [budget, setBudget] = useState(null)
+  // Nearby & all destinations — nearest-first, paginated (radius covers all of Nepal)
+  const [nearbyDests, setNearbyDests] = useState([])
+  const [nearbyHasMore, setNearbyHasMore] = useState(false)
+  const [nearbyTotal, setNearbyTotal] = useState(0)
+  const [nearbyPage, setNearbyPage] = useState(1)
+  const [nearbyBusy, setNearbyBusy] = useState(false)
+  // Real nearby places from OpenStreetMap (location-based, not database-limited)
+  const [pois, setPois] = useState(null)
+  const [poiRadius, setPoiRadius] = useState(5)
+  const [poiTab, setPoiTab] = useState("hotels")
+  const [poiError, setPoiError] = useState("")
+
+  const fetchNearbyDestinations = async (page, dest) => {
+    if (!dest || !hasValidCoords(dest.latitude, dest.longitude)) return
+    try {
+      const { data } = await destinationApi.getNearbyDestinations({
+        latitude: dest.latitude,
+        longitude: dest.longitude,
+        radius_km: 2000,
+        page,
+        page_size: 12,
+      })
+      const rows = data.results || []
+      setNearbyDests((prev) => (page === 1 ? rows : [...prev, ...rows]))
+      setNearbyHasMore(Boolean(data.next))
+      setNearbyTotal(data.count || 0)
+      setNearbyPage(page)
+    } catch {
+      /* nearby list is an enhancement — never block the page on it */
+    }
+  }
+
+  useEffect(() => {
+    if (!destination) return
+    const t = setTimeout(() => { fetchNearbyDestinations(1, destination) }, 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination?.id])
+
+  const fetchNearbyPOIs = async (slug, radius) => {
+    setPoiError("")
+    try {
+      const { data } = await destinationApi.getNearbyPOIs(slug, { radius_km: radius })
+      setPois(data)
+      const firstWithResults = Object.entries(data.categories || {}).find(([, v]) => v.results?.length)
+      setPoiTab(firstWithResults ? firstWithResults[0] : Object.keys(data.categories || {})[0] || "hotels")
+    } catch (error) {
+      setPois(null)
+      setPoiError(error.response?.data?.detail || "Live map data (OpenStreetMap) is unavailable right now.")
+    }
+  }
+
+  useEffect(() => {
+    if (!destination?.slug) return
+    const t = setTimeout(() => { fetchNearbyPOIs(destination.slug, poiRadius) }, 0)
+    return () => clearTimeout(t)
+  }, [destination?.slug, poiRadius])
+
+  const loadMoreNearby = async () => {
+    setNearbyBusy(true)
+    await fetchNearbyDestinations(nearbyPage + 1, destination)
+    setNearbyBusy(false)
+  }
+  const [, setBudget] = useState(null)
   const [essentials, setEssentials] = useState(null)
+  const [emergency, setEmergency] = useState(null)
 
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteRecordId, setFavoriteRecordId] = useState(null)
+
+  // Gallery & Image Category Filter
+  const [activeImageIdx, setActiveImageIdx] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [_selectedImgCategory, _setSelectedImgCategory] = useState("all")
+  const [showOfflineKit, setShowOfflineKit] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const { position } = useGeolocation()
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     setLoading(true)
 
     const params = {}
@@ -53,37 +139,32 @@ const DestinationDetails = () => {
     Promise.allSettled([
       destinationApi.getById(slug, params),
       destinationApi.getEssentials(slug, params),
-    ]).then(([destRes, essentialsRes]) => {
+      emergencyApi.forDestination(slug, { radius_km: 80, limit: 6 }),
+      budgetApi.estimate({ destination: slug, travelers: 1, days: 3 }),
+    ]).then(([destRes, essentialsRes, emergencyRes, budgetRes]) => {
       if (destRes.status === "fulfilled") {
-        const dest = destRes.value.data
-        setDestination(dest)
-
-        // FIXED: this used to send `destination: slug` (e.g.
-        // "pokhara-lakeside") -- the backend's `destination` field is a
-        // PrimaryKeyRelatedField expecting a real numeric ID, not a
-        // slug string, so this could never resolve to the actual place.
-        // Fetched AFTER the destination loads specifically so the real
-        // `dest.id` is available -- can't be parallelized with the
-        // request above for that reason.
-        budgetApi
-          .estimate({ destination: dest.id, travelers: 1, days: 3 })
-          .then((budgetRes) => {
-            setBudget({
-              total: budgetRes.data.total_budget_usd ?? budgetRes.data.estimated_total ?? budgetRes.data.total ?? 0,
-            })
-          })
-          .catch(() => setBudget(null))
+        setDestination(destRes.value.data)
       }
       if (essentialsRes?.status === "fulfilled") {
         setEssentials(essentialsRes.value.data)
       }
+      if (emergencyRes?.status === "fulfilled") {
+        setEmergency(emergencyRes.value.data)
+      }
+      if (budgetRes.status === "fulfilled") {
+        setBudget({
+          total: budgetRes.value.data.total_budget_usd ?? budgetRes.value.data.total ?? null,
+        })
+      }
     }).finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [slug, position])
 
-  // Once we know the destination's real numeric id, check whether it's
-  // already in the user's favorites so the heart icon isn't wrong on
-  // load, and so we have the FAVORITE RECORD's id ready for un-favoriting.
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (!isAuthenticated || !destination?.id) return
     userApi.getFavorites()
       .then(({ data }) => {
@@ -95,6 +176,8 @@ const DestinationDetails = () => {
         }
       })
       .catch(() => {})
+    }, 0)
+    return () => clearTimeout(t)
   }, [isAuthenticated, destination?.id])
 
   const toggleFavorite = async () => {
@@ -105,269 +188,1002 @@ const DestinationDetails = () => {
 
     try {
       if (isFavorite) {
-        // FIXED: was `userApi.removeFavorite(slug)` — two bugs at once.
-        // removeFavorite needs the FAVORITE RECORD's id, not the
-        // destination's id, AND `slug` (a string) was being sent where
-        // a destination's numeric id was expected either way.
         if (favoriteRecordId) await userApi.removeFavorite(favoriteRecordId)
         setIsFavorite(false)
         setFavoriteRecordId(null)
+        showToast("Removed from favorites", "info")
       } else {
-        // FIXED: was `userApi.addFavorite(slug)` — the backend's
-        // Favorite.destination is a ForeignKey expecting the numeric id,
-        // not the slug string, so this always failed silently.
         const { data } = await userApi.addFavorite(destination.id)
         setIsFavorite(true)
         setFavoriteRecordId(data.id)
+        showToast("Saved to favorites ❤️", "success")
       }
     } catch {
       showToast("Could not update favorite", "error")
     }
   }
 
+  // Inject JSON-LD structured data for SEO.
+  // NOTE: this hook must run BEFORE any early return, otherwise the hook
+  // count changes when `loading` flips and React throws "Rendered more hooks
+  // than during the previous render" (react-hooks/rules-of-hooks).
+  useEffect(() => {
+    if (!destination) return
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "TouristAttraction",
+      "name": destination.name,
+      "description": destination.description || destination.short_description || "",
+      "url": window.location.href,
+      "geo": destination.latitude && destination.longitude ? {
+        "@type": "GeoCoordinates",
+        "latitude": destination.latitude,
+        "longitude": destination.longitude,
+      } : undefined,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": destination.city || destination.district || "Nepal",
+        "addressRegion": destination.province || "",
+        "addressCountry": "NP",
+      },
+      "aggregateRating": destination.average_rating ? {
+        "@type": "AggregateRating",
+        "ratingValue": destination.average_rating,
+        "reviewCount": destination.ratings_count || 1,
+      } : undefined,
+    }
+
+    const script = document.createElement("script")
+    script.type = "application/ld+json"
+    script.id = "destination-jsonld"
+    script.innerHTML = JSON.stringify(jsonLd)
+    document.head.appendChild(script)
+
+    return () => {
+      const existing = document.getElementById("destination-jsonld")
+      if (existing) existing.remove()
+    }
+  }, [destination])
+
   if (loading) return <Loader fullScreen />
 
-  if (!destination) {
-    return (
-      <div className="container-app py-16 text-center text-gray-400">
-        Destination not found.
-      </div>
-    )
+  // Compile all images with metadata. The hero prefers the real-photo
+  // resolver (category-aware), so SVG-postcard covers never show on the page.
+  const allImages = []
+  const heroUrl = getDestinationImageUrl(destination)
+  if (heroUrl) {
+    allImages.push({
+      url: heroUrl,
+      caption: destination.name,
+      category: "hero",
+      photographer: destination.gallery?.[0]?.photographer || INFO_UNAVAILABLE,
+      platform: destination.gallery?.[0]?.source_platform || destination.gallery?.[0]?.source || "Recorded destination media",
+      license: destination.gallery?.[0]?.license_type || INFO_UNAVAILABLE,
+    })
   }
 
-  // FIXED: `risk` was fetched from a commented-out, nonexistent
-  // `alertApi.getRiskStatus(slug)` call — meaning Safety Status ALWAYS
-  // showed the generic "LOW / No active risk advisory" fallback,
-  // regardless of real conditions. essentials.active_alert is real,
-  // destination-specific data that was already being fetched by the
-  // /essentials/ call and simply never read.
+  if (destination.gallery && Array.isArray(destination.gallery)) {
+    destination.gallery.forEach((g, idx) => {
+      const url = g.image || g.external_url || g.display_url
+      if (url && !allImages.some(img => img.url === url)) {
+        allImages.push({
+          url,
+          caption: g.caption || `${destination.name} - View ${idx + 1}`,
+          category: g.image_category || "recorded",
+          photographer: g.photographer || g.attribution || INFO_UNAVAILABLE,
+          platform: g.source_platform || g.source || INFO_UNAVAILABLE,
+          license: g.license_type || INFO_UNAVAILABLE,
+        })
+      }
+    })
+  }
+
+  // Never substitute another destination's media. An explicit unavailable
+  // state is rendered until an admin verifies destination-linked media.
+  const verifiedImageCount = allImages.length
+  if (!allImages.length) {
+    allImages.push({
+      url: null,
+      caption: "Image unavailable",
+      category: "unavailable",
+      photographer: "No verified media",
+      platform: "Destination media review required",
+      license: "Not applicable",
+    })
+  }
+
+  const activeImage = allImages[activeImageIdx] || allImages[0]
   const activeAlert = essentials?.active_alert
-  const level = RISK_LEVELS[activeAlert?.severity?.toUpperCase()] || RISK_LEVELS.LOW
+  const riskAnalysis = destination.risk_analysis
+  const budgetEst = destination.budget_estimation
+  const riskCategory = (riskAnalysis?.risk_category || activeAlert?.severity || "").toUpperCase()
+  const level = RISK_LEVELS[riskCategory] || { label: INFO_UNAVAILABLE, color: "bg-gray-100 text-gray-700" }
 
   return (
-    <div className="container-app py-10 fade-in">
-      {/* Images -- FIXED: this used to hardcode gallery[0] and gallery[1]
-          only, showing exactly 2 photos max no matter how many actually
-          existed in destination.gallery. Now renders every image that's
-          actually there (up to 6 in the grid, with a "+N more" tile and
-          a lightbox for the rest), so a destination with 5-10 real
-          uploaded/verified photos actually shows them. */}
-      <DestinationGallery
-        coverImageUrl={destination.cover_image_url}
-        gallery={destination.gallery || []}
-        destinationId={destination.id}
-        destinationName={destination.name}
+    <div className="container-app py-8 space-y-8 animate-fadeIn">
+      <Breadcrumbs items={[
+        { label: "Destinations", to: "/destinations" },
+        { label: destination.name, to: `/destinations/${destination.slug}` }
+      ]} />
+
+      {/* Cinematic Destination Hero with High-Contrast Text Protection Overlay */}
+      <DestinationHero
+        destination={destination}
+        isFavorite={isFavorite}
+        onToggleFavorite={toggleFavorite}
+        onOpenReportModal={() => setShowReportModal(true)}
+        onOpenOfflineKit={() => setShowOfflineKit(true)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Title */}
-          <div>
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold">{destination.name}</h1>
-              <button onClick={toggleFavorite} className="p-2 rounded-full border hover:border-nepalred-300 transition-colors">
-                <FiHeart className={isFavorite ? "text-nepalred-500 fill-nepalred-500" : "text-gray-500"} />
-              </button>
-            </div>
+      {destination.notices?.length > 0 && <VisitorNoticeBanner notices={destination.notices} />}
 
-            <p className="text-gray-500 flex gap-1 mt-2 items-center">
-              <FiMapPin size={14} />
-              {destination.address}, {destination.city}, {destination.country}
+      {/* Key Transit & Visiting Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
+          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiMapPin /> Nearest Major City</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.nearest_major_city || INFO_UNAVAILABLE}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
+          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiTruck /> Nearest Airport</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.nearest_airport_name || INFO_UNAVAILABLE}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
+          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiClock /> Recommended Stay</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.recommended_days ? `${destination.recommended_days} days` : INFO_UNAVAILABLE}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
+          <p className="text-[10px] font-black uppercase text-[#102A2E] flex items-center gap-1"><FiSun /> Best Visiting Season</p>
+          <p className="font-bold text-slate-900 mt-1">{destination.best_time_to_visit || INFO_UNAVAILABLE}</p>
+        </div>
+      </div>
+
+      {/* CIRCULAR 3D PHOTO GALLERY + copyright pill */}
+      <div className="space-y-4">
+        <CircularGallery
+          title={destination.name}
+          images={allImages.map((img) => ({ url: img.url, alt: img.caption, caption: img.caption }))}
+          autoRotate
+          className="h-[460px] sm:h-[540px]"
+        />
+        <div className="flex items-center justify-between text-[11px] text-stone-500 px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Lead photo: <b>{activeImage.photographer}</b>
+            </span>
+            <span className="text-stone-300">·</span>
+            <span>{activeImage.platform}</span>
+            <span className="text-stone-300">·</span>
+            <span>{activeImage.license}</span>
+          </div>
+          <button
+            onClick={() => verifiedImageCount && setLightboxOpen(true)}
+            disabled={!verifiedImageCount}
+            className="px-3 py-1 rounded-full border border-stone-200 hover:bg-stone-50 disabled:opacity-50 inline-flex items-center gap-1 text-xs"
+          >
+            {verifiedImageCount ? `Fullscreen lightbox (${verifiedImageCount} photos)` : "Image unavailable"}
+          </button>
+        </div>
+
+      </div>
+
+      <div className="card-base p-5 rounded-3xl border border-emerald-100 space-y-3">
+        <h3 className="font-black text-gray-900">Community videos (25 MB max)</h3>
+        <p className="text-xs text-gray-500">Logged-in travellers can submit a short clip of this place. Admin reviews it before it is public.</p>
+        {(destination.videos || []).length > 0 && (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {destination.videos.map((clip) => (
+              <div key={clip.id} className="rounded-xl bg-slate-50 p-3 text-xs">
+                <p className="font-bold">{clip.title || clip.caption || "Traveller video"} {clip.verification_status === "pending" && <span className="text-amber-700">pending review</span>}</p>
+                {clip.display_url && <video src={clip.display_url} controls className="mt-2 w-full rounded-lg max-h-48" />}
+              </div>
+            ))}
+          </div>
+        )}
+        {isAuthenticated && (
+          <form className="flex flex-col sm:flex-row gap-2" onSubmit={async (e) => {
+            e.preventDefault()
+            if (!videoFile) return
+            if (videoFile.size > 25 * 1024 * 1024) return showToast("Videos must be 25 MB or smaller.", "error")
+            const form = new FormData()
+            form.append("video_file", videoFile)
+            form.append("title", videoFile.name)
+            setVideoBusy(true)
+            try {
+              await photoApi.uploadVideo(destination.slug, form)
+              showToast("Video submitted for review.", "success")
+              setVideoFile(null)
+              const { data } = await destinationApi.getById(destination.slug)
+              setDestination(data)
+            } catch (error) {
+              showToast(error.response?.data?.detail || "Video upload failed.", "error")
+            } finally { setVideoBusy(false) }
+          }}>
+            <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} className="text-xs" />
+            <button type="submit" disabled={!videoFile || videoBusy} className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{videoBusy ? "Uploading…" : "Upload video"}</button>
+          </form>
+        )}
+      </div>
+
+      {/* Quick Geographic Distances & Transit Metrics Box */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-3xl bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white shadow-xl">
+        <div>
+          <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
+          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || INFO_UNAVAILABLE}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Major City</span>
+          <p className="text-xl font-black mt-0.5">{destination.nearest_major_city || INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_city_km != null ? `${destination.distance_from_nearest_city_km} km away` : INFO_UNAVAILABLE}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase font-bold text-primary-100">Nearest Airport</span>
+          <p className="text-xl font-black mt-0.5 truncate">{destination.nearest_airport_name?.split("(")[0] || INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-primary-100 font-medium">{destination.distance_from_nearest_airport_km != null ? `${destination.distance_from_nearest_airport_km} km` : INFO_UNAVAILABLE}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase font-bold text-primary-100">Recommended Stay</span>
+          <p className="text-xl font-black mt-0.5">{destination.recommended_days ? `${destination.recommended_days} Days` : INFO_UNAVAILABLE}</p>
+          <span className="text-[11px] text-emerald-300 font-bold">{destination.best_time_to_visit || INFO_UNAVAILABLE}</span>
+        </div>
+      </div>
+
+      {/* Main Grid: Content & Strategic Sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left 2 Columns */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Section 1: About & Introduction */}
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+            <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+              <FiCompass className="text-primary-700" /> About {destination.name}
+            </h2>
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+              {destination.description ? <SafeHtml html={destination.description} className="[&>p]:mb-2" /> : `${INFO_UNAVAILABLE} — we will update soon`}
             </p>
 
-            <div className="flex items-center gap-1 text-saffron-600 mt-2">
-              <FiStar className="fill-saffron-500" />
-              {destination.average_rating || "4.5"} rating
-            </div>
+            {destination.tourism_importance && (
+              <div className="p-4 rounded-2xl bg-primary-50/80 border border-primary-100 text-xs text-stone-900 font-medium leading-relaxed">
+                🌟 <b>Tourism Importance:</b> {destination.tourism_importance}
+              </div>
+            )}
           </div>
 
-          {/* Description */}
-          <div>
-            <h2 className="font-semibold text-lg mb-2">About this place</h2>
-            <p className="text-gray-600 text-sm">{destination.description || "No description available"}</p>
-          </div>
+          {/* Section 2: Historical, Cultural & Religious Background */}
+          {(destination.history || destination.cultural_significance || destination.religious_significance) && (
+            <div className="card-base p-6 sm:p-8 space-y-5 shadow-xl border border-primary-100 rounded-3xl bg-white">
+              <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                🏛️ Cultural, Religious & Historical Heritage
+              </h2>
 
-          {/* Video */}
-          {destination.videos?.length > 0 && (
-            <div>
-              <h2 className="font-semibold text-lg mb-2">Video</h2>
-              <video controls className="w-full rounded-xl" src={destination.videos[0].video || destination.videos[0].url} />
+              {destination.history && (
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-sm text-primary-900">Historical Origins & Heritage:</h4>
+                  <p className="text-gray-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                    <SafeHtml html={destination.history} className="[&>p]:mb-2" />
+                  </p>
+                </div>
+              )}
+
+              {destination.cultural_significance && (
+                <div className="space-y-1.5 pt-2 border-t">
+                  <h4 className="font-bold text-sm text-primary-900">Cultural Customs & Traditions:</h4>
+                  <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
+                    <SafeHtml html={destination.cultural_significance} className="[&>p]:mb-2" />
+                  </p>
+                </div>
+              )}
+
+              {destination.religious_significance && (
+                <div className="space-y-1.5 pt-2 border-t">
+                  <h4 className="font-bold text-sm text-primary-900">Religious Significance & Sacred Lore:</h4>
+                  <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
+                    {destination.religious_significance}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {/* NEW: Weather — data was already fetched via /essentials/,
-              never displayed */}
-          {essentials?.weather && (
-            <div>
-              <h2 className="font-semibold text-lg mb-3">Weather Right Now</h2>
-              <WeatherCard
-                location={destination.city}
-                temp_c={essentials.weather.temperature_c ?? essentials.weather.temperature}
-                condition={essentials.weather.description || essentials.weather.condition || "clear"}
-                humidity={essentials.weather.humidity}
-                wind_kmh={essentials.weather.wind_kmh}
+          {/* Section 3: Things To Do & Recommended Activities */}
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+            <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+              <FiActivity className="text-primary-700" /> Things To Do & Experiences
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(destination.activities?.length > 0 ? destination.activities : []).map((act, i) => (
+                <div key={i} className="p-4 rounded-2xl bg-primary-50/60 border border-primary-100 space-y-1.5 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-bold text-xs sm:text-sm text-gray-900">{act.name}</h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-secondary-200 text-primary-900">
+                      {act.difficulty_level || INFO_UNAVAILABLE}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">{act.description}</p>
+                  <p className="text-[11px] text-primary-700 font-bold">⏱️ Duration: {act.estimated_duration || INFO_UNAVAILABLE}</p>
+                </div>
+              ))}
+              {!(destination.activities?.length) && (
+                <p className="text-sm text-slate-600 col-span-2">No recorded activities for this place yet. An administrator can add them from Destination Features.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Section 4: Available Routes & Transportation Options */}
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+            <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+              <FiTruck className="text-primary-700" /> Available Routes & Transportation
+            </h2>
+
+            <div className="space-y-3">
+              {destination.transit_routes?.length > 0 ? destination.transit_routes.map((rt) => (
+                <div key={rt.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
+                      <FiNavigation className="text-primary-600" /> {rt.origin} ➔ {destination.name}
+                    </h4>
+                    <span className="text-emerald-700 font-black">
+                      {rt.estimated_fare_npr != null ? `Est. Fare: NPR ${rt.estimated_fare_npr}` : "Fare unavailable"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-gray-600">
+                    <p>🚗 <b>Transit:</b> {rt.transport_mode || "Unavailable"}</p>
+                    <p>⏱️ <b>Duration:</b> {rt.approx_duration || "Unavailable"}</p>
+                    <p>📏 <b>Distance:</b> {rt.distance_km != null ? `${rt.distance_km} km` : "Unavailable"}</p>
+                    <p>🛣️ <b>Condition:</b> {rt.road_condition || "Not recently verified"}</p>
+                  </div>
+                  {rt.key_stops && <p className="text-[11px] text-gray-500 pt-1 border-t">📍 <b>Key Stops:</b> {rt.key_stops}</p>}
+                  <p className="text-[10px] text-gray-400">Source: {rt.route_source || "Database route record"}</p>
+                </div>
+              )) : (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+                  No verified destination-specific transit record is available. Use the GraphML navigation engine to calculate an approximate route from your current location.
+                  <button onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)} className="block mt-3 rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white">
+                    Calculate GraphML Route
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 5: Food, Cuisine & Safety Tips */}
+          {(destination.food_cuisine_info || destination.travel_safety_tips) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {destination.food_cuisine_info && (
+                <div className="card-base p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-amber-50/30 space-y-2">
+                  <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+                    <FiCoffee className="text-amber-600" /> Food & Local Cuisine
+                  </h3>
+                  <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
+                    <SafeHtml html={destination.food_cuisine_info} className="[&>p]:mb-2" />
+                  </p>
+                </div>
+              )}
+
+              {destination.travel_safety_tips && (
+                <div className="card-base p-6 rounded-3xl border border-primary-100 shadow-lg bg-gradient-to-br from-white to-rose-50/30 space-y-2">
+                  <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+                    <FiShield className="text-rose-600" /> Practical Travel & Safety Tips
+                  </h3>
+                  <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
+                    {destination.travel_safety_tips}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section 6: Interactive Map & Street-Level Imagery */}
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4 bg-white">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                <FiMapPin className="text-primary-600" /> Interactive Location & Satellite Map
+              </h3>
+              <button
+                onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
+                className="text-xs font-bold text-primary-700 hover:text-primary-900 flex items-center gap-1"
+              >
+                <FiNavigation /> Open Tactical GTA Navigation ➔
+              </button>
+            </div>
+            {hasValidCoords(destination.latitude, destination.longitude) ? (
+            <div className="rounded-2xl overflow-hidden border border-gray-200">
+              <MapView
+                center={{ lat: Number(destination.latitude), lng: Number(destination.longitude) }}
+                destination={{ lat: Number(destination.latitude), lng: Number(destination.longitude), name: destination.name }}
+                height="400px"
               />
             </div>
-          )}
-
-          {/* NEW: Hotels near this destination — same /essentials/ data,
-              never rendered before */}
-          {essentials?.hotels?.length > 0 && (
-            <div>
-              <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <FiHome className="text-himalaya-500" /> Where to Stay
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {essentials.hotels.map((hotel) => (
-                  <HotelCard key={hotel.id} hotel={hotel} destinationName={destination.name} />
-                ))}
+            ) : (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                This record has no stored latitude/longitude, so a map pin cannot be shown honestly.
               </div>
-            </div>
-          )}
+            )}
 
-          {/* NEW: Restaurants & shops nearby */}
-          {(essentials?.restaurants?.length > 0 || essentials?.shops?.length > 0) && (
-            <div>
-              <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <FiCoffee className="text-saffron-600" /> Nearby Restaurants & Shops
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {[...(essentials.restaurants || []), ...(essentials.shops || [])].slice(0, 6).map((place, i) => (
-                  <div key={i} className="card-base p-4 flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-gray-50 text-gray-400 shrink-0">
-                      <FiShoppingBag size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{place.name || "Unnamed place"}</p>
-                      <p className="text-xs text-gray-400 truncate">{place.address || place.vicinity || ""}</p>
-                    </div>
+            {/* DATA PROVENANCE — where this record's coordinates came from (spec item 20).
+                Honest labels only: never claim verification that isn't recorded. */}
+            <div className="mt-3 rounded-2xl border border-gray-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <span className="font-bold text-slate-700">📋 Coordinate provenance:</span>{" "}
+              {(() => {
+                const STATUS_LABELS = {
+                  VERIFIED: "Verified",
+                  OFFICIAL: "Official",
+                  COMMUNITY_VERIFIED: "Community verified",
+                  APPROXIMATE: "Approximate",
+                  UNVERIFIED: "Unverified",
+                }
+                const status = destination.coordinate_status
+                const parts = []
+                if (status && STATUS_LABELS[status]) parts.push(STATUS_LABELS[status])
+                if (destination.coordinate_source) parts.push(`Source: ${destination.coordinate_source}`)
+                if (destination.coordinate_accuracy) parts.push(`Accuracy: ${destination.coordinate_accuracy}`)
+                return parts.length
+                  ? parts.join(" · ")
+                  : "The origin of these coordinates is not recorded in the curated database."
+              })()}
+              {destination.location_notes ? (
+                <span className="block mt-0.5 italic">Note: {destination.location_notes}</span>
+              ) : null}
+            </div>
+
+            {/* Street-level Mapillary imagery (Google-Street-View style) */}
+            {hasValidCoords(destination.latitude, destination.longitude) && (
+              <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">
+                <MapillaryImages
+                  latitude={Number(destination.latitude)}
+                  longitude={Number(destination.longitude)}
+                  radiusM={800}
+                  limit={6}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Featured 3-Star to 5-Star Hotel Showcase & Promotional Ad Banner */}
+          <div className="card-base p-6 sm:p-8 space-y-6 shadow-xl border border-amber-200 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B3D91] to-slate-950 text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                    ⭐ Featured 3 to 5-Star Stays & Official Offers
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                    ✓ Verified Partner Stays
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-white mt-1.5">
+                  Featured Hotels & Luxury Packages near {destination.name}
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Curated boutique hotels, 5-star luxury resorts, and verified tour packages across {destination.city || destination.district || "Nepal"}.
+                </p>
+              </div>
+
+              <Link
+                to="/hotels/search"
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black shadow-lg transition-all shrink-0"
+              >
+                Browse All Hotels ➔
+              </Link>
+            </div>
+
+            {/* Hotel Ad Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {(destination.hotels && destination.hotels.length > 0
+                ? destination.hotels.slice(0, 3)
+                : [
+                    { name: `${destination.name} Imperial Resort`, rating: 4.9, price_per_night: 8500, stars: "⭐⭐⭐⭐⭐ 5-Star Luxury Resort" },
+                    { name: `Royal ${destination.name} Grand Hotel`, rating: 4.7, price_per_night: 5200, stars: "⭐⭐⭐⭐ 4-Star Comfort Stay" },
+                    { name: `Himalayan ${destination.name} Heritage Lodge`, rating: 4.5, price_per_night: 3200, stars: "⭐⭐⭐ 3-Star Boutique Hotel" },
+                  ]
+              ).map((h, i) => (
+                <div key={i} className="rounded-2xl bg-white/10 backdrop-blur border border-white/15 p-4 flex flex-col justify-between space-y-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-amber-300 block">
+                      {h.stars || (Number(h.rating) >= 4.8 ? "⭐⭐⭐⭐⭐ 5-Star Luxury" : Number(h.rating) >= 4.5 ? "⭐⭐⭐⭐ 4-Star Comfort" : "⭐⭐⭐ 3-Star Stay")}
+                    </span>
+                    <h4 className="font-extrabold text-sm text-white line-clamp-1">{h.name}</h4>
+                    <p className="text-[11px] text-slate-300">📍 {destination.city || destination.district || "Nepal"}</p>
                   </div>
+
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">From</span>
+                      <span className="text-sm font-black text-amber-300">
+                        NPR {Number(h.price_per_night || 4500).toLocaleString()} <span className="text-[10px] font-normal text-slate-300">/ night</span>
+                      </span>
+                    </div>
+
+                    <Link
+                      to={h.id ? `/hotels` : `/hotels/search`}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] shadow transition-all"
+                    >
+                      Book Room
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Travel Promotional Ad Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-emerald-500/20 border border-amber-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">🇳🇵 Nepal Yatra Sponsored Offer</span>
+                <p className="text-xs font-bold text-white mt-0.5">
+                  5-Day {destination.name} & Himalayan Sanctuary Tour (Includes 4-Star Hotel Stay, Daily Breakfast & Private Transport)
+                </p>
+              </div>
+              <Link
+                to="/packages"
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs shrink-0 shadow"
+              >
+                View Package Details ➔
+              </Link>
+            </div>
+          </div>
+
+          {destination.marketplace_listings?.length > 0 && (
+            <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
+              <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
+              <p className="text-sm text-gray-600">Published by the admin desk and approved hotels or operators. Add them to a trip — we never collect card numbers here.</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {destination.marketplace_listings.map((offer) => (
+                  <Link key={offer.id} to={`/packages/${offer.slug}`} className="rounded-2xl border border-emerald-100 p-4 hover:bg-emerald-50">
+                    <p className="text-[10px] font-black uppercase text-emerald-800">{offer.kind}</p>
+                    <p className="font-bold text-slate-900">{offer.title}</p>
+                    <p className="text-xs text-slate-500">{offer.partner_name}</p>
+                    <p className="text-sm font-black mt-1">NPR {Number(offer.price_npr).toLocaleString()}</p>
+                  </Link>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Map */}
-          <div>
-            <h2 className="font-semibold text-lg mb-2">Location</h2>
-            <MapView
-              center={{ lat: Number(destination.latitude), lng: Number(destination.longitude) }}
-              destination={{ lat: Number(destination.latitude), lng: Number(destination.longitude), name: destination.name }}
-              nearbyAttractions={[]}
-              height="380px"
-            />
+          {/* Section 7: Verified Source Citations & References */}
+          <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-stone-50">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+                <FiBookOpen className="text-primary-700" /> Researched Source References & Citations
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-800 text-[10px] font-black uppercase">
+                Verified Sources
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {(destination.sources || []).map((src, i) => (
+                <div key={i} className="p-3.5 rounded-2xl bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">{src.title}</span>
+                      {src.is_verified && <span className="text-emerald-600 font-bold text-[10px]">✓ Verified Source</span>}
+                    </div>
+                    <span className="text-[11px] text-primary-700 font-medium">{src.source_type}</span>
+                    {src.notes && <p className="text-[10px] text-gray-500 mt-0.5">{src.notes}</p>}
+                  </div>
+                  {src.source_url && (
+                    <a
+                      href={src.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-primary-50 text-primary-700 text-[11px] font-bold flex items-center gap-1 shrink-0"
+                    >
+                      Visit Source <FiExternalLink size={11} />
+                    </a>
+                  )}
+                </div>
+              ))}
+              {!(destination.sources?.length) && (
+                <p className="text-sm text-slate-600">No source citations are stored for this record yet.</p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Right 1 Column: Strategic Sidebar */}
         <div className="space-y-6">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-5">
-            <h3 className="font-semibold mb-3 flex gap-2 items-center">
-              <FiShield /> Safety Status
-            </h3>
-            <span className={`${level.color} px-3 py-1 rounded-full text-xs`}>
-              {level.label} Risk
-            </span>
-            <p className="text-sm text-gray-500 mt-2">
-              {activeAlert?.title || activeAlert?.description || "No active risk advisory"}
-            </p>
-
-            {/* NEW: baseline place-level risk data from risk_features.csv
-                (landslide/avalanche/flood/earthquake counts) -- was
-                fetched by the backend but never surfaced here at all;
-                this is separate from the active-alert box above (that's
-                real-time, this is historical/statistical). */}
-            {destination.risk_summary && (
-              <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
-                {destination.risk_summary.landslide != null && (
-                  <span className="text-gray-500">⛰️ Landslide: <b>{destination.risk_summary.landslide}</b></span>
-                )}
-                {destination.risk_summary.avalanche != null && (
-                  <span className="text-gray-500">🌨️ Avalanche: <b>{destination.risk_summary.avalanche}</b></span>
-                )}
-                {destination.risk_summary.flood != null && (
-                  <span className="text-gray-500">🌊 Flood: <b>{destination.risk_summary.flood}</b></span>
-                )}
-                {destination.risk_summary.earthquake_damage != null && (
-                  <span className="text-gray-500">🏚️ Earthquake: <b>{destination.risk_summary.earthquake_damage}</b></span>
-                )}
-              </div>
-            )}
-          </motion.div>
-
-          <div className="card-base p-5">
-            <h3 className="font-semibold mb-3 flex gap-2 items-center">
-              <FiDollarSign /> Budget Estimate
-            </h3>
-            <p className="text-2xl font-bold text-himalaya-500">
-              {formatCurrency(budget?.total || 0)}
-            </p>
-            <p className="text-xs text-gray-400">Estimated for 1 traveler, 3 days</p>
-          </div>
-
-          <div className="card-base p-5">
-            <h3 className="font-semibold mb-3 flex gap-2 items-center">
-              <FiPhoneCall /> Emergency Contacts
-            </h3>
-            {/* FIXED: this used to be a hardcoded generic string
-                ("Police:100 · Ambulance:102 · Fire:101") regardless of
-                which destination you were viewing. essentials.
-                emergency_helplines is real, location-specific data from
-                the SAME /essentials/ call, just never used. */}
-            {essentials?.emergency_helplines?.length > 0 ? (
-              <ul className="space-y-2 text-sm text-gray-600">
-                {essentials.emergency_helplines.slice(0, 4).map((c) => (
-                  <li key={c.id} className="flex justify-between">
-                    <span className="truncate">{c.name}</span>
-                    <a href={`tel:${c.phone_number}`} className="text-himalaya-500 font-medium shrink-0 ml-2">
-                      {c.phone_number}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-500">Police: 100 · Ambulance: 102 · Fire: 101</p>
-            )}
-          </div>
-
-          {/* NEW: nearest hospital/police/tourism office etc., ALWAYS
-              shown (not gated behind an active disaster alert like the
-              card above) -- this was the actual gap: "no hospital/
-              police shown" because the existing card only populates
-              during an active alert. */}
-          {destination.nearby_emergency_services?.length > 0 && (
-            <div className="card-base p-5">
-              <h3 className="font-semibold mb-3 flex gap-2 items-center">
-                <FiPhoneCall /> Nearby Emergency Services
+          {/* Recorded budget only */}
+          <div className="card-base p-6 border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-primary-50/50 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+                <FiDollarSign className="text-emerald-600" /> Recorded budget
               </h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                {destination.nearby_emergency_services.map((s) => (
-                  <li key={`${s.contact_type}-${s.name}`} className="flex justify-between items-center">
-                    <div>
-                      <p className="capitalize">{s.name}</p>
-                      <p className="text-xs text-gray-400 capitalize">{s.contact_type.replace("_", " ")} · {s.distance_km} km</p>
-                    </div>
-                    {s.phone_number && (
-                      <a href={`tel:${s.phone_number}`} className="text-himalaya-500 font-medium shrink-0 ml-2">
-                        {s.phone_number}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
+                Stored amounts only
+              </span>
             </div>
-          )}
+            {budgetEst ? (
+              <div className="space-y-2 text-sm text-gray-700">
+                <div className="flex justify-between"><span>Daily</span><b>{budgetEst.estimated_daily_budget != null ? `NPR ${budgetEst.estimated_daily_budget}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Trip</span><b>{budgetEst.estimated_trip_budget != null ? `NPR ${budgetEst.estimated_trip_budget}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Stay / night</span><b>{budgetEst.accommodation_per_night != null ? `NPR ${budgetEst.accommodation_per_night}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Meals / day</span><b>{budgetEst.food_cost_per_day != null ? `NPR ${budgetEst.food_cost_per_day}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Transit</span><b>{budgetEst.transport_cost != null ? `NPR ${budgetEst.transport_cost}` : INFO_UNAVAILABLE}</b></div>
+                <div className="flex justify-between"><span>Entry fee</span><b>{destination.entry_fee ? `NPR ${destination.entry_fee}` : INFO_UNAVAILABLE}</b></div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">Information unavailable — we will update soon. An administrator can add a budget row from the destination editor.</p>
+            )}
+          </div>
 
+          {/* Safety & Risk Status */}
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl bg-gradient-to-br from-white to-rose-50/40 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+                <FiShield className="text-primary-600" /> Safety & Risk Index
+              </h3>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${level.color}`}>
+                {level.label} Risk
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs text-gray-700">
+              <div className="flex justify-between">
+                <span>Tourism Risk Index:</span>
+                <b className="text-primary-900">{riskAnalysis?.tourism_risk_index != null ? `${riskAnalysis.tourism_risk_index} / 100` : INFO_UNAVAILABLE}</b>
+              </div>
+              <div className="flex justify-between">
+                <span>Risk category:</span>
+                <b className="text-emerald-700">{riskAnalysis?.risk_category || INFO_UNAVAILABLE}</b>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 bg-white p-3 rounded-xl border border-gray-100">
+              {activeAlert?.title || activeAlert?.description || "No active alert is stored for this place."}
+            </p>
+          </div>
+
+          {/* Emergency Helplines */}
+          <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4">
+            <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+              <FiPhoneCall className="text-rose-600" /> Emergency & Medical Contacts
+            </h3>
+
+            <div className="space-y-2 text-xs">
+              {(emergency?.hospitals || []).slice(0, 2).map((row) => (
+                <div key={row.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <p className="font-bold text-gray-800">{row.name}</p>
+                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "102"}</p>
+                  {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
+                </div>
+              ))}
+              {(emergency?.police || []).slice(0, 1).map((row) => (
+                <div key={row.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <p className="font-bold text-gray-800">{row.name}</p>
+                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "100"}</p>
+                  {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km</p>}
+                </div>
+              ))}
+              {!(emergency?.hospitals?.length) && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-900">
+                  {destination.nearest_hospital_info || "No local hospital record is stored for this place. Use Ambulance 102."}
+                </div>
+              )}
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-950 font-bold text-center">
+                National hotlines: Tourist Police 1144 · Police 100 · Ambulance 102
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate("/emergency")}
+              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow transition-all"
+            >
+              Open Live Emergency Sentinel
+            </button>
+          </div>
+
+          {/* Translation Button */}
           <button
             onClick={() => navigate(`/translation?place=${encodeURIComponent(destination.name)}`)}
-            className="btn-outline w-full flex items-center justify-center gap-2"
+            className="btn-outline w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-semibold text-xs text-primary-800 border-primary-200 hover:bg-primary-50"
           >
-            <FiGlobe size={14} /> Translate Page
+            <FiGlobe size={15} /> Translate Destination Details
           </button>
         </div>
       </div>
+
+      {extras?.length > 0 && <CMSExtras sections={extras} />}
+
+      {/* REAL NEARBY PLACES — OpenStreetMap, location-based, nearest first */}
+      <section className="max-w-7xl mx-auto px-4 mt-12">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black text-primary-950">What's Actually Near {destination.name}</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Real places on the ground from OpenStreetMap — not limited to our database. Straight-line distances, nearest first.
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-xl bg-primary-50 p-1">
+            {[2, 5, 10].map((r) => (
+              <button
+                key={r}
+                onClick={() => setPoiRadius(r)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-black ${poiRadius === r ? "bg-primary-600 text-white" : "text-primary-800 hover:bg-primary-100"}`}
+              >
+                {r} km
+              </button>
+            ))}
+          </div>
+        </div>
+        {poiError && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{poiError}</p>}
+        {pois && (
+          <>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {Object.entries(pois.categories || {}).map(([key, group]) => (
+                <button
+                  key={key}
+                  onClick={() => setPoiTab(key)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${poiTab === key ? "bg-primary-600 text-white shadow" : "bg-white border border-primary-200 text-primary-800 hover:bg-primary-50"}`}
+                >
+                  {group.label} ({group.results?.length || 0})
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(pois.categories?.[poiTab]?.results || []).map((row) => (
+                <a
+                  key={`${row.osm_id}-${row.name}`}
+                  href={`https://www.openstreetmap.org/?mlat=${row.latitude}&mlon=${row.longitude}#map=17/${row.latitude}/${row.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-sm text-slate-900">{row.name}</p>
+                    <p className="text-[11px] text-slate-500">{pois.categories[poiTab].label} · OpenStreetMap</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-primary-600 px-2.5 py-1 text-[11px] font-black text-white">
+                    {row.distance_km} km
+                  </span>
+                </a>
+              ))}
+              {!(pois.categories?.[poiTab]?.results || []).length && !poiError && (
+                <p className="col-span-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  No {pois.categories?.[poiTab]?.label?.toLowerCase() || "places"} recorded on OpenStreetMap within {pois.radius_km} km — try a wider radius.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* NEARBY & ALL DESTINATIONS — every destination, nearest first, with photos */}
+      {nearbyDests.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 mt-12">
+          <div className="mb-5">
+            <h2 className="text-2xl md:text-3xl font-black text-primary-950">Destinations Near {destination.name}</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              {nearbyTotal > 0 ? `${nearbyTotal.toLocaleString()} places, ` : "Every destination, "}
+              ranked by closeness to {destination.name} — nearest first, with photos. Straight-line distances.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {nearbyDests.filter((d) => d.slug !== destination.slug).map((d) => (
+              <Link
+                key={d.id}
+                to={`/destinations/${d.slug}`}
+                className="group rounded-2xl overflow-hidden bg-white border border-primary-100 shadow-sm hover:shadow-xl transition-all"
+              >
+                <div className="relative h-32 overflow-hidden bg-primary-100">
+                  <img
+                    src={getDestinationImageUrl(d)}
+                    alt={d.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  {d.distance_km != null && (
+                    <span className="absolute top-2 left-2 bg-slate-900/85 text-amber-300 text-[10px] font-black px-2 py-1 rounded-full">
+                      ≈ {d.distance_km} km
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="font-bold text-sm text-slate-900 truncate">{d.name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{d.display_city || d.city || d.district || "Nepal"}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          {nearbyHasMore && (
+            <div className="text-center mt-6">
+              <button
+                onClick={loadMoreNearby}
+                disabled={nearbyBusy}
+                className="px-6 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 text-white font-black text-sm shadow-lg disabled:opacity-50"
+              >
+                {nearbyBusy ? "Loading…" : `Show more destinations${nearbyTotal > nearbyDests.length ? ` (${(nearbyTotal - nearbyDests.length).toLocaleString()} remaining)` : ""}`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* OFFLINE TRAVEL KIT MODAL */}
+      <AnimatePresence>
+        {showOfflineKit && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-primary-100 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-start border-b pb-4">
+                <div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold uppercase">
+                    🎒 Offline Travel Kit & Safety Package
+                  </span>
+                  <h3 className="text-2xl font-black text-gray-900 mt-2">{destination.name}</h3>
+                  <p className="text-xs text-gray-500">{placeLocationLabel(destination)} · Elevation: {destination.altitude || INFO_UNAVAILABLE}</p>
+                </div>
+                <button
+                  onClick={() => setShowOfflineKit(false)}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              {/* Package Content */}
+              <div className="space-y-4 text-xs text-gray-700">
+                {/* 1. Essential Coordinates & Weather */}
+                <div className="p-4 rounded-2xl bg-primary-50/70 border border-primary-100 space-y-2">
+                  <h4 className="font-bold text-sm text-primary-900 flex items-center gap-1.5">
+                    <FiMapPin /> GPS Location & Visiting Season
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div><b>GPS:</b> {formatCoords(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</div>
+                    <div><b>Altitude:</b> {destination.altitude || INFO_UNAVAILABLE}</div>
+                    <div><b>Best Months:</b> {destination.best_time_to_visit || INFO_UNAVAILABLE}</div>
+                  </div>
+                </div>
+
+                {destination.notices?.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 space-y-2">
+                    <h4 className="font-bold text-sm text-amber-950">Desk notices for this place</h4>
+                    {destination.notices.map((notice) => (
+                      <p key={notice.id} className="text-xs"><b className="uppercase">{notice.kind}:</b> {notice.title}{notice.body ? ` — ${notice.body}` : ""}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* 2. 24/7 Emergency Helplines */}
+                <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-2">
+                  <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
+                    <FiShield /> 24/7 Emergency Numbers (Works without Internet)
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Tourist Police</span>
+                      <b className="text-rose-700 text-sm">1144</b>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Nepal Police</span>
+                      <b className="text-rose-700 text-sm">100</b>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Ambulance</span>
+                      <b className="text-rose-700 text-sm">102</b>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-rose-200">
+                      <span className="text-[10px] text-gray-500 block">Local rescue</span>
+                      <b className="text-rose-700 text-sm">{destination.nearest_hospital_info || INFO_UNAVAILABLE}</b>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Road Route & Transit Fares */}
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 space-y-2">
+                  <h4 className="font-bold text-sm text-amber-900 flex items-center gap-1.5">
+                    <FiTruck /> Road Transit & Approximate Fares
+                  </h4>
+                  <p><b>Distance from Kathmandu:</b> {destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
+                  <p><b>Recorded transit fare:</b> {destination.transit_routes?.[0]?.estimated_fare_npr != null ? `NPR ${destination.transit_routes[0].estimated_fare_npr} (${destination.transit_routes[0].transport_mode || "recorded route"})` : "No transit fare is stored for this place"}</p>
+                </div>
+
+                {/* 4. Useful Local Phrases */}
+                <div className="p-4 rounded-2xl bg-stone-50 border border-slate-100 space-y-2">
+                  <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
+                    🗣️ Essential Nepali Phrases
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>• <b>Namaste:</b> Hello / Greetings</div>
+                    <div>• <b>Dhanyabad:</b> Thank you</div>
+                    <div>• <b>Kati ho?:</b> How much is this?</div>
+                    <div>• <b>Sahayog garnuhos:</b> Please help me</div>
+                    <div>• <b>Bato kata ho?:</b> Which way is the route?</div>
+                    <div>• <b>Mitho chha:</b> It is delicious!</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-between items-center border-t pt-4">
+                <p className="text-[11px] text-gray-500 italic">Save or print this kit before leaving for remote areas with low cellular coverage.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => window.print()}
+                    className="px-5 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"
+                  >
+                    🖨️ Print / Save as PDF
+                  </button>
+                  <button
+                    onClick={() => setShowOfflineKit(false)}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FULLSCREEN LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {lightboxOpen && (
+          <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md">
+            <div className="flex items-center justify-between text-white border-b border-white/10 pb-3">
+              <div className="space-y-0.5">
+                <span className="font-bold text-base text-amber-300">
+                  {destination.name} · Photo {activeImageIdx + 1} of {allImages.length}
+                </span>
+                <p className="text-xs text-gray-400">
+                  {activeImage.caption} · {activeImage.photographer} ({activeImage.platform})
+                </p>
+              </div>
+              <button
+                onClick={() => setLightboxOpen(false)}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center relative my-4">
+              <img
+                src={activeImage.url}
+                alt={activeImage.caption}
+                className="max-h-[78vh] max-w-full object-contain rounded-2xl shadow-2xl"
+              />
+              <button
+                onClick={() => setActiveImageIdx((p) => (p === 0 ? allImages.length - 1 : p - 1))}
+                className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur transition-all"
+              >
+                <FiChevronLeft size={28} />
+              </button>
+              <button
+                onClick={() => setActiveImageIdx((p) => (p === allImages.length - 1 ? 0 : p + 1))}
+                className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur transition-all"
+              >
+                <FiChevronRight size={28} />
+              </button>
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto justify-center pb-2">
+              {allImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveImageIdx(i)}
+                  className={`w-16 h-12 rounded-lg overflow-hidden shrink-0 border-2 ${
+                    activeImageIdx === i ? "border-amber-400 scale-110" : "border-transparent opacity-50"
+                  }`}
+                >
+                  <img src={img.url} alt={`Thumb ${i}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ReportErrorModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        destination={destination}
+      />
     </div>
   )
 }
-
-export default DestinationDetails

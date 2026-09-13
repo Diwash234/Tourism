@@ -1,0 +1,44 @@
+{"type":"node","id":671292266,"lat":27.6770348,"lon":85.3097580,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1143907461,"lat":27.7290561,"lon":85.3470286,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1399487323,"lat":27.5749779,"lon":85.5596446,"tags":{"amenity":"pharmacy","source":"Garmin Orgeon 450 GPS"}}
+{"type":"node","id":1496626772,"lat":27.6615124,"lon":85.3057071,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1496626794,"lat":27.6681940,"lon":85.3062275,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1496676799,"lat":27.6960583,"lon":85.3073164,"tags":{"amenity":"pharmacy","name":"Prakash Pharmacia"}}
+{"type":"node","id":1497160802,"lat":27.7113301,"lon":85.3083424,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1497160804,"lat":27.7114581,"lon":85.3085568,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1497160805,"lat":27.7112444,"lon":85.3087714,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1497391104,"lat":26.7589662,"lon":85.9923977,"tags":{"amenity":"pharmacy","dispensing":"no","healthcare":"pharmacy"}}
+{"type":"node","id":1497546385,"lat":27.7033822,"lon":85.3127057,"tags":{"amenity":"pharmacy","name":"Om Pharmacy"}}
+{"type":"node","id":1512453011,"lat":28.0471894,"lon":83.7507106,"tags":{"amenity":"pharmacy","dispensing":"no"}}
+{"type":"node","id":1684322213,"lat":28.0697469,"lon":84.5295662,"tags":{"amenity":"pharmacy","healthcare":"pharmacy","name":"Hospital"}}
+{"type":"node","id":1741695800,"lat":27.7134784,"lon":85.2990496,"tags":{"amenity":"pharmacy","name":"Pabitra Progress Pharmacy","source":"survey"}}
+{"type":"node","id":1741695817,"lat":27.7133001,"lon":85.2942484,"tags":{"amenity":"pharmacy","source":"survey"}}
+{"type":"node","id":1741695846,"lat":27.7110548,"lon":85.2952002,"tags":{"amenity":"pharmacy","source":"survey"}}
+{"type":"node","id":1741695871,"lat":27.7106217,"lon":85.2972640,"tags":{"amenity":"pharmacy","source":"survey"}}
+{"type":"node","id":1743137902,"lat":28.5503332,"lon":84.2435377,"tags":{"amenity":"pharmacy","source":"survey"}}
+{"type":"node","id":1747928683,"lat":28.3637928,"lon":83.8835263,"tags":{"amenity":"pharmacy","source":"survey"}}
+{"type":"node","id":1833839894,"lat":27.6302214,"lon":85.5221600,"tags":{"amenity":"pharmacy","name":"Chandeswori Medical Shop"}}
+{"type":"node","id":1875076524,"lat":27.8662462,"lon":85.1937366,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1885424727,"lat":27.6946170,"lon":85.2851482,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1885424728,"lat":27.6943142,"lon":85.2847700,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1891343838,"lat":27.7322083,"lon":85.3447120,"tags":{"amenity":"pharmacy","dispensing":"yes","name":"Manobal Pharmacy"}}
+{"type":"node","id":1891542976,"lat":27.6853901,"lon":85.3206770,"tags":{"amenity":"pharmacy","name":"Welcome Medical Hall"}}
+{"type":"node","id":1892815647,"lat":27.6749870,"lon":85.3144487,"tags":{"amenity":"pharmacy","dispensing":"no"}}
+{"type":"node","id":1894220183,"lat":27.7232476,"lon":85.3335001,"tags":{"amenity":"pharmacy","name":"रुसी मेडिकल हल","name:en":"Rusi Medical Hall","name:ne":"रुसी मेडिकल हल"}}
+{"type":"node","id":1898593306,"lat":27.7167401,"lon":85.3303491,"tags":{"amenity":"pharmacy","dispensing":"no","healthcare":"pharmacy","name":"Adit Pharmacy"}}
+{"type":"node","id":1898624379,"lat":27.7188321,"lon":85.3309027,"tags":{"amenity":"pharmacy","healthcare":"pharmacy","name":"Abiral Pharmacy"}}
+{"type":"node","id":1898624388,"lat":27.7199639,"lon":85.3312409,"tags":{"amenity":"pharmacy","dispensing":"no","name":"Shiddibinayak Pharmacy"}}
+{"type":"node","id":1905218515,"lat":27.6716477,"lon":85.3389251,"tags":{"amenity":"pharmacy","name":"इन्दिरा फार्मेसी","name:en":"Indira Pharmacy","name:ne":"इन्दिरा फार्मेसी"}}
+{"type":"node","id":1905218523,"lat":27.6716889,"lon":85.3390320,"tags":{"amenity":"pharmacy","name":"सुरक्षित तरिका फार्मेसी","name:en":"Safe Way Pharmacy","name:ne":"सुरक्षित तरिका फार्मेसी","phone":"+9779841561819"}}
+{"type":"node","id":1905315216,"lat":27.7000109,"lon":85.3217711,"tags":{"amenity":"pharmacy","dispensing":"no","name":"कृष्ण मेडिकल हल","name:en":"Krishna medical hall","name:ne":"कृष्ण मेडिकल हल"}}
+{"type":"node","id":1905340541,"lat":27.7029210,"lon":85.3225629,"tags":{"amenity":"pharmacy","dispensing":"no","name":"Nise Pharma"}}
+{"type":"node","id":1905371595,"lat":27.7008892,"lon":85.3236088,"tags":{"amenity":"pharmacy","dispensing":"no","name":"Pharmaceuticals"}}
+{"type":"node","id":1905378935,"lat":27.7040828,"lon":85.3227690,"tags":{"amenity":"pharmacy","dispensing":"no","name":"Sai baba Pharmacy"}}
+{"type":"node","id":1918582178,"lat":27.7342959,"lon":85.3305969,"tags":{"amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","name":"Shree Ram Pharmacy"}}
+{"type":"node","id":1936280975,"lat":27.6827160,"lon":85.3362492,"tags":{"amenity":"pharmacy","name":"Bigyan Clinic"}}
+{"type":"node","id":1936280992,"lat":27.6871305,"lon":85.3381840,"tags":{"amenity":"pharmacy","name":"Kalash Pharmacy","name:en":"Kalash Pharmacy"}}
+{"type":"node","id":1936281036,"lat":27.6831235,"lon":85.3347961,"tags":{"amenity":"pharmacy"}}
+{"type":"node","id":1937659999,"lat":27.6649735,"lon":85.3062381,"tags":{"amenity":"pharmacy","dispensing":"yes","name":"युग औषधि","name:en":"Epoch Pharmacia","name:ne":"युग औषधि"}}
+{"type":"node","id":1937710588,"lat":27.6750274,"lon":85.3079865,"tags":{"amenity":"pharmacy","name":"Niko Pharmacy and Clinic"}}
+{"type":"node","id":1937721983,"lat":27.6746580,"lon":85.3204022,"tags":{"amenity":"pharmacy","name":"Karuna Pharmacy"}}
+{"type":"node","id":1947167478,"lat":27.6902774,"lon":85.3054214,"tags":{"amenity":"pharmacy","name":"Surya Kiran Pharma"}}

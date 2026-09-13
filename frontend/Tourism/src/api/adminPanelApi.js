@@ -5,6 +5,35 @@ const adminPanelApi = {
   assignHotel: (hotelId, adminId, notes) =>
     axiosClient.post("/admin-panel/hotel-assignments/", { hotel: hotelId, admin: adminId, notes }),
   removeAssignment: (id) => axiosClient.delete(`/admin-panel/hotel-assignments/${id}/`),
+  // Assignment-driven staff workflow (Staff Operations spec)
+  taskAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/tasks/${id}/action/`, { action, note }),
+  myPerformance: () => axiosClient.get("/admin-panel/my-performance/"),
+  // Customer Support Center (Staff Ops spec §7-10)
+  supportTickets: (status = "") =>
+    axiosClient.get("/admin-panel/support/tickets/", status ? { params: { status } } : {}),
+  supportAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/support/tickets/${id}/action/`, { action, note }),
+  // Hotels & bookings scope-restricted ops (Staff Ops spec §11-12)
+  myHotels: () => axiosClient.get("/admin-panel/my-hotels/"),
+  myBookings: (status = "") =>
+    axiosClient.get("/admin-panel/my-bookings/", status ? { params: { status } } : {}),
+  bookingAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/my-bookings/${id}/action/`, { action, note }),
+  // Destination data entry + media manager (Staff Ops spec §13-15)
+  dataEntries: (status = "") =>
+    axiosClient.get("/admin-panel/data-entry/", status ? { params: { status } } : {}),
+  dataEntryCreate: (payload) => axiosClient.post("/admin-panel/data-entry/", payload),
+  dataEntryAction: (id, action, note = "") =>
+    axiosClient.post(`/admin-panel/data-entry/${id}/action/`, { action, note }),
+  mediaQueue: (status = "") =>
+    axiosClient.get("/admin-panel/media/", status ? { params: { status } } : {}),
+  mediaAdd: (payload) => axiosClient.post("/admin-panel/media/", payload),
+  mediaAction: (id, action) => axiosClient.post(`/admin-panel/media/${id}/action/`, { action }),
+  // Safety operations (Staff Ops spec §16)
+  safetyQueue: () => axiosClient.get("/admin-panel/safety/"),
+  safetyAction: (kind, id, action, note = "") =>
+    axiosClient.post(`/admin-panel/safety/${kind}/${id}/action/`, { action, note }),
   getTasks: () => axiosClient.get("/admin-panel/tasks/"),
   createTask: (payload) => axiosClient.post("/admin-panel/tasks/", payload),
   updateTaskStatus: (id, status) =>

@@ -7,7 +7,9 @@ import {
   FiDollarSign,
 } from "react-icons/fi"
 import { motion } from "framer-motion"
-import SmartImage from "../common/SmartImage"
+import PlaceholderImage from "../common/PlaceholderImage"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
+import { formatCoords, placeLocationLabel } from "../../utils/placeUtils"
 
 const RISK_STYLES = {
   low: {
@@ -75,45 +77,43 @@ const CATEGORY_THEMES = {
 
 
 const DestinationCard = ({
-  destination,
+  destination = {},
   onToggleFavorite,
   isFavorite = false,
 }) => {
 
   const {
-    id,
-    name,
-    slug,
-    city,
-    country,
-    cover_image_url,
-    average_rating,
-    entry_fee,
-    distance_km,
-    category,
-    weather,
-    budget_estimate,
-    risk_level,
-    recommended_season,
-  } = destination
+    id = "",
+    name = "Unnamed Destination",
+    slug = "",
+    city = "",
+    _country = "Nepal",
+    _cover_image_url = "",
+    average_rating = null,
+    entry_fee = null,
+    distance_km = null,
+    category = null,
+    category_name = "",
+    weather = null,
+    budget_estimate = null,
+    risk_level = null,
+    recommended_season = "",
+  } = destination || {}
 
 
   const risk =
     RISK_STYLES[risk_level] ||
-    RISK_STYLES.low
+    { label: "Information unavailable", dot: "bg-gray-400", className: "text-gray-500" }
 
 
   const categoryKey =
-  typeof category === "string"
-    ? category.toLowerCase()
-    : "mountains";
+    (category_name || "").toLowerCase() || "mountains"
 
 
   const theme =
     CATEGORY_THEMES[categoryKey] ||
     CATEGORY_THEMES.mountains
-
-
+  const imageUrl = getDestinationImageUrl(destination)
 
   return (
 
@@ -142,25 +142,12 @@ const DestinationCard = ({
 
 
       {/* IMAGE */}
-
-      <div className="relative h-48 overflow-hidden">
-
-        <SmartImage
-          src={cover_image_url}
-          name={name}
-          seed={id}
-          alt={name}
-          className="
-          w-full
-          h-full
-          object-cover
-          group-hover:scale-110
-          transition-transform
-          duration-500
-          "
-        />
-
-
+      <div className="relative h-48 overflow-hidden bg-slate-900">
+        {imageUrl ? (
+          <PlaceholderImage src={imageUrl} title={name} alt={name} className="w-full h-full group-hover:scale-110 transition-transform duration-500" />
+        ) : (
+          <PlaceholderImage title={name} className="w-full h-full" />
+        )}
 
         <div className="
         absolute inset-0 
@@ -232,7 +219,7 @@ const DestinationCard = ({
             "
           />
 
-          {average_rating || "0"}
+          {average_rating != null ? average_rating : "—"}
 
         </div>
 
@@ -240,27 +227,31 @@ const DestinationCard = ({
 
         {/* CATEGORY */}
 
-        
-          {typeof category === "string" && (
-  <span
-    className={`
-      absolute
-      bottom-3
-      left-3
-      px-3
-      py-1
-      rounded-full
-      text-xs
-      font-semibold
-      capitalize
-      ${theme.badge}
-    `}
-  >
-    {category}
-  </span>
-)}
+        {
+          category &&
 
-        
+          <span
+
+          className={`
+          absolute
+          bottom-3
+          left-3
+          px-3
+          py-1
+          rounded-full
+          text-xs
+          font-semibold
+          capitalize
+          ${theme.badge}
+          `}
+
+          >
+
+          {category_name || category}
+
+          </span>
+
+        }
 
 
       </div>
@@ -274,16 +265,22 @@ const DestinationCard = ({
       <div className="p-4">
 
 
-        <h3 className="
+        <h3
+          className="
         font-bold
         text-dark
         text-lg
         truncate
-        ">
+        "
+          title={name}
+        >
 
           {name}
 
         </h3>
+        {formatCoords(destination.latitude, destination.longitude) && (
+          <p className="text-[11px] font-mono text-emerald-800 mt-1">{formatCoords(destination.latitude, destination.longitude)}</p>
+        )}
 
 
 
@@ -294,17 +291,14 @@ const DestinationCard = ({
         items-center
         gap-1
         mt-1
+        min-w-0
         ">
 
-          <FiMapPin size={14}/>
+          <FiMapPin size={14} className="shrink-0"/>
 
-          {city}
-
-          {
-          country &&
-          `, ${country}`
-          }
-
+          <span className="truncate">
+          {placeLocationLabel({ display_city: destination.display_city, city, district: destination.district, municipality: destination.municipality, province: destination.province })}
+          </span>
 
           {
           distance_km != null &&
@@ -358,11 +352,15 @@ const DestinationCard = ({
           <FiDollarSign/>
 
           {
-          budget_estimate
+          budget_estimate != null
           ?
-          `$${budget_estimate}`
+          `Recorded NPR ${budget_estimate}`
           :
-          `NPR ${entry_fee || 0}`
+          entry_fee
+          ?
+          `NPR ${entry_fee}`
+          :
+          "Information unavailable"
           }
 
 

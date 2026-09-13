@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 
@@ -115,7 +117,10 @@ VOICE RECOGNITION
 */
 
 
-useEffect(()=>{
+useEffect(() => {
+  // Deferred one tick: keeps synchronous setState out of the effect
+  // flush (react-hooks/set-state-in-effect) without changing behavior.
+  const t = setTimeout(() => {
 
 
 const SpeechRecognition =
@@ -214,10 +219,9 @@ recognition.abort()
 
 
 }
-
-
-
-},[])
+  }, 0)
+  return () => clearTimeout(t)
+}, [])
 
 
 
@@ -232,7 +236,10 @@ NETWORK STATUS
 */
 
 
-useEffect(()=>{
+useEffect(() => {
+  // Deferred one tick: keeps synchronous setState out of the effect
+  // flush (react-hooks/set-state-in-effect) without changing behavior.
+  const t = setTimeout(() => {
 
 
 const online=()=>setIsOffline(false)
@@ -272,10 +279,9 @@ offline
 
 
 }
-
-
-
-},[])
+  }, 0)
+  return () => clearTimeout(t)
+}, [])
 
 
 
@@ -706,14 +712,13 @@ label:language.name
 return (
 
 <div className="container-app py-10">
+      <CMSPageIntro pageKey="translation" />
 
 
 <div className="flex justify-between items-center mb-3">
 
 
-<h1 className="section-title">
-🌎 AI Language Translator
-</h1>
+<PageHeader title={<>🌎 AI Language Translator</>} />
 
 
 
