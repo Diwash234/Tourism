@@ -609,6 +609,76 @@ async function run() {
     } else fail("Navigation extensions wiring")
   }
 
+  // CMS publishing lifecycle journey (§27): create -> draft private ->
+  // publish -> public -> edit -> unpublish -> archive -> restore -> cleanup.
+  {
+    const token = await login("admin")
+    const auth = { Authorization: `Bearer ${token}` }
+    const stamp = Date.now()
+    const slug = `e2e-lifecycle-${stamp}`
+    const created = await request(`${API}/admin/destinations`, {
+      method: "POST", headers: auth,
+      json: {
+        name: `E2E Lifecycle ${stamp}`,
+        description: "Created by the automated CMS lifecycle journey.",
+        district: "Kaski", city: "Pokhara",
+        latitude: "28.210000", longitude: "83.985000",
+      },
+    })
+    if (created.res.status === 201 && created.data?.status === "draft" && created.data?.public === false) ok("admin-created record starts as a private draft")
+    else fail("admin create defaults to draft", `status ${created.res.status} ${JSON.stringify(created.data)}`)
+
+    const id = created.data?.id
+    const inPublic = async () => {
+      const r = await request(`${API}/destinations/${slug}/`)
+      return r.res.status === 200
+    }
+    // slug may get a suffix on collision; use the returned slug via preview instead
+    const preview0 = await request(`${API}/admin/destinations/${id}/preview/`, { headers: auth })
+    const publicUrl = preview0.data?.preview?.slug
+
+    if (preview0.data?.public === false && /Draft/.test(preview0.data?.not_public_reason || "")) ok("draft explains why it is not public")
+    else fail("draft diagnostic", JSON.stringify(preview0.data))
+    if (!(await inPublic())) ok("draft invisible on the public site")
+    else fail("draft leaked publicly")
+
+    const pub = await request(`${API}/admin/destinations/${id}/lifecycle/`, {
+      method: "POST", headers: auth, json: { action: "publish", reason: "e2e journey" },
+    })
+    if (pub.data?.public === true && (await request(`${API}/destinations/${publicUrl}/`)).res.status === 200) ok("publish makes it public immediately")
+    else fail("publish -> public", JSON.stringify(pub.data))
+
+    const edited = await request(`${API}/admin/destinations/${id}`, {
+      method: "PUT", headers: auth, json: { description: "Updated by e2e journey.", reason: "e2e" },
+    })
+    if (edited.res.ok && edited.data?.changed?.includes("description")) ok("published record stays editable (admin direct edit)")
+    else fail("edit published", `status ${edited.res.status}`)
+
+    const unpub = await request(`${API}/admin/destinations/${id}/lifecycle/`, {
+      method: "POST", headers: auth, json: { action: "unpublish", reason: "e2e journey" },
+    })
+    if (unpub.data?.public === false && (await request(`${API}/destinations/${publicUrl}/`)).res.status === 404) ok("unpublish hides it from the public site immediately")
+    else fail("unpublish -> hidden", JSON.stringify(unpub.data))
+
+    await request(`${API}/admin/destinations/${id}/lifecycle/`, {
+      method: "POST", headers: auth, json: { action: "archive", reason: "e2e journey" },
+    })
+    const restore = await request(`${API}/admin/destinations/${id}/lifecycle/`, {
+      method: "POST", headers: auth, json: { action: "restore", reason: "e2e journey" },
+    })
+    if (restore.data?.public === true && (await request(`${API}/destinations/${publicUrl}/`)).res.status === 200) ok("archive -> restore -> republished automatically")
+    else fail("restore -> public", JSON.stringify(restore.data))
+
+    const history = await request(`${API}/admin/destinations/revisions/`, { headers: auth, params: {} })
+    // cleanup: bulk delete with confirm so repeated runs stay tidy
+    const del = await request(`${API}/admin/destinations/bulk/`, {
+      method: "POST", headers: auth,
+      json: { action: "delete", ids: [id], reason: "e2e journey cleanup", confirm: "true" },
+    })
+    if (del.data?.count === 1) ok("journey record cleaned up")
+    else fail("cleanup delete", JSON.stringify(del.data))
+  }
+
   console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

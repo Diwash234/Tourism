@@ -733,7 +733,10 @@ class AdminDestinationsView(APIView):
                     {"detail": "Ward number must be a whole number or left empty."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        destination = Destination.objects.create(**fields)
+        # Saving to the database is NOT publishing: admin-created records
+        # start as private drafts until explicitly published (§9).
+        destination = Destination.objects.create(
+            status=Destination.SubmissionStatus.DRAFT, is_active=False, **fields)
         category_id = data.get("category_id")
         if category_id:
             try:
@@ -751,7 +754,9 @@ class AdminDestinationsView(APIView):
         return Response({
             "id": destination.id,
             "slug": destination.slug,
-            "message": "Destination created successfully"
+            "status": destination.status,
+            "public": False,
+            "message": "Destination created as a DRAFT — it is private until you publish it."
         }, status=status.HTTP_201_CREATED)
 
 
