@@ -297,6 +297,35 @@ class Command(BaseCommand):
             Restaurant.objects.update_or_create(name=name, defaults=defaults)
             stats["restaurants"] += 1
 
+        # ---- Restaurants from the real destinations dataset (Food & Culinary
+        # Tourism category — same bundled dataset as the destinations, real
+        # establishments with real coordinates).
+        food_dests = (
+            Destination.objects.filter(
+                is_active=True, category__name__iexact="Food & Culinary Tourism"
+            )
+            .exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        )
+        for dest in food_dests:
+            if dry:
+                if not Restaurant.objects.filter(name=dest.name).exists():
+                    stats["restaurants"] += 1
+                continue
+            Restaurant.objects.update_or_create(
+                name=dest.name,
+                defaults={
+                    "destination": dest,
+                    "address": (dest.address or "")[:300] if hasattr(dest, "address") and dest.address
+                               else f"{dest.city or ''}{', ' + dest.district if dest.district else ''}".strip(", ") or "Nepal",
+                    "latitude": dest.latitude, "longitude": dest.longitude,
+                    "description": (dest.description or "")[:500] if getattr(dest, "description", "") else "",
+                    "source_name": "Tourism destinations dataset — Food & Culinary Tourism",
+                    "status": Restaurant.Status.PUBLISHED,
+                    "is_verified": False,
+                },
+            )
+            stats["restaurants"] += 1
+
         action = "Would seed" if dry else "Seeded/refreshed"
         self.stdout.write(self.style.SUCCESS(
             f"{action}: hospitals={stats['hospitals']} banks={stats['banks']} "

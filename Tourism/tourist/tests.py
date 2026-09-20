@@ -3860,7 +3860,17 @@ class ImagePublicationTests(APITestCase):
 
 
 class DistrictItineraryTests(APITestCase):
-    """The itinerary generator must serve every district, not just big cities."""
+    """The itinerary generator must serve every district, not just big cities.
+
+    This pins the internal-DB fallback engine, so the ML service call is
+    mocked out — the test must pass whether or not the ML service runs."""
+
+    def setUp(self):
+        from requests.exceptions import ConnectionError as _MLDown
+        patcher = patch("tourist.views_ml.requests.post",
+                        side_effect=_MLDown("ML offline in test"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_20_day_itinerary_for_small_district(self):
         dest = Destination.objects.create(
@@ -3983,6 +3993,11 @@ class OfflineItineraryAllCitiesTests(TestCase):
 
     def setUp(self):
         from decimal import Decimal
+        from requests.exceptions import ConnectionError as _MLDown
+        patcher = patch("tourist.views_ml.requests.post",
+                        side_effect=_MLDown("ML offline in test"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
         for i, district in enumerate(("Mustang", "Rautahat")):
             for j in range(3):
                 Destination.objects.create(

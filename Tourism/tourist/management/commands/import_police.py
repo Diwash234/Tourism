@@ -57,15 +57,13 @@ def find_destination(
 
     if name:
 
-        try:
-
-            return Destination.objects.get(
-                name__iexact=name.strip()
-            )
-
-        except Destination.DoesNotExist:
-
-            pass
+        # filter().first() — the dataset contains same-name destinations,
+        # so .get() can raise MultipleObjectsReturned
+        match = Destination.objects.filter(
+            name__iexact=name.strip()
+        ).order_by("id").first()
+        if match:
+            return match
 
 
 
@@ -135,11 +133,15 @@ class Command(BaseCommand):
 
 
 
+    def add_arguments(self, parser):
+        parser.add_argument("--csv", default="dataset/police_station_cleaned.csv",
+                            help="CSV path (raw dataset/nearbypolice.csv also works — headers are normalised)")
+
     def handle(self, *args, **kwargs):
 
 
         df = pd.read_csv(
-            "dataset/police_station_cleaned.csv"
+            kwargs.get("csv") or "dataset/police_station_cleaned.csv"
         )
 
 
@@ -149,7 +151,15 @@ class Command(BaseCommand):
             df.columns
             .str.strip()
             .str.lower()
+            .str.replace(" ", "_")
         )
+
+        # raw CSVs repeat the header row inside the data — keep only rows
+        # whose coordinates actually parse as numbers
+        df = df[
+            pd.to_numeric(df.get("latitude"), errors="coerce").notna()
+            & pd.to_numeric(df.get("longitude"), errors="coerce").notna()
+        ]
 
 
         imported = 0

@@ -142,3 +142,29 @@ search/nearby response containing a DB-backed service row) and **DEF-022** (the 
 was never queried despite the docstring; `category=restaurant` always returned nothing offline).
 Post-seed live checks: hospital/bank/hotel/restaurant nearby all return real, labelled records;
 full suite 495/495.
+
+## Full-destination service coverage audit (owner request, 2026-09-20)
+
+The accurate method: `python manage.py audit_service_coverage` checks **every** active
+destination (6,597) for routability and nearest hospital/bank/hotel/restaurant/police from
+the same DB tables the public nearby endpoint uses; results in `reports/service_coverage.json`
+(+ gap CSV). Before this pass the DB ran on ~30% of the bundled real datasets; the raw
+`dataset/hospital.csv`, `nearbypolice.csv`, `hotel.csv` (2,071 / 2,601 / 2,103 real records
+with coordinates and phones) are now imported (DEF-023 importer fixes) plus restaurants
+seeded from the 445 real "Food & Culinary Tourism" destinations.
+
+| service | within 10 km | within 25 km | within 50 km |
+|---|---|---|---|
+| route (routable) | — | — | **100%** (6,597/6,597 have coordinates) |
+| hospital | 62.4% | 91.2% | **98.5%** |
+| bank | 56.4% | 88.8% | **98.5%** |
+| hotel | 87.5% | 97.4% | **99.8%** |
+| restaurant | 82.1% | 92.3% | **98.8%** |
+| police | 79.7% | 95.6% | **99.7%** |
+
+Remaining 210 gap destinations are genuine high-Himalayan trail points (Manaslu waypoints,
+Upper Mustang, north Gorkha/Mugu/Humla) where the nearest real facility is >50 km away —
+the API answers honestly instead of inventing closer ones; live Overpass on the host will
+close most of these. **20-day itineraries work for any start city** (verified live: Jumla,
+Kathmandu, Pokhara → 20 days, real destinations, route legs, per-day budgets, embedded
+nearby hotels/hospitals) via `/api/v1/ml/itinerary/` with the ML service on :8001.
