@@ -27,7 +27,7 @@ export const NAV_STATES = {
 const PROGRESS_INTERVAL_MS = 6000
 const REROUTE_COOLDOWN_MS = 15000
 
-export default function useTurnByTurn({ destination, mode = "driving", voice = false }) {
+export default function useTurnByTurn({ destination, mode = "driving", voice = false, stops = null }) {
   const [state, setState] = useState(NAV_STATES.IDLE)
   const [position, setPosition] = useState(null) // {latitude, longitude, heading, accuracy}
   const [route, setRoute] = useState(null)       // canonical route + route_id
@@ -35,12 +35,20 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
   const [progress, setProgress] = useState(null) // last progress response
   const [error, setError] = useState("")
   const [connectionLost, setConnectionLost] = useState(false)
+  const [alternatives, setAlternatives] = useState([])
+  const [legs, setLegs] = useState(null)        // itinerary mode
+  const [activeLeg, setActiveLeg] = useState(0)
+  const [context, setContext] = useState(null)  // safety/weather layers
 
   const watchId = useRef(null)
   const lastProgressAt = useRef(0)
   const lastRerouteAt = useRef(0)
   const lastGoodFix = useRef(null)
   const apiFailures = useRef(0)
+  const legsRef = useRef(null)
+  const activeLegRef = useRef(0)
+  useEffect(() => { legsRef.current = legs }, [legs])
+  useEffect(() => { activeLegRef.current = activeLeg }, [activeLeg])
   const spokenRef = useRef("")
   const stateRef = useRef(state)
   const routeRef = useRef(route)
@@ -66,6 +74,16 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
     }
   }, [])
 
+  const loadContext = useCallback(async (routeId) => {
+    if (!routeId) return
+    try {
+      const { data } = await axiosClient.get("/navigation/route-context/", {
+        params: { route_id: routeId },
+      })
+      if (data.status === "success") setContext(data)
+    } catch { /* context is best-effort */ }
+  }, [])
+
   const loadRoute = useCallback(async (fromPos, autoStart = false) => {
     if (!destination?.latitude || !destination?.longitude) {
       setError("Destination has no coordinates")
@@ -83,12 +101,14 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
             : { latitude: destination.latitude, longitude: destination.longitude },
         destination: { latitude: destination.latitude, longitude: destination.longitude },
         mode,
-        alternatives: false,
+        alternatives: true,
       })
       if (data.status !== "success") throw new Error(data.error || "routing failed")
       setRoute(data.route)
       setSteps(data.steps || [])
+      setAlternatives(data.alternatives || [])
       setState(autoStart ? NAV_STATES.NAVIGATING : NAV_STATES.ROUTE_PREVIEW)
+      loadContext(data.route.route_id)
       return data.route
     } catch (e) {
       const msg = e?.response?.data?.detail || e?.message || "Could not load route"
@@ -121,8 +141,11 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
       setConnectionLost(false)
       if (data.arrived) {
         setState(NAV_STATES.ARRIVED)
-        speak("You have arrived at your destination")
-        stopWatch()
+        const inItinerary = legsRef.current &&
+          activeLegRef.current < legsRef.current.length - 1
+        speak(inItinerary ? "You have arrived. Next stop ready."
+                          : "You have arrived at your destination")
+        if (!inItinerary) stopWatch()
         return
       }
       if (data.reroute_required) {
@@ -146,11 +169,60 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
   }, [speak, stopWatch])
 
 
+
+  const selectAlternative = useCallback(async (index) => {
+    const rt = routeRef.current
+    if (!rt?.route_id) return
+    try {
+      const { data } = await axiosClient.post("/navigation/select-alternative/", {
+        route_id: rt.route_id, index,
+      })
+      if (data.status === "success") {
+        setRoute(data.route)
+        setSteps(data.steps || [])
+        setAlternatives([])
+        loadContext(data.route.route_id)
+      }
+    } catch { /* keep current route on failure */ }
+  }, [loadContext])
+
+  const hasStops = Array.isArray(stops) && stops.length > 0
+
+  const loadItinerary = useCallback(async () => {
+    if (!destination || !hasStops) return null
+    setState(NAV_STATES.LOADING_ROUTE)
+    setError("")
+    try {
+      const { data } = await axiosClient.post("/navigation/itinerary-route/", {
+        start: { latitude: destination.latitude, longitude: destination.longitude },
+        stops, mode,
+      })
+      if (data.status !== "success") throw new Error("itinerary routing failed")
+      setLegs(data.legs)
+      setActiveLeg(0)
+      const leg = data.legs[0]
+      setRoute(leg)
+      setSteps(leg.steps || [])
+      setAlternatives([])
+      setState(NAV_STATES.ROUTE_PREVIEW)
+      loadContext(leg.route_id)
+      return data
+    } catch (e) {
+      setError(e?.response?.data?.detail || e?.message || "Itinerary routing failed")
+      setState(NAV_STATES.ERROR)
+      return null
+    }
+  }, [destination, hasStops, mode, loadContext])
+
+
   const start = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Geolocation is not available in this browser")
       setState(NAV_STATES.ERROR)
       return
+    }
+    if (legsRef.current === null && hasStops) {
+      loadItinerary().then((data) => { if (!data) return })
     }
     setState(NAV_STATES.GETTING_LOCATION)
     stopWatch()
@@ -197,7 +269,7 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
       },
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 },
     )
-  }, [sendProgress, stopWatch])
+  }, [sendProgress, stopWatch, hasStops, loadItinerary])
 
   const preview = useCallback(async () => {
     const from = position || (navigator.geolocation
@@ -212,7 +284,7 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
       : null)
     if (from) setPosition((prev) => prev || from)
     return loadRoute(from, false)
-  }, [loadRoute, position])
+  }, [loadRoute, position, hasStops, loadItinerary])
 
   const end = useCallback(() => {
     stopWatch()
@@ -220,7 +292,26 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
     setProgress(null)
   }, [stopWatch])
 
+  const nextStop = useCallback(() => {
+    const ls = legsRef.current
+    if (!ls) return
+    const nextIdx = activeLegRef.current + 1
+    if (nextIdx >= ls.length) { end(); return }
+    setActiveLeg(nextIdx)
+    const leg = ls[nextIdx]
+    setRoute(leg)
+    setSteps(leg.steps || [])
+    setProgress(null)
+    setAlternatives([])
+    setState(NAV_STATES.NAVIGATING)
+    loadContext(leg.route_id)
+  }, [loadContext])
+
   useEffect(() => stopWatch, [stopWatch])
 
-  return { state, position, route, steps, progress, error, connectionLost, start, preview, end, speak }
+  return {
+    state, position, route, steps, progress, error, connectionLost,
+    alternatives, legs, activeLeg, context,
+    start, preview, end, speak, selectAlternative, nextStop,
+  }
 }

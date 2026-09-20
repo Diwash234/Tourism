@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
-import { useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { reportError } from "../utils/errorLogger"
 import { motion } from "framer-motion"
 
@@ -188,6 +188,7 @@ const Itinerary = () => {
 
 
   const { showToast } = useToast()
+  const navigate = useNavigate()
 
   // Merged from the old TripPlanner: optional ?dest= focus, AI refinement, and a
   // custom-cost notepad. The rich dataset engine remains the source of truth.
@@ -410,8 +411,49 @@ const Itinerary = () => {
     0
 
   )
+
+  // Collect ordered, coordinate-bearing stops across all days for
+  // real road-routing navigation (cap 12, dedupe by name).
+  const collectNavStops = () => {
+    const pts = []
+    const seen = new Set()
+    for (const day of plan?.itinerary || []) {
+      const cands = [...(day.destinations || []),
+        ...(day.legs || []).map((l) => l.to || l.destination).filter(Boolean)]
+      for (const d of cands) {
+        const lat = Number(d?.latitude ?? d?.lat)
+        const lng = Number(d?.longitude ?? d?.lng ?? d?.lon)
+        const name = d?.name || "Stop"
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || seen.has(name)) continue
+        seen.add(name)
+        pts.push({ name, latitude: lat, longitude: lng })
+        if (pts.length >= 12) break
+      }
+      if (pts.length >= 12) break
+    }
+    return pts
+  }
+
+  const navigateItinerary = () => {
+    const pts = collectNavStops()
+    if (pts.length < 2) {
+      showToast("This itinerary has fewer than 2 navigable stops with coordinates.", "error")
+      return
+    }
+    sessionStorage.setItem("nav_itinerary_stops", JSON.stringify(pts))
+    navigate(`/navigation?dest=${encodeURIComponent(pts[0].name)}&itinerary=1`)
+  }
+
     return (
     <div className="container-app py-10">
+      {plan?.itinerary?.length > 0 && (
+        <div className="mb-4 flex justify-end">
+          <button onClick={navigateItinerary}
+            className="rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white hover:bg-primary-800">
+            🧭 Navigate this itinerary (real road routing)
+          </button>
+        </div>
+      )}
       <CMSPageIntro pageKey="itinerary" />
 
       <PageHeader title="Itinerary Planner" subtitle={<>Tell us your days, budget and interests — your trip plan updates

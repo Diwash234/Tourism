@@ -679,7 +679,34 @@ async function run() {
     else fail("cleanup delete", JSON.stringify(del.data))
   }
 
-        // §navigation subsystem: road-route (honest fallback) + progress
+        // §multi-stop + along-route + context (milestone 2)
+      {
+        const it = await request(`${API}/navigation/itinerary-route/`, {
+          method: "POST",
+          json: {
+            start: { latitude: 28.2096, longitude: 83.9856 },
+            stops: [
+              { id: 1, name: "Davis Falls", latitude: 28.1834, longitude: 83.9762 },
+              { id: 2, name: "Peace Pagoda", latitude: 28.1951, longitude: 83.9742 },
+            ],
+            mode: "driving",
+          },
+        })
+        const good = it.res.status === 200 && it.data?.totals?.legs === 2
+          && it.data.legs.every((l) => l.route_id && l.geometry.length > 1)
+        if (good) ok("multi-stop itinerary route (2 legs, navigable each)")
+        else fail("itinerary-route", `status ${it.res.status} body ${JSON.stringify(it.data).slice(0, 120)}`)
+        if (good) {
+          const ctx = await request(`${API}/navigation/route-context/?route_id=${it.data.legs[0].route_id}`)
+          if (ctx.res.status === 200 && ctx.data?.safety && ctx.data?.weather) ok("route context layers (safety + weather)")
+          else fail("route-context", `status ${ctx.res.status}`)
+          const ar = await request(`${API}/navigation/along-route/?route_id=${it.data.legs[0].route_id}&category=hospital&radius_m=5000`)
+          if (ar.res.status === 200 && Array.isArray(ar.data?.items)) ok("along-route nearby (route-distance sorted)")
+          else fail("along-route", `status ${ar.res.status}`)
+        }
+      }
+
+      // §navigation subsystem: road-route (honest fallback) + progress
       {
         const rr = await request(`${API}/navigation/road-route/`, {
           method: "POST",

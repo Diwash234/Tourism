@@ -17,8 +17,10 @@ SESSION_TTL_S = 2 * 60 * 60
 ARRIVAL_RADIUS_M = 30.0
 
 
-def create_session(route: dict) -> str:
+def create_session(route: dict, endpoints: dict | None = None) -> str:
     route_id = uuid.uuid4().hex[:12]
+    if endpoints:
+        route["_endpoints"] = endpoints
     lengths = polyline_lengths_m(route["geometry"]) if len(route.get("geometry", [])) > 1 else []
     route["_segment_lengths_m"] = lengths
     route["_total_length_m"] = round(sum(lengths), 1)

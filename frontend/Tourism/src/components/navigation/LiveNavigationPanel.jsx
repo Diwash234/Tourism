@@ -46,9 +46,17 @@ const fmtEta = (s) => {
  * circle, destination flag) + instruction/ETA cards driven by the
  * useTurnByTurn state machine (road-route + progress endpoints).
  */
-export default function LiveNavigationPanel({ destination, mode = "driving" }) {
-  const { state, position, route, steps, progress, error, connectionLost, start, preview, end } =
-    useTurnByTurn({ destination, mode })
+const ALT_LABELS = [
+  { icon: "⚡", name: "Faster" },
+  { icon: "🏔", name: "Alternative" },
+]
+
+export default function LiveNavigationPanel({ destination, mode = "driving", stops = null }) {
+  const {
+    state, position, route, steps, progress, error, connectionLost,
+    alternatives, legs, activeLeg, context,
+    start, preview, end, selectAlternative, nextStop,
+  } = useTurnByTurn({ destination, mode, stops })
   const [recenterTrigger, setRecenterTrigger] = useState(0)
 
   const line = useMemo(
@@ -112,6 +120,22 @@ export default function LiveNavigationPanel({ destination, mode = "driving" }) {
           Connection lost — retrying… (navigation continues offline on the current route)
         </p>
       )}
+      {context?.safety?.warnings?.length > 0 && (
+        <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 space-y-1">
+          {context.safety.warnings.slice(0, 3).map((w, i) => (
+            <p key={i} className="text-[11px] font-semibold text-orange-700">
+              ⚠️ {w.title} — {w.place} ({fmtDist(w.distance_from_route_m)} from route, {w.severity})
+            </p>
+          ))}
+          <p className="text-[10px] text-orange-500">{context.safety.note}</p>
+        </div>
+      )}
+      {context?.weather?.data && (
+        <p className="px-4 py-1.5 text-[11px] font-semibold text-sky-700 bg-sky-50 border-b border-sky-100">
+          🌤 {context.weather.data.weather?.[0]?.main ?? "Conditions"} ·{" "}
+          {Math.round(context.weather.data.main?.temp ?? 0)}°C at route midpoint
+        </p>
+      )}
       {route?.note && (
         <p className="px-4 py-2 text-[11px] text-amber-700 bg-amber-50 border-b border-amber-100">{route.note}</p>
       )}
@@ -149,6 +173,47 @@ export default function LiveNavigationPanel({ destination, mode = "driving" }) {
               </>
             )}
           </MapContainer>
+        </div>
+      )}
+
+      {alternatives.length > 0 && state === NAV_STATES.ROUTE_PREVIEW && (
+        <div className="p-4 space-y-2 border-t border-[#E5E0D5]">
+          <p className="text-[10px] font-black uppercase text-gray-500">Route options</p>
+          <button className="w-full text-left p-2.5 rounded-xl border-2 border-[#1D5146] bg-[#F7F8F5] flex justify-between items-center">
+            <span className="text-xs font-bold text-gray-900">⭐ Recommended</span>
+            <span className="text-[11px] text-gray-600">{fmtDist(route?.distance_m)} · {fmtDur(route?.duration_s)}</span>
+          </button>
+          {alternatives.slice(0, 2).map((alt, i) => (
+            <button key={i} onClick={() => selectAlternative(i)}
+              className="w-full text-left p-2.5 rounded-xl border border-gray-200 hover:border-[#1D5146] hover:bg-[#F7F8F5] flex justify-between items-center">
+              <span className="text-xs font-bold text-gray-700">
+                {ALT_LABELS[i]?.icon} {alt.duration_s < route?.duration_s ? "Faster" : ALT_LABELS[i]?.name}
+              </span>
+              <span className="text-[11px] text-gray-600">{fmtDist(alt.distance_m)} · {fmtDur(alt.duration_s)}</span>
+            </button>
+          ))}
+          <p className="text-[10px] text-gray-400">Selecting an option replaces the highlighted route and steps.</p>
+        </div>
+      )}
+
+      {legs && (
+        <div className="px-4 py-2 text-[11px] font-bold text-gray-600 border-t border-[#E5E0D5]">
+          Stop {activeLeg + 1} of {legs.length}: {legs[activeLeg]?.from?.name} → {legs[activeLeg]?.to?.name}
+          {legs[activeLeg]?.source !== "osrm" && <span className="ml-2 text-amber-600">({legs[activeLeg]?.source})</span>}
+        </div>
+      )}
+
+      {state === NAV_STATES.ARRIVED && legs && activeLeg < legs.length - 1 && (
+        <div className="p-4 border-t border-[#E5E0D5] bg-[#F7F8F5]">
+          <p className="text-[10px] font-black uppercase text-gray-500">Next stop</p>
+          <p className="text-sm font-extrabold text-gray-900">{legs[activeLeg + 1]?.to?.name}</p>
+          <p className="text-[11px] text-gray-600 mb-2">
+            {fmtDist(legs[activeLeg + 1]?.distance_m)} · {fmtDur(legs[activeLeg + 1]?.duration_s)}
+          </p>
+          <button onClick={nextStop}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#1D5146] text-white">
+            Navigate to next stop →
+          </button>
         </div>
       )}
 

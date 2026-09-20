@@ -233,3 +233,116 @@ class DiagnosticsTests(APITestCase):
         self.assertEqual(resp.data["total_requests"], 1)
         self.assertEqual(resp.data["fallback_count"], 1)
         self.assertEqual(resp.data["fallback_rate"], 1.0)
+
+
+@override_settings(ROUTING_BASE_URL="", ROUTING_RATE_LIMIT=0, ROUTING_CACHE_TTL=0)
+class MultiStopAndContextTests(APITestCase):
+    """Multi-stop routing, alternative selection, along-route nearby,
+    and context layers (safety/weather) — all against the labelled
+    fallback chain here; identical code paths serve real OSRM."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        from tourist.models import Destination
+        self.dest = Destination.objects.create(
+            name="Context Falls", slug="context-falls", district="Kaski",
+            description="d", latitude=28.1900, longitude=83.9800,
+            status="approved", is_active=True)
+
+    def _route(self):
+        r = self.client.post("/api/v1/navigation/road-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "destination": {"latitude": 28.1929, "longitude": 83.9810},
+            "mode": "driving"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        return r.data
+
+    def test_itinerary_route_legs_and_totals(self):
+        r = self.client.post("/api/v1/navigation/itinerary-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "stops": [
+                {"id": 7, "name": "Davis Falls", "latitude": 28.1834, "longitude": 83.9762},
+                {"id": 9, "name": "Peace Pagoda", "latitude": 28.1951, "longitude": 83.9742},
+            ],
+            "mode": "driving"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        data = r.data
+        self.assertEqual(data["totals"]["legs"], 2)
+        self.assertEqual(len(data["legs"]), 2)
+        self.assertEqual(data["legs"][0]["to"]["name"], "Davis Falls")
+        self.assertEqual(data["legs"][0]["to"]["stop_id"], 7)
+        for leg in data["legs"]:
+            self.assertTrue(leg["route_id"])
+            self.assertGreaterEqual(leg["distance_m"], 0)
+            self.assertGreater(len(leg["geometry"]), 1)
+        self.assertAlmostEqual(
+            data["totals"]["distance_m"],
+            sum(l["distance_m"] for l in data["legs"]), places=1)
+        # each leg is independently navigable
+        p = self.client.post("/api/v1/navigation/progress/", {
+            "route_id": data["legs"][0]["route_id"],
+            "latitude": 28.2096, "longitude": 83.9856, "accuracy": 10}, format="json")
+        self.assertEqual(p.status_code, 200)
+
+    def test_itinerary_diagnostics_recorded(self):
+        from navigation.models import RouteDiagnostics
+        self.client.post("/api/v1/navigation/itinerary-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "stops": [{"latitude": 28.1834, "longitude": 83.9762}],
+            "mode": "driving"}, format="json")
+        row = RouteDiagnostics.objects.filter(provider__startswith="itinerary:").first()
+        self.assertIsNotNone(row)
+        self.assertTrue(row.fallback)
+
+    def test_select_alternative_without_alternatives_404(self):
+        data = self._route()
+        r = self.client.post("/api/v1/navigation/select-alternative/", {
+            "route_id": data["route"]["route_id"], "index": 0}, format="json")
+        # fallback providers expose no alternatives -> honest 404, not a fake swap
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.data["error"], "no_such_alternative")
+
+    def test_along_route_sorts_by_route_distance(self):
+        from tourist.models import Hospital
+        Hospital.objects.create(name="Corridor Hospital", latitude=28.2000,
+                                longitude=83.9825, destination=self.dest)
+        Hospital.objects.create(name="Far Hospital", latitude=27.9000,
+                                longitude=84.4000, destination=self.dest)
+        data = self._route()
+        r = self.client.get(
+            f"/api/v1/navigation/along-route/?route_id={data['route']['route_id']}"
+            "&category=hospital&radius_m=3000")
+        self.assertEqual(r.status_code, 200)
+        names = [i["name"] for i in r.data["items"]]
+        self.assertIn("Corridor Hospital", names)
+        self.assertNotIn("Far Hospital", names)
+        first = r.data["items"][0]
+        self.assertGreaterEqual(first["along_route_m"], 0)
+
+    def test_route_context_layers_are_labelled_and_route_untouched(self):
+        from tourist.models import CurrentHazard
+        from django.utils import timezone
+        CurrentHazard.objects.create(
+            destination=self.dest, hazard_type="landslide", title="Trial road landslide",
+            severity="moderate", source_type="official", source_name="DoR",
+            observed_at=timezone.now())
+        data = self._route()
+        r = self.client.get(
+            f"/api/v1/navigation/route-context/?route_id={data['route']['route_id']}")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("never alter the route", r.data["safety"]["note"])
+        self.assertTrue(r.data["weather"]["note"])
+        titles = [w["title"] for w in r.data["safety"]["warnings"]]
+        self.assertIn("Trial road landslide", titles)
+        # route itself unchanged
+        again = self.client.get(
+            f"/api/v1/navigation/along-route/?route_id={data['route']['route_id']}"
+            "&category=hospital")
+        self.assertEqual(again.status_code, 200)
+
+    def test_itinerary_validation_bounds(self):
+        r = self.client.post("/api/v1/navigation/itinerary-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "stops": [], "mode": "driving"}, format="json")
+        self.assertEqual(r.status_code, 400)

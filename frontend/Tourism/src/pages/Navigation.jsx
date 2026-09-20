@@ -175,6 +175,16 @@ export default function Navigation() {
 
   // HUD & Tools Drawer State
   // Standard turn-by-turn map is the default experience; the Game HUD is opt-in (brief item).
+  const [itineraryStops, setItineraryStops] = useState(() => {
+    // one-shot read of itinerary stops handed over by the Itinerary page
+    if (searchParams.get("itinerary") !== "1") return null
+    try {
+      const pts = JSON.parse(sessionStorage.getItem("nav_itinerary_stops") || "null")
+      return Array.isArray(pts) && pts.length >= 2 ? pts.slice(1) : null
+    } catch {
+      return null // corrupt storage -> single-destination mode
+    }
+  })
   const [gameMode, setGameMode] = useState(false)
   const [currentStepIdx, setCurrentStepIdx] = useState(0)
   const [voiceOn, setVoiceOn] = useState(false)
@@ -961,7 +971,15 @@ export default function Navigation() {
       {/* LIVE ROAD-ROUTING NAVIGATION (provider-backed turn-by-turn) */}
       {destination?.latitude && destination?.longitude && (
         <div className="mb-6">
-          <LiveNavigationPanel destination={destination} mode="driving" />
+          <LiveNavigationPanel destination={destination} mode="driving"
+            stops={itineraryStops} />
+          {itineraryStops && (
+            <div className="mt-2 flex items-center justify-between text-xs font-semibold text-gray-600">
+              <span>🧭 Itinerary navigation: {itineraryStops.length + 1} ordered stops (real road routing)</span>
+              <button onClick={() => { sessionStorage.removeItem("nav_itinerary_stops"); setItineraryStops(null) }}
+                className="text-gray-400 hover:text-gray-700">clear</button>
+            </div>
+          )}
         </div>
       )}
 
