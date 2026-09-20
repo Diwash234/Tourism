@@ -1,0 +1,513 @@
+{
+  "generated_at": "2026-09-20T07:53:09.189962+00:00",
+  "database": "default",
+  "destinations": {
+    "total": 6669,
+    "by_status": {
+      "approved": 6654,
+      "rejected": 15
+    },
+    "public_approved_active": 6654,
+    "by_provenance": {
+      "imported": 6653,
+      "manual": 1
+    },
+    "missing_category": 0,
+    "missing_district": 1641,
+    "missing_coordinate_provenance": 0,
+    "approximate_area_points": 38,
+    "missing_coordinates": 0,
+    "outside_nepal_bbox": 0,
+    "invalid_zero_zero": 0,
+    "duplicate_coordinates": 8,
+    "duplicate_names_same_district": 190
+  },
+  "taxonomy": {
+    "categories": 37
+  },
+  "emergency": {
+    "hospitals": 363,
+    "police_stations": 628,
+    "hospital_missing_coordinates": 0,
+    "hospital_outside_nepal_bbox": 0,
+    "hospital_invalid_zero_zero": 0
+  },
+  "placeholder_scan": {
+    "placeholder": 0,
+    "lorem": 0,
+    "dummy": 0,
+    "fake": 0,
+    "sample data": 0,
+    "example.com": 0,
+    "N/A": 0,
+    "unknown": 0,
+    "hospital_phones_repeated_digit": 0
+  },
+  "district_coverage": [
+    {
+      "district": "Achham",
+      "province": "Sudurpashchim",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Arghakhanchi",
+      "province": "Lumbini",
+      "verified_destinations": 1,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Baglung",
+      "province": "Gandaki",
+      "verified_destinations": 2,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Baitadi",
+      "province": "Sudurpashchim",
+      "verified_destinations": 2,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Bajhang",
+      "province": "Sudurpashchim",
+      "verified_destinations": 8,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Bajura",
+      "province": "Sudurpashchim",
+      "verified_destinations": 2,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Banke",
+      "province": "Lumbini",
+      "verified_destinations": 119,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Bara",
+      "province": "Madhesh",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Bardiya",
+      "province": "Lumbini",
+      "verified_destinations": 17,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Bhaktapur",
+      "province": "Bagmati",
+      "verified_destinations": 94,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Bhojpur",
+      "province": "Koshi",
+      "verified_destinations": 15,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Chitwan",
+      "province": "Bagmati",
+      "verified_destinations": 166,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Dadeldhura",
+      "province": "Sudurpashchim",
+      "verified_destinations": 8,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Dailekh",
+      "province": "Karnali",
+      "verified_destinations": 44,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Dang",
+      "province": "Lumbini",
+      "verified_destinations": 50,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Darchula",
+      "province": "Sudurpashchim",
+      "verified_destinations": 6,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Dhading",
+      "province": "Bagmati",
+      "verified_destinations": 68,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Dhankuta",
+      "province": "Koshi",
+      "verified_destinations": 17,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Dhanusha",
+      "province": "Madhesh",
+      "verified_destinations": 17,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Dolakha",
+      "province": "Bagmati",
+      "verified_destinations": 58,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Dolpa",
+      "province": "Karnali",
+      "verified_destinations": 71,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Doti",
+      "province": "Sudurpashchim",
+      "verified_destinations": 9,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Gorkha",
+      "province": "Gandaki",
+      "verified_destinations": 85,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Gulmi",
+      "province": "Lumbini",
+      "verified_destinations": 9,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Humla",
+      "province": "Karnali",
+      "verified_destinations": 41,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Ilam",
+      "province": "Koshi",
+      "verified_destinations": 53,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Jajarkot",
+      "province": "Karnali",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Jhapa",
+      "province": "Koshi",
+      "verified_destinations": 31,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Jumla",
+      "province": "Karnali",
+      "verified_destinations": 13,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Kailali",
+      "province": "Sudurpashchim",
+      "verified_destinations": 16,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Kalikot",
+      "province": "Karnali",
+      "verified_destinations": 9,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Kanchanpur",
+      "province": "Sudurpashchim",
+      "verified_destinations": 19,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Kapilvastu",
+      "province": "Lumbini",
+      "verified_destinations": 25,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Kaski",
+      "province": "Gandaki",
+      "verified_destinations": 1145,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Kathmandu",
+      "province": "Bagmati",
+      "verified_destinations": 903,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Kavrepalanchok",
+      "province": "Bagmati",
+      "verified_destinations": 218,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Khotang",
+      "province": "Koshi",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Lalitpur",
+      "province": "Bagmati",
+      "verified_destinations": 99,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Lamjung",
+      "province": "Gandaki",
+      "verified_destinations": 64,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Mahottari",
+      "province": "Madhesh",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Makwanpur",
+      "province": "Bagmati",
+      "verified_destinations": 50,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Manang",
+      "province": "Gandaki",
+      "verified_destinations": 139,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Morang",
+      "province": "Koshi",
+      "verified_destinations": 24,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Mugu",
+      "province": "Karnali",
+      "verified_destinations": 14,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Mustang",
+      "province": "Gandaki",
+      "verified_destinations": 167,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Myagdi",
+      "province": "Gandaki",
+      "verified_destinations": 67,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Nawalpur",
+      "province": "Gandaki",
+      "verified_destinations": 13,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Nuwakot",
+      "province": "Bagmati",
+      "verified_destinations": 63,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Okhaldhunga",
+      "province": "Koshi",
+      "verified_destinations": 4,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Palpa",
+      "province": "Lumbini",
+      "verified_destinations": 29,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Panchthar",
+      "province": "Koshi",
+      "verified_destinations": 9,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Parasi",
+      "province": "Lumbini",
+      "verified_destinations": 6,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Parbat",
+      "province": "Gandaki",
+      "verified_destinations": 70,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Parsa",
+      "province": "Madhesh",
+      "verified_destinations": 5,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Pyuthan",
+      "province": "Lumbini",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Ramechhap",
+      "province": "Bagmati",
+      "verified_destinations": 14,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Rasuwa",
+      "province": "Bagmati",
+      "verified_destinations": 101,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Rautahat",
+      "province": "Madhesh",
+      "verified_destinations": 4,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Rolpa",
+      "province": "Lumbini",
+      "verified_destinations": 4,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Rukum East",
+      "province": "Lumbini",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Rukum West",
+      "province": "Karnali",
+      "verified_destinations": 1,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Rupandehi",
+      "province": "Lumbini",
+      "verified_destinations": 181,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Salyan",
+      "province": "Karnali",
+      "verified_destinations": 1,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Sankhuwasabha",
+      "province": "Koshi",
+      "verified_destinations": 12,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Saptari",
+      "province": "Madhesh",
+      "verified_destinations": 7,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Sarlahi",
+      "province": "Madhesh",
+      "verified_destinations": 2,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Sindhuli",
+      "province": "Bagmati",
+      "verified_destinations": 18,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Sindhupalchok",
+      "province": "Bagmati",
+      "verified_destinations": 46,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Siraha",
+      "province": "Madhesh",
+      "verified_destinations": 7,
+      "coverage_status": "partially_covered"
+    },
+    {
+      "district": "Solukhumbu",
+      "province": "Koshi",
+      "verified_destinations": 200,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Sunsari",
+      "province": "Koshi",
+      "verified_destinations": 23,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Surkhet",
+      "province": "Karnali",
+      "verified_destinations": 20,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Syangja",
+      "province": "Gandaki",
+      "verified_destinations": 51,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Tanahun",
+      "province": "Gandaki",
+      "verified_destinations": 49,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Taplejung",
+      "province": "Koshi",
+      "verified_destinations": 81,
+      "coverage_status": "well_covered"
+    },
+    {
+      "district": "Terhathum",
+      "province": "Koshi",
+      "verified_destinations": 2,
+      "coverage_status": "limited_data"
+    },
+    {
+      "district": "Udayapur",
+      "province": "Koshi",
+      "verified_destinations": 3,
+      "coverage_status": "limited_data"
+    }
+  ],
+  "non_canonical_district_values": [
+    "Dolakha/Ramechhap"
+  ]
+}
