@@ -395,3 +395,28 @@ def sync_admin_destination_json(destination):
     _write_json(path, existing)
     upsert_destination_location(destination)
     return path
+
+
+def remove_admin_destination_json(destination_id, force=False):
+    """Prune a hard-deleted destination from the admin data.json snapshot.
+
+    Without this, deleted records linger in the authoritative dataset file
+    as ghosts. `force` bypasses the automated-test guard for unit tests
+    that point BASE_DIR at a temporary snapshot.
+    """
+    if _in_automated_test() and not force:
+        return None
+    path = Path(settings.BASE_DIR) / "dataset" / "data.json"
+    if not path.exists():
+        return None
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    removed = existing.get("destinations", {}).pop(str(destination_id), None)
+    if removed is None:
+        return None
+    existing["count"] = len(existing["destinations"])
+    existing["generated_at"] = timezone.now().isoformat()
+    _write_json(path, existing)
+    return path

@@ -507,6 +507,7 @@ async function run() {
       }
 
       // 4) data entry — draft → submit → self-approve refused
+      let probeDestId = null
       {
         const stamp = Date.now()
         const created = await request(`${API}/admin-panel/data-entry/`, {
@@ -530,7 +531,9 @@ async function run() {
           if (selfApprove.res.status === 403) ok("staff cannot approve own submission (needs destinations:approve)")
           else fail("staff self-approve guard", `status ${selfApprove.res.status}`)
 
-          // cleanup: admin rejects the probe entry so the queue stays tidy
+          // reject the probe; hard-delete happens after the media step,
+          // which reuses this record, so runs never accumulate data
+          probeDestId = created.data.id
           try {
             const adminToken = await login("admin")
             await request(`${API}/admin-panel/data-entry/${created.data.id}/action/`, {
@@ -544,7 +547,8 @@ async function run() {
       // 5) media — staff upload lands pending, staff cannot approve
       {
         const entry = await request(`${API}/admin-panel/data-entry/?status=rejected`, { headers: auth })
-        const dest = entry.data?.results?.[0]
+        const dest = (probeDestId && entry.data?.results?.find((r) => r.id === probeDestId))
+          || entry.data?.results?.[0]
         if (dest) {
           const added = await request(`${API}/admin-panel/media/`, {
             method: "POST", headers: auth,
@@ -558,6 +562,17 @@ async function run() {
             })
             if (approve.res.status === 403) ok("staff cannot approve images (needs images:approve)")
             else fail("media approve guard", `status ${approve.res.status}`)
+          }
+          // hard-delete the probe (its pending image cascades) so repeated
+          // runs never accumulate records in the authoritative dataset
+          if (probeDestId) {
+            try {
+              const adminToken = await login("admin")
+              await request(`${API}/admin/destinations/bulk/`, {
+                method: "POST", headers: { Authorization: `Bearer ${adminToken}` },
+                json: { action: "delete", ids: [probeDestId], reason: "e2e probe cleanup", confirm: "true" },
+              })
+            } catch {}
           }
         } else fail("staff media upload", "no destination available for probe")
       }

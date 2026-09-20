@@ -4002,3 +4002,29 @@ class OfflineItineraryAllCitiesTests(TestCase):
             self.assertTrue(names, f"{district}: no stops planned")
             self.assertTrue(all(district in n for n in names),
                             f"{district}: stops leaked from elsewhere: {names}")
+
+
+class DataJsonSnapshotPruneTests(TestCase):
+    """Hard-deleted destinations must not linger as ghosts in data.json."""
+
+    def test_removed_destination_pruned_from_snapshot(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from .location_sync import remove_admin_destination_json
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "dataset").mkdir()
+        snap = tmp / "dataset" / "data.json"
+        snap.write_text(json.dumps({
+            "destinations": {"55": {"name": "Ghost"}, "56": {"name": "Real"}},
+            "count": 2}))
+        with override_settings(BASE_DIR=tmp):
+            out = remove_admin_destination_json(55, force=True)
+        self.assertEqual(out, snap)
+        data = json.loads(snap.read_text())
+        self.assertNotIn("55", data["destinations"])
+        self.assertIn("56", data["destinations"])
+        self.assertEqual(data["count"], 1)
+        # pruning an unknown id is a harmless no-op
+        with override_settings(BASE_DIR=tmp):
+            self.assertIsNone(remove_admin_destination_json(999, force=True))

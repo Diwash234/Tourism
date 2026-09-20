@@ -4723,11 +4723,16 @@ class AdminDestinationBulkView(APIView):
                 d.category_id = int(cat_id)
             elif action == "delete":
                 affected.append(d.id)
+                deleted_id = d.id
                 DestinationAuditLog.objects.create(
                     destination=d, actor=request.user,
                     action=DestinationAuditLog.Action.EDITED,
                     note=f"Bulk deleted: {reason}", reason=reason)
                 d.delete()
+                # prune the snapshot too, or the deleted record lingers
+                # in dataset/data.json as a ghost
+                from .location_sync import remove_admin_destination_json
+                remove_admin_destination_json(deleted_id)
                 continue
             if action != "delete":
                 d.save()
