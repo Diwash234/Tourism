@@ -1799,6 +1799,87 @@ class DestinationNearbyPOIsView(APIView):
             return "pharmacies"
         return None
 
+    @classmethod
+    def _database_fallback(cls, lat, lon, radius_km, wanted):
+        """Honest offline fallback from admin-managed database tables.
+
+        Hospitals/police come from the curated service directories, stays
+        from name-matched approved destinations, category groups from
+        categorized destinations. Categories with no offline records
+        (e.g. banks/ATMs) come back empty with an explicit note — they are
+        never fabricated.
+        """
+        from django.db.models import Q
+
+        from .models import Destination, Hospital, PoliceStation
+
+        box = bounding_box(lat, lon, radius_km)
+        bbox = dict(latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
+                    longitude__gte=box["min_lon"], longitude__lte=box["max_lon"])
+
+        def rows(pairs, source_label):
+            out = []
+            for name, rlat, rlon, extra in pairs:
+                if rlat is None or rlon is None:
+                    continue
+                d = haversine_distance(lat, lon, float(rlat), float(rlon))
+                if d <= radius_km:
+                    row = {"name": name, "distance_km": round(d, 2),
+                           "latitude": float(rlat), "longitude": float(rlon),
+                           "source": source_label}
+                    row.update(extra or {})
+                    out.append(row)
+            out.sort(key=lambda r: r["distance_km"])
+            return out[:10]
+
+        dest_qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED, **bbox)
+        stay_q = Q()
+        for word in ("hotel", "lodge", "resort", "guest house", "guesthouse",
+                     "homestay", "inn"):
+            stay_q |= Q(name__icontains=word)
+        category_slugs = {"temples": ["temples"], "viewpoints": ["viewpoints"],
+                          "restaurants": ["food-culinary"],
+                          "peaks": ["mountains", "hills"]}
+
+        categories = {}
+        for key in wanted:
+            if key == "hospitals":
+                data = rows(((h.name, h.latitude, h.longitude, {"phone": h.phone})
+                             for h in Hospital.objects.filter(**bbox)),
+                            "Tourism database — hospital directory")
+            elif key == "police":
+                data = rows(((p.name, p.latitude, p.longitude, {"phone": p.phone})
+                             for p in PoliceStation.objects.filter(**bbox)),
+                            "Tourism database — police directory")
+            elif key == "hotels":
+                data = rows(((d.name, d.latitude, d.longitude, {"slug": d.slug})
+                             for d in dest_qs.filter(stay_q)),
+                            "Tourism database — likely stays (name-matched)")
+            elif key in category_slugs:
+                data = rows(((d.name, d.latitude, d.longitude, {"slug": d.slug})
+                             for d in dest_qs.filter(
+                                 category__slug__in=category_slugs[key])),
+                            "Tourism database — admin-verified destinations")
+            else:
+                data = []
+            entry = {"label": cls.CATEGORIES[key][1], "results": data}
+            if not data:
+                entry["note"] = ("No offline records for this category — live "
+                                 "OpenStreetMap data is required for it.")
+            categories[key] = entry
+
+        return {
+            "latitude": lat,
+            "longitude": lon,
+            "radius_km": radius_km,
+            "distance_note": "Straight-line distances from the destination coordinates.",
+            "source": "Tourism database (offline fallback — live map data unavailable)",
+            "provider_error": ("Live OpenStreetMap (Overpass) lookup failed; "
+                               "showing admin-managed database places instead."),
+            "categories": categories,
+        }
+
     def get(self, request, destination_ref):
         import requests as http_requests
         from django.core.cache import cache
@@ -1832,8 +1913,11 @@ class DestinationNearbyPOIsView(APIView):
             upstream.raise_for_status()
             elements = upstream.json().get("elements", [])
         except Exception:
-            return Response({"detail": "Live map data (OpenStreetMap) is unavailable right now — please try again shortly."},
-                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            # Never a dead end: serve admin-managed database places instead
+            # (hospitals, police, stays, category-matched destinations) with
+            # clear provenance, so "nearby hospital/hotel" always answers.
+            payload = self._database_fallback(float(lat), float(lon), radius_km, wanted)
+            return Response({**payload, "destination": destination.name})
 
         grouped = {key: [] for key in wanted}
         for element in elements:

@@ -2493,12 +2493,21 @@ class NearbyPOIsOverpassTests(TestCase):
         # nameless nodes are skipped, banks empty but present
         self.assertEqual(data["categories"]["banks"]["results"], [])
 
-    def test_overpass_outage_is_honest_503(self):
+    def test_overpass_outage_falls_back_to_database_places(self):
+        """Contract (2026-09-20): an Overpass outage is no longer a 503 dead
+        end — the endpoint answers 200 from admin-managed database tables
+        with honest provenance, so nearby hospital/hotel always works."""
         from unittest.mock import patch
         with patch("requests.post", side_effect=Exception("network down")):
             resp = self.client.get("/api/v1/destinations/poi-town/nearby-pois/")
-        self.assertEqual(resp.status_code, 503)
-        self.assertIn("unavailable", resp.json()["detail"])
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn("offline fallback", data["source"])
+        self.assertIn("Overpass", data["provider_error"])
+        # no OSM results are fabricated during the outage
+        for cat in data["categories"].values():
+            for row in cat["results"]:
+                self.assertNotIn("OpenStreetMap", row.get("source", ""))
 
     def test_unknown_destination_404_and_missing_coords_422(self):
         from tourist.models import Destination

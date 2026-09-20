@@ -35,6 +35,30 @@ def compass(bearing: float) -> str:
     return names[int((bearing + 22.5) % 360 // 45)]
 
 
+def _maneuver_from_instruction(text: str, first: bool) -> str:
+    """Map engine instruction text to a stable maneuver key for the UI."""
+    t = (text or "").lower()
+    if first or t.startswith("head"):
+        return "depart"
+    if "u-turn" in t or "uturn" in t:
+        return "uturn"
+    if "sharp left" in t:
+        return "turn-sharp-left"
+    if "sharp right" in t:
+        return "turn-sharp-right"
+    if "slight left" in t:
+        return "turn-slight-left"
+    if "slight right" in t:
+        return "turn-slight-right"
+    if "left" in t:
+        return "turn-left"
+    if "right" in t:
+        return "turn-right"
+    if "straight" in t or "continue" in t:
+        return "continue"
+    return "continue"
+
+
 class BundledGraphProvider(RoutingProvider):
     name = "bundled_graph"
     supported_modes = ("driving", "motorcycle", "walking", "hiking", "cycling")
@@ -53,20 +77,43 @@ class BundledGraphProvider(RoutingProvider):
             if result.get("error"):
                 return None
             nodes = result.get("route") or []
-            geometry = [[float(n[0]), float(n[1])] for n in nodes] if nodes and isinstance(nodes[0], (list, tuple)) else []
+            # route points are dicts {'lat','lng'} (defensively accept pairs too)
+            geometry = []
+            for n in nodes:
+                if isinstance(n, dict) and "lat" in n and "lng" in n:
+                    geometry.append([float(n["lat"]), float(n["lng"])])
+                elif isinstance(n, (list, tuple)) and len(n) >= 2:
+                    geometry.append([float(n[0]), float(n[1])])
             if len(geometry) < 2:
                 return None
             speed = SPEED_MPS.get(mode, SPEED_MPS["driving"])
             distance_m = float(result["distance_km"]) * 1000.0
-            steps = [{
-                "instruction": f"Head {compass(bearing_deg(geometry[0][0], geometry[0][1], geometry[1][0], geometry[1][1]))}",
-                "distance_m": round(distance_m, 1),
-                "duration_s": round(distance_m / speed, 1),
-                "maneuver": "depart",
-            }, {
+
+            # Real per-waypoint turn-by-turn from the graph engine, enriched
+            # with the landmark names of the corridor nodes we pass.
+            path_names = result.get("path") or []
+            directions = result.get("directions") or []
+            steps = []
+            for i, d in enumerate(directions):
+                text = str(d.get("instruction") or "").strip()
+                seg_m = round(float(d.get("distance_km") or 0.0) * 1000.0, 1)
+                maneuver = _maneuver_from_instruction(text, i == 0)
+                landmark = path_names[i + 1] if i + 1 < len(path_names) else None
+                instruction = text or f"Heading {compass(bearing_deg(*geometry[0], *geometry[1]))}"
+                if landmark and maneuver not in ("depart", "arrive"):
+                    instruction = f"{instruction} toward {landmark}"
+                steps.append({
+                    "instruction": instruction,
+                    "distance_m": seg_m,
+                    "duration_s": round(seg_m / speed, 1),
+                    "maneuver": maneuver,
+                    "point": geometry[i] if i < len(geometry) else None,
+                })
+            steps.append({
                 "instruction": "Arrive at destination",
                 "distance_m": 0.0, "duration_s": 0.0, "maneuver": "arrive",
-            }]
+                "point": geometry[-1],
+            })
             lats = [g[0] for g in geometry]
             lngs = [g[1] for g in geometry]
             return {

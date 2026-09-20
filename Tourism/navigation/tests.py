@@ -429,8 +429,9 @@ class SessionLifecycleTests(APITestCase):
         data = self._route()
         rid = data["route"]["route_id"]
         geo = data["route"]["geometry"]
-        a, b = geo[0], geo[-1]
-        mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]  # true midpoint (on-route)
+        # an actual vertex of the returned polyline — on-route for any
+        # geometry (straight-line fallback or corridor graph alike)
+        mid = geo[len(geo) // 2]
         self.client.post("/api/v1/navigation/progress/", {
             "route_id": rid, "latitude": mid[0], "longitude": mid[1],
             "accuracy": 8}, format="json")

@@ -565,13 +565,30 @@ class ItineraryView(APIView):
             start_city = (data.get("start_city") or "Kathmandu").strip()
 
             qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
-            city_qs = qs.filter(city__icontains=start_city)
+            # Match the requested place against the free-text city first,
+            # then the canonical district (covers all 77 districts even when
+            # city is blank, e.g. start_city="Mustang" or "Kaski").
+            from django.db.models import Q as _Q
+            city_qs = qs.filter(_Q(city__icontains=start_city) |
+                                _Q(district__iexact=start_city))
             if not city_qs.exists():
                 city_qs = qs
 
-            dest_list = list(city_qs[: days * 3])
+            # Interest-aware: prefer categories matching requested interests,
+            # best-rated first; fall back to the full quality ordering.
+            interest_q = _Q()
+            for interest in interests or []:
+                interest_q |= _Q(category__slug__icontains=str(interest).strip())
+            ordered = ("-is_featured", "-average_rating", "-ratings_count", "name")
+            if interest_q.children:
+                preferred = list(city_qs.filter(interest_q).order_by(*ordered)[: days * 2])
+                dest_list = preferred + [d for d in
+                                         city_qs.order_by(*ordered)[: days * 3]
+                                         if d not in preferred]
+            else:
+                dest_list = list(city_qs.order_by(*ordered)[: days * 3])
             if not dest_list:
-                dest_list = list(qs[: days * 3])
+                dest_list = list(qs.order_by(*ordered)[: days * 3])
 
             itinerary_days = []
 

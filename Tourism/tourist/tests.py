@@ -3932,3 +3932,73 @@ class OAuthCallbackFlowTests(TestCase):
                 content_type="application/json")
         self.assertEqual(resp.status_code, 400)
         self.assertIn("failed", resp.data["detail"].lower())
+
+
+class DestinationNearbyPOIsFallbackTests(TestCase):
+    """When Overpass is down, nearby POIs must still answer from the DB."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from .models import Hospital, PoliceStation
+        self.dest = Destination.objects.create(
+            name="Lakeside Hub", slug="lakeside-hub", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.2096"), longitude=Decimal("83.9856"))
+        Hospital.objects.create(
+            destination=self.dest, name="Western Regional Hospital",
+            phone="061-520123", latitude=Decimal("28.2110"),
+            longitude=Decimal("83.9870"))
+        PoliceStation.objects.create(
+            destination=self.dest, name="Lakeside Police Post",
+            phone="061-462741", latitude=Decimal("28.2080"),
+            longitude=Decimal("83.9840"))
+        Destination.objects.create(
+            name="Hotel Mountain View", slug="hotel-mountain-view",
+            district="Kaski", status="approved", is_active=True,
+            latitude=Decimal("28.2100"), longitude=Decimal("83.9860"))
+
+    @patch("requests.post", side_effect=Exception("overpass down"))
+    def test_overpass_down_serves_database_places(self, _mock):
+        r = self.client.get(
+            f"/api/v1/destinations/{self.dest.slug}/nearby-pois/",
+            {"categories": "hotels,hospitals,police,banks"})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertIn("offline fallback", data["source"])
+        self.assertEqual(data["destination"], "Lakeside Hub")
+        self.assertTrue(any(h["name"] == "Western Regional Hospital"
+                            for h in data["categories"]["hospitals"]["results"]))
+        self.assertTrue(any(p["name"] == "Lakeside Police Post"
+                            for p in data["categories"]["police"]["results"]))
+        self.assertTrue(any(h["name"] == "Hotel Mountain View"
+                            for h in data["categories"]["hotels"]["results"]))
+        # honest emptiness: banks have no offline records, never fabricated
+        self.assertEqual(data["categories"]["banks"]["results"], [])
+        self.assertIn("note", data["categories"]["banks"])
+
+
+class OfflineItineraryAllCitiesTests(TestCase):
+    """Itinerary fallback must serve EVERY district, not just city text."""
+
+    def setUp(self):
+        from decimal import Decimal
+        for i, district in enumerate(("Mustang", "Rautahat")):
+            for j in range(3):
+                Destination.objects.create(
+                    name=f"{district} Place {j}", slug=f"{district.lower()}-place-{j}",
+                    district=district, status="approved", is_active=True,
+                    latitude=Decimal("28.7"), longitude=Decimal("83.7"),
+                    average_rating=Decimal(str(4.0 + j * 0.1)))
+
+    def test_itinerary_works_for_district_named_start_city(self):
+        for district in ("Mustang", "Rautahat"):
+            r = self.client.post("/api/v1/ml/itinerary/", {
+                "start_city": district, "days": 2}, format="json")
+            self.assertEqual(r.status_code, 200, r.data)
+            data = r.json()
+            self.assertEqual(data["source"], "internal_db_engine")
+            names = [d["name"] for day in data["itinerary"] for d in day["destinations"]]
+            self.assertTrue(names, f"{district}: no stops planned")
+            self.assertTrue(all(district in n for n in names),
+                            f"{district}: stops leaked from elsewhere: {names}")
