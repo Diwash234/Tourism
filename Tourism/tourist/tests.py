@@ -277,7 +277,9 @@ class MLIntegrationTests(APITestCase):
             "end_latitude": 28.23, "end_longitude": 83.99,
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["routing_engine"], "bundled_nepal_graphml")
+        self.assertTrue(
+            str(response.data["routing_engine"]).startswith(("road_provider:", "bundled_nepal_graphml")),
+            f"unexpected engine {response.data['routing_engine']}")
         self.assertTrue(response.data["route"])
 
     def test_best_route_requires_end_point(self):
@@ -472,7 +474,9 @@ class CompatibilityRouteTests(APITestCase):
             "startLat": 28.15, "startLng": 84.05, "endLat": 28.17, "endLng": 84.07,
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["routing_engine"], "bundled_nepal_graphml")
+        self.assertTrue(
+            str(response.data["routing_engine"]).startswith(("road_provider:", "bundled_nepal_graphml")),
+            f"unexpected engine {response.data['routing_engine']}")
         self.assertTrue(response.data["route"])
 
     def test_navigation_route_compat_missing_fields(self):
@@ -485,7 +489,9 @@ class CompatibilityRouteTests(APITestCase):
             "start_latitude": 28.10, "start_longitude": 84.00, "destination_name": "Rupa",
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["routing_engine"], "bundled_nepal_graphml")
+        self.assertTrue(
+            str(response.data["routing_engine"]).startswith(("road_provider:", "bundled_nepal_graphml")),
+            f"unexpected engine {response.data['routing_engine']}")
         self.assertEqual(response.data["destination"]["id"], self.destination.id)
 
     def test_navigation_route_unknown_destination_name(self):

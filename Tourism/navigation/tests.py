@@ -475,3 +475,36 @@ class HealthAndPolicyTests(APITestCase):
         self.assertFalse(r.data["route"]["navigation_grade"])
         self.assertIn(r.data["route"]["source"],
                       ("graphml_fallback", "straight_line_fallback"))
+
+
+@override_settings(ROUTING_BASE_URL="", ROUTING_RATE_LIMIT=0, ROUTING_CACHE_TTL=0)
+class LegacyRouteContractTests(APITestCase):
+    """§17: the legacy POST /navigation/route contract keeps working, but
+    ground modes now ride the real road-routing provider chain (labelled)."""
+
+    def test_legacy_body_returns_road_provider_fields(self):
+        r = self.client.post("/api/v1/navigation/route", {
+            "start_latitude": 28.2096, "start_longitude": 83.9856,
+            "end_latitude": 28.1929, "end_longitude": 83.9810,
+            "transport_mode": "Private Car / Taxi"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        data = r.data
+        # legacy keys preserved
+        self.assertGreater(data["distance_km"], 0)
+        self.assertTrue(data["route"])
+        self.assertIn("lat", data["route"][0])
+        # new road-routing fields present and honest
+        self.assertIn(data["source"],
+                      ("osrm", "graphml_fallback", "straight_line_fallback"))
+        self.assertIsInstance(data["navigation_grade"], bool)
+        self.assertEqual(data["navigation_grade"], data["source"] == "osrm")
+        self.assertTrue(data["routing_engine"].startswith("road_provider:"))
+
+    def test_flight_never_road_routed(self):
+        r = self.client.post("/api/v1/navigation/route", {
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 28.2096, "end_longitude": 83.9856,
+            "transport_mode": "flight"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.data["duration_min"])  # no invented flight times
+        self.assertNotIn("navigation_grade", r.data)

@@ -428,7 +428,43 @@ class NavigationRouteView(APIView):
             "flight": (None, None),             # no flight schedule data
         }
         mode_route_type, mode_speed = MODE_PROFILES.get(transport_mode, (route_type, 40))
-        result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
+
+        # §16/§17: ground modes ride the real road-routing provider chain
+        # first (OSRM -> labelled fallbacks). The tourism graph remains the
+        # fallback of last resort and flights never use road routing.
+        result = None
+        if transport_mode != "flight":
+            try:
+                from navigation import route_engine as _nav_engine
+                _NAV_MODE = {"private car / taxi": "driving",
+                             "motorcycle": "motorcycle",
+                             "walking / trek": "walking"}
+                _nav_mode = _NAV_MODE.get(transport_mode, "driving")
+                _nav, _cached = _nav_engine.cached_route(
+                    (start_lat, start_lon), (end_lat, end_lon), _nav_mode,
+                    request=request)
+                _nr = _nav["route"]
+                _is_osrm = _nr["source"] == "osrm"
+                result = {
+                    "route": [{"lat": g[0], "lng": g[1]} for g in _nr["geometry"]],
+                    "distance_km": round(_nr["distance_m"] / 1000.0, 2),
+                    "duration_min": (round(_nr["duration_s"] / 60.0)
+                                     if _is_osrm and transport_mode != "tourist bus"
+                                     else None),
+                    "steps": _nr.get("steps", []),
+                    "source": _nr["source"],
+                    "navigation_grade": _is_osrm,
+                    "geometry": _nr["geometry"],
+                    "note": _nr.get("note"),
+                    "routing_engine": f"road_provider:{_nr['source']}",
+                }
+                if _is_osrm and result["duration_min"] is not None:
+                    result["duration_source"] = "routing_engine"
+                    result["duration_note"] = "Duration supplied by the road-routing provider."
+            except Exception:
+                result = None  # any routing failure -> honest graph fallback below
+        if result is None:
+            result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
             return Response(
                 {"detail": "Routing service is currently unavailable."},
@@ -463,7 +499,8 @@ class NavigationRouteView(APIView):
             response_data["duration_min"] = None
             response_data["duration_source"] = "unavailable"
             response_data["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
-        elif transport_mode == "walking / trek" and response_data.get("distance_km"):
+        elif (transport_mode == "walking / trek" and response_data.get("distance_km")
+              and response_data.get("source") != "osrm"):
             # The road/tourism graph's own duration is a driving estimate —
             # never present it as walking time. Recompute at trekking pace.
             response_data["duration_min"] = round((response_data["distance_km"] / mode_speed) * 60)
