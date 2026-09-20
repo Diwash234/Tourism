@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-20T15:56:50Z",
+  "generated_at": "2026-09-20T23:19:34Z",
   "api": "http://127.0.0.1:8000/api/v1",
   "districts": {
     "Bhojpur": {
@@ -1967,9 +1967,9 @@
             "nearest_km": 2.17
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 3.82
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 0.9
           },
           "nearby_police": {
             "count": 30,
@@ -2526,8 +2526,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Ciwec Hospital",
-            "nearest_km": 1.05
+            "nearest": "Diabetes, Thyroid and Heart Center Nepal Pvt. Ltd.",
+            "nearest_km": 0.34
           },
           "nearby_hotel": {
             "count": 30,
@@ -2540,14 +2540,14 @@
             "nearest_km": 2.04
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.4
+            "count": 30,
+            "nearest": "ATM Lounge",
+            "nearest_km": 0.39
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Chhetrapati",
-            "nearest_km": 0.54
+            "nearest": "Metropolitan Police Circle",
+            "nearest_km": 0.13
           }
         },
         {
@@ -3419,9 +3419,7 @@
             "nearest_km": 23.16
           },
           "nearby_bank": {
-            "count": 4,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 21.86
+            "count": 0
           },
           "nearby_police": {
             "count": 3,
@@ -3670,7 +3668,7 @@
             "displacement_km": 60.8
           },
           "nearby_hospital": {
-            "count": 22,
+            "count": 30,
             "nearest": "Charikot Hospital",
             "nearest_km": 27.5
           },
@@ -3685,12 +3683,12 @@
             "nearest_km": 15.17
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Dhulikhel Branch (Kavrepalanchok)",
-            "nearest_km": 24.65
+            "count": 26,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 46.37
           },
           "nearby_police": {
-            "count": 28,
+            "count": 30,
             "nearest": "District Police Office Dolakha",
             "nearest_km": 29.14
           }
@@ -3698,40 +3696,40 @@
         {
           "place": "Gaushala",
           "search": "partial",
-          "matched_name": "Metropolitan Police Circle Gaushala",
+          "matched_name": "Metropolitan Police Circle, Gaushala",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 113.8,
+            "distance_km": 113.4,
             "duration_min": 195,
             "source": "graphml_fallback",
             "navigation_grade": false,
-            "geometry_points": 41,
+            "geometry_points": 46,
             "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 96.5
+            "displacement_km": 96.6
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Helping Hands Community Hospital",
-            "nearest_km": 1.26
+            "nearest": "Cosmos Diagonosis and Research Centre",
+            "nearest_km": 0.45
           },
           "nearby_hotel": {
             "count": 30,
             "nearest": "The Dwarika's Hotel",
-            "nearest_km": 1.04
+            "nearest_km": 0.65
           },
           "nearby_restaurant": {
             "count": 30,
             "nearest": "Bhojan Griha (Dilli Bazaar)",
-            "nearest_km": 1.83
+            "nearest_km": 1.44
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 2.53
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 0.23
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Gaushala",
+            "nearest": "Metropolitan Police Circle, Gaushala",
             "nearest_km": 0.0
           }
         },
@@ -3844,14 +3842,14 @@
             "nearest_km": 1.33
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.29
+            "count": 30,
+            "nearest": "Agriculture Development Bank ( Ratna Park Branch )",
+            "nearest_km": 0.09
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Kathmandu Valley Police Office",
-            "nearest_km": 0.32
+            "nearest": "Metropolitan Police Commissioner\u2019s Office",
+            "nearest_km": 0.1
           }
         },
         {
@@ -3971,28 +3969,28 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Helping Hands Community Hospital",
-            "nearest_km": 1.26
+            "nearest": "Children's Diagnosis Center",
+            "nearest_km": 0.86
           },
           "nearby_hotel": {
             "count": 30,
             "nearest": "The Dwarika's Hotel",
-            "nearest_km": 1.04
+            "nearest_km": 1.26
           },
           "nearby_restaurant": {
             "count": 30,
-            "nearest": "Bhojan Griha (Dilli Bazaar)",
-            "nearest_km": 1.83
+            "nearest": "G-Cafe",
+            "nearest_km": 1.76
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 2.53
+            "count": 30,
+            "nearest": "Aagrim Mahila Co-operative",
+            "nearest_km": 0.67
           },
           "nearby_police": {
             "count": 30,
             "nearest": "Metropolitan Police Circle Gaushala",
-            "nearest_km": 0.0
+            "nearest_km": 0.23
           }
         },
         {
@@ -4029,9 +4027,9 @@
             "nearest_km": 36.06
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Kalaiya Branch (Bara)",
-            "nearest_km": 30.33
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 42.64
           },
           "nearby_police": {
             "count": 30,
@@ -4069,9 +4067,9 @@
             "nearest_km": 25.21
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 1.82
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 37.78
           },
           "nearby_police": {
             "count": 30,
@@ -4661,9 +4659,9 @@
             "nearest_km": 0.06
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 0.19
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 6.49
           },
           "nearby_police": {
             "count": 30,
@@ -4701,9 +4699,9 @@
             "nearest_km": 0.06
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 0.19
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 6.49
           },
           "nearby_police": {
             "count": 30,
@@ -4749,9 +4747,9 @@
             "nearest_km": 0.06
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 0.19
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 6.49
           },
           "nearby_police": {
             "count": 30,
@@ -4789,9 +4787,9 @@
             "nearest_km": 4.01
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 4.13
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 6.05
           },
           "nearby_police": {
             "count": 30,
@@ -4841,9 +4839,9 @@
             "nearest_km": 6.94
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 9.95
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 14.98
           },
           "nearby_police": {
             "count": 30,
@@ -4867,8 +4865,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Annapurna Neurological Institute",
-            "nearest_km": 1.39
+            "nearest": "A.L Logistics Nepal Pvt.Ltd",
+            "nearest_km": 0.82
           },
           "nearby_hotel": {
             "count": 30,
@@ -4881,14 +4879,14 @@
             "nearest_km": 2.3
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 2.6
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 0.55
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "District Police Range Kathmandu",
-            "nearest_km": 1.31
+            "nearest": "Thapathali",
+            "nearest_km": 0.35
           }
         },
         {
@@ -4921,9 +4919,9 @@
             "nearest_km": 3.36
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 3.46
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 7.75
           },
           "nearby_police": {
             "count": 30,
@@ -5154,9 +5152,9 @@
             "nearest_km": 3.5
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Dhadingbesi Branch (Dhading)",
-            "nearest_km": 12.37
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 46.63
           },
           "nearby_police": {
             "count": 30,
@@ -5196,7 +5194,7 @@
             "displacement_km": 0.8
           },
           "nearby_hospital": {
-            "count": 20,
+            "count": 30,
             "nearest": "Dhading District Hospital",
             "nearest_km": 5.36
           },
@@ -5211,12 +5209,12 @@
             "nearest_km": 0.09
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Dhadingbesi Branch (Dhading)",
-            "nearest_km": 5.07
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 45.25
           },
           "nearby_police": {
-            "count": 25,
+            "count": 30,
             "nearest": "District Police Office Dhading",
             "nearest_km": 5.36
           }
@@ -5236,7 +5234,7 @@
             "displacement_km": 0.6
           },
           "nearby_hospital": {
-            "count": 20,
+            "count": 30,
             "nearest": "Dhading District Hospital",
             "nearest_km": 5.36
           },
@@ -5251,12 +5249,12 @@
             "nearest_km": 0.09
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Dhadingbesi Branch (Dhading)",
-            "nearest_km": 5.07
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 45.25
           },
           "nearby_police": {
-            "count": 25,
+            "count": 30,
             "nearest": "District Police Office Dhading",
             "nearest_km": 5.36
           }
@@ -5280,7 +5278,7 @@
             "displacement_km": 0.1
           },
           "nearby_hospital": {
-            "count": 19,
+            "count": 30,
             "nearest": "Dhading District Hospital",
             "nearest_km": 5.7
           },
@@ -5295,12 +5293,12 @@
             "nearest_km": 0.2
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Dhadingbesi Branch (Dhading)",
-            "nearest_km": 5.07
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 45.9
           },
           "nearby_police": {
-            "count": 26,
+            "count": 30,
             "nearest": "District Police Office Dhading",
             "nearest_km": 5.7
           }
@@ -5339,9 +5337,9 @@
             "nearest_km": 0.69
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Dhadingbesi Branch (Dhading)",
-            "nearest_km": 7.67
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 41.2
           },
           "nearby_police": {
             "count": 30,
@@ -5379,9 +5377,9 @@
             "nearest_km": 17.51
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Bidur Branch (Nuwakot)",
-            "nearest_km": 13.08
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 17.51
           },
           "nearby_police": {
             "count": 30,
@@ -5586,8 +5584,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Madhyapur Hospital",
-            "nearest_km": 2.77
+            "nearest": "Aasthanga Ayurved Hospital and Research Center Pvt.Ltd",
+            "nearest_km": 1.45
           },
           "nearby_hotel": {
             "count": 30,
@@ -5600,14 +5598,14 @@
             "nearest_km": 1.51
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 4.46
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 1.14
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Koteshwor",
-            "nearest_km": 1.47
+            "nearest": "Metropolitan Police Department Koteshwor",
+            "nearest_km": 1.41
           }
         },
         {
@@ -5781,14 +5779,14 @@
             "nearest_km": 3.25
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 3.37
+            "count": 30,
+            "nearest": "ATM Lounge",
+            "nearest_km": 2.11
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Chhetrapati",
-            "nearest_km": 1.48
+            "nearest": "Banasthali Police Station",
+            "nearest_km": 1.42
           }
         },
         {
@@ -5807,8 +5805,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Apex Hospital",
-            "nearest_km": 1.27
+            "nearest": "Chinese People Hospital Private Limited",
+            "nearest_km": 0.07
           },
           "nearby_hotel": {
             "count": 30,
@@ -5821,14 +5819,14 @@
             "nearest_km": 0.16
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 3.76
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 0.88
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Gaushala",
-            "nearest_km": 1.92
+            "nearest": "Boudha Police Branch",
+            "nearest_km": 0.23
           }
         },
         {
@@ -5847,28 +5845,28 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Helping Hands Community Hospital",
-            "nearest_km": 1.26
+            "nearest": "Children's Diagnosis Center",
+            "nearest_km": 0.86
           },
           "nearby_hotel": {
             "count": 30,
             "nearest": "The Dwarika's Hotel",
-            "nearest_km": 1.04
+            "nearest_km": 1.26
           },
           "nearby_restaurant": {
             "count": 30,
-            "nearest": "Bhojan Griha (Dilli Bazaar)",
-            "nearest_km": 1.83
+            "nearest": "G-Cafe",
+            "nearest_km": 1.76
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 2.53
+            "count": 30,
+            "nearest": "Aagrim Mahila Co-operative",
+            "nearest_km": 0.67
           },
           "nearby_police": {
             "count": 30,
             "nearest": "Metropolitan Police Circle Gaushala",
-            "nearest_km": 0.0
+            "nearest_km": 0.23
           }
         },
         {
@@ -5887,8 +5885,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Blue Cross Hospital",
-            "nearest_km": 0.74
+            "nearest": "Ayurveda Hospital",
+            "nearest_km": 0.32
           },
           "nearby_hotel": {
             "count": 30,
@@ -5901,14 +5899,14 @@
             "nearest_km": 2.46
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 2.31
+            "count": 30,
+            "nearest": "Baisnodevi Saving and Credit Co-operative Limited",
+            "nearest_km": 0.56
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "District Police Range Kathmandu",
-            "nearest_km": 1.05
+            "nearest": "Hanuman Dokha Police Station",
+            "nearest_km": 0.19
           }
         },
         {
@@ -5967,8 +5965,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Ciwec Hospital",
-            "nearest_km": 1.05
+            "nearest": "Diabetes, Thyroid and Heart Center Nepal Pvt. Ltd.",
+            "nearest_km": 0.34
           },
           "nearby_hotel": {
             "count": 30,
@@ -5981,14 +5979,14 @@
             "nearest_km": 2.04
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.4
+            "count": 30,
+            "nearest": "ATM Lounge",
+            "nearest_km": 0.39
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Chhetrapati",
-            "nearest_km": 0.54
+            "nearest": "Metropolitan Police Circle",
+            "nearest_km": 0.13
           }
         },
         {
@@ -6025,14 +6023,14 @@
             "nearest_km": 0.58
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 4.6
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 1.44
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Kalimati",
-            "nearest_km": 2.89
+            "nearest": "SOCIAL POLICE SERVICE",
+            "nearest_km": 1.0
           }
         },
         {
@@ -6065,9 +6063,9 @@
             "nearest_km": 1.47
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 4.57
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 1.15
           },
           "nearby_police": {
             "count": 30,
@@ -6105,14 +6103,14 @@
             "nearest_km": 1.33
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.29
+            "count": 30,
+            "nearest": "Agriculture Development Bank ( Ratna Park Branch )",
+            "nearest_km": 0.09
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Kathmandu Valley Police Office",
-            "nearest_km": 0.32
+            "nearest": "Metropolitan Police Commissioner\u2019s Office",
+            "nearest_km": 0.1
           }
         },
         {
@@ -6145,14 +6143,14 @@
             "nearest_km": 1.33
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.29
+            "count": 30,
+            "nearest": "Agriculture Development Bank ( Ratna Park Branch )",
+            "nearest_km": 0.09
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Kathmandu Valley Police Office",
-            "nearest_km": 0.32
+            "nearest": "Metropolitan Police Commissioner\u2019s Office",
+            "nearest_km": 0.1
           }
         },
         {
@@ -6185,14 +6183,14 @@
             "nearest_km": 7.28
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 9.5
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 7.44
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Balaju",
-            "nearest_km": 7.23
+            "nearest": "Police (name not recorded in OSM)",
+            "nearest_km": 6.82
           }
         }
       ]
@@ -6234,9 +6232,9 @@
             "nearest_km": 5.55
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 10.38
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 16.08
           },
           "nearby_police": {
             "count": 30,
@@ -6247,41 +6245,41 @@
         {
           "place": "Namobuddha",
           "search": "partial",
-          "matched_name": "Namobuddha Thrangu Monastery",
+          "matched_name": "NAtional Namobuddha Saving and Credit Co-operative Limited",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 11.6,
-            "duration_min": 20,
+            "distance_km": 29.1,
+            "duration_min": 50,
             "source": "graphml_fallback",
             "navigation_grade": false,
-            "geometry_points": 9,
+            "geometry_points": 27,
             "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 6.5
+            "displacement_km": 24.2
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Bhaktapur Cancer Hospital",
-            "nearest_km": 17.04
+            "nearest": "Ayurveda Hospital",
+            "nearest_km": 0.32
           },
           "nearby_hotel": {
             "count": 30,
-            "nearest": "Namobuddha Eco Lodge",
-            "nearest_km": 3.16
+            "nearest": "Kathmandu Grand Heritage",
+            "nearest_km": 1.53
           },
           "nearby_restaurant": {
             "count": 30,
-            "nearest": "Hoot cafe",
-            "nearest_km": 1.99
+            "nearest": "Bhojan Griha (Dilli Bazaar)",
+            "nearest_km": 2.46
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Dhulikhel Branch (Kavrepalanchok)",
-            "nearest_km": 5.55
+            "count": 30,
+            "nearest": "Baisnodevi Saving and Credit Co-operative Limited",
+            "nearest_km": 0.56
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Police Station Sanga",
-            "nearest_km": 12.15
+            "nearest": "Hanuman Dokha Police Station",
+            "nearest_km": 0.19
           }
         },
         {
@@ -6314,9 +6312,9 @@
             "nearest_km": 0.36
           },
           "nearby_bank": {
-            "count": 5,
-            "nearest": "Nepal Bank Limited \u2014 Dhulikhel Branch (Kavrepalanchok)",
-            "nearest_km": 6.77
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 18.51
           },
           "nearby_police": {
             "count": 30,
@@ -6340,8 +6338,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Buddha Hospital",
-            "nearest_km": 1.52
+            "nearest": "Advance Oral Dental Hospital",
+            "nearest_km": 0.07
           },
           "nearby_hotel": {
             "count": 30,
@@ -6354,9 +6352,9 @@
             "nearest_km": 0.09
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 3.12
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 0.24
           },
           "nearby_police": {
             "count": 30,
@@ -6442,9 +6440,9 @@
             "nearest_km": 4.92
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Dhulikhel Branch (Kavrepalanchok)",
-            "nearest_km": 2.13
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 23.08
           },
           "nearby_police": {
             "count": 30,
@@ -6481,8 +6479,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Buddha Hospital",
-            "nearest_km": 2.31
+            "nearest": "Deuti Clinic",
+            "nearest_km": 1.38
           },
           "nearby_hotel": {
             "count": 30,
@@ -6495,14 +6493,14 @@
             "nearest_km": 2.02
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 1.23
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 1.0
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Koteshwor",
-            "nearest_km": 2.31
+            "nearest": "Thapathali",
+            "nearest_km": 1.73
           }
         },
         {
@@ -6535,9 +6533,9 @@
             "nearest_km": 0.06
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 0.19
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 6.49
           },
           "nearby_police": {
             "count": 30,
@@ -6575,14 +6573,14 @@
             "nearest_km": 6.53
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 4.25
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 6.0
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Koteshwor",
-            "nearest_km": 7.13
+            "nearest": "Balkhu",
+            "nearest_km": 6.09
           }
         },
         {
@@ -6615,14 +6613,14 @@
             "nearest_km": 5.16
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 3.93
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 4.89
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Kalimati",
-            "nearest_km": 6.33
+            "nearest": "Balkhu",
+            "nearest_km": 5.04
           }
         },
         {
@@ -6655,9 +6653,9 @@
             "nearest_km": 8.19
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 9.29
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 8.37
           },
           "nearby_police": {
             "count": 30,
@@ -6685,8 +6683,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Buddha Hospital",
-            "nearest_km": 2.29
+            "nearest": "Deuti Clinic",
+            "nearest_km": 1.38
           },
           "nearby_hotel": {
             "count": 30,
@@ -6699,14 +6697,14 @@
             "nearest_km": 2.11
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 1.29
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 0.99
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle New Baneshwor",
-            "nearest_km": 2.29
+            "nearest": "Thapathali",
+            "nearest_km": 1.6
           }
         },
         {
@@ -6747,9 +6745,9 @@
             "nearest_km": 8.19
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 9.29
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 8.37
           },
           "nearby_police": {
             "count": 30,
@@ -6804,9 +6802,9 @@
             "nearest_km": 25.21
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 1.82
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 37.78
           },
           "nearby_police": {
             "count": 30,
@@ -6844,14 +6842,14 @@
             "nearest_km": 30.51
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 7.55
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 32.24
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Police Station Naubise",
-            "nearest_km": 33.42
+            "nearest": "SOCIAL POLICE SERVICE",
+            "nearest_km": 31.81
           }
         },
         {
@@ -6884,9 +6882,9 @@
             "nearest_km": 22.65
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 20.65
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 23.52
           },
           "nearby_police": {
             "count": 30,
@@ -6924,14 +6922,14 @@
             "nearest_km": 10.15
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Lalitpur Branch (Lalitpur)",
-            "nearest_km": 13.89
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 10.96
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Kalimati",
-            "nearest_km": 12.61
+            "nearest": "SOCIAL POLICE SERVICE",
+            "nearest_km": 10.8
           }
         },
         {
@@ -6964,9 +6962,9 @@
             "nearest_km": 22.7
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 18.49
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 27.33
           },
           "nearby_police": {
             "count": 30,
@@ -7056,14 +7054,14 @@
             "nearest_km": 19.44
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Hetauda Branch (Makwanpur)",
-            "nearest_km": 18.77
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 20.4
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Kalimati",
-            "nearest_km": 21.83
+            "nearest": "SOCIAL POLICE SERVICE",
+            "nearest_km": 19.97
           }
         },
         {
@@ -7149,9 +7147,9 @@
             "nearest_km": 25.41
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Bidur Branch (Nuwakot)",
-            "nearest_km": 0.75
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 25.75
           },
           "nearby_police": {
             "count": 30,
@@ -7189,9 +7187,9 @@
             "nearest_km": 24.72
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Bidur Branch (Nuwakot)",
-            "nearest_km": 0.0
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 25.06
           },
           "nearby_police": {
             "count": 30,
@@ -7229,9 +7227,9 @@
             "nearest_km": 13.18
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Bidur Branch (Nuwakot)",
-            "nearest_km": 13.38
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 13.62
           },
           "nearby_police": {
             "count": 30,
@@ -7269,9 +7267,9 @@
             "nearest_km": 28.12
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Bidur Branch (Nuwakot)",
-            "nearest_km": 7.38
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 31.16
           },
           "nearby_police": {
             "count": 30,
@@ -7468,7 +7466,7 @@
             "displacement_km": 1.3
           },
           "nearby_hospital": {
-            "count": 28,
+            "count": 30,
             "nearest": "Grande International Hospital",
             "nearest_km": 40.88
           },
@@ -7483,14 +7481,14 @@
             "nearest_km": 6.57
           },
           "nearby_bank": {
-            "count": 5,
-            "nearest": "Nepal Bank Limited \u2014 Dhunche Branch (Rasuwa)",
-            "nearest_km": 0.0
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 42.08
           },
           "nearby_police": {
-            "count": 26,
-            "nearest": "Metropolitan Police Circle Kapan",
-            "nearest_km": 42.3
+            "count": 30,
+            "nearest": "Samudahik Prahari",
+            "nearest_km": 41.42
           }
         },
         {
@@ -7508,7 +7506,7 @@
             "displacement_km": 21.6
           },
           "nearby_hospital": {
-            "count": 9,
+            "count": 12,
             "nearest": "Rasuwa District Hospital",
             "nearest_km": 20.6
           },
@@ -7524,11 +7522,11 @@
           },
           "nearby_bank": {
             "count": 3,
-            "nearest": "Nepal Bank Limited \u2014 Dhunche Branch (Rasuwa)",
-            "nearest_km": 20.38
+            "nearest": "Jyoti Bikash Bank Maharajgunj Branch",
+            "nearest_km": 49.69
           },
           "nearby_police": {
-            "count": 19,
+            "count": 20,
             "nearest": "Police Station Syabrubesi",
             "nearest_km": 12.75
           }
@@ -7603,9 +7601,9 @@
             "nearest_km": 13.54
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 20.71
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 22.85
           },
           "nearby_police": {
             "count": 30,
@@ -7668,7 +7666,7 @@
             "displacement_km": 10.4
           },
           "nearby_hospital": {
-            "count": 22,
+            "count": 30,
             "nearest": "Nuwakot District Hospital",
             "nearest_km": 34.6
           },
@@ -7683,9 +7681,9 @@
             "nearest_km": 0.82
           },
           "nearby_bank": {
-            "count": 3,
-            "nearest": "Nepal Bank Limited \u2014 Dhunche Branch (Rasuwa)",
-            "nearest_km": 9.07
+            "count": 30,
+            "nearest": "Jyoti Bikash Bank Maharajgunj Branch",
+            "nearest_km": 47.59
           },
           "nearby_police": {
             "count": 30,
@@ -7767,9 +7765,9 @@
             "nearest_km": 5.37
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 20.88
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 40.38
           },
           "nearby_police": {
             "count": 30,
@@ -7898,8 +7896,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Buddha Hospital",
-            "nearest_km": 1.71
+            "nearest": "Bagmati Health Hub Pvt. Ltd",
+            "nearest_km": 0.44
           },
           "nearby_hotel": {
             "count": 30,
@@ -7912,14 +7910,14 @@
             "nearest_km": 2.27
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 3.37
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 1.13
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Gaushala",
-            "nearest_km": 1.04
+            "nearest": "Police Station",
+            "nearest_km": 0.2
           }
         },
         {
@@ -8021,9 +8019,9 @@
             "nearest_km": 15.85
           },
           "nearby_bank": {
-            "count": 8,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 17.66
+            "count": 30,
+            "nearest": "Agriculture Development Bank",
+            "nearest_km": 24.23
           },
           "nearby_police": {
             "count": 30,
@@ -8063,9 +8061,7 @@
             "nearest_km": 24.32
           },
           "nearby_bank": {
-            "count": 2,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 20.93
+            "count": 0
           },
           "nearby_police": {
             "count": 1,
@@ -8132,7 +8128,7 @@
             "displacement_km": 3.8
           },
           "nearby_hospital": {
-            "count": 27,
+            "count": 30,
             "nearest": "Charikot Hospital",
             "nearest_km": 22.18
           },
@@ -8147,9 +8143,9 @@
             "nearest_km": 18.31
           },
           "nearby_bank": {
-            "count": 4,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 24.19
+            "count": 23,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 47.45
           },
           "nearby_police": {
             "count": 30,
@@ -8227,9 +8223,9 @@
             "nearest_km": 3.81
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 13.9
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 35.56
           },
           "nearby_police": {
             "count": 30,
@@ -8267,9 +8263,9 @@
             "nearest_km": 4.85
           },
           "nearby_bank": {
-            "count": 6,
-            "nearest": "Nepal Bank Limited \u2014 Chautara Branch (Sindhupalchok)",
-            "nearest_km": 12.75
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 36.72
           },
           "nearby_police": {
             "count": 30,
@@ -9764,8 +9760,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Bir Hospital",
-            "nearest_km": 0.96
+            "nearest": "Chhatrapati Free Clinic",
+            "nearest_km": 0.35
           },
           "nearby_hotel": {
             "count": 30,
@@ -9778,14 +9774,14 @@
             "nearest_km": 2.06
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.36
+            "count": 30,
+            "nearest": "ATM Lounge",
+            "nearest_km": 0.14
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Chhetrapati",
-            "nearest_km": 0.64
+            "nearest": "Metropolitan Tourist Information Centre",
+            "nearest_km": 0.25
           }
         },
         {
@@ -10430,8 +10426,8 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Bir Hospital",
-            "nearest_km": 0.96
+            "nearest": "Chhatrapati Free Clinic",
+            "nearest_km": 0.35
           },
           "nearby_hotel": {
             "count": 30,
@@ -10444,14 +10440,14 @@
             "nearest_km": 2.06
           },
           "nearby_bank": {
-            "count": 9,
-            "nearest": "Nepal Bank Limited \u2014 Kathmandu Branch (Kathmandu)",
-            "nearest_km": 1.36
+            "count": 30,
+            "nearest": "ATM Lounge",
+            "nearest_km": 0.14
           },
           "nearby_police": {
             "count": 30,
-            "nearest": "Metropolitan Police Circle Chhetrapati",
-            "nearest_km": 0.64
+            "nearest": "Metropolitan Tourist Information Centre",
+            "nearest_km": 0.25
           }
         },
         {
@@ -10576,9 +10572,9 @@
             "nearest_km": 4.55
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Dhulikhel Branch (Kavrepalanchok)",
-            "nearest_km": 14.45
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 35.38
           },
           "nearby_police": {
             "count": 30,
@@ -16649,7 +16645,43 @@
         },
         {
           "place": "Masta",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Samasta Pharmacy",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 648.2,
+            "duration_min": 1114,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 106,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 474.2
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Batazoo Clinic",
+            "nearest_km": 0.12
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "Himalayan Royal Palace",
+            "nearest_km": 2.64
+          },
+          "nearby_restaurant": {
+            "count": 30,
+            "nearest": "G-Cafe",
+            "nearest_km": 1.69
+          },
+          "nearby_bank": {
+            "count": 30,
+            "nearest": "Aagrim Mahila Co-operative",
+            "nearest_km": 0.46
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Gaurighat Police Beat",
+            "nearest_km": 0.64
+          }
         },
         {
           "place": "Kedarsyu",
@@ -17710,9 +17742,9 @@
             "nearest_km": 8.19
           },
           "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Bhaktapur Branch (Bhaktapur)",
-            "nearest_km": 9.29
+            "count": 30,
+            "nearest": "121",
+            "nearest_km": 8.37
           },
           "nearby_police": {
             "count": 30,
@@ -18015,10 +18047,10 @@
   "totals": {
     "places": 811,
     "found_exact": 85,
-    "found_partial": 309,
-    "not_found": 417,
+    "found_partial": 310,
+    "not_found": 416,
     "routes_ok": 0,
-    "routes_fallback": 394,
+    "routes_fallback": 395,
     "routes_failed": 0,
     "no_hub": 0
   }

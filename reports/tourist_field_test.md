@@ -1,7 +1,7 @@
 # Tourist field test — live API results (all 77 districts)
 
-Generated: 2026-09-20T15:56:50Z · API: http://127.0.0.1:8000/api/v1
-Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 / fallback 394 / failed 0 / no-hub 0
+Generated: 2026-09-20T23:19:34Z · API: http://127.0.0.1:8000/api/v1
+Totals: 811 places · exact 85 · partial 310 · not found 416 · routes osrm 0 / fallback 395 / failed 0 / no-hub 0
 
 ## Bhojpur (hub: Annapurna Lodge)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
@@ -134,7 +134,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Tumlingtar | partial (Police Station Tumlingtar) | 12.5 | 11.4 | 21 | graphml_fallback | 7 | 28 | 4 | 5 | 26 | Sankhuwasabha District Hospital (8.9 km) |
 | Makalu Base Camp | exact | 66.7 | 60.4 | 115 | graphml_fallback | 1 | 30 | 30 | 2 | 9 | Solukhumbu District Hospital (35.38 km) |
 | Makalu Barun National Park | exact | 54.5 | 48.5 | 94 | graphml_fallback | 2 | 30 | 30 | 2 | 12 | Sankhuwasabha District Hospital (41.27 km) |
-| Num | partial (The Fern Residency Platinum) | 243.8 | 203.1 | 419 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Birendra Military Hospital (0.23 km) |
+| Num | partial (The Fern Residency Platinum) | 243.8 | 203.1 | 419 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Birendra Military Hospital (0.23 km) |
 | Seduwa | partial (Seduwa Community Lodge) | 51.7 | 39.9 | 89 | graphml_fallback | 2 | 30 | 30 | 2 | 14 | Sankhuwasabha District Hospital (31.04 km) |
 | Barun Valley | exact | 62.6 | 53.1 | 108 | graphml_fallback | 2 | 30 | 30 | 2 | 12 | Solukhumbu District Hospital (39.37 km) |
 | Sabha Pokhari | — | — | — | — | — | — | — | — | — | — | — |
@@ -153,7 +153,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Kala Patthar | exact | 5.8 | 5.4 | 10 | graphml_fallback | 1 | 30 | 30 | 1 | 10 | Solukhumbu District Hospital (25.09 km) |
 | Dingboche | partial (Hotel Tashi Delek Dingboche) | 12.2 | 6.7 | 21 | graphml_fallback | 1 | 30 | 30 | 2 | 10 | Solukhumbu District Hospital (15.45 km) |
 | Phakding | exact | 36.9 | 24.7 | 63 | graphml_fallback | 2 | 30 | 30 | 3 | 14 | Solukhumbu District Hospital (5.21 km) |
-| Thame | partial (Thamel Grand Hotel) | 175.4 | 149.7 | 301 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Ciwec Hospital (1.05 km) |
+| Thame | partial (Thamel Grand Hotel) | 175.4 | 149.7 | 301 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Diabetes, Thyroid and Heart Center Nepal Pvt. Ltd. (0.34 km) |
 | Khumjung | partial (Norbu Art Gallery Khumjung) | 25.9 | 17.1 | 44 | graphml_fallback | 1 | 30 | 30 | 2 | 11 | Solukhumbu District Hospital (3.3 km) |
 | Renjo La | — | — | — | — | — | — | — | — | — | — | — |
 
@@ -217,7 +217,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Gadhimai Temple | — | — | — | — | — | — | — | — | — | — | — |
 | Simraungadh | — | — | — | — | — | — | — | — | — | — | — |
 | Amlekhganj | — | — | — | — | — | — | — | — | — | — | — |
-| Parsa National Park | exact | 210.8 | 28.6 | 362 | graphml_fallback | 1 | 15 | 3 | 4 | 3 | Gajuri Hospital (49.84 km) |
+| Parsa National Park | exact | 210.8 | 28.6 | 362 | graphml_fallback | 1 | 15 | 3 | 0 | 3 | Gajuri Hospital (49.84 km) |
 | Pathlaiya | — | — | — | — | — | — | — | — | — | — | — |
 | Jitpur | — | — | — | — | — | — | — | — | — | — | — |
 | Bakaiya River | — | — | — | — | — | — | — | — | — | — | — |
@@ -242,8 +242,8 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Jaleshwar | partial (Nepal Bank Limited — Jaleshwar Branch (Mahottari)) | 1.4 | 1.4 | 2 | graphml_fallback | 19 | 30 | 2 | 5 | 30 | Mahottari District Hospital (0.0 km) |
 | Jaleshwar Mahadev Temple | — | — | — | — | — | — | — | — | — | — | — |
-| Bardibas | partial (BP Koirala Highway (Banepa-Bardibas)) | 69.6 | 60.8 | 120 | graphml_fallback | 22 | 26 | 30 | 6 | 28 | Charikot Hospital (27.5 km) |
-| Gaushala | partial (Metropolitan Police Circle Gaushala) | 113.8 | 96.5 | 195 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Helping Hands Community Hospital (1.26 km) |
+| Bardibas | partial (BP Koirala Highway (Banepa-Bardibas)) | 69.6 | 60.8 | 120 | graphml_fallback | 30 | 26 | 30 | 26 | 30 | Charikot Hospital (27.5 km) |
+| Gaushala | partial (Metropolitan Police Circle, Gaushala) | 113.4 | 96.6 | 195 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Cosmos Diagonosis and Research Centre (0.45 km) |
 | Matihani | — | — | — | — | — | — | — | — | — | — | — |
 | Ratwara | — | — | — | — | — | — | — | — | — | — | — |
 | Ratauli | — | — | — | — | — | — | — | — | — | — | — |
@@ -257,7 +257,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Thori | — | — | — | — | — | — | — | — | — | — | — |
 | Suwarna | — | — | — | — | — | — | — | — | — | — | — |
 | Bindabasini Temple | — | — | — | — | — | — | — | — | — | — | — |
-| Ghantaghar | exact | 89.4 | 87.8 | 154 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Bir Hospital (0.33 km) |
+| Ghantaghar | exact | 89.4 | 87.8 | 154 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bir Hospital (0.33 km) |
 | Sirsiya River | — | — | — | — | — | — | — | — | — | — | — |
 | Ram Bhanjyang | — | — | — | — | — | — | — | — | — | — | — |
 | Bhatauda | — | — | — | — | — | — | — | — | — | — | — |
@@ -269,10 +269,10 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Garuda | partial (Police Station Garuda) | 41.3 | 34.5 | 71 | graphml_fallback | 15 | 0 | 0 | 4 | 24 | Gaur Hospital (24.1 km) |
 | Rajdevi Temple | — | — | — | — | — | — | — | — | — | — | — |
 | Shivnagar | — | — | — | — | — | — | — | — | — | — | — |
-| Bagmati River | partial (Bagmati River (Pashupati)) | 101.5 | 47.0 | 174 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Helping Hands Community Hospital (1.26 km) |
+| Bagmati River | partial (Bagmati River (Pashupati)) | 101.5 | 47.0 | 174 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Children's Diagnosis Center (0.86 km) |
 | Nunthar | — | — | — | — | — | — | — | — | — | — | — |
-| Chandrapur | exact | 0.0 | 0.0 | 0 | straight_line_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (42.86 km) |
-| Balara | partial (balaram dhedho house) | 65.6 | 37.2 | 113 | graphml_fallback | 30 | 30 | 24 | 7 | 30 | Armed Police Force Hospital Emergency (35.69 km) |
+| Chandrapur | exact | 0.0 | 0.0 | 0 | straight_line_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (42.86 km) |
+| Balara | partial (balaram dhedho house) | 65.6 | 37.2 | 113 | graphml_fallback | 30 | 30 | 24 | 30 | 30 | Armed Police Force Hospital Emergency (35.69 km) |
 | Brindaban | exact | 290.9 | 193.3 | 500 | graphml_fallback | 18 | 30 | 26 | 5 | 28 | Butwal Hospital (1.69 km) |
 | Gaidatar | — | — | — | — | — | — | — | — | — | — | — |
 
@@ -322,18 +322,18 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 ## Bhaktapur (hub: A One Minawasi Hotel)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Bhaktapur Durbar Square | exact | 8.2 | 7.2 | 14 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
-| Nyatapola Temple | partial (Nyatapola Temple (Bhaktapur)) | 8.3 | 7.3 | 14 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
+| Bhaktapur Durbar Square | exact | 8.2 | 7.2 | 14 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
+| Nyatapola Temple | partial (Nyatapola Temple (Bhaktapur)) | 8.3 | 7.3 | 14 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
 | Taumadhi Square | — | — | — | — | — | — | — | — | — | — | — |
 | Dattatreya Square | — | — | — | — | — | — | — | — | — | — | — |
-| Pottery Square | partial (Bhaktapur Pottery Square) | 8.3 | 7.2 | 14 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
-| Changu Narayan | exact | 12.5 | 8.2 | 21 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Human Organ Transplant Center (3.14 km) |
+| Pottery Square | partial (Bhaktapur Pottery Square) | 8.3 | 7.2 | 14 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
+| Changu Narayan | exact | 12.5 | 8.2 | 21 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Human Organ Transplant Center (3.14 km) |
 | Siddha Pokhari | — | — | — | — | — | — | — | — | — | — | — |
 | 55 Window Palace | — | — | — | — | — | — | — | — | — | — | — |
 | Bhairavnath Temple | — | — | — | — | — | — | — | — | — | — | — |
-| Nagarkot | partial (Nagarkot Camping) | 26.6 | 16.7 | 46 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Human Organ Transplant Center (9.46 km) |
-| Suryabinayak | partial (suryabinayak boys hostel) | 5.2 | 4.2 | 9 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Annapurna Neurological Institute (1.39 km) |
-| Pilot Baba Ashram | exact | 9.3 | 7.4 | 16 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (3.36 km) |
+| Nagarkot | partial (Nagarkot Camping) | 26.6 | 16.7 | 46 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Human Organ Transplant Center (9.46 km) |
+| Suryabinayak | partial (suryabinayak boys hostel) | 5.2 | 4.2 | 9 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | A.L Logistics Nepal Pvt.Ltd (0.82 km) |
+| Pilot Baba Ashram | exact | 9.3 | 7.4 | 16 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (3.36 km) |
 
 ## Chitwan (hub: Aama Hotel)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
@@ -348,20 +348,20 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Kasara | partial (Kasara Chitwan) | 45.5 | 39.1 | 78 | graphml_fallback | 17 | 30 | 17 | 3 | 26 | Cmc Hospital Emergency (15.26 km) |
 | Rapti River | — | — | — | — | — | — | — | — | — | — | — |
 | Chitwan Tharu Village | — | — | — | — | — | — | — | — | — | — | — |
-| Jalbire | partial (Canyoning at Jalbire) | 31.5 | 26.3 | 54 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Gajuri Hospital (5.26 km) |
+| Jalbire | partial (Canyoning at Jalbire) | 31.5 | 26.3 | 54 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Gajuri Hospital (5.26 km) |
 | Maulakalika | — | — | — | — | — | — | — | — | — | — | — |
 
 ## Dhading (hub: Adhikari Hotel and Lodge)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Dhading Besi | — | — | — | — | — | — | — | — | — | — | — |
-| Ruby Valley | partial (Ruby Valley Guest House) | 0.8 | 0.8 | 1 | graphml_fallback | 20 | 25 | 26 | 6 | 25 | Dhading District Hospital (5.36 km) |
-| Ganesh Himal | partial (Ganesh Himal Guest House) | 0.6 | 0.6 | 1 | graphml_fallback | 20 | 25 | 26 | 6 | 25 | Dhading District Hospital (5.36 km) |
+| Ruby Valley | partial (Ruby Valley Guest House) | 0.8 | 0.8 | 1 | graphml_fallback | 30 | 25 | 26 | 30 | 30 | Dhading District Hospital (5.36 km) |
+| Ganesh Himal | partial (Ganesh Himal Guest House) | 0.6 | 0.6 | 1 | graphml_fallback | 30 | 25 | 26 | 30 | 30 | Dhading District Hospital (5.36 km) |
 | Pangsang Pass | — | — | — | — | — | — | — | — | — | — | — |
-| Tripura Sundari | partial (Tripura Sundari Guesthouse and Restaurant) | 0.1 | 0.1 | 0 | graphml_fallback | 19 | 24 | 26 | 6 | 26 | Dhading District Hospital (5.7 km) |
+| Tripura Sundari | partial (Tripura Sundari Guesthouse and Restaurant) | 0.1 | 0.1 | 0 | graphml_fallback | 30 | 24 | 26 | 30 | 30 | Dhading District Hospital (5.7 km) |
 | Salyantar | — | — | — | — | — | — | — | — | — | — | — |
-| Benighat | partial (Police Station Benighat) | 12.4 | 12.4 | 21 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Gajuri Hospital (2.43 km) |
-| Trishuli River | partial (Trishuli River Rafting) | 40.0 | 28.9 | 69 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Armed Police Force Hospital Emergency (15.7 km) |
+| Benighat | partial (Police Station Benighat) | 12.4 | 12.4 | 21 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Gajuri Hospital (2.43 km) |
+| Trishuli River | partial (Trishuli River Rafting) | 40.0 | 28.9 | 69 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (15.7 km) |
 | Budhi Gandaki | partial (Budhi Gandaki Hotel) | 73.0 | 69.2 | 125 | graphml_fallback | 0 | 30 | 21 | 0 | 1 | — |
 | Ganga Jamuna Waterfall | — | — | — | — | — | — | — | — | — | — | — |
 | Sertung | — | — | — | — | — | — | — | — | — | — | — |
@@ -374,7 +374,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Dolakha Bhimsen Temple | — | — | — | — | — | — | — | — | — | — | — |
 | Kalinchowk | partial (Kalinchowk Bhagwati Snow) | 13.7 | 9.4 | 23 | graphml_fallback | 11 | 30 | 20 | 3 | 29 | Charikot Hospital (8.95 km) |
 | Kuri Village | partial (Hotel Mek Kuri Village Pvt Ltd.) | 12.7 | 8.6 | 22 | graphml_fallback | 8 | 30 | 18 | 3 | 27 | Charikot Hospital (8.6 km) |
-| Jiri | partial (Tiger Of Jiri Hotel) | 79.4 | 69.8 | 136 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Madhyapur Hospital (2.77 km) |
+| Jiri | partial (Tiger Of Jiri Hotel) | 79.4 | 69.8 | 136 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Aasthanga Ayurved Hospital and Research Center Pvt.Ltd (1.45 km) |
 | Sailung | partial (Sailung Winter Trek) | 7.9 | 7.7 | 14 | graphml_fallback | 17 | 30 | 30 | 5 | 30 | Charikot Hospital (3.7 km) |
 | Tamakoshi River | — | — | — | — | — | — | — | — | — | — | — |
 | Bigu | — | — | — | — | — | — | — | — | — | — | — |
@@ -385,71 +385,71 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 ## Kathmandu (hub: 3 rooms by Pauline)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Swayambhunath | partial (Swayambhunath Stupa (Monkey Temple)) | 4.5 | 3.9 | 8 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Birendra Military Hospital (1.56 km) |
-| Boudhanath | partial (Boudhanath Stupa) | 5.0 | 4.9 | 9 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Apex Hospital (1.27 km) |
-| Pashupatinath | partial (Shivaratri (Pashupatinath)) | 3.3 | 3.0 | 6 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Helping Hands Community Hospital (1.26 km) |
-| Kathmandu Durbar Square | partial (Kathmandu Durbar Square & Old City) | 2.5 | 2.1 | 4 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Blue Cross Hospital (0.74 km) |
+| Swayambhunath | partial (Swayambhunath Stupa (Monkey Temple)) | 4.5 | 3.9 | 8 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Birendra Military Hospital (1.56 km) |
+| Boudhanath | partial (Boudhanath Stupa) | 5.0 | 4.9 | 9 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Chinese People Hospital Private Limited (0.07 km) |
+| Pashupatinath | partial (Shivaratri (Pashupatinath)) | 3.3 | 3.0 | 6 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Children's Diagnosis Center (0.86 km) |
+| Kathmandu Durbar Square | partial (Kathmandu Durbar Square & Old City) | 2.5 | 2.1 | 4 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Ayurveda Hospital (0.32 km) |
 | Garden of Dreams | exact | 112.9 | 81.7 | 194 | graphml_fallback | 19 | 30 | 19 | 4 | 26 | Cmc Hospital Emergency (12.1 km) |
-| Thamel | partial (Thamel Grand Hotel) | 2.9 | 2.8 | 5 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Ciwec Hospital (1.05 km) |
+| Thamel | partial (Thamel Grand Hotel) | 2.9 | 2.8 | 5 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Diabetes, Thyroid and Heart Center Nepal Pvt. Ltd. (0.34 km) |
 | Chandragiri Hills | — | — | — | — | — | — | — | — | — | — | — |
-| Kirtipur | partial (Kirtipur community homestay) | 5.1 | 5.0 | 9 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Janamaitri Hospital (2.51 km) |
-| Kopan Monastery | exact | 6.3 | 6.1 | 11 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Apex Hospital (0.49 km) |
-| Rani Pokhari | exact | 1.7 | 1.6 | 3 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Bir Hospital (0.33 km) |
-| Narayanhiti Palace | partial (Narayanhiti Palace Museum) | 2.4 | 2.3 | 4 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Bir Hospital (0.33 km) |
-| Shivapuri | partial (Kakani-Shivapuri MTB) | 16.4 | 11.9 | 28 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Grande International Hospital (6.29 km) |
+| Kirtipur | partial (Kirtipur community homestay) | 5.1 | 5.0 | 9 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Janamaitri Hospital (2.51 km) |
+| Kopan Monastery | exact | 6.3 | 6.1 | 11 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Apex Hospital (0.49 km) |
+| Rani Pokhari | exact | 1.7 | 1.6 | 3 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bir Hospital (0.33 km) |
+| Narayanhiti Palace | partial (Narayanhiti Palace Museum) | 2.4 | 2.3 | 4 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bir Hospital (0.33 km) |
+| Shivapuri | partial (Kakani-Shivapuri MTB) | 16.4 | 11.9 | 28 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Grande International Hospital (6.29 km) |
 
 ## Kavrepalanchok (hub: Aagantuk Resort)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Dhulikhel | partial (Nagarkot-Dhulikhel Mountain Biking) | 10.7 | 7.5 | 18 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Bhaktapur Human Organ Transplant Center (10.09 km) |
-| Namobuddha | partial (Namobuddha Thrangu Monastery) | 11.6 | 6.5 | 20 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (17.04 km) |
-| Panauti | partial (Panauti Community Homestay) | 6.6 | 6.3 | 11 | graphml_fallback | 30 | 30 | 30 | 5 | 30 | Bhaktapur Cancer Hospital (12.52 km) |
-| Banepa | partial (Banepali Guest House) | 24.5 | 20.0 | 42 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Buddha Hospital (1.52 km) |
+| Dhulikhel | partial (Nagarkot-Dhulikhel Mountain Biking) | 10.7 | 7.5 | 18 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Human Organ Transplant Center (10.09 km) |
+| Namobuddha | partial (NAtional Namobuddha Saving and Credit Co-operative Limited) | 29.1 | 24.2 | 50 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Ayurveda Hospital (0.32 km) |
+| Panauti | partial (Panauti Community Homestay) | 6.6 | 6.3 | 11 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (12.52 km) |
+| Banepa | partial (Banepali Guest House) | 24.5 | 20.0 | 42 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Advance Oral Dental Hospital (0.07 km) |
 | Bethanchok | — | — | — | — | — | — | — | — | — | — | — |
 | Indreshwar Mahadev | — | — | — | — | — | — | — | — | — | — | — |
 | Sanga | partial (Sangam Hotel) | 278.5 | 166.8 | 479 | graphml_fallback | 30 | 27 | 30 | 6 | 30 | Fishtail Hospital (1.01 km) |
-| Balthali | partial (Balthali Village Resort) | 10.8 | 9.1 | 18 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Bhaktapur Cancer Hospital (17.27 km) |
+| Balthali | partial (Balthali Village Resort) | 10.8 | 9.1 | 18 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (17.27 km) |
 | Roshi Valley | — | — | — | — | — | — | — | — | — | — | — |
 
 ## Lalitpur (hub: "Break the Chain")
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Patan Durbar Square | exact | 0.2 | 0.1 | 0 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Buddha Hospital (2.31 km) |
-| Golden Temple | partial (Golden Temple Lodge) | 11.8 | 10.3 | 20 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
-| Bungamati | partial (Police Station Bungamati) | 6.2 | 5.5 | 11 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Janamaitri Hospital (6.12 km) |
-| Khokana | exact | 6.2 | 5.2 | 11 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Janamaitri Hospital (5.1 km) |
-| Godawari Botanical Garden | partial (Godawari Botanical Garden Birding) | 10.8 | 9.8 | 19 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Madhyapur Hospital (8.95 km) |
+| Patan Durbar Square | exact | 0.2 | 0.1 | 0 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Deuti Clinic (1.38 km) |
+| Golden Temple | partial (Golden Temple Lodge) | 11.8 | 10.3 | 20 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (0.29 km) |
+| Bungamati | partial (Police Station Bungamati) | 6.2 | 5.5 | 11 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Janamaitri Hospital (6.12 km) |
+| Khokana | exact | 6.2 | 5.2 | 11 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Janamaitri Hospital (5.1 km) |
+| Godawari Botanical Garden | partial (Godawari Botanical Garden Birding) | 10.8 | 9.8 | 19 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Madhyapur Hospital (8.95 km) |
 | Phulchoki | — | — | — | — | — | — | — | — | — | — | — |
-| Kumbheshwar Temple | exact | 0.3 | 0.3 | 0 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Buddha Hospital (2.29 km) |
+| Kumbheshwar Temple | exact | 0.3 | 0.3 | 0 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Deuti Clinic (1.38 km) |
 | Mahaboudha Temple | — | — | — | — | — | — | — | — | — | — | — |
 | Rudravarna Mahavihar | — | — | — | — | — | — | — | — | — | — | — |
-| Godawari | partial (Godawari Botanical Garden Birding) | 10.8 | 9.8 | 19 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Madhyapur Hospital (8.95 km) |
+| Godawari | partial (Godawari Botanical Garden Birding) | 10.8 | 9.8 | 19 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Madhyapur Hospital (8.95 km) |
 | Champi | — | — | — | — | — | — | — | — | — | — | — |
 | Lakuri Bhanjyang | — | — | — | — | — | — | — | — | — | — | — |
 
 ## Makwanpur (hub: Akhanda Dhuni Cave (Daman))
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Hetauda | exact | 49.9 | 19.3 | 86 | graphml_fallback | 30 | 30 | 24 | 7 | 30 | Armed Police Force Hospital Emergency (35.69 km) |
-| Makwanpur Gadhi | exact | 56.5 | 16.9 | 97 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Armed Police Force Hospital Emergency (30.51 km) |
-| Daman | partial (Daman Snow View) | 7.6 | 0.3 | 13 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Armed Police Force Hospital Emergency (20.64 km) |
-| Chitlang | partial (Chitlang Organic Village Resort) | 12.9 | 12.3 | 22 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Armed Police Force Hospital Emergency (8.05 km) |
-| Kulekhani | partial (Kulekhani Lakeside Camping) | 11.2 | 4.1 | 19 | graphml_fallback | 30 | 28 | 30 | 7 | 30 | Armed Police Force Hospital Emergency (24.46 km) |
+| Hetauda | exact | 49.9 | 19.3 | 86 | graphml_fallback | 30 | 30 | 24 | 30 | 30 | Armed Police Force Hospital Emergency (35.69 km) |
+| Makwanpur Gadhi | exact | 56.5 | 16.9 | 97 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (30.51 km) |
+| Daman | partial (Daman Snow View) | 7.6 | 0.3 | 13 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (20.64 km) |
+| Chitlang | partial (Chitlang Organic Village Resort) | 12.9 | 12.3 | 22 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (8.05 km) |
+| Kulekhani | partial (Kulekhani Lakeside Camping) | 11.2 | 4.1 | 19 | graphml_fallback | 30 | 28 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (24.46 km) |
 | Indrasarovar | — | — | — | — | — | — | — | — | — | — | — |
 | Markhu | — | — | — | — | — | — | — | — | — | — | — |
 | Tistung | — | — | — | — | — | — | — | — | — | — | — |
 | Palung | partial (Police Station Palungtar) | 82.2 | 65.2 | 141 | graphml_fallback | 21 | 29 | 30 | 4 | 28 | Gorkha District Hospital (3.48 km) |
-| Bhimphedi | partial (Police Station Bhimphedi) | 16.0 | 9.6 | 27 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Armed Police Force Hospital Emergency (18.42 km) |
+| Bhimphedi | partial (Police Station Bhimphedi) | 16.0 | 9.6 | 27 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (18.42 km) |
 | Sim Bhanjyang | — | — | — | — | — | — | — | — | — | — | — |
 | Manakamana Temple | exact | 68.2 | 57.3 | 117 | graphml_fallback | 21 | 30 | 30 | 6 | 28 | Gorkha District Hospital (13.76 km) |
 
 ## Nuwakot (hub: Aana yangri)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Bidur | partial (Police Station Bidur) | 41.7 | 32.1 | 72 | straight_line_fallback | 30 | 30 | 30 | 6 | 30 | Dhading District Hospital (24.23 km) |
-| Nuwakot Durbar | partial (Nuwakot Durbar Village) | 40.8 | 31.4 | 70 | straight_line_fallback | 30 | 30 | 30 | 6 | 30 | Grande International Hospital (24.52 km) |
-| Kakani | partial (Police Station Kakani) | 36.3 | 31.5 | 62 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Armed Police Force Hospital Emergency (13.18 km) |
-| Trishuli | partial (Police Station Trishuli) | 41.1 | 31.6 | 71 | straight_line_fallback | 30 | 30 | 24 | 6 | 30 | Dhading District Hospital (27.59 km) |
+| Bidur | partial (Police Station Bidur) | 41.7 | 32.1 | 72 | straight_line_fallback | 30 | 30 | 30 | 30 | 30 | Dhading District Hospital (24.23 km) |
+| Nuwakot Durbar | partial (Nuwakot Durbar Village) | 40.8 | 31.4 | 70 | straight_line_fallback | 30 | 30 | 30 | 30 | 30 | Grande International Hospital (24.52 km) |
+| Kakani | partial (Police Station Kakani) | 36.3 | 31.5 | 62 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Armed Police Force Hospital Emergency (13.18 km) |
+| Trishuli | partial (Police Station Trishuli) | 41.1 | 31.6 | 71 | straight_line_fallback | 30 | 30 | 24 | 30 | 30 | Dhading District Hospital (27.59 km) |
 | Devighat | — | — | — | — | — | — | — | — | — | — | — |
 | Suryagadhi | — | — | — | — | — | — | — | — | — | — | — |
 | Tadi | partial (Hotel Saptadip and Lodge) | 294.2 | 139.8 | 505 | graphml_fallback | 26 | 30 | 30 | 6 | 30 | Gandaki Medical College Teaching Hospital (9.82 km) |
@@ -470,15 +470,15 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 ## Rasuwa (hub: ACAP / TIMS Checkpost)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Dhunche | partial (Nepal Bank Limited — Dhunche Branch (Rasuwa)) | 1.4 | 1.3 | 2 | graphml_fallback | 28 | 30 | 30 | 5 | 26 | Grande International Hospital (40.88 km) |
-| Langtang National Park | exact | 32.2 | 21.6 | 55 | graphml_fallback | 9 | 21 | 9 | 3 | 19 | Rasuwa District Hospital (20.6 km) |
+| Dhunche | partial (Nepal Bank Limited — Dhunche Branch (Rasuwa)) | 1.4 | 1.3 | 2 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Grande International Hospital (40.88 km) |
+| Langtang National Park | exact | 32.2 | 21.6 | 55 | graphml_fallback | 12 | 21 | 9 | 3 | 20 | Rasuwa District Hospital (20.6 km) |
 | Langtang Valley | partial (Langtang Valley Trek) | 32.7 | 26.7 | 56 | graphml_fallback | 6 | 22 | 7 | 3 | 20 | Rasuwa District Hospital (25.76 km) |
-| Gosainkunda | partial (New Gosainkunda Lodge & Restaurant) | 36.3 | 29.6 | 62 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Apex Hospital (22.01 km) |
+| Gosainkunda | partial (New Gosainkunda Lodge & Restaurant) | 36.3 | 29.6 | 62 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Apex Hospital (22.01 km) |
 | Kyanjin Gompa | partial (Kyanjin Gompa Guest House) | 36.4 | 29.2 | 63 | graphml_fallback | 4 | 22 | 7 | 2 | 17 | Rasuwa District Hospital (28.21 km) |
-| Syabrubesi | partial (Police Station Syabrubesi) | 14.1 | 10.4 | 24 | graphml_fallback | 22 | 23 | 13 | 3 | 30 | Nuwakot District Hospital (34.6 km) |
+| Syabrubesi | partial (Police Station Syabrubesi) | 14.1 | 10.4 | 24 | graphml_fallback | 30 | 23 | 13 | 30 | 30 | Nuwakot District Hospital (34.6 km) |
 | Tatopani | partial (Tatopani Guest House) | 344.4 | 165.8 | 592 | graphml_fallback | 27 | 30 | 30 | 6 | 30 | Beni Community Hospital (18.05 km) |
 | Lauribina Pass | — | — | — | — | — | — | — | — | — | — | — |
-| Helambu | partial (Helambu Trek) | 26.4 | 22.8 | 45 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Grande International Hospital (39.71 km) |
+| Helambu | partial (Helambu Trek) | 26.4 | 22.8 | 45 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Grande International Hospital (39.71 km) |
 | Timure | — | — | — | — | — | — | — | — | — | — | — |
 | Rasuwagadhi | — | — | — | — | — | — | — | — | — | — | — |
 
@@ -489,7 +489,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Kamalamai | partial (Nepal Bank Limited — Kamalamai Branch (Sindhuli)) | 4.7 | 4.6 | 8 | graphml_fallback | 11 | 6 | 10 | 5 | 11 | Janasewa Hospital (6.92 km) |
 | Sindhuli Bazaar | — | — | — | — | — | — | — | — | — | — | — |
 | Khurkot | partial (Police Station Khurkot) | 113.4 | 25.1 | 195 | graphml_fallback | 13 | 14 | 19 | 4 | 25 | Manthali Hospital (1.49 km) |
-| Marin | partial (Hotel Marinha) | 89.0 | 77.6 | 153 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Buddha Hospital (1.71 km) |
+| Marin | partial (Hotel Marinha) | 89.0 | 77.6 | 153 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bagmati Health Hub Pvt. Ltd (0.44 km) |
 | Hariharpurgadhi | — | — | — | — | — | — | — | — | — | — | — |
 | Golanjor | — | — | — | — | — | — | — | — | — | — | — |
 | Sunkoshi River | — | — | — | — | — | — | — | — | — | — | — |
@@ -500,15 +500,15 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 ## Sindhupalchok (hub: Agro Village Resort & Farm)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Melamchi | partial (Police Station Melamchi) | 62.8 | 27.0 | 108 | graphml_fallback | 30 | 30 | 30 | 8 | 30 | Bhaktapur Human Organ Transplant Center (21.45 km) |
+| Melamchi | partial (Police Station Melamchi) | 62.8 | 27.0 | 108 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Human Organ Transplant Center (21.45 km) |
 | Bhote Koshi River | — | — | — | — | — | — | — | — | — | — | — |
-| Panch Pokhari | exact | 60.5 | 43.3 | 104 | graphml_fallback | 0 | 13 | 7 | 2 | 1 | — |
+| Panch Pokhari | exact | 60.5 | 43.3 | 104 | graphml_fallback | 0 | 13 | 7 | 0 | 1 | — |
 | Gaurishankar | partial (Gaurishankar Resort) | 25.0 | 24.1 | 43 | graphml_fallback | 11 | 20 | 17 | 3 | 29 | Charikot Hospital (4.48 km) |
 | Thangpaldhap | — | — | — | — | — | — | — | — | — | — | — |
-| Barhabise | partial (Police Station Barhabise) | 5.0 | 3.8 | 9 | straight_line_fallback | 27 | 29 | 30 | 4 | 30 | Charikot Hospital (22.18 km) |
+| Barhabise | partial (Police Station Barhabise) | 5.0 | 3.8 | 9 | straight_line_fallback | 30 | 29 | 30 | 23 | 30 | Charikot Hospital (22.18 km) |
 | Kodari | partial (Tatopani Hot Spring (Kodari)) | 26.4 | 26.3 | 45 | graphml_fallback | 5 | 10 | 5 | 2 | 19 | Sindhupalchok District Hospital (27.9 km) |
-| Tarkeghyang | partial (Hotel Tarkeghyang) | 63.8 | 39.3 | 110 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Apex Hospital (34.72 km) |
-| Ama Yangri | partial (Ama Yangri Base Camp) | 62.3 | 38.5 | 107 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Apex Hospital (35.79 km) |
+| Tarkeghyang | partial (Hotel Tarkeghyang) | 63.8 | 39.3 | 110 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Apex Hospital (34.72 km) |
+| Ama Yangri | partial (Ama Yangri Base Camp) | 62.3 | 38.5 | 107 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Apex Hospital (35.79 km) |
 
 ## Baglung (hub: Baglung Kalika Temple Viewpoint)
 | Place | Found | Route km | Straight km | min | Source | Hosp | Hotel | Rest | Bank | Police | Nearest hospital |
@@ -580,7 +580,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Thorong La | exact | 38.8 | 35.9 | 67 | graphml_fallback | 10 | 30 | 30 | 2 | 26 | Manang District Hospital (24.0 km) |
 | Ice Lake | — | — | — | — | — | — | — | — | — | — | — |
 | Braga | partial (Braga Gompa) | 46.7 | 39.1 | 80 | graphml_fallback | 18 | 30 | 30 | 3 | 28 | Manang District Hospital (26.82 km) |
-| Pisang | exact | 460.7 | 130.3 | 792 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Bir Hospital (0.96 km) |
+| Pisang | exact | 460.7 | 130.3 | 792 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Chhatrapati Free Clinic (0.35 km) |
 | Chame | partial (Bat Cave (Chamere Gufa)) | 221.8 | 51.1 | 381 | graphml_fallback | 30 | 28 | 30 | 6 | 30 | Fishtail Hospital (0.81 km) |
 | Ngawal | partial (Ngawal Himalayan Lodge) | 40.2 | 35.4 | 69 | graphml_fallback | 18 | 30 | 30 | 3 | 28 | Manang District Hospital (23.32 km) |
 | Gangapurna Lake | — | — | — | — | — | — | — | — | — | — | — |
@@ -607,13 +607,13 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Beni | partial (Tribeni Hostel And Tution Centre) | 44.2 | 41.4 | 76 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Gandaki Medical College Teaching Hospital (1.41 km) |
 | Ghorepani | partial (Poon Hill-Ghorepani-Ghandruk Trek) | 10.6 | 8.6 | 18 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Beni Community Hospital (18.47 km) |
-| Poon Hill | exact | 279.6 | 179.6 | 480 | graphml_fallback | 30 | 30 | 30 | 9 | 30 | Bir Hospital (0.96 km) |
+| Poon Hill | exact | 279.6 | 179.6 | 480 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Chhatrapati Free Clinic (0.35 km) |
 | Ghandruk | partial (Ghandruk Guesthouse And Restaurent) | 41.1 | 38.0 | 71 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Charak Memorial Hospital (1.51 km) |
 | Khopra Danda | — | — | — | — | — | — | — | — | — | — | — |
 | Mohare Danda | partial (Way to Mohare danda) | 11.9 | 10.2 | 21 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Beni Community Hospital (9.72 km) |
 | Rupse Waterfall | — | — | — | — | — | — | — | — | — | — | — |
 | Dhaulagiri Base Camp | — | — | — | — | — | — | — | — | — | — | — |
-| Sikha | partial (kavrely sikhar momo center) | 325.8 | 221.0 | 560 | graphml_fallback | 30 | 30 | 30 | 7 | 30 | Bhaktapur Cancer Hospital (28.66 km) |
+| Sikha | partial (kavrely sikhar momo center) | 325.8 | 221.0 | 560 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Bhaktapur Cancer Hospital (28.66 km) |
 | Dana | partial (Suddhodana's Palace) | 179.2 | 113.5 | 308 | graphml_fallback | 11 | 26 | 26 | 3 | 26 | Kapilvastu District Hospital (2.97 km) |
 | Lete | partial (Lete Mountain Lodge) | 25.6 | 24.6 | 44 | graphml_fallback | 13 | 30 | 30 | 5 | 13 | Mustang District Hospital (18.6 km) |
 
@@ -1028,7 +1028,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Khaptad National Park | exact | 95.3 | 75.1 | 164 | graphml_fallback | 9 | 11 | 0 | 2 | 21 | Kanchanpur District Hospital (34.13 km) |
 | Thalara | — | — | — | — | — | — | — | — | — | — | — |
 | Talkot | partial (Police Station Talkot) | 42.5 | 35.3 | 73 | graphml_fallback | 3 | 14 | 1 | 3 | 15 | Bajhang District Hospital (11.29 km) |
-| Masta | — | — | — | — | — | — | — | — | — | — | — |
+| Masta | partial (Samasta Pharmacy) | 648.2 | 474.2 | 1114 | graphml_fallback | 30 | 30 | 30 | 30 | 30 | Batazoo Clinic (0.12 km) |
 | Kedarsyu | — | — | — | — | — | — | — | — | — | — | — |
 | Seti River | partial (Seti River Kayaking) | 409.3 | 331.7 | 703 | graphml_fallback | 30 | 30 | 30 | 6 | 30 | Gandaki Medical College Teaching Hospital (1.11 km) |
 | Chhabis Pathibhara | — | — | — | — | — | — | — | — | — | — | — |
@@ -1099,7 +1099,7 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 | Ghodaghodi Lake | exact | 71.5 | 55.0 | 123 | straight_line_fallback | 10 | 7 | 1 | 1 | 14 | Kailali District Hospital (0.98 km) |
 | Chisapani | exact | 927.7 | 713.6 | 1594 | straight_line_fallback | 10 | 30 | 5 | 2 | 19 | Ilam Community Hospital (20.75 km) |
 | Karnali Bridge | — | — | — | — | — | — | — | — | — | — | — |
-| Godawari | partial (Godawari Botanical Garden Birding) | 559.3 | 430.3 | 961 | straight_line_fallback | 30 | 30 | 30 | 7 | 30 | Madhyapur Hospital (8.95 km) |
+| Godawari | partial (Godawari Botanical Garden Birding) | 559.3 | 430.3 | 961 | straight_line_fallback | 30 | 30 | 30 | 30 | 30 | Madhyapur Hospital (8.95 km) |
 | Jokhar Lake | — | — | — | — | — | — | — | — | — | — | — |
 | Tikapur | partial (Tikapur Hospital) | 2.7 | 2.3 | 5 | graphml_fallback | 9 | 9 | 2 | 2 | 24 | Tikapur Hospital (0.0 km) |
 | Mohana River | — | — | — | — | — | — | — | — | — | — | — |
@@ -1124,39 +1124,19 @@ Totals: 811 places · exact 85 · partial 309 · not found 417 · routes osrm 0 
 
 ---
 
-## Analyst notes — remote/rural enrichment round (2026-09-20, post-70b89f2)
+## Analyst notes — post-amenity verification run (2026-09-20, f6b987c)
 
-Owner asked to keep adding destinations and accurate data for remote/local/rural areas. Done:
+Re-ran the full 811-place owner field test after the OSM amenity layer (762 bank branches,
+346 ATMs, 366 hospitals/clinics, 351 pharmacies, 81 police) and the 100% image assignment:
 
-- **OSM lodging layer imported** (`manage.py import_osm_lodging`): 3,373 real OpenStreetMap
-  hotels / guest houses / hostels / **alpine huts** / motels from the bundled OSM extract —
-  the remote trekking lodge layer no city dataset has (Manaslu, Annapurna, Langtang, far-west
-  trails). Hotel table: 1,633 → **5,006**, every row a real OSM element (osm.org link in
-  source_url).
-- **5 owner-listed places web-verified and added as destinations** with provenance fields:
-  Ramagrama Stupa (27.49778,83.68111, Wikipedia VERIFIED), Dipayal Silgadhi (29.267,80.933,
-  Wikipedia VERIFIED), Shaileshwari Temple (Nepal Tourism Board; town-level APPROXIMATE coords,
-  labelled), Taulihawa (27.54563,83.05419 VERIFIED), Rajbiraj (26.54056,86.74861 VERIFIED).
-- Verified completeness: **every unique hospital name (2,071-row raw CSV) and police name
-  (2,601-row raw CSV) in the bundled datasets is now in the DB** — 0 missing.
-
-**Owner field test (811 places) after enrichment:** found 363 → **394** (85 exact / 309 partial),
-routes 394/394 with 0 failures, hubs 77/77. Service coverage across found places:
-
-| category | before | after |
-|---|---|---|
-| hospital | 97.2% | **97.7%** (385/394) |
-| bank | 98.3% | **98.7%** (389/394) |
-| hotel | 25.6% | **98.2%** (387/394) |
-| restaurant | 11.0% | **91.9%** (362/394) |
-| police | 99.2% | **99.2%** (391/394) |
-
-Full-DB audit (`audit_service_coverage`): **6,602/6,602 routable**; within-50 km hospital 98.5% /
-bank 98.5% / hotel 99.8% / restaurant 98.8% / police 99.7%; 211 honest wilderness gaps remain
-(high-Himalayan trail points >50 km from any facility).
-
-Honest limits: live Nominatim/Overpass are unreachable from the sandbox (verified again this
-round: both return empty), so the remaining ~417 not-found owner places cannot be geocoded
-here — on the host, `import_osm_destinations` + live Overpass close this without fabricating
-anything. Unnamed OSM rows (6,557 "N/A" guest houses/viewpoints) were deliberately NOT imported
-as destinations: nameless records would poison search, not improve it.
+- Found: **395/811** (85 exact / 310 partial) — up from 394; routes **395/395, 0 failures**;
+  hubs 77/77.
+- Service coverage at found places: hospital 97.7% · bank 98.2% · hotel 98.2% ·
+  restaurant 91.9% · police 99.2%.
+- Full E2E live suite re-run on the restored stack: **72/72** (health 503→200 after recreating
+  the wiped `media/` directory — sandbox-reset artifact, not a code regression).
+- Data-quality report regenerated: 6,659 destinations / 6,602 public; 0 missing coordinates;
+  0 outside-Nepal bbox; 100% image coverage.
+- Honest note: `image-server/images/` ships empty in git (binaries are host-side assets), so
+  landmark-photo paths resolve only when the image server content is deployed; every
+  destination meanwhile renders its own generated postcard (verified 200 image/svg+xml).

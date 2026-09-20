@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-09-20T11:11:31.803625+00:00",
+  "generated_at": "2026-09-20T23:20:06.129563+00:00",
   "database": "default",
   "destinations": {
-    "total": 6654,
+    "total": 6659,
     "by_status": {
-      "approved": 6597,
+      "approved": 6602,
       "archived": 57
     },
-    "public_approved_active": 6597,
+    "public_approved_active": 6602,
     "by_provenance": {
-      "imported": 6596,
+      "imported": 6601,
       "manual": 1
     },
-    "missing_category": 0,
+    "missing_category": 5,
     "missing_district": 1641,
     "missing_coordinate_provenance": 0,
-    "approximate_area_points": 38,
+    "approximate_area_points": 39,
     "missing_coordinates": 0,
     "outside_nepal_bbox": 0,
     "invalid_zero_zero": 0,
@@ -26,8 +26,8 @@
     "categories": 37
   },
   "emergency": {
-    "hospitals": 363,
-    "police_stations": 628,
+    "hospitals": 478,
+    "police_stations": 943,
     "hospital_missing_coordinates": 0,
     "hospital_outside_nepal_bbox": 0,
     "hospital_invalid_zero_zero": 0
@@ -173,7 +173,7 @@
     {
       "district": "Doti",
       "province": "Sudurpashchim",
-      "verified_destinations": 9,
+      "verified_destinations": 11,
       "coverage_status": "partially_covered"
     },
     {
@@ -239,7 +239,7 @@
     {
       "district": "Kapilvastu",
       "province": "Lumbini",
-      "verified_destinations": 25,
+      "verified_destinations": 26,
       "coverage_status": "well_covered"
     },
     {
@@ -353,7 +353,7 @@
     {
       "district": "Parasi",
       "province": "Lumbini",
-      "verified_destinations": 6,
+      "verified_destinations": 7,
       "coverage_status": "partially_covered"
     },
     {
@@ -431,7 +431,7 @@
     {
       "district": "Saptari",
       "province": "Madhesh",
-      "verified_destinations": 7,
+      "verified_destinations": 8,
       "coverage_status": "partially_covered"
     },
     {
