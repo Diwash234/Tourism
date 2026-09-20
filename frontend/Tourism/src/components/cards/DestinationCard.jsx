@@ -421,6 +421,7 @@ const DestinationCard = ({
 
         (
 
+        <div className="grid grid-cols-2 gap-2">
         <Link
 
         to={`/destinations/${slug}`}
@@ -442,6 +443,15 @@ const DestinationCard = ({
         Explore Now
 
         </Link>
+        {Number(destination.latitude) && Number(destination.longitude) ? (
+          <Link
+            to={`/navigation?dest=${encodeURIComponent(destination.name)}`}
+            className="block text-center border border-himalaya-500 text-himalaya-600 hover:bg-himalaya-50 py-2.5 rounded-xl text-sm font-semibold"
+          >
+            🧭 Navigate
+          </Link>
+        ) : null}
+        </div>
 
         )
 

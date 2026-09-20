@@ -679,7 +679,17 @@ async function run() {
     else fail("cleanup delete", JSON.stringify(del.data))
   }
 
-        // §multi-stop + along-route + context (milestone 2)
+        // §every place navigable: random public destinations carry real Nepal coords
+      {
+        const page = await request(`${API}/destinations/?page_size=5&ordering=-id`)
+        const rows = page.data?.results || []
+        const inNepal = rows.filter((r) =>
+          r.latitude >= 26.3 && r.latitude <= 30.5 && r.longitude >= 80.0 && r.longitude <= 88.2)
+        if (rows.length > 0 && inNepal.length === rows.length) ok(`all sampled destinations navigable (${rows.length} real Nepal coords)`)
+        else fail("destination coordinates", `${inNepal.length}/${rows.length} inside Nepal bbox`)
+      }
+
+      // §multi-stop + along-route + context (milestone 2)
       {
         const it = await request(`${API}/navigation/itinerary-route/`, {
           method: "POST",
