@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-09-20T07:53:09.189962+00:00",
+  "generated_at": "2026-09-20T08:24:20.948574+00:00",
   "database": "default",
   "destinations": {
-    "total": 6669,
+    "total": 6654,
     "by_status": {
-      "approved": 6654,
-      "rejected": 15
+      "approved": 6597,
+      "archived": 57
     },
-    "public_approved_active": 6654,
+    "public_approved_active": 6597,
     "by_provenance": {
-      "imported": 6653,
+      "imported": 6596,
       "manual": 1
     },
     "missing_category": 0,
@@ -20,7 +20,7 @@
     "outside_nepal_bbox": 0,
     "invalid_zero_zero": 0,
     "duplicate_coordinates": 8,
-    "duplicate_names_same_district": 190
+    "duplicate_names_same_district": 154
   },
   "taxonomy": {
     "categories": 37
@@ -101,7 +101,7 @@
     {
       "district": "Bhaktapur",
       "province": "Bagmati",
-      "verified_destinations": 94,
+      "verified_destinations": 91,
       "coverage_status": "well_covered"
     },
     {
@@ -245,19 +245,19 @@
     {
       "district": "Kaski",
       "province": "Gandaki",
-      "verified_destinations": 1145,
+      "verified_destinations": 1124,
       "coverage_status": "well_covered"
     },
     {
       "district": "Kathmandu",
       "province": "Bagmati",
-      "verified_destinations": 903,
+      "verified_destinations": 889,
       "coverage_status": "well_covered"
     },
     {
       "district": "Kavrepalanchok",
       "province": "Bagmati",
-      "verified_destinations": 218,
+      "verified_destinations": 217,
       "coverage_status": "well_covered"
     },
     {
@@ -275,13 +275,13 @@
     {
       "district": "Lamjung",
       "province": "Gandaki",
-      "verified_destinations": 64,
+      "verified_destinations": 63,
       "coverage_status": "well_covered"
     },
     {
       "district": "Mahottari",
       "province": "Madhesh",
-      "verified_destinations": 3,
+      "verified_destinations": 2,
       "coverage_status": "limited_data"
     },
     {
@@ -293,13 +293,13 @@
     {
       "district": "Manang",
       "province": "Gandaki",
-      "verified_destinations": 139,
+      "verified_destinations": 137,
       "coverage_status": "well_covered"
     },
     {
       "district": "Morang",
       "province": "Koshi",
-      "verified_destinations": 24,
+      "verified_destinations": 23,
       "coverage_status": "well_covered"
     },
     {
@@ -311,13 +311,13 @@
     {
       "district": "Mustang",
       "province": "Gandaki",
-      "verified_destinations": 167,
+      "verified_destinations": 164,
       "coverage_status": "well_covered"
     },
     {
       "district": "Myagdi",
       "province": "Gandaki",
-      "verified_destinations": 67,
+      "verified_destinations": 66,
       "coverage_status": "well_covered"
     },
     {
@@ -359,7 +359,7 @@
     {
       "district": "Parbat",
       "province": "Gandaki",
-      "verified_destinations": 70,
+      "verified_destinations": 69,
       "coverage_status": "well_covered"
     },
     {
@@ -413,7 +413,7 @@
     {
       "district": "Rupandehi",
       "province": "Lumbini",
-      "verified_destinations": 181,
+      "verified_destinations": 180,
       "coverage_status": "well_covered"
     },
     {
@@ -449,7 +449,7 @@
     {
       "district": "Sindhupalchok",
       "province": "Bagmati",
-      "verified_destinations": 46,
+      "verified_destinations": 44,
       "coverage_status": "well_covered"
     },
     {
@@ -461,7 +461,7 @@
     {
       "district": "Solukhumbu",
       "province": "Koshi",
-      "verified_destinations": 200,
+      "verified_destinations": 195,
       "coverage_status": "well_covered"
     },
     {

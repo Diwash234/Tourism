@@ -4028,3 +4028,43 @@ class DataJsonSnapshotPruneTests(TestCase):
         # pruning an unknown id is a harmless no-op
         with override_settings(BASE_DIR=tmp):
             self.assertIsNone(remove_admin_destination_json(999, force=True))
+
+
+class MergeDuplicateDestinationsTests(TestCase):
+    """DEF-011: near twins merge; far namesakes stay untouched."""
+
+    def test_near_twins_merged_far_namesake_kept(self):
+        import io
+        from decimal import Decimal
+        from django.core.management import call_command
+        rich = Destination.objects.create(
+            name="Twin Lodge", slug="twin-rich", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.21000"), longitude=Decimal("83.99000"),
+            description="A real description")
+        sparse = Destination.objects.create(
+            name="Twin Lodge", slug="twin-sparse", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.21002"), longitude=Decimal("83.99002"),
+            contact_phone="061-123456")
+        far = Destination.objects.create(
+            name="Twin Lodge", slug="twin-far", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.40000"), longitude=Decimal("84.10000"))
+        # dry run changes nothing
+        call_command("merge_duplicate_destinations", stdout=io.StringIO())
+        sparse.refresh_from_db()
+        self.assertEqual(sparse.status, "approved")
+        # apply merges the ~2 m twin into the richer record
+        out = io.StringIO()
+        call_command("merge_duplicate_destinations", "--apply", stdout=out)
+        rich.refresh_from_db(); sparse.refresh_from_db(); far.refresh_from_db()
+        self.assertEqual(rich.status, "approved")
+        self.assertEqual(rich.contact_phone, "061-123456")  # filled from twin
+        self.assertEqual(sparse.status, "archived")
+        self.assertFalse(sparse.is_active)
+        self.assertEqual(far.status, "approved")  # distant namesake untouched
+        from .models import DuplicateDecision
+        dec = DuplicateDecision.objects.get(destination_b=sparse)
+        self.assertEqual(dec.verdict, "merged")
+        self.assertEqual(dec.surviving_id, rich.id)

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { lazy, Suspense, useEffect } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import ErrorBoundary from "./components/common/ErrorBoundary"
 import { installGlobalErrorHandlers } from "./utils/errorLogger"
@@ -43,7 +43,7 @@ import DestinationDetails from "./pages/destinations/DestinationDetails"
 import SubmitPlacePage from "./pages/SubmitPlacePage"
 import SubmitServicePage from "./pages/SubmitServicePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
-import ExploreNepalMap from "./pages/ExploreNepalMap"
+const ExploreNepalMap = lazy(() => import("./pages/ExploreNepalMap"))
 import CompareDestinations from "./pages/CompareDestinations"
 import Gallery from "./pages/Gallery"
 
@@ -60,7 +60,7 @@ import BudgetEstimator from "./pages/BudgetEstimator"
 import RiskAlertDashboard from "./pages/RiskAlertDashboard"
 import Hotels from "./pages/Hotels"
 import HotelSearch from "./pages/HotelSearch"
-import Navigation from "./pages/Navigation"
+const Navigation = lazy(() => import("./pages/Navigation"))
 import Language from "./pages/Language"
 import Emergency from "./pages/Emergency"
 import NearbyPlaces from "./pages/NearbyPlaces"
@@ -72,7 +72,7 @@ import Notifications from "./pages/Notifications"
 import Expenditure from "./pages/Expenditure"
 import MySubmissions from "./pages/MySubmissions"
 import StaffDashboard from "./pages/StaffDashboard"
-import Itinerary from "./pages/Itinerary"
+const Itinerary = lazy(() => import("./pages/Itinerary"))
 import FamilySafety from "./pages/FamilySafety"
 import SharedTripView from "./pages/SharedTripView"
 
@@ -94,12 +94,14 @@ import LocalDashboard from "./pages/local/LocalDashboard"
 import LocalRoute from "./routes/LocalRoute"
 
 // Admin
-import AdminDashboard from "./pages/admin/AdminDashboard"
+// Heavy, low-traffic surfaces are code-split (register DEF-013): admin
+// console, maps, navigation and planners load as separate chunks.
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"))
 import AdminLayout from "./components/admin/AdminLayout"
 import StaffLayout from "./components/admin/StaffLayout"
-import DiagnosticsCenter from "./pages/admin/DiagnosticsCenter"
-import HotelAssignments from "./pages/admin/HotelAssignments"
-import AdminTasks from "./pages/admin/Tasks"
+const DiagnosticsCenter = lazy(() => import("./pages/admin/DiagnosticsCenter"))
+const HotelAssignments = lazy(() => import("./pages/admin/HotelAssignments"))
+const AdminTasks = lazy(() => import("./pages/admin/Tasks"))
 
 
 function App() {
@@ -129,6 +131,7 @@ function App() {
       <ScrollToTop />
       <RedirectRules />
       <CommandPalette />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-emerald-300">Loading…</div>}>
       <Routes>
 
       {/* Auth portals — no traveller navbar/sidebar so Admin, Staff and Traveller look different */}
@@ -305,6 +308,7 @@ function App() {
       </Route>
 
       </Routes>
+      </Suspense>
     </ErrorBoundary>
   )
 }

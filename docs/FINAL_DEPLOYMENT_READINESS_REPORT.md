@@ -6,21 +6,21 @@ Commit: 9f9d9cd (verified tip after evidence-backed close-out)
 Date: 2026-09-20
 
 Backend: Django 5.0.6 + DRF, Python 3.11.2 — `manage.py check`: 0 issues
-Frontend: React 18 + Vite — `npm run lint`: 0 errors (9 style warnings), `npm run build`: clean, bundle 2.4 MB (674 KB gz class)
+Frontend: React 18 + Vite — `npm run lint`: 0 errors (9 style warnings), `npm run build`: clean, bundle 1.92 MB main chunk (558 KB gz) after DEF-013 code-splitting; AdminDashboard/maps/navigation lazy-loaded
 Database: **SQLite is the current, default database** (WAL-hardened, foreign keys ON — verified at runtime: `journal_mode=wal`); PostgreSQL 18.4 verified as the drop-in scale-up path via `DATABASE_URL`
 
 Tests:
-Backend: 481/481 OK on SQLite (full `manage.py test` runner) AND 481/481 OK on real PostgreSQL 18.4
+Backend: 482/482 OK on SQLite (full `manage.py test` runner) AND 482/482 OK on real PostgreSQL 18.4
 Frontend: lint 0 errors, production build clean
 E2E: 67/67 API-level checks passed against live servers (backend :8000 + vite :5173)
-Navigation: `audit_navigable_places` — all 6,654 public destinations navigable with real Nepal coordinates, 5/5 route smoke tests (via corridor-graph fallback, labelled); GPS replay fixtures included in backend suite
+Navigation: `audit_navigable_places` — all 6,597 public destinations navigable with real Nepal coordinates, 5/5 route smoke tests (via corridor-graph fallback, labelled); GPS replay fixtures included in backend suite
 
 Security:
 Production config: `validate_production_config` → RESULT: PASS (hardened SQLite accepted, unhardened rejected)
 `check --deploy` with DEBUG=False, real SECRET_KEY, production ALLOWED_HOSTS, HSTS/SSL/secure cookies: **0 security warnings** (270 issues are drf_spectacular OpenAPI doc hints W001/W002 — non-security)
 
 Real data (live DB queries, 2026-09-20 — `reports/live_data_quality.json`/`.csv`):
-Destinations: 6,669 total (6,654 public approved+active, 15 rejected); 0 missing coordinates, 0 outside Nepal bbox, 0 invalid (0,0), 0 missing coordinate provenance, 38 honestly-marked APPROXIMATE area points, 0 placeholder/fabricated-text hits across 8 scan patterns
+Destinations: 6,669 total (6,597 public approved+active after DEF-011 merge of 57 archived twins; 15 rejected); 0 missing coordinates, 0 outside Nepal bbox, 0 invalid (0,0), 0 missing coordinate provenance, 38 honestly-marked APPROXIMATE area points, 0 placeholder/fabricated-text hits across 8 scan patterns
 Hotels: 0 rows in the Hotel booking model (booking module unused so far); accommodation inventory lives in destinations — 2,141 public records named hotel/lodge/resort/etc., each with real coordinates; nothing invented
 Emergency: 363 hospitals (0 missing/invalid coordinates, 0 suspicious phones), 628 police stations — all coordinate-validated
 Transportation: no schedule/fare tables exist; route/distance data comes from the routing service only — no fabricated timetables anywhere
@@ -44,7 +44,7 @@ Remaining blockers:
 Production gates:
 
 PASS:
-- Backend tests (481/481, both engines)
+- Backend tests (482/482, both engines)
 - Frontend lint/build
 - Security check (0 security warnings) + production config (RESULT: PASS)
 - PostgreSQL (real 18.4: migrations, full suite, backup+drill restore)
@@ -81,4 +81,4 @@ Known limitations:
 - Static marketing copy (About etc.) lives in React code, outside the 30-resource CMS
 
 Deployment recommendation based strictly on evidence:
-Application implementation: production-readiness checks passed (481/481 both engines, 0 security warnings, config validator PASS, data-quality report clean of fabrication). Deployment: GO for a single-node SQLite deployment after the host runs `close_production_gates.sh` green and the launch-day checklist in `docs/DEPLOYMENT_GUIDE.md`; external-service gates (OSRM/weather/OAuth/feeds) and device/browser validation remain pending on real credentials/hardware and must not be reported as LIVE until their providers are exercised.
+Application implementation: production-readiness checks passed (482/482 both engines, 0 security warnings, config validator PASS, data-quality report clean of fabrication). Deployment: GO for a single-node SQLite deployment after the host runs `close_production_gates.sh` green and the launch-day checklist in `docs/DEPLOYMENT_GUIDE.md`; external-service gates (OSRM/weather/OAuth/feeds) and device/browser validation remain pending on real credentials/hardware and must not be reported as LIVE until their providers are exercised.
