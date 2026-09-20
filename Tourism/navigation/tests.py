@@ -2,6 +2,9 @@
 progress/off-route detection, fallback honesty and rate limiting."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from unittest import mock
 
 from django.test import TestCase, override_settings
@@ -346,3 +349,129 @@ class MultiStopAndContextTests(APITestCase):
             "start": {"latitude": 28.2096, "longitude": 83.9856},
             "stops": [], "mode": "driving"}, format="json")
         self.assertEqual(r.status_code, 400)
+
+
+@override_settings(ROUTING_BASE_URL="", ROUTING_RATE_LIMIT=0, ROUTING_CACHE_TTL=0,
+                   NAVIGATION_ALLOW_DEBUG=True)
+class GPSReplayFixtureTests(APITestCase):
+    """Deterministic GPS fixtures through the replay endpoint: the CI-run
+    equivalent of driving around Pokhara (normal, jitter, poor accuracy,
+    wrong turn, tunnel loss, arrival)."""
+
+    FIXTURE_DIR = Path(__file__).parent / "fixtures" / "gps"
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        # Synthetic session with the exact corridor the fixtures follow —
+        # deterministic and provider-independent (state-machine testing).
+        from navigation.navigation_service import create_session
+        self.route_id = create_session({
+            "source": "fixture", "mode": "driving",
+            "distance_m": 2000.0, "duration_s": 400.0,
+            "geometry": [[28.2096, 83.9856], [28.2050, 83.9830],
+                         [28.1929, 83.9810]],
+            "bounds": None,
+            "steps": [
+                {"instruction": "Head south", "distance_m": 800.0,
+                 "duration_s": 160.0, "maneuver": "depart"},
+                {"instruction": "Turn right", "distance_m": 1200.0,
+                 "duration_s": 240.0, "maneuver": "turn-right"},
+            ],
+        })
+
+    def _replay(self, name):
+        fx = json.loads((self.FIXTURE_DIR / f"{name}.json").read_text())
+        resp = self.client.post("/api/v1/navigation/debug/replay/", {
+            "route_id": self.route_id, "fixes": fx["fixes"]}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        return fx["expect"], resp.data["results"]
+
+    def test_all_fixtures(self):
+        for name in ("normal_drive", "gps_jitter", "poor_accuracy",
+                     "wrong_turn", "tunnel_loss", "arrival"):
+            expect, results = self._replay(name)
+            off = sum(1 for r in results if not r["on_route"])
+            reroute = any(r["reroute_required"] for r in results)
+            if "final_arrived" in expect:
+                self.assertEqual(results[-1]["arrived"], expect["final_arrived"],
+                                 f"{name}: arrival expectation")
+            if "off_route_max" in expect:
+                self.assertLessEqual(off, expect["off_route_max"],
+                                     f"{name}: {off} off-route fixes")
+            if "off_route_min" in expect:
+                self.assertGreaterEqual(off, expect["off_route_min"],
+                                        f"{name}: expected deviation")
+            if expect.get("reroute_seen"):
+                self.assertTrue(reroute, f"{name}: reroute expected")
+
+    def test_replay_disabled_by_default(self):
+        from django.test import override_settings as ov
+        with ov(NAVIGATION_ALLOW_DEBUG=False):
+            resp = self.client.post("/api/v1/navigation/debug/replay/", {
+                "route_id": self.route_id, "fixes": []}, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+
+@override_settings(ROUTING_BASE_URL="", ROUTING_RATE_LIMIT=0, ROUTING_CACHE_TTL=0)
+class SessionLifecycleTests(APITestCase):
+    """Server-side session tracking + resume + end."""
+
+    def _route(self):
+        r = self.client.post("/api/v1/navigation/road-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "destination": {"latitude": 28.1929, "longitude": 83.9810},
+            "mode": "driving"}, format="json")
+        return r.data
+
+    def test_progress_tracks_session_and_end_closes_it(self):
+        from navigation.models import NavigationSession
+        data = self._route()
+        rid = data["route"]["route_id"]
+        geo = data["route"]["geometry"]
+        a, b = geo[0], geo[-1]
+        mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]  # true midpoint (on-route)
+        self.client.post("/api/v1/navigation/progress/", {
+            "route_id": rid, "latitude": mid[0], "longitude": mid[1],
+            "accuracy": 8}, format="json")
+        sess = NavigationSession.objects.get(session_id=rid)
+        self.assertEqual(sess.status, "NAVIGATING")
+        self.assertEqual(sess.fix_count, 1)
+        self.assertGreater(sess.progress, 0)
+        # active session discoverable for resume
+        act = self.client.get("/api/v1/navigation/sessions/active/")
+        self.assertEqual(act.data["session"]["session_id"], rid)
+        # off-route fix increments counter
+        self.client.post("/api/v1/navigation/progress/", {
+            "route_id": rid, "latitude": 28.2050, "longitude": 83.9950,
+            "accuracy": 6}, format="json")
+        sess.refresh_from_db()
+        self.assertEqual(sess.status, "OFF_ROUTE")
+        self.assertEqual(sess.off_route_count, 1)
+        # end closes it; no longer offered for resume
+        e = self.client.post("/api/v1/navigation/end/", {"route_id": rid}, format="json")
+        self.assertTrue(e.data["ended"])
+        act = self.client.get("/api/v1/navigation/sessions/active/")
+        self.assertIsNone(act.data["session"])
+
+
+@override_settings(ROUTING_BASE_URL="", ROUTING_RATE_LIMIT=0, ROUTING_CACHE_TTL=0)
+class HealthAndPolicyTests(APITestCase):
+    def test_health_reports_unconfigured_honestly(self):
+        from django.contrib.auth import get_user_model
+        admin = get_user_model().objects.create_superuser(
+            email="nav-health@example.com", password="AdminPass123!")
+        self.client.force_authenticate(user=admin)
+        r = self.client.get("/api/v1/navigation/health/?fresh=1")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["status"], "unconfigured")  # no ROUTING_BASE_URL
+        self.assertFalse(r.data["profiles"]["walking"] == "available")
+
+    def test_fallback_route_flagged_not_navigation_grade(self):
+        r = self.client.post("/api/v1/navigation/road-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "destination": {"latitude": 28.1929, "longitude": 83.9810},
+            "mode": "driving"}, format="json")
+        self.assertFalse(r.data["route"]["navigation_grade"])
+        self.assertIn(r.data["route"]["source"],
+                      ("graphml_fallback", "straight_line_fallback"))

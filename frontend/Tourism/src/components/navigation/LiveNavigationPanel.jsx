@@ -88,7 +88,9 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
                 Preview route
               </button>
               <button onClick={start}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#1D5146] text-white hover:opacity-90">
+                disabled={route?.navigation_grade === false}
+                title={route?.navigation_grade === false ? "Estimated routes cannot be used for live navigation" : undefined}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#1D5146] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed">
                 Start navigation
               </button>
             </>
@@ -135,6 +137,19 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
           🌤 {context.weather.data.weather?.[0]?.main ?? "Conditions"} ·{" "}
           {Math.round(context.weather.data.main?.temp ?? 0)}°C at route midpoint
         </p>
+      )}
+      {route && route.navigation_grade === false && (
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
+          <p className="text-xs font-extrabold text-amber-800">⚠ Routing service unavailable</p>
+          <p className="text-[11px] text-amber-700 mt-0.5">
+            This is an estimated route ({route.source}) and is <b>not suitable for
+            turn-by-turn navigation</b>. Preview and distances remain available.
+          </p>
+          <button onClick={preview}
+            className="mt-1.5 text-[11px] font-bold px-3 py-1 rounded-lg bg-amber-600 text-white">
+            Retry road routing
+          </button>
+        </div>
       )}
       {route?.note && (
         <p className="px-4 py-2 text-[11px] text-amber-700 bg-amber-50 border-b border-amber-100">{route.note}</p>

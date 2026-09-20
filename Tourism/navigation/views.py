@@ -56,6 +56,7 @@ class RoadRouteView(APIView):
                 "bounds": route.get("bounds"),
                 "mode": route["mode"],
                 "source": route["source"],
+                "navigation_grade": route["source"] == "osrm",
                 "note": route.get("note"),
             },
             "alternatives": [
@@ -83,6 +84,28 @@ class NavigationProgressView(APIView):
         progress = navigation_service.compute_progress(
             route, d["latitude"], d["longitude"],
             heading=d.get("heading"), accuracy=d.get("accuracy"))
+        # session tracking (recovery + analytics); never break progress on failure
+        try:
+            from .models import NavigationSession
+            new_status = ("ARRIVED" if progress.get("arrived")
+                          else "OFF_ROUTE" if progress.get("reroute_required")
+                          else "NAVIGATING")
+            sess, created = NavigationSession.objects.get_or_create(
+                session_id=d["route_id"],
+                defaults={"mode": route.get("mode", "driving"),
+                          "source": route.get("source", ""), "status": new_status})
+            if not created:
+                if new_status == "OFF_ROUTE" and sess.status != "OFF_ROUTE":
+                    sess.off_route_count += 1
+                sess.status = new_status
+            sess.last_latitude = d["latitude"]
+            sess.last_longitude = d["longitude"]
+            sess.distance_remaining_m = progress.get("distance_remaining_m")
+            sess.progress = progress.get("progress") or 0.0
+            sess.fix_count += 1
+            sess.save()
+        except Exception:
+            pass
         return Response({"status": "success", "route_id": d["route_id"], **progress})
 
 
@@ -183,6 +206,7 @@ class ItineraryRouteView(APIView):
                 "geometry": route["geometry"],
                 "steps": route.get("steps", []),
                 "source": route["source"],
+                "navigation_grade": route["source"] == "osrm",
                 "note": route.get("note"),
             })
 
@@ -384,3 +408,126 @@ class RouteContextView(APIView):
                         "note": ("Live conditions at route midpoint" if weather
                                  else "Weather unavailable (no API key / unreachable) — context layer only.")},
         })
+
+
+class NavigationEndView(APIView):
+    """Mark a session ended (also called by the UI's End button)."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        route_id = (request.data or {}).get("route_id", "")
+        from .models import NavigationSession
+        updated = NavigationSession.objects.filter(
+            session_id=route_id).exclude(status__in=("ENDED", "ARRIVED")).update(
+            status="ENDED")
+        return Response({"status": "success", "ended": bool(updated)})
+
+
+class ActiveSessionsView(APIView):
+    """Most recent live session for 'Resume navigation?' recovery."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.utils import timezone
+        import datetime as _dt
+        from .models import NavigationSession
+        since = timezone.now() - _dt.timedelta(hours=2)
+        sess = (NavigationSession.objects
+                .filter(updated_at__gte=since,
+                        status__in=("NAVIGATING", "OFF_ROUTE", "REROUTING"))
+                .first())
+        if sess is None or navigation_service.get_session(sess.session_id) is None:
+            return Response({"status": "success", "session": None})
+        return Response({"status": "success", "session": {
+            "session_id": sess.session_id, "mode": sess.mode,
+            "status": sess.status, "source": sess.source,
+            "distance_remaining_m": sess.distance_remaining_m,
+            "progress": sess.progress,
+            "updated_at": sess.updated_at,
+        }})
+
+
+class GPSReplayView(APIView):
+    """Deterministic GPS replay for testing the navigation state machine
+    without a physical device. Dev/CI only (NAVIGATION_ALLOW_DEBUG)."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        if not getattr(settings, "NAVIGATION_ALLOW_DEBUG", False):
+            return Response({"status": "error", "error": "debug_disabled"},
+                            status=status.HTTP_403_FORBIDDEN)
+        route_id = (request.data or {}).get("route_id", "")
+        fixes = (request.data or {}).get("fixes") or []
+        route = navigation_service.get_session(route_id)
+        if route is None:
+            return Response({"status": "error", "error": "unknown_route"},
+                            status=status.HTTP_404_NOT_FOUND)
+        if not isinstance(fixes, list) or len(fixes) > 500:
+            return Response({"status": "error", "error": "fixes_1_to_500_required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        results = []
+        for fx in fixes:
+            try:
+                lat, lng = float(fx["latitude"]), float(fx["longitude"])
+            except (KeyError, TypeError, ValueError):
+                return Response({"status": "error", "error": "invalid_fix"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            p = navigation_service.compute_progress(
+                route, lat, lng, heading=fx.get("heading"),
+                accuracy=fx.get("accuracy"))
+            results.append({k: p.get(k) for k in (
+                "on_route", "reroute_required", "arrived", "progress",
+                "distance_from_route_m", "distance_remaining_m")})
+        return Response({"status": "success", "route_id": route_id,
+                         "fixes": len(results), "results": results})
+
+
+class NavigationHealthView(APIView):
+    """Permanent routing health probe (admin/monitoring)."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        import time as _t
+        from django.core.cache import cache as _cache
+        from django.utils import timezone
+        import datetime as _dt
+        from .models import RouteDiagnostics
+
+        cached = _cache.get("nav-health")
+        if cached and not request.query_params.get("fresh"):
+            return Response(cached)
+
+        provider = route_engine.get_provider()
+        probe_start = _t.monotonic()
+        probe = None
+        if provider.supports("driving"):
+            probe = provider.route((28.2096, 83.9856), (28.2050, 83.9830), "driving")
+        latency_ms = int((_t.monotonic() - probe_start) * 1000)
+
+        since = timezone.now() - _dt.timedelta(hours=24)
+        qs = RouteDiagnostics.objects.filter(created_at__gte=since)
+        total = qs.count()
+        fallbacks = qs.exclude(provider="osrm").count()
+        last_ok = (RouteDiagnostics.objects.filter(provider="osrm")
+                   .order_by("-created_at").values_list("created_at", flat=True).first())
+
+        if not getattr(settings, "ROUTING_BASE_URL", ""):
+            health = "unconfigured"
+        elif probe:
+            health = "healthy"
+        else:
+            health = "degraded"
+        payload = {
+            "provider": provider.name,
+            "status": health,
+            "latency_ms": latency_ms if probe else None,
+            "profiles": {m: ("available" if provider.supports(m) else "unavailable")
+                         for m in ("driving", "motorcycle", "walking", "cycling")},
+            "last_success": last_ok,
+            "requests_24h": total,
+            "fallback_count_24h": fallbacks,
+            "fallback_rate_24h": round(fallbacks / total, 4) if total else None,
+            "probe_ok": bool(probe),
+        }
+        _cache.set("nav-health", payload, 60)
+        return Response(payload)

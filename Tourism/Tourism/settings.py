@@ -401,6 +401,8 @@ ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=600, cast=int)
 ROUTING_RATE_LIMIT = config("ROUTING_RATE_LIMIT", default=30, cast=int)
 ROUTING_PROFILES = [p.strip() for p in config(
     "ROUTING_PROFILES", default="driving").split(",") if p.strip()]
+# GPS replay debug endpoint (deterministic navigation tests); keep False in prod
+NAVIGATION_ALLOW_DEBUG = config("NAVIGATION_ALLOW_DEBUG", default=False, cast=bool)
 ROUTING_API_KEY = config("ROUTING_API_KEY", default="")
 LOCAL_GRAPH_ROUTING_ENABLED = config("LOCAL_GRAPH_ROUTING_ENABLED", default=True, cast=bool)
 LOCAL_GRAPH_MAX_SNAP_KM = config("LOCAL_GRAPH_MAX_SNAP_KM", default=100, cast=float)

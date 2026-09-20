@@ -216,6 +216,11 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
 
 
   const start = useCallback(() => {
+    if (routeRef.current && routeRef.current.navigation_grade === false) {
+      // Production policy: fallback estimates are NOT navigation-grade.
+      setError("Routing service unavailable — this estimated route cannot be used for turn-by-turn navigation.")
+      return
+    }
     if (!navigator.geolocation) {
       setError("Geolocation is not available in this browser")
       setState(NAV_STATES.ERROR)
@@ -288,6 +293,10 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
 
   const end = useCallback(() => {
     stopWatch()
+    const rid = routeRef.current?.route_id
+    if (rid) {
+      axiosClient.post("/navigation/end/", { route_id: rid }).catch(() => {})
+    }
     setState(NAV_STATES.IDLE)
     setProgress(null)
   }, [stopWatch])

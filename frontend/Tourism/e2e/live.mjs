@@ -719,6 +719,7 @@ async function run() {
         const routeOk = rr.res.status === 200 && rr.data?.status === "success"
           && rr.data?.route?.route_id && rr.data?.route?.geometry?.length > 1
           && ["osrm", "graphml_fallback", "straight_line_fallback"].includes(rr.data.route.source)
+          && typeof rr.data.route.navigation_grade === "boolean"
         if (routeOk) {
           ok("road-route returns canonical route (source: " + rr.data.route.source + ")")
           const geo = rr.data.route.geometry

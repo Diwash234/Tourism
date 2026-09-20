@@ -18,7 +18,13 @@ Usage (on the deployment host with a real OSRM):
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from django.core.management.base import BaseCommand
+
+BASELINE_PATH = Path(__file__).resolve().parents[2] / "fixtures" / "route_baseline.json"
+TOLERANCE = 0.20  # ±20% distance/duration drift = regression alarm
 
 from navigation import route_engine
 from navigation.map_matching import haversine_m
@@ -91,9 +97,31 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--allow-fallback", action="store_true",
                             help="Accept labelled fallback sources (CI/dev without OSRM).")
+        parser.add_argument("--write-baseline", action="store_true",
+                            help="Record current real-OSRM results as the regression baseline.")
+        parser.add_argument("--baseline", action="store_true",
+                            help="Also compare against the stored baseline (±20%%).")
 
     def handle(self, *args, **options):
         allow = options["allow_fallback"]
+        baseline = {}
+        if BASELINE_PATH.exists():
+            baseline = json.loads(BASELINE_PATH.read_text())
+        if options["write_baseline"]:
+            recorded = {}
+            for label, start, dest, mode in ROUTES:
+                r = check_route(label, start, dest, mode, allow_fallback=False)
+                if r["source"] != "osrm" or r["problems"]:
+                    self.stderr.write(self.style.ERROR(
+                        f"refusing to baseline {label}: source={r['source']} problems={r['problems']}"))
+                    raise SystemExit(1)
+                recorded[label] = {k: r[k] for k in
+                                   ("distance_m", "duration_s", "geometry_points", "steps")}
+            BASELINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            BASELINE_PATH.write_text(json.dumps(recorded, indent=1))
+            self.stdout.write(self.style.SUCCESS(
+                f"baseline written to {BASELINE_PATH} ({len(recorded)} routes)"))
+            return
         failures = 0
         for label, start, dest, mode in ROUTES:
             r = check_route(label, start, dest, mode, allow)
@@ -106,6 +134,13 @@ class Command(BaseCommand):
                 f"pts={r['geometry_points']} steps={r['steps']} alts={r['alternatives']}")
             for p in r["problems"]:
                 self.stdout.write(self.style.ERROR(f"       - {p}"))
+            if options["baseline"] and label in baseline and r["source"] == "osrm":
+                b = baseline[label]
+                for key in ("distance_m", "duration_s"):
+                    if b.get(key) and abs(r[key] - b[key]) / b[key] > TOLERANCE:
+                        failures += 1
+                        self.stdout.write(self.style.ERROR(
+                            f"       - REGRESSION {key}: {r[key]:.0f} vs baseline {b[key]:.0f} (>±{TOLERANCE:.0%})"))
         if failures:
             self.stdout.write(self.style.ERROR(f"{failures} route(s) failed validation"))
             raise SystemExit(1)
