@@ -3773,3 +3773,22 @@ class ImagePublicationTests(APITestCase):
         pending.save(update_fields=["verification_status"])
         r = self.client.get("/api/v1/destinations/gallery-place/")
         self.assertTrue(any("pending.jpg" in u for u in (r.data.get("images") or [])))
+
+
+class DistrictItineraryTests(APITestCase):
+    """The itinerary generator must serve every district, not just big cities."""
+
+    def test_20_day_itinerary_for_small_district(self):
+        dest = Destination.objects.create(
+            name="Remote Valley Viewpoint", slug="remote-valley-viewpoint",
+            district="Humla", city_english="Humla", description="d",
+            latitude=30.0, longitude=81.9, status="approved", is_active=True)
+        resp = self.client.post("/api/v1/ml/itinerary/",
+                                {"days": 20, "start_city": "Humla"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        days = resp.data.get("itinerary") or resp.data.get("itinerary_days") or []
+        self.assertEqual(len(days), 20)
+        self.assertTrue(all(day.get("destinations") for day in days),
+                        "every day must be populated")
+        names = {d["name"] for day in days for d in day["destinations"]}
+        self.assertIn("Remote Valley Viewpoint", names)
