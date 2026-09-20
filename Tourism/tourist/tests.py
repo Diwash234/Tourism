@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 from django.conf import settings
@@ -3798,3 +3798,59 @@ class DistrictItineraryTests(APITestCase):
                         "every day must be populated")
         names = {d["name"] for day in days for d in day["destinations"]}
         self.assertIn("Remote Valley Viewpoint", names)
+
+
+class OAuthCallbackFlowTests(TestCase):
+    """Full OAuth code path with a mocked provider: code -> token exchange
+    -> userinfo -> user creation/link -> JWT pair. Proves the flow itself
+    works; only the real provider credentials remain host-side."""
+
+    def _mock_post(self, *a, **k):
+        resp = Mock()
+        resp.status_code = 200
+        resp.json.return_value = {"access_token": "mock-access", "token_type": "Bearer"}
+        resp.raise_for_status = Mock()
+        return resp
+
+    def _mock_get(self, *a, **k):
+        resp = Mock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "sub": "google-uid-42", "email": "traveler@example.com",
+            "given_name": "Test", "family_name": "Traveler"}
+        resp.raise_for_status = Mock()
+        return resp
+
+    @override_settings(GOOGLE_CLIENT_ID="id", GOOGLE_CLIENT_SECRET="secret")
+    def test_google_callback_issues_jwt_and_creates_user(self):
+        from django.contrib.auth import get_user_model
+        with patch("tourist.views_oauth.requests.post", side_effect=self._mock_post), \
+             patch("tourist.views_oauth.requests.get", side_effect=self._mock_get):
+            resp = self.client.post("/api/v1/auth/google/callback/", {
+                "code": "auth-code-123", "redirect_uri": "http://localhost/cb"},
+                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("access", resp.data)
+        self.assertIn("refresh", resp.data)
+        self.assertEqual(resp.data["user"]["email"], "traveler@example.com")
+        user = get_user_model().objects.get(email="traveler@example.com")
+        self.assertEqual(user.auth_provider, "google")
+        # second login links to the same user, no duplicate
+        with patch("tourist.views_oauth.requests.post", side_effect=self._mock_post), \
+             patch("tourist.views_oauth.requests.get", side_effect=self._mock_get):
+            resp2 = self.client.post("/api/v1/auth/google/callback/", {
+                "code": "auth-code-456", "redirect_uri": "http://localhost/cb"},
+                content_type="application/json")
+        self.assertEqual(resp2.data["user"]["id"], user.id)
+        self.assertEqual(get_user_model().objects.filter(email="traveler@example.com").count(), 1)
+
+    @override_settings(GOOGLE_CLIENT_ID="id", GOOGLE_CLIENT_SECRET="secret")
+    def test_google_callback_rejects_failed_exchange(self):
+        import requests as _rq
+        with patch("tourist.views_oauth.requests.post",
+                   side_effect=_rq.RequestException("provider down")):
+            resp = self.client.post("/api/v1/auth/google/callback/", {
+                "code": "bad", "redirect_uri": "http://localhost/cb"},
+                content_type="application/json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("failed", resp.data["detail"].lower())

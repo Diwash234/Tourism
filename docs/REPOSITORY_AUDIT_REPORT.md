@@ -79,6 +79,11 @@ OpenWeather key (optional), OAuth app creds, production Postgres DSN +
 | Real OSRM road routing in production | PARTIAL | Full provider + 7/7 validation via local mock; env-configured | Network access to an OSRM server | Labelled `graphml_fallback` / `straight_line_fallback`; live navigation gated off for estimates | `ROUTING_BASE_URL` on host → `validate_navigation_routes` → `--write-baseline` |
 | Physical-device GPS verification | BLOCKED | Algorithmic half CI-covered by 6 replay fixtures | A physical phone/browser | — | Manual run through `docs/PRODUCTION_OPERATIONS.md` checklist |
 | Live weather along routes | PARTIAL | Context-layer wiring + honest "unavailable" label | `OPENWEATHER_API_KEY` | Labelled unavailability | API key in env |
-| OAuth login | PARTIAL | Full callback flows implemented + env config | OAuth app credentials | Password auth | Provider credentials |
+| OAuth login | PARTIAL (path verified) | Callback flow proven end-to-end with mocked provider (`OAuthCallbackFlowTests`: exchange → userinfo → user link, no duplicates, JWT issued; failure path 400) | OAuth app credentials | Password auth | Provider credentials only — code path is verified |
 | Production datastore | PARTIAL | Postgres-ready settings, backup command | Postgres DSN | SQLite dev DB | DSN + `SECRET_KEY` in env |
-| Browser-spec E2E (Playwright) | BLOCKED | 66-check API-level E2E runs everywhere | Chromium deps installable on host | API E2E | `npx playwright install --with-deps` on host |
+| Browser-spec E2E (Playwright) | BLOCKED (cause verified) | 66-check API-level E2E runs everywhere | Playwright CDN blocked at network level in CI sandbox (TLS socket disconnect, verified); no root for system deps | API E2E | `npx playwright install --with-deps` on host |
+
+**Host runner:** `bash scripts/close_production_gates.sh` executes every
+runnable gate in register order (OSRM 7/7 → baseline → weather → OAuth →
+Postgres → browser E2E → API E2E/lint/build) and prints the manual GPS
+checklist. Paste its output back into this register to close entries.
