@@ -30,7 +30,7 @@ Run these locally/on CI first — all must be green:
 # backend: 454 tests (tourist + navigation)
 cd Tourism && python manage.py test tourist navigation
 
-# frontend: lint + build + 67-check API-level E2E (needs dev servers)
+# frontend: lint + build + 72-check API-level E2E (needs dev servers)
 cd frontend/Tourism && npm ci && npm run lint && npm run build
 npm run test:e2e:live        # backend + vite dev servers running
 

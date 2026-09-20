@@ -12,11 +12,11 @@ Database: **SQLite is the chosen production database** (owner decision, 2026-09-
 Tests:
 Backend: 492/492 OK on SQLite (full `manage.py test` runner, includes SEO/sitemap/health suite) AND 492/492 OK on real PostgreSQL 16.2 (pgserver-provisioned, `PG_DUMP` client env, includes the SEO suite and migration 0072); PostgreSQL 18.4 additionally passed 487/487 at commit `e7d7c7b`
 Frontend: lint 0 errors (409 style warnings, pre-existing), production build clean
-E2E: 67/67 API-level checks passed against live servers (backend :8000 + vite :5173)
+E2E: 72/72 API-level checks passed against live servers (backend :8000 + vite :5173)
 Navigation: `audit_navigable_places` — all 6,597 public destinations navigable with real Nepal coordinates, 5/5 route smoke tests (via corridor-graph fallback, labelled); GPS replay fixtures included in backend suite
 
 Security:
-Production config: `validate_production_config` → RESULT: PASS (hardened SQLite accepted, unhardened rejected)
+Production config: `validate_production_config` → RESULT: PASS when run with production env (DEBUG=False, ≥50-char SECRET_KEY, explicit ALLOWED_HOSTS, non-default ML secrets — re-verified 2026-09-20); it correctly RESULT: FAILs on dev defaults, which is the gate doing its job
 `check --deploy` with DEBUG=False, real SECRET_KEY, production ALLOWED_HOSTS, HSTS/SSL/secure cookies: **0 security warnings** (270 issues are drf_spectacular OpenAPI doc hints W001/W002 — non-security)
 
 Real data (live DB queries, 2026-09-20 — `reports/live_data_quality.json`/`.csv`):
@@ -50,7 +50,7 @@ PASS:
 - PostgreSQL (real 18.4: migrations, full suite, backup+drill restore)
 - Backup/restore drill (SQLite: 19.3 MB sha256-verified archive → 6,669 destinations restored into scratch; PG: pg_dump + SQL drill)
 - Data quality (machine-readable report generated; 0 fabrication indicators)
-- API E2E (67/67)
+- API E2E (72/72)
 - Navigation validation offline (audit + replay fixtures; fallbacks labelled, never presented as live road navigation)
 
 PARTIAL:

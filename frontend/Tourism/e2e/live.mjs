@@ -758,6 +758,47 @@ async function run() {
         } else fail("road-route endpoint", `status ${rr.res.status} body ${JSON.stringify(rr.data).slice(0, 120)}`)
       }
 
+
+      // §113 SEO + health + public/admin separation acceptance checks.
+      {
+        const ROOT = API.replace(/\/api\/v1\/?$/, "")
+        const robots = await request(`${ROOT}/robots.txt`)
+        if (robots.res.status === 200
+          && String(robots.text).includes("Disallow: /admin")
+          && String(robots.text).includes("Sitemap:")) ok("robots.txt allows public, blocks /admin, advertises sitemap")
+        else fail("robots.txt", `status ${robots.res.status}`)
+
+        const sitemap = await request(`${ROOT}/sitemap.xml`)
+        const sm = String(sitemap.text ?? "")
+        if (sitemap.res.status === 200
+          && sm.includes("/districts/mustang")
+          && sm.includes("/destinations/")
+          && !sm.includes("/admin")
+          && !sm.includes("/portal")) ok(`sitemap.xml is DB-driven and private-route-free (${(sm.match(/<loc>/g) || []).length} urls)`)
+        else fail("sitemap.xml", `status ${sitemap.res.status}`)
+
+        const health = await request(`${API}/health/`)
+        const hb = String(health.text ?? "")
+        if (health.res.status === 200
+          && health.data?.checks?.database?.status === "ok"
+          && !/SECRET_KEY|PASSWORD|CLIENT_SECRET/i.test(hb)) ok("health endpoint reports dependencies without secrets")
+        else fail("health endpoint", `status ${health.res.status}`)
+
+        const list = await request(`${API}/destinations/?page_size=1`)
+        const slug = list.data?.results?.[0]?.slug
+        if (slug) {
+          const detail = await request(`${API}/destinations/${slug}/`)
+          if (detail.res.status === 200 && "seo_title" in detail.data && "meta_description" in detail.data
+            && sm.includes(`/destinations/${slug}`)) ok("published destination exposes SEO fields and appears in sitemap")
+          else fail("destination SEO", `status ${detail.res.status} slug ${slug}`)
+        } else fail("destination SEO", "no published destination to sample")
+
+        const adminProbe = await request(`${API}/admin/destinations/1`)
+        const adminProbe2 = await request(`${API}/admin/data-health/`)
+        if ([401, 403].includes(adminProbe.res.status) && [401, 403].includes(adminProbe2.res.status)) ok("admin API rejects anonymous access")
+        else fail("admin separation", `anonymous got ${adminProbe.res.status}/${adminProbe2.res.status}`)
+      }
+
 console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }
