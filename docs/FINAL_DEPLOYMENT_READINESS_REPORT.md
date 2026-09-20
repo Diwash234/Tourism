@@ -6,12 +6,12 @@ Commit: 9f9d9cd (verified tip after evidence-backed close-out)
 Date: 2026-09-20
 
 Backend: Django 5.0.6 + DRF, Python 3.11.2 — `manage.py check`: 0 issues
-Frontend: React 18 + Vite — `npm run lint`: 0 errors (9 style warnings), `npm run build`: clean, bundle 1.92 MB main chunk (558 KB gz) after DEF-013 code-splitting; AdminDashboard/maps/navigation lazy-loaded
+Frontend: React 18 + Vite — `npm run lint`: 0 errors / 409 pre-existing style warnings (lint now also covers scripts/*.mjs|.cjs; generated nav bundle ignored — DEF-017), `npm run build`: clean, bundle 1.92 MB main chunk (558 KB gz) after DEF-013 code-splitting; AdminDashboard/maps/navigation lazy-loaded
 Database: **SQLite is the current, default database** (WAL-hardened, foreign keys ON — verified at runtime: `journal_mode=wal`); PostgreSQL 18.4 verified as the drop-in scale-up path via `DATABASE_URL`
 
 Tests:
-Backend: 482/482 OK on SQLite (full `manage.py test` runner) AND 482/482 OK on real PostgreSQL 18.4
-Frontend: lint 0 errors, production build clean
+Backend: 487/487 OK on SQLite (full `manage.py test` runner) AND 487/487 OK on real PostgreSQL 18.4 with the documented `PG_DUMP`/client-tools env (without it, 486/487 — the backup test errors on missing `pg_dump`, environmental only); suites include legacy-route honesty, 77-district architecture and §45 admin→public propagation tests
+Frontend: lint 0 errors (409 style warnings, pre-existing), production build clean
 E2E: 67/67 API-level checks passed against live servers (backend :8000 + vite :5173)
 Navigation: `audit_navigable_places` — all 6,597 public destinations navigable with real Nepal coordinates, 5/5 route smoke tests (via corridor-graph fallback, labelled); GPS replay fixtures included in backend suite
 
@@ -44,7 +44,7 @@ Remaining blockers:
 Production gates:
 
 PASS:
-- Backend tests (482/482, both engines)
+- Backend tests (487/487, both engines)
 - Frontend lint/build
 - Security check (0 security warnings) + production config (RESULT: PASS)
 - PostgreSQL (real 18.4: migrations, full suite, backup+drill restore)
@@ -81,4 +81,4 @@ Known limitations:
 - Static marketing copy (About etc.) lives in React code, outside the 30-resource CMS
 
 Deployment recommendation based strictly on evidence:
-Application implementation: production-readiness checks passed (482/482 both engines, 0 security warnings, config validator PASS, data-quality report clean of fabrication). Deployment: GO for a single-node SQLite deployment after the host runs `close_production_gates.sh` green and the launch-day checklist in `docs/DEPLOYMENT_GUIDE.md`; external-service gates (OSRM/weather/OAuth/feeds) and device/browser validation remain pending on real credentials/hardware and must not be reported as LIVE until their providers are exercised.
+Application implementation: production-readiness checks passed (487/487 both engines, 0 security warnings, config validator PASS, data-quality report clean of fabrication). Deployment: GO for a single-node SQLite deployment after the host runs `close_production_gates.sh` green and the launch-day checklist in `docs/DEPLOYMENT_GUIDE.md`; external-service gates (OSRM/weather/OAuth/feeds) and device/browser validation remain pending on real credentials/hardware and must not be reported as LIVE until their providers are exercised.

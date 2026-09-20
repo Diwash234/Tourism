@@ -2052,6 +2052,138 @@ class FeaturedGalleryView(APIView):
         })
 
 
+class DistrictsListView(APIView):
+    """All 77 canonical districts with REAL coverage numbers (§15).
+
+    Counts come straight from the database; districts without verified
+    data are reported honestly as no_verified_data — never padded.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.db.models import Count
+
+        from .management.commands.normalize_district_names import (
+            NEPAL_DISTRICTS as PROVINCE_DISTRICTS)
+        from .administrative_boundaries import NEPAL_DISTRICTS_DATA
+
+        district_index = {}
+        for province, names in PROVINCE_DISTRICTS.items():
+            for name in names:
+                district_index[name] = {
+                    "province": province,
+                    **(NEPAL_DISTRICTS_DATA.get(name) or {})}
+
+        counts = {
+            r["district"]: r["n"]
+            for r in Destination.objects.filter(
+                status=Destination.SubmissionStatus.APPROVED, is_active=True)
+            .exclude(district="").exclude(district=None)
+            .values("district").annotate(n=Count("id"))
+        }
+        rows = []
+        for name, meta in sorted(district_index.items()):
+            n = counts.get(name, 0)
+            rows.append({
+                "name": name,
+                "province": meta["province"],
+                "latitude": meta.get("lat"),
+                "longitude": meta.get("lng"),
+                "public_destinations": n,
+                "coverage_status": (
+                    "well_covered" if n >= 20 else
+                    "partially_covered" if n >= 5 else
+                    "limited_data" if n >= 1 else "no_verified_data"),
+            })
+        provinces = {}
+        for row in rows:
+            provinces.setdefault(row["province"], 0)
+            provinces[row["province"]] += row["public_destinations"]
+        return Response({
+            "count": len(rows),
+            "provinces": provinces,
+            "note": ("Coverage reflects verified database records only; "
+                     "districts are never artificially populated."),
+            "districts": rows,
+        })
+
+
+class DistrictDetailView(APIView):
+    """Database-generated district page data (§16-17)."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, district_name):
+        from django.db.models import Count
+
+        from .management.commands.normalize_district_names import (
+            NEPAL_DISTRICTS as PROVINCE_DISTRICTS)
+        from .administrative_boundaries import NEPAL_DISTRICTS_DATA
+        from .models import Hospital, PoliceStation
+
+        all_districts = [n for names in PROVINCE_DISTRICTS.values() for n in names]
+        # match canonical name case-insensitively
+        match = next((k for k in all_districts
+                      if k.lower() == district_name.strip().lower()), None)
+        if match is None:
+            return Response({"detail": f"{district_name} is not one of Nepal's "
+                                       "77 canonical districts."},
+                            status=status.HTTP_404_NOT_FOUND)
+        meta = {"province": next(p for p, ns in PROVINCE_DISTRICTS.items()
+                                 if match in ns),
+                **(NEPAL_DISTRICTS_DATA.get(match) or {})}
+        pub = Destination.objects.filter(
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            district=match)
+        cities = [
+            {"name": r["city"], "destinations": r["n"]}
+            for r in pub.exclude(city="").exclude(city=None)
+            .values("city").annotate(n=Count("id")).order_by("-n")
+        ]
+        categories = [
+            {"name": r["category__name"], "destinations": r["n"]}
+            for r in pub.exclude(category=None)
+            .values("category__name").annotate(n=Count("id")).order_by("-n")
+        ]
+        top = pub.order_by("-average_rating", "-ratings_count", "name")[:10]
+        hospitals = Hospital.objects.filter(
+            destination__district=match).select_related("destination")[:20]
+        police = PoliceStation.objects.filter(
+            destination__district=match).select_related("destination")[:20]
+        return Response({
+            "district": match,
+            "province": meta["province"],
+            "latitude": meta.get("lat"),
+            "longitude": meta.get("lng"),
+            "public_destinations": pub.count(),
+            "cities": cities,
+            "categories": categories,
+            "top_destinations": [
+                {"name": d.name, "slug": d.slug,
+                 "latitude": float(d.latitude) if d.latitude else None,
+                 "longitude": float(d.longitude) if d.longitude else None,
+                 "category": d.category.name if d.category else None,
+                 "average_rating": float(d.average_rating) if d.average_rating else None,
+                 "short_description": d.short_description}
+                for d in top
+            ],
+            "hospitals": [
+                {"name": h.name, "phone": h.phone,
+                 "latitude": float(h.latitude), "longitude": float(h.longitude)}
+                for h in hospitals
+            ],
+            "police": [
+                {"name": p.name, "phone": p.phone,
+                 "latitude": float(p.latitude), "longitude": float(p.longitude)}
+                for p in police
+            ],
+            "note": ("" if pub.exists() else
+                     "No verified destinations recorded for this district "
+                     "yet — nothing is fabricated to fill the gap."),
+        })
+
+
 class DistrictGalleryView(APIView):
     """Up to five destination-linked media items per represented Nepal district."""
     permission_classes = [permissions.AllowAny]

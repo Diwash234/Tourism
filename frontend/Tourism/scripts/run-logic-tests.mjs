@@ -2,7 +2,7 @@
 // Bundles the real source files with esbuild and asserts behavior — no mocks,
 // no re-implementations. Run with: npm test
 import { build } from "esbuild"
-import { writeFileSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 
 const outfile = "node_modules/.logic-tests.mjs"

@@ -4068,3 +4068,152 @@ class MergeDuplicateDestinationsTests(TestCase):
         dec = DuplicateDecision.objects.get(destination_b=sparse)
         self.assertEqual(dec.verdict, "merged")
         self.assertEqual(dec.surviving_id, rich.id)
+
+
+class LegacyRouteCalculateHonestyTests(APITestCase):
+    """navigation/calculate must delegate to the central route engine.
+
+    The old implementation invented sinusoidal 'road-following' geometry,
+    fabricated 10/80/10 step splits, and silently routed unresolved
+    destinations to Pokhara center. All three are contract-tested here.
+    """
+
+    def setUp(self):
+        from decimal import Decimal
+        self.dest = Destination.objects.create(
+            name="Chitwan Hub", slug="chitwan-hub", district="Chitwan",
+            status="approved", is_active=True,
+            latitude=Decimal("27.5291"), longitude=Decimal("84.3542"))
+
+    def test_uses_central_engine_geometry_and_labels_source(self):
+        r = self.client.post(reverse("user-route-calculate"), {
+            "destination_id": self.dest.id,
+            "origin_lat": 28.2096, "origin_lng": 83.9856,
+            "transport_mode": "Private Car / Taxi"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        data = r.json()
+        # engine-labelled provenance, never bare "CALCULATED"
+        self.assertIn(data["route_source"],
+                      ("osrm", "graphml_fallback", "straight_line_fallback"))
+        self.assertNotEqual(data["confidence_level"], "CALCULATED")
+        self.assertTrue(data.get("route_note"))
+        # steps are the engine's, not a fabricated depart/continue/arrive trio
+        self.assertNotEqual(len(data["steps"]), 3)
+        self.assertTrue(any(s.get("maneuver") for s in data["steps"]))
+        # contract fields carry the TRUE destination coordinates
+        self.assertEqual(round(data["destination_latitude"], 4), 27.5291)
+        # geometry endpoints may be map-matched (snapped) to the network
+        coords = data["geometry"]["coordinates"]
+        self.assertLess(abs(coords[0][0] - 28.2096), 0.05)
+        self.assertLess(abs(coords[-1][0] - 27.5291), 0.05)
+
+    def test_unresolved_destination_is_honest_404_not_pokhara(self):
+        r = self.client.post(reverse("user-route-calculate"), {
+            "destination_name": "zzz-no-such-place-anywhere-zzz"}, format="json")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["route_status"], "DESTINATION_UNRESOLVED")
+
+
+class DistrictArchitectureTests(APITestCase):
+    """§15-17: 77-district structure generated from the database."""
+
+    def setUp(self):
+        from decimal import Decimal
+        Destination.objects.create(
+            name="Lo Manthang Fort", slug="lo-manthang-fort",
+            district="Mustang", city="Lo Manthang", status="approved",
+            is_active=True, latitude=Decimal("29.1833"),
+            longitude=Decimal("83.9667"))
+
+    def test_lists_all_77_districts_with_real_counts(self):
+        r = self.client.get(reverse("districts-list"))
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["count"], 77)
+        mustang = next(d for d in data["districts"] if d["name"] == "Mustang")
+        self.assertEqual(mustang["public_destinations"], 1)
+        self.assertEqual(mustang["province"], "Gandaki")
+        self.assertEqual(mustang["coverage_status"], "limited_data")
+
+    def test_detail_is_database_driven_and_honest_when_empty(self):
+        r = self.client.get(reverse("district-detail", args=["mustang"]))
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["district"], "Mustang")  # canonical casing
+        self.assertEqual(data["cities"][0]["name"], "Lo Manthang")
+        self.assertEqual(data["top_destinations"][0]["slug"], "lo-manthang-fort")
+        empty = self.client.get(reverse("district-detail", args=["Achham"]))
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.json()["public_destinations"], 0)
+        self.assertIn("No verified destinations", empty.json()["note"])
+        bogus = self.client.get(reverse("district-detail", args=["Atlantis"]))
+        self.assertEqual(bogus.status_code, 404)
+
+
+class AdminToPublicPropagationTests(APITestCase):
+    """§45 MANDATORY end-to-end: Admin -> DB -> public API -> navigation.
+
+    Every step uses the real API endpoints the admin dashboard and the
+    public site use — no ORM shortcuts, no mocks.
+    """
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.admin = User.objects.create_superuser("prop-admin@test.com", "pass123")
+        self.client.force_authenticate(user=self.admin)
+        self.anon = APIClient()  # the real public visitor
+
+    def test_admin_edits_propagate_to_public_api_and_navigation(self):
+        import json as _json
+        # 1. admin creates the destination
+        r = self.client.post("/api/v1/admin/destinations", {
+            "name": "Integration Stupa", "district": "Kaski",
+            "latitude": "28.2000", "longitude": "83.9800",
+            "description": "Original description."}, format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        body = r.data.get("destination", r.data)
+        dest_id = body.get("id")
+        slug = body.get("slug")
+        self.assertIsNotNone(dest_id, r.data)
+        # 2. admin publishes
+        r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/lifecycle/",
+                             {"action": "publish", "reason": "verified"},
+                             format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        # 3. ANONYMOUS public API serves it with the original coordinates
+        pub = self.anon.get(f"/api/v1/destinations/{slug}/")
+        self.assertEqual(pub.status_code, 200, pub.data)
+        self.assertAlmostEqual(float(pub.data["latitude"]), 28.2000, places=3)
+        # 4. admin edits coordinates + description
+        r = self.client.put(f"/api/v1/admin/destinations/{dest_id}", {
+            "latitude": "28.3500", "longitude": "84.1000",
+            "description": "Updated by admin."}, format="json")
+        self.assertIn(r.status_code, (200, 202), r.data)
+        # 5. public API IMMEDIATELY reflects the change (no stale cache)
+        pub = self.anon.get(f"/api/v1/destinations/{slug}/")
+        self.assertEqual(pub.status_code, 200)
+        self.assertAlmostEqual(float(pub.data["latitude"]), 28.3500, places=3)
+        self.assertAlmostEqual(float(pub.data["longitude"]), 84.1000, places=3)
+        self.assertEqual(pub.data["description"], "Updated by admin.")
+        # 6. admin adds an image; public detail must contain it
+        r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/images", {
+            "image_url": "https://example.org/media/stupa-new.jpg",
+            "caption": "Admin-added photo"}, format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        pub = self.anon.get(f"/api/v1/destinations/{slug}/")
+        self.assertIn("stupa-new.jpg", _json.dumps(pub.data))
+        # 7. navigation resolves the UPDATED coordinates from the database
+        r = self.client.post(reverse("user-route-calculate"), {
+            "destination_id": dest_id,
+            "origin_lat": 28.2096, "origin_lng": 83.9856}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertAlmostEqual(float(r.data["destination_latitude"]), 28.3500,
+                               places=3)
+        # 8. admin unpublishes -> the ANONYMOUS public site loses it
+        r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/lifecycle/",
+                             {"action": "unpublish", "reason": "takedown"},
+                             format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        self.assertEqual(self.anon.get(f"/api/v1/destinations/{slug}/").status_code, 404)
+        # staff still see the unpublished record (admin console needs it)
+        self.assertEqual(self.client.get(f"/api/v1/destinations/{slug}/").status_code, 200)

@@ -44,6 +44,8 @@ import SubmitPlacePage from "./pages/SubmitPlacePage"
 import SubmitServicePage from "./pages/SubmitServicePage"
 import DiscoverNepal from "./pages/DiscoverNepal"
 const ExploreNepalMap = lazy(() => import("./pages/ExploreNepalMap"))
+const DistrictsIndex = lazy(() => import("./pages/DistrictsIndex"))
+const DistrictDetail = lazy(() => import("./pages/DistrictDetail"))
 import CompareDestinations from "./pages/CompareDestinations"
 import Gallery from "./pages/Gallery"
 
@@ -161,6 +163,8 @@ function App() {
         {/* Destinations */}
         <Route path="/destinations" element={<DestinationList />} />
         <Route path="/destinations/:slug" element={<DestinationDetails />} />
+        <Route path="/districts" element={<DistrictsIndex />} />
+        <Route path="/districts/:districtName" element={<DistrictDetail />} />
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />

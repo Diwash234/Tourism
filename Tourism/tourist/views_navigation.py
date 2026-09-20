@@ -61,10 +61,13 @@ class UserRouteCalculateView(APIView):
         origin_lng = data.get("origin_lng") or data.get("longitude") or data.get("start_longitude")
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
-        # Default fallback origin if GPS or origin coordinates are missing
+        # Default fallback origin if GPS or origin coordinates are missing —
+        # clearly labelled, never silently presented as the user's location.
+        origin_defaulted = False
         if origin_lat is None or origin_lng is None:
             origin_lat, origin_lng = 28.2096, 83.9856
-            origin_name = origin_name or "Pokhara Center"
+            origin_defaulted = True
+            origin_name = origin_name or "Pokhara Center (default origin — no location provided)"
 
         # Resolve destination
         dest_lat = None
@@ -79,7 +82,7 @@ class UserRouteCalculateView(APIView):
             dest_city = destination.city or "Pokhara"
         else:
             from .location.search_service import LocationSearchService
-            resolved = LocationSearchService.resolve_single_place(dest_name or dest_slug or "Pokhara")
+            resolved = LocationSearchService.resolve_single_place(dest_name or dest_slug or "")
             if resolved:
                 dest_lat = resolved["latitude"]
                 dest_lng = resolved["longitude"]
@@ -87,44 +90,58 @@ class UserRouteCalculateView(APIView):
                 dest_city = resolved.get("city", "Pokhara")
 
         if dest_lat is None or dest_lng is None:
-            dest_lat, dest_lng = 28.2096, 83.9856
+            # Honest failure: never silently substitute a default destination
+            # (the old behaviour quietly routed users to Pokhara center).
+            return Response({
+                "detail": "Destination could not be resolved to coordinates. "
+                          "Provide destination_id, a known slug, or a place "
+                          "name that exists in the database.",
+                "route_status": "DESTINATION_UNRESOLVED",
+            }, status=status.HTTP_404_NOT_FOUND)
 
-        # Calculate coordinates-based distance
-        raw_dist = haversine_distance_km(origin_lat, origin_lng, dest_lat, dest_lng) or 5.0
-        distance_km = round(raw_dist * 1.35, 1)
-        duration_hours = distance_km / 35.0
-        duration_mins = int(duration_hours * 60)
-        confidence = "CALCULATED"
+        # Delegate to the CENTRAL routing service (OSRM when configured,
+        # labelled corridor-graph fallback otherwise) — one routing engine
+        # for the whole platform, no per-view geometry invention.
+        mode_map = {
+            "walking": "walking", "walk": "walking", "hiking": "hiking",
+            "trekking": "hiking", "motorcycle": "motorcycle", "bike": "motorcycle",
+            "motorbike": "motorcycle", "bicycle": "cycling", "cycling": "cycling",
+        }
+        mode = mode_map.get(str(transport_mode).strip().lower(), "driving")
+        from navigation.route_engine import cached_route
+        try:
+            result, _cached = cached_route(
+                (float(origin_lat), float(origin_lng)),
+                (float(dest_lat), float(dest_lng)), mode, request=request)
+        except Exception as exc:  # rate limited or engine failure
+            return Response({"detail": f"Route calculation unavailable: {exc}",
+                             "route_status": "ERROR"},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        route = result["route"]
+        source = route.get("source", "unknown")
+        distance_km = round(float(route["distance_m"]) / 1000.0, 1)
+        duration_mins = max(1, int(round(float(route["duration_s"]) / 60.0)))
+        confidence = {
+            "osrm": "ROAD-VERIFIED",
+            "graphml_fallback": "CORRIDOR-ESTIMATE",
+        }.get(source, "STRAIGHT-LINE-ESTIMATE")
 
-        # Format duration string
-        duration_str = "Travel time unavailable"
-        if duration_mins:
-            hrs = duration_mins // 60
-            mins = duration_mins % 60
-            if hrs > 0:
-                duration_str = f"{hrs}h {mins}m" if mins > 0 else f"{hrs} hours"
-            else:
-                duration_str = f"{mins} mins"
+        hrs = duration_mins // 60
+        mins = duration_mins % 60
+        if hrs > 0:
+            duration_str = f"{hrs}h {mins}m" if mins > 0 else f"{hrs} hours"
+        else:
+            duration_str = f"{mins} mins"
 
-        # Generate road-following LineString geometry
-        geometry_waypoints = []
-        steps = []
-        olat, olng = float(origin_lat), float(origin_lng)
-        dlat, dlng = float(dest_lat), float(dest_lng)
-        geometry_waypoints.append([olat, olng])
-        for i in range(1, 8):
-            t = i / 8.0
-            m_lat = olat + (dlat - olat) * t + math.sin(t * math.pi) * 0.012 * math.sin(i * 1.8)
-            m_lng = olng + (dlng - olng) * t + math.sin(t * math.pi) * 0.018 * math.cos(i * 1.8)
-            geometry_waypoints.append([round(m_lat, 6), round(m_lng, 6)])
-        geometry_waypoints.append([dlat, dlng])
-
-        dist_m = int((distance_km or 10) * 1000)
-        dur_sec = (duration_mins or 30) * 60
+        geometry_waypoints = [[float(p[0]), float(p[1])] for p in route.get("geometry") or []]
         steps = [
-            {"instruction": f"Depart {origin_name or 'starting point'} on local transit feeder road", "distance_m": min(1000, int(dist_m * 0.1)), "duration_sec": max(120, int(dur_sec * 0.1))},
-            {"instruction": f"Continue along highway corridor toward {dest_title}", "distance_m": max(1000, int(dist_m * 0.8)), "duration_sec": max(240, int(dur_sec * 0.8))},
-            {"instruction": f"Arrive at {dest_title}", "distance_m": min(1000, int(dist_m * 0.1)), "duration_sec": max(120, int(dur_sec * 0.1))},
+            {
+                "instruction": s.get("instruction", ""),
+                "distance_m": s.get("distance_m", 0),
+                "duration_sec": s.get("duration_s", 0),
+                "maneuver": s.get("maneuver", ""),
+            }
+            for s in route.get("steps") or []
         ]
 
         return Response({
@@ -135,8 +152,8 @@ class UserRouteCalculateView(APIView):
             "destination_latitude": dest_lat,
             "destination_longitude": dest_lng,
             "origin_name": origin_name or "Current Location",
-            "origin_latitude": olat,
-            "origin_longitude": olng,
+            "origin_latitude": float(origin_lat),
+            "origin_longitude": float(origin_lng),
             "transport_mode": transport_mode,
             "distance_km": distance_km,
             "estimated_duration": duration_str,
@@ -145,6 +162,8 @@ class UserRouteCalculateView(APIView):
             "fare_currency": "NPR",
             "fare_status": "Estimated Highway Fare",
             "confidence_level": confidence,
+            "route_source": source,
+            "route_note": route.get("note", ""),
             "route_status": "Route calculated for destination",
             "calculated_at": timezone.now().isoformat(),
             "geometry": {

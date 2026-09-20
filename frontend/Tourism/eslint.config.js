@@ -3,8 +3,17 @@ import globals from "globals"
 import reactHooks from "eslint-plugin-react-hooks"
 
 export default [
-  { ignores: ["dist/**", "node_modules/**", "e2e/**"] },
+  { ignores: ["dist/**", "node_modules/**", "e2e/**", "tests-nav/nav-test-bundle.cjs"] },
   js.configs.recommended,
+  {
+    // Node-side tooling (build/test scripts) — .mjs/.cjs need Node globals.
+    files: ["scripts/**/*.{js,mjs,cjs}", "*.cjs", "*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.node },
+    },
+  },
   {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
