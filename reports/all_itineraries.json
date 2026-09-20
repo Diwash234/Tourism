@@ -1,0 +1,733 @@
+{
+ "checked": 103,
+ "ok": 103,
+ "results": [
+  {
+   "place": "Achham",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Arghakhanchi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Baglung",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Baitadi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bajhang",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bajura",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Banke",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bara",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bardiya",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bhaktapur",
+   "ok": true,
+   "days": 3,
+   "stops": 9,
+   "problems": []
+  },
+  {
+   "place": "Bhojpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Chitwan",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dadeldhura",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dailekh",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dang",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Darchula",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dhading",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dhankuta",
+   "ok": true,
+   "days": 3,
+   "stops": 6,
+   "problems": []
+  },
+  {
+   "place": "Dhanusha",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dolakha",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dolpa",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Doti",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Gorkha",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Gulmi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Humla",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Ilam",
+   "ok": true,
+   "days": 3,
+   "stops": 8,
+   "problems": []
+  },
+  {
+   "place": "Jajarkot",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Jhapa",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Jumla",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kailali",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kalikot",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kanchanpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kapilvastu",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kaski",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kathmandu",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kavrepalanchok",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Khotang",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Lalitpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Lamjung",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Mahottari",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Makwanpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Manang",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Morang",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Mugu",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Mustang",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Myagdi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Nawalpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Nuwakot",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Okhaldhunga",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Palpa",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Panchthar",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Parasi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Parbat",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Parsa",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Pyuthan",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Ramechhap",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Rasuwa",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Rautahat",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Rolpa",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Rukum East",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Rukum West",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Rupandehi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Salyan",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Sankhuwasabha",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Saptari",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Sarlahi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Sindhuli",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Sindhupalchok",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Siraha",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Solukhumbu",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Sunsari",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Surkhet",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Syangja",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Tanahun",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Taplejung",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Terhathum",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Udayapur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kathmandu",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Pokhara",
+   "ok": true,
+   "days": 3,
+   "stops": 7,
+   "problems": []
+  },
+  {
+   "place": "Lalitpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bharatpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Birgunj",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Biratkot",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Biratnagar",
+   "ok": true,
+   "days": 3,
+   "stops": 9,
+   "problems": []
+  },
+  {
+   "place": "Janakpur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dharan",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Nepalgunj",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Dhangadhi",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Butwal",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Sauraha",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Nagarkot",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Bandipur",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Tansen",
+   "ok": true,
+   "days": 3,
+   "stops": 9,
+   "problems": []
+  },
+  {
+   "place": "Lumbini",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Ilam",
+   "ok": true,
+   "days": 3,
+   "stops": 8,
+   "problems": []
+  },
+  {
+   "place": "Birendranagar",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Mahendranagar",
+   "ok": true,
+   "days": 3,
+   "stops": 5,
+   "problems": []
+  },
+  {
+   "place": "Kathmandu",
+   "ok": true,
+   "days": 20,
+   "stops": 55,
+   "problems": [],
+   "twenty_day": true
+  },
+  {
+   "place": "Pokhara",
+   "ok": true,
+   "days": 20,
+   "stops": 57,
+   "problems": [],
+   "twenty_day": true
+  },
+  {
+   "place": "Jumla",
+   "ok": true,
+   "days": 20,
+   "stops": 55,
+   "problems": [],
+   "twenty_day": true
+  },
+  {
+   "place": "Humla",
+   "ok": true,
+   "days": 20,
+   "stops": 55,
+   "problems": [],
+   "twenty_day": true
+  },
+  {
+   "place": "Mustang",
+   "ok": true,
+   "days": 20,
+   "stops": 55,
+   "problems": [],
+   "twenty_day": true
+  },
+  {
+   "place": "Dhangadhi",
+   "ok": true,
+   "days": 20,
+   "stops": 55,
+   "problems": [],
+   "twenty_day": true
+  }
+ ]
+}

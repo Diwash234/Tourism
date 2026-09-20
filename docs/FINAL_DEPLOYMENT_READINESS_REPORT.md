@@ -178,3 +178,28 @@ Taulihawa, Rajbiraj). All unique hospital/police names from the raw bundled CSVs
 DB (0 missing). Owner field test: found 363 → 394; hotel coverage 25.6% → 98.2%, restaurant
 11.0% → 91.9%. Full audit: 6,602/6,602 routable; 98.5–99.8% of destinations have every service
 within 50 km; the 211 remaining gaps are genuine >50 km wilderness, reported honestly.
+
+## Third pass — banks/clinics amenity layer, images, all-place itineraries (2026-09-20)
+
+Owner asked for "another method" covering hotels, hospitals, routes, banks and images for all
+destinations, plus itineraries for all places. Done, all from real bundled data:
+
+- **Amenity layer imported** (`import_emergency_services`, idempotent): 1,920 real OSM rows from
+  `ml_service/data/emergency/emergency_services.csv` — **762 bank branches** (Himalaya Bank,
+  Everest Bank, Nabil, KIST…), 346 ATMs, 141 hospitals + 225 clinics, 351 pharmacies, 81 police
+  — into OSMEssentialService (the nearby-endpoint fallback). Unnamed OSM rows are labelled
+  "name not recorded in OSM", never invented. Audit grids now count this layer for
+  hospital/police, matching what tourists actually see.
+- **Images: 100% coverage** — `assign_destination_photos` gave all 6,659 destinations a
+  distinct, provenance-carrying cover (curated landmark pool first; unique deterministic
+  Nepal postcard otherwise, per the repo's photo_catalog design that banned repeated generic
+  stock). Live Wikimedia enrichment remains a host-side step (commons.wikimedia.org is
+  network-blocked in the sandbox — verified again this round).
+- **Itineraries for all places: verified 103/103** (`scripts/verify_all_itineraries.py` →
+  `reports/all_itineraries.json`): all 77 districts + 20 major cities + six 20-day samples
+  (Kathmandu, Pokhara, Jumla, Humla, Mustang, Dhangadhi) return complete itineraries — every
+  day populated, every stop has real coordinates, zero failures.
+- Routes unchanged: 6,602/6,602 routable. Full suite 495/495 OK.
+- Sandbox reset mid-turn was recovered from the pushed branch (`git reset --hard FETCH_HEAD`);
+  the committed SQLite file carries all imported data (verified: 6,659 destinations / 5,006
+  hotels / 478 hospitals / 943 police / 1,997 OSM services).

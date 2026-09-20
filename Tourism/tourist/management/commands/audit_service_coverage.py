@@ -81,9 +81,15 @@ class Command(BaseCommand):
                 for o in qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
             ]
 
+        # hospital/police grids = curated tables + the OSM amenity layer,
+        # mirroring exactly what /places/nearby/ falls back to
+        hospital_rows = rows(Hospital.objects.filter(is_archived=False)) + rows(
+            OSMEssentialService.objects.filter(category="hospital", is_archived=False))
+        police_rows = rows(PoliceStation.objects.all()) + rows(
+            OSMEssentialService.objects.filter(category="police", is_archived=False))
         grids = {
-            "hospital": _Grid(rows(Hospital.objects.filter(is_archived=False))),
-            "police": _Grid(rows(PoliceStation.objects.all())),
+            "hospital": _Grid(hospital_rows),
+            "police": _Grid(police_rows),
             "bank": _Grid(rows(OSMEssentialService.objects.filter(category="bank", is_archived=False))),
             "hotel": _Grid(rows(Hotel.objects.filter(is_active=True))),
             "restaurant": _Grid(rows(Restaurant.objects.filter(status=Restaurant.Status.PUBLISHED))),
