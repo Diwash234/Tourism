@@ -679,7 +679,33 @@ async function run() {
     else fail("cleanup delete", JSON.stringify(del.data))
   }
 
-  console.log(`\n${results.length - failed} passed, ${failed} failed`)
+        // §navigation subsystem: road-route (honest fallback) + progress
+      {
+        const rr = await request(`${API}/navigation/road-route/`, {
+          method: "POST",
+          json: {
+            start: { latitude: 28.2096, longitude: 83.9856 },
+            destination: { latitude: 28.1929, longitude: 83.9810 },
+            mode: "driving",
+          },
+        })
+        const routeOk = rr.res.status === 200 && rr.data?.status === "success"
+          && rr.data?.route?.route_id && rr.data?.route?.geometry?.length > 1
+          && ["osrm", "bundled_graph_estimate", "straight_line_estimate"].includes(rr.data.route.source)
+        if (routeOk) {
+          ok("road-route returns canonical route (source: " + rr.data.route.source + ")")
+          const geo = rr.data.route.geometry
+          const mid = geo[Math.floor(geo.length / 2)]
+          const pg = await request(`${API}/navigation/progress/`, {
+            method: "POST",
+            json: { route_id: rr.data.route.route_id, latitude: mid[0], longitude: mid[1], accuracy: 8 },
+          })
+          if (pg.res.status === 200 && pg.data?.on_route === true) ok("navigation progress on-route")
+          else fail("navigation progress", `status ${pg.res.status} body ${JSON.stringify(pg.data).slice(0, 120)}`)
+        } else fail("road-route endpoint", `status ${rr.res.status} body ${JSON.stringify(rr.data).slice(0, 120)}`)
+      }
+
+console.log(`\n${results.length - failed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }
 

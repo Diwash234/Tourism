@@ -11,6 +11,7 @@ from drf_spectacular.views import (
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/admin-panel/", include("admin_panel.urls")),
+    path("api/v1/navigation/", include("navigation.urls")),
     path("api/v1/", include("booking.urls")),
     path("api/v1/chatbot/", include("chatbot.urls")),
     path("api/v1/audit/", include("audit.urls")),                # audit logs / errors / health samples

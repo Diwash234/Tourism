@@ -4,6 +4,7 @@ import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
+import LiveNavigationPanel from "../components/navigation/LiveNavigationPanel"
 import MapillaryImages from "../components/map/MapillaryImages"
 import useGeolocation from "../hooks/useGeolocation"
 import {
@@ -954,6 +955,13 @@ export default function Navigation() {
           >
             🔄 Recalculate from my position
           </button>
+        </div>
+      )}
+
+      {/* LIVE ROAD-ROUTING NAVIGATION (provider-backed turn-by-turn) */}
+      {destination?.latitude && destination?.longitude && (
+        <div className="mb-6">
+          <LiveNavigationPanel destination={destination} mode="driving" />
         </div>
       )}
 

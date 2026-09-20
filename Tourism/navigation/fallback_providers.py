@@ -1,0 +1,117 @@
+"""Offline fallback providers — honest estimates, clearly labelled.
+
+When no OSRM-compatible server is configured/reachable the navigation
+endpoint must still answer (graceful fallback, plan item 23), but it must
+never pretend an estimate is a road route. `source` and `note` say exactly
+what the client is getting:
+
+- BundledGraphProvider: routes on the bundled tourism GraphML (node-level,
+  NOT street level). Used for AI/itinerary planning elsewhere too.
+- StraightLineProvider: last resort — one segment, haversine distance,
+  conservative duration. Explicitly not a road route.
+"""
+from __future__ import annotations
+
+import math
+
+from django.conf import settings
+
+from .map_matching import haversine_m
+from .routing_provider import RoutingProvider
+
+SPEED_MPS = {"driving": 9.7, "motorcycle": 9.7, "walking": 1.3, "hiking": 1.1, "cycling": 4.5}
+
+
+def bearing_deg(lat1, lon1, lat2, lon2) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dl = math.radians(lon2 - lon1)
+    y = math.sin(dl) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
+def compass(bearing: float) -> str:
+    names = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]
+    return names[int((bearing + 22.5) % 360 // 45)]
+
+
+class BundledGraphProvider(RoutingProvider):
+    name = "bundled_graph"
+    supported_modes = ("driving", "motorcycle", "walking", "hiking", "cycling")
+
+    def route(self, start, destination, mode):
+        if not getattr(settings, "LOCAL_GRAPH_ROUTING_ENABLED", False):
+            return None
+        try:
+            import sys
+            from pathlib import Path
+            ml_root = Path(settings.BASE_DIR).parent / "ml_service"
+            if str(ml_root) not in sys.path:
+                sys.path.insert(0, str(ml_root))
+            from model.route.route_engine import best_route
+            result = best_route(start[0], start[1], destination[0], destination[1], "fastest")
+            if result.get("error"):
+                return None
+            nodes = result.get("route") or []
+            geometry = [[float(n[0]), float(n[1])] for n in nodes] if nodes and isinstance(nodes[0], (list, tuple)) else []
+            if len(geometry) < 2:
+                return None
+            speed = SPEED_MPS.get(mode, SPEED_MPS["driving"])
+            distance_m = float(result["distance_km"]) * 1000.0
+            steps = [{
+                "instruction": f"Head {compass(bearing_deg(geometry[0][0], geometry[0][1], geometry[1][0], geometry[1][1]))}",
+                "distance_m": round(distance_m, 1),
+                "duration_s": round(distance_m / speed, 1),
+                "maneuver": "depart",
+            }, {
+                "instruction": "Arrive at destination",
+                "distance_m": 0.0, "duration_s": 0.0, "maneuver": "arrive",
+            }]
+            lats = [g[0] for g in geometry]
+            lngs = [g[1] for g in geometry]
+            return {
+                "source": "bundled_graph_estimate",
+                "mode": mode,
+                "distance_m": round(distance_m, 1),
+                "duration_s": round(distance_m / speed, 1),
+                "geometry": geometry,
+                "bounds": [[min(lats), min(lngs)], [max(lats), max(lngs)]],
+                "steps": steps,
+                "note": ("Approximate route on the bundled tourism GraphML — "
+                         "node-level, not a street-level road route."),
+            }
+        except Exception:
+            return None
+
+
+class StraightLineProvider(RoutingProvider):
+    name = "straight_line"
+    supported_modes = ("driving", "motorcycle", "walking", "hiking", "cycling")
+
+    def route(self, start, destination, mode):
+        distance_m = haversine_m(start[0], start[1], destination[0], destination[1])
+        if mode in ("driving", "motorcycle", "cycling"):
+            distance_m *= 1.3  # typical road detour factor — still an estimate
+        speed = SPEED_MPS.get(mode, SPEED_MPS["driving"])
+        geometry = [[start[0], start[1]], [destination[0], destination[1]]]
+        return {
+            "source": "straight_line_estimate",
+            "mode": mode,
+            "distance_m": round(distance_m, 1),
+            "duration_s": round(distance_m / speed, 1),
+            "geometry": geometry,
+            "bounds": [[min(start[0], destination[0]), min(start[1], destination[1])],
+                       [max(start[0], destination[0]), max(start[1], destination[1])]],
+            "steps": [{
+                "instruction": f"Head {compass(bearing_deg(*start, *destination))} (straight-line estimate)",
+                "distance_m": round(distance_m, 1),
+                "duration_s": round(distance_m / speed, 1),
+                "maneuver": "depart",
+            }, {
+                "instruction": "Arrive at destination (estimate)",
+                "distance_m": 0.0, "duration_s": 0.0, "maneuver": "arrive",
+            }],
+            "note": ("Road routing unavailable — this is a straight-line "
+                     "estimate, NOT a road route. Enable ROUTING_BASE_URL "
+                     "for real turn-by-turn navigation."),
+        }

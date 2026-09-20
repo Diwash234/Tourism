@@ -34,7 +34,10 @@ const PlaceApprovals = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load(false) }, [])
+  useEffect(() => {
+    const t = setTimeout(() => load(false), 0)
+    return () => clearTimeout(t)
+  }, [])
 
   const handleDecision = async (slug, decision) => {
     setActingOn(slug)

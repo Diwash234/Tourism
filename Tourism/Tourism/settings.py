@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 
     # Local
     "tourist",
+    "navigation",
     "admin_panel",
     "booking",
     "chatbot",
@@ -387,6 +388,19 @@ DHM_API_KEY = config("DHM_API_KEY", default="")
 BIPAD_FEED_URL = config("BIPAD_FEED_URL", default="")
 BIPAD_API_KEY = config("BIPAD_API_KEY", default="")
 ROUTING_API_URL = config("ROUTING_API_URL", default="")
+
+# Navigation subsystem (real road routing via provider abstraction).
+# ROUTING_BASE_URL points at an OSRM-compatible server; when empty or
+# unreachable the endpoints fall back to the bundled tourism graph and,
+# last, to an explicitly-labelled straight-line estimate.
+ROUTING_PROVIDER = config("ROUTING_PROVIDER", default="osrm")
+ROUTING_BASE_URL = config("ROUTING_BASE_URL", default="")
+ROUTING_TIMEOUT = config("ROUTING_TIMEOUT", default=6, cast=float)
+ROUTING_MAX_RETRIES = config("ROUTING_MAX_RETRIES", default=2, cast=int)
+ROUTING_CACHE_TTL = config("ROUTING_CACHE_TTL", default=600, cast=int)
+ROUTING_RATE_LIMIT = config("ROUTING_RATE_LIMIT", default=30, cast=int)
+ROUTING_PROFILES = [p.strip() for p in config(
+    "ROUTING_PROFILES", default="driving").split(",") if p.strip()]
 ROUTING_API_KEY = config("ROUTING_API_KEY", default="")
 LOCAL_GRAPH_ROUTING_ENABLED = config("LOCAL_GRAPH_ROUTING_ENABLED", default=True, cast=bool)
 LOCAL_GRAPH_MAX_SNAP_KM = config("LOCAL_GRAPH_MAX_SNAP_KM", default=100, cast=float)
