@@ -190,8 +190,11 @@ class LocationSearchService:
                 "category": s.category.replace("_", " ").title(),
                 "latitude": float(s.latitude),
                 "longitude": float(s.longitude),
-                "address": s.address or f"{s.district or 'Nepal'}",
-                "city": s.district or "Pokhara",
+                # DEF-021: OSMEssentialService has no `district` field — never
+                # assumed one existed (crashed the whole nearby/search response
+                # whenever a DB-backed row without .district was serialised).
+                "address": s.address or "Nepal",
+                "city": getattr(s, "district", "") or "",
                 "phone": s.phone or "",
                 "image_url": _safe_image_url(s.image),
                 "source": "osm_essential_service",
@@ -240,6 +243,9 @@ class LocationSearchService:
         # 4. Search Hotels & Restaurants
         if not cat_filter or cat_filter == "hotel":
             ht_qs = Hotel.objects.filter(is_active=True).select_related("destination")
+            # latitude/longitude are nullable on Hotel — float(None) would crash
+            # the serializer (same class of bug as DEF-022).
+            ht_qs = ht_qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
             if search_term and cat_filter != "hotel":
                 ht_qs = ht_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(destination__city__icontains=search_term))
             ht_qs = _in_radius(ht_qs)
@@ -254,6 +260,30 @@ class LocationSearchService:
                     "city": ht.destination.city if ht.destination else "Pokhara",
                     "phone": ht.phone or "",
                     "source": "verified_hotel",
+                    "is_destination": False,
+                })
+
+        # DEF-022: the Restaurant table was documented as searched but never
+        # actually queried — category=restaurant skipped this section entirely.
+        if not cat_filter or cat_filter == "restaurant":
+            rt_qs = Restaurant.objects.filter(status=Restaurant.Status.PUBLISHED)
+            rt_qs = rt_qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+            if search_term and cat_filter != "restaurant":
+                rt_qs = rt_qs.filter(
+                    Q(name__icontains=search_term) | Q(address__icontains=search_term)
+                )
+            rt_qs = _in_radius(rt_qs)
+            for rt in rt_qs[:40]:
+                raw_results.append({
+                    "id": f"rt-{rt.id}",
+                    "name": rt.name,
+                    "category": "Restaurant",
+                    "latitude": float(rt.latitude),
+                    "longitude": float(rt.longitude),
+                    "address": rt.address or "Nepal",
+                    "city": (rt.address.split(",")[-1].strip() if rt.address else ""),
+                    "phone": rt.phone or "",
+                    "source": "verified_restaurant",
                     "is_destination": False,
                 })
 

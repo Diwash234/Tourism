@@ -10,7 +10,7 @@ Frontend: React 18 + Vite — `npm run lint`: 0 errors / 409 pre-existing style 
 Database: **SQLite is the chosen production database** (owner decision, 2026-09-20 — continue on Django's default SQLite). It is the default engine, WAL-hardened, foreign keys ON (verified at runtime: `journal_mode=wal`), with sha256-verified `backup_database`/`restore_database` drills. Deployment shape: single node (one writer process; do not place `db.sqlite3` on NFS/network shares; keep the §5 backup cron). PostgreSQL remains a tested drop-in scale-up path via `DATABASE_URL` (492/492 on PG 16.2, 487/487 on 18.4) if traffic ever outgrows a single node
 
 Tests:
-Backend: 492/492 OK on SQLite (full `manage.py test` runner, includes SEO/sitemap/health suite) AND 492/492 OK on real PostgreSQL 16.2 (pgserver-provisioned, `PG_DUMP` client env, includes the SEO suite and migration 0072); PostgreSQL 18.4 additionally passed 487/487 at commit `e7d7c7b`
+Backend: 495/495 OK on SQLite (full `manage.py test` runner, latest — includes SEO/sitemap/health suite plus DEF-020/021/022 regressions) AND 492/492 OK on real PostgreSQL 16.2 (at commit `5dbf8d3`, before the three later regressions) (pgserver-provisioned, `PG_DUMP` client env, includes the SEO suite and migration 0072); PostgreSQL 18.4 additionally passed 487/487 at commit `e7d7c7b`
 Frontend: lint 0 errors (409 style warnings, pre-existing), production build clean
 E2E: 72/72 API-level checks passed against live servers (backend :8000 + vite :5173)
 Navigation: `audit_navigable_places` — all 6,597 public destinations navigable with real Nepal coordinates, 5/5 route smoke tests (via corridor-graph fallback, labelled); GPS replay fixtures included in backend suite
@@ -44,7 +44,7 @@ Remaining blockers:
 Production gates:
 
 PASS:
-- Backend tests (492/492 on both SQLite and PostgreSQL 16.2; 487/487 on PostgreSQL 18.4 at `e7d7c7b`)
+- Backend tests (495/495 on SQLite, latest; 492/492 on PostgreSQL 16.2 at `5dbf8d3`; 487/487 on PostgreSQL 18.4 at `e7d7c7b`)
 - Frontend lint/build
 - Security check (0 security warnings) + production config (RESULT: PASS)
 - PostgreSQL (real 18.4: migrations, full suite, backup+drill restore)
@@ -81,7 +81,7 @@ Known limitations:
 - Static marketing copy (About etc.) lives in React code, outside the 30-resource CMS
 
 Deployment recommendation based strictly on evidence:
-Application implementation: production-readiness checks passed (492/492 SQLite, 0 security warnings, config validator PASS, data-quality report clean of fabrication). Deployment: GO for a single-node SQLite deployment after the host runs `close_production_gates.sh` green and the launch-day checklist in `docs/DEPLOYMENT_GUIDE.md`; external-service gates (OSRM/weather/OAuth/feeds) and device/browser validation remain pending on real credentials/hardware and must not be reported as LIVE until their providers are exercised.
+Application implementation: production-readiness checks passed (495/495 SQLite, 0 security warnings, config validator PASS, data-quality report clean of fabrication). Deployment: GO for a single-node SQLite deployment after the host runs `close_production_gates.sh` green and the launch-day checklist in `docs/DEPLOYMENT_GUIDE.md`; external-service gates (OSRM/weather/OAuth/feeds) and device/browser validation remain pending on real credentials/hardware and must not be reported as LIVE until their providers are exercised.
 
 ## Public web surface & SEO (§78–114 increment, this cycle)
 
@@ -110,3 +110,35 @@ Application implementation: production-readiness checks passed (492/492 SQLite, 
   Google/GitHub OAuth round-trips remain BLOCKED/PARTIAL in the register
   (no credentials/hardware in sandbox); Google indexing itself is outside
   the app's control.
+
+## District service coverage seed (owner request, 2026-09-20)
+
+Owner asked that every district answer hospital / bank / hotel / restaurant queries with real data
+("add the real data ... so it should makes the real"). Until live Overpass is reachable, the DB
+fallback is the only source, so `python manage.py seed_district_services` (idempotent, in-repo)
+seeds **real, source-attributed records only — no invented establishments**:
+
+- **Hospitals — 71 seeded, all 77 districts covered**: Nepal MoHP district-hospital network
+  (National Health Policy 1991 guarantees one per district). Verified names where they differ
+  (Seti Provincial Hospital, Bheri Hospital, Lumbini Provincial Hospital, Koshi Hospital,
+  Narayani Hospital, Civil Service Hospital, Western Regional Hospital, Bharatpur Hospital,
+  Beni Hospital, ...), else the official "<District> District Hospital" pattern. Coordinates =
+  district HQ settlement (a real destination record, else the administrative district centre);
+  phones deliberately left empty rather than guessed.
+- **Banks — 77 (one per district HQ)**: Nepal Bank Limited (state-owned; 228 branches, present
+  even in Manang, Mustang, Taplejung, Terhathum, Bajura per its published network). Addresses
+  carry an explicit "approximate — verify on the ground" label; `is_verified=False`.
+- **Hotels — 12, restaurants — 3**: only individually web-verified establishments (Tripadvisor /
+  ZenHotels structured data, Sept 2026), with exact published coordinates and phones where the
+  source gave them (Hotel Parkland Sauraha 27.576477,84.49847; Hotel Diamond Tansen; Hotel Manaki
+  Janakpur; ...). Town-centre-anchored rows say so in the address.
+- Where a district had no destination row to anchor the required FK (e.g. Parasi, Doti), a
+  minimal real HQ-settlement destination was created at the administrative centre, per the
+  owner's explicit instruction to add the destinations too.
+
+The seed run immediately exposed two latent serializer defects, both fixed + regression-pinned:
+**DEF-021** (`OSMEssentialService` has no `district` field → AttributeError killed every
+search/nearby response containing a DB-backed service row) and **DEF-022** (the Restaurant table
+was never queried despite the docstring; `category=restaurant` always returned nothing offline).
+Post-seed live checks: hospital/bank/hotel/restaurant nearby all return real, labelled records;
+full suite 495/495.

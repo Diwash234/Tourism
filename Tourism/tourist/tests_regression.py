@@ -30,6 +30,8 @@ from .models import (
     ManagedPage,
     ContentSection,
     UserRoute,
+    OSMEssentialService,
+    Restaurant,
 )
 
 
@@ -1157,6 +1159,54 @@ class SearchPlacesCategoryRadiusTests(TestCase):
             "no-GPS text search must find published records anywhere in Nepal")
         results = LocationSearchService.search_places(query="Kathmandu Core", limit=30)
         self.assertTrue(any(r["name"] == "Kathmandu Core" for r in results))
+
+
+class SearchPlacesServiceFieldTests(TestCase):
+    """DEF-021 / DEF-022 (district service seed run, 2026-09-20):
+    - the OSMEssentialService serializer read `s.district`, a field the model
+      does not have — any DB-backed bank/ATM row raised AttributeError and
+      killed the whole /places/search + /places/nearby response;
+    - the "Hotels & Restaurants" section only queried Hotel, so
+      category=restaurant could never return DB-fallback restaurants even
+      though the docstring claimed Restaurant was searched."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cat = Category.objects.create(name="City", slug="city-svcfields")
+        cls.hub = Destination.objects.create(
+            name="Svc Hub", slug="svc-hub", category=cls.cat,
+            city="Bharatpur", district="Chitwan", province="Bagmati",
+            latitude=27.6, longitude=84.4,
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+        )
+        OSMEssentialService.objects.create(
+            osm_id="def021/bank-1", category="bank", name="DEF021 Test Bank",
+            latitude=27.61, longitude=84.41, address="Bharatpur",
+        )
+        Restaurant.objects.create(
+            destination=cls.hub, name="DEF022 Test Restaurant",
+            address="Sauraha, Chitwan", latitude=27.5752, longitude=84.4983,
+            status=Restaurant.Status.PUBLISHED,
+        )
+
+    def test_osm_essential_rows_without_district_field_do_not_crash_search(self):
+        results = LocationSearchService.search_places(
+            query="DEF021 Test Bank", user_lat=27.6, user_lng=84.4,
+            radius_km=25, limit=30,
+        )
+        self.assertTrue(
+            any(r["name"] == "DEF021 Test Bank" for r in results),
+            "OSMEssentialService has no `district` field; serializer must not "
+            "assume one (DEF-021 AttributeError killed the whole response)")
+
+    def test_restaurant_category_falls_back_to_restaurant_table(self):
+        results = LocationSearchService.search_places(
+            category="restaurant", user_lat=27.5752, user_lng=84.4983,
+            radius_km=25, limit=30,
+        )
+        self.assertTrue(
+            any(r["name"] == "DEF022 Test Restaurant" for r in results),
+            "category=restaurant must query the published Restaurant table (DEF-022)")
 
 
 class SearchPlacesRadiusSliceTests(TestCase):
