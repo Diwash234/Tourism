@@ -8,7 +8,7 @@ audit, booking, chatbot, dataset, media_app, notifications, system_health,
 translation + project). 96 models in `tourist` alone; 199 URL patterns in
 `tourist/urls.py` + 12 in `navigation/urls.py`. Auth: JWT (simplejwt) + OAuth
 callback flows; staff capabilities enforced per-action (403-tested).
-84 migrations; SQLite dev / Postgres-ready via env; 85 `config()` env vars,
+84 migrations; engine-agnostic datastore — SQLite default (WAL-hardened at runtime) or PostgreSQL via `DATABASE_URL`; 85 `config()` env vars,
 zero secrets committed (frontend secret scan: 0 hits).
 
 **Frontend:** React 18 + Vite + Tailwind, 74 page components; axios service
@@ -80,7 +80,7 @@ OpenWeather key (optional), OAuth app creds, production Postgres DSN +
 | Physical-device GPS verification | BLOCKED | Algorithmic half CI-covered by 6 replay fixtures | A physical phone/browser | — | Manual run through `docs/PRODUCTION_OPERATIONS.md` checklist |
 | Live weather along routes | PARTIAL | Context-layer wiring + honest "unavailable" label | `OPENWEATHER_API_KEY` | Labelled unavailability | API key in env |
 | OAuth login | PARTIAL (path verified) | Callback flow proven end-to-end with mocked provider (`OAuthCallbackFlowTests`: exchange → userinfo → user link, no duplicates, JWT issued; failure path 400) | OAuth app credentials | Password auth | Provider credentials only — code path is verified |
-| Production datastore | **PASS** (verified 2026-09-20) | Real PostgreSQL 18.4 (self-contained `postgresql-binaries` build, no root needed) run in-sandbox: **451/451 tests OK on PG**, full dataset parity loaded (6,654 public destinations, 37 categories), `audit_navigable_places` green on PG, `pg_dump` backup sha256-verified + SQL drill restore. **Bug found & fixed:** `Destination.external_id` was `IntegerField` — 4,347 OSM ids exceed int4, which crashes any real Postgres; migrated to `BigIntegerField` (`0071`). `restore_database` now restores PG SQL dumps (drill + confirmed live); `backup_database` resolves `pg_dump` via `PG_DUMP`/PATH with an actionable error | Deployed-instance DSN (host choice) | — | Set `DB_*`/`DATABASE_URL` in host env; gate 6 also drills backup+restore |
+| Production datastore | **PASS** (verified 2026-09-20, both engines) | Engine-agnostic: **SQLite stays the zero-setup default and is now WAL-hardened at runtime** (journal_mode=WAL, synchronous=NORMAL, foreign_keys=ON, busy_timeout — applied via `connection_created`; `validate_production_config` PASSES on hardened SQLite and FAILS loudly on unhardened). `DATABASE_URL` (postgres:// or sqlite://) honored by settings — previously advertised by the gate script but never read. Real PostgreSQL 18.4 run in-sandbox: **454/454 tests OK on PG and 454/454 on SQLite**, dataset parity (6,654 public destinations), `audit_navigable_places` green on PG, verified pg_dump backup + SQL drill restore, verified SQLite backup + drill restore. **Bug found & fixed:** `Destination.external_id` IntegerField → BigIntegerField (`0071`) — 4,347 OSM ids exceed int4 and crash any real Postgres | — | — | Nothing for single-node; set `DATABASE_URL` for multi-instance Postgres |
 | Browser-spec E2E (Playwright) | BLOCKED (cause verified) | 67-check API-level E2E runs everywhere | Playwright CDN blocked at network level in CI sandbox (TLS socket disconnect, verified on cdn.playwright.dev + npmmirror); no root for system deps | API E2E | `npx playwright install --with-deps` on host |
 
 **Host runner:** `bash scripts/close_production_gates.sh` executes every

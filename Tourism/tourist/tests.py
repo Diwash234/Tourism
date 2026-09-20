@@ -3556,6 +3556,84 @@ class OpsLayerTests(TestCase):
             call_command("validate_production_config", stdout=out)  # no SystemExit
         self.assertIn("RESULT: PASS", out.getvalue())
 
+    def test_config_validator_accepts_wal_hardened_sqlite(self):
+        import io
+        from unittest.mock import MagicMock
+        from django.core.management import call_command
+        out = io.StringIO()
+        prod = dict(DEBUG=False, SECRET_KEY="p" * 64,
+                    ALLOWED_HOSTS=["tourism.example.org"],
+                    CORS_ALLOW_ALL_ORIGINS=False,
+                    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3",
+                                           "NAME": ":memory:"}},
+                    ML_SERVICE_API_KEY="real-ml-key-value",
+                    ML_WEBHOOK_SECRET="real-webhook-secret")
+        # hardened (WAL + FK on) -> PASS; the sqlite branch is the only
+        # cursor user, so mocking the pragma results is exact.
+        with self.settings(**prod):
+            with patch("django.db.connection") as conn:
+                cur = MagicMock()
+                cur.fetchone.side_effect = [("wal",), (1,)]
+                conn.cursor.return_value.__enter__.return_value = cur
+                call_command("validate_production_config", stdout=out)
+        self.assertIn("RESULT: PASS", out.getvalue())
+        self.assertIn("WAL-hardened", out.getvalue())
+        # NOT hardened -> FAIL with an actionable message
+        out = io.StringIO()
+        with self.settings(**prod):
+            with patch("django.db.connection") as conn:
+                cur = MagicMock()
+                cur.fetchone.side_effect = [("delete",), (0,)]
+                conn.cursor.return_value.__enter__.return_value = cur
+                with self.assertRaises(SystemExit):
+                    call_command("validate_production_config", stdout=out)
+        self.assertIn("NOT production-hardened", out.getvalue())
+
+    def test_database_url_parsing(self):
+        from Tourism.settings import _database_from_url
+        pg = _database_from_url("postgres://u%40ser:p%40ss@db.internal:6543/tourism")
+        self.assertEqual(pg["ENGINE"], "django.db.backends.postgresql")
+        self.assertEqual(pg["NAME"], "tourism")
+        self.assertEqual(pg["USER"], "u@ser")   # percent-decoded
+        self.assertEqual(pg["PASSWORD"], "p@ss")
+        self.assertEqual(pg["HOST"], "db.internal")
+        self.assertEqual(pg["PORT"], "6543")
+        lite = _database_from_url("sqlite:////srv/data/tourism.sqlite3")
+        self.assertEqual(lite["ENGINE"], "django.db.backends.sqlite3")
+        self.assertEqual(lite["NAME"], "/srv/data/tourism.sqlite3")
+        rel = _database_from_url("sqlite:///data/tourism.sqlite3")
+        self.assertEqual(rel["NAME"], "data/tourism.sqlite3")  # relative
+        mem = _database_from_url("sqlite://:memory:")
+        self.assertEqual(mem["NAME"], ":memory:")
+        with self.assertRaises(ValueError):
+            _database_from_url("mysql://user@host/db")
+
+    def test_wal_hardening_applied_to_file_backed_sqlite(self):
+        """Real subprocess against a temp file DB: WAL + FK actually applied."""
+        import os
+        import subprocess
+        import sys
+        import tempfile
+        tmp = tempfile.mkdtemp()
+        dbpath = os.path.join(tmp, "hardened.sqlite3")
+        code = (
+            "from django.db import connection\n"
+            "with connection.cursor() as c:\n"
+            "    c.execute('PRAGMA journal_mode'); print('MODE=' + str(c.fetchone()[0]))\n"
+            "    c.execute('PRAGMA foreign_keys'); print('FK=' + str(c.fetchone()[0]))\n"
+        )
+        env = dict(os.environ, DB_NAME=dbpath)
+        # force the SQLite default regardless of the parent's env
+        env.pop("DATABASE_URL", None)
+        env.pop("DB_ENGINE", None)
+        proc = subprocess.run(
+            [sys.executable, "manage.py", "shell", "-c", code],
+            capture_output=True, text=True, env=env,
+            cwd=str(Path(__file__).resolve().parents[1]), timeout=120)
+        self.assertEqual(proc.returncode, 0, proc.stderr[-500:])
+        self.assertIn("MODE=wal", proc.stdout)
+        self.assertIn("FK=1", proc.stdout)
+
     def _noop(self):
         pass
 

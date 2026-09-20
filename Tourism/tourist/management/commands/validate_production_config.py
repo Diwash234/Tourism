@@ -54,7 +54,30 @@ class Command(BaseCommand):
 
         engine = settings.DATABASES["default"]["ENGINE"]
         if "sqlite3" in engine:
-            fails.append(f"Database should be Postgres in production: currently {engine}")
+            # SQLite is acceptable in production when WAL-hardened (the
+            # tourist app applies this automatically on file-backed DBs):
+            # concurrent readers + one writer is fine for a single node.
+            from django.db import connection
+
+            mode, fk = None, None
+            try:
+                with connection.cursor() as cur:
+                    cur.execute("PRAGMA journal_mode")
+                    mode = cur.fetchone()[0]
+                    cur.execute("PRAGMA foreign_keys")
+                    fk = cur.fetchone()[0]
+            except Exception as exc:  # unreachable DB is itself a failure
+                fails.append(f"SQLite production check could not run: {exc}")
+            if str(mode).lower() == "wal" and fk:
+                oks.append("Database engine: sqlite3 WAL-hardened (foreign keys ON) "
+                           "— production-viable on a single node; choose "
+                           "Postgres (DATABASE_URL) for multi-instance")
+            else:
+                fails.append(
+                    f"SQLite is NOT production-hardened (journal_mode={mode}, "
+                    "foreign_keys={fk}): WAL is applied automatically on "
+                    "file-backed databases — check file/dir write permissions, "
+                    "or switch to Postgres via DATABASE_URL")
         else:
             oks.append(f"Database engine: {engine}")
 

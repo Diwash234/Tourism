@@ -96,10 +96,48 @@ ASGI_APPLICATION = "Tourism.asgi.application"
 # ------------------------------------------------------------------
 # Database
 # ------------------------------------------------------------------
-# Defaults to SQLite so the project runs with zero external setup
-# (good for a student/team project). Set DB_ENGINE=postgres in .env to
-# switch to PostgreSQL for production without touching this file.
-if config("DB_ENGINE", default="sqlite") == "postgres":
+# Engine-agnostic by design; SQLite is the DEFAULT so the project runs
+# with zero external setup (WAL-hardened at runtime by the tourist app,
+# so it is production-viable on a single node). For multi-instance
+# production, point the same code at PostgreSQL — no other change:
+#
+#   DATABASE_URL=postgres://user:pass@host:5432/dbname   (PostgreSQL)
+#   DATABASE_URL=sqlite:///abs/path/to/db.sqlite3        (explicit SQLite)
+#
+# Precedence: DATABASE_URL > DB_ENGINE + DB_* > default SQLite.
+def _database_from_url(url):
+    from urllib.parse import unquote, urlsplit
+
+    parsed = urlsplit(url)
+    scheme = parsed.scheme.lower()
+    if scheme in ("postgres", "postgresql", "postgis"):
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": (parsed.path or "/").lstrip("/") or "tourism_db",
+            "USER": unquote(parsed.username or ""),
+            "PASSWORD": unquote(parsed.password or ""),
+            "HOST": parsed.hostname or "localhost",
+            "PORT": str(parsed.port or 5432),
+        }
+    if scheme == "sqlite":
+        if parsed.netloc:
+            name = parsed.netloc + parsed.path      # sqlite://:memory:
+        elif parsed.path.startswith("//"):
+            name = parsed.path[1:]                  # sqlite:////abs -> /abs
+        else:
+            name = parsed.path.lstrip("/")          # sqlite:///rel  -> rel
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": name or str(BASE_DIR / "db.sqlite3"),
+        }
+    raise ValueError(
+        f"Unsupported DATABASE_URL scheme {scheme!r}: use postgres:// or sqlite://")
+
+
+_db_url = config("DATABASE_URL", default="")
+if _db_url:
+    DATABASES = {"default": _database_from_url(_db_url)}
+elif config("DB_ENGINE", default="sqlite") == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -115,6 +153,9 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / config("DB_NAME", default="db.sqlite3"),
+            # SQLite busy timeout (seconds): wait instead of failing with
+            # "database is locked" when a writer holds the lock briefly.
+            "OPTIONS": {"timeout": 30},
         }
     }
 
