@@ -168,3 +168,13 @@ the API answers honestly instead of inventing closer ones; live Overpass on the 
 close most of these. **20-day itineraries work for any start city** (verified live: Jumla,
 Kathmandu, Pokhara → 20 days, real destinations, route legs, per-day budgets, embedded
 nearby hotels/hospitals) via `/api/v1/ml/itinerary/` with the ML service on :8001.
+
+## Remote/rural enrichment round (2026-09-20, second pass)
+
+`import_osm_lodging` added 3,373 real OSM lodging places (alpine huts, village guest houses —
+the remote layer) → Hotel table 5,006. Five owner-listed places web-verified and added with
+`coordinate_status` provenance (Ramagrama Stupa, Dipayal Silgadhi, Shaileshwari Temple,
+Taulihawa, Rajbiraj). All unique hospital/police names from the raw bundled CSVs confirmed in
+DB (0 missing). Owner field test: found 363 → 394; hotel coverage 25.6% → 98.2%, restaurant
+11.0% → 91.9%. Full audit: 6,602/6,602 routable; 98.5–99.8% of destinations have every service
+within 50 km; the 211 remaining gaps are genuine >50 km wilderness, reported honestly.

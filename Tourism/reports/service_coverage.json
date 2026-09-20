@@ -1,52 +1,52 @@
 {
  "summary": {
-  "destinations": 6597,
-  "routable": 6597,
+  "destinations": 6602,
+  "routable": 6602,
   "routable_pct": 100.0,
   "service_counts": {
    "hospital": 478,
    "police": 943,
    "bank": 77,
-   "hotel": 1630,
+   "hotel": 5003,
    "restaurant": 445
   },
   "coverage": {
    "hospital": {
-    "within_10km": 4115,
-    "within_25km": 6019,
-    "within_50km": 6500,
+    "within_10km": 4120,
+    "within_25km": 6024,
+    "within_50km": 6505,
     "within_10km_pct": 62.4,
     "within_25km_pct": 91.2,
     "within_50km_pct": 98.5
    },
    "police": {
-    "within_10km": 5259,
-    "within_25km": 6304,
-    "within_50km": 6575,
+    "within_10km": 5262,
+    "within_25km": 6307,
+    "within_50km": 6580,
     "within_10km_pct": 79.7,
-    "within_25km_pct": 95.6,
+    "within_25km_pct": 95.5,
     "within_50km_pct": 99.7
    },
    "bank": {
-    "within_10km": 3724,
-    "within_25km": 5855,
-    "within_50km": 6501,
-    "within_10km_pct": 56.4,
+    "within_10km": 3729,
+    "within_25km": 5860,
+    "within_50km": 6506,
+    "within_10km_pct": 56.5,
     "within_25km_pct": 88.8,
     "within_50km_pct": 98.5
    },
    "hotel": {
-    "within_10km": 5775,
-    "within_25km": 6424,
-    "within_50km": 6582,
-    "within_10km_pct": 87.5,
-    "within_25km_pct": 97.4,
+    "within_10km": 5887,
+    "within_25km": 6426,
+    "within_50km": 6586,
+    "within_10km_pct": 89.2,
+    "within_25km_pct": 97.3,
     "within_50km_pct": 99.8
    },
    "restaurant": {
     "within_10km": 5417,
-    "within_25km": 6092,
-    "within_50km": 6518,
+    "within_25km": 6096,
+    "within_50km": 6522,
     "within_10km_pct": 82.1,
     "within_25km_pct": 92.3,
     "within_50km_pct": 98.8
@@ -117,8 +117,8 @@
     "restaurant": 2
    },
    "Saptari": {
-    "hotel": 6,
-    "restaurant": 6
+    "hotel": 7,
+    "restaurant": 7
    },
    "Sarlahi": {
     "hotel": 1
@@ -136,7 +136,7 @@
     "restaurant": 1
    }
   },
-  "destinations_with_gaps": 210
+  "destinations_with_gaps": 211
  },
  "gaps": [
   {
@@ -1142,6 +1142,11 @@
   {
    "district": "Saptari",
    "destination": "New Sagar Hotel & Lo",
+   "missing": "hotel (nearest 53 km); restaurant (nearest 53 km)"
+  },
+  {
+   "district": "Saptari",
+   "destination": "Rajbiraj",
    "missing": "hotel (nearest 53 km); restaurant (nearest 53 km)"
   },
   {
