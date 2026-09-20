@@ -1145,6 +1145,19 @@ class SearchPlacesCategoryRadiusTests(TestCase):
         for r in results:
             self.assertEqual(r["category"], "Hotel & Lodge")
 
+    def test_text_search_without_gps_is_not_filtered_by_assumed_radius(self):
+        # Live bug (tourist field test, 2026-09-20): with no GPS the reference
+        # point defaults to Pokhara, and the radius filter then silently
+        # deleted every hit outside ~50 km of Pokhara — searching a Kathmandu
+        # or Far-West record by name returned nothing. Radius must only apply
+        # when the user actually shared a location.
+        results = LocationSearchService.search_places(query="Far Away Temple", limit=30)
+        self.assertTrue(
+            any(r["name"] == "Far Away Temple" for r in results),
+            "no-GPS text search must find published records anywhere in Nepal")
+        results = LocationSearchService.search_places(query="Kathmandu Core", limit=30)
+        self.assertTrue(any(r["name"] == "Kathmandu Core" for r in results))
+
 
 class SearchPlacesRadiusSliceTests(TestCase):
     """A place inside the radius must be found even when many out-of-radius

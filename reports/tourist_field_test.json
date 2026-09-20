@@ -1,0 +1,2695 @@
+{
+  "generated_at": "2026-09-20T11:38:28Z",
+  "api": "http://127.0.0.1:8000/api/v1",
+  "districts": {
+    "Dhankuta": {
+      "hub": "Dhankuta Bazaar",
+      "rows": [
+        {
+          "place": "Hile",
+          "search": "partial",
+          "matched_name": "Police Station Hile",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 9.5,
+            "duration_min": 16,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 17,
+            "nearest": "Dhankuta District Hospital",
+            "nearest_km": 5.18
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Hile",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Bhedetar",
+          "search": "not-found"
+        },
+        {
+          "place": "Pakhribas",
+          "search": "partial",
+          "matched_name": "Police Station Pakhribas",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 10.0,
+            "duration_min": 17,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 16,
+            "nearest": "Dhankuta District Hospital",
+            "nearest_km": 8.73
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Pakhribas",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Namaste Jharna",
+          "search": "not-found"
+        },
+        {
+          "place": "Rajarani",
+          "search": "not-found"
+        },
+        {
+          "place": "Pathibhara Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Dhankuta Bazaar",
+          "search": "not-found"
+        },
+        {
+          "place": "Mulghat",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Kailali": {
+      "hub": "Dhangadhi",
+      "rows": [
+        {
+          "place": "Jokhar Taal",
+          "search": "not-found"
+        },
+        {
+          "place": "Dhangadhi Stadium",
+          "search": "not-found"
+        },
+        {
+          "place": "Ghodaghodi Lake",
+          "search": "exact",
+          "matched_name": "Ghodaghodi Lake",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 3.5,
+            "duration_min": 6,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 4,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 10,
+            "nearest": "Kailali District Hospital",
+            "nearest_km": 0.98
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 12,
+            "nearest": "District Police Office Kailali",
+            "nearest_km": 0.98
+          }
+        },
+        {
+          "place": "Godawari",
+          "search": "partial",
+          "matched_name": "Godawari Botanical Garden Birding",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 633.3,
+            "duration_min": 1088,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Madhyapur Hospital",
+            "nearest_km": 8.95
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Sipadol",
+            "nearest_km": 6.81
+          }
+        },
+        {
+          "place": "Tikapur",
+          "search": "partial",
+          "matched_name": "Tikapur Hospital",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 75.7,
+            "duration_min": 130,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 8,
+            "nearest": "Tikapur Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 18,
+            "nearest": "Police Station Tikapur",
+            "nearest_km": 0.98
+          }
+        },
+        {
+          "place": "Karnali Bridge",
+          "search": "not-found"
+        },
+        {
+          "place": "Geta",
+          "search": "not-found"
+        },
+        {
+          "place": "Mohana Bridge",
+          "search": "not-found"
+        },
+        {
+          "place": "Tikapur Park",
+          "search": "not-found"
+        },
+        {
+          "place": "Chisapani",
+          "search": "exact",
+          "matched_name": "Chisapani",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 1001.9,
+            "duration_min": 1721,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 9,
+            "nearest": "Ilam Community Hospital",
+            "nearest_km": 20.75
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 14,
+            "nearest": "Police Station Fikkal",
+            "nearest_km": 9.18
+          }
+        },
+        {
+          "place": "Rajghat",
+          "search": "not-found"
+        },
+        {
+          "place": "Shivapuri Dham",
+          "search": "not-found"
+        },
+        {
+          "place": "Bhada Village",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Pokhara": {
+      "hub": "Phewa Lake",
+      "rows": [
+        {
+          "place": "Phewa Lake",
+          "search": "partial",
+          "matched_name": "Phewa Lake View Point",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 3.1,
+            "duration_min": 5,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 17,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Fishtail Hospital",
+            "nearest_km": 1.5
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Baidam",
+            "nearest_km": 0.04
+          }
+        },
+        {
+          "place": "Lakeside",
+          "search": "partial",
+          "matched_name": "Lakeside, Pokhara",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 0.0,
+            "duration_min": 0,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Kaski Provincial Hospital",
+            "nearest_km": 0.55
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Office Pokhara",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Sarangkot",
+          "search": "partial",
+          "matched_name": "Hotel Annapurna View Sarangkot",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.8,
+            "duration_min": 5,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 10,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Metrocity Hospital",
+            "nearest_km": 1.47
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Office Kaski",
+            "nearest_km": 0.83
+          }
+        },
+        {
+          "place": "World Peace Pagoda",
+          "search": "partial",
+          "matched_name": "World Peace Pagoda (Pokhara)",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 4.5,
+            "duration_min": 8,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 16,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Fishtail Hospital",
+            "nearest_km": 2.25
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Lakeside",
+            "nearest_km": 1.48
+          }
+        },
+        {
+          "place": "Davis Falls",
+          "search": "partial",
+          "matched_name": "Davis Falls (Patale Chhango)",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 3.9,
+            "duration_min": 7,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 12,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Fishtail Hospital",
+            "nearest_km": 2.66
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 1.21
+          }
+        },
+        {
+          "place": "Gupteshwor Cave",
+          "search": "not-found"
+        },
+        {
+          "place": "Begnas Lake",
+          "search": "partial",
+          "matched_name": "Begnas Lake Boating",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 11.6,
+            "duration_min": 20,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 7,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 27,
+            "nearest": "Gandaki Medical College Teaching Hospital",
+            "nearest_km": 8.69
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Bhoteodar",
+            "nearest_km": 2.48
+          }
+        },
+        {
+          "place": "Mahendra Cave",
+          "search": "exact",
+          "matched_name": "Mahendra Cave",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 7.8,
+            "duration_min": 13,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 14,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Gandaki Medical College Hospital",
+            "nearest_km": 2.7
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Lamachaur",
+            "nearest_km": 1.64
+          }
+        },
+        {
+          "place": "International Mountain Museum",
+          "search": "exact",
+          "matched_name": "International Mountain Museum",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.4,
+            "duration_min": 4,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 5,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Kaski Provincial Hospital",
+            "nearest_km": 2.32
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Birauta",
+            "nearest_km": 0.96
+          }
+        },
+        {
+          "place": "Bindhyabasini Temple",
+          "search": "partial",
+          "matched_name": "Bindhyabasini Temple (Pokhara)",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.9,
+            "duration_min": 5,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 8,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Charak Memorial Hospital",
+            "nearest_km": 1.51
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Pokhara",
+            "nearest_km": 0.49
+          }
+        },
+        {
+          "place": "Seti Gorge",
+          "search": "not-found"
+        },
+        {
+          "place": "Australian Camp",
+          "search": "partial",
+          "matched_name": "Australian Camp Guest House and Restaurant",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 26.4,
+            "duration_min": 45,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 21,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 28,
+            "nearest": "Gandaki Medical College Hospital",
+            "nearest_km": 16.91
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Office Kaski Area Police Office Hemja",
+            "nearest_km": 9.36
+          }
+        }
+      ]
+    },
+    "Kathmandu": {
+      "hub": "Kathmandu Durbar Square",
+      "rows": [
+        {
+          "place": "Swayambhunath",
+          "search": "partial",
+          "matched_name": "Swayambhunath Stupa (Monkey Temple)",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.1,
+            "duration_min": 4,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 5,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Birendra Military Hospital",
+            "nearest_km": 1.56
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Circle Chhetrapati",
+            "nearest_km": 1.48
+          }
+        },
+        {
+          "place": "Boudhanath Stupa",
+          "search": "exact",
+          "matched_name": "Boudhanath Stupa",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 6.1,
+            "duration_min": 11,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 16,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Apex Hospital",
+            "nearest_km": 1.27
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Circle Gaushala",
+            "nearest_km": 1.92
+          }
+        },
+        {
+          "place": "Pashupatinath Temple",
+          "search": "exact",
+          "matched_name": "Pashupatinath Temple",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 4.4,
+            "duration_min": 8,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 12,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Helping Hands Community Hospital",
+            "nearest_km": 1.15
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Circle Gaushala",
+            "nearest_km": 0.11
+          }
+        },
+        {
+          "place": "Kathmandu Durbar Square",
+          "search": "partial",
+          "matched_name": "Kathmandu Durbar Square & Old City",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 0.4,
+            "duration_min": 1,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Blue Cross Hospital",
+            "nearest_km": 0.74
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Range Kathmandu",
+            "nearest_km": 1.05
+          }
+        },
+        {
+          "place": "Patan Durbar Square",
+          "search": "exact",
+          "matched_name": "Patan Durbar Square",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 4.3,
+            "duration_min": 7,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 15,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Buddha Hospital",
+            "nearest_km": 2.31
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Circle Koteshwor",
+            "nearest_km": 2.31
+          }
+        },
+        {
+          "place": "Bhaktapur Durbar Square",
+          "search": "exact",
+          "matched_name": "Bhaktapur Durbar Square",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 13.3,
+            "duration_min": 23,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 23,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Bhaktapur Cancer Hospital",
+            "nearest_km": 0.29
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Office Bhaktapur",
+            "nearest_km": 0.06
+          }
+        },
+        {
+          "place": "Garden of Dreams",
+          "search": "exact",
+          "matched_name": "Garden of Dreams",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 110.9,
+            "duration_min": 190,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 25,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 17,
+            "nearest": "Cmc Hospital Emergency",
+            "nearest_km": 12.1
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 25,
+            "nearest": "Police Station Ratnanagar",
+            "nearest_km": 4.78
+          }
+        },
+        {
+          "place": "Thamel",
+          "search": "partial",
+          "matched_name": "Thamel Grand Hotel",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 1.2,
+            "duration_min": 2,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 17,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Ciwec Hospital",
+            "nearest_km": 1.05
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Circle Chhetrapati",
+            "nearest_km": 0.54
+          }
+        },
+        {
+          "place": "Chandragiri Hills",
+          "search": "not-found"
+        },
+        {
+          "place": "Nagarkot",
+          "search": "partial",
+          "matched_name": "Nagarkot Camping",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 28.1,
+            "duration_min": 48,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 30,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Bhaktapur Human Organ Transplant Center",
+            "nearest_km": 9.46
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Nagarkot",
+            "nearest_km": 0.38
+          }
+        },
+        {
+          "place": "Kirtipur",
+          "search": "partial",
+          "matched_name": "Kirtipur community homestay",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 4.8,
+            "duration_min": 8,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 7,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Janamaitri Hospital",
+            "nearest_km": 2.51
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Metropolitan Police Circle Kalimati",
+            "nearest_km": 2.89
+          }
+        }
+      ]
+    },
+    "Syangja": {
+      "hub": "Putalibazar",
+      "rows": [
+        {
+          "place": "Putalibazar",
+          "search": "partial",
+          "matched_name": "Police Station Putalibazar",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.4,
+            "duration_min": 4,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Syangja Community Hospital",
+            "nearest_km": 11.12
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 11.86
+          }
+        },
+        {
+          "place": "Waling",
+          "search": "partial",
+          "matched_name": "Police Station Waling",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 19.4,
+            "duration_min": 33,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Syangja Community Hospital",
+            "nearest_km": 11.03
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 29.02
+          }
+        },
+        {
+          "place": "Arjunchaupari",
+          "search": "partial",
+          "matched_name": "Police Station Arjunchaupari",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.9,
+            "duration_min": 5,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Syangja Community Hospital",
+            "nearest_km": 9.11
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 14.83
+          }
+        },
+        {
+          "place": "Sirubari",
+          "search": "partial",
+          "matched_name": "Sirubari Homestay,House No. 33",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 13.6,
+            "duration_min": 23,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 29,
+            "nearest": "Parbat Community Hospital",
+            "nearest_km": 12.63
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 19.31
+          }
+        },
+        {
+          "place": "Chhangchhangdi",
+          "search": "not-found"
+        },
+        {
+          "place": "Aandhikhola",
+          "search": "not-found"
+        },
+        {
+          "place": "Bhirkot",
+          "search": "not-found"
+        },
+        {
+          "place": "Galyang",
+          "search": "partial",
+          "matched_name": "Police Station Galyang",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 25.2,
+            "duration_min": 43,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 4,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Syangja Community Hospital",
+            "nearest_km": 12.15
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 31.65
+          }
+        },
+        {
+          "place": "Ramkot",
+          "search": "exact",
+          "matched_name": "Ramkot",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 69.2,
+            "duration_min": 119,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Bandipur Hospital",
+            "nearest_km": 5.83
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Manakamana",
+            "nearest_km": 23.2
+          }
+        },
+        {
+          "place": "Swasthani Temple",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Waling": {
+      "hub": "Waling Bazaar",
+      "rows": [
+        {
+          "place": "Waling Bazaar",
+          "search": "not-found"
+        },
+        {
+          "place": "Ramdi",
+          "search": "not-found"
+        },
+        {
+          "place": "Mirmi",
+          "search": "not-found"
+        },
+        {
+          "place": "Keware Bhanjyang",
+          "search": "not-found"
+        },
+        {
+          "place": "Huwas",
+          "search": "partial",
+          "matched_name": "Police Station Huwas",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 84.7,
+            "duration_min": 146,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 35,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Parbat Community Hospital",
+            "nearest_km": 13.49
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Jaimini",
+            "nearest_km": 19.35
+          }
+        },
+        {
+          "place": "Setibeni",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Parbat": {
+      "hub": "Kusma Bazaar",
+      "rows": [
+        {
+          "place": "Kusma Bazaar",
+          "search": "not-found"
+        },
+        {
+          "place": "Kushma Suspension Bridge",
+          "search": "not-found"
+        },
+        {
+          "place": "Modi Khola",
+          "search": "partial",
+          "matched_name": "Modi Khola Guest House and Fast Food Restaurant",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 29.4,
+            "duration_min": 50,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 20,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Gandaki Medical College Hospital",
+            "nearest_km": 23.08
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Office Kaski Area Police Office Hemja",
+            "nearest_km": 17.49
+          }
+        },
+        {
+          "place": "Pataley Chhango",
+          "search": "not-found"
+        },
+        {
+          "place": "Panchase",
+          "search": "partial",
+          "matched_name": "Sarangkot -Kaskikot-Dhikuripokhari-Panchase-Damside New Treaking Trial",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 34.4,
+            "duration_min": 59,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 20,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Gandaki Medical College Hospital",
+            "nearest_km": 4.89
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Sarangkot",
+            "nearest_km": 1.02
+          }
+        },
+        {
+          "place": "Durlung",
+          "search": "not-found"
+        },
+        {
+          "place": "Phalebas",
+          "search": "partial",
+          "matched_name": "Police Station Phalebas",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 6.4,
+            "duration_min": 11,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Parbat Community Hospital",
+            "nearest_km": 5.65
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Office Parbat",
+            "nearest_km": 5.65
+          }
+        },
+        {
+          "place": "Baglung Kalika",
+          "search": "partial",
+          "matched_name": "Baglung Kalika Temple Viewpoint",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 8.2,
+            "duration_min": 14,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Baglung Community Hospital",
+            "nearest_km": 3.04
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Jaimini",
+            "nearest_km": 1.59
+          }
+        }
+      ]
+    },
+    "Kanchanpur": {
+      "hub": "Mahendranagar",
+      "rows": [
+        {
+          "place": "Shuklaphanta National Park",
+          "search": "exact",
+          "matched_name": "Shuklaphanta National Park",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 21.9,
+            "duration_min": 38,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 13,
+            "nearest": "Kanchanpur District Hospital",
+            "nearest_km": 12.74
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 17,
+            "nearest": "Police Station Punarbas",
+            "nearest_km": 1.63
+          }
+        },
+        {
+          "place": "Mahendranagar",
+          "search": "partial",
+          "matched_name": "Bhimdatta (Mahendranagar)",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 26.0,
+            "duration_min": 45,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 13,
+            "nearest": "Kanchanpur District Hospital",
+            "nearest_km": 6.67
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 17,
+            "nearest": "Police Station Punarbas",
+            "nearest_km": 5.89
+          }
+        },
+        {
+          "place": "Dodhara Chandani",
+          "search": "not-found"
+        },
+        {
+          "place": "Gaddachauki",
+          "search": "partial",
+          "matched_name": "Police Station Gaddachauki",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 31.8,
+            "duration_min": 55,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 4,
+            "nearest": "Kanchanpur District Hospital",
+            "nearest_km": 9.79
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 11,
+            "nearest": "Police Station Gaddachauki",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Mahakali River",
+          "search": "exact",
+          "matched_name": "Mahakali River",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 20.9,
+            "duration_min": 36,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 8,
+            "nearest": "Kanchanpur District Hospital",
+            "nearest_km": 4.85
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 17,
+            "nearest": "District Police Office Kanchanpur",
+            "nearest_km": 4.85
+          }
+        },
+        {
+          "place": "Bedkot Lake",
+          "search": "not-found"
+        },
+        {
+          "place": "Rani Tal",
+          "search": "not-found"
+        },
+        {
+          "place": "Jhilmila Lake",
+          "search": "not-found"
+        },
+        {
+          "place": "Brahmadev",
+          "search": "not-found"
+        },
+        {
+          "place": "Jogbudha",
+          "search": "partial",
+          "matched_name": "Police Station Jogbudha",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 50.1,
+            "duration_min": 86,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 11,
+            "nearest": "Dadeldhura Eye Hospital",
+            "nearest_km": 16.81
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 23,
+            "nearest": "Police Station Jogbudha",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Daiji",
+          "search": "not-found"
+        },
+        {
+          "place": "Siddhanath Temple",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Kapilvastu": {
+      "hub": "Taulihawa",
+      "rows": [
+        {
+          "place": "Tilaurakot",
+          "search": "not-found"
+        },
+        {
+          "place": "Kudan",
+          "search": "not-found"
+        },
+        {
+          "place": "Niglihawa",
+          "search": "not-found"
+        },
+        {
+          "place": "Gotihawa",
+          "search": "not-found"
+        },
+        {
+          "place": "Sagarhawa",
+          "search": "not-found"
+        },
+        {
+          "place": "Araurakot",
+          "search": "not-found"
+        },
+        {
+          "place": "Banganga",
+          "search": "not-found"
+        },
+        {
+          "place": "Taulihawa",
+          "search": "partial",
+          "matched_name": "Police Station Taulihawa",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 2.9,
+            "duration_min": 5,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 11,
+            "nearest": "Kapilvastu District Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 23,
+            "nearest": "District Police Office Kapilvastu",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Jagdishpur Reservoir",
+          "search": "exact",
+          "matched_name": "Jagdishpur Reservoir",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 12.1,
+            "duration_min": 21,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 12,
+            "nearest": "Kapilvastu District Hospital",
+            "nearest_km": 9.94
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 25,
+            "nearest": "District Police Office Kapilvastu",
+            "nearest_km": 9.94
+          }
+        },
+        {
+          "place": "Lumbini",
+          "search": "partial",
+          "matched_name": "Lumbini-Muktinath",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 266.9,
+            "duration_min": 459,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 62,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 4,
+            "nearest": "Mustang District Hospital",
+            "nearest_km": 14.57
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 13,
+            "nearest": "Police Station Muktinath",
+            "nearest_km": 0.75
+          }
+        },
+        {
+          "place": "Ramgram",
+          "search": "not-found"
+        },
+        {
+          "place": "Kapilvastu Museum",
+          "search": "exact",
+          "matched_name": "Kapilvastu Museum",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 6.5,
+            "duration_min": 11,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 12,
+            "nearest": "Kapilvastu District Hospital",
+            "nearest_km": 3.87
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 24,
+            "nearest": "District Police Office Kapilvastu",
+            "nearest_km": 3.87
+          }
+        }
+      ]
+    },
+    "Doti": {
+      "hub": "Dipayal Silgadhi",
+      "rows": [
+        {
+          "place": "Dipayal Silgadhi",
+          "search": "not-found"
+        },
+        {
+          "place": "Khaptad National Park",
+          "search": "exact",
+          "matched_name": "Khaptad National Park",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 87.5,
+            "duration_min": 150,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 4,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 8,
+            "nearest": "Kanchanpur District Hospital",
+            "nearest_km": 34.13
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 18,
+            "nearest": "Police Station Jogbuda",
+            "nearest_km": 17.88
+          }
+        },
+        {
+          "place": "Shaileshwari Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Badimalika",
+          "search": "partial",
+          "matched_name": "Badimalika Hotel And Lodge",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 210.4,
+            "duration_min": 362,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 18,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 8,
+            "nearest": "Bheri Hospital",
+            "nearest_km": 2.62
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 17,
+            "nearest": "District Police Office Banke",
+            "nearest_km": 2.62
+          }
+        },
+        {
+          "place": "Seti River",
+          "search": "partial",
+          "matched_name": "Seti River Kayaking",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 417.2,
+            "duration_min": 717,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 73,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Gandaki Medical College Teaching Hospital",
+            "nearest_km": 1.11
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Baglung Buspark",
+            "nearest_km": 1.48
+          }
+        },
+        {
+          "place": "Doti Durbar",
+          "search": "not-found"
+        },
+        {
+          "place": "Gopghat",
+          "search": "not-found"
+        },
+        {
+          "place": "Sanfe",
+          "search": "partial",
+          "matched_name": "Police Station Sanfebagar",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 34.1,
+            "duration_min": 59,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Achham District Hospital",
+            "nearest_km": 11.49
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 24,
+            "nearest": "Police Station Sanfebagar",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Jorayal",
+          "search": "not-found"
+        },
+        {
+          "place": "Budar",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Darchula": {
+      "hub": "Khalanga",
+      "rows": [
+        {
+          "place": "Khalanga",
+          "search": "partial",
+          "matched_name": "Police Station Khalanga",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 281.7,
+            "duration_min": 484,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 12,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 15,
+            "nearest": "Salyan District Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 26,
+            "nearest": "District Police Office Salyan",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Api Nampa Conservation Area",
+          "search": "exact",
+          "matched_name": "Api Nampa Conservation Area",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 116.4,
+            "duration_min": 200,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 2,
+            "nearest": "Police Station Gokuleshwor",
+            "nearest_km": 33.84
+          }
+        },
+        {
+          "place": "Api Himal",
+          "search": "exact",
+          "matched_name": "Api Himal",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 119.0,
+            "duration_min": 204,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 4,
+            "nearest": "Police Station Gokuleshwor",
+            "nearest_km": 43.27
+          }
+        },
+        {
+          "place": "Malikarjun Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Shailyashikhar",
+          "search": "not-found"
+        },
+        {
+          "place": "Latinath",
+          "search": "not-found"
+        },
+        {
+          "place": "Byas Valley",
+          "search": "not-found"
+        },
+        {
+          "place": "Tinkar",
+          "search": "not-found"
+        },
+        {
+          "place": "Lipulekh",
+          "search": "not-found"
+        },
+        {
+          "place": "Kalapani",
+          "search": "partial",
+          "matched_name": "\u0915\u093e\u0932\u093e\u092a\u093e\u0928\u0940 \u091a\u094b\u0915 Kalapani Chok \u096e\u096c\u096c\u096d",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 1057.3,
+            "duration_min": 1817,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 170,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 12,
+            "nearest": "Ilam Community Hospital",
+            "nearest_km": 11.25
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 19,
+            "nearest": "Police Station Fikkal",
+            "nearest_km": 3.86
+          }
+        }
+      ]
+    },
+    "Dadeldhura": {
+      "hub": "Amargadhi",
+      "rows": [
+        {
+          "place": "Amargadhi",
+          "search": "partial",
+          "matched_name": "Police Station Amargadhi",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 12.6,
+            "duration_min": 22,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 7,
+            "nearest": "Dadeldhura Eye Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 15,
+            "nearest": "District Police Office Dadeldhura",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Dadeldhura Bazaar",
+          "search": "not-found"
+        },
+        {
+          "place": "Ugratara Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Alital",
+          "search": "partial",
+          "matched_name": "Police Station Aalital",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 28.2,
+            "duration_min": 48,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 6,
+            "nearest": "Dadeldhura Eye Hospital",
+            "nearest_km": 18.01
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 12,
+            "nearest": "Police Station Aalital",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Ganyapdhura",
+          "search": "partial",
+          "matched_name": "Police Station Ganyapdhura",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 11.4,
+            "duration_min": 20,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 7,
+            "nearest": "Dadeldhura Eye Hospital",
+            "nearest_km": 6.27
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 14,
+            "nearest": "Police Station Ganyapdhura",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Ajaymeru",
+          "search": "not-found"
+        },
+        {
+          "place": "Amargadhi Fort",
+          "search": "not-found"
+        },
+        {
+          "place": "Sahastralinga",
+          "search": "not-found"
+        },
+        {
+          "place": "Parshuram Dham",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Bajura": {
+      "hub": "Martadi",
+      "rows": [
+        {
+          "place": "Martadi",
+          "search": "partial",
+          "matched_name": "Police Station Martadi",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 4.0,
+            "duration_min": 7,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Bajura District Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 24,
+            "nearest": "District Police Office Bajura",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Badimalika Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Budhinanda",
+          "search": "not-found"
+        },
+        {
+          "place": "Budhinanda Lake",
+          "search": "not-found"
+        },
+        {
+          "place": "Kolti",
+          "search": "partial",
+          "matched_name": "Police Station Kolti",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 15.8,
+            "duration_min": 27,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Bajura District Hospital",
+            "nearest_km": 17.75
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Kolti",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Nateshwori Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Swamikartik",
+          "search": "partial",
+          "matched_name": "Police Station Swamikartik",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 32.6,
+            "duration_min": 56,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 2,
+            "nearest": "Bajura District Hospital",
+            "nearest_km": 20.22
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 15,
+            "nearest": "Police Station Swamikartik",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Gaumul",
+          "search": "not-found"
+        },
+        {
+          "place": "Ramaroshan",
+          "search": "partial",
+          "matched_name": "Ramaroshan - Adventure & Camping Resort",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 24.1,
+            "duration_min": 41,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Kalikot District Hospital",
+            "nearest_km": 17.57
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 26,
+            "nearest": "Police Station Chaurpati",
+            "nearest_km": 11.21
+          }
+        }
+      ]
+    },
+    "Baitadi": {
+      "hub": "Dasharathchand",
+      "rows": [
+        {
+          "place": "Dasharathchand",
+          "search": "partial",
+          "matched_name": "Police Station Dasharathchand",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 5.0,
+            "duration_min": 9,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Baitadi District Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 12,
+            "nearest": "District Police Office Baitadi",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Patan",
+          "search": "partial",
+          "matched_name": "Police Station Chhorepatan",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 459.1,
+            "duration_min": 789,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 60,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Fishtail Hospital",
+            "nearest_km": 3.87
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Chhorepatan",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Tripura Sundari Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Melauli Bhagwati Temple",
+          "search": "not-found"
+        },
+        {
+          "place": "Dehimandau",
+          "search": "not-found"
+        },
+        {
+          "place": "Surnaya",
+          "search": "not-found"
+        },
+        {
+          "place": "Pancheswor",
+          "search": "not-found"
+        },
+        {
+          "place": "Dogadakedar",
+          "search": "not-found"
+        },
+        {
+          "place": "Shivanath",
+          "search": "not-found"
+        },
+        {
+          "place": "Dilashaini",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Bajhang": {
+      "hub": "Chainpur",
+      "rows": [
+        {
+          "place": "Chainpur",
+          "search": "partial",
+          "matched_name": "Police Station Chainpur",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 31.5,
+            "duration_min": 54,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 4,
+            "nearest": "Bajhang District Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 17,
+            "nearest": "District Police Office Bajhang",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Saipal Himal",
+          "search": "not-found"
+        },
+        {
+          "place": "Surma Sarovar",
+          "search": "not-found"
+        },
+        {
+          "place": "Surma Valley",
+          "search": "not-found"
+        },
+        {
+          "place": "Thalara",
+          "search": "not-found"
+        },
+        {
+          "place": "Chhabis Pathibhara",
+          "search": "not-found"
+        },
+        {
+          "place": "Talkot",
+          "search": "partial",
+          "matched_name": "Police Station Talkot",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 40.3,
+            "duration_min": 69,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 3,
+            "nearest": "Bajhang District Hospital",
+            "nearest_km": 11.29
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 13,
+            "nearest": "Police Station Talkot",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Kedarsyu",
+          "search": "not-found"
+        },
+        {
+          "place": "Jayaprithvi",
+          "search": "not-found"
+        }
+      ]
+    },
+    "Achham": {
+      "hub": "Mangalsen",
+      "rows": [
+        {
+          "place": "Mangalsen",
+          "search": "partial",
+          "matched_name": "Police Station Mangalsen",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 22.4,
+            "duration_min": 39,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Achham District Hospital",
+            "nearest_km": 0.0
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 23,
+            "nearest": "District Police Office Achham",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Ramaroshan Lake",
+          "search": "not-found"
+        },
+        {
+          "place": "Bannigadhi Jaygadh",
+          "search": "not-found"
+        },
+        {
+          "place": "Sanfebagar",
+          "search": "partial",
+          "matched_name": "Police Station Sanfebagar",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 34.8,
+            "duration_min": 60,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Achham District Hospital",
+            "nearest_km": 11.49
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 24,
+            "nearest": "Police Station Sanfebagar",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Kamalbazar",
+          "search": "partial",
+          "matched_name": "Police Station Kamalbazar",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 13.0,
+            "duration_min": 22,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation."
+          },
+          "nearby_hospital": {
+            "count": 5,
+            "nearest": "Achham District Hospital",
+            "nearest_km": 13.17
+          },
+          "nearby_hotel": {
+            "count": 0
+          },
+          "nearby_restaurant": {
+            "count": 0
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 23,
+            "nearest": "Police Station Kamalbazar",
+            "nearest_km": 0.0
+          }
+        },
+        {
+          "place": "Turmakhad",
+          "search": "not-found"
+        },
+        {
+          "place": "Panchadeval Binayak",
+          "search": "not-found"
+        },
+        {
+          "place": "Baidyanath Dham",
+          "search": "not-found"
+        },
+        {
+          "place": "Jaygadh",
+          "search": "not-found"
+        }
+      ]
+    }
+  },
+  "totals": {
+    "places": 158,
+    "found_exact": 17,
+    "found_partial": 51,
+    "not_found": 90,
+    "routes_ok": 0,
+    "routes_fallback": 68,
+    "routes_failed": 0
+  }
+}
