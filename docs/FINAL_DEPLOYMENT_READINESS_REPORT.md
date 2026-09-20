@@ -7,7 +7,7 @@ Date: 2026-09-20
 
 Backend: Django 5.0.6 + DRF, Python 3.11.2 — `manage.py check`: 0 issues
 Frontend: React 18 + Vite — `npm run lint`: 0 errors / 409 pre-existing style warnings (lint now also covers scripts/*.mjs|.cjs; generated nav bundle ignored — DEF-017), `npm run build`: clean, bundle 1.92 MB main chunk (558 KB gz) after DEF-013 code-splitting; AdminDashboard/maps/navigation lazy-loaded
-Database: **SQLite is the current, default database** (WAL-hardened, foreign keys ON — verified at runtime: `journal_mode=wal`); PostgreSQL 18.4 verified as the drop-in scale-up path via `DATABASE_URL`
+Database: **SQLite is the chosen production database** (owner decision, 2026-09-20 — continue on Django's default SQLite). It is the default engine, WAL-hardened, foreign keys ON (verified at runtime: `journal_mode=wal`), with sha256-verified `backup_database`/`restore_database` drills. Deployment shape: single node (one writer process; do not place `db.sqlite3` on NFS/network shares; keep the §5 backup cron). PostgreSQL remains a tested drop-in scale-up path via `DATABASE_URL` (492/492 on PG 16.2, 487/487 on 18.4) if traffic ever outgrows a single node
 
 Tests:
 Backend: 492/492 OK on SQLite (full `manage.py test` runner, includes SEO/sitemap/health suite) AND 492/492 OK on real PostgreSQL 16.2 (pgserver-provisioned, `PG_DUMP` client env, includes the SEO suite and migration 0072); PostgreSQL 18.4 additionally passed 487/487 at commit `e7d7c7b`

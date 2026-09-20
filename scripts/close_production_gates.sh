@@ -65,11 +65,16 @@ fi
 
 echo ""
 echo "--- Gate 7: browser E2E (Playwright-capable host) ---"
-if [ -d "$FRONTEND" ] && (cd "$FRONTEND" && npx playwright --version >/dev/null 2>&1); then
-  (cd "$FRONTEND" && npx playwright install chromium >/dev/null 2>&1)
+# Require a browser that actually LAUNCHES — `playwright --version` passes on
+# hosts where the chromium binary exists but system libs (libnspr4 etc.) are
+# missing, which used to turn this gate into a false FAIL instead of a SKIP.
+if [ -d "$FRONTEND" ] && (cd "$FRONTEND" && node -e "
+const { chromium } = require('playwright');
+chromium.launch({ args: ['--no-sandbox'] }).then(b => b.close()).then(() => process.exit(0)).catch(() => process.exit(1));
+" >/dev/null 2>&1); then
   gate "browser specs" bash -c "cd $FRONTEND && npm run test:e2e:browser"
 else
-  echo "SKIP: Playwright unavailable here — run: npx playwright install --with-deps && npm run test:e2e:browser"
+  echo "SKIP: Playwright browser cannot launch here (missing system libs or not installed) — run on host: npx playwright install --with-deps && npm run test:e2e:browser"
 fi
 
 echo ""

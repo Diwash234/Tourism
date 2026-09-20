@@ -97,7 +97,9 @@ python Tourism/manage.py validate_production_config
 cd Tourism
 python manage.py migrate --noinput
 
-# Option A — SQLite (default): nothing else to do. The tracked db.sqlite3
+# Option A — SQLite (CHOSEN production path — owner decision 2026-09-20):
+# nothing else to do; run one app node (single writer), keep the backup cron
+# from §5, and never put db.sqlite3 on NFS/network shares. The tracked db.sqlite3
 # already contains the seeded 6.6k destinations; keep it or start empty.
 
 # Option B — PostgreSQL:
