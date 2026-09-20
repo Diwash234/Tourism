@@ -201,3 +201,70 @@ venv if not present.
 Rollback: redeploy the previous git tag, `python manage.py migrate` is
 forward-only (never delete migrations), and `restore_database` can recover
 data from any sha256-verified archive.
+
+## 8. Domain + HTTPS (production)
+
+1. **DNS**: point `example.com` (A/AAAA) and `www.example.com` (CNAME → apex)
+   at the server. Wait for propagation (`dig +short example.com`).
+2. **TLS**: issue certificates with certbot, e.g.
+   `certbot --nginx -d example.com -d www.example.com`; enable auto-renew
+   (`systemctl status certbot.timer`).
+3. **Reverse proxy** (nginx example): serve the built frontend from
+   `frontend/Tourism/dist`, and route these to Django (gunicorn/uwsgi):
+   - `/api/`            → Django REST API
+   - `/robots.txt`      → Django (`views_seo.RobotsTxtView`) — **generated per
+     request; do NOT serve a static copy**
+   - `/sitemap.xml`     → Django (`views_seo.SitemapView`) — generated from
+     live published records
+   - `/admin/`, `/static/admin/`, `/media/` → Django
+   Redirect HTTP → HTTPS and `www` → apex (or the reverse) with a 301.
+4. **Django env** (`.env`): `DEBUG=False`, `ALLOWED_HOSTS=example.com,www.example.com`,
+   `CSRF_TRUSTED_ORIGINS=https://example.com,https://www.example.com`,
+   `CORS_ALLOWED_ORIGINS=https://example.com`, `PUBLIC_SITE_URL=https://example.com`
+   (used for canonical/sitemap absolute URLs; falls back to the request host),
+   `SECURE_SSL_REDIRECT=True` (default when `DEBUG=False`). Secure-cookie and
+   HSTS defaults already switch on automatically outside DEBUG.
+5. **Frontend env**: `VITE_API_BASE_URL` may stay unset — the client then uses
+   the same-origin `/api/v1` path, which the proxy routes to Django. No
+   localhost URL is ever baked into the production bundle.
+
+Verified in-repo: security-header/HSTS/secure-cookie defaults (`Tourism/settings.py`),
+env-driven CORS/CSRF lists, `VITE_API_BASE_URL || "/api/v1"` fallback.
+The certbot/DNS steps themselves require a real domain and cannot be
+exercised from the CI sandbox — run them on the host and tick them off here.
+
+## 9. SEO + Google Search Console
+
+- `robots.txt` (Django-generated): allows public pages, disallows `/admin`,
+  `/staff`, `/portal`, `/profile`, `/dashboard`, `/login`, `/register`,
+  `/forgot-password`, `/api/`, and advertises the sitemap URL.
+- `sitemap.xml` (Django-generated, cached 5 min, invalidated instantly on
+  publish/unpublish): home + public sections, all 77 district pages, and every
+  published, search-visible destination with `lastmod`.
+- Per-page metadata is set by the React `useSeo` hook on destination and
+  district pages: title, description, canonical, Open Graph, and JSON-LD
+  `TouristAttraction` built **only from real database fields** (name,
+  description, district, coordinates when present). Admins can override
+  `seo_title`, `meta_description`, `og_image_url`, set `meta_robots=noindex`
+  or `search_visible=false` per destination (Admin Dashboard → destination).
+- Google Search Console procedure (host, real domain):
+  1. Verify the domain (DNS TXT or HTML file method).
+  2. Submit `https://example.com/sitemap.xml`.
+  3. Check the robots.txt report and URL inspection for a few destination
+     pages; request indexing for the most important ones.
+  4. Monitor Coverage/Crawl stats; fix errors as they appear.
+  Indexing timing and rankings are controlled by Google, not by this app —
+  the platform's job is to be technically crawlable, which the above ensures.
+
+Verified in-repo: `SeoSitemapRobotsHealthTests` (dynamic sitemap contents,
+private-route exclusion, eager invalidation on lifecycle changes, noindex
+honoured, admin SEO fields reaching the public API).
+
+## 10. Health checks
+
+- `GET /api/v1/health/` — dependency status without secrets: application,
+  database (live ping + engine), routing (provider configured vs labelled
+  fallback), weather (configured/not), media storage (writable/unwritable).
+  Returns 503 with `status: "degraded"` when a hard dependency fails.
+- `GET /api/v1/system/health/` — liveness probe (database/disk/error rate)
+  used by uptime monitors; `full/` variant is admin-only.

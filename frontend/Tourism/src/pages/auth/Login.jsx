@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
-import { FiMail, FiLock, FiShield, FiUser, FiBriefcase, FiCheckCircle } from "react-icons/fi"
+import { FiMail, FiLock, FiShield, FiUser, FiBriefcase } from "react-icons/fi"
 import { motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
@@ -14,8 +14,6 @@ const ROLE_PRESETS = [
     id: "tourist",
     label: "Tourist / User",
     icon: FiUser,
-    email: "tourist@nepaltourism.com",
-    pass: "Tourist@12345",
     badge: "Public Portal",
     color: "from-blue-600 to-indigo-600",
   },
@@ -23,8 +21,6 @@ const ROLE_PRESETS = [
     id: "staff",
     label: "Staff / Sub-Admin",
     icon: FiBriefcase,
-    email: "staff@tourism.gov.np",
-    pass: "Staff@12345",
     badge: "Moderation Desk",
     color: "from-purple-600 to-rose-600",
   },
@@ -32,8 +28,6 @@ const ROLE_PRESETS = [
     id: "admin",
     label: "Admin / Super-Admin",
     icon: FiShield,
-    email: "admin@tourism.gov.np",
-    pass: "Admin@12345",
     badge: "Full RBAC Control",
     color: "from-rose-600 to-amber-500",
   },
@@ -41,12 +35,7 @@ const ROLE_PRESETS = [
 
 const Login = () => {
   const [selectedRole, setSelectedRole] = useState("tourist")
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
-    defaultValues: {
-      email: "tourist@nepaltourism.com",
-      password: "Tourist@12345",
-    }
-  })
+  const { register, handleSubmit, formState: { errors } } = useForm()
   const { login } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
@@ -55,8 +44,6 @@ const Login = () => {
 
   const handleRolePreset = (preset) => {
     setSelectedRole(preset.id)
-    setValue("email", preset.email)
-    setValue("password", preset.pass)
   }
 
   const onSubmit = async (data) => {
@@ -148,10 +135,7 @@ const Login = () => {
             {errors.password && <p className="text-xs text-red-500 mt-1">Password is required</p>}
           </div>
 
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
-              <FiCheckCircle size={12} /> Auto-filled demo credentials
-            </span>
+          <div className="flex items-center justify-end text-xs text-gray-500">
             <Link to="/forgot-password" className="text-primary-600 hover:underline">
               Forgot Password?
             </Link>

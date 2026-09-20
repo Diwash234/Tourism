@@ -890,6 +890,7 @@ class AdminDestinationDetailView(APIView):
             "food_cuisine_info", "travel_safety_tips", "website",
             "nearest_major_city", "nearest_hospital_info", "nearest_hotel_info",
             "nearest_police_info", "recommended_days",
+            "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
         }
         payload = dict(request.data)
         lat_in = payload.get("latitude", destination.latitude)
@@ -922,6 +923,12 @@ class AdminDestinationDetailView(APIView):
         next_lng = payload.get("longitude", destination.longitude)
         if next_lat is not None and next_lng is not None and not _in_nepal(next_lat, next_lng):
             return Response({"detail": "Coordinates must fall inside Nepal (lat 26–31, lng 80–89)."}, status=400)
+
+        # §105 SEO controls: constrained choices, honest booleans.
+        if "meta_robots" in payload and payload["meta_robots"] not in ("", "noindex"):
+            return Response({"detail": "meta_robots must be empty or 'noindex'."}, status=400)
+        if "search_visible" in payload:
+            payload["search_visible"] = str(payload["search_visible"]).lower() in ("1", "true", "yes")
 
         changed = []
         changes = []  # field-level before/after for the audit trail
@@ -5057,6 +5064,10 @@ class AdminDestinationLifecycleView(APIView):
             d.status = Destination.SubmissionStatus.PENDING
         d.save()
         _sync_destination_json(d)
+        # §107: published/unpublished state must reach the public sitemap
+        # immediately, not after TTL expiry.
+        from .views_seo import invalidate_seo_cache
+        invalidate_seo_cache()
         _dest_revision(d, "publish" if action == "publish" else "unpublish" if action == "unpublish" else "update",
                        request.user)
         DestinationAuditLog.objects.create(

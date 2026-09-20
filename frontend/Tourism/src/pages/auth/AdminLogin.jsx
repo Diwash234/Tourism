@@ -43,9 +43,8 @@ export default function AdminLogin() {
       <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-900 text-slate-200 text-xs mb-5">
         <FiShield className="mt-0.5 shrink-0 text-nepalred-400" />
         <span>
-          Restricted area. Super-admin accounts are created on the server with{" "}
-          <code className="text-nepalred-300">python manage.py createsuperuser</code>.
-          All logins are recorded. Demo: admin@tourism.gov.np / Admin@12345
+          Restricted area. Administrator accounts are issued by the platform
+          operator. All sign-in attempts are recorded.
         </span>
       </div>
 

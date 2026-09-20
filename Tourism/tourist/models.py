@@ -272,6 +272,30 @@ class Destination(TimeStampedModel):
         null=True
     )
 
+    # --- SEO controls (§104/§105): optional per-destination search metadata.
+    # Blank values fall back to safely generated defaults from real data.
+    seo_title = models.CharField(
+        max_length=70, blank=True, default="",
+        help_text="Optional search-result title. Blank uses the destination name.",
+    )
+    meta_description = models.CharField(
+        max_length=320, blank=True, default="",
+        help_text="Optional search-result description. Blank derives from the real description.",
+    )
+    og_image_url = models.URLField(
+        max_length=600, blank=True, default="",
+        help_text="Optional social-share image URL. Blank uses the cover image.",
+    )
+    meta_robots = models.CharField(
+        max_length=20, blank=True, default="",
+        choices=[("", "Default (index)"), ("noindex", "No index")],
+        help_text="Set to noindex to keep this destination out of search engines.",
+    )
+    search_visible = models.BooleanField(
+        default=True,
+        help_text="Uncheck to exclude this destination from the public sitemap.",
+    )
+
 
     district = models.CharField(
         max_length=100,

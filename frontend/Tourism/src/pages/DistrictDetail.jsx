@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import axiosClient from "../api/axiosClient"
+import useSeo from "../hooks/useSeo"
 
 /**
  * Public district page — 100% database-driven (§16/§17).
@@ -12,6 +13,14 @@ export default function DistrictDetail() {
   const { districtName } = useParams()
   const [data, setData] = useState(null)
   const [error, setError] = useState("")
+
+  useSeo({
+    title: data ? `${data.district} District | ${data.province} Province, Nepal` : "District | Nepal Tourism",
+    description: data
+      ? `${data.public_destinations} verified destination${data.public_destinations === 1 ? "" : "s"} in ${data.district} district, ${data.province} province, Nepal — cities, top places and emergency services.`
+      : "",
+    path: districtName ? `/districts/${districtName}` : undefined,
+  })
 
   useEffect(() => {
     let cancelled = false

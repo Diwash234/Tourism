@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import useSeo from "../../hooks/useSeo"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -59,6 +60,35 @@ export default function DestinationDetails() {
   const [poiRadius, setPoiRadius] = useState(5)
   const [poiTab, setPoiTab] = useState("hotels")
   const [poiError, setPoiError] = useState("")
+
+  // §104: per-page SEO from real record data only — admin-controlled
+  // overrides where set, safe generated defaults otherwise.
+  const seoDescription = destination
+    ? destination.meta_description ||
+      (destination.description || destination.short_description || "").replace(/\s+/g, " ").slice(0, 155) ||
+      `Visitor information for ${destination.name}, Nepal.`
+    : ""
+  useSeo({
+    title: destination
+      ? destination.seo_title || `${destination.name} | Nepal Tourism Guide`
+      : "Destination | Nepal Tourism",
+    description: seoDescription,
+    path: slug ? `/destinations/${slug}` : undefined,
+    image: destination ? destination.og_image_url || destination.cover_image_url || undefined : undefined,
+    noindex: destination ? destination.meta_robots === "noindex" || destination.search_visible === false : false,
+    jsonLd: destination
+      ? {
+          "@context": "https://schema.org",
+          "@type": "TouristAttraction",
+          name: destination.name,
+          description: seoDescription || undefined,
+          ...(destination.district ? { address: { "@type": "PostalAddress", addressLocality: destination.district, addressCountry: "NP" } } : {}),
+          ...(hasValidCoords(destination.latitude, destination.longitude)
+            ? { geo: { "@type": "GeoCoordinates", latitude: Number(destination.latitude), longitude: Number(destination.longitude) } }
+            : {}),
+        }
+      : null,
+  })
 
   const fetchNearbyDestinations = async (page, dest) => {
     if (!dest || !hasValidCoords(dest.latitude, dest.longitude)) return

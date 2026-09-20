@@ -274,26 +274,8 @@
       "status": "approved",
       "updated_at": "2026-09-20T05:07:44.661859+00:00",
       "images": []
-    },
-    "6680": {
-      "id": 6680,
-      "name": "E2E Lifecycle 1789882116562",
-      "slug": "e2e-lifecycle-1789882116562",
-      "city": "Pokhara",
-      "city_english": "",
-      "city_nepali": "",
-      "district": "Kaski",
-      "province": "",
-      "municipality": "",
-      "ward_number": null,
-      "latitude": 28.21,
-      "longitude": 83.985,
-      "distance_from_kathmandu_km": null,
-      "description": "Updated by e2e journey.",
-      "short_description": null,
-      "status": "approved",
-      "updated_at": "2026-09-20T05:28:36.920496+00:00",
-      "images": []
     }
-  }
+  },
+  "count": 13,
+  "generated_at": "2026-09-20T10:22:25.917546+00:00"
 }

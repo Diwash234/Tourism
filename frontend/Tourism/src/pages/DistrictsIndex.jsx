@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import useSeo from "../hooks/useSeo"
 import { Link } from "react-router-dom"
 import axiosClient from "../api/axiosClient"
 
@@ -11,6 +12,11 @@ const STATUS_LABEL = {
 
 /** All 77 districts with real coverage counts from the database (§15). */
 export default function DistrictsIndex() {
+  useSeo({
+    title: "All 77 Districts of Nepal | Browse by Province",
+    description: "Explore every district of Nepal by province with verified tourism coverage — destinations, cities, hospitals and police from the live database.",
+    path: "/districts",
+  })
   const [data, setData] = useState(null)
   const [error, setError] = useState("")
   const [province, setProvince] = useState("All")

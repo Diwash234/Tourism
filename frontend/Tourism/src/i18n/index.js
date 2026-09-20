@@ -79,7 +79,7 @@ const en = {
   "auth.no_account": "New to Nepal Tourism?",
   "auth.has_account": "Already have an account?",
   "auth.staff_notice": "This area is for authorised tourism staff. Accounts are created by an administrator.",
-  "auth.admin_notice": "Restricted area. Super-admin accounts are created on the server with `python manage.py createsuperuser`.",
+  "auth.admin_notice": "Restricted area. Administrator accounts are issued by the platform operator.",
   "auth.staff_login": "Staff login",
   "auth.admin_login": "Admin login",
   "auth.traveller_login": "Traveller login",

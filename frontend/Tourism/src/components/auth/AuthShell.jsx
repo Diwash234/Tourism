@@ -37,7 +37,7 @@ const PORTAL_THEMES = {
     ring: "ring-nepalred-400",
     badge: "bg-slate-100 text-slate-700 border-slate-300",
     hero: "/images/destinations/rani-mahal/palace.jpg",
-    note: "Super-admin accounts are created securely on the server with `python manage.py createsuperuser`.",
+    note: "Administrator accounts are issued by the platform operator. All sign-in attempts are recorded.",
   },
 }
 

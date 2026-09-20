@@ -987,6 +987,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             "distance_km", "budget_estimation", "risk_analysis", "hospitals", "police_stations", "hotels", "restaurants",
             "sources", "activities", "attractions", "transit_routes", "nearby_places", "notices",
             "marketplace_listings",
+            "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
         ]
         read_only_fields = [
             "slug", "average_rating", "ratings_count", "views_count", "created_by",
@@ -1156,6 +1157,7 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
             "province", "country", "altitude", "opening_hours", "best_time_to_visit", "history",
             "nearest_hospital_info", "nearest_hotel_info", "nearest_police_info",
             "entry_fee", "contact_phone", "contact_email", "website", "is_active",
+            "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
         ]
 
 

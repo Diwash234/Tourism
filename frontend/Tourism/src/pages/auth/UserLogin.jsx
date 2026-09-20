@@ -38,7 +38,7 @@ export default function UserLogin() {
       </div>
 
       <p className="relative z-10 mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-        Traveller portal only. Demo: tourist@nepaltourism.com / Tourist@12345. Google or GitHub opens the accounts already signed in on this device.
+        Traveller portal. Sign in with your email, or continue with Google or GitHub.
       </p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
         <div className="relative">

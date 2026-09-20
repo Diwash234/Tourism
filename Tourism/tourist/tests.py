@@ -4217,3 +4217,93 @@ class AdminToPublicPropagationTests(APITestCase):
         self.assertEqual(self.anon.get(f"/api/v1/destinations/{slug}/").status_code, 404)
         # staff still see the unpublished record (admin console needs it)
         self.assertEqual(self.client.get(f"/api/v1/destinations/{slug}/").status_code, 200)
+
+
+class SeoSitemapRobotsHealthTests(APITestCase):
+    """§101–103 + §112: dynamic robots/sitemap from real DB records, public
+    health endpoint without secrets, and admin SEO controls reaching the API."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from rest_framework.test import APIClient
+        from .views_seo import invalidate_seo_cache
+        invalidate_seo_cache()  # sitemap cache must not leak across tests
+        self.admin = User.objects.create_superuser(
+            email="seo-admin@test.local", password="SeoPass!2345",
+            first_name="Seo", last_name="Admin",
+        )
+        self.client.force_authenticate(self.admin)
+        self.anon = APIClient()
+        self.dest = Destination.objects.create(
+            name="SEO Probe Temple", slug="seo-probe-temple",
+            latitude=Decimal("27.700000"), longitude=Decimal("85.300000"),
+            district="Kathmandu", status="approved", is_active=True,
+            description="A probe record for sitemap assertions.",
+        )
+
+    def test_robots_disallows_private_routes_and_advertises_sitemap(self):
+        r = self.anon.get("/robots.txt")
+        self.assertEqual(r.status_code, 200)
+        body = r.content.decode()
+        for path in ("/admin", "/staff", "/portal", "/api/"):
+            self.assertIn(f"Disallow: {path}", body)
+        self.assertIn("Sitemap:", body)
+        self.assertIn("text/plain", r["Content-Type"])
+
+    def test_sitemap_is_generated_from_published_records_only(self):
+        Destination.objects.create(
+            name="SEO Hidden Draft", slug="seo-hidden-draft",
+            status="pending", is_active=False,
+        )
+        body = self.anon.get("/sitemap.xml").content.decode()
+        self.assertIn("/destinations/seo-probe-temple", body)
+        self.assertNotIn("seo-hidden-draft", body)
+        self.assertIn("/districts/mustang", body)   # all 77 districts browsable
+        self.assertIn("/districts/achham", body)
+        self.assertNotIn("/admin", body)            # private routes excluded
+        self.assertNotIn("/portal", body)
+
+    def test_lifecycle_publish_state_reaches_sitemap_immediately(self):
+        # Prime the sitemap cache, then unpublish — §107 requires eager
+        # invalidation, not TTL-bounded staleness.
+        self.assertIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+        r = self.client.post(
+            f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+            {"action": "unpublish"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertNotIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+        r = self.client.post(
+            f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+            {"action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+
+    def test_admin_seo_controls_exclude_and_label_public_records(self):
+        r = self.client.put(f"/api/v1/admin/destinations/{self.dest.id}", {
+            "name": self.dest.name,
+            "seo_title": "SEO Probe Temple | Kathmandu Travel Guide",
+            "meta_description": "Verified visitor information for SEO Probe Temple.",
+            "meta_robots": "noindex",
+        }, format="json")
+        self.assertIn(r.status_code, (200, 201), getattr(r, "data", ""))
+        public = self.anon.get("/api/v1/destinations/seo-probe-temple/")
+        self.assertEqual(public.status_code, 200)
+        self.assertEqual(public.data["seo_title"], "SEO Probe Temple | Kathmandu Travel Guide")
+        self.assertEqual(public.data["meta_description"], "Verified visitor information for SEO Probe Temple.")
+        self.assertEqual(public.data["meta_robots"], "noindex")
+        # noindex records must not appear in the sitemap (§105)
+        from .views_seo import invalidate_seo_cache
+        invalidate_seo_cache()
+        self.assertNotIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+
+    def test_health_reports_dependencies_without_secrets(self):
+        from django.conf import settings
+        r = self.anon.get("/api/v1/health/")
+        self.assertIn(r.status_code, (200, 503))  # 503 is honest when degraded
+        payload = r.json()
+        for key in ("application", "database", "routing", "weather", "media_storage"):
+            self.assertIn(key, payload["checks"])
+        self.assertIn(payload["checks"]["database"]["status"], ("ok", "error"))
+        raw = r.content.decode()
+        self.assertNotIn(settings.SECRET_KEY, raw)
+        self.assertNotIn("PASSWORD", raw.upper().replace("NOT_CONFIGURED", ""))
