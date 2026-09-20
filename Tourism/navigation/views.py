@@ -11,6 +11,7 @@ recommendation/itinerary router, per the target architecture.
 from __future__ import annotations
 
 from django.conf import settings
+from django.db.models import Count
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -92,4 +93,39 @@ class NavigationModesView(APIView):
             "configured": bool(getattr(settings, "ROUTING_BASE_URL", "")),
             "modes": list(provider.supported_modes),
             "fallbacks": ["bundled_graph_estimate", "straight_line_estimate"],
+        })
+
+
+class NavigationDiagnosticsView(APIView):
+    """Admin-only: are users getting real road routes or silent fallbacks?"""
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from .models import RouteDiagnostics
+        window_hours = int(request.query_params.get("hours", 24))
+        from django.utils import timezone
+        import datetime as _dt
+        since = timezone.now() - _dt.timedelta(hours=window_hours)
+        qs = RouteDiagnostics.objects.filter(created_at__gte=since)
+        by_provider = {row["provider"]: row["n"] for row in
+                       qs.values("provider").annotate(n=Count("id"))}
+        total = sum(by_provider.values())
+        fallbacks = sum(n for p, n in by_provider.items() if p != "osrm")
+        avg_ms = 0
+        rows = list(qs[:100])
+        if rows:
+            avg_ms = round(sum(r.route_time_ms for r in rows) / len(rows), 1)
+        return Response({
+            "window_hours": window_hours,
+            "total_requests": total,
+            "by_provider": by_provider,
+            "fallback_count": fallbacks,
+            "fallback_rate": round(fallbacks / total, 4) if total else None,
+            "avg_route_time_ms": avg_ms,
+            "recent": [{
+                "provider": r.provider, "mode": r.mode, "distance_m": r.distance_m,
+                "duration_s": r.duration_s, "fallback": r.fallback,
+                "route_time_ms": r.route_time_ms, "alternatives": r.alternatives,
+                "created_at": r.created_at,
+            } for r in rows[:50]],
         })

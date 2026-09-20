@@ -156,3 +156,32 @@ Additional cron entries:
 
 `system_health` reports `BACKUP WARNING` and turns the dashboard red when
 the newest archive is missing or older than 24 h.
+
+## Navigation road routing (OSRM) — production checklist
+
+```bash
+# .env on the deployment host
+ROUTING_PROVIDER=osrm
+ROUTING_BASE_URL=http://<your-osrm-host>:5000      # OSRM HTTP API (no trailing slash)
+ROUTING_PROFILES=driving,foot,bike                 # ONLY profiles your OSRM actually hosts
+ROUTING_TIMEOUT=6
+ROUTING_MAX_RETRIES=2
+ROUTING_CACHE_TTL=600
+ROUTING_RATE_LIMIT=30
+```
+
+- Validate after deploy: `python manage.py validate_navigation_routes`
+  (fails unless source=osrm on all 7 canonical routes: geometry, distance
+  plausibility, duration/speed sanity, maneuvers, alternatives). Use
+  `--allow-fallback` only in CI without OSRM.
+- Monitor silent degradation: `GET /api/v1/navigation/diagnostics/`
+  (admin JWT) reports per-provider counts, fallback rate and avg route
+  time; every fallback also logs a WARNING from `navigation.route_engine`.
+- Source contract: `osrm` = real road routing; `graphml_fallback` =
+  tourism-graph estimate; `straight_line_fallback` = NOT navigation-grade.
+  The frontend surfaces the note banner whenever a fallback answers.
+- Device GPS test checklist (browser, real device): permission denied,
+  low accuracy (>100 m fixes are discarded by design), GPS unavailable,
+  stationary, moving, signal loss (progress polls keep last route + show
+  outage banner), deliberate wrong turn (reroute after off-route
+  threshold with 15 s cooldown), arrival within 30 m.

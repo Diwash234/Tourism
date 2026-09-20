@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet"
 import L from "leaflet"
 import { FiNavigation, FiRotateCcw, FiCheckCircle, FiX, FiMapPin } from "react-icons/fi"
@@ -15,9 +15,20 @@ const destIcon = L.divIcon({
   iconSize: [22, 22], iconAnchor: [11, 11],
 })
 
-function Recenter({ position }) {
+function Recenter({ trigger, position }) {
+  // Recenters ONLY when the user presses the button (trigger changes) —
+  // the map never fights the user by auto-panning on every GPS fix.
   const map = useMap()
-  if (position) map.setView([position.latitude, position.longitude], Math.max(map.getZoom(), 15))
+  const first = useRef(true)
+  useEffect(() => {
+    if (!position) return
+    if (first.current) {
+      first.current = false
+      map.setView([position.latitude, position.longitude], Math.max(map.getZoom(), 15))
+      return
+    }
+    if (trigger > 0) map.setView([position.latitude, position.longitude], Math.max(map.getZoom(), 15))
+  }, [trigger, position, map])
   return null
 }
 
@@ -36,8 +47,9 @@ const fmtEta = (s) => {
  * useTurnByTurn state machine (road-route + progress endpoints).
  */
 export default function LiveNavigationPanel({ destination, mode = "driving" }) {
-  const { state, position, route, steps, progress, error, start, preview, end } =
+  const { state, position, route, steps, progress, error, connectionLost, start, preview, end } =
     useTurnByTurn({ destination, mode })
+  const [recenterTrigger, setRecenterTrigger] = useState(0)
 
   const line = useMemo(
     () => (route?.geometry || []).map(([la, ln]) => [la, ln]),
@@ -74,10 +86,16 @@ export default function LiveNavigationPanel({ destination, mode = "driving" }) {
             </>
           )}
           {(state === NAV_STATES.NAVIGATING || state === NAV_STATES.REROUTING) && (
-            <button onClick={end}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-600 text-white flex items-center gap-1">
-              <FiX size={12} /> End
-            </button>
+            <>
+              <button onClick={() => setRecenterTrigger((t) => t + 1)}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white border border-gray-200">
+                Recenter
+              </button>
+              <button onClick={end}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-600 text-white flex items-center gap-1">
+                <FiX size={12} /> End
+              </button>
+            </>
           )}
           {(state === NAV_STATES.ROUTE_PREVIEW || state === NAV_STATES.ARRIVED || state === NAV_STATES.ERROR) && (
             <button onClick={state === NAV_STATES.ROUTE_PREVIEW ? start : end}
@@ -89,6 +107,11 @@ export default function LiveNavigationPanel({ destination, mode = "driving" }) {
       </div>
 
       {error && <p className="px-4 py-2 text-xs font-semibold text-rose-600 bg-rose-50">{error}</p>}
+      {connectionLost && state === NAV_STATES.NAVIGATING && (
+        <p className="px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50">
+          Connection lost — retrying… (navigation continues offline on the current route)
+        </p>
+      )}
       {route?.note && (
         <p className="px-4 py-2 text-[11px] text-amber-700 bg-amber-50 border-b border-amber-100">{route.note}</p>
       )}
@@ -122,7 +145,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving" }) {
                   <Circle center={[position.latitude, position.longitude]} radius={position.accuracy}
                     pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.08 }} />
                 )}
-                <Recenter position={position} />
+                <Recenter trigger={recenterTrigger} position={position} />
               </>
             )}
           </MapContainer>

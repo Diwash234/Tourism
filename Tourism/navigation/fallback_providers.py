@@ -5,10 +5,10 @@ endpoint must still answer (graceful fallback, plan item 23), but it must
 never pretend an estimate is a road route. `source` and `note` say exactly
 what the client is getting:
 
-- BundledGraphProvider: routes on the bundled tourism GraphML (node-level,
-  NOT street level). Used for AI/itinerary planning elsewhere too.
-- StraightLineProvider: last resort — one segment, haversine distance,
-  conservative duration. Explicitly not a road route.
+- BundledGraphProvider (graphml_fallback): routes on the bundled tourism
+  GraphML (node-level, NOT street level).
+- StraightLineProvider (straight_line_fallback): last resort — one segment,
+  haversine distance, conservative duration. NOT navigation-grade routing.
 """
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ class BundledGraphProvider(RoutingProvider):
             lats = [g[0] for g in geometry]
             lngs = [g[1] for g in geometry]
             return {
-                "source": "bundled_graph_estimate",
+                "source": "graphml_fallback",
                 "mode": mode,
                 "distance_m": round(distance_m, 1),
                 "duration_s": round(distance_m / speed, 1),
@@ -95,7 +95,7 @@ class StraightLineProvider(RoutingProvider):
         speed = SPEED_MPS.get(mode, SPEED_MPS["driving"])
         geometry = [[start[0], start[1]], [destination[0], destination[1]]]
         return {
-            "source": "straight_line_estimate",
+            "source": "straight_line_fallback",
             "mode": mode,
             "distance_m": round(distance_m, 1),
             "duration_s": round(distance_m / speed, 1),

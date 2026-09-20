@@ -34,10 +34,13 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
   const [steps, setSteps] = useState([])
   const [progress, setProgress] = useState(null) // last progress response
   const [error, setError] = useState("")
+  const [connectionLost, setConnectionLost] = useState(false)
 
   const watchId = useRef(null)
   const lastProgressAt = useRef(0)
   const lastRerouteAt = useRef(0)
+  const lastGoodFix = useRef(null)
+  const apiFailures = useRef(0)
   const spokenRef = useRef("")
   const stateRef = useRef(state)
   const routeRef = useRef(route)
@@ -88,7 +91,15 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
       setState(autoStart ? NAV_STATES.NAVIGATING : NAV_STATES.ROUTE_PREVIEW)
       return data.route
     } catch (e) {
-      setError(e?.response?.data?.detail || e?.message || "Could not load route")
+      const msg = e?.response?.data?.detail || e?.message || "Could not load route"
+      if (autoStart && routeRef.current) {
+        // reroute failed (transient API issue): keep navigating the old
+        // route instead of killing the session.
+        setError(`Reroute failed (${msg}) — continuing on current route`)
+        setState(NAV_STATES.NAVIGATING)
+        return routeRef.current
+      }
+      setError(msg)
       setState(NAV_STATES.ERROR)
       return null
     }
@@ -106,6 +117,8 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
         accuracy: pos.accuracy ?? null,
       })
       setProgress(data)
+      apiFailures.current = 0
+      setConnectionLost(false)
       if (data.arrived) {
         setState(NAV_STATES.ARRIVED)
         speak("You have arrived at your destination")
@@ -125,7 +138,10 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
       if (stateRef.current === NAV_STATES.REROUTING) setState(NAV_STATES.NAVIGATING)
       if (data.next_instruction?.instruction) speak(data.next_instruction.instruction)
     } catch {
-      // progress polls are best-effort; keep navigating on the last known state
+      // progress polls are best-effort; keep navigating on the last known
+      // state and surface an outage banner after consecutive failures.
+      apiFailures.current += 1
+      if (apiFailures.current >= 2) setConnectionLost(true)
     }
   }, [speak, stopWatch])
 
@@ -148,6 +164,19 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
           accuracy: p.coords.accuracy ?? null,
           timestamp: p.coords.timestamp ?? Date.now(),
         }
+        // Anti-jump filter: discard fixes with terrible accuracy or
+        // physically impossible movement (GPS spikes in canyons/tunnels).
+        const prev = lastGoodFix.current
+        if (pos.accuracy != null && pos.accuracy > 100) return
+        if (prev) {
+          const dt = Math.max(1, (pos.timestamp - prev.timestamp) / 1000)
+          const dLat = (pos.latitude - prev.latitude) * 111320
+          const dLng = (pos.longitude - prev.longitude) * 111320 *
+            Math.cos((pos.latitude * Math.PI) / 180)
+          const speed = Math.hypot(dLat, dLng) / dt
+          if (speed > 55) return // > ~200 km/h -> GPS spike, ignore
+        }
+        lastGoodFix.current = pos
         setPosition(pos) // marker updates immediately
         if (firstFix) {
           firstFix = false
@@ -193,5 +222,5 @@ export default function useTurnByTurn({ destination, mode = "driving", voice = f
 
   useEffect(() => stopWatch, [stopWatch])
 
-  return { state, position, route, steps, progress, error, start, preview, end, speak }
+  return { state, position, route, steps, progress, error, connectionLost, start, preview, end, speak }
 }

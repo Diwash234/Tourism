@@ -584,12 +584,22 @@ export default function DestinationDetails() {
               <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
                 <FiMapPin className="text-primary-600" /> Interactive Location & Satellite Map
               </h3>
-              <button
-                onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
-                className="text-xs font-bold text-primary-700 hover:text-primary-900 flex items-center gap-1"
-              >
-                <FiNavigation /> Open Tactical GTA Navigation ➔
-              </button>
+              <div className="flex items-center gap-3">
+                {hasValidCoords(destination.latitude, destination.longitude) && (
+                  <button
+                    onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
+                    className="rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white hover:bg-primary-800 flex items-center gap-1"
+                  >
+                    <FiNavigation /> Navigate here
+                  </button>
+                )}
+                <button
+                  onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
+                  className="text-xs font-bold text-primary-700 hover:text-primary-900 flex items-center gap-1"
+                >
+                  <FiNavigation /> Open Tactical GTA Navigation ➔
+                </button>
+              </div>
             </div>
             {hasValidCoords(destination.latitude, destination.longitude) ? (
             <div className="rounded-2xl overflow-hidden border border-gray-200">

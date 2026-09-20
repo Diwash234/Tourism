@@ -157,7 +157,7 @@ class NavigationEndpointTests(APITestCase):
         data = r.data
         self.assertEqual(data["status"], "success")
         src = data["route"]["source"]
-        self.assertIn(src, ("bundled_graph_estimate", "straight_line_estimate"))
+        self.assertIn(src, ("graphml_fallback", "straight_line_fallback"))
         self.assertTrue(data["route"]["note"])  # honest caveat present
         self.assertTrue(data["steps"])
         rid = data["route"]["route_id"]
@@ -197,7 +197,39 @@ class NavigationEndpointTests(APITestCase):
 class StraightLineHonestyTests(TestCase):
     def test_estimate_labelled_and_detoured(self):
         r = StraightLineProvider().route((28.2096, 83.9856), (28.1929, 83.9810), "driving")
-        self.assertEqual(r["source"], "straight_line_estimate")
+        self.assertEqual(r["source"], "straight_line_fallback")
         straight = haversine_m(28.2096, 83.9856, 28.1929, 83.9810)
         self.assertGreater(r["distance_m"], straight)  # detour factor applied
         self.assertIn("NOT a road route", r["note"])
+
+
+@override_settings(ROUTING_BASE_URL="", ROUTING_RATE_LIMIT=0, ROUTING_CACHE_TTL=0)
+class DiagnosticsTests(APITestCase):
+    """Every road-route request is recorded; admins can see fallback rate."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_route_request_records_diagnostics_and_admin_can_read(self):
+        from django.contrib.auth import get_user_model
+        from navigation.models import RouteDiagnostics
+        r = self.client.post("/api/v1/navigation/road-route/", {
+            "start": {"latitude": 28.2096, "longitude": 83.9856},
+            "destination": {"latitude": 28.1929, "longitude": 83.9810},
+            "mode": "driving"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        row = RouteDiagnostics.objects.latest("created_at")
+        self.assertTrue(row.fallback)  # no OSRM configured here
+        self.assertIn(row.provider, ("graphml_fallback", "straight_line_fallback"))
+        self.assertGreater(row.distance_m, 0)
+        # anonymous cannot read diagnostics
+        self.assertIn(self.client.get("/api/v1/navigation/diagnostics/").status_code, (401, 403))
+        admin = get_user_model().objects.create_superuser(
+            email="nav-admin@example.com", password="AdminPass123!")
+        self.client.force_authenticate(user=admin)
+        resp = self.client.get("/api/v1/navigation/diagnostics/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["total_requests"], 1)
+        self.assertEqual(resp.data["fallback_count"], 1)
+        self.assertEqual(resp.data["fallback_rate"], 1.0)
