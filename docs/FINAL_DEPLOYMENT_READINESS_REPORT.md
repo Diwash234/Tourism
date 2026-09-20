@@ -10,7 +10,7 @@ Frontend: React 18 + Vite — `npm run lint`: 0 errors / 409 pre-existing style 
 Database: **SQLite is the current, default database** (WAL-hardened, foreign keys ON — verified at runtime: `journal_mode=wal`); PostgreSQL 18.4 verified as the drop-in scale-up path via `DATABASE_URL`
 
 Tests:
-Backend: 492/492 OK on SQLite (full `manage.py test` runner, includes SEO/sitemap/health suite); 487/487 was verified on real PostgreSQL 18.4 at commit `e7d7c7b` with the documented `PG_DUMP` env — the five new SEO tests and migration 0072 use engine-neutral ORM only, but the PG parity re-run is pending because the sandbox PostgreSQL binaries were wiped by an environment reset (re-run on host before launch)
+Backend: 492/492 OK on SQLite (full `manage.py test` runner, includes SEO/sitemap/health suite) AND 492/492 OK on real PostgreSQL 16.2 (pgserver-provisioned, `PG_DUMP` client env, includes the SEO suite and migration 0072); PostgreSQL 18.4 additionally passed 487/487 at commit `e7d7c7b`
 Frontend: lint 0 errors (409 style warnings, pre-existing), production build clean
 E2E: 67/67 API-level checks passed against live servers (backend :8000 + vite :5173)
 Navigation: `audit_navigable_places` — all 6,597 public destinations navigable with real Nepal coordinates, 5/5 route smoke tests (via corridor-graph fallback, labelled); GPS replay fixtures included in backend suite
@@ -44,7 +44,7 @@ Remaining blockers:
 Production gates:
 
 PASS:
-- Backend tests (492/492 SQLite; PG parity re-run pending, see note)
+- Backend tests (492/492 on both SQLite and PostgreSQL 16.2; 487/487 on PostgreSQL 18.4 at `e7d7c7b`)
 - Frontend lint/build
 - Security check (0 security warnings) + production config (RESULT: PASS)
 - PostgreSQL (real 18.4: migrations, full suite, backup+drill restore)
@@ -101,6 +101,12 @@ Application implementation: production-readiness checks passed (492/492 SQLite, 
   (`/robots.txt`, `/sitemap.xml` → Django), Google Search Console procedure.
   DNS/certbot/Search-Console steps require a real domain — documented,
   host-executable, NOT yet exercised (honestly marked in the guide).
-- Known gaps, honestly stated: PG parity re-run pending after environment
-  reset; live OSRM/Playwright/physical-GPS gates unchanged (BLOCKED/PARTIAL
-  in the register); Google indexing itself is outside the app's control.
+- Verified this cycle as well: built-bundle secret scan clean (§79 — no
+  SECRET_KEY/client-secret/VITE_ leaks, health endpoint exposes nothing),
+  OAuth/auth config-path suites green (`OAuthProviderValidationTests`,
+  `OAuthCallbackFlowTests`, `AuthTests`, `AdminAuthRegressionTests`), public
+  pages render no raw API/HTTP error strings (§131–133).
+- Known gaps, honestly stated: live OSRM/Playwright/physical-GPS and real
+  Google/GitHub OAuth round-trips remain BLOCKED/PARTIAL in the register
+  (no credentials/hardware in sandbox); Google indexing itself is outside
+  the app's control.
