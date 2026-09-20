@@ -52,9 +52,12 @@ gate "oauth config" $PY manage.py validate_oauth_providers || echo "(providers w
 
 echo ""
 echo "--- Gate 6: database ---"
+# If Postgres client tools are not on PATH, export full paths:
+#   PG_DUMP, PG_PSQL, PG_CREATEDB, PG_DROPDB
 if [ -n "${DATABASE_URL:-}" ]; then
   gate "postgres migrations" $PY manage.py migrate --noinput
   gate "postgres suite" $PY manage.py test tourist navigation
+  gate "postgres backup+drill restore" bash -c "rm -rf /tmp/gate-backups && $PY manage.py backup_database --dir /tmp/gate-backups && $PY manage.py restore_database --file \$(ls -t /tmp/gate-backups/*.gz | head -1) --target drill"
 else
   echo "SKIP: DATABASE_URL not set (SQLite dev DB in use)"
   gate "sqlite suite" $PY manage.py test tourist navigation

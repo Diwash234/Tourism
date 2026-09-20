@@ -215,10 +215,12 @@ class Destination(TimeStampedModel):
         ARCHIVED = "archived", "Archived"
 
 
-    external_id = models.IntegerField(
+    external_id = models.BigIntegerField(
         unique=True,
         null=True,
-        blank=True
+        blank=True,
+        help_text="External source id (e.g. OSM node id). OSM ids exceed int4 "
+                  "range, so this must stay BigIntegerField on PostgreSQL.",
     )
 
     name = models.CharField(

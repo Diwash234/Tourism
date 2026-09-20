@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 from django.conf import settings
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
@@ -37,11 +37,21 @@ class Command(BaseCommand):
                          "-e", "admin.logentry", "--indent", "1", stdout=buf)
             data = buf.getvalue().encode("utf-8")
         else:
+            import shutil
             import subprocess
             db = settings.DATABASES["default"]
+            # pg_dump may live outside PATH (e.g. bundled/postgres-binaries
+            # installs). Allow an explicit PG_DUMP override, then PATH lookup,
+            # then fail with an actionable message instead of a raw OSError.
+            pg_dump = os.environ.get("PG_DUMP") or shutil.which("pg_dump")
+            if not pg_dump:
+                raise CommandError(
+                    "pg_dump not found on PATH. Install PostgreSQL client "
+                    "tools or set the PG_DUMP environment variable to the "
+                    "full path of the pg_dump binary.")
             env = dict(os.environ, PGPASSWORD=str(db.get("PASSWORD") or ""))
             proc = subprocess.run(
-                ["pg_dump", "-h", str(db.get("HOST") or "localhost"),
+                [pg_dump, "-h", str(db.get("HOST") or "localhost"),
                  "-p", str(db.get("PORT") or 5432), "-U", str(db.get("USER") or ""),
                  "-d", str(db.get("NAME") or ""), "--no-owner"],
                 capture_output=True, env=env, check=True)
