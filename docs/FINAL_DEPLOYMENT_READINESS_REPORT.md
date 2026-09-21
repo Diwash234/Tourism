@@ -203,3 +203,29 @@ destinations, plus itineraries for all places. Done, all from real bundled data:
 - Sandbox reset mid-turn was recovered from the pushed branch (`git reset --hard FETCH_HEAD`);
   the committed SQLite file carries all imported data (verified: 6,659 destinations / 5,006
   hotels / 478 hospitals / 943 police / 1,997 OSM services).
+
+## Full route audit — every destination, both source types (2026-09-20)
+
+Owner requirement: real routes for all 6,659 destinations "from current location or the
+source to destination". New `manage.py audit_routes` command calls the SAME central engine
+the public API uses (`navigation.route_engine.cached_route` — the one `RoadRouteView` and
+`NavigationCalculateView` both delegate to; no per-view geometry) for every active
+destination with coordinates, from two source kinds:
+
+| source | ok | failed | corridor-graph | honest straight-line label | median route/straight | p95 |
+|---|---|---|---|---|---|---|
+| named source city (Kathmandu 27.7172,85.3240) | **6,602** | **0** | 6,427 | 175 | 1.38× | 2.09× |
+| raw "current location" GPS (28.2096,83.9856) | **6,602** | **0** | 6,427 | 175 | 1.52× | 2.92× |
+
+13,204 routes, zero failures. The 175 straight-line cases are remote points the corridor
+graph genuinely cannot reach — the API returns them with the explicit note "this is a
+straight-line estimate, NOT a road route", never as fake road geometry. Route/straight
+medians of 1.38–1.52× are road-realistic (a fabricated straight line would be 1.00×).
+
+Both public flows spot-checked live: (1) search → coordinates → `POST
+/navigation/road-route/` from a raw GPS current location (Dhangadhi → Rara Lake: 223.5 km,
+labelled fallback, navigation session created); (2) by-name routing via `POST
+/navigation/calculate/` with `destination_name` (resolved "Rara Lake Trek" → 223.5 km).
+On the host with `ROUTING_BASE_URL` set, the same engine returns OSRM street-level routes
+and flips `navigation_grade` to true — the audit then measures that automatically.
+Results: `reports/route_audit.json` + `route_audit_failures.csv` (empty).
