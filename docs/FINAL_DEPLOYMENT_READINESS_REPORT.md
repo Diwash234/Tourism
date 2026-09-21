@@ -259,3 +259,23 @@ site-level coordinates confirmed by two independent web sources each:
 - id 6378 **Halesi Mahadev (Maratika Cave)** alias: same verified coordinates, flagged as alias row.
 Live checks: search returns the new coordinates; road-route from raw GPS Pokhara (28.2096,83.9856)
 to Pathibhara = 544.6 km / 15.6 h via corridor graph (graphml_fallback), full geometry, session created.
+
+## Multi-GPS route audit: "current location" can be anywhere (2026-09-21)
+
+Owner requirement: real routes from the user's current GPS location, wherever that is.
+`manage.py audit_routes --gps-grid --per-district 8` now routes a district-stratified
+sample of 514 destinations from **10 raw GPS points spread across the country**
+(far-west Terai Bhimdatta, Dhangadhi, Birgunj, Biratnagar, Gorkha mid-hills,
+Phungling east-hills, Namche high Himalaya, Gamgadhi remote northwest,
+Rasuwagadhi north border, Manang trans-Himalaya):
+
+- **5,140 routes, 0 failures across all 10 origins.**
+- Every origin: 490 corridor-graph road routes + 24 honestly-labelled straight-line
+  estimates (the same road-unreachable remote spots, never disguised as roads).
+- Median route/straight 1.30×–2.08× per origin (Manang 2.04× — genuine long valley
+  detours; a fabricated line would read 1.00×).
+- Live API spot-checks: Manang GPS → Ramagrama = 288.1 km / 8.2 h; Bhimdatta GPS →
+  Halesi = 981.0 km / 28.1 h — both `graphml_fallback` road-graph routes.
+- Report: `Tourism/reports/route_audit_multi_gps.json` (+ empty failures CSV).
+With host `ROUTING_BASE_URL` set, the same command measures live OSRM routes from
+any of these GPS origins.
