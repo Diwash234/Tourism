@@ -279,3 +279,23 @@ Rasuwagadhi north border, Manang trans-Himalaya):
 - Report: `Tourism/reports/route_audit_multi_gps.json` (+ empty failures CSV).
 With host `ROUTING_BASE_URL` set, the same command measures live OSRM routes from
 any of these GPS origins.
+
+## Completeness sweep: per-destination services + point-to-point routes (2026-09-21)
+
+1. **Nearby-services search verified per destination** (`/api/v1/places/nearby/`):
+   urban (Thamel), remote (Rara Lake), trans-Himalaya (Manang) all return nearest
+   hospital/bank/hotel/police with honest distances.
+2. **9 misplaced remote service rows fixed** (seeds had used landmark coords instead
+   of the named towns): Mugu District Hospital (was lakeside Rara 29.53,82.09 →
+   Gamgadhi 29.4167,82.0167); Dolpa District Hospital + Dolpa Health Office (→ Dunai
+   28.9833,82.9667); Humla District Hospital (→ Simikot 30.0167,81.8167); NBL branches
+   Chame (was Manang village → 28.51,84.25), Gamgadhi, Dunai, Jomsom (was Dunai coords
+   → 28.7833,83.7167), Simikot. Post-fix live: Rara→Mugu hospital 14.0 km (honest),
+   Jomsom→NBL Jomsom 0.0 km.
+3. **origin_name geocoding bug fixed** in `/navigation/calculate/`: a named origin
+   ("from Biratnagar") was accepted but never resolved — the response echoed the name
+   while silently routing from the Pokhara default. Now origin_name is geocoded via
+   the universal place resolver (`origin_resolution: geocoded`), unresolvable names
+   are labelled `default — '<name>' could not be located`, GPS origins unchanged
+   (`origin_resolution: gps`). Live: Biratnagar→Pathibhara = 154.9 km (was a
+   mislabelled 544.6 km from Pokhara). Suite: 471/471 OK (tourist+navigation).

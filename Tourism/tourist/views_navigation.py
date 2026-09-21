@@ -61,13 +61,33 @@ class UserRouteCalculateView(APIView):
         origin_lng = data.get("origin_lng") or data.get("longitude") or data.get("start_longitude")
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
-        # Default fallback origin if GPS or origin coordinates are missing —
-        # clearly labelled, never silently presented as the user's location.
+        # Resolve a named origin ("from Biratnagar") to real coordinates via the
+        # same universal place resolver used for destinations — a named origin
+        # must never be silently replaced by the default point.
         origin_defaulted = False
+        origin_resolution = "gps"
         if origin_lat is None or origin_lng is None:
-            origin_lat, origin_lng = 28.2096, 83.9856
-            origin_defaulted = True
-            origin_name = origin_name or "Pokhara Center (default origin — no location provided)"
+            resolved_origin = None
+            if origin_name:
+                from .location.search_service import LocationSearchService
+                resolved_origin = LocationSearchService.resolve_single_place(origin_name)
+            if resolved_origin:
+                origin_lat = resolved_origin["latitude"]
+                origin_lng = resolved_origin["longitude"]
+                origin_name = resolved_origin["name"]
+                origin_resolution = "geocoded"
+            else:
+                # Default fallback origin — clearly labelled; if the user named
+                # an origin we could not locate, say so explicitly instead of
+                # mislabelling the default as their place.
+                origin_lat, origin_lng = 28.2096, 83.9856
+                origin_defaulted = True
+                origin_resolution = "default"
+                origin_name = (
+                    f"Pokhara Center (default origin — '{origin_name}' could not be located)"
+                    if origin_name else
+                    "Pokhara Center (default origin — no location provided)"
+                )
 
         # Resolve destination
         dest_lat = None
@@ -154,6 +174,7 @@ class UserRouteCalculateView(APIView):
             "origin_name": origin_name or "Current Location",
             "origin_latitude": float(origin_lat),
             "origin_longitude": float(origin_lng),
+            "origin_resolution": origin_resolution,
             "transport_mode": transport_mode,
             "distance_km": distance_km,
             "estimated_duration": duration_str,
