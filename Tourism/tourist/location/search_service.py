@@ -444,10 +444,36 @@ class LocationSearchService:
                 "is_destination": True,
             }
 
-        # Check places search
-        results = LocationSearchService.search_places(query=q, limit=1)
+        # Check places search — rank candidates by name similarity to the
+        # query, so "Halesi Cave" resolves to Halesi Mahadev Cave rather than
+        # the Kathmandu "Khotanghalesi guest house" that also contains the
+        # substring (live bug). Destinations win ties over services.
+        results = LocationSearchService.search_places(query=q, limit=30)
         if results:
-            item = results[0]
+            import difflib as _difflib
+            q_compact = re.sub(r"[^a-z0-9]", "", q)
+            # core name with generic geographic words removed ("Bandipur
+            # Bazaar" -> "bandipur"): a candidate named exactly/prefixed by
+            # the core must beat fuzzy substring hits like "Bandipur
+            # Mountain Resort".
+            q_core = re.sub(
+                r"\b(bazaar|bazar|temple|mandir|monastery|gompa|lake|pokhari|"
+                r"pond|river|waterfall|jharana|jharna|falls|hills|hill|danda|"
+                r"daha|cave|gufa|stupa|durbar|palace|park|viewpoint|base camp|"
+                r"trek|dham|deurali|himal)\b", "", q)
+            q_core = re.sub(r"[^a-z0-9]", "", q_core)
+
+            def _rank(r):
+                nm = re.sub(r"[^a-z0-9]", "", str(r.get("name", "")).lower())
+                if q_core and (nm == q_core or (len(nm) >= 4 and q_core.startswith(nm))):
+                    score = 2.0  # exact core-name match beats prefix matches
+                elif q_core and nm.startswith(q_core):
+                    score = 1.0
+                else:
+                    score = round(_difflib.SequenceMatcher(None, nm, q_compact).ratio(), 3)
+                return (score, bool(r.get("is_destination")))
+
+            item = max(results, key=_rank)
             return {
                 "name": item["name"],
                 "latitude": item["latitude"],

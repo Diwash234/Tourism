@@ -403,3 +403,19 @@ two sources agree; Patan DS → site routes 0.6 km), **Ice Lake / Kicho Tal**
 **Lakuri Bhanjyang** (Lalitpur highpoint — APPROXIMATE, OSM peak node),
 **Kichakbadh** (Jhapa — APPROXIMATE, mindat locality). Rejected: Tyamke Danda,
 Jalthal Forest (no site-level sources). Not-found pool now ~361.
+
+## Remaining-places round: service-record matcher + resolver ranking (2026-09-21)
+
+- **6 more destinations** resolved from in-repo service records (police posts /
+  health facilities / hotel names): Sapta Koshi River (Sunsari), Triyuga River
+  (Udayapur), Kusma Bazaar (Parbat), Resunga Hill (Gulmi), Srinagar Hill (Palpa),
+  Patan Bazaar (Baitadi) — all APPROXIMATE with per-row source notes and 60 km
+  hub sanity. A re-created Halesi Cave duplicate was caught and deleted (owner
+  spelling resolves to the VERIFIED Halesi Mahadev Cave instead).
+- **resolve_single_place ranking upgrade** (live bug): free-text names resolved
+  to whichever result sorted nearest — "Halesi Cave" hit a Kathmandu guest
+  house, "Bandipur Bazaar" hit a resort. Now candidates are ranked exact-core >
+  prefix > fuzzy (difflib), destinations win ties, window widened to 30.
+  Live: Halesi Cave→Halesi Mahadev Cave 231 km; Bandipur Bazaar→Bandipur town;
+  Swargadwari Temple→Swargadwari; Rupse Waterfall→Rupse Chhahara; Saipal
+  Himal→Saipal; Gangapurna Lake→Gangapurna. Suite 476/476 OK.
