@@ -419,3 +419,14 @@ Jalthal Forest (no site-level sources). Not-found pool now ~361.
   Live: Halesi Cave→Halesi Mahadev Cave 231 km; Bandipur Bazaar→Bandipur town;
   Swargadwari Temple→Swargadwari; Rupse Waterfall→Rupse Chhahara; Saipal
   Himal→Saipal; Gangapurna Lake→Gangapurna. Suite 476/476 OK.
+
+## Service-CSV matcher round (2026-09-21)
+
+Mined dataset/nearbypolice.csv + hospital.csv + hotel.csv (Destination and
+Address columns, 6,666 rows). 10 auto-matches created, **3 rejected and deleted
+after audit** (Halesi Cave re-duplicate; Kalyanpur sourced from a Saptari
+police station though owner district is Siraha; Jorayal from a Dadeldhura
+station). 7 kept, all APPROXIMATE with per-row source notes: Narayanghat
+(27.68,84.43), Meghauli (27.58,84.25), Rasuwagadhi (28.3,85.35), Chhatradev,
+Banganga, Rapti River (Dang), Rambha Lake. Live: all searchable;
+Bharatpur→Meghauli 23.8 km. Not-found pool ~348.
