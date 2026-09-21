@@ -539,7 +539,7 @@ export default function DestinationDetails() {
                 </div>
               ))}
               {!(destination.activities?.length) && (
-                <p className="text-sm text-slate-600 col-span-2">No recorded activities for this place yet. An administrator can add them from Destination Features.</p>
+                <p className="text-sm text-slate-600 col-span-2">No recorded activities for this place yet — check back soon.</p>
               )}
             </div>
           </div>
@@ -847,7 +847,7 @@ export default function DestinationDetails() {
                 <div className="flex justify-between"><span>Entry fee</span><b>{destination.entry_fee ? `NPR ${destination.entry_fee}` : INFO_UNAVAILABLE}</b></div>
               </div>
             ) : (
-              <p className="text-sm text-slate-600">Information unavailable — we will update soon. An administrator can add a budget row from the destination editor.</p>
+              <p className="text-sm text-slate-600">Budget information for this place is not available yet — check back soon.</p>
             )}
           </div>
 

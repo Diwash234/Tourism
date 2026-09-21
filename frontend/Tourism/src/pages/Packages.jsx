@@ -91,7 +91,7 @@ const Packages = () => {
       {!loading && listings.length === 0 && (
         <div className="card-base p-8 text-center">
           <p className="font-bold text-slate-900">No published packages yet</p>
-          <p className="text-sm text-slate-600 mt-2">An administrator can add them from Admin → Packages & partners, or a hotel can apply to collaborate.</p>
+          <p className="text-sm text-slate-600 mt-2">No packages are listed yet — hotels can apply to collaborate and publish one.</p>
         </div>
       )}
 
