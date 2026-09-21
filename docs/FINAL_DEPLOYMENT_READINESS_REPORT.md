@@ -249,3 +249,13 @@ verification and re-created as id 6699). Rule: before any commit that includes
 `Tourism/db.sqlite3`, run `PRAGMA wal_checkpoint(TRUNCATE)` (any psql…sqlite3 shell or
 Django connection cursor) and confirm `db.sqlite3-wal` is 0 bytes. Verified live:
 `/api/v1/places/search/?q=Parshuram` returns the destination at 29.09, 80.32.
+
+## Coordinate upgrades: UNVERIFIED → VERIFIED (2026-09-21)
+
+Three owner-listed rows found already present but UNVERIFIED and misplaced; upgraded with
+site-level coordinates confirmed by two independent web sources each:
+- id 6372 **Pathibhara Devi** (Taplejung): 27.4167,87.7333 → **27.42944,87.767722** (was ~3.5 km off; owner list had it under "Dhankuta" — actual district Taplejung, which is why the field test missed it).
+- id 6436 **Halesi Mahadev Cave** (Khotang): 27.2,86.6167 → **27.19006,86.622391** (was ~1.2 km off).
+- id 6378 **Halesi Mahadev (Maratika Cave)** alias: same verified coordinates, flagged as alias row.
+Live checks: search returns the new coordinates; road-route from raw GPS Pokhara (28.2096,83.9856)
+to Pathibhara = 544.6 km / 15.6 h via corridor graph (graphml_fallback), full geometry, session created.
