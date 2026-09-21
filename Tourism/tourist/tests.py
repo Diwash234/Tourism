@@ -4322,3 +4322,52 @@ class SeoSitemapRobotsHealthTests(APITestCase):
         raw = r.content.decode()
         self.assertNotIn(settings.SECRET_KEY, raw)
         self.assertNotIn("PASSWORD", raw.upper().replace("NOT_CONFIGURED", ""))
+
+
+class PlaceSearchGenericWordTests(APITestCase):
+    """Owner field-lists spell places with generic geographic words
+    ("Bandipur Bazaar", "Swargadwari Temple") while the DB stores the core
+    name ("Bandipur"). Live gap found 2026-09-21: 8/8 such owner spellings
+    returned NOTHING although the places existed. The search must match a
+    generic-word-stripped variant of the query too."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Heritage")
+        self.dest = Destination.objects.create(
+            name="Bandipur",
+            category=self.category,
+            description="Hilltop Newar town.",
+            latitude=27.9350,
+            longitude=84.4030,
+            city="Bandipur",
+            district="Tanahun",
+            country="Nepal",
+            is_active=True,
+        )
+
+    def _search(self, q):
+        response = self.client.get("/api/v1/places/search/", {"q": q})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        return data if isinstance(data, list) else data.get("results", [])
+
+    def test_generic_word_spelling_finds_core_name(self):
+        results = self._search("Bandipur Bazaar")
+        self.assertTrue(
+            any(r.get("destination_id") == self.dest.id for r in results),
+            f"expected Bandipur destination in results, got {results[:3]}",
+        )
+
+    def test_core_name_still_matches(self):
+        results = self._search("Bandipur")
+        self.assertTrue(any(r.get("destination_id") == self.dest.id for r in results))
+
+    def test_resolve_single_place_uses_generic_word_fallback(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("Bandipur Bazaar")
+        self.assertIsNotNone(resolved)
+        self.assertAlmostEqual(float(resolved["latitude"]), 27.935, places=2)
+
+    def test_unresolvable_place_still_returns_nothing(self):
+        results = self._search("Xyzzyville Bazaar")
+        self.assertEqual(results, [])

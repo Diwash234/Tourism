@@ -299,3 +299,21 @@ any of these GPS origins.
    are labelled `default — '<name>' could not be located`, GPS origins unchanged
    (`origin_resolution: gps`). Live: Biratnagar→Pathibhara = 154.9 km (was a
    mislabelled 544.6 km from Pokhara). Suite: 471/471 OK (tourist+navigation).
+
+## Owner-spelling search fix (2026-09-21) — remaining destinations round
+
+Reconciliation of the 416 not-found owner places against the whole DB found ~9
+entries that EXIST under slightly different names (Bandipur Bazaar→"Bandipur",
+Swargadwari Temple→"Swargadwari", Gangapurna Lake→"Gangapurna", Chandragiri
+Hills→"Chandragiri Hill", Dhaulagiri Base Camp→"Dhaulagari Base Camp",
+Marsyangdi River→"Marshyangdi River", Ganga Jamuna Waterfall→"Ganga Jamuna",
+Bhojpur Bazaar→"Bhojpur Bazar", Pathibhara Temple→"Pathibhara Devi").
+Live check showed ALL of these owner spellings returned NOTHING — the search
+only matched the full phrase. Fixed in LocationSearchService.search_places:
+queries now also match a generic-word-stripped variant ("bazaar", "temple",
+"lake", "waterfall", "hills", "base camp", …) across all six providers
+(destinations, OSM services, hospitals, police, hotels, restaurants);
+resolve_single_place inherits the fix. Post-fix: 8/8 owner spellings resolve
+(was 0/8); regressions clean (Rajbiraj 8 results, Rara 22, "nearest bank" 30,
+Pathibhara exact). New regression tests: PlaceSearchGenericWordTests (4).
+Suite: 475/475 OK.

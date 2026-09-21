@@ -82,6 +82,30 @@ class LocationSearchService:
         cleaned_q = re.sub(r"\b(nearest|near|me|find|search|the|a|an)\b", "", q).strip()
         search_term = cleaned_q or q
 
+        # Owner field-lists often spell places with a generic geographic word
+        # ("Bandipur Bazaar", "Swargadwari Temple", "Gangapurna Lake",
+        # "Chandragiri Hills") while the DB stores only the core name. Keep the
+        # full phrase AND add a variant with generic words stripped, so those
+        # spellings still find the right place (live gap: 8/8 owner spellings
+        # returned NOTHING while the places existed).
+        _GENERIC_WORDS = (
+            r"bazaar|bazar|temple|mandir|monastery|gompa|lake|pokhari|pond|river|"
+            r"waterfall|jharana|jharna|falls|hills|hill|danda|daha|cave|gufa|stupa|"
+            r"durbar|palace|park|viewpoint|base camp|trek|dham|deurali"
+        )
+        stripped = re.sub(r"\b(%s)\b" % _GENERIC_WORDS, "", search_term)
+        stripped = re.sub(r"\s+", " ", stripped).strip()
+        search_terms = [search_term]
+        if stripped and stripped != search_term and len(stripped) >= 4:
+            search_terms.append(stripped)
+
+        def _match(*fields):
+            cond = Q()
+            for term in search_terms:
+                for field in fields:
+                    cond |= Q(**{f"{field}__icontains": term})
+            return cond
+
         # Detect category intents (e.g. "bank", "atm", "hospital", "pharmacy", "police", "store")
         cat_filter = (category or "").strip().lower()
         # Normalize plural/UI tab ids to canonical provider keys, so a tab like
@@ -147,10 +171,7 @@ class LocationSearchService:
         # a "nearby hospitals/hotels" result list.
         _DEST_CATS = {"attraction", "temple", "nature", "waterfall", "viewpoint", "heritage"}
         if search_term and not cat_filter:
-            dest_qs = dest_qs.filter(
-                Q(name__icontains=search_term) | Q(city__icontains=search_term) |
-                Q(district__icontains=search_term) | Q(slug__icontains=search_term)
-            )
+            dest_qs = dest_qs.filter(_match("name", "city", "district", "slug"))
         elif cat_filter:
             if cat_filter in _DEST_CATS:
                 dest_qs = dest_qs.filter(category__name__icontains=cat_filter)
@@ -180,7 +201,7 @@ class LocationSearchService:
         if cat_filter:
             osm_qs = osm_qs.filter(category__icontains=cat_filter)
         elif search_term:
-            osm_qs = osm_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(category__icontains=search_term))
+            osm_qs = osm_qs.filter(_match("name", "address", "category"))
 
         osm_qs = _in_radius(osm_qs)
         for s in osm_qs[:60]:
@@ -205,7 +226,7 @@ class LocationSearchService:
         if not cat_filter or cat_filter == "hospital":
             h_qs = Hospital.objects.all()
             if search_term and cat_filter != "hospital":
-                h_qs = h_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term))
+                h_qs = h_qs.filter(_match("name", "address"))
             h_qs = _in_radius(h_qs)
             for h in h_qs[:40]:
                 raw_results.append({
@@ -224,7 +245,7 @@ class LocationSearchService:
         if not cat_filter or cat_filter == "police":
             p_qs = PoliceStation.objects.all()
             if search_term and cat_filter != "police":
-                p_qs = p_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term))
+                p_qs = p_qs.filter(_match("name", "address"))
             p_qs = _in_radius(p_qs)
             for p in p_qs[:40]:
                 raw_results.append({
@@ -247,7 +268,7 @@ class LocationSearchService:
             # the serializer (same class of bug as DEF-022).
             ht_qs = ht_qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
             if search_term and cat_filter != "hotel":
-                ht_qs = ht_qs.filter(Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(destination__city__icontains=search_term))
+                ht_qs = ht_qs.filter(_match("name", "address", "destination__city"))
             ht_qs = _in_radius(ht_qs)
             for ht in ht_qs[:40]:
                 raw_results.append({
@@ -269,9 +290,7 @@ class LocationSearchService:
             rt_qs = Restaurant.objects.filter(status=Restaurant.Status.PUBLISHED)
             rt_qs = rt_qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
             if search_term and cat_filter != "restaurant":
-                rt_qs = rt_qs.filter(
-                    Q(name__icontains=search_term) | Q(address__icontains=search_term)
-                )
+                rt_qs = rt_qs.filter(_match("name", "address"))
             rt_qs = _in_radius(rt_qs)
             for rt in rt_qs[:40]:
                 raw_results.append({
