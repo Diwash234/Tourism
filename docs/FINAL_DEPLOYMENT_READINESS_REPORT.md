@@ -509,3 +509,18 @@ everything (users, staff, destinations).
   "Bandipur" -> canonical town first, "hotel" -> nearest list, resolver golden cases intact
   (Mahendra Cave, amhendra cave, Halesi, Swargadwari, Rupse).
 - Suite: 489/489 OK (incl. 3 new SearchNamePriorityTests).
+
+## Round 2026-09-21 (D): pool re-tally + 5 web-verified destinations
+
+- Not-found pool re-tallied after consolidation + resolver fixes: 811 field places ->
+  276 not-found (was ~348; resolver fixes recovered ~70 without adding any rows).
+- Added ids 6774-6778 (sources cited per row):
+  * 6774 Ainselukharka (Khotang) 27.10,86.29 — Wikipedia VDC — VERIFIED
+  * 6775 Tinjure Danda (Dhankuta/Terhathum) 27.17791,87.42725 — mindat ridge — VERIFIED
+  * 6776 Chhintapu (Sandakpur RM, Ilam) 27.17,87.92 — GeoNames — APPROXIMATE
+  * 6777 Balankha (Bhojpur) 26.99,86.98 — Wikipedia/Wikidata Q4850047 — VERIFIED
+  * 6778 Rakha Dipsung (Khotang, alias "Dipsung") 27.37,86.86 — Wikipedia VDC — VERIFIED
+- Rejected (no citable coordinates, NOT added): Satashi Dham (blog only), Tyamke Danda
+  (no source found), Siddhakali Temple (Phidim — temple itself unlocated).
+- Verified: all 7 field spellings resolve; live route Dharan -> Tinjure Danda 25.8 km,
+  4 turn-by-turn steps, CORRIDOR-ESTIMATE.
