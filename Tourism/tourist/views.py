@@ -282,6 +282,10 @@ class PublicConfigView(APIView):
         redirects = [{"old_path": r.old_path, "new_path": r.new_path, "permanent": r.is_permanent}
             for r in RedirectRule.objects.filter(is_active=True)]
         return Response({"mapillary_access_token": settings.MAPILLARY_ACCESS_TOKEN, "language": language,
+            # OAuth client IDs are public values (the same ones you'd put in
+            # VITE_*_CLIENT_ID); exposing them means one backend .env update
+            # enables the Google/GitHub buttons without touching the frontend.
+            "oauth_client_ids": {"google": settings.GOOGLE_CLIENT_ID, "github": settings.GITHUB_CLIENT_ID},
             "settings": {item.key: item.value for item in SiteSetting.objects.filter(is_public=True)},
             "pages": page_rows, "navigation": navigation, "notices": notices, "catalog": catalog,
             "hero_slides": hero_slides, "redirects": redirects})

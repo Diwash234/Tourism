@@ -26,9 +26,12 @@ export const notifyCmsUpdated = () => {
   window.dispatchEvent(new Event("cms-updated"))
 }
 
+import { setPublicOAuthIds } from "../utils/oauth"
+
 const load = lang => {
   if (caches.has(lang)) return Promise.resolve(caches.get(lang))
   if (!pending.has(lang)) pending.set(lang, configApi.getPublicConfig(lang).then(({ data }) => {
+    if (data?.oauth_client_ids) setPublicOAuthIds(data.oauth_client_ids)
     caches.set(lang, data); (listeners.get(lang) || new Set()).forEach(fn => fn(data)); return data
   }).catch(() => fallback).finally(() => pending.delete(lang)))
   return pending.get(lang)
