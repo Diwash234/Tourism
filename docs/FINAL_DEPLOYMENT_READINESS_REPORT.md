@@ -359,3 +359,13 @@ Suite: 475/475 OK.
   last round, the district gateway town had no destination row; origin resolution
   now hits Jomsom exactly (Jomsom→Dhumba Lake 3.7 km, origin_resolution geocoded).
 - Suite: 476/476 OK.
+
+## Verification round: Chhusang + Lipulekh Pass (2026-09-21)
+
+- **Chhusang** (Upper Mustang, id 6708) added VERIFIED 28.93,83.91 (Wikipedia);
+  Jomsom→Chhusang = 59.3 km corridor route.
+- **Lipulekh Pass** (Darchula, id 6709) added VERIFIED 30.2342,81.0289 (Wikipedia),
+  with an explicit sovereignty note in the description: Nepal claims the Kalapani
+  side under the 1816 Treaty of Sugauli; currently administered by India. Dipayal→
+  Lipulekh routes 236.1 km, honestly labelled node-level corridor estimate.
+- Data-only round (no code changes); suite remains 476/476 from e3d1743.
