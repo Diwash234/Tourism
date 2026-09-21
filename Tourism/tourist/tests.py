@@ -4545,3 +4545,30 @@ class SearchNamePriorityTests(APITestCase):
         # no name filtering: both the hotel and any nearby rows may appear,
         # but the request must not 500 and must not be empty
         self.assertIsInstance(results, list)
+
+
+class ResolverAliasTests(TestCase):
+    """Consolidated rows carry former names in `aliases`; the resolver must
+    use that tier (live gap: 'Harion' failed although Hariwan lists it)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = Category.objects.create(name="Towns")
+        cls.town = Destination.objects.create(
+            name="Hariwan", category=cls.category, description="Terai town.",
+            aliases="Harion, Hariyon", latitude=27.10, longitude=85.55,
+            city="Hariwan", district="Sarlahi", country="Nepal", is_active=True)
+
+    def test_alias_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("Harion")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Hariwan")
+        self.assertAlmostEqual(float(resolved["latitude"]), 27.10, places=3)
+
+    def test_alias_tier_gated_for_short_queries(self):
+        from tourist.location.search_service import LocationSearchService
+        # "riyo" only appears inside the alias "Hariyon"; at 4 chars it must
+        # NOT hit the length-gated alias substring tier (name prefix hits
+        # like "Hari" -> Hariwan are separate, intended behaviour).
+        self.assertIsNone(LocationSearchService.resolve_single_place("riyo"))

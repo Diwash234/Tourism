@@ -544,3 +544,21 @@ everything (users, staff, destinations).
   round with a proper source.
 - Verified: all 8 field spellings resolve (incl. Niglihawa alias); live route
   Lumbini -> Tilaurakot 87.5 km, 18 turn-by-turn steps, CORRIDOR-ESTIMATE.
+
+## Round 2026-09-21 (F): 7 web-verified Terai/hill destinations + resolver alias tier
+
+- Added ids 6786-6792:
+  * 6786 Barahathwa (Sarlahi) 27.0,85.46667 — Wikipedia — VERIFIED
+  * 6787 Hariwan (Sarlahi; aliases Harion, Hariyon — covers TWO field entries with one
+    accurate row) 27.10,85.55 — Wikipedia — VERIFIED
+  * 6788 Ishwarpur (Sarlahi; alias Ishworpur) 27.0,85.63333 — Wikipedia — VERIFIED
+  * 6789 Golbazar (Siraha) 26.79,86.33 — Wikipedia — VERIFIED
+  * 6790 Chhinnamasta (Saptari; 10 km S of Rajbiraj) 26.45,86.72 — Wikipedia — VERIFIED
+  * 6791 Malarani (Arghakhanchi, HQ Khandaha) 28.06,83.12 — Wikipedia RM centre — APPROXIMATE
+  * 6792 Matihani (Mahottari; Lakshminarayan Matha) 26.64711,85.85105 — OSM municipality
+    office — APPROXIMATE
+- Skipped: Chhinnamasta Temple wiki page is the Jharkhand (India) namesake — used the
+  Saptari RM page instead; Kudan still unsourced.
+- Resolver: new length-gated (>=5 chars) alias tier in resolve_single_place — "Harion",
+  "Hariyon", "Niglihawa", "Dipsung" now resolve to their canonical rows. +2 tests.
+- Suite: 494/494 OK. All 8 batch spellings verified through the live resolver.

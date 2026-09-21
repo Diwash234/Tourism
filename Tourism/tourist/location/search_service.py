@@ -481,6 +481,13 @@ class LocationSearchService:
             ).first()
         )
 
+        if dest is None and len(q) >= 5:
+            # Alias tier: consolidated rows carry former/duplicate names in
+            # `aliases` (e.g. "Harion" -> Hariwan). Length-gated to avoid
+            # stray substring hits.
+            dest = (_coord_qs.filter(aliases__iexact=q).first()
+                    or _coord_qs.filter(aliases__icontains=q).first())
+
         if dest is None:
             # Retry with query variants: strip a trailing locality token
             # ("Mahendra Cave Pokhara") and/or transliterate Nepali generic
