@@ -394,3 +394,12 @@ destination rows, every one with a traceable coordinate source:
   a guesthouse row).
 - Live spot-checks: all sampled names resolve with exact coords; Dhangadhi →
   Karnali Bridge = 87.0 km (Wikipedia: 86 km). Data-only change; suite 476/476.
+
+## Verification round: 4 more (2026-09-21, post-40 batch)
+
+Added: **Rudravarna Mahavihar** (Uku Bahal, Patan — VERIFIED 27.668207,85.327194,
+two sources agree; Patan DS → site routes 0.6 km), **Ice Lake / Kicho Tal**
+(Manang — APPROXIMATE 28.673,84.011 with explicit sources-disagree note),
+**Lakuri Bhanjyang** (Lalitpur highpoint — APPROXIMATE, OSM peak node),
+**Kichakbadh** (Jhapa — APPROXIMATE, mindat locality). Rejected: Tyamke Danda,
+Jalthal Forest (no site-level sources). Not-found pool now ~361.
