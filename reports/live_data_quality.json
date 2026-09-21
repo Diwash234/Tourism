@@ -1,21 +1,22 @@
 {
-  "generated_at": "2026-09-20T23:20:06.129563+00:00",
+  "generated_at": "2026-09-21T03:04:25.504665+00:00",
   "database": "default",
   "destinations": {
-    "total": 6659,
+    "total": 6661,
     "by_status": {
-      "approved": 6602,
-      "archived": 57
+      "approved": 6603,
+      "archived": 57,
+      "rejected": 1
     },
-    "public_approved_active": 6602,
+    "public_approved_active": 6603,
     "by_provenance": {
-      "imported": 6601,
+      "imported": 6602,
       "manual": 1
     },
-    "missing_category": 5,
+    "missing_category": 6,
     "missing_district": 1641,
     "missing_coordinate_provenance": 0,
-    "approximate_area_points": 39,
+    "approximate_area_points": 40,
     "missing_coordinates": 0,
     "outside_nepal_bbox": 0,
     "invalid_zero_zero": 0,
@@ -119,7 +120,7 @@
     {
       "district": "Dadeldhura",
       "province": "Sudurpashchim",
-      "verified_destinations": 8,
+      "verified_destinations": 9,
       "coverage_status": "partially_covered"
     },
     {
