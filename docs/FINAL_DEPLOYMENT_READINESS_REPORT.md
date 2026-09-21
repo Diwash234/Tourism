@@ -369,3 +369,28 @@ Suite: 475/475 OK.
   side under the 1816 Treaty of Sugauli; currently administered by India. Dipayal→
   Lipulekh routes 236.1 km, honestly labelled node-level corridor estimate.
 - Data-only round (no code changes); suite remains 476/476 from e3d1743.
+
+## 40-destination batch round (2026-09-21)
+
+Owner request: ~40 remaining destinations in a single round. Delivered 40 new
+destination rows, every one with a traceable coordinate source:
+
+- **28 from project-owned data** (`scripts/batch_find_40.py`): hotel-dataset and
+  OSM-service address/cluster matches + community-services CSV, each with a
+  district-hub sanity check (<=60 km) and dedupe vs existing rows. All labelled
+  APPROXIMATE with the exact source (e.g. "median of 3 hotel coords addressing
+  'Rolpa Bazaar'"). Includes Dhankuta/Okhaldhunga/Taplejung/Siraha/Parasi/Pyuthan/
+  Rolpa/Jumla/Salyan/Baglung/Ramechhap/Sindhuli/Dhading Besi bazaars, Salpa Pokhari,
+  Sabha Pokhari, Khopra Danda, Kupinde Lake, Budhinanda Lake, Tikapur Park, Doti
+  Durbar, Jajarkot Durbar, Bheri/Limi rivers, Chandannath + Badimalika +
+  Malikarjun temples, Siddhicharan Park, Halesi-area entries.
+- **12 web-verified** (9 VERIFIED, 3 APPROXIMATE): Rajarani, Bedkot Lake,
+  Chamunda Bindrasaini, Namaste Jharna (3 sources agree), Temkemaiyum,
+  Hatuwagadhi, Dodhara Chandani, Dullu Durbar (sources disagree — labelled),
+  Karnali Bridge, Mulghat, Tuwachung, Barahapokhari (3 sources agree).
+- **Rejected without sources** (stay honestly not-found): Halji, Siddhanath
+  Temple (Nepal), Panchakoshi, Gopghat; deleted 3 risky in-repo matches
+  (Halesi Cave duplicate, Kathmandu Bagh Bazar under Nuwakot, Putha Himal from
+  a guesthouse row).
+- Live spot-checks: all sampled names resolve with exact coords; Dhangadhi →
+  Karnali Bridge = 87.0 km (Wikipedia: 86 km). Data-only change; suite 476/476.
