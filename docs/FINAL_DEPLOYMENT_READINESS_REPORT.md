@@ -524,3 +524,23 @@ everything (users, staff, destinations).
   (no source found), Siddhakali Temple (Phidim — temple itself unlocated).
 - Verified: all 7 field spellings resolve; live route Dharan -> Tinjure Danda 25.8 km,
   4 turn-by-turn steps, CORRIDOR-ESTIMATE.
+
+## Round 2026-09-21 (E): 7 web-verified destinations (Kapilvastu Buddhist circuit + Terai heritage)
+
+- Pool at round start: 270 not-found.
+- Added ids 6779-6785:
+  * 6779 Tilaurakot (Kapilvastu) 27.58,83.08 — Wikipedia; candidate ancient Kapilavastu,
+    UNESCO tentative — VERIFIED
+  * 6780 Nigalihawa (Kapilvastu; aliases Niglihawa, Nigali Sagar, Sobhavati) 27.62,83.11 —
+    Wikipedia; Konagamana Buddha birthplace, Ashokan pillar — VERIFIED
+  * 6781 Gotihawa (Kapilvastu; alias Khemavati) 27.51,83.03 — Wikipedia; Kakusandha Buddha
+    birthplace, Ashokan pillar base NP-KP-04 — VERIFIED
+  * 6782 Simraungadh (Bara) 26.88944,85.11694 — Wikipedia; medieval Karnat capital ruins — VERIFIED
+  * 6783 Amlekhganj (Bara) 27.283,84.983 — Wikipedia; former Nepal Government Railway
+    terminus, Churiya Mai Temple — VERIFIED
+  * 6784 Kankalini Temple (Bhardaha, Saptari) 26.55,86.92 — Wikipedia; Shakti Peetha — VERIFIED
+  * 6785 Panchakot (Baglung) 28.2889,83.5784 — citiesinnepal directory — APPROXIMATE
+- Rejected (no citable page found): Kudan (Kapilvastu), Nigrodharama deferred to a later
+  round with a proper source.
+- Verified: all 8 field spellings resolve (incl. Niglihawa alias); live route
+  Lumbini -> Tilaurakot 87.5 km, 18 turn-by-turn steps, CORRIDOR-ESTIMATE.
