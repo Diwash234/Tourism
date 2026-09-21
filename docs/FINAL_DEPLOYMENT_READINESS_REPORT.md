@@ -317,3 +317,19 @@ resolve_single_place inherits the fix. Post-fix: 8/8 owner spellings resolve
 (was 0/8); regressions clean (Rajbiraj 8 results, Rara 22, "nearest bank" 30,
 Pathibhara exact). New regression tests: PlaceSearchGenericWordTests (4).
 Suite: 475/475 OK.
+
+## Field-test re-run after search fix + 2 web-verified additions (2026-09-21)
+
+- **811 owner places: found 406 (86 exact + 320 partial), was 395** — the
+  generic-word search fix recovered ~11 (7 of the 9 reconciled spellings now
+  "partial"; Marsyangdi River needs fuzzy spelling match, Pathibhara-under-Dhankuta
+  honestly fails because the temple is in Taplejung).
+- **Routes for found places: 406/406, 0 failures** (corridor-graph fallback in
+  sandbox; OSRM on host).
+- Added web-verified: **Arjundhara** (Jhapa, 26.6855,87.9896, Wikipedia+geo-schema
+  agree, VERIFIED) and **Todke Jharna** (Ilam, 27.0441,87.943, Wikipedia, VERIFIED).
+  Both created after their district blocks had run (so still "not-found" in this
+  run's report) but resolve live via search and route (Birtamod→Arjundhara 13.9 km).
+  Satashi Dham rejected — no site-level source.
+- Remaining not-found: 405, blocked on live Nominatim/Overpass (host) or per-place
+  web verification rounds.

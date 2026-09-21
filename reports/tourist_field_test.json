@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-20T23:19:34Z",
+  "generated_at": "2026-09-21T03:34:11Z",
   "api": "http://127.0.0.1:8000/api/v1",
   "districts": {
     "Bhojpur": {
@@ -11,7 +11,43 @@
       "rows": [
         {
           "place": "Bhojpur Bazaar",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Bhojpur",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 222.0,
+            "duration_min": 381,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 68,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 176.9
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "City Top Polyclinic and Medical Center",
+            "nearest_km": 0.54
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "The Dwarika's Hotel",
+            "nearest_km": 1.24
+          },
+          "nearby_restaurant": {
+            "count": 30,
+            "nearest": "Bhojan Griha (Dilli Bazaar)",
+            "nearest_km": 2.08
+          },
+          "nearby_bank": {
+            "count": 30,
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 0.96
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station",
+            "nearest_km": 0.36
+          }
         },
         {
           "place": "Hatuwagadhi",
@@ -300,7 +336,43 @@
         },
         {
           "place": "Namaste Jharna",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Namaste",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 525.9,
+            "duration_min": 904,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 134,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 361.5
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Fishtail Hospital",
+            "nearest_km": 1.81
+          },
+          "nearby_hotel": {
+            "count": 25,
+            "nearest": "Pokhara Royal Palace",
+            "nearest_km": 0.92
+          },
+          "nearby_restaurant": {
+            "count": 30,
+            "nearest": "Fish Curry Phewa",
+            "nearest_km": 1.81
+          },
+          "nearby_bank": {
+            "count": 7,
+            "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
+            "nearest_km": 3.08
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Baidam",
+            "nearest_km": 0.79
+          }
         },
         {
           "place": "Rajarani",
@@ -949,8 +1021,8 @@
     "Khotang": {
       "hub": "Halesi Mahadev (Maratika Cave)",
       "hub_coords": [
-        27.2,
-        86.6167
+        27.19006,
+        86.622391
       ],
       "rows": [
         {
@@ -959,13 +1031,13 @@
           "matched_name": "Nepal Bank Limited \u2014 Diktel Branch (Khotang)",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 0.0,
-            "duration_min": 0,
-            "source": "straight_line_fallback",
+            "distance_km": 1.2,
+            "duration_min": 2,
+            "source": "graphml_fallback",
             "navigation_grade": false,
             "geometry_points": 2,
-            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation.",
-            "displacement_km": 0.0
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 1.2
           },
           "nearby_hospital": {
             "count": 5,
@@ -1010,27 +1082,27 @@
           "nearby_hospital": {
             "count": 5,
             "nearest": "Khotang District Hospital",
-            "nearest_km": 17.17
+            "nearest_km": 16.72
           },
           "nearby_hotel": {
             "count": 22,
             "nearest": "Diktel Mountain Lodge",
-            "nearest_km": 17.17
+            "nearest_km": 16.72
           },
           "nearby_restaurant": {
-            "count": 9,
+            "count": 7,
             "nearest": "Moutain view lodge & restaurant",
-            "nearest_km": 25.7
+            "nearest_km": 26.94
           },
           "nearby_bank": {
-            "count": 5,
+            "count": 4,
             "nearest": "Nepal Bank Limited \u2014 Diktel Branch (Khotang)",
-            "nearest_km": 0.0
+            "nearest_km": 1.24
           },
           "nearby_police": {
             "count": 22,
             "nearest": "Police Station Manebhanjyang",
-            "nearest_km": 11.07
+            "nearest_km": 12.3
           }
         },
         {
@@ -1051,13 +1123,13 @@
           "matched_name": "Rupakot Resort",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 494.6,
-            "duration_min": 850,
+            "distance_km": 494.3,
+            "duration_min": 849,
             "source": "graphml_fallback",
             "navigation_grade": false,
-            "geometry_points": 112,
+            "geometry_points": 113,
             "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 268.2
+            "displacement_km": 269.2
           },
           "nearby_hospital": {
             "count": 26,
@@ -1075,7 +1147,7 @@
             "nearest_km": 15.15
           },
           "nearby_bank": {
-            "count": 5,
+            "count": 6,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 14.07
           },
@@ -2118,7 +2190,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Humla District Hospital",
-            "nearest_km": 32.31
+            "nearest_km": 33.93
           },
           "nearby_hotel": {
             "count": 17,
@@ -3135,7 +3207,7 @@
             "nearest_km": 4.09
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 24.96
           },
@@ -5425,7 +5497,41 @@
         },
         {
           "place": "Ganga Jamuna Waterfall",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Ganga Jamuna",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 20.1,
+            "duration_min": 35,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 5,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 19.9
+          },
+          "nearby_hospital": {
+            "count": 3,
+            "nearest": "Dhading District Hospital",
+            "nearest_km": 24.29
+          },
+          "nearby_hotel": {
+            "count": 8,
+            "nearest": "Barpak Village Lodge",
+            "nearest_km": 21.07
+          },
+          "nearby_restaurant": {
+            "count": 21,
+            "nearest": "Hotel Chumvally Restaurant and Lodge",
+            "nearest_km": 16.14
+          },
+          "nearby_bank": {
+            "count": 0
+          },
+          "nearby_police": {
+            "count": 6,
+            "nearest": "District Police Office Dhading",
+            "nearest_km": 24.29
+          }
         },
         {
           "place": "Sertung",
@@ -5991,7 +6097,43 @@
         },
         {
           "place": "Chandragiri Hills",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Chandragiri Hill",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 12.9,
+            "duration_min": 22,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 9,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 12.5
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Armed Police Force Hospital Emergency",
+            "nearest_km": 5.56
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "Daman Mountain Lodge",
+            "nearest_km": 12.33
+          },
+          "nearby_restaurant": {
+            "count": 30,
+            "nearest": "Gulmeli Sushant Hotel and Khaja Ghar",
+            "nearest_km": 7.73
+          },
+          "nearby_bank": {
+            "count": 30,
+            "nearest": "Bank (name not recorded in OSM)",
+            "nearest_km": 8.5
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "SOCIAL POLICE SERVICE",
+            "nearest_km": 8.38
+          }
         },
         {
           "place": "Kirtipur",
@@ -6400,7 +6542,7 @@
             "nearest_km": 0.58
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 1.68
           },
@@ -7315,7 +7457,7 @@
             "nearest_km": 12.04
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 11.07
           },
@@ -7896,28 +8038,28 @@
           },
           "nearby_hospital": {
             "count": 30,
-            "nearest": "Bagmati Health Hub Pvt. Ltd",
-            "nearest_km": 0.44
+            "nearest": "City Top Polyclinic and Medical Center",
+            "nearest_km": 0.54
           },
           "nearby_hotel": {
             "count": 30,
             "nearest": "The Dwarika's Hotel",
-            "nearest_km": 1.46
+            "nearest_km": 1.24
           },
           "nearby_restaurant": {
             "count": 30,
-            "nearest": "Hotel B And D Fastfood Cafe",
-            "nearest_km": 2.27
+            "nearest": "Bhojan Griha (Dilli Bazaar)",
+            "nearest_km": 2.08
           },
           "nearby_bank": {
             "count": 30,
-            "nearest": "Bank (name not recorded in OSM)",
-            "nearest_km": 1.13
+            "nearest": "Agricultural Development Bank",
+            "nearest_km": 0.96
           },
           "nearby_police": {
             "count": 30,
             "nearest": "Police Station",
-            "nearest_km": 0.2
+            "nearest_km": 0.36
           }
         },
         {
@@ -8284,43 +8426,7 @@
       "rows": [
         {
           "place": "Baglung Bazaar",
-          "search": "partial",
-          "matched_name": "Police Station Baglung Bazaar",
-          "district_in_db": "",
-          "route_to_hub": {
-            "distance_km": 3.4,
-            "duration_min": 6,
-            "source": "graphml_fallback",
-            "navigation_grade": false,
-            "geometry_points": 2,
-            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 3.0
-          },
-          "nearby_hospital": {
-            "count": 30,
-            "nearest": "Baglung Community Hospital",
-            "nearest_km": 0.0
-          },
-          "nearby_hotel": {
-            "count": 30,
-            "nearest": "Poon Hill View Lodge",
-            "nearest_km": 17.46
-          },
-          "nearby_restaurant": {
-            "count": 30,
-            "nearest": "Anisha Hotel and Khaja Ghar",
-            "nearest_km": 12.75
-          },
-          "nearby_bank": {
-            "count": 7,
-            "nearest": "Nepal Bank Limited \u2014 Baglung Branch (Baglung)",
-            "nearest_km": 1.05
-          },
-          "nearby_police": {
-            "count": 30,
-            "nearest": "District Police Office Baglung",
-            "nearest_km": 0.0
-          }
+          "search": "not-found"
         },
         {
           "place": "Baglung Kalika Temple",
@@ -8556,41 +8662,41 @@
         {
           "place": "Gorkha Durbar",
           "search": "partial",
-          "matched_name": "Gorkha Durbar View Hotel",
+          "matched_name": "Gorkha Durbar Hill",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 44.3,
+            "distance_km": 44.5,
             "duration_min": 76,
             "source": "graphml_fallback",
             "navigation_grade": false,
             "geometry_points": 5,
             "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 42.0
+            "displacement_km": 42.2
           },
           "nearby_hospital": {
             "count": 21,
             "nearest": "Gorkha District Hospital",
-            "nearest_km": 0.24
+            "nearest_km": 0.03
           },
           "nearby_hotel": {
             "count": 30,
             "nearest": "Gorkha Himalayan Crown",
-            "nearest_km": 0.18
+            "nearest_km": 0.4
           },
           "nearby_restaurant": {
             "count": 30,
             "nearest": "Hotel Bhu. Pu. Sainik Khaja Ghar and Guest House",
-            "nearest_km": 14.5
+            "nearest_km": 14.27
           },
           "nearby_bank": {
             "count": 4,
             "nearest": "Nepal Bank Limited \u2014 Gorkha Branch (Gorkha)",
-            "nearest_km": 0.23
+            "nearest_km": 0.0
           },
           "nearby_police": {
-            "count": 28,
+            "count": 27,
             "nearest": "District Police Office Gorkha",
-            "nearest_km": 0.24
+            "nearest_km": 0.03
           }
         },
         {
@@ -8663,9 +8769,9 @@
             "nearest_km": 12.62
           },
           "nearby_bank": {
-            "count": 1,
-            "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
-            "nearest_km": 38.23
+            "count": 2,
+            "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
+            "nearest_km": 30.47
           },
           "nearby_police": {
             "count": 6,
@@ -8823,7 +8929,7 @@
             "nearest_km": 10.12
           },
           "nearby_bank": {
-            "count": 1,
+            "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
             "nearest_km": 41.39
           },
@@ -8880,7 +8986,7 @@
             "nearest_km": 2.18
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 0.0
           },
@@ -8920,7 +9026,7 @@
             "nearest_km": 1.18
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 2.98
           },
@@ -8960,7 +9066,7 @@
             "nearest_km": 2.18
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 0.0
           },
@@ -9040,7 +9146,7 @@
             "nearest_km": 0.98
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 3.65
           },
@@ -9080,7 +9186,7 @@
             "nearest_km": 1.26
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 3.62
           },
@@ -9124,7 +9230,7 @@
             "nearest_km": 11.24
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 10.01
           },
@@ -9204,7 +9310,7 @@
             "nearest_km": 1.27
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 2.34
           },
@@ -9373,7 +9479,7 @@
             "nearest_km": 1.03
           },
           "nearby_bank": {
-            "count": 4,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
             "nearest_km": 11.24
           },
@@ -9457,7 +9563,7 @@
             "nearest_km": 3.5
           },
           "nearby_bank": {
-            "count": 4,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
             "nearest_km": 5.85
           },
@@ -9501,7 +9607,7 @@
             "nearest_km": 0.75
           },
           "nearby_bank": {
-            "count": 4,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
             "nearest_km": 7.92
           },
@@ -9572,7 +9678,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 0.81
+            "nearest_km": 27.97
           },
           "nearby_police": {
             "count": 26,
@@ -9611,8 +9717,8 @@
           },
           "nearby_bank": {
             "count": 2,
-            "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 16.91
+            "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
+            "nearest_km": 21.19
           },
           "nearby_police": {
             "count": 17,
@@ -9651,8 +9757,8 @@
           },
           "nearby_bank": {
             "count": 3,
-            "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 16.37
+            "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
+            "nearest_km": 17.1
           },
           "nearby_police": {
             "count": 28,
@@ -9692,7 +9798,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 0.6
+            "nearest_km": 28.17
           },
           "nearby_police": {
             "count": 26,
@@ -9735,8 +9841,8 @@
           },
           "nearby_bank": {
             "count": 3,
-            "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 4.03
+            "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
+            "nearest_km": 29.65
           },
           "nearby_police": {
             "count": 28,
@@ -9814,7 +9920,7 @@
             "nearest_km": 1.97
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 2.01
           },
@@ -9856,7 +9962,7 @@
           "nearby_bank": {
             "count": 3,
             "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 1.88
+            "nearest_km": 27.33
           },
           "nearby_police": {
             "count": 28,
@@ -9866,7 +9972,43 @@
         },
         {
           "place": "Gangapurna Lake",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Gangapurna",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 21.4,
+            "duration_min": 37,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 10,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 19.0
+          },
+          "nearby_hospital": {
+            "count": 18,
+            "nearest": "Manang District Hospital",
+            "nearest_km": 7.6
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "Khumai Danda Lodge",
+            "nearest_km": 17.05
+          },
+          "nearby_restaurant": {
+            "count": 26,
+            "nearest": "Buddha Guest House & Restaurant",
+            "nearest_km": 13.2
+          },
+          "nearby_bank": {
+            "count": 4,
+            "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
+            "nearest_km": 12.34
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "Police Station Pisang",
+            "nearest_km": 7.52
+          }
         },
         {
           "place": "Milarepa Cave",
@@ -9899,8 +10041,8 @@
           },
           "nearby_bank": {
             "count": 2,
-            "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
-            "nearest_km": 42.77
+            "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
+            "nearest_km": 24.04
           },
           "nearby_police": {
             "count": 7,
@@ -9940,7 +10082,7 @@
           "nearby_bank": {
             "count": 3,
             "nearest": "Nepal Bank Limited \u2014 Chame Branch (Manang)",
-            "nearest_km": 6.13
+            "nearest_km": 23.05
           },
           "nearby_police": {
             "count": 30,
@@ -9987,7 +10129,7 @@
             "nearest_km": 12.04
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 11.07
           },
@@ -10027,7 +10169,7 @@
             "nearest_km": 1.16
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Kushma Branch (Parbat)",
             "nearest_km": 13.44
           },
@@ -10067,9 +10209,9 @@
             "nearest_km": 0.28
           },
           "nearby_bank": {
-            "count": 2,
+            "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
-            "nearest_km": 18.44
+            "nearest_km": 8.57
           },
           "nearby_police": {
             "count": 16,
@@ -10107,7 +10249,7 @@
             "nearest_km": 12.4
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 11.48
           },
@@ -10185,9 +10327,7 @@
             "nearest_km": 40.78
           },
           "nearby_bank": {
-            "count": 1,
-            "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
-            "nearest_km": 24.07
+            "count": 0
           },
           "nearby_police": {
             "count": 6,
@@ -10225,7 +10365,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
-            "nearest_km": 23.67
+            "nearest_km": 49.93
           },
           "nearby_police": {
             "count": 6,
@@ -10267,9 +10407,9 @@
             "nearest_km": 4.03
           },
           "nearby_bank": {
-            "count": 3,
+            "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
-            "nearest_km": 31.68
+            "nearest_km": 5.15
           },
           "nearby_police": {
             "count": 21,
@@ -10307,9 +10447,9 @@
             "nearest_km": 26.08
           },
           "nearby_bank": {
-            "count": 2,
+            "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
-            "nearest_km": 8.71
+            "nearest_km": 34.41
           },
           "nearby_police": {
             "count": 12,
@@ -10360,7 +10500,7 @@
             "nearest_km": 4.78
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 2.77
           },
@@ -10540,7 +10680,43 @@
         },
         {
           "place": "Dhaulagiri Base Camp",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Dhaulagiri",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 37.0,
+            "duration_min": 64,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 9,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 34.0
+          },
+          "nearby_hospital": {
+            "count": 10,
+            "nearest": "Mustang District Hospital",
+            "nearest_km": 24.27
+          },
+          "nearby_hotel": {
+            "count": 27,
+            "nearest": "See You Lodge",
+            "nearest_km": 11.71
+          },
+          "nearby_restaurant": {
+            "count": 19,
+            "nearest": "Chhyaang (Tibetan millet beer)",
+            "nearest_km": 23.45
+          },
+          "nearby_bank": {
+            "count": 3,
+            "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
+            "nearest_km": 24.11
+          },
+          "nearby_police": {
+            "count": 21,
+            "nearest": "Police Station Marpha",
+            "nearest_km": 20.4
+          }
         },
         {
           "place": "Sikha",
@@ -10652,9 +10828,9 @@
             "nearest_km": 17.26
           },
           "nearby_bank": {
-            "count": 5,
-            "nearest": "Nepal Bank Limited \u2014 Beni Branch (Myagdi)",
-            "nearest_km": 33.52
+            "count": 4,
+            "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
+            "nearest_km": 18.69
           },
           "nearby_police": {
             "count": 13,
@@ -10797,7 +10973,43 @@
         },
         {
           "place": "Narayani River",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Gandaki (Narayani) River",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 10.0,
+            "duration_min": 17,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 9.3
+          },
+          "nearby_hospital": {
+            "count": 17,
+            "nearest": "Nawalpur District Hospital",
+            "nearest_km": 13.09
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "Amaltari Community Lodge",
+            "nearest_km": 8.33
+          },
+          "nearby_restaurant": {
+            "count": 14,
+            "nearest": "KC's Restaurant & Home",
+            "nearest_km": 25.01
+          },
+          "nearby_bank": {
+            "count": 3,
+            "nearest": "Nepal Bank Limited \u2014 Kawasoti Branch (Nawalpur)",
+            "nearest_km": 12.34
+          },
+          "nearby_police": {
+            "count": 23,
+            "nearest": "Police Station Madhyabindu",
+            "nearest_km": 12.29
+          }
         },
         {
           "place": "Kumarwarti",
@@ -10934,7 +11146,7 @@
             "nearest_km": 2.24
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Kushma Branch (Parbat)",
             "nearest_km": 24.55
           },
@@ -11528,7 +11740,7 @@
             "nearest_km": 3.02
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 1.77
           },
@@ -11568,7 +11780,7 @@
             "nearest_km": 4.83
           },
           "nearby_bank": {
-            "count": 4,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Besisahar Branch (Lamjung)",
             "nearest_km": 4.05
           },
@@ -11580,7 +11792,43 @@
         },
         {
           "place": "Bandipur Bazaar",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Bandipur",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 46.1,
+            "duration_min": 79,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation.",
+            "displacement_km": 35.4
+          },
+          "nearby_hospital": {
+            "count": 20,
+            "nearest": "Damauli Hospital (Tanahun District Hospital)",
+            "nearest_km": 1.14
+          },
+          "nearby_hotel": {
+            "count": 24,
+            "nearest": "Bandipur Grand Palace",
+            "nearest_km": 0.33
+          },
+          "nearby_restaurant": {
+            "count": 27,
+            "nearest": "Hotel Maya & Restaurant",
+            "nearest_km": 0.05
+          },
+          "nearby_bank": {
+            "count": 6,
+            "nearest": "Nepal Bank Limited \u2014 Damauli Branch (Tanahun)",
+            "nearest_km": 1.14
+          },
+          "nearby_police": {
+            "count": 19,
+            "nearest": "Police Station Manakamana",
+            "nearest_km": 19.08
+          }
         }
       ]
     },
@@ -12288,7 +12536,7 @@
             "nearest_km": 27.62
           },
           "nearby_bank": {
-            "count": 4,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Beni Branch (Myagdi)",
             "nearest_km": 21.81
           },
@@ -12971,7 +13219,43 @@
         },
         {
           "place": "Narayani River",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Gandaki (Narayani) River",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 44.7,
+            "duration_min": 77,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 42.6
+          },
+          "nearby_hospital": {
+            "count": 17,
+            "nearest": "Nawalpur District Hospital",
+            "nearest_km": 13.09
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "Amaltari Community Lodge",
+            "nearest_km": 8.33
+          },
+          "nearby_restaurant": {
+            "count": 14,
+            "nearest": "KC's Restaurant & Home",
+            "nearest_km": 25.01
+          },
+          "nearby_bank": {
+            "count": 3,
+            "nearest": "Nepal Bank Limited \u2014 Kawasoti Branch (Nawalpur)",
+            "nearest_km": 12.34
+          },
+          "nearby_police": {
+            "count": 23,
+            "nearest": "Police Station Madhyabindu",
+            "nearest_km": 12.29
+          }
         },
         {
           "place": "Palhi Bhagwati Temple",
@@ -13205,7 +13489,43 @@
         },
         {
           "place": "Swargadwari Temple",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Swargadwari",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 25.1,
+            "duration_min": 43,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 18.8
+          },
+          "nearby_hospital": {
+            "count": 13,
+            "nearest": "Rolpa District Hospital",
+            "nearest_km": 12.26
+          },
+          "nearby_hotel": {
+            "count": 18,
+            "nearest": "Rolpa Community Homestay",
+            "nearest_km": 13.65
+          },
+          "nearby_restaurant": {
+            "count": 3,
+            "nearest": "Paban Khaja Ghar",
+            "nearest_km": 36.36
+          },
+          "nearby_bank": {
+            "count": 5,
+            "nearest": "Nepal Bank Limited \u2014 Pyuthan Branch (Pyuthan)",
+            "nearest_km": 0.0
+          },
+          "nearby_police": {
+            "count": 22,
+            "nearest": "Police Station Swargadwari",
+            "nearest_km": 16.2
+          }
         },
         {
           "place": "Jhimruk River",
@@ -13337,7 +13657,7 @@
             "nearest_km": 7.57
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 21.74
           },
@@ -13426,7 +13746,7 @@
             "nearest_km": 7.03
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Beni Branch (Myagdi)",
             "nearest_km": 9.82
           },
@@ -13438,7 +13758,43 @@
         },
         {
           "place": "Jaljala Hill",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Jaljala",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 91.8,
+            "duration_min": 158,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 5,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 64.6
+          },
+          "nearby_hospital": {
+            "count": 30,
+            "nearest": "Beni Community Hospital",
+            "nearest_km": 9.5
+          },
+          "nearby_hotel": {
+            "count": 30,
+            "nearest": "Poon Hill View Lodge",
+            "nearest_km": 7.18
+          },
+          "nearby_restaurant": {
+            "count": 30,
+            "nearest": "Bipin Restaurant",
+            "nearest_km": 7.03
+          },
+          "nearby_bank": {
+            "count": 7,
+            "nearest": "Nepal Bank Limited \u2014 Beni Branch (Myagdi)",
+            "nearest_km": 9.82
+          },
+          "nearby_police": {
+            "count": 30,
+            "nearest": "District Police Office Myagdi",
+            "nearest_km": 9.5
+          }
         },
         {
           "place": "Thawang",
@@ -13598,7 +13954,7 @@
             "displacement_km": 30.5
           },
           "nearby_hospital": {
-            "count": 7,
+            "count": 5,
             "nearest": "Rukum District Hospital",
             "nearest_km": 12.74
           },
@@ -13638,7 +13994,7 @@
             "displacement_km": 29.8
           },
           "nearby_hospital": {
-            "count": 7,
+            "count": 5,
             "nearest": "Rukum District Hospital",
             "nearest_km": 14.81
           },
@@ -13697,7 +14053,7 @@
             "nearest_km": 42.11
           },
           "nearby_bank": {
-            "count": 5,
+            "count": 6,
             "nearest": "Nepal Bank Limited \u2014 Putha Uttarganga Branch (Rukum East)",
             "nearest_km": 12.59
           },
@@ -13737,7 +14093,7 @@
             "nearest_km": 44.38
           },
           "nearby_bank": {
-            "count": 4,
+            "count": 5,
             "nearest": "Nepal Bank Limited \u2014 Putha Uttarganga Branch (Rukum East)",
             "nearest_km": 0.0
           },
@@ -13802,9 +14158,9 @@
             "nearest_km": 15.35
           },
           "nearby_bank": {
-            "count": 2,
+            "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Jomsom Branch (Mustang)",
-            "nearest_km": 18.61
+            "nearest_km": 14.79
           },
           "nearby_police": {
             "count": 18,
@@ -14187,7 +14543,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 26.49
+            "nearest_km": 26.15
           },
           "nearby_hotel": {
             "count": 10,
@@ -14202,7 +14558,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 1.62
+            "nearest_km": 26.15
           },
           "nearby_police": {
             "count": 7,
@@ -14227,7 +14583,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 24.87
+            "nearest_km": 27.19
           },
           "nearby_hotel": {
             "count": 10,
@@ -14242,7 +14598,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 6.47
+            "nearest_km": 27.19
           },
           "nearby_police": {
             "count": 7,
@@ -14267,7 +14623,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 10.32
+            "nearest_km": 14.77
           },
           "nearby_hotel": {
             "count": 11,
@@ -14282,7 +14638,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 16.9
+            "nearest_km": 14.77
           },
           "nearby_police": {
             "count": 7,
@@ -14307,7 +14663,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 22.36
+            "nearest_km": 21.32
           },
           "nearby_hotel": {
             "count": 10,
@@ -14322,7 +14678,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 4.99
+            "nearest_km": 21.32
           },
           "nearby_police": {
             "count": 7,
@@ -14347,7 +14703,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 38.21
+            "nearest_km": 26.57
           },
           "nearby_hotel": {
             "count": 10,
@@ -14362,7 +14718,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 24.96
+            "nearest_km": 26.57
           },
           "nearby_police": {
             "count": 7,
@@ -14398,9 +14754,7 @@
             "nearest_km": 34.63
           },
           "nearby_bank": {
-            "count": 1,
-            "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 25.81
+            "count": 0
           },
           "nearby_police": {
             "count": 1,
@@ -14429,7 +14783,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 26.23
+            "nearest_km": 28.7
           },
           "nearby_hotel": {
             "count": 10,
@@ -14444,7 +14798,7 @@
           "nearby_bank": {
             "count": 1,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 6.95
+            "nearest_km": 28.7
           },
           "nearby_police": {
             "count": 7,
@@ -14455,16 +14809,16 @@
         {
           "place": "Dunai",
           "search": "partial",
-          "matched_name": "Police Station Dunai",
+          "matched_name": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 50.8,
-            "duration_min": 87,
+            "distance_km": 48.8,
+            "duration_min": 84,
             "source": "graphml_fallback",
             "navigation_grade": false,
-            "geometry_points": 7,
+            "geometry_points": 4,
             "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 38.5
+            "displacement_km": 27.0
           },
           "nearby_hospital": {
             "count": 2,
@@ -14472,24 +14826,24 @@
             "nearest_km": 0.0
           },
           "nearby_hotel": {
-            "count": 15,
+            "count": 12,
             "nearest": "Dolpa District Hospital",
-            "nearest_km": 0.0
+            "nearest_km": 14.39
           },
           "nearby_restaurant": {
             "count": 2,
             "nearest": "Hotel Mount Putha & Restaurant",
-            "nearest_km": 1.82
+            "nearest_km": 14.21
           },
           "nearby_bank": {
-            "count": 3,
+            "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Dunai Branch (Dolpa)",
-            "nearest_km": 27.21
+            "nearest_km": 0.0
           },
           "nearby_police": {
-            "count": 10,
+            "count": 7,
             "nearest": "District Police Office Dolpa",
-            "nearest_km": 0.0
+            "nearest_km": 14.39
           }
         }
       ]
@@ -14518,7 +14872,7 @@
           "nearby_hospital": {
             "count": 1,
             "nearest": "Humla District Hospital",
-            "nearest_km": 0.24
+            "nearest_km": 5.42
           },
           "nearby_hotel": {
             "count": 10,
@@ -14533,7 +14887,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Simikot Branch (Humla)",
-            "nearest_km": 12.0
+            "nearest_km": 5.42
           },
           "nearby_police": {
             "count": 3,
@@ -14558,7 +14912,7 @@
           "nearby_hospital": {
             "count": 1,
             "nearest": "Humla District Hospital",
-            "nearest_km": 18.63
+            "nearest_km": 16.47
           },
           "nearby_hotel": {
             "count": 11,
@@ -14573,7 +14927,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Simikot Branch (Humla)",
-            "nearest_km": 7.35
+            "nearest_km": 16.47
           },
           "nearby_police": {
             "count": 0
@@ -14640,7 +14994,7 @@
           "nearby_hospital": {
             "count": 1,
             "nearest": "Humla District Hospital",
-            "nearest_km": 31.0
+            "nearest_km": 30.55
           },
           "nearby_hotel": {
             "count": 11,
@@ -15185,7 +15539,7 @@
             "displacement_km": 17.6
           },
           "nearby_hospital": {
-            "count": 4,
+            "count": 5,
             "nearest": "Kalikot District Hospital",
             "nearest_km": 0.0
           },
@@ -15200,7 +15554,7 @@
             "nearest_km": 1.05
           },
           "nearby_bank": {
-            "count": 3,
+            "count": 4,
             "nearest": "Nepal Bank Limited \u2014 Khandachakra (Manma) Branch (Kalikot)",
             "nearest_km": 1.33
           },
@@ -15252,7 +15606,43 @@
         },
         {
           "place": "Pachal Jharana",
-          "search": "not-found"
+          "search": "partial",
+          "matched_name": "Police Station Pachaljharana",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 11.7,
+            "duration_min": 20,
+            "source": "straight_line_fallback",
+            "navigation_grade": false,
+            "geometry_points": 2,
+            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation.",
+            "displacement_km": 9.0
+          },
+          "nearby_hospital": {
+            "count": 10,
+            "nearest": "Kalikot District Hospital",
+            "nearest_km": 9.55
+          },
+          "nearby_hotel": {
+            "count": 19,
+            "nearest": "Pili Village Homestay",
+            "nearest_km": 0.0
+          },
+          "nearby_restaurant": {
+            "count": 2,
+            "nearest": "Sunlight Hotel and Restaurant",
+            "nearest_km": 10.42
+          },
+          "nearby_bank": {
+            "count": 5,
+            "nearest": "Nepal Bank Limited \u2014 Khandachakra (Manma) Branch (Kalikot)",
+            "nearest_km": 10.61
+          },
+          "nearby_police": {
+            "count": 26,
+            "nearest": "Police Station Pachaljharana",
+            "nearest_km": 0.0
+          }
         },
         {
           "place": "Pachal Waterfall",
@@ -15382,7 +15772,7 @@
           "nearby_hospital": {
             "count": 6,
             "nearest": "Mugu District Hospital",
-            "nearest_km": 0.32
+            "nearest_km": 14.41
           },
           "nearby_hotel": {
             "count": 20,
@@ -15395,7 +15785,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
-            "nearest_km": 1.06
+            "nearest_km": 14.41
           },
           "nearby_police": {
             "count": 17,
@@ -15420,7 +15810,7 @@
           "nearby_hospital": {
             "count": 6,
             "nearest": "Mugu District Hospital",
-            "nearest_km": 1.56
+            "nearest_km": 14.74
           },
           "nearby_hotel": {
             "count": 20,
@@ -15433,7 +15823,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
-            "nearest_km": 0.82
+            "nearest_km": 14.74
           },
           "nearby_police": {
             "count": 17,
@@ -15458,7 +15848,7 @@
           "nearby_hospital": {
             "count": 6,
             "nearest": "Mugu District Hospital",
-            "nearest_km": 0.97
+            "nearest_km": 15.0
           },
           "nearby_hotel": {
             "count": 19,
@@ -15471,7 +15861,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
-            "nearest_km": 1.65
+            "nearest_km": 15.0
           },
           "nearby_police": {
             "count": 17,
@@ -15482,39 +15872,41 @@
         {
           "place": "Gamgadhi",
           "search": "partial",
-          "matched_name": "Gamgadhi Mountain Inn",
+          "matched_name": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
           "district_in_db": "",
           "route_to_hub": {
-            "distance_km": 4.8,
-            "duration_min": 8,
+            "distance_km": 31.0,
+            "duration_min": 53,
             "source": "graphml_fallback",
             "navigation_grade": false,
             "geometry_points": 2,
             "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
-            "displacement_km": 4.6
+            "displacement_km": 17.9
           },
           "nearby_hospital": {
-            "count": 6,
+            "count": 7,
             "nearest": "Mugu District Hospital",
-            "nearest_km": 1.11
-          },
-          "nearby_hotel": {
-            "count": 20,
-            "nearest": "Gamgadhi Mountain Inn",
             "nearest_km": 0.0
           },
+          "nearby_hotel": {
+            "count": 22,
+            "nearest": "Gamgadhi Mountain Inn",
+            "nearest_km": 13.5
+          },
           "nearby_restaurant": {
-            "count": 0
+            "count": 1,
+            "nearest": "Sunlight Hotel and Restaurant",
+            "nearest_km": 49.41
           },
           "nearby_bank": {
-            "count": 2,
+            "count": 3,
             "nearest": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
-            "nearest_km": 1.61
+            "nearest_km": 0.0
           },
           "nearby_police": {
-            "count": 17,
-            "nearest": "Police Station Rara",
-            "nearest_km": 0.97
+            "count": 22,
+            "nearest": "Police Station Soru",
+            "nearest_km": 4.91
           }
         },
         {
@@ -15563,7 +15955,7 @@
             "nearest_km": 7.29
           },
           "nearby_bank": {
-            "count": 5,
+            "count": 6,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 12.47
           },
@@ -15590,7 +15982,7 @@
           "nearby_hospital": {
             "count": 6,
             "nearest": "Mugu District Hospital",
-            "nearest_km": 0.97
+            "nearest_km": 15.0
           },
           "nearby_hotel": {
             "count": 19,
@@ -15603,7 +15995,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
-            "nearest_km": 1.65
+            "nearest_km": 15.0
           },
           "nearby_police": {
             "count": 17,
@@ -15628,7 +16020,7 @@
           "nearby_hospital": {
             "count": 6,
             "nearest": "Mugu District Hospital",
-            "nearest_km": 20.43
+            "nearest_km": 34.39
           },
           "nearby_hotel": {
             "count": 18,
@@ -15641,7 +16033,7 @@
           "nearby_bank": {
             "count": 2,
             "nearest": "Nepal Bank Limited \u2014 Gamgadhi Branch (Mugu)",
-            "nearest_km": 20.69
+            "nearest_km": 34.39
           },
           "nearby_police": {
             "count": 16,
@@ -15882,7 +16274,7 @@
           "nearby_hospital": {
             "count": 1,
             "nearest": "Humla District Hospital",
-            "nearest_km": 17.66
+            "nearest_km": 21.68
           },
           "nearby_hotel": {
             "count": 10,
@@ -15896,8 +16288,8 @@
           },
           "nearby_bank": {
             "count": 2,
-            "nearest": "Nepal Bank Limited \u2014 Simikot Branch (Humla)",
-            "nearest_km": 16.68
+            "nearest": "Nepal Bank Limited \u2014 Jayaprithvi (Chainpur) Branch (Bajhang)",
+            "nearest_km": 19.64
           },
           "nearby_police": {
             "count": 9,
@@ -15911,43 +16303,7 @@
         },
         {
           "place": "Salyan Bazaar",
-          "search": "partial",
-          "matched_name": "Police Station Salyan Bazaar",
-          "district_in_db": "",
-          "route_to_hub": {
-            "distance_km": 14.6,
-            "duration_min": 25,
-            "source": "straight_line_fallback",
-            "navigation_grade": false,
-            "geometry_points": 2,
-            "note": "Road routing unavailable \u2014 this is a straight-line estimate, NOT a road route. Enable ROUTING_BASE_URL for real turn-by-turn navigation.",
-            "displacement_km": 11.2
-          },
-          "nearby_hospital": {
-            "count": 15,
-            "nearest": "Salyan District Hospital",
-            "nearest_km": 0.0
-          },
-          "nearby_hotel": {
-            "count": 10,
-            "nearest": "Salyan Hill Lodge",
-            "nearest_km": 0.0
-          },
-          "nearby_restaurant": {
-            "count": 4,
-            "nearest": "Dhindo Thali",
-            "nearest_km": 19.26
-          },
-          "nearby_bank": {
-            "count": 5,
-            "nearest": "Nepal Bank Limited \u2014 Salyan Khalanga Branch (Salyan)",
-            "nearest_km": 11.22
-          },
-          "nearby_police": {
-            "count": 26,
-            "nearest": "District Police Office Salyan",
-            "nearest_km": 0.0
-          }
+          "search": "not-found"
         },
         {
           "place": "Lanti",
@@ -16420,7 +16776,7 @@
             "nearest_km": 2.43
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 4.8
           },
@@ -16530,7 +16886,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Humla District Hospital",
-            "nearest_km": 32.31
+            "nearest_km": 33.93
           },
           "nearby_hotel": {
             "count": 17,
@@ -16717,7 +17073,7 @@
             "nearest_km": 3.02
           },
           "nearby_bank": {
-            "count": 6,
+            "count": 7,
             "nearest": "Nepal Bank Limited \u2014 Pokhara Branch (Kaski)",
             "nearest_km": 1.77
           },
@@ -16748,7 +17104,7 @@
           "nearby_hospital": {
             "count": 2,
             "nearest": "Humla District Hospital",
-            "nearest_km": 32.31
+            "nearest_km": 33.93
           },
           "nearby_hotel": {
             "count": 17,
@@ -17179,7 +17535,43 @@
         },
         {
           "place": "Parshuram Dham",
-          "search": "not-found"
+          "search": "exact",
+          "matched_name": "Parshuram Dham",
+          "district_in_db": "",
+          "route_to_hub": {
+            "distance_km": 55.6,
+            "duration_min": 96,
+            "source": "graphml_fallback",
+            "navigation_grade": false,
+            "geometry_points": 3,
+            "note": "Approximate route on the bundled tourism GraphML \u2014 node-level, not a street-level road route.",
+            "displacement_km": 34.9
+          },
+          "nearby_hospital": {
+            "count": 11,
+            "nearest": "Kanchanpur District Hospital",
+            "nearest_km": 19.86
+          },
+          "nearby_hotel": {
+            "count": 13,
+            "nearest": "Mahakali Provincial Hospital",
+            "nearest_km": 19.86
+          },
+          "nearby_restaurant": {
+            "count": 1,
+            "nearest": "Sitar Hotel and Restaurant (restaurant)",
+            "nearest_km": 49.66
+          },
+          "nearby_bank": {
+            "count": 3,
+            "nearest": "Nepal Bank Limited \u2014 Kanchanpur Branch (Kanchanpur)",
+            "nearest_km": 19.1
+          },
+          "nearby_police": {
+            "count": 24,
+            "nearest": "Police Station Jogbudha",
+            "nearest_km": 17.58
+          }
         },
         {
           "place": "Jogbudha",
@@ -18046,11 +18438,11 @@
   },
   "totals": {
     "places": 811,
-    "found_exact": 85,
-    "found_partial": 310,
-    "not_found": 416,
+    "found_exact": 86,
+    "found_partial": 320,
+    "not_found": 405,
     "routes_ok": 0,
-    "routes_fallback": 395,
+    "routes_fallback": 406,
     "routes_failed": 0,
     "no_hub": 0
   }
