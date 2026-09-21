@@ -229,3 +229,13 @@ labelled fallback, navigation session created); (2) by-name routing via `POST
 On the host with `ROUTING_BASE_URL` set, the same engine returns OSRM street-level routes
 and flips `navigation_grade` to true — the audit then measures that automatically.
 Results: `reports/route_audit.json` + `route_audit_failures.csv` (empty).
+
+## Gate re-run at b1a977d (2026-09-21)
+
+`close_production_gates.sh` re-run on the fully enriched state: **ALL RUNNABLE GATES
+PASSED** (regression baseline + health probe, OAuth config, database, build ✓ 12.2 s).
+Host-side gates remain honestly pending by design: OSRM 7/7 (needs ROUTING_BASE_URL),
+weather provider (needs key), physical-device GPS run, Playwright browser E2E.
+One more owner place web-verified and added: Parshuram Dham, Dadeldhura (municipality-level
+APPROXIMATE coordinates, Wikipedia-sourced). Sahastralinga and Siddhakali Temple were NOT
+added — no trustworthy coordinate source surfaced; they stay honestly not-found.
