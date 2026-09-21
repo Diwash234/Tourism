@@ -121,6 +121,25 @@ class LocationSearchService:
                     cond |= Q(**{f"{field}__icontains": term})
             return cond
 
+        # A query like "Bandipur Eco Hotel" must be name-matched inside the
+        # provider table even though the word "hotel" also selects the hotel
+        # category — skipping the name filter there returned 40 arbitrary
+        # rows and the named hotel was missing from its own search (live bug,
+        # 2026-09-21 consolidation round). Only bare generic category words
+        # keep the no-name-filter "nearest list" behaviour.
+        _GENERIC_CATEGORY_TERMS = {
+            "hotel", "hotels", "lodge", "lodges", "resort", "resorts", "hostel",
+            "hostels", "homestay", "homestays", "restaurant", "restaurants",
+            "cafe", "cafes", "food", "dining", "eatery", "bank", "banks",
+            "atm", "atms", "hospital", "hospitals", "clinic", "clinics",
+            "police", "pharmacy", "pharmacies", "store", "stores", "shop",
+            "shops", "mart", "marts", "supermarket", "supermarkets", "gas",
+            "fuel", "petrol", "bus", "buses", "station", "stations", "stop",
+            "stops",
+        }
+        _term_norm = re.sub(r"[^a-z0-9]", "", search_term)
+        _name_query = bool(_term_norm) and len(_term_norm) >= 4 and _term_norm not in _GENERIC_CATEGORY_TERMS
+
         # Detect category intents (e.g. "bank", "atm", "hospital", "pharmacy", "police", "store")
         cat_filter = (category or "").strip().lower()
         # Normalize plural/UI tab ids to canonical provider keys, so a tab like
@@ -240,7 +259,7 @@ class LocationSearchService:
         # 3. Search Hospitals & Police Stations
         if not cat_filter or cat_filter == "hospital":
             h_qs = Hospital.objects.all()
-            if search_term and cat_filter != "hospital":
+            if _name_query:
                 h_qs = h_qs.filter(_match("name", "address"))
             h_qs = _in_radius(h_qs)
             for h in h_qs[:40]:
@@ -259,7 +278,7 @@ class LocationSearchService:
 
         if not cat_filter or cat_filter == "police":
             p_qs = PoliceStation.objects.all()
-            if search_term and cat_filter != "police":
+            if _name_query:
                 p_qs = p_qs.filter(_match("name", "address"))
             p_qs = _in_radius(p_qs)
             for p in p_qs[:40]:
@@ -282,7 +301,7 @@ class LocationSearchService:
             # latitude/longitude are nullable on Hotel — float(None) would crash
             # the serializer (same class of bug as DEF-022).
             ht_qs = ht_qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
-            if search_term and cat_filter != "hotel":
+            if _name_query:
                 ht_qs = ht_qs.filter(_match("name", "address", "destination__city"))
             ht_qs = _in_radius(ht_qs)
             for ht in ht_qs[:40]:
@@ -304,7 +323,7 @@ class LocationSearchService:
         if not cat_filter or cat_filter == "restaurant":
             rt_qs = Restaurant.objects.filter(status=Restaurant.Status.PUBLISHED)
             rt_qs = rt_qs.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
-            if search_term and cat_filter != "restaurant":
+            if _name_query:
                 rt_qs = rt_qs.filter(_match("name", "address"))
             rt_qs = _in_radius(rt_qs)
             for rt in rt_qs[:40]:
@@ -387,15 +406,30 @@ class LocationSearchService:
         if radius_km and has_gps:
             processed = [row for row in processed if row["distance_km"] <= radius_km]
 
-        # Sort nearest first if user provided GPS or category filter was selected
-        if has_gps or cat_filter:
-            processed.sort(key=lambda item: item["distance_km"])
-        else:
-            # Sort exact keyword matches first, then distance
-            def _rank(item):
-                name_match = 0 if search_term in item["name"].lower() else 1
-                return (name_match, item["distance_km"])
-            processed.sort(key=_rank)
+        # Ranking: when the user typed a substantive name (>= 6 chars), exact
+        # and prefix name matches must outrank mere distance — otherwise
+        # "Bandipur Eco Hotel" returns whatever lodge sits closest to the
+        # reference point and "Bandipur" lists "Mountain Ridge Bandipur"
+        # above Bandipur itself (live bug found 2026-09-21 consolidation
+        # round). Short/generic queries ("bank", "hotels near me") keep the
+        # pure nearest-first behaviour.
+        _norm_term = re.sub(r"[^a-z0-9]", "", search_term)
+        name_ranking = len(_norm_term) >= 6
+
+        def _rank(item):
+            if not name_ranking:
+                return (0, 0, item["distance_km"])
+            nm = re.sub(r"[^a-z0-9]", "", str(item.get("name", "")).lower())
+            if nm == _norm_term:
+                exact = 0
+            elif nm.startswith(_norm_term):
+                exact = 1
+            else:
+                exact = 2
+            contains = 0 if _norm_term and _norm_term in nm else 1
+            return (exact, contains, item["distance_km"])
+
+        processed.sort(key=_rank)
 
         return processed[:limit]
 

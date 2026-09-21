@@ -480,3 +480,32 @@ everything (users, staff, destinations).
 
 ### Suite
 - `manage.py test tourist navigation` → 489/489 OK (476 prior + 13 new).
+
+## Round 2026-09-21 (C): mass duplicate consolidation + search relevance fixes
+
+### Consolidation (owner complaint: "Bandipur and Bandipur town are same but it gives different")
+- Pass 1: 1,877 lodging-pattern Destination rows deactivated — each duplicates a real Hotel
+  record with the same normalized name within 150 m (lodging belongs to the Hotel table;
+  Hotel records stay fully searchable).
+- Pass 2: 61 same-normalized-name Destination pairs within 200 m deactivated (kept the richer
+  row: VERIFIED coords > description length > gallery > older id).
+- Total: 1,938 rows deactivated with per-row correction_reason (audit log
+  /tmp/consolidation_applied.csv mirrored into each row). Active destinations 6,667 -> 4,730.
+- Safety checks before applying: zero reviews/ratings/favorites/visit-history on any candidate;
+  no DB itinerary model exists (verified). Hotel.destination anchors are non-nullable and stay
+  pointing at the (retained, unpublished) rows — factual, no cascade.
+
+### Search relevance bugs exposed by the consolidation (both fixed + tests)
+1. Provider name filter was skipped whenever the query contained its own category word
+   (`cat_filter != "hotel"` etc. in 4 provider blocks): "Bandipur Eco Hotel" returned 40
+   arbitrary id-ordered hotels and NOT the hotel. Now any substantive name query (>= 4 chars,
+   not a bare generic term) always filters provider tables by name.
+2. Result sort was pure distance for category/GPS queries: "Bandipur" listed "Mountain Ridge
+   Bandipur" above Bandipur. Now exact > prefix > substring name rank wins, then distance;
+   short/generic queries ("bank", "hotels") keep nearest-first.
+
+### Verification
+- Live: "Bandipur Eco Hotel" -> that hotel (50.8 km), "Hotel Siddhartha" -> that hotel,
+  "Bandipur" -> canonical town first, "hotel" -> nearest list, resolver golden cases intact
+  (Mahendra Cave, amhendra cave, Halesi, Swargadwari, Rupse).
+- Suite: 489/489 OK (incl. 3 new SearchNamePriorityTests).

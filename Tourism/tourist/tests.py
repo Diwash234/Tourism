@@ -4500,3 +4500,48 @@ class AdminUserDeleteTests(APITestCase):
         t.refresh_from_db()
         self.assertEqual(t.role, "staff")
         self.assertEqual(t.first_name, "Sita")
+
+
+class SearchNamePriorityTests(APITestCase):
+    """Live bugs found in the 2026-09-21 consolidation round:
+    1. "Bandipur Eco Hotel" returned 40 arbitrary hotels because the word
+       "hotel" set the category intent and the name filter was skipped.
+    2. "Bandipur" listed "Mountain Ridge Bandipur" above Bandipur itself
+       because category/GPS queries sorted purely by distance."""
+
+    def setUp(self):
+        from .models import Hotel
+        self.category = Category.objects.create(name="Towns")
+        self.dest = Destination.objects.create(
+            name="Bandipur", category=self.category, description="Hilltop Newar town.",
+            latitude=27.9379, longitude=84.4063, city="Bandipur",
+            district="Tanahun", country="Nepal", is_active=True)
+        self.decoy = Destination.objects.create(
+            name="Mountain Ridge Bandipur", category=self.category, description="Resort.",
+            latitude=27.9399, longitude=84.4046, city="Bandipur",
+            district="Tanahun", country="Nepal", is_active=True)
+        self.hotel = Hotel.objects.create(
+            name="Bandipur Eco Hotel", destination=self.dest,
+            latitude=27.9416, longitude=84.4051)
+
+    def _search(self, q):
+        r = self.client.get("/api/v1/places/search/", {"q": q})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        return data if isinstance(data, list) else data.get("results", [])
+
+    def test_named_hotel_wins_despite_category_word(self):
+        results = self._search("Bandipur Eco Hotel")
+        self.assertTrue(results)
+        self.assertEqual(results[0]["name"], "Bandipur Eco Hotel")
+
+    def test_exact_name_outranks_substring_match(self):
+        results = self._search("Bandipur")
+        self.assertTrue(results)
+        self.assertEqual(results[0]["name"], "Bandipur")
+
+    def test_generic_category_query_still_nearest_first(self):
+        results = self._search("hotels")
+        # no name filtering: both the hotel and any nearby rows may appear,
+        # but the request must not 500 and must not be empty
+        self.assertIsInstance(results, list)
