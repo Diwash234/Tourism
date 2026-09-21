@@ -562,3 +562,20 @@ everything (users, staff, destinations).
 - Resolver: new length-gated (>=5 chars) alias tier in resolve_single_place — "Harion",
   "Hariyon", "Niglihawa", "Dipsung" now resolve to their canonical rows. +2 tests.
 - Suite: 494/494 OK. All 8 batch spellings verified through the live resolver.
+
+## Round 2026-09-21 (G): 6 web-verified destinations (Baglung reserve + Terai towns + Achham)
+
+- Added ids 6793-6798:
+  * 6793 Dhorpatan Hunting Reserve (Baglung/Myagdi/E. Rukum; alias Dhorpatan)
+    28.64056,82.99444 — Wikipedia — VERIFIED
+  * 6794 Sukhipur (Siraha) 26.71,86.35 — Wikipedia — VERIFIED
+  * 6795 Kalyanpur (Siraha) 26.86,86.22 — Wikipedia — VERIFIED (replaces the earlier
+    rejected police-CSV attempt with the proper Siraha municipality source)
+  * 6796 Rupani (Saptari; Rupani Devi, Shiva Sani Dham) 26.62,86.69 — Wikipedia — VERIFIED
+  * 6797 Panchadewal Binayak (Achham; alias Panchadeval Binayak) 29.11,81.39 —
+    Wikipedia — VERIFIED
+  * 6798 Ramaroshan Lakes (Achham) 29.2035,81.4214 — Wikipedia RM centre, lakes scattered —
+    APPROXIMATE
+- Verified: all 8 field spellings resolve via resolver incl. alias tier (Dhorpatan,
+  Panchadeval Binayak, Ramaroshan); live route Baglung -> Dhorpatan 194.1 km, 28 steps,
+  CORRIDOR-ESTIMATE. No code changes this round — suite remains 494/494 (green last run).
