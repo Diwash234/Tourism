@@ -89,7 +89,7 @@ class LocationSearchService:
         # spellings still find the right place (live gap: 8/8 owner spellings
         # returned NOTHING while the places existed).
         _GENERIC_WORDS = (
-            r"bazaar|bazar|temple|mandir|monastery|gompa|lake|pokhari|pond|river|"
+            r"bazaar|bazar|temple|mandir|monastery|gompa|lake|pokhari|pond|river|himal|"
             r"waterfall|jharana|jharna|falls|hills|hill|danda|daha|cave|gufa|stupa|"
             r"durbar|palace|park|viewpoint|base camp|trek|dham|deurali"
         )

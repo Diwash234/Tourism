@@ -347,3 +347,15 @@ Suite: 475/475 OK.
   (test_exact_name_wins_over_substring_match). Suite: 476/476 OK.
 - **Beni** (Myagdi HQ, id 6704) added: 28.35,83.56667 VERIFIED (Wikipedia); the town
   had no destination row at all. Live: Beni→Rupse = 35.0 km, origin resolved exactly.
+
+## Verification round: Saipal, Dhumba Lake, Jomsom (2026-09-21)
+
+- **Saipal** (id 6312) upgraded to VERIFIED official summit coords 29.8878,81.4947
+  (Nepal Himal Peak Profile govt database; was UNVERIFIED ~700 m off); duplicate
+  "Saipal Himal" row deleted — owner spelling resolves via the new "himal"
+  generic-word rule added to the search stripper this round.
+- **Dhumba Lake** (Mustang, id 6706) added VERIFIED 28.7633,83.7164 (Wikipedia).
+- **Jomsom** town (id 6707) added VERIFIED 28.78333,83.73056 (Wikipedia) — like Beni
+  last round, the district gateway town had no destination row; origin resolution
+  now hits Jomsom exactly (Jomsom→Dhumba Lake 3.7 km, origin_resolution geocoded).
+- Suite: 476/476 OK.
