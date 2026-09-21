@@ -239,3 +239,13 @@ weather provider (needs key), physical-device GPS run, Playwright browser E2E.
 One more owner place web-verified and added: Parshuram Dham, Dadeldhura (municipality-level
 APPROXIMATE coordinates, Wikipedia-sourced). Sahastralinga and Siddhakali Temple were NOT
 added — no trustworthy coordinate source surfaced; they stay honestly not-found.
+
+## SQLite WAL commit discipline (2026-09-21)
+
+`Tourism/db.sqlite3` runs in **WAL journal mode**. Writes land in `db.sqlite3-wal`
+(gitignored) until checkpointed — committing the main file alone can silently drop the
+latest rows (this cost one Parshuram Dham write on 2026-09-21, detected by post-reset
+verification and re-created as id 6699). Rule: before any commit that includes
+`Tourism/db.sqlite3`, run `PRAGMA wal_checkpoint(TRUNCATE)` (any psql…sqlite3 shell or
+Django connection cursor) and confirm `db.sqlite3-wal` is 0 bytes. Verified live:
+`/api/v1/places/search/?q=Parshuram` returns the destination at 29.09, 80.32.
