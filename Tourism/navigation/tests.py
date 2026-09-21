@@ -509,3 +509,80 @@ class LegacyRouteContractTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIsNone(r.data["duration_min"])  # no invented flight times
         self.assertNotIn("navigation_grade", r.data)
+
+
+class TurnByTurnStepsTests(TestCase):
+    """Maneuvers must come from real geometry; fallbacks must stay honest."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_build_maneuvers_detects_turns_from_geometry(self):
+        from navigation.route_engine import build_maneuvers
+        # L-shaped: head east, then a 90° right turn to head south
+        route = {"source": "graphml_fallback", "distance_m": 2000.0,
+                 "geometry": [[28.0, 84.0], [28.0, 84.01], [27.99, 84.01]]}
+        steps = build_maneuvers(route)
+        self.assertGreaterEqual(len(steps), 3)
+        self.assertTrue(steps[0]["instruction"].startswith("Head "))
+        self.assertIn("right", steps[1]["instruction"])
+        self.assertEqual(steps[-1]["instruction"], "Arrive at destination")
+        self.assertEqual(steps[0]["maneuver_grade"], "corridor-node")
+        self.assertGreater(steps[0]["distance_m"], 0)
+
+    def test_build_maneuvers_straight_line_is_honest(self):
+        from navigation.route_engine import build_maneuvers
+        steps = build_maneuvers({"source": "straight_line_fallback",
+                                 "distance_m": 5000.0,
+                                 "geometry": [[28.0, 84.0], [28.04, 84.0]]})
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(steps[0]["maneuver_grade"], "none")
+        self.assertIn("Straight-line", steps[0]["instruction"])
+
+    def test_cached_route_backfills_steps_when_provider_omits_them(self):
+        from unittest import mock
+        from navigation import route_engine
+
+        class NoStepProvider:
+            name = "nostep"
+            supported_modes = ("driving",)
+
+            def supports(self, mode):
+                return True
+
+            def route(self, start, destination, mode):
+                return {"source": "graphml_fallback", "mode": mode,
+                        "distance_m": 1000.0, "duration_s": 100.0,
+                        "geometry": [[28.0, 84.0], [28.0, 84.005], [27.995, 84.005]]}
+
+        with mock.patch.object(route_engine, "provider_chain",
+                               return_value=[NoStepProvider()]):
+            result, _ = route_engine.cached_route((28.0, 84.0), (27.995, 84.005),
+                                                  "driving", use_cache=False)
+        steps = result["route"]["steps"]
+        self.assertGreaterEqual(len(steps), 3)
+        self.assertTrue(all(s["instruction"] for s in steps))
+
+
+class CalculateStepsAPITests(APITestCase):
+    """The public calculate endpoint must expose real turn-by-turn steps."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_calculate_returns_steps(self):
+        r = self.client.post("/api/v1/navigation/calculate/", {
+            "origin_lat": 27.7172, "origin_lng": 85.3240,
+            "destination_name": "Pokhara",
+            "transport_mode": "Private Car / Taxi",
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+        steps = r.data.get("steps") or []
+        self.assertTrue(steps, "calculate must return turn-by-turn steps")
+        self.assertTrue(all(s.get("instruction") for s in steps))
+        grades = {s.get("maneuver_grade", "") for s in steps}
+        self.assertIn(r.data.get("route_source"),
+                      ("osrm", "graphml_fallback", "straight_line_fallback"))
+        self.assertTrue(grades)

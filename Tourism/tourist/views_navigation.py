@@ -160,6 +160,8 @@ class UserRouteCalculateView(APIView):
                 "distance_m": s.get("distance_m", 0),
                 "duration_sec": s.get("duration_s", 0),
                 "maneuver": s.get("maneuver", ""),
+                "maneuver_grade": s.get("maneuver_grade", ""),
+                "point": s.get("point"),
             }
             for s in route.get("steps") or []
         ]

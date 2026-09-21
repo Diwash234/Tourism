@@ -4391,3 +4391,112 @@ class PlaceSearchGenericWordTests(APITestCase):
         self.assertEqual(resolved.get("name"), "Beni")
         self.assertAlmostEqual(float(resolved["latitude"]), 28.3567, places=3)
         self.assertIsNotNone(decoy.id)
+
+
+class ResolverVariantAndTypoTests(TestCase):
+    """Live gaps found 2026-09-21 (owner spellings 'Mahendra Cave Pokhara' and
+    'amhendra cave' failed): resolve_single_place must retry locality-suffix
+    and Nepali-generic-word variants against the DB, and tolerate close
+    misspellings — while garbage stays honestly not-found."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = Category.objects.create(name="Caves")
+        cls.cave = Destination.objects.create(
+            name="Mahendra Cave", category=cls.category,
+            description="Limestone cave in Batulechaur.",
+            latitude=28.27139, longitude=83.97972, city="Pokhara",
+            district="Kaski", country="Nepal", is_active=True,
+        )
+
+    def test_locality_suffix_variant_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("Mahendra Cave Pokhara")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Mahendra Cave")
+        self.assertAlmostEqual(float(resolved["latitude"]), 28.27139, places=4)
+
+    def test_nepali_generic_variant_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("mahendra gufa")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Mahendra Cave")
+
+    def test_close_misspelling_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("amhendra cave")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Mahendra Cave")
+
+    def test_garbage_stays_not_found(self):
+        from tourist.location.search_service import LocationSearchService
+        self.assertIsNone(LocationSearchService.resolve_single_place("xyzzy florp"))
+        self.assertIsNone(LocationSearchService.resolve_single_place("quuxville"))
+
+
+class AdminUserDeleteTests(APITestCase):
+    """DELETE /admin/users/<id>/ backs the Admin Dashboard 'Delete user'
+    button (frontend adminApi.deleteUser). Was a 405 before 2026-09-21.
+    Default deletes by anonymization (retention-safe); hard delete requires
+    superuser + typed email confirmation."""
+
+    def _admin(self, email="boss@example.com"):
+        u = User.objects.create_user(email=email, password="StrongPass123!", is_verified=True)
+        u.is_superuser = True
+        u.is_staff = True
+        u.role = "admin"
+        u.save()
+        return u
+
+    def _target(self, email="target@example.com"):
+        t = User.objects.create_user(email=email, password="StrongPass123!", is_verified=True)
+        t.is_active = True
+        t.save()
+        return t
+
+    def test_anonymous_rejected(self):
+        t = self._target()
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": t.id}))
+        self.assertIn(r.status_code, (401, 403))
+
+    def test_delete_anonymizes_by_default(self):
+        admin = self._admin()
+        t = self._target()
+        self.client.force_authenticate(user=admin)
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": t.id}))
+        self.assertEqual(r.status_code, 200)
+        t.refresh_from_db()
+        self.assertIn("anonymized-", t.email)
+        self.assertFalse(t.is_active)
+
+    def test_hard_delete_requires_confirmation_then_removes_row(self):
+        admin = self._admin()
+        t = self._target()
+        self.client.force_authenticate(user=admin)
+        url = reverse("admin-user-detail-full", kwargs={"id": t.id})
+        r = self.client.delete(url, {"hard": True}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=t.pk).exists())
+        r = self.client.delete(url, {"hard": True, "confirmation": t.email}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(User.objects.filter(pk=t.pk).exists())
+
+    def test_cannot_delete_self_or_superuser(self):
+        admin = self._admin()
+        other_su = self._admin(email="boss2@example.com")
+        self.client.force_authenticate(user=admin)
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": admin.id}))
+        self.assertEqual(r.status_code, 400)
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": other_su.id}))
+        self.assertEqual(r.status_code, 400)
+
+    def test_patch_updates_profile_and_role(self):
+        admin = self._admin()
+        t = self._target()
+        self.client.force_authenticate(user=admin)
+        r = self.client.patch(reverse("admin-user-detail-full", kwargs={"id": t.id}),
+                              {"role": "staff", "first_name": "Sita"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        t.refresh_from_db()
+        self.assertEqual(t.role, "staff")
+        self.assertEqual(t.first_name, "Sita")

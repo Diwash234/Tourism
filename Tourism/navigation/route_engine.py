@@ -65,6 +65,87 @@ def cache_key_for(start, destination, mode) -> str:
     return "nav-route:" + hashlib.sha256(raw.encode()).hexdigest()
 
 
+_COMPASS = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]
+
+
+def _bearing(a, b):
+    import math
+    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    dl = lo2 - lo1
+    y = math.sin(dl) * math.cos(la2)
+    x = math.cos(la1) * math.sin(la2) - math.sin(la1) * math.cos(la2) * math.cos(dl)
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
+def _dist_m(a, b):
+    import math
+    R = 6371000.0
+    p1, p2 = math.radians(a[0]), math.radians(b[0])
+    dp = p2 - p1
+    dl = math.radians(b[1] - a[1])
+    x = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(x))
+
+
+def build_maneuvers(route: dict, max_steps: int = 200) -> list:
+    """Turn-by-turn steps computed FROM THE ROUTE'S REAL GEOMETRY.
+
+    Bearing changes at actual geometry vertices become instructions — nothing
+    is invented. Honesty grades: 'street' when the geometry is OSRM
+    street-level, 'corridor-node' for the bundled tourism graph (node-level
+    guidance), and straight-line fallback gets a single explicit non-guidance
+    step instead of fabricated directions.
+    """
+    geom = route.get("geometry") or []
+    source = route.get("source", "")
+    if source == "straight_line_fallback" or len(geom) < 2:
+        return [{
+            "instruction": ("Straight-line estimate — no road route exists to this remote "
+                            "destination; turn-by-turn guidance is not available"),
+            "point": list(geom[0]) if geom else None,
+            "distance_m": route.get("distance_m"),
+            "maneuver_grade": "none",
+        }]
+    grade = "street" if source == "osrm" else "corridor-node"
+
+    legs = [(_dist_m(geom[i], geom[i + 1]), _bearing(geom[i], geom[i + 1]))
+            for i in range(len(geom) - 1)]
+
+    def _compass(deg):
+        return _COMPASS[int(((deg + 22.5) % 360) // 45)]
+
+    def _word(turn):
+        a = abs(turn)
+        if a >= 120:
+            return "turn sharp left" if turn < 0 else "turn sharp right"
+        if a >= 70:
+            return "turn left" if turn < 0 else "turn right"
+        return "turn slight left" if turn < 0 else "turn slight right"
+
+    steps = []
+    acc = [0.0]
+
+    def _push(instruction, point):
+        if steps:
+            steps[-1]["distance_m"] = round(acc[0])
+        steps.append({"instruction": instruction, "point": list(point),
+                      "distance_m": 0, "maneuver_grade": grade})
+        acc[0] = 0.0
+
+    _push(f"Head {_compass(legs[0][1])}", geom[0])
+    acc[0] += legs[0][0]
+    for i in range(1, len(legs)):
+        turn = (legs[i][1] - legs[i - 1][1] + 540) % 360 - 180
+        if abs(turn) >= 30 and len(steps) < max_steps:
+            _push(_word(turn), geom[i])
+        acc[0] += legs[i][0]
+    if len(steps) < max_steps:
+        _push("Arrive at destination", geom[-1])
+    else:
+        steps[-1]["instruction"] += " — then continue to destination"
+    return steps
+
+
 def cached_route(start, destination, mode, request=None, want_alternatives=False,
                  use_cache=True):
     """Route with caching + rate limiting. Returns (route_dict, cached: bool).
@@ -100,6 +181,7 @@ def cached_route(start, destination, mode, request=None, want_alternatives=False
     if route is None:
         # last-resort: straight line always answers (never fabricates roads)
         route = StraightLineProvider().route(start, destination, mode)
+    route.setdefault("steps", build_maneuvers(route))
 
     result = {"route": route, "alternatives": []}
     if want_alternatives:

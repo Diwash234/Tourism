@@ -1343,6 +1343,41 @@ class AdminUsersDetailView(APIView):
     def patch(self, request, id):
         return UpdateUserStatusView().put(request, id)
 
+    def delete(self, request, id):
+        """Admin delete. Default is irreversible anonymization (keeps reviews,
+        bookings and audit chain intact); a super administrator may hard-delete
+        the row by confirming with the user's email."""
+        _require_capability(request, "users", "delete")
+        u = User.objects.filter(pk=id).first()
+        if not u:
+            return Response({"detail": "not found"}, status=404)
+        if u.pk == request.user.pk:
+            return Response({"detail": "You cannot delete your own account."}, status=400)
+        if u.is_superuser:
+            return Response({"detail": "Super administrator accounts cannot be deleted."},
+                            status=400)
+        if request.data.get("hard"):
+            if not request.user.is_superuser:
+                return Response({"detail": "Only a super administrator can hard-delete a user."},
+                                status=403)
+            if request.data.get("confirmation") != u.email:
+                return Response({"detail": "Type the current email address to confirm "
+                                           "irreversible deletion."}, status=400)
+            email, uid = u.email, u.pk
+            u.delete()
+            _audit_user_change(request, u, "user.hard_delete",
+                               {"email": email}, {"deleted": True, "id": uid})
+            return Response({"message": "User permanently deleted.", "id": uid})
+        from .retention import anonymize_user
+        try:
+            anonymize_user(u, request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        _audit_user_change(request, u, "user.delete.anonymize", {},
+                           {"anonymized": True, "id": u.pk})
+        return Response({"message": "User deleted (personal data anonymized; "
+                                    "activity records retained).", "id": u.pk})
+
 
 class AdminUserAccessActionView(APIView):
     permission_classes = [IsAdminOrStaff]

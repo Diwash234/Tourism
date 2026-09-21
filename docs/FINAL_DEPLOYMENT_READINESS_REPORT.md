@@ -430,3 +430,53 @@ station). 7 kept, all APPROXIMATE with per-row source notes: Narayanghat
 (27.68,84.43), Meghauli (27.58,84.25), Rasuwagadhi (28.3,85.35), Chhatradev,
 Banganga, Rapti River (Dang), Rambha Lake. Live: all searchable;
 Bharatpur→Meghauli 23.8 km. Not-found pool ~348.
+
+## Round 2026-09-21 (B): duplicate consolidation, real turn-by-turn, admin editability
+
+Owner demands: (1) same place stored as different records (Bandipur / Mahendra Cave) — make
+data accurate; (2) every place must have real turn-by-turn directions; (3) admin can edit
+everything (users, staff, destinations).
+
+### 1. Data accuracy — Mahendra Cave consolidation
+- Duplicate found: id 6433 "Mahendra Cave (Pokhara)" @ 28.2167,83.9667 sat 6.2 km south of
+  the real cave (Lakeside area); id 5717 "Mahendra Cave" @ 28.2724,83.9791 was ~130 m off.
+- Wikipedia-verified location (Pokhara-16 Batulechaur): 28°16'17"N 83°58'47"E = 28.27139,83.97972.
+- 5717 upgraded: coordinates set to the verified point, coordinate_status=VERIFIED, verified_at/by,
+  aliases (Mahendra Cave (Pokhara), Batulechaur Cave), location_notes. Its image was moved from
+  6433; 6433 deactivated (status=rejected, correction_reason recorded). Public search now returns
+  one Mahendra Cave at the correct pin.
+- Resolver hardening (live gaps "Mahendra Cave Pokhara", "mahendra gufa", "amhendra cave" all
+  failed): locality-suffix variant retry ("… Pokhara" → core name), Nepali-generic transliteration
+  (gufa→cave, tal→lake, jharana→waterfall, …), and a last-resort fuzzy name pass with a strict
+  0.85 floor so misspellings resolve but garbage ("xyzzy florp") stays honestly not-found.
+- Known remaining duplication: 3,650 lodging-pattern destination rows (hotel/lodge/resort/inn/
+  guesthouse names); ~42% of a 400-row sample duplicate a real Hotel record within 150 m. Mass
+  deactivation was NOT performed this round (itinerary/FK safety review pending) — flagged for a
+  dedicated consolidation round with an itinerary-safe merge script.
+
+### 2. Turn-by-turn directions (real, not invented)
+- Correction to the previous round's note: routing PROVIDERS already emitted per-waypoint steps
+  (graphml corridor directions with landmark names; OSRM street steps; honest straight-line pair).
+  The gap was routes without provider steps silently returning [].
+- `route_engine.build_maneuvers()` now backfills steps from the route's REAL geometry (bearing
+  changes at actual vertices; ≥30° turns become slight/left/right/sharp instructions) with honest
+  `maneuver_grade`: "street" (OSRM), "corridor-node" (tourism graph), "none" + explicit
+  non-guidance step for straight-line fallback. `cached_route` guarantees `steps` on every route.
+- `/navigation/calculate/` now passes `maneuver_grade` + `point` through per step.
+- Live check: Kathmandu→Pokhara corridor route returned 57 steps (Head North; Turn left toward
+  Dusit Princess; …; Arrive at destination). Frontend Navigation.jsx already renders the step
+  panel + voice announcements from `response.data.steps`.
+- Tests: 4 new (geometry-derived turns, straight-line honesty, engine backfill, calculate API).
+
+### 3. Admin editability — live smoke test + one real fix
+- Verified live as a temporary superuser (deleted afterwards): admin/stats, admin/users list +
+  detail, staff-workspace, staff-capabilities, destinations list + detail; PUT destination edit
+  propagated to the DB and to public /places/search/ (§45); user suspend/reactivate (PUT status);
+  PATCH role + profile fields (role=staff sets is_staff).
+- FIXED: `DELETE /admin/users/<id>/` was 405 although the Admin Dashboard "Delete user" button
+  calls it (adminApi.deleteUser). Implemented: default delete = irreversible anonymization
+  (retention design — reviews/audit chain preserved); `{"hard": true, "confirmation": <email>}`
+  + superuser = permanent row deletion; self-delete and superuser targets blocked. 5 new tests.
+
+### Suite
+- `manage.py test tourist navigation` → 489/489 OK (476 prior + 13 new).

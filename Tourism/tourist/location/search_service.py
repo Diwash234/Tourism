@@ -14,6 +14,21 @@ POKHARA_CENTER = (28.2096, 83.9856)
 KATHMANDU_CENTER = (27.7172, 85.3240)
 
 # Well-known Nepal landmark coordinates fallback dict
+# Resolver variant tables: Nepali generic words transliterated to their English
+# equivalents, and trailing locality tokens that may be stripped before a
+# second exact DB lookup ("Mahendra Cave Pokhara" -> "Mahendra Cave",
+# "Mahendra Gufa" -> "Mahendra Cave").
+NEPALI_TO_ENGLISH_WORDS = {
+    "gufa": "cave", "tal": "lake", "pokhari": "lake", "daha": "lake",
+    "jharana": "waterfall", "jharna": "waterfall", "mandir": "temple",
+    "deval": "temple", "danda": "hill", "pul": "bridge", "bazar": "bazaar",
+}
+LOCALITY_SUFFIX_WORDS = {
+    "pokhara", "kathmandu", "lalitpur", "bhaktapur", "butwal", "chitwan",
+    "bharatpur", "biratnagar", "janakpur", "dharan", "hetauda", "itahari",
+    "nepalgunj", "dhangadhi", "damak", "kaski", "nepal",
+}
+
 NEPAL_LANDMARKS = {
     "lakeside": {"name": "Lakeside, Pokhara", "lat": 28.2096, "lng": 83.9856, "city": "Pokhara", "district": "Kaski", "province": "Gandaki"},
     "thamel": {"name": "Thamel, Kathmandu", "lat": 27.7152, "lng": 85.3123, "city": "Kathmandu", "district": "Kathmandu", "province": "Bagmati"},
@@ -432,6 +447,28 @@ class LocationSearchService:
             ).first()
         )
 
+        if dest is None:
+            # Retry with query variants: strip a trailing locality token
+            # ("Mahendra Cave Pokhara") and/or transliterate Nepali generic
+            # words ("Mahendra Gufa" -> "Mahendra Cave"). Exact/prefix only —
+            # never a fuzzy DB hit on a variant.
+            toks = q.split()
+            variants = []
+            if len(toks) > 1 and toks[-1] in LOCALITY_SUFFIX_WORDS:
+                variants.append(" ".join(toks[:-1]))
+            translit = [NEPALI_TO_ENGLISH_WORDS.get(t, t) for t in toks]
+            if translit != toks:
+                variants.append(" ".join(translit))
+                if len(translit) > 1 and translit[-1] in LOCALITY_SUFFIX_WORDS:
+                    variants.append(" ".join(translit[:-1]))
+            for variant in variants:
+                if not variant or variant == q:
+                    continue
+                dest = (_coord_qs.filter(name__iexact=variant).first()
+                        or _coord_qs.filter(name__istartswith=variant).first())
+                if dest:
+                    break
+
         if dest:
             return {
                 "destination_id": dest.id,
@@ -449,6 +486,21 @@ class LocationSearchService:
         # the Kathmandu "Khotanghalesi guest house" that also contains the
         # substring (live bug). Destinations win ties over services.
         results = LocationSearchService.search_places(query=q, limit=30)
+        min_score = 0.0
+        if not results:
+            # Typo-tolerant retry: strip generic place words so the searcher
+            # sees a stem ("amhendra cave" -> "amhendra") and the similarity
+            # ranker can still pick the true place — but only accept a strong
+            # match (floor 0.75), otherwise stay honestly not-found.
+            _generic = re.sub(
+                r"\b(bazaar|bazar|temple|mandir|monastery|gompa|lake|pokhari|"
+                r"pond|river|waterfall|jharana|jharna|falls|hills|hill|danda|"
+                r"daha|cave|gufa|stupa|durbar|palace|park|viewpoint|base camp|"
+                r"trek|dham|deurali|himal)\b", " ", q)
+            _generic = re.sub(r"\s+", " ", _generic).strip()
+            if _generic and _generic != q:
+                results = LocationSearchService.search_places(query=_generic, limit=30)
+                min_score = 0.75
         if results:
             import difflib as _difflib
             q_compact = re.sub(r"[^a-z0-9]", "", q)
@@ -474,6 +526,8 @@ class LocationSearchService:
                 return (score, bool(r.get("is_destination")))
 
             item = max(results, key=_rank)
+            if min_score and _rank(item)[0] < min_score:
+                return None  # stem retry found no strong match — honest not-found
             return {
                 "name": item["name"],
                 "latitude": item["latitude"],
@@ -482,6 +536,35 @@ class LocationSearchService:
                 "address": item.get("address", "Nepal"),
                 "is_destination": item.get("is_destination", True),
             }
+
+        # Last-resort typo tolerance: fuzzy-compare the query against
+        # destination names directly ("amhendra cave" ~ "Mahendra Cave").
+        # Strict floor (0.85 ≈ ≥90% of characters aligned) so misspellings
+        # resolve but unrelated text stays honestly not-found.
+        if len(q_compact := re.sub(r"[^a-z0-9]", "", q)) >= 6:
+            import difflib as _difflib
+            best_row, best_ratio = None, 0.0
+            qs = (Destination.objects.filter(is_active=True)
+                  .exclude(latitude__isnull=True).exclude(longitude__isnull=True))
+            for row in qs.values("id", "name", "slug", "city", "district",
+                                 "latitude", "longitude").iterator():
+                nm = re.sub(r"[^a-z0-9]", "", str(row["name"]).lower())
+                if not nm or abs(len(nm) - len(q_compact)) > max(4, len(q_compact) // 3):
+                    continue  # cheap length pre-filter
+                ratio = _difflib.SequenceMatcher(None, nm, q_compact).ratio()
+                if ratio > best_ratio:
+                    best_row, best_ratio = row, ratio
+            if best_row and best_ratio >= 0.85:
+                return {
+                    "destination_id": best_row["id"],
+                    "name": best_row["name"],
+                    "slug": best_row["slug"],
+                    "latitude": float(best_row["latitude"]),
+                    "longitude": float(best_row["longitude"]),
+                    "city": best_row["city"] or "Pokhara",
+                    "address": f"{best_row['city'] or ''}, {best_row['district'] or 'Nepal'}".strip(", "),
+                    "is_destination": True,
+                }
 
         # No fabricated fallback: an unrecognized place resolves to None so
         # callers surface "not found" instead of silently routing from/to

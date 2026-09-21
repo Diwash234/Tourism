@@ -274,6 +274,41 @@
       "status": "approved",
       "updated_at": "2026-09-20T05:07:44.661859+00:00",
       "images": []
+    },
+    "5717": {
+      "id": 5717,
+      "name": "Mahendra Cave",
+      "slug": "mahendra-cave",
+      "city": "",
+      "city_english": "",
+      "city_nepali": "",
+      "district": "",
+      "province": "",
+      "municipality": "",
+      "ward_number": null,
+      "latitude": 28.27139,
+      "longitude": 83.97972,
+      "distance_from_kathmandu_km": null,
+      "description": "Mahendra Cave is a tourism destination, in Nepal. It is part of Nepal's network of mapped tourism places contributed by OpenStreetMap.",
+      "short_description": "Mahendra Cave is a tourism destination, in Nepal. It is part of Nepal's network of mapped tourism places contributed by OpenStreetMap.",
+      "status": "approved",
+      "updated_at": "2026-09-21T05:18:18.443335+00:00",
+      "images": [
+        {
+          "id": 6433,
+          "url": "/images/destinations/mahendra-cave/interior.jpg",
+          "caption": "Mahendra Cave, Pokhara",
+          "is_cover": true,
+          "status": "approved"
+        },
+        {
+          "id": 5741,
+          "url": "/images/destinations/mahendra-cave/interior.jpg",
+          "caption": "Mahendra Cave, Pokhara",
+          "is_cover": true,
+          "status": "approved"
+        }
+      ]
     }
   },
   "count": 13,
