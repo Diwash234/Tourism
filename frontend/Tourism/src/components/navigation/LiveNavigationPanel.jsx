@@ -4,11 +4,9 @@ import L from "leaflet"
 import { FiNavigation, FiRotateCcw, FiCheckCircle, FiX, FiMapPin } from "react-icons/fi"
 import useTurnByTurn, { NAV_STATES } from "../../hooks/useTurnByTurn"
 
-const userIcon = L.divIcon({
-  className: "",
-  html: '<div style="width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 8px rgba(37,99,235,.8)"></div>',
-  iconSize: [18, 18], iconAnchor: [9, 9],
-})
+import { makeUserArrowIcon } from "../map/icons"
+// Arrow pointer rotates with the GPS compass heading (flaticon arrow-map
+// style, original SVG). Static north-up arrow when heading is unknown.
 const destIcon = L.divIcon({
   className: "",
   html: '<div style="font-size:22px;line-height:1">🏁</div>',
@@ -62,6 +60,12 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
   const line = useMemo(
     () => (route?.geometry || []).map(([la, ln]) => [la, ln]),
     [route],
+  )
+
+  // Rotate the arrow with the GPS compass heading when the device provides one.
+  const userArrowIcon = useMemo(
+    () => makeUserArrowIcon(position?.heading ?? 0),
+    [position?.heading],
   )
   const center = position
     ? [position.latitude, position.longitude]
@@ -179,7 +183,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
             {destination && <Marker position={[destination.latitude, destination.longitude]} icon={destIcon} />}
             {position && (
               <>
-                <Marker position={[position.latitude, position.longitude]} icon={userIcon} />
+                <Marker position={[position.latitude, position.longitude]} icon={userArrowIcon} />
                 {position.accuracy != null && (
                   <Circle center={[position.latitude, position.longitude]} radius={position.accuracy}
                     pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.08 }} />

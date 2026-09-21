@@ -18,7 +18,7 @@ from .serializers import (
     VerifyEmailSerializer,
     UpdateLocationSerializer,
 )
-from .utils import send_email_notification, resolve_location, issue_phone_verification
+from .utils import send_email_notification_async, resolve_location, issue_phone_verification
 
 User = get_user_model()
 
@@ -32,7 +32,7 @@ def _issue_email_verification(user):
     from django.conf import settings
 
     link = f"{settings.FRONTEND_URL}/verify-email?token={token.token}"
-    send_email_notification(
+    send_email_notification_async(
         user.email,
         "Verify your email - Tourism Portal",
         f"Hi {user.first_name or user.email},\n\nPlease verify your email by visiting:\n{link}\n\n"
@@ -208,7 +208,7 @@ class ForgotPasswordView(APIView):
             user=user, expires_at=timezone.now() + timedelta(hours=1)
         )
         link = f"{settings.FRONTEND_URL}/reset-password?token={token.token}"
-        send_email_notification(
+        send_email_notification_async(
             user.email,
             "Reset your password - Tourism Portal",
             f"Hi {user.first_name or user.email},\n\nReset your password here:\n{link}\n\nThis link expires in 1 hour.",

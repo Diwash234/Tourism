@@ -109,12 +109,14 @@ class AdminUsersView(APIView):
         if (not city or city.lower() in {"unknown", "unknown, nepal", "unknown,nepal"}) and u.latitude is not None and u.longitude is not None:
             from .location.reverse_geocoding import reverse_geocode
             geo = reverse_geocode(float(u.latitude), float(u.longitude))
-            city = geo.get("district") or geo.get("municipality") or geo.get("city") or "Kathmandu"
-            u.city = city
-            u.country = u.country or "Nepal"
-            u.save(update_fields=["city", "country"])
+            city = geo.get("district") or geo.get("municipality") or geo.get("city") or ""
+            if city:
+                u.city = city
+                u.country = u.country or "Nepal"
+                u.save(update_fields=["city", "country"])
         if not city or city.lower() in {"unknown", "unknown, nepal", "unknown,nepal"}:
-            city = "Kathmandu"
+            # Honest unknown — the admin must never see a fabricated default city.
+            city = "Unknown"
 
         return {
             "id": u.id, "email": u.email, "first_name": u.first_name,
@@ -124,8 +126,10 @@ class AdminUsersView(APIView):
             "phone_verified": u.phone_verified, "is_staff": u.is_staff,
             "is_superuser": u.is_superuser, "city": city,
             "country": u.country or "Nepal",
-            "latitude": float(u.latitude) if u.latitude is not None else 27.7172,
-            "longitude": float(u.longitude) if u.longitude is not None else 85.3240,
+            # Real coordinates only — null keeps the user off the map instead
+            # of pinning everyone at a default Kathmandu point.
+            "latitude": float(u.latitude) if u.latitude is not None else None,
+            "longitude": float(u.longitude) if u.longitude is not None else None,
             "auth_provider": u.auth_provider,
             "history_count": getattr(u, "history_count", 0),
             "last_login": u.last_login, "date_joined": u.date_joined,
@@ -295,13 +299,14 @@ class AdminUserTrackingView(APIView):
 
             if (not city or city.lower() in {"unknown", "unknown, nepal", "unknown,nepal"}) and lat is not None and lng is not None:
                 geo = reverse_geocode(lat, lng)
-                city = geo.get("district") or geo.get("municipality") or geo.get("city") or "Kathmandu"
-                u.city = city
-                u.country = country
-                u.save(update_fields=["city", "country"])
+                city = geo.get("district") or geo.get("municipality") or geo.get("city") or ""
+                if city:
+                    u.city = city
+                    u.country = country
+                    u.save(update_fields=["city", "country"])
 
             if not city or city.lower() in {"unknown", "unknown, nepal", "unknown,nepal"}:
-                city = "Kathmandu"
+                city = "Unknown"
 
             dist_km = None
             dist_text = "Distance unavailable"

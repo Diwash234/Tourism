@@ -54,7 +54,8 @@ function FacilityCard({ facility }) {
       {facility.phone_is_national_fallback && <p className="text-[10px] text-gray-500">Local phone unavailable in the source dataset — national {meta.label.toLowerCase()} line shown.</p>}
       <div className="flex gap-2 pt-2 border-t">
         {(facility.phone_number || meta.fallback) ? <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 rounded-xl bg-[#102A2E] text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a> : <span className="flex-1 rounded-xl bg-gray-100 text-gray-500 py-2 text-center text-xs font-bold">Phone unavailable</span>}
-        {facility.latitude != null && <a href={directions} target="_blank" rel="noreferrer" className="rounded-xl border border-[#E5E0D5] text-[#1D5146] px-3 py-2 text-xs font-bold"><FiNavigation className="inline" /> Route</a>}
+        {facility.latitude != null && <Link to={`/navigation?dest=${encodeURIComponent(facility.name)}`} className="rounded-xl bg-emerald-700 text-white px-3 py-2 text-xs font-bold"><FiNavigation className="inline" /> Route</Link>}
+        {facility.latitude != null && <a href={directions} target="_blank" rel="noreferrer" className="rounded-xl border border-[#E5E0D5] text-[#1D5146] px-3 py-2 text-xs font-bold" title="Open in Google Maps"><FiExternalLink className="inline" /></a>}
       </div>
       <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
         <span>{facility.verified ? "✓ Verified" : "Verification pending"}</span>

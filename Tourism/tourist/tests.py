@@ -4572,3 +4572,47 @@ class ResolverAliasTests(TestCase):
         # NOT hit the length-gated alias substring tier (name prefix hits
         # like "Hari" -> Hariwan are separate, intended behaviour).
         self.assertIsNone(LocationSearchService.resolve_single_place("riyo"))
+import time
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+SLOW_SECONDS = 2.0
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.dummy.EmailBackend",
+                   TWILIO_ACCOUNT_SID="", TWILIO_AUTH_TOKEN="")
+class AsyncVerificationEmailTest(TestCase):
+    """Register/resend must not block on SMTP latency (user-reported slow signup)."""
+
+    def test_register_returns_before_slow_smtp_send_finishes(self):
+        from tourist import utils
+        delivered = []
+        real = utils.send_mail
+
+        def slow_send_mail(*args, **kwargs):
+            time.sleep(SLOW_SECONDS)
+            delivered.append(args[1] if len(args) > 1 else kwargs.get("subject"))
+            return 1
+
+        utils.send_mail = slow_send_mail
+        try:
+            client = APIClient()
+            payload = {
+                "username": "asyncmailuser", "email": "asyncmailuser@example.com",
+                "password": "Str0ng!Pass123", "password_confirm": "Str0ng!Pass123",
+                "first_name": "Async", "last_name": "Mail",
+            }
+            t0 = time.monotonic()
+            resp = client.post(reverse("auth-register"), payload, format="json")
+            elapsed = time.monotonic() - t0
+            self.assertEqual(resp.status_code, 201, resp.content)
+            self.assertLess(elapsed, 1.0, f"register blocked {elapsed:.2f}s on mail send")
+            # the email is still delivered in the background
+            deadline = time.monotonic() + 6
+            while not delivered and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertTrue(delivered, "verification email never sent")
+            self.assertIn("verify", delivered[0])
+        finally:
+            utils.send_mail = real

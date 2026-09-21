@@ -56,7 +56,7 @@ const GROUPS = [
       { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: BsExclamationTriangle, color: "red" },
       { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: BsBell, color: "nepalred" },
       { to: "/family-safety", label: "Family Safety", icon: BsPeople, color: "emerald" },
-      { to: "/navigation", label: "Maps & Navigation", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
+      { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
       { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: BsChatQuote, color: "emerald" },
       { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: BsTranslate, color: "cyan" },
       { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: BsRobot, color: "terracotta" },
@@ -87,20 +87,22 @@ const GROUPS = [
 ]
 
 const COLOR_MAP = {
-  himalaya: "text-blue-600 bg-blue-50 group-hover:bg-blue-100",
+  // Unified brand green for every chip (user request: one consistent green
+  // sidebar across the app). Keys are kept so link definitions still work.
+  himalaya: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
   forest: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
-  saffron: "text-amber-600 bg-amber-50 group-hover:bg-amber-100",
-  nepalred: "text-rose-600 bg-rose-50 group-hover:bg-rose-100",
-  red: "text-red-600 bg-red-50 group-hover:bg-red-100",
-  orange: "text-orange-600 bg-orange-50 group-hover:bg-orange-100",
-  pink: "text-pink-600 bg-pink-50 group-hover:bg-pink-100",
+  saffron: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  nepalred: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  red: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  orange: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  pink: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
   emerald: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
-  sky: "text-sky-600 bg-sky-50 group-hover:bg-sky-100",
-  violet: "text-nav-active bg-[#F7F8F5] group-hover:bg-nav-tintStrong",
-  purple: "text-nav-active bg-[#F7F8F5] group-hover:bg-nav-tintStrong",
-  terracotta: "text-orange-700 bg-orange-50 group-hover:bg-orange-100",
-  cyan: "text-cyan-600 bg-cyan-50 group-hover:bg-cyan-100",
-  stone: "text-gray-600 bg-gray-50 group-hover:bg-gray-100",
+  sky: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  violet: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  purple: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  terracotta: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  cyan: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
+  stone: "text-nav-strong bg-nav-tint group-hover:bg-nav-tintStrong",
 }
 
 const isDesktop = () =>

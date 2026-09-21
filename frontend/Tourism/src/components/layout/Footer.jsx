@@ -112,10 +112,10 @@ const Footer = () => {
   }
 
   return (
-    <footer className="bg-slate-950 text-emerald-100 mt-16 border-t border-emerald-500/30">
-      <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400" />
+    <footer className="bg-[#03231b] text-gray-200 mt-16 border-t border-emerald-700/40">
+      <div className="h-1 bg-gradient-to-r from-emerald-700 via-emerald-400 to-emerald-700" />
 
-      {showBlock("symbols") && <div className="container-app py-8 border-b border-emerald-900/60">
+      {showBlock("symbols") && <div className="container-app py-8 border-b border-emerald-800/50">
         <div className="grid grid-cols-4 md:grid-cols-8 gap-3 sm:gap-5">
           {NATIONAL_ITEMS.map((item) => (
             <div
@@ -132,10 +132,10 @@ const Footer = () => {
                   rounded-full
                   object-cover
                   border-2
-                  border-emerald-400/50
+                  border-emerald-500/40
                 "
               />
-              <span className="text-xs mt-2 text-emerald-200 font-medium">
+              <span className="text-xs mt-2 text-gray-200 font-medium">
                 {item.title}
               </span>
             </div>
@@ -150,7 +150,7 @@ const Footer = () => {
             <FiBookOpen size={16} /> See More — Explore All 26 National Symbols & Country Profile ➔
           </Link>
 
-          <p className="text-sm italic text-emerald-400 font-semibold">
+          <p className="text-sm italic text-emerald-200/90 font-semibold">
             {copy("symbols", "body", "Discover Nepal — Beyond Everest")}
           </p>
         </div>
@@ -159,10 +159,10 @@ const Footer = () => {
       <div className="container-app py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {showBlock("explore") && (
           <div>
-            <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("explore", "title", "Explore")}</h4>
+            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("explore", "title", "Explore")}</h4>
             <ul className="space-y-2 text-sm">
               {exploreLinks.map((item) => (
-                <li key={item.route}><Link to={item.route} className="text-emerald-200 hover:text-white transition-colors">{item.label}</Link></li>
+                <li key={item.route}><Link to={item.route} className="text-gray-300 hover:text-white transition-colors">{item.label}</Link></li>
               ))}
             </ul>
           </div>
@@ -170,11 +170,11 @@ const Footer = () => {
 
         {showBlock("provinces") && (
           <div>
-            <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("provinces", "title", "Provinces")}</h4>
+            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("provinces", "title", "Provinces")}</h4>
             <ul className="space-y-2 text-sm">
               {PROVINCE_CITY_LINKS.map((province) => (
                 <li key={province.name}>
-                  <Link to={`/destinations?q=${encodeURIComponent(province.city)}`} className="text-emerald-200 hover:text-white transition-colors">{province.name}</Link>
+                  <Link to={`/destinations?q=${encodeURIComponent(province.city)}`} className="text-gray-300 hover:text-white transition-colors">{province.name}</Link>
                 </li>
               ))}
             </ul>
@@ -183,15 +183,15 @@ const Footer = () => {
 
         {showBlock("company") && (
           <div>
-            <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("company", "title", "Company")}</h4>
+            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("company", "title", "Company")}</h4>
             <ul className="space-y-2 text-sm">
               {companyLinks.map((link) => (
                 <li key={link.route}>
-                  <Link to={link.route} className={link.bold ? "text-emerald-300 font-bold hover:text-white" : "text-emerald-200 hover:text-white transition-colors"}>{link.label}</Link>
+                  <Link to={link.route} className={link.bold ? "text-white font-semibold hover:text-emerald-300 transition-colors" : "text-gray-300 hover:text-white transition-colors"}>{link.label}</Link>
                 </li>
               ))}
             </ul>
-            <div className="mt-4 text-xs space-y-1 text-emerald-300 font-medium">
+            <div className="mt-4 text-xs space-y-1 text-gray-300 font-medium">
               <p>🚓 Police:<a href="tel:100" className="text-white font-bold ml-1">100</a></p>
               <p>🚑 Ambulance:<a href="tel:102" className="text-white font-bold ml-1">102</a></p>
               <p>🔥 Fire:<a href="tel:101" className="text-white font-bold ml-1">101</a></p>
@@ -201,13 +201,13 @@ const Footer = () => {
 
         {showBlock("contact") && (
           <div>
-            <h4 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wider">{copy("contact", "title", "Contact")}</h4>
+            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("contact", "title", "Contact")}</h4>
             <ul className="space-y-3 text-sm">
-              <li className="flex gap-2 items-center text-emerald-200"><FiMapPin className="text-emerald-400" /> {contactAddress}</li>
-              <li className="flex gap-2 items-center text-emerald-200"><FiMail className="text-emerald-400" /> {contactEmail}</li>
-              <li className="flex gap-2 items-center text-emerald-200"><FiPhone className="text-emerald-400" /> {contactPhone}</li>
+              <li className="flex gap-2 items-center text-gray-300"><FiMapPin className="text-emerald-300" /> {contactAddress}</li>
+              <li className="flex gap-2 items-center text-gray-300"><FiMail className="text-emerald-300" /> {contactEmail}</li>
+              <li className="flex gap-2 items-center text-gray-300"><FiPhone className="text-emerald-300" /> {contactPhone}</li>
             </ul>
-            <div className="flex gap-4 mt-5 text-lg text-emerald-300">
+            <div className="flex gap-4 mt-5 text-lg text-gray-300">
               {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Facebook"><FiFacebook /></a>}
               {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Instagram"><FiInstagram /></a>}
               {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="X or Twitter"><FiTwitter /></a>}
@@ -219,10 +219,10 @@ const Footer = () => {
 
       {showBlock("newsletter") && (
         <div className="container-app pb-10">
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-900/40 p-6 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="rounded-2xl border border-emerald-700/50 bg-emerald-950/60 p-6 flex flex-col md:flex-row md:items-center gap-4">
             <div className="mr-auto">
               <h4 className="text-emerald-300 font-bold text-sm uppercase tracking-wider">{copy("newsletter", "title", "Travel Newsletter")}</h4>
-              <p className="text-sm text-emerald-200 mt-1">{copy("newsletter", "subtitle", "Trip ideas, festivals and safety updates — straight to your inbox.")}</p>
+              <p className="text-sm text-gray-300 mt-1">{copy("newsletter", "subtitle", "Trip ideas, festivals and safety updates — straight to your inbox.")}</p>
             </div>
             <form onSubmit={handleNewsletter} className="flex gap-2 w-full md:w-auto">
               <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
@@ -233,12 +233,12 @@ const Footer = () => {
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="rounded-xl bg-slate-900 border border-emerald-500/40 px-3 py-2 text-sm text-emerald-100 placeholder:text-emerald-200/50 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-full md:w-64"
+                className="rounded-xl bg-[#042b21] border border-emerald-700/50 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-full md:w-64"
               />
               <button
                 type="submit"
                 disabled={newsletterBusy}
-                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-sm px-4 py-2 whitespace-nowrap"
+                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-[#03231b] font-bold text-sm px-4 py-2 whitespace-nowrap"
               >
                 {newsletterBusy ? "Signing up…" : "Subscribe"}
               </button>
@@ -248,11 +248,11 @@ const Footer = () => {
         </div>
       )}
 
-      {filteredExtras?.length > 0 && <div className="container-app pb-8 text-emerald-100"><CMSExtras sections={filteredExtras} /></div>}
+      {filteredExtras?.length > 0 && <div className="container-app pb-8 text-gray-200"><CMSExtras sections={filteredExtras} /></div>}
 
-      <div className="border-t border-emerald-900/60 py-4 text-center text-xs text-emerald-300">
+      <div className="border-t border-emerald-800/50 py-4 text-center text-xs text-gray-400">
         © {new Date().getFullYear()} {siteTitle}. {branding.footer_text || "All rights reserved."}
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="ml-4 font-bold text-emerald-400 hover:text-white hover:underline">Back to top</button>
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="ml-4 font-bold text-emerald-300 hover:text-white hover:underline">Back to top</button>
       </div>
     </footer>
   );

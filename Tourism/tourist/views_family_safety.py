@@ -21,7 +21,7 @@ from .models import TrustedContact, SharedTrip, LocationPing, SOSAlert
 from .serializers_family_safety import (
     TrustedContactSerializer, SharedTripSerializer, LocationPingSerializer, SOSAlertSerializer,
 )
-from .utils import send_email_notification, send_sms_notification
+from .utils import send_email_notification, send_email_notification_async, send_sms_notification
 
 
 class TrustedContactViewSet(viewsets.ModelViewSet):
@@ -147,7 +147,7 @@ class SOSAlertViewSet(viewsets.ModelViewSet):
         for contact in contacts:
             if contact.email:
                 try:
-                    send_email_notification(contact.email, "SOS Alert", message)
+                    send_email_notification_async(contact.email, "SOS Alert", message)
                 except Exception:
                     pass  # never let one bad contact block notifying the rest
             if contact.phone_number:

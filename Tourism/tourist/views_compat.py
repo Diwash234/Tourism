@@ -8,6 +8,7 @@ already exists elsewhere (utils.py, EmergencyContact/Budget models).
 If your frontend's param names differ from what's implemented here, tell
 me the exact request (as seen in DevTools) and I'll adjust these to match.
 """
+import logging
 from decimal import Decimal, InvalidOperation
 
 from django.db.models import Sum, Count
@@ -18,6 +19,8 @@ from rest_framework.views import APIView
 
 from .models import Budget, EmergencyContact
 from .serializers import DestinationListSerializer, EmergencyContactSerializer
+
+logger = logging.getLogger(__name__)
 from .utils import get_ml_recommendations, get_ml_best_route, haversine_distance
 
 
@@ -254,6 +257,61 @@ class NearbyPoliceView(APIView):
         return Response(within or results[:10])
 
 
+def _downsample_geometry(points, max_points=400):
+    """Every nth point so emergency payloads stay small."""
+    if not points or len(points) <= max_points:
+        return list(points or [])
+    step = max(2, len(points) // max_points)
+    out = points[::step]
+    if out[-1] != points[-1]:
+        out.append(points[-1])
+    return out
+
+
+def _attach_emergency_routes(request, data, lat, lon, limit=6):
+    """Attach real road route + destination detail to the nearest contacts.
+
+    Uses the same routing engine as the navigation API (OSRM when
+    ROUTING_BASE_URL is configured, labelled corridor estimate otherwise),
+    so emergency directions are never silent straight lines.
+    """
+    if not isinstance(data, list):
+        return data
+    from navigation import route_engine
+
+    for item in data[:limit]:
+        try:
+            item["destination"] = {
+                "name": item.get("name"),
+                "latitude": item.get("latitude"),
+                "longitude": item.get("longitude"),
+                "address": item.get("address"),
+                "district": item.get("district"),
+            }
+            clat = item.get("latitude")
+            clng = item.get("longitude")
+            if clat in (None, "") or clng in (None, ""):
+                item["route"] = None
+                continue
+            result, _ = route_engine.cached_route(
+                (lat, lon), (float(clat), float(clng)), "driving",
+                request=request, want_alternatives=False)
+            r = dict(result["route"])
+            item["route"] = {
+                "distance_m": r.get("distance_m"),
+                "distance_km": round((r.get("distance_m") or 0) / 1000.0, 2),
+                "duration_s": r.get("duration_s"),
+                "duration_min": round((r.get("duration_s") or 0) / 60.0, 1),
+                "geometry": _downsample_geometry(r.get("geometry")),
+                "source": r.get("source"),
+                "note": r.get("note"),
+            }
+        except Exception:  # noqa: BLE001 - emergency list must never 500
+            logger.exception("emergency route enrichment failed")
+            item["route"] = None
+    return data
+
+
 def _nearest_contacts_response(request, contact_type):
     lat_val = request.query_params.get("lat") or request.query_params.get("latitude")
     lon_val = request.query_params.get("lng") or request.query_params.get("lon") or request.query_params.get("longitude")
@@ -282,7 +340,7 @@ def _nearest_contacts_response(request, contact_type):
     if nearest_by_type or qs.exists():
         contacts = [c for _, c in sorted(nearest_by_type.values(), key=lambda pair: pair[0])]
         serializer = EmergencyContactSerializer(contacts, many=True, context={"request": request, "user_lat": lat, "user_lon": lon})
-        return Response(serializer.data)
+        return Response(_attach_emergency_routes(request, serializer.data, lat, lon))
 
     if contact_type == EmergencyContact.ContactType.HOSPITAL:
         return NearbyHospitalsView().get(request)
@@ -292,7 +350,7 @@ def _nearest_contacts_response(request, contact_type):
     h_res = NearbyHospitalsView().get(request).data
     p_res = NearbyPoliceView().get(request).data
     all_contacts = sorted(h_res + p_res, key=lambda x: x.get("distance_km", 999))[:20]
-    return Response(all_contacts)
+    return Response(_attach_emergency_routes(request, all_contacts, lat, lon))
 
 
 class NavigationRouteView(APIView):

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useSearchParams, Link } from "react-router-dom"
@@ -424,13 +424,30 @@ export default function Navigation() {
     if (dest) handleGetRoute(orig, dest)
   }
 
+  // Auto-route when arriving with ?dest= (e.g. "Get Directions" from a
+  // destination page). With no explicit origin we wait for the GPS fix and
+  // route from the user's real location automatically; if GPS is denied we
+  // surface the honest ask instead of an empty map, and a named origin or a
+  // later "Use My Location" still triggers the calculation.
+  const autoRoutedRef = useRef(false)
   useEffect(() => {
-    if (requestedDest) {
+    if (!requestedDest || autoRoutedRef.current) return
+    if (requestedOrigin) {
+      autoRoutedRef.current = true
       const z = setTimeout(() => handleGetRoute(requestedDest, requestedOrigin), 0)
       return () => clearTimeout(z)
     }
+    if (position) {
+      autoRoutedRef.current = true
+      const z = setTimeout(() => handleGetRoute(requestedDest, null), 0)
+      return () => clearTimeout(z)
+    }
+    if (!locating && geoError) {
+      const z = setTimeout(() => handleGetRoute(requestedDest, null), 0)
+      return () => clearTimeout(z)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedDest, requestedOrigin])
+  }, [requestedDest, requestedOrigin, position, locating, geoError])
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
@@ -608,6 +625,23 @@ export default function Navigation() {
               >
                 <FiTarget size={13} /> {locating && !position ? "Locating…" : "📍 Use My Location"}
               </button>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 items-center text-[11px]">
+              <span className="text-slate-500 font-semibold">Quick origin:</span>
+              {["Kathmandu", "Pokhara", "Biratnagar", "Janakpur", "Nepalgunj", "Dhangadhi", "Ilam", "Mahendranagar"].map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => {
+                    setOriginQuery(city)
+                    if (destinationQuery.trim()) handleGetRoute(destinationQuery.trim(), city)
+                  }}
+                  className="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold hover:bg-emerald-100 transition-colors"
+                >
+                  {city}
+                </button>
+              ))}
             </div>
 
             <div className="relative">

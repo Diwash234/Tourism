@@ -70,12 +70,21 @@ const HotelSearch = () => {
                   <FiStar className="fill-saffron-500 text-saffron-500" size={14} />
                   {hotel.rating} · <span className="font-semibold text-forest-600">${hotel.price_per_night}/night</span>
                 </p>
-                <button
-                  className="btn-primary w-full mt-3"
-                  onClick={() => navigate(`/hotels/${hotel.id}/book`)}
-                >
-                  Book Now
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    className="btn-primary flex-1"
+                    onClick={() => navigate(`/hotels/${hotel.id}/book`)}
+                  >
+                    Book Now
+                  </button>
+                  <button
+                    className="flex-1 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-bold hover:bg-emerald-100 transition-colors"
+                    title="Route here from your current location or any starting place"
+                    onClick={() => navigate(`/navigation?dest=${encodeURIComponent(hotel.name)}`)}
+                  >
+                    Directions
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}

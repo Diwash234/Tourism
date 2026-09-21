@@ -200,9 +200,9 @@ def resolve_location(request, gps_latitude=None, gps_longitude=None):
         from .location.reverse_geocoding import reverse_geocode
         try:
             geo = reverse_geocode(float(gps_latitude), float(gps_longitude))
-            city = geo.get("district") or geo.get("municipality") or geo.get("city") or "Kathmandu"
+            city = geo.get("district") or geo.get("municipality") or geo.get("city") or "Unknown"
         except Exception:
-            city = "Kathmandu"
+            city = "Unknown"
         return {
             "latitude": float(gps_latitude),
             "longitude": float(gps_longitude),
@@ -351,6 +351,27 @@ def send_email_notification(to_email, subject, message):
     except Exception as exc:  # noqa: BLE001
         logger.error("Email send failed to %s: %s", to_email, exc)
         return False
+
+
+def send_email_notification_async(to_email, subject, message):
+    """Fire-and-forget email dispatch on a background thread.
+
+    Real SMTP backends can block the request for seconds (handshake, TLS,
+    remote server latency); auth flows must not wait for that. The send is
+    logged by send_email_notification either way. Under the locmem test
+    backend we send inline so django.core.mail.outbox stays deterministic.
+    """
+    backend = str(getattr(settings, "EMAIL_BACKEND", ""))
+    if "locmem" in backend:
+        return send_email_notification(to_email, subject, message)
+    import threading
+
+    threading.Thread(
+        target=send_email_notification,
+        args=(to_email, subject, message),
+        daemon=True,
+    ).start()
+    return True
 
 
 def send_sms_notification(to_number, message):

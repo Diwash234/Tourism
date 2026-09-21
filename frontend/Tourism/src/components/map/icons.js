@@ -23,7 +23,25 @@ const makeSvgIcon = (colorHex, letter = "") => {
   })
 }
 
-export const userIcon = makeSvgIcon("#2563EB", "U")
+// Navigation arrow pointer (Google-Maps-style): emerald disc with a white
+// directional triangle. Original SVG — no third-party icon assets.
+export const makeUserArrowIcon = (deg = 0) => {
+  const safeDeg = Number.isFinite(Number(deg)) ? Number(deg) : 0
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36">
+    <circle cx="18" cy="18" r="15" fill="#059669" fill-opacity="0.22"/>
+    <circle cx="18" cy="18" r="11.5" fill="#059669" stroke="#FFFFFF" stroke-width="2.5"/>
+    <g transform="rotate(${safeDeg} 18 18)">
+      <path d="M18 9.5 L24.5 25 L18 21.6 L11.5 25 Z" fill="#FFFFFF"/>
+    </g>
+  </svg>`
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:36px;height:36px;filter:drop-shadow(0 1px 3px rgba(2,44,34,.45))">${svg}</div>`,
+    iconSize: [36, 36], iconAnchor: [18, 18],
+  })
+}
+
+export const userIcon = makeUserArrowIcon(0)
 export const destinationIcon = makeSvgIcon("#DC2626", "D")
 export const hospitalIcon = makeSvgIcon("#059669", "+")
 export const policeIcon = makeSvgIcon("#7C3AED", "P")

@@ -579,3 +579,25 @@ everything (users, staff, destinations).
 - Verified: all 8 field spellings resolve via resolver incl. alias tier (Dhorpatan,
   Panchadeval Binayak, Ramaroshan); live route Baglung -> Dhorpatan 194.1 km, 28 steps,
   CORRIDOR-ESTIMATE. No code changes this round — suite remains 494/494 (green last run).
+
+## Round-(H) — GPS routing everywhere, honest admin locations, UI unification (2026-09-21)
+
+**Data (web-verified):** 6 new destinations — Budha Subba Temple (26.820, 87.30), Pindeshwor Temple (26.8133, 87.2946), Dantakali Temple (26.8186, 87.2909), Barahachhetra (26.83, 87.18), Jaleshwar Mahadev (26.6511, 85.7968, Wikidata), Sitganga (27.83, 83.07). Baidyanath Dham (Achham) **rejected**: the wiki page's infobox carries the Indian Deoghar namesake's coordinates (24.49N/86.70E) — no pin added rather than a wrong-country pin.
+
+**Wrong-image bug (user-reported):** 37 stock cover images were shared by 441 active destinations (e.g. 84 rows showed Everest Base Camp's photo). Fixed: each image kept only on the row whose name matches it (37 owners), 404 wrong assignments cleared, 0 shared images remain. Serializers return `image_url: null` gracefully → cards fall back to the placeholder.
+
+**Slow Login/Signup (user-reported):** verification/SOS emails were sent synchronously inside the request — with a real SMTP backend that blocks for seconds. Now dispatched on a background thread (`send_email_notification_async`; locmem stays inline so tests are deterministic). Regression test: register returns 201 in <1 s against a 2 s-sleep mail backend, and the email still delivers.
+
+**Emergency full details (user-reported):** `GET /api/v1/emergency/contacts?lat&lng` now attaches, for the 6 nearest contacts, a `destination` block (name/address/district/coords) and a real `route` (distance_km, duration_min, geometry, source) from the same engine as navigation (OSRM when ROUTING_BASE_URL set; labelled graphml_fallback otherwise — never a silent straight line). Verified live near Barahachhetra: B.P. Koirala Institute → 10.37 km / 17.8 min.
+
+**Routes for every place, from anywhere (user-reported):** routing is computed on demand between ANY origin/destination coordinate pair — live-verified: Ilam→Pokhara 304.4 km, GPS→Pokhara 321.9 km, Mahakali→Dharan 1027.8 km, Kathmandu→Barahachhetra 274.8 km (graphml_fallback, labelled; OSRM upgrades geometry on the host). Only 1 active destination + 3 hotels lack coordinates (honest not-found, never a default). Navigation page now **auto-routes from GPS** when arriving via "Get Directions" (waits for the fix instead of showing an empty map) and offers **quick origin chips** (Kathmandu, Pokhara, Biratnagar, Janakpur, Nepalgunj, Dhangadhi, Ilam, Mahendranagar). New one-tap Directions on Emergency contact cards (in-app route; Google Maps kept as secondary) and hotel cards; destination cards already had it.
+
+**Admin real user locations (user-reported):** removed every fabricated `"Kathmandu"` default — AdminUsersView and Live Tracking now return `"Unknown"` + `latitude/longitude: null` instead of pinning unknown users at 27.7172/85.3240; cleared 3 legacy stored fake pins. Reverse geocoding upgraded from 31 municipality anchors to **633 real (city, district) anchors** harvested from verified destinations (Dharan coords → Dharan/Sunsari, 0.92 km). resolve_location's GPS fallback label is now "Unknown", not Kathmandu. Frontend already guards null coords.
+
+**UI (user-reported):** sidebar icon chips unified to brand green (user + admin already emerald); sidebar "Maps & Navigation" → **"Location"** (en + both Nepali variants); footer redesigned from dark slate/blue with unreadable light-green text to deep forest green (#03231b) with gray-200/300 body text and emerald-300 headings; live-navigation user marker replaced with a rotating **arrow pointer** (original SVG, Google-Maps-style, rotates with GPS heading) used on both the live panel and MapView.
+
+**Perf check:** all hot endpoints measured locally — destinations list 0.06 s, nearby 0.27 s, places/search 0.05 s, featured 0.01 s, itinerary 1.23 s, images 7 ms. The dominant real-world slowdown was synchronous SMTP (fixed above) and SQLite write-lock during bulk import rounds (imports complete).
+
+**Verification:** full suite **519/519 OK**; `vite build` exit 0; eslint 0 errors on touched files.
+
+**Open:** the "unwanted comment (After admin update…)" the user described was searched for across frontend code, backend code and DB text columns — no match found; needs a page reference to remove. Full resolution of the remaining ~247-place pool needs host-side `sync_osm_nepal.py` (sandbox geocoding channels remain blocked).
