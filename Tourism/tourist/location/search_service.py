@@ -418,12 +418,19 @@ class LocationSearchService:
                     "is_destination": False,
                 }
 
-        # Check Destination table
+        # Check Destination table — exact and prefix matches take priority over
+        # substring matches, so "Beni" resolves to Beni, not "Kagbeni Muktinath
+        # Route" (live bug: icontains .first() returned arbitrary substring hits).
         from tourist.models import Destination
-        dest = Destination.objects.filter(
-            Q(name__icontains=q) | Q(slug__icontains=q) | Q(city__icontains=q),
-            is_active=True
-        ).exclude(latitude__isnull=True).exclude(longitude__isnull=True).first()
+        _coord_qs = (Destination.objects.filter(is_active=True)
+                     .exclude(latitude__isnull=True).exclude(longitude__isnull=True))
+        dest = (
+            _coord_qs.filter(name__iexact=q).first()
+            or _coord_qs.filter(name__istartswith=q).first()
+            or _coord_qs.filter(
+                Q(name__icontains=q) | Q(slug__icontains=q) | Q(city__icontains=q)
+            ).first()
+        )
 
         if dest:
             return {

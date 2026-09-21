@@ -4371,3 +4371,23 @@ class PlaceSearchGenericWordTests(APITestCase):
     def test_unresolvable_place_still_returns_nothing(self):
         results = self._search("Xyzzyville Bazaar")
         self.assertEqual(results, [])
+
+    def test_exact_name_wins_over_substring_match(self):
+        """'Beni' must resolve to Beni, not 'Kagbeni Muktinath Route'
+        (live bug: icontains .first() returned arbitrary substring hits)."""
+        from tourist.location.search_service import LocationSearchService
+        decoy = Destination.objects.create(
+            name="Kagbeni Muktinath Route", category=self.category,
+            description="Trail.", latitude=28.8167, longitude=83.7833,
+            city="Kagbeni", district="Mustang", country="Nepal", is_active=True,
+        )
+        beni = Destination.objects.create(
+            name="Beni", category=self.category, description="Myagdi HQ.",
+            latitude=28.3567, longitude=83.5547, city="Beni",
+            district="Myagdi", country="Nepal", is_active=True,
+        )
+        resolved = LocationSearchService.resolve_single_place("Beni")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved.get("name"), "Beni")
+        self.assertAlmostEqual(float(resolved["latitude"]), 28.3567, places=3)
+        self.assertIsNotNone(decoy.id)

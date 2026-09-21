@@ -333,3 +333,17 @@ Suite: 475/475 OK.
   Satashi Dham rejected — no site-level source.
 - Remaining not-found: 405, blocked on live Nominatim/Overpass (host) or per-place
   web verification rounds.
+
+## Verification round: Rupse, Mahaboudha, Beni + resolver precision (2026-09-21)
+
+- **Rupse Falls** (id 6328) and alias **Rupse Chhahara** (6339) were UNVERIFIED and
+  ~14 km north of the actual waterfall; upgraded to Wikipedia coords 28.5555,83.6361
+  (VERIFIED). The duplicate "Rupse Waterfall" row created before noticing the
+  existing rows was deleted — owner spelling resolves via generic-word search.
+- **Mahaboudha Temple** (Patan, id 6703) added: 27.67355,85.3251 VERIFIED (Tripadvisor
+  + travel guide agree); Thamel→Mahaboudha routes 5.1 km/9 min with exact dest coords.
+- **resolve_single_place precision fix**: exact > prefix > substring, so "Beni" no
+  longer resolves to "Kagbeni Muktinath Route". Regression test added
+  (test_exact_name_wins_over_substring_match). Suite: 476/476 OK.
+- **Beni** (Myagdi HQ, id 6704) added: 28.35,83.56667 VERIFIED (Wikipedia); the town
+  had no destination row at all. Live: Beni→Rupse = 35.0 km, origin resolved exactly.
