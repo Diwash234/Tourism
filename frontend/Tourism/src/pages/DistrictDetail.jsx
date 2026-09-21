@@ -195,10 +195,6 @@ export default function DistrictDetail() {
         </section>
       )}
 
-      <p className="text-xs text-slate-500">
-        District page generated live from the tourism database — admin
-        publications appear here immediately.
-      </p>
     </main>
   )
 }
