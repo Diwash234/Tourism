@@ -21,7 +21,7 @@ from .models import TrustedContact, SharedTrip, LocationPing, SOSAlert
 from .serializers_family_safety import (
     TrustedContactSerializer, SharedTripSerializer, LocationPingSerializer, SOSAlertSerializer,
 )
-from .utils import send_email_notification, send_email_notification_async, send_sms_notification
+from .utils import send_email_notification, send_email_notification_async, send_sms_notification, send_sms_notification_async
 
 
 class TrustedContactViewSet(viewsets.ModelViewSet):
@@ -152,7 +152,7 @@ class SOSAlertViewSet(viewsets.ModelViewSet):
                     pass  # never let one bad contact block notifying the rest
             if contact.phone_number:
                 try:
-                    send_sms_notification(str(contact.phone_number), message)
+                    send_sms_notification_async(str(contact.phone_number), message)
                 except Exception:
                     pass
 

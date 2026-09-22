@@ -1448,17 +1448,15 @@ class AdminSendVerificationView(APIView):
                 return Response({"detail": f"email failed: {exc}"}, status=502)
 
         if channel in ("sms", "both") and u.phone_number:
-            try:
-                from twilio.rest import Client  # type: ignore
-                sid = getattr(djsettings, "TWILIO_ACCOUNT_SID", "")
-                token = getattr(djsettings, "TWILIO_AUTH_TOKEN", "")
-                from_ = getattr(djsettings, "TWILIO_PHONE_NUMBER", "")
-                if sid and token:
-                    Client(sid, token).messages.create(
-                        to=u.phone_number, from_=from_, body=message[:1600])
-                    sent.append("sms")
-            except Exception as exc:  # noqa: BLE001
-                return Response({"detail": f"sms failed: {exc}"}, status=502)
+            # Routed through the shared sender: same E.164 normalization and
+            # the correct TWILIO_FROM_NUMBER setting (this block previously
+            # read a TWILIO_PHONE_NUMBER key that does not exist, so the
+            # from-number was always empty and Twilio rejected the send).
+            from .utils import send_sms_notification
+            if send_sms_notification(u.phone_number, message[:1600]):
+                sent.append("sms")
+            else:
+                return Response({"detail": "sms failed: Twilio is not configured or the number is invalid (check TWILIO_* in .env and the user's phone number)"}, status=502)
 
         return Response({"message": f"sent via {', '.join(sent) or 'none'}",
                          "channels": sent, "is_verified": u.is_verified})
@@ -2980,7 +2978,14 @@ class AdminNotificationManagementView(APIView):
         Notification.objects.bulk_create(rows,batch_size=500)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="admin",severity="info",source="backend",action="notification.broadcast",message=f"Queued '{title}' for {len(rows)} deliveries",object_type="Notification",object_id=str(batch_id),extra={"role":role,"recipient_count":users.count(),"deliveries":len(rows),"channels":channels,"category":category,"queued":queued,"sent":sent,"skipped":skipped})
-        return Response({"message":"Broadcast queued","batch_id":batch_id,"recipient_count":users.count(),"delivery_count":len(rows),"queued":queued,"sent":sent,"skipped":skipped},status=201)
+        # Kick email/SMS/push delivery right away on a background thread so the
+        # broadcast leaves within seconds instead of waiting for the periodic
+        # worker; the worker still retries anything that fails.
+        if queued:
+            import threading
+            from .notification_delivery import process_due_notifications
+            threading.Thread(target=process_due_notifications, kwargs={"limit": 1000}, daemon=True).start()
+        return Response({"message":"Broadcast queued","batch_id":batch_id,"recipient_count":users.count(),"delivery_count":len(rows),"queued":queued,"sent":sent,"skipped":skipped,"delivery_note":"In-app delivered instantly; email/SMS/push dispatch started in the background — track status in this list."},status=201)
 
     def patch(self, request):
         _require_capability(request,"settings","change")

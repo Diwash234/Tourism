@@ -326,9 +326,19 @@ FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
 # ------------------------------------------------------------------
 # SMS (Twilio) - optional, disabled unless credentials are supplied
 # ------------------------------------------------------------------
+# Phone numbers: users type local Nepal numbers (98XXXXXXXX). Parsing them
+# with NP as the default region stores them as +977… (E.164), which is what
+# Twilio needs; full international numbers (+1…, +91…) still work as-is.
+PHONENUMBER_DEFAULT_REGION = "NP"
+PHONENUMBER_DB_FORMAT = "E164"
 TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
 TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
 TWILIO_FROM_NUMBER = config("TWILIO_FROM_NUMBER", default="")
+# Background delivery of queued email/SMS/push notifications (retries with
+# backoff). Set NOTIFICATION_WORKER_ENABLED=0 if a cron/worker runs
+# `manage.py process_notification_queue` instead.
+NOTIFICATION_WORKER_ENABLED = config("NOTIFICATION_WORKER_ENABLED", default=True, cast=bool)
+NOTIFICATION_WORKER_INTERVAL = config("NOTIFICATION_WORKER_INTERVAL", default=60, cast=int)
 
 # ------------------------------------------------------------------
 # Push notifications (Firebase Cloud Messaging) - optional

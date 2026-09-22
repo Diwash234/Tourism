@@ -374,20 +374,68 @@ def send_email_notification_async(to_email, subject, message):
     return True
 
 
+def normalize_phone_e164(number, default_country_code="+977"):
+    """Normalize a user-entered phone number to E.164 for Twilio.
+
+    Handles the common Nepal formats: 98XXXXXXXX, 098XXXXXXXX, +977...,
+    00977..., and keeps any other country's + international format.
+    Returns None when the value cannot be a phone number at all.
+    """
+    import re as _re
+
+    if not number:
+        return None
+    cleaned = _re.sub(r"[\s\-().]", "", str(number)).strip()
+    if cleaned.startswith("00"):
+        cleaned = "+" + cleaned[2:]
+    if cleaned.startswith("+"):
+        digits = cleaned[1:]
+        return cleaned if digits.isdigit() and 8 <= len(digits) <= 15 else None
+    digits = _re.sub(r"\D", "", cleaned)
+    if not digits:
+        return None
+    if digits.startswith("0"):
+        digits = digits.lstrip("0")
+    if 8 <= len(digits) <= 12:
+        return f"{default_country_code}{digits}"
+    if 12 < len(digits) <= 15:  # likely already has country code
+        return f"+{digits}"
+    return None
+
+
 def send_sms_notification(to_number, message):
     """Sends an SMS via Twilio if credentials are configured; no-op otherwise."""
     if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):
         logger.info("SMS not sent (Twilio not configured). Would send to %s: %s", to_number, message)
         return False
+    normalized = normalize_phone_e164(to_number)
+    if not normalized:
+        logger.error("SMS not sent: %r is not a valid phone number", to_number)
+        return False
     try:
         from twilio.rest import Client
 
         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-        client.messages.create(body=message, from_=settings.TWILIO_FROM_NUMBER, to=str(to_number))
+        client.messages.create(body=message, from_=settings.TWILIO_FROM_NUMBER, to=normalized)
         return True
     except Exception as exc:  # noqa: BLE001
-        logger.error("SMS send failed to %s: %s", to_number, exc)
+        logger.error("SMS send failed to %s: %s", normalized, exc)
         return False
+
+
+def send_sms_notification_async(to_number, message):
+    """Fire-and-forget SMS on a background thread.
+
+    Twilio's REST round-trip takes 0.5–3 s per message; an SOS with several
+    contacts must not block the emergency request on it. Sends inline when
+    Twilio is not configured (fast no-op, keeps tests deterministic).
+    """
+    if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):
+        return send_sms_notification(to_number, message)
+    import threading
+
+    threading.Thread(target=send_sms_notification, args=(to_number, message), daemon=True).start()
+    return True
 
 
 def issue_phone_verification(user):
@@ -414,10 +462,12 @@ def issue_phone_verification(user):
         code=code,
         expires_at=timezone.now() + timedelta(minutes=10),
     )
-    send_sms_notification(
+    delivered = send_sms_notification(
         user.phone_number,
         f"Your Tourism Portal verification code is {code}. It expires in 10 minutes.",
     )
+    # Callers can report honestly whether the SMS actually left.
+    issue_phone_verification.last_delivered = bool(delivered)
     return code
 
 

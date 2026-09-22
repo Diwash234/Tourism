@@ -53,9 +53,13 @@ def _send(notification):
             raise RuntimeError("Recipient phone number is unavailable")
         if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):
             raise RuntimeError("SMS provider is not configured")
+        from .utils import normalize_phone_e164
+        normalized = normalize_phone_e164(user.phone_number)
+        if not normalized:
+            raise RuntimeError(f"Recipient phone number {user.phone_number!r} is not a valid E.164 number")
         from twilio.rest import Client
         Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN).messages.create(
-            body=notification.message[:1600], from_=settings.TWILIO_FROM_NUMBER, to=str(user.phone_number))
+            body=notification.message[:1600], from_=settings.TWILIO_FROM_NUMBER, to=normalized)
     elif notification.channel == Notification.Channel.PUSH:
         tokens = list(DeviceToken.objects.filter(user=user).values_list("token", flat=True))
         if not tokens:

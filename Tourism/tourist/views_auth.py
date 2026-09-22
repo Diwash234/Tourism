@@ -153,6 +153,14 @@ class ResendPhoneOTPView(APIView):
             )
 
         issue_phone_verification(request.user)
+        if not getattr(issue_phone_verification, "last_delivered", False):
+            from django.conf import settings as djsettings
+            configured = bool(djsettings.TWILIO_ACCOUNT_SID and djsettings.TWILIO_AUTH_TOKEN and djsettings.TWILIO_FROM_NUMBER)
+            return Response(
+                {"detail": ("SMS could not be delivered to your number right now. Check the number in your profile or try again shortly."
+                            if configured else "SMS verification is not enabled on this server yet.")},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return Response({"message": "Verification code sent."})
 
 

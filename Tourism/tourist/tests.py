@@ -4616,3 +4616,109 @@ class AsyncVerificationEmailTest(TestCase):
             self.assertIn("verify", delivered[0])
         finally:
             utils.send_mail = real
+
+
+class PhoneE164NormalizationTest(TestCase):
+    """Twilio requires E.164; Nepal numbers are entered in many shapes."""
+
+    def test_normalize_common_nepal_formats(self):
+        from tourist.utils import normalize_phone_e164
+        cases = {
+            "9812345678": "+9779812345678",
+            "09812345678": "+9779812345678",
+            "+9779812345678": "+9779812345678",
+            "009779812345678": "+9779812345678",
+            "98123 45678": "+9779812345678",
+            "01-4567890": "+97714567890",
+            "+14155552671": "+14155552671",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(normalize_phone_e164(raw), expected, raw)
+
+    def test_normalize_rejects_garbage(self):
+        from tourist.utils import normalize_phone_e164
+        for bad in ("", None, "abc", "12", "+abc", "123"):
+            self.assertIsNone(normalize_phone_e164(bad), repr(bad))
+
+    @override_settings(TWILIO_ACCOUNT_SID="ACtest", TWILIO_AUTH_TOKEN="tok",
+                       TWILIO_FROM_NUMBER="+15005550006")
+    def test_send_sms_rejects_invalid_number_before_calling_twilio(self):
+        from tourist import utils
+        called = []
+        import sys, types
+        fake_twilio = types.ModuleType("twilio.rest")
+        class _Msgs:
+            def create(self, **kw):
+                called.append(kw)
+        class _Client:
+            def __init__(self, *a): pass
+            @property
+            def messages(self): return _Msgs()
+        fake_twilio.Client = _Client
+        sys.modules["twilio.rest"] = fake_twilio
+        try:
+            self.assertFalse(utils.send_sms_notification("abc", "hi"))
+            self.assertEqual(called, [])
+            self.assertTrue(utils.send_sms_notification("9812345678", "hi"))
+            self.assertEqual(called[0]["to"], "+9779812345678")
+        finally:
+            del sys.modules["twilio.rest"]
+
+
+@override_settings(TWILIO_ACCOUNT_SID="ACtest", TWILIO_AUTH_TOKEN="tok", TWILIO_FROM_NUMBER="+15005550006")
+class TwilioDeliveryPipelineTest(TestCase):
+    """Queued SMS reach Twilio with E.164 numbers; failures are recorded honestly."""
+
+    def _install_fake_twilio(self, fail=False):
+        import sys, types
+        sent = []
+        mod = types.ModuleType("twilio.rest")
+        class _Msgs:
+            def create(self, **kw):
+                if fail:
+                    raise RuntimeError("Twilio: Unable to create record: The 'To' number is not a valid phone number.")
+                sent.append(kw)
+        class _Client:
+            def __init__(self, sid, token):
+                assert sid == "ACtest" and token == "tok"
+            messages = _Msgs()
+        mod.Client = _Client
+        sys.modules["twilio.rest"] = mod
+        self.addCleanup(lambda: sys.modules.pop("twilio.rest", None))
+        return sent
+
+    def _user(self, phone):
+        from tourist.models import User, NotificationPreference
+        u = User.objects.create_user(email=f"sms_{phone.strip('+')}@example.com", password="StrongPass!2345", phone_number=phone)
+        NotificationPreference.objects.update_or_create(user=u, defaults={"sms_enabled": True})
+        return u
+
+    def test_queued_sms_is_delivered_via_twilio_with_e164(self):
+        from tourist.notification_delivery import queue_notification, deliver_notification
+        sent = self._install_fake_twilio()
+        u = self._user("+9779812345678")
+        n = queue_notification(u, "Safety alert", "Landslide warning on your route", channel="sms", category="safety")
+        self.assertEqual(n.delivery_status, "queued")
+        self.assertEqual(deliver_notification(n.id), "sent")
+        self.assertEqual(sent[0]["to"], "+9779812345678")
+        self.assertEqual(sent[0]["from_"], "+15005550006")
+        n.refresh_from_db()
+        self.assertTrue(n.is_sent)
+
+    def test_provider_error_is_recorded_not_faked(self):
+        from tourist.notification_delivery import queue_notification, deliver_notification
+        self._install_fake_twilio(fail=True)
+        u = self._user("+9779800000001")
+        n = queue_notification(u, "Alert", "msg", channel="sms", category="safety")
+        self.assertEqual(deliver_notification(n.id), "failed")
+        n.refresh_from_db()
+        self.assertFalse(n.is_sent)
+        self.assertIn("not a valid phone number", n.failure_reason)
+        self.assertIsNotNone(n.next_retry_at)  # retry scheduled
+
+    def test_admin_broadcast_uses_correct_from_number_setting(self):
+        """Regression: admin SMS previously read TWILIO_PHONE_NUMBER (nonexistent)."""
+        import inspect
+        from tourist import views_admin
+        src = inspect.getsource(views_admin)
+        self.assertNotIn('"TWILIO_PHONE_NUMBER"', src)

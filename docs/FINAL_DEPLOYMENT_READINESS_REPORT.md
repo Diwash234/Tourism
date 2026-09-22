@@ -601,3 +601,20 @@ everything (users, staff, destinations).
 **Verification:** full suite **519/519 OK**; `vite build` exit 0; eslint 0 errors on touched files.
 
 **Open:** the "unwanted comment (After admin update…)" the user described was searched for across frontend code, backend code and DB text columns — no match found; needs a page reference to remove. Full resolution of the remaining ~247-place pool needs host-side `sync_osm_nepal.py` (sandbox geocoding channels remain blocked).
+
+## Round-(L) — Twilio SMS & notification delivery (2026-09-22)
+
+**User report:** "Twilio function is not working properly for transferring the SMS and notifications to the users." Root causes found (all real, all fixed):
+
+1. **`twilio` was not in `requirement.txt`** — every SMS send hit `ImportError` inside the `try/except` and was logged as a failure. Added `twilio>=9.0`.
+2. **Admin "send to user" SMS read a non-existent setting** (`TWILIO_PHONE_NUMBER` vs the real `TWILIO_FROM_NUMBER`) → from-number always empty → Twilio rejected every send. Now routed through the shared sender.
+3. **Nepal phone numbers were rejected at signup** (`9812345678` → "The phone number entered is not valid") because no `PHONENUMBER_DEFAULT_REGION` was set. Set to `NP` + E.164 DB format; live-verified: `9812345678` registers and is stored as `+9779812345678` (Twilio-ready).
+4. **Numbers not normalized before Twilio** — added `normalize_phone_e164` (handles 98…, 098…, +977…, 00977…, spaces/dashes, foreign +CC) used by every send path; invalid numbers are rejected before spending an API call.
+5. **Queued notifications had no processor** — email/SMS/push rows stayed `queued` forever unless someone ran a cron. Added an in-process background worker (`tourist/apps.py`, every 60 s, bounded retries with backoff, opt-out `NOTIFICATION_WORKER_ENABLED=0`). Live-verified: a queued email was picked up and delivered automatically (`processed 1, sent 1`).
+6. **Admin broadcasts** now kick delivery immediately on a background thread (previously waited for cron) and the API response says so honestly.
+7. **SOS SMS was synchronous** per contact (blocked the emergency request on Twilio latency) → now async fire-and-forget, same as email.
+8. **Resend-OTP claimed "Verification code sent" even when nothing was sent** → now returns 503 with an honest message when Twilio is unconfigured or the send failed.
+
+**Tests:** +6 (E.164 normalization matrix, invalid-number short-circuit, queued SMS → Twilio with E.164 + correct from-number, provider error recorded with retry scheduled, regression guard for the wrong settings key). Full suite **525/525 OK**; `vite build` exit 0.
+
+**Operator checklist (server):** set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (E.164) in `.env`, `pip install -r requirement.txt`, restart. Trial Twilio accounts only deliver to console-verified numbers — upgrade to reach all users. Users receive SMS only if they have a phone number on their profile and SMS is enabled in Settings → Notifications (safety alerts default on).
