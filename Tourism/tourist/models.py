@@ -899,6 +899,248 @@ class Favorite(TimeStampedModel):
         ordering = ["-created_at"]
 
 
+
+
+# ---------------------------------------------------------------------------
+# Itinerary planning (plan -> execution) + field verification + trip feedback
+# (merged from the main-branch "last" update, Round 21 merge; the views and
+# serializers for these already existed in this branch but the models were
+# missing, leaving the features as dead code.)
+# ---------------------------------------------------------------------------
+class Itinerary(TimeStampedModel):
+    """
+    A planned multi-day trip -- persisted, unlike ml_service's
+    itinerary_service.py which only ever produced a one-off response
+    and never saved anything. This is the actual "plan through
+    execution" record: created while planning, progresses through
+    real-world travel as ItineraryStops get marked visited.
+    """
+    class Status(models.TextChoices):
+        PLANNING = "planning", "Planning"
+        CONFIRMED = "confirmed", "Confirmed"
+        IN_PROGRESS = "in_progress", "In Progress"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="itineraries")
+    title = models.CharField(max_length=200, blank=True, help_text="e.g. 'Annapurna Circuit, June 2026'")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLANNING)
+    start_date = models.DateField(null=True, blank=True)
+    num_days = models.PositiveSmallIntegerField(default=1)
+    # The category/categories used to filter destination choices while
+    # building this itinerary, e.g. ["trekking", "cultural"] -- kept for
+    # reference/re-filtering, not enforced on the stops themselves (a
+    # user can still add a destination outside the original filter).
+    category_filter = models.ManyToManyField(Category, blank=True, related_name="itineraries")
+    total_distance_km = models.FloatField(null=True, blank=True, help_text="Filled in when the plan is generated via the route engine.")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title or 'Itinerary'} ({self.user}) -- {self.status}"
+
+    @property
+    def progress(self):
+        """e.g. '3/8 stops visited' -- the actual plan-to-execution tracking."""
+        stops = ItineraryStop.objects.filter(day__itinerary=self)
+        total = stops.count()
+        visited = stops.filter(is_visited=True).count()
+        return {"total": total, "visited": visited}
+
+
+class ItineraryDay(models.Model):
+    itinerary = models.ForeignKey(Itinerary, on_delete=models.CASCADE, related_name="days")
+    day_number = models.PositiveSmallIntegerField()
+    date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["day_number"]
+        unique_together = ["itinerary", "day_number"]
+
+
+class ItineraryStop(models.Model):
+    day = models.ForeignKey(ItineraryDay, on_delete=models.CASCADE, related_name="stops")
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="itinerary_stops")
+    order = models.PositiveSmallIntegerField(default=0, help_text="Order within the day.")
+    distance_from_previous_km = models.FloatField(
+        null=True, blank=True,
+        help_text="Route distance from the previous stop (same day) or previous day's last stop -- filled in via the route engine when the plan is generated."
+    )
+    notes = models.TextField(blank=True)
+    # The actual plan-to-execution tracking at the per-stop level.
+    is_visited = models.BooleanField(default=False)
+    visited_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.destination.name} (Day {self.day.day_number})"
+
+
+class FieldVerificationTask(TimeStampedModel):
+    """
+    An assignment: "go check this place is real/accurate". Created by
+    an admin/moderator, assigned to a FIELD_VERIFIER-role user.
+    """
+    class Status(models.TextChoices):
+        ASSIGNED = "assigned", "Assigned"
+        IN_PROGRESS = "in_progress", "In Progress"
+        SUBMITTED = "submitted", "Report Submitted"
+        REVIEWED = "reviewed", "Reviewed"
+
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="verification_tasks")
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="verification_tasks"
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks_assigned"
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ASSIGNED)
+    due_date = models.DateField(null=True, blank=True)
+    instructions = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Verify {self.destination.name} -- {self.assigned_to} ({self.status})"
+
+
+class FieldVerificationReport(TimeStampedModel):
+    """
+    What the field employee actually submits after visiting. Structured
+    fields here double as future ML risk-model training data (the
+    landslide/avalanche/flood/sickness/accident/transport-ease/local-
+    helpfulness observations) -- not auto-fed into the model yet (that's
+    a separate, deliberate training-pipeline step, not something that
+    should happen silently on every report submission), but the real
+    structured data collection point that was missing before.
+    """
+    class HelpfulnessLevel(models.TextChoices):
+        VERY_HELPFUL = "very_helpful", "Very Helpful"
+        SOMEWHAT_HELPFUL = "somewhat_helpful", "Somewhat Helpful"
+        NEUTRAL = "neutral", "Neutral"
+        UNHELPFUL = "unhelpful", "Unhelpful"
+
+    class TransportEase(models.TextChoices):
+        EASY = "easy", "Easy to reach"
+        MODERATE = "moderate", "Moderately difficult"
+        DIFFICULT = "difficult", "Difficult"
+
+    class ReviewStatus(models.TextChoices):
+        PENDING = "pending", "Pending Review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    task = models.OneToOneField(FieldVerificationTask, on_delete=models.CASCADE, related_name="report")
+    submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="verification_reports")
+    visit_date = models.DateField()
+
+    # Accuracy of the existing listing
+    is_place_accurate = models.BooleanField(default=True)
+    accuracy_notes = models.TextField(blank=True, help_text="What's wrong, if is_place_accurate is False.")
+
+    # Real-world risk observations -- the structured data the earlier ML
+    # data-collection request was asking for.
+    witnessed_sickness = models.BooleanField(default=False)
+    witnessed_accident = models.BooleanField(default=False)
+    witnessed_misleading_activity = models.BooleanField(default=False, help_text="Scams, overcharging, false guiding, etc.")
+    hazards_observed = models.JSONField(
+        default=list, blank=True,
+        help_text='e.g. ["avalanche_risk", "flood_risk", "landslide_risk"] -- any real-world hazard signs seen on this visit.'
+    )
+    transport_ease = models.CharField(max_length=10, choices=TransportEase.choices, blank=True)
+    local_helpfulness = models.CharField(max_length=20, choices=HelpfulnessLevel.choices, blank=True)
+    local_behavior_notes = models.TextField(blank=True, help_text="General notes on how locals greeted/treated visitors.")
+
+    general_notes = models.TextField(blank=True)
+
+    review_status = models.CharField(max_length=10, choices=ReviewStatus.choices, default=ReviewStatus.PENDING)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="reports_reviewed"
+    )
+    review_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Report: {self.task.destination.name} by {self.submitted_by} ({self.review_status})"
+
+
+class FieldVerificationPhoto(models.Model):
+    """Photos submitted as evidence with a report -- separate from DestinationImage since these need review before being promoted to a real gallery photo."""
+    report = models.ForeignKey(FieldVerificationReport, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="field_verification/")
+    caption = models.CharField(max_length=200, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+class TripFeedback(TimeStampedModel):
+    """
+    Real-world outcome feedback from a completed (or in-progress)
+    Itinerary -- what it actually cost, how the routes/hotels/
+    restaurants actually were. This is the structured data source for
+    "next time, remember this" personalization/ML training that a much
+    earlier request in this project asked for: real trip outcomes
+    feeding future budget estimates, recommendations, and route
+    planning -- not auto-applied to those models on submission (that's
+    a deliberate separate training/aggregation step, same reasoning as
+    FieldVerificationReport not auto-feeding risk_engine.py), but this
+    is the real collection point that didn't exist before.
+    """
+    itinerary = models.ForeignKey(Itinerary, on_delete=models.CASCADE, related_name="feedback")
+    submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="trip_feedback")
+
+    # Real costs actually incurred -- compared against the original
+    # budget estimate for that itinerary to measure estimate accuracy.
+    num_people = models.PositiveSmallIntegerField(default=1)
+    actual_total_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    actual_accommodation_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    actual_travel_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    actual_entry_fees_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    actual_food_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    extra_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    extra_cost_note = models.CharField(max_length=200, blank=True, help_text="What the extra cost was for, if any.")
+
+    # Route/hotel/restaurant feedback
+    route_rating = models.PositiveSmallIntegerField(null=True, blank=True, help_text="1-5, how good the suggested route actually was.")
+    route_notes = models.TextField(blank=True)
+    hotel_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    hotel_notes = models.TextField(blank=True)
+    restaurant_rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    restaurant_notes = models.TextField(blank=True)
+
+    general_suggestion = models.TextField(blank=True, help_text="Open suggestion box -- anything else worth telling future travelers/the recommendation engine.")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Feedback on {self.itinerary} by {self.submitted_by}"
+
+
+class TripFeedbackMedia(models.Model):
+    """
+    Proof/description media attached to feedback -- images AND video,
+    both supported (video was explicitly asked for and didn't exist
+    anywhere in the project before this).
+    """
+    class MediaType(models.TextChoices):
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+
+    feedback = models.ForeignKey(TripFeedback, on_delete=models.CASCADE, related_name="media")
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    file = models.FileField(upload_to="trip_feedback/")
+    caption = models.CharField(max_length=200, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+
+
 class VisitHistory(models.Model):
     """Tracks destinations a user has viewed/visited."""
 

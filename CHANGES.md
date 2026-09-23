@@ -2,6 +2,64 @@
 
 ---
 
+## 🔀 Round 21b: Merge of main's "last" update — itinerary / field-verification / trip-feedback revived; login page de-duplicated
+
+Owner request: merge the main-branch "last" commit (the "GPS-oriented"
+update) into this branch **without removing anything** from the current
+state, and fix the doubled content on the login page.
+
+### What the merge found (checked before merging, as requested)
+- The "hi" commit (5733188) is an **earlier, alternate version of the
+  same auth fix** already superseded by Round 21 — its one useful bit
+  (labeling the social buttons "unavailable" instead of "(soon)") is
+  adopted.
+- `main` ("last", b9d898b) and this branch turned out to be **unrelated
+  git lineages** (repo was re-rooted at some point) — that's why git
+  showed "behind/ahead" noise. A plain merge is impossible, so the
+  content was compared file-by-file and the genuinely missing pieces
+  were brought over, then main was merged with `-s ours` so its history
+  is part of this branch and the current tree is 100% intact.
+- main's "last" is **not newer overall** (it lacks the audit/navigation
+  apps, reports, 0074 migrations, bridged road graph, 4,750-destination
+  DB), but it DID contain real features this branch was missing:
+
+### Revived from main (models existed in main; the views/serializers
+already existed here but were dead code because the models were absent):
+1. **Itinerary planning (plan → execution)** — `Itinerary`,
+   `ItineraryDay`, `ItineraryStop` models + `itineraries` routes
+   (`ItineraryViewSet`, `POST /itinerary-stops/<pk>/visit/` marks stops
+   visited; real distances filled via the route engine).
+2. **Field verification** — `FieldVerificationTask/Report/Photo` models
+   + `field-verification-tasks` routes (structured field reports incl.
+   hazard observations = future ML training data).
+3. **Trip feedback** — `TripFeedback` + `TripFeedbackMedia` (image
+   **and** video) models + `trip-feedback` routes (real costs vs budget,
+   route/hotel/restaurant ratings).
+- Migration `0075_fieldverificationreport_...` created + applied.
+- 523 backend tests still OK after the merge.
+
+### Login page fixes (owner-reported)
+- **Doubled "or continue with" divider** on /login and /register —
+  `SocialLoginButtons` now takes `showDivider` (pages that draw their
+  own divider pass `false`).
+- The **real** login page is `/login` → `UserLogin.jsx` (not `/portal`):
+  it now has the same specific-error box (no account / wrong password /
+  deactivated, with contextual links) and the collapsible
+  "Didn't get a verification email? Activate account" box.
+- Social buttons say **"unavailable"** instead of "(soon)" when no
+  client IDs are configured.
+
+### Email / SMS / OTP (owner: "should come to the real email")
+- Verified live: verification emails now link to the correct frontend
+  port (`FRONTEND_URL`, default `http://localhost:5173`).
+- Real delivery is one `.env` step on the owner's machine (no code
+  change needed — the code already reads these): set
+  `EMAIL_BACKEND=...smtp...` + Gmail app password for email, and
+  `TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER` for OTP/SMS. Until then
+  the console backend logs emails to the server (dev mode).
+
+---
+
 ## 🔐 Round 21: Login / Sign-up / OAuth — honest errors + activate-account + working social buttons
 
 Owner request (three complaints):

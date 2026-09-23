@@ -9,6 +9,9 @@ from . import views_compat
 from . import views_discovery
 from . import views_family_safety
 from . import views_images
+from . import views_itinerary
+from .field_verification import FieldVerificationTaskViewSet
+from .trip_feedback import TripFeedbackViewSet, TripFeedbackMediaViewSet
 from .services.ai_images import api as ai_images_api
 from . import views_ml
 from . import views_oauth
@@ -62,6 +65,13 @@ router.register("admin/destination-translations", views.DestinationTranslationAd
 router.register("infrastructure-submissions", views.InfrastructureSubmissionViewSet, basename="infrastructure-submission")
 router.register("news", views.RiskNewsReportViewSet, basename="risk-news")
 router.register("traveler-documents", views.TravelerDocumentViewSet, basename="traveler-document")
+# Round 21 merge (from main "last"): itinerary planning (plan -> execution),
+# field verification and real-trip feedback — the views/serializers existed
+# in this branch but the models + routes were missing (dead code).
+router.register("itineraries", views_itinerary.ItineraryViewSet, basename="itinerary")
+router.register("field-verification-tasks", FieldVerificationTaskViewSet, basename="field-verification-task")
+router.register("trip-feedback", TripFeedbackViewSet, basename="trip-feedback")
+router.register("trip-feedback-media", TripFeedbackMediaViewSet, basename="trip-feedback-media")
 
 urlpatterns = [
     path("notification-preferences/", views.NotificationPreferenceView.as_view(), name="notification-preferences"),
@@ -92,6 +102,8 @@ urlpatterns = [
     path("ml/best-route/", views_ml.BestRouteView.as_view(), name="ml-best-route"),
     path("ml/itinerary/", views_ml.ItineraryView.as_view(), name="ml-itinerary"),
     path("ml/itinerary/modify/", views_ml.AIItineraryModificationView.as_view(), name="ml-itinerary-modify"),
+    # Mark an itinerary stop visited (plan -> execution tracking)
+    path("itinerary-stops/<int:pk>/visit/", views_itinerary.ItineraryStopVisitView.as_view(), name="itinerary-stop-visit"),
     path("ml/results/", views_ml.MLResultWebhookView.as_view(), name="ml-results-webhook"),
 
     # Compatibility endpoints

@@ -165,7 +165,8 @@ const Register = () => {
         <div className="flex-1 h-px bg-stone-200" /> or continue with{" "}
         <div className="flex-1 h-px bg-stone-200" />
       </div>
-      <div className="relative z-10"><SocialLoginButtons /></div>
+      {/* this page has its own divider above → hide the component's */}
+      <div className="relative z-10"><SocialLoginButtons showDivider={false} /></div>
 
       <p className="text-sm text-center text-stone-500 mt-6 relative z-10">
         Already have an account?{" "}

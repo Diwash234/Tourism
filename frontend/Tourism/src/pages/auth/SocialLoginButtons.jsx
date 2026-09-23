@@ -19,8 +19,12 @@ const GoogleMark = () => (
  * SocialLoginButtons
  * Redirects the browser (not a popup) to the provider's consent screen —
  * see utils/oauth.js. OAuthCallback.jsx handles the return trip.
+ *
+ * `showDivider` (default true): some pages (UserLogin, Register) render
+ * their OWN "or" divider above these buttons — pass showDivider={false}
+ * there, otherwise the divider appears TWICE (owner-reported bug).
  */
-const SocialLoginButtons = () => {
+const SocialLoginButtons = ({ showDivider = true }) => {
   // Ensures the public config (with OAuth client ids from the backend .env) is loaded.
   usePublicConfig()
   const googleReady = hasGoogleClientId()
@@ -28,11 +32,13 @@ const SocialLoginButtons = () => {
   const disabledCls = "flex items-center justify-center gap-2 border border-gray-100 rounded-xl py-2.5 text-sm font-medium text-gray-300 cursor-not-allowed"
   return (
   <div className="space-y-3">
-    <div className="flex items-center gap-3">
-      <div className="flex-1 h-px bg-gray-200" />
-      <span className="text-xs text-gray-400">or continue with</span>
-      <div className="flex-1 h-px bg-gray-200" />
-    </div>
+    {showDivider && (
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span className="text-xs text-gray-400">or continue with</span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
+    )}
 
     <div className="grid grid-cols-2 gap-3">
       {googleReady ? (
@@ -44,7 +50,7 @@ const SocialLoginButtons = () => {
         </a>
       ) : (
         <span className={disabledCls} title="Google sign-in is not configured on this server yet">
-          <GoogleMark /> Google (soon)
+          <GoogleMark /> Google unavailable
         </span>
       )}
       {githubReady ? (
@@ -56,7 +62,7 @@ const SocialLoginButtons = () => {
         </a>
       ) : (
         <span className={disabledCls} title="GitHub sign-in is not configured on this server yet">
-          <FiGithub size={18} /> GitHub (soon)
+          <FiGithub size={18} /> GitHub unavailable
         </span>
       )}
     </div>
