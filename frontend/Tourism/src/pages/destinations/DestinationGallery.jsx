@@ -44,7 +44,11 @@ const DestinationGallery = ({ coverImageUrl, gallery = [], destinationId, destin
     return () => {
       cancelled = true
     }
+<<<<<<< HEAD
      
+=======
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+>>>>>>> origin/arena/01a07999-tourism
   }, [destinationName, backendTotal])
 
   const liveUrls = liveImages.map((img) => img.url)

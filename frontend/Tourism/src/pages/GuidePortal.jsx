@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiUser, FiFileText, FiEdit3, FiCheckCircle, FiClock, FiAlertCircle, FiXCircle } from "react-icons/fi"
+<<<<<<< HEAD
 import PageHeader from "../components/common/PageHeader"
+=======
+>>>>>>> origin/arena/01a07999-tourism
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
@@ -150,12 +153,23 @@ export default function GuidePortal() {
   return (
     <div className="min-h-screen bg-[#F7F8F5]">
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-5">
+<<<<<<< HEAD
         <PageHeader
           theme="forest"
           title="Guide Portal"
           subtitle="Tourism workforce — apply, verify and manage your professional guide profile."
           actions={<Link to="/guides" className="rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 px-4 py-2 text-sm font-bold text-white">Browse verified guides →</Link>}
         />
+=======
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <span className="text-xs uppercase tracking-widest font-black text-[#102A2E]">Tourism Workforce</span>
+            <h1 className="text-3xl font-black text-slate-900">Guide Portal</h1>
+            <p className="text-sm text-slate-500">Apply, verify and manage your professional guide profile.</p>
+          </div>
+          <Link to="/guides" className="text-sm font-bold text-[#1D5146] hover:underline">Browse verified guides →</Link>
+        </div>
+>>>>>>> origin/arena/01a07999-tourism
 
         <div className="flex gap-1.5">
           {[["apply", "Apply"], ["status", `My Applications${applications.length ? ` (${applications.length})` : ""}`], ["profile", profile ? "My Profile" : "Profile (after approval)"], ["requests", profile ? `Booking Requests${requests.filter((r) => r.status === "requested").length ? ` (${requests.filter((r) => r.status === "requested").length})` : ""}` : "Booking Requests"], ["stats", "Earnings & Stats"]].map(([id, label]) => (

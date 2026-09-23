@@ -100,7 +100,11 @@ const SmartImage = ({
     return () => {
       cancelled = true
     }
+<<<<<<< HEAD
      
+=======
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+>>>>>>> origin/arena/01a07999-tourism
   }, [effectiveStatus, name, context, orientation])
 
   if (effectiveStatus === "backend") {

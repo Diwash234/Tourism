@@ -380,8 +380,13 @@ export default function HowItWorks() {
 
       {/* Quick Action Footer Callouts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<<<<<<< HEAD
         <div className="bg-gradient-to-br from-[#14503a] via-[#1f6b4d] to-[#0a281d] text-white rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl border border-emerald-800/40">
           <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">Ready to Explore?</span>
+=======
+        <div className="bg-gradient-to-br from-purple-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl border border-purple-800/40">
+          <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">Ready to Explore?</span>
+>>>>>>> origin/arena/01a07999-tourism
           <h3 className="text-2xl font-black">Discover Nepal's Heritage & Peaks</h3>
           <p className="text-slate-300 text-xs sm:text-sm">
             Browse verified destinations across all 7 provinces with live weather, maps, and safety advisories.

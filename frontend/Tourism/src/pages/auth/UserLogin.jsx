@@ -1,11 +1,18 @@
 import { useForm } from "react-hook-form"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
+<<<<<<< HEAD
 import { FiMail, FiLock, FiUser, FiLogIn, FiAlertCircle, FiHelpCircle, FiSend } from "react-icons/fi"
 import { motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import authApi from "../../api/authApi"
+=======
+import { FiMail, FiLock, FiUser, FiLogIn } from "react-icons/fi"
+import { motion } from "framer-motion"
+import useAuth from "../../hooks/useAuth"
+import useToast from "../../hooks/useToast"
+>>>>>>> origin/arena/01a07999-tourism
 import safeNextPath from "../../utils/safeNextPath"
 import AuthShell from "../../components/auth/AuthShell"
 import SocialLoginButtons from "./SocialLoginButtons"
@@ -19,6 +26,7 @@ export default function UserLogin() {
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(false)
+<<<<<<< HEAD
   // Specific failure reason from the backend (Round 21): the old UI only
   // showed one vague toast for every failure ("No active account…").
   const [loginError, setLoginError] = useState(null) // { code, detail }
@@ -71,6 +79,18 @@ export default function UserLogin() {
       if (code === "account_deactivated" || /verify/i.test(detail)) {
         setShowVerifyBox(true)
       }
+=======
+
+  const onSubmit = async (data) => {
+    setLoading(true)
+    try {
+      const userData = await login(data)
+      showToast(`Welcome back, ${userData?.first_name || userData?.email || "traveller"}!`, "success")
+      const next = safeNextPath(new URLSearchParams(location.search).get("next"))
+      navigate(location.state?.from?.pathname || next || "/dashboard")
+    } catch (err) {
+      showToast(err?.response?.data?.detail || "Invalid email or password", "error")
+>>>>>>> origin/arena/01a07999-tourism
     } finally { setLoading(false) }
   }
 
@@ -110,6 +130,7 @@ export default function UserLogin() {
           {errors.password && <p className="text-xs text-rose-600 mt-1">{errors.password.message}</p>}
         </div>
 
+<<<<<<< HEAD
         {loginError && (
           <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
             <div className="flex items-start gap-2">
@@ -135,6 +156,8 @@ export default function UserLogin() {
           </div>
         )}
 
+=======
+>>>>>>> origin/arena/01a07999-tourism
         <div className="flex items-center justify-between text-xs text-stone-500">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input type="checkbox" className="rounded accent-primary-600" /> Remember me
@@ -150,6 +173,7 @@ export default function UserLogin() {
         </motion.div>
       </form>
 
+<<<<<<< HEAD
       {/* Verify / activate account — the "activate account" option that
           was missing: resend the verification link without logging in. */}
       <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 relative z-10">
@@ -199,6 +223,12 @@ export default function UserLogin() {
       </div>
       {/* this page has its own "or" divider above → hide the component's */}
       <div className="relative z-10"><SocialLoginButtons showDivider={false} /></div>
+=======
+      <div className="my-5 flex items-center gap-3 text-xs text-stone-400 relative z-10">
+        <div className="flex-1 h-px bg-stone-200" /> or <div className="flex-1 h-px bg-stone-200" />
+      </div>
+      <div className="relative z-10"><SocialLoginButtons /></div>
+>>>>>>> origin/arena/01a07999-tourism
 
       <p className="text-sm text-center text-stone-500 mt-6 relative z-10">
         New to Nepal Tourism?{" "}

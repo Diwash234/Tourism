@@ -38,7 +38,11 @@ export default function FlowingMenu({
     const onResize = () => activeKey && moveTo(activeKey)
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
+<<<<<<< HEAD
      
+=======
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+>>>>>>> origin/arena/01a07999-tourism
   }, [activeKey])
 
   const onKey = (e, idx) => {

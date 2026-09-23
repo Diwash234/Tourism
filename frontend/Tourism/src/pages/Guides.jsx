@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiSearch, FiMapPin, FiAward, FiStar, FiRefreshCw, FiCalendar, FiMessageSquare } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
+<<<<<<< HEAD
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+=======
+>>>>>>> origin/arena/01a07999-tourism
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
@@ -78,7 +81,10 @@ export default function Guides() {
         title="Verified Local Guides"
         subtitle="Government-licensed, platform-verified guides across Nepal — trekking, cultural, wildlife and city specialists."
       />
+<<<<<<< HEAD
       <CMSPageIntro pageKey="guides" />
+=======
+>>>>>>> origin/arena/01a07999-tourism
       <div className="max-w-6xl mx-auto px-4 pb-16 -mt-6">
         <div className="bg-white rounded-3xl border shadow-sm p-4 flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
