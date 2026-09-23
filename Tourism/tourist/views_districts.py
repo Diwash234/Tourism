@@ -1,3 +1,9 @@
+"""Province / District public API (merged from devin dark-mode-compat layer).
+
+Honest design: district detail aggregates only REAL data rows (destinations,
+hospitals, police, hotels) and labels every empty facet "Information
+unavailable" — never fabricated content.
+"""
 """
 views_districts.py — administrative geography API (task-79 §5/§24).
 

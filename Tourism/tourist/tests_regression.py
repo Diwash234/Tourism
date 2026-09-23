@@ -2568,11 +2568,31 @@ class NearbyPOIsOverpassTests(TestCase):
         self.assertEqual(data["categories"]["banks"]["results"], [])
 
     def test_overpass_outage_is_honest_503(self):
+        """When the live Overpass provider is down, the outage must be
+        honestly disclosed — never presented as live OSM data.
+
+        Merged-design note: the current implementation is deliberately
+        kinder than a bare 503 — it serves admin-managed database places
+        (hospitals/police/stays) with clear provenance ("offline fallback",
+        a provider_error note) so "nearby hospital" still answers. The
+        honesty contract it pins is: the outage is disclosed, the source is
+        labelled, and no live-OSM provenance is claimed.
+        """
         from unittest.mock import patch
         with patch("requests.post", side_effect=Exception("network down")):
             resp = self.client.get("/api/v1/destinations/poi-town/nearby-pois/")
-        self.assertEqual(resp.status_code, 503)
-        self.assertIn("unavailable", resp.json()["detail"])
+        self.assertIn(resp.status_code, (200, 503))
+        if resp.status_code == 503:
+            self.assertIn("unavailable", resp.json()["detail"])
+        else:
+            data = resp.json()
+            # Outage disclosed + source clearly labelled as offline fallback.
+            self.assertTrue(data.get("provider_error"))
+            self.assertIn("unavailable", data.get("source", "").lower())
+            # No live-OSM provenance may be claimed for any served row.
+            for group in data.get("categories", {}).values():
+                for row in group.get("results", []):
+                    self.assertNotEqual(row.get("source"), "OpenStreetMap (Overpass API)")
 
     def test_unknown_destination_404_and_missing_coords_422(self):
         from tourist.models import Destination
@@ -2993,7 +3013,12 @@ class SqliteLockHardeningTests(TestCase):
 
 
 class DistrictArchitectureTests(TestCase):
-    """Task-79 §5/§24: 77-district structure + /api/v1/districts/ endpoints."""
+    """Task-79 §5/§24: 77-district structure + province/district profile API.
+
+Merge note: the devin profile endpoints moved to /provinces/ and
+/district-profiles/ — /api/v1/districts/ is kept for the live
+frontend's destination-derived district listing (see urls.py)."""
+
 
     @classmethod
     def setUpTestData(cls):
@@ -3014,14 +3039,14 @@ class DistrictArchitectureTests(TestCase):
         self.assertIsNotNone(rolpa.latitude)
 
     def test_district_list_endpoint(self):
-        res = self.client.get("/api/v1/districts/")
+        res = self.client.get("/api/v1/district-profiles/")
         self.assertEqual(res.status_code, 200)
         payload = res.json()
         self.assertEqual(payload["count"], 77)
-        search = self.client.get("/api/v1/districts/?search=rolpa").json()
+        search = self.client.get("/api/v1/district-profiles/?search=rolpa").json()
         self.assertEqual(search["count"], 1)
         self.assertEqual(search["results"][0]["name"], "Rolpa")
-        by_province = self.client.get("/api/v1/districts/?province=koshi").json()
+        by_province = self.client.get("/api/v1/district-profiles/?province=koshi").json()
         self.assertEqual(by_province["count"], 14)
 
     def test_province_endpoint(self):
@@ -3039,7 +3064,7 @@ class DistrictArchitectureTests(TestCase):
             latitude=28.42, longitude=82.70, category=category,
             status=Destination.SubmissionStatus.APPROVED, is_active=True,
         )
-        payload = self.client.get("/api/v1/districts/rolpa/").json()
+        payload = self.client.get("/api/v1/district-profiles/rolpa/").json()
         self.assertEqual(payload["province"], "Lumbini")
         self.assertGreaterEqual(payload["destination_count"], 1)
         names = [d["name"] for bucket in payload["destinations_by_category"].values() for d in bucket]
@@ -3054,12 +3079,12 @@ class DistrictArchitectureTests(TestCase):
         self.assertIn("Auto-generated", payload["summary"])
 
     def test_district_without_data_gets_honest_note(self):
-        payload = self.client.get("/api/v1/districts/humla/").json()
+        payload = self.client.get("/api/v1/district-profiles/humla/").json()
         self.assertIn("data_note", payload)
         self.assertIn("No verified tourism places", payload["data_note"])
 
     def test_unknown_district_404(self):
-        self.assertEqual(self.client.get("/api/v1/districts/atlantis/").status_code, 404)
+        self.assertEqual(self.client.get("/api/v1/district-profiles/atlantis/").status_code, 404)
 
 
 class TravelOptionsTests(TestCase):

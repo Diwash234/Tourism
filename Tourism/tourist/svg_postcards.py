@@ -634,6 +634,28 @@ def _sil_general(hue: int) -> str:
     return _sil_mountains(hue)
 
 
+def _sil_hospital(hue: int) -> str:
+    return f"""
+    <rect x="0" y="400" width="800" height="100" fill="hsl({hue%360},20%,40%)"/>
+    <!-- Hospital building -->
+    <rect x="200" y="230" width="400" height="170" fill="#f2f0ea"/>
+    <polygon points="190,230 610,230 560,195 240,195" fill="#7a8a94"/>
+    <!-- Windows -->
+    <g fill="#b8d4e8" stroke="#8a8a8a" stroke-width="0.5">
+      <rect x="230" y="260" width="30" height="30"/><rect x="290" y="260" width="30" height="30"/>
+      <rect x="480" y="260" width="30" height="30"/><rect x="540" y="260" width="30" height="30"/>
+      <rect x="230" y="310" width="30" height="30"/><rect x="290" y="310" width="30" height="30"/>
+      <rect x="480" y="310" width="30" height="30"/><rect x="540" y="310" width="30" height="30"/>
+    </g>
+    <!-- Cross emblem -->
+    <rect x="365" y="255" width="70" height="70" rx="8" fill="#ffffff" stroke="#c0392b" stroke-width="3"/>
+    <rect x="392" y="267" width="16" height="46" fill="#c0392b"/>
+    <rect x="377" y="282" width="46" height="16" fill="#c0392b"/>
+    <!-- Door -->
+    <rect x="365" y="350" width="70" height="50" fill="#4a5a64"/>
+"""
+
+
 def _sil_hotel(hue: int) -> str:
     return f"""
     <rect x="0" y="400" width="800" height="100" fill="hsl({hue%360},20%,40%)"/>
@@ -866,6 +888,13 @@ CATEGORY_SILHOUETTES = {
     "guest_house": _sil_hotel,
     "hostel": _sil_hotel,
     "motel": _sil_hotel,
+    "hospital": _sil_hospital,
+    "hospitals": _sil_hospital,
+    "medical": _sil_hospital,
+    "clinic": _sil_hospital,
+    "restaurant": _sil_food,
+    "restaurants": _sil_food,
+    "dining": _sil_food,
     "homestay": _sil_village,
     "general": _sil_general,
 }

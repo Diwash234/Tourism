@@ -129,6 +129,10 @@ def _stored_image_url(obj):
     image = getattr(obj, "image", None)
     if not image:
         return None
+    raw = getattr(image, "name", None) or str(image)
+    if raw.startswith("/"):
+        # Absolute site URL (deterministic postcard route) — serve as-is.
+        return raw
     try:
         return image.url
     except (ValueError, AttributeError):
@@ -487,41 +491,75 @@ class NavigationRouteView(APIView):
         }
         mode_route_type, mode_speed = MODE_PROFILES.get(transport_mode, (route_type, 40))
 
-        # §16/§17: ground modes ride the real road-routing provider chain
-        # first (OSRM -> labelled fallbacks). The tourism graph remains the
-        # fallback of last resort and flights never use road routing.
-        result = None
-        if transport_mode != "flight":
-            try:
-                from navigation import route_engine as _nav_engine
-                _NAV_MODE = {"private car / taxi": "driving",
-                             "motorcycle": "motorcycle",
-                             "walking / trek": "walking"}
-                _nav_mode = _NAV_MODE.get(transport_mode, "driving")
-                _nav, _cached = _nav_engine.cached_route(
-                    (start_lat, start_lon), (end_lat, end_lon), _nav_mode,
-                    request=request)
-                _nr = _nav["route"]
-                _is_osrm = _nr["source"] == "osrm"
-                result = {
-                    "route": [{"lat": g[0], "lng": g[1]} for g in _nr["geometry"]],
-                    "distance_km": round(_nr["distance_m"] / 1000.0, 2),
-                    "duration_min": (round(_nr["duration_s"] / 60.0)
-                                     if _is_osrm and transport_mode != "tourist bus"
-                                     else None),
-                    "steps": _nr.get("steps", []),
-                    "source": _nr["source"],
-                    "navigation_grade": _is_osrm,
-                    "geometry": _nr["geometry"],
-                    "note": _nr.get("note"),
-                    "routing_engine": f"road_provider:{_nr['source']}",
-                }
-                if _is_osrm and result["duration_min"] is not None:
-                    result["duration_source"] = "routing_engine"
-                    result["duration_note"] = "Duration supplied by the road-routing provider."
-            except Exception:
-                result = None  # any routing failure -> honest graph fallback below
-        if result is None:
+        # Multi-stop routing (Phase 4): up to 3 waypoints, each a place name
+        # (resolved through the same index as destinations — never guessed)
+        # or explicit {latitude, longitude}. Every leg is routed through the
+        # same engine/honesty pipeline; totals are leg sums, nothing invented.
+        raw_waypoints = request.data.get("waypoints") or []
+        if not isinstance(raw_waypoints, list):
+            return Response({"detail": "waypoints must be a list of place names or {latitude, longitude} objects."}, status=status.HTTP_400_BAD_REQUEST)
+        resolved_waypoints = []
+        for waypoint in raw_waypoints:
+            if isinstance(waypoint, dict):
+                try:
+                    wlat = _parse_float(waypoint.get("latitude", waypoint.get("lat")), "waypoint latitude")
+                    wlon = _parse_float(waypoint.get("longitude", waypoint.get("lng", waypoint.get("lon"))), "waypoint longitude")
+                except ValueError as exc:
+                    return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+                resolved_waypoints.append({"name": str(waypoint.get("name") or "Waypoint")[:120], "latitude": wlat, "longitude": wlon})
+            elif isinstance(waypoint, str) and waypoint.strip():
+                from .location.search_service import LocationSearchService
+                resolved_wp = LocationSearchService.resolve_single_place(waypoint.strip())
+                if not (resolved_wp and resolved_wp.get("latitude") and resolved_wp.get("longitude")):
+                    return Response(
+                        {"detail": f"No place with recorded coordinates matches waypoint '{waypoint}'. Use a known place name or exact coordinates."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                resolved_waypoints.append({"name": resolved_wp.get("name") or waypoint.strip(), "latitude": float(resolved_wp["latitude"]), "longitude": float(resolved_wp["longitude"])})
+        if len(resolved_waypoints) > 3:
+            return Response({"detail": "Up to 3 waypoints are supported per route."}, status=status.HTTP_400_BAD_REQUEST)
+        if resolved_waypoints and transport_mode == "flight":
+            return Response({"detail": "Multi-stop routing is not available for flights — no flight schedule data is invented."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if resolved_waypoints:
+            leg_points = [(start_lat, start_lon)] + [(w["latitude"], w["longitude"]) for w in resolved_waypoints] + [(end_lat, end_lon)]
+            merged_route, merged_steps = [], []
+            total_km, total_min, all_durations, engines = 0.0, 0.0, True, set()
+            for idx in range(len(leg_points) - 1):
+                leg = get_ml_best_route(leg_points[idx][0], leg_points[idx][1], leg_points[idx + 1][0], leg_points[idx + 1][1], route_type=mode_route_type or "fastest")
+                if leg is None:
+                    return Response({"detail": "Routing service is currently unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                if leg.get("error"):
+                    return Response({"detail": f"Leg {idx + 1} of {len(leg_points) - 1}: {leg['error']}"}, status=status.HTTP_404_NOT_FOUND)
+                coords = leg.get("route", [])
+                if merged_route and coords:
+                    coords = coords[1:]  # junction point already drawn
+                merged_route.extend(coords)
+                if idx < len(resolved_waypoints):
+                    merged_steps.append({"instruction": f"Waypoint {idx + 1}: pass through {resolved_waypoints[idx]['name']}", "distance_m": 0, "distance_km": 0, "is_waypoint": True})
+                merged_steps.extend(leg.get("steps") or [])
+                total_km += float(leg.get("distance_km") or 0)
+                if leg.get("duration_min") is not None:
+                    total_min += float(leg["duration_min"])
+                else:
+                    all_durations = False
+                if leg.get("routing_engine"):
+                    engines.add(str(leg["routing_engine"]))
+            has_duration = all_durations and total_min > 0
+            result = {
+                "distance_km": round(total_km, 2),
+                "duration_min": round(total_min) if has_duration else None,
+                "duration_source": "estimated" if has_duration else None,
+                "duration_note": "Sum of per-leg average-speed estimates; not a live traffic prediction." if has_duration else None,
+                "route": merged_route,
+                "steps": merged_steps,
+                "routing_engine": "+".join(sorted(engines)) if engines else None,
+                "waypoints": resolved_waypoints,
+                "straight_line_km": round(haversine_distance(start_lat, start_lon, end_lat, end_lon), 2),
+                "road_distance_km": None,
+                "note": "Multi-stop route: every leg routed on the same engine as single-stop routes; totals are leg sums.",
+            }
+        else:
             result = get_ml_best_route(start_lat, start_lon, end_lat, end_lon, route_type=mode_route_type or "fastest")
         if result is None:
             return Response(
@@ -557,8 +595,7 @@ class NavigationRouteView(APIView):
             response_data["duration_min"] = None
             response_data["duration_source"] = "unavailable"
             response_data["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
-        elif (transport_mode == "walking / trek" and response_data.get("distance_km")
-              and response_data.get("source") != "osrm"):
+        elif transport_mode == "walking / trek" and response_data.get("distance_km"):
             # The road/tourism graph's own duration is a driving estimate —
             # never present it as walking time. Recompute at trekking pace.
             response_data["duration_min"] = round((response_data["distance_km"] / mode_speed) * 60)
@@ -575,6 +612,22 @@ class NavigationRouteView(APIView):
             response_data["duration_source"] = "routing_engine"
             response_data["duration_note"] = response_data.get("note") or "Duration supplied by the routing engine."
 
+        # Legacy contract (pre-merge Navigation page): labelled engine
+        # provenance keys. Ground modes only — flights ride the straight
+        # line and must not carry a road-grade label.
+        if transport_mode != "flight":
+            _engine = str(response_data.get("routing_engine") or "")
+            if "osrm" in _engine or "provider" in _engine:
+                _source = "osrm"
+            elif "graphml" in _engine or "graph" in _engine:
+                _source = "graphml_fallback"
+            else:
+                _source = "straight_line_fallback"
+            response_data["source"] = _source
+            response_data["navigation_grade"] = _source == "osrm"
+            if not _engine.startswith("road_provider:"):
+                response_data["routing_engine"] = f"road_provider:{_engine or 'straight_line'}"
+
         if destination_obj:
             response_data["destination"] = DestinationListSerializer(destination_obj, context={"request": request}).data
         elif destination_dict:
@@ -586,7 +639,31 @@ class NavigationRouteView(APIView):
                 "longitude": start_lon,
                 "resolved_from": "origin_name",
             }
+
+        # Route alternatives (Phase-2 selector): different graph weightings
+        # on the bundled engine, or the provider's own alternatives=true
+        # routes when a street-level provider is configured. Same duration
+        # honesty rules as the primary: no invented times for bus/flight.
+        if transport_mode != "flight" and response_data.get("route") and not resolved_waypoints:
+            from .routing_service import route_alternatives
+            alternatives = route_alternatives(
+                start_lat, start_lon, end_lat, end_lon,
+                primary_route_type=mode_route_type or route_type or "fastest",
+                primary_route=result.get("route", []),
+            )
+            for alt in alternatives:
+                if transport_mode == "tourist bus":
+                    alt["duration_min"] = None
+                    alt["duration_source"] = "unavailable"
+                    alt["duration_note"] = "Public transit data unavailable for this route — road distance is shown, bus times are not invented."
+                elif transport_mode == "walking / trek" and alt.get("distance_km"):
+                    alt["duration_min"] = round((alt["distance_km"] / mode_speed) * 60)
+                    alt["duration_source"] = "estimated"
+                    alt["duration_note"] = f"Estimated at ~{mode_speed:g} km/h trekking pace over {alt['distance_km']} km of route distance."
+            if alternatives:
+                response_data["alternatives"] = alternatives
         return Response(response_data)
+
 
 
 class WeatherByCoordinatesView(APIView):
@@ -643,7 +720,12 @@ class NearbyPlacesCompatView(APIView):
                 lat = float(geo["latitude"])
                 lon = float(geo["longitude"])
             else:
-                lat, lon = 28.2096, 83.9856
+                # Never a silent default-city fallback: a nearby search is
+                # meaningless without a real origin, so say so (400).
+                return Response(
+                    {"detail": "lat and lng query params are required — your location could not be determined."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Accept both radius (metres) and radius_km (kilometres, what the
         # Navigation page sends) — previously radius_km was silently ignored

@@ -7,6 +7,7 @@ from . import views_auth
 from . import views_admin
 from . import views_compat
 from . import views_discovery
+from . import views_districts
 from . import views_family_safety
 from . import views_images
 from . import views_itinerary
@@ -172,12 +173,14 @@ urlpatterns = [
     path("reports/submit/", views_navigation.UserDataReportSubmitView.as_view(), name="user-report-submit"),
     path("admin/data-health/", views_navigation.AdminDataHealthView.as_view(), name="admin-data-health"),
     path("admin/navigation-analytics/", views_navigation.AdminNavigationAnalyticsView.as_view(), name="admin-navigation-analytics"),
+    path("admin/routing-provider/", views_admin.AdminRoutingProviderView.as_view(), name="admin-routing-provider"),
     path("admin/data-reports/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports"),
     path("admin/data-reports/<int:pk>/", views_navigation.AdminReportManagementView.as_view(), name="admin-data-reports-detail"),
     # --- unified /api/v1/navigation/* surface ---
     path("navigation/route-options/", views_navigation.RouteOptionsView.as_view(), name="navigation-route-options"),
     path("navigation/routes/<int:pk>/recalculate/", views_navigation.UserRouteRecalculateView.as_view(), name="navigation-route-recalculate"),
     path("navigation/provinces/", views_navigation.ProvinceNavigationView.as_view(), name="navigation-provinces"),
+    path("navigation/travel-options/", views_navigation.TravelOptionsView.as_view(), name="travel-options"),
     path("navigation/travel-plan/", views_navigation.TravelPlannerView.as_view(), name="navigation-travel-plan"),
     path("navigation/travel-between/", views_navigation.TravelBetweenDestinationsView.as_view(), name="navigation-travel-between"),
     path("navigation/places/search/", views_navigation.UniversalPlaceSearchView.as_view(), name="navigation-places-search"),
@@ -286,8 +289,18 @@ urlpatterns = [
     path("destinations/mood-recommendations/", views.MoodRecommendationsView.as_view(), name="mood-recommendations"),
     path("gallery/featured/", views.FeaturedGalleryView.as_view(), name="featured-gallery"),
     path("gallery/districts/", views.DistrictGalleryView.as_view(), name="district-gallery"),
+    # /districts/ stays on OUR views (the live frontend — Discover Nepal /
+    # Explore Map — consumes that shape: districts[], public_destinations,
+    # cities, top_destinations, coverage_status).
     path("districts/", views.DistrictsListView.as_view(), name="districts-list"),
     path("districts/<str:district_name>/", views.DistrictDetailView.as_view(), name="district-detail"),
+    # Province / district profile API (merged from the devin dark-mode line)
+    # lives on its own paths so both merged contracts coexist.
+    path("provinces/", views_districts.ProvinceListView.as_view(), name="province-list"),
+    path("district-profiles/", views_districts.DistrictListView.as_view(), name="district-profile-list"),
+    path("district-profiles/<slug:slug>/", views_districts.DistrictDetailView.as_view(), name="district-profile-detail"),
+    path("seo/sitemap.xml", views.SitemapView.as_view(), name="sitemap"),
+    path("seo/robots.txt", views.RobotsTxtView.as_view(), name="robots"),
     path("destinations/<str:destination_ref>/risk/", views.DestinationRiskAssessmentView.as_view(), name="destination-risk-assessment"),
     path("recommendation-events/", views.RecommendationEventView.as_view(), name="recommendation-events"),
     path("destinations/<str:destination_ref>/emergency/", views.DestinationEmergencyServicesView.as_view(), name="destination-emergency-services"),
