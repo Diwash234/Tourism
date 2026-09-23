@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import secrets
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -8,17 +10,24 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import EmailVerificationToken, PasswordResetToken, SMSVerificationToken
+from .models import EmailVerificationToken, PasswordResetOTP, PasswordResetToken, SMSVerificationToken
 from .serializers import (
     RegisterSerializer,
     UserProfileSerializer,
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
+    ResetPasswordOtpRequestSerializer,
+    ResetPasswordOtpVerifySerializer,
     ResetPasswordSerializer,
     VerifyEmailSerializer,
     UpdateLocationSerializer,
 )
-from .utils import send_email_notification_async, resolve_location, issue_phone_verification
+from .utils import (
+    send_email_notification_async,
+    send_sms_notification_async,
+    resolve_location,
+    issue_phone_verification,
+)
 
 User = get_user_model()
 
@@ -379,6 +388,153 @@ class ResetPasswordView(APIView):
         return Response({"message": "Password reset successful. You can now log in."})
 
 
+RESET_OTP_TTL_MINUTES = 10
+RESET_OTP_RESEND_COOLDOWN_SECONDS = 60
+RESET_OTP_NEUTRAL_MESSAGE = (
+    "If that email belongs to an account, a one-time code has been sent to the "
+    "email or phone number on file. It expires in 10 minutes."
+)
+
+
+def _twilio_configured():
+    from django.conf import settings as djsettings
+
+    return bool(
+        djsettings.TWILIO_ACCOUNT_SID
+        and djsettings.TWILIO_AUTH_TOKEN
+        and djsettings.TWILIO_FROM_NUMBER
+    )
+
+
+class ResetPasswordOtpRequestView(APIView):
+    """
+    POST /auth/reset-password/otp/request/  {"email"}
+
+    Sends a 6-digit one-time code for the password-reset flow. Delivery
+    channel: SMS to the account's phone when Twilio is configured AND the
+    account has a number on file, otherwise email. Responds with the SAME
+    neutral message in every case (unknown email, cooldown, delivery) so
+    the endpoint cannot be used to enumerate registered emails.
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "password_reset"
+    serializer_class = ResetPasswordOtpRequestSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({"message": RESET_OTP_NEUTRAL_MESSAGE})
+
+        recent = PasswordResetOTP.objects.filter(user=user).order_by("-created_at").first()
+        if recent and (timezone.now() - recent.created_at).total_seconds() < RESET_OTP_RESEND_COOLDOWN_SECONDS:
+            return Response({"message": RESET_OTP_NEUTRAL_MESSAGE})
+
+        code = f"{secrets.randbelow(10 ** 6):06d}"
+        otp_message = (
+            f"Your Tourism Portal password reset code is {code}. "
+            f"It expires in {RESET_OTP_TTL_MINUTES} minutes. "
+            "If you did not request this, ignore this message."
+        )
+
+        channel = "email"
+        delivered = False
+        if _twilio_configured() and user.phone_number:
+            channel = "sms"
+            delivered = send_sms_notification_async(user.phone_number, otp_message)
+        if not delivered:
+            channel = "email"
+            send_email_notification_async(
+                user.email,
+                "Your password reset code - Tourism Portal",
+                f"Hi {user.first_name or 'traveller'},\n\n"
+                f"Your one-time password reset code: {code}\n\n"
+                f"Enter it on the 'Forgot password' page. It expires in {RESET_OTP_TTL_MINUTES} minutes.\n\n"
+                "If you did not request this, you can ignore this message.\n"
+                "— Tourism Portal",
+            )
+
+        otp = PasswordResetOTP.objects.create(
+            user=user, code=code, channel=channel,
+            expires_at=timezone.now() + timedelta(minutes=RESET_OTP_TTL_MINUTES),
+        )
+        # Only the latest code is ever valid.
+        PasswordResetOTP.objects.filter(user=user).exclude(pk=otp.pk).update(is_used=True)
+        return Response({"message": RESET_OTP_NEUTRAL_MESSAGE})
+
+
+class ResetPasswordOtpVerifyView(APIView):
+    """
+    POST /auth/reset-password/otp/verify/  {"email", "code", "new_password"}
+
+    Verifies the 6-digit code and changes the password in one step, then
+    revokes every active session (all refresh tokens) for the account so
+    the user (and anyone else) must log in again with the new password.
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "password_reset"
+    serializer_class = ResetPasswordOtpVerifySerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+        code = serializer.validated_data["code"]
+        new_password = serializer.validated_data["new_password"]
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({"detail": "Incorrect code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp = PasswordResetOTP.objects.filter(user=user).order_by("-created_at").first()
+        if not otp:
+            return Response(
+                {"detail": "No code is pending for this account. Request one first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if otp.is_used:
+            return Response(
+                {"detail": "That code has already been used. Request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if timezone.now() >= otp.expires_at:
+            return Response(
+                {"detail": f"Code expired ({RESET_OTP_TTL_MINUTES}-minute lifetime). Request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if otp.code != code:
+            otp.attempt_count += 1
+            otp.save(update_fields=["attempt_count"])
+            remaining = max(0, 5 - otp.attempt_count)
+            return Response(
+                {"detail": f"Incorrect code. {remaining} attempts remaining before this code is locked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        otp.is_used = True
+        otp.save(update_fields=["is_used"])
+
+        # Revoke all active sessions for this account — the whole point is
+        # that after a reset only the NEW password works anywhere.
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+
+            OutstandingToken.objects.filter(user=user).delete()
+        except Exception:  # pragma: no cover - blacklist app is a hard dependency
+            pass
+
+        return Response(
+            {"message": "Password updated successfully. Log in again with your new password."}
+        )
+
+
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ChangePasswordSerializer
@@ -393,7 +549,20 @@ class ChangePasswordView(APIView):
 
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password"])
-        return Response({"message": "Password changed successfully."})
+
+        # Revoke every session (this one included) so the user must log in
+        # again with the new password — the old password stops working
+        # everywhere, immediately.
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+
+            OutstandingToken.objects.filter(user=user).delete()
+        except Exception:  # pragma: no cover
+            pass
+
+        return Response(
+            {"message": "Password changed successfully. Log in again with your new password."}
+        )
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):

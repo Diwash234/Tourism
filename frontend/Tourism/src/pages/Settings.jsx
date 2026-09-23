@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import { useNavigate } from "react-router-dom"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useEffect, useState } from "react"
@@ -27,6 +28,8 @@ import {
 
 const ChangePasswordCard = () => {
   const { showToast } = useToast()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -45,8 +48,14 @@ const ChangePasswordCard = () => {
     setBusy(true)
     try {
       await userApi.changePassword({ old_password: oldPassword, new_password: newPassword })
-      showToast("Password changed successfully.", "success")
+      // The backend revokes ALL sessions on password change, so the user
+      // must log in again with the new password (old one is dead).
+      showToast("Password changed! Please log in again with your new password.", "success")
       setOldPassword(""); setNewPassword(""); setConfirmPassword("")
+      setTimeout(async () => {
+        await logout()
+        navigate("/login", { replace: true })
+      }, 600)
     } catch (err) {
       const detail = err?.response?.data
       const msg = detail?.old_password || detail?.new_password || detail?.detail || "Could not change password."

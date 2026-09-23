@@ -2,6 +2,47 @@
 
 ---
 
+## 🔑 Round 21c: Password reset by OTP + re-login enforced on every password change
+
+Owner request: the Forgot-password page should offer a **one-time code**
+alternative to the emailed link — request code → enter the correct OTP →
+change password → log in again with the updated password. And the
+Profile/Settings "Change Password" option must do the same re-login
+enforcement.
+
+### Forgot-password page (`/forgot-password`) — now two methods
+- **Email link** (unchanged): `POST /auth/forgot-password/` → link valid 1 h.
+- **One-time code** (NEW):
+  - `POST /auth/reset-password/otp/request/` `{email}` → 6-digit code,
+    valid 10 minutes, sent to the account's **phone via SMS (Twilio) when
+    a number + Twilio are configured, otherwise by email**. Same neutral
+    reply for unknown emails (no account enumeration), 60 s per-account
+    resend cooldown (Twilio cost + brute force).
+  - `POST /auth/reset-password/otp/verify/` `{email, code, new_password}`
+    → verifies and changes the password in one step. 5 wrong attempts
+    lock the code; expired/used codes are rejected with specific reasons.
+  - Frontend: tab picker on the page, big 6-digit input, 60 s resend
+    countdown, new password + confirm, then a "Log in with your new
+    password" step.
+
+### Re-login enforced everywhere a password changes
+- After a successful OTP reset **or** profile change-password, the
+  backend deletes **all** of the account's refresh tokens
+  (`token_blacklist` OutstandingToken rows) — the old password is dead
+  on every device, and everyone must log in with the new one.
+- Settings → Change Password card now tells the user this and signs the
+  browser out to the login page right after the success toast.
+
+### Verification (all live)
+- Registered a real user → requested OTP (code delivered via email
+  channel) → wrong code rejected with attempts remaining → correct code
+  + new password accepted → **old password 401, new password logs in**.
+- 4 new backend tests (neutral reply + cooldown, full flow + session
+  revocation, reuse/expiry rejection, change-password revocation).
+  Full suite: 527 tests OK. Frontend lint 0 problems, build green.
+
+---
+
 ## 🔀 Round 21b: Merge of main's "last" update — itinerary / field-verification / trip-feedback revived; login page de-duplicated
 
 Owner request: merge the main-branch "last" commit (the "GPS-oriented"

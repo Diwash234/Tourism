@@ -161,6 +161,133 @@ class AuthTests(APITestCase):
         self.assertEqual(verified.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("already verified", verified.data["detail"].lower())
 
+    # ------------------------------------------------------------------
+    # Password reset via 6-digit OTP (code + new password in one step)
+    # ------------------------------------------------------------------
+    def _request_reset_otp(self, email):
+        from django.core.cache import cache
+
+        cache.clear()  # password_reset scope is 5/min; keep tests isolated
+        return self.client.post(reverse("auth-reset-password-otp-request"), {"email": email})
+
+    def _verify_reset_otp(self, email, code, new_password):
+        return self.client.post(
+            reverse("auth-reset-password-otp-verify"),
+            {"email": email, "code": code, "new_password": new_password},
+        )
+
+    def test_reset_otp_request_neutral_and_cooldown(self):
+        from .models import PasswordResetOTP
+
+        user = User.objects.create_user(email="otpreset@example.com", password="StrongPass123!")
+
+        first = self._request_reset_otp("otpreset@example.com")
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertIn("one-time code", first.data["message"])
+        self.assertEqual(PasswordResetOTP.objects.filter(user=user).count(), 1)
+
+        # unknown email → identical neutral message (no user enumeration)
+        unknown = self._request_reset_otp("ghost@example.com")
+        self.assertEqual(unknown.data["message"], first.data["message"])
+
+        # immediate resend is suppressed (60s per-account cooldown)
+        again = self._request_reset_otp("OTPreset@example.com")
+        self.assertEqual(again.status_code, status.HTTP_200_OK)
+        self.assertEqual(PasswordResetOTP.objects.filter(user=user).count(), 1)
+
+    def test_reset_otp_full_flow_changes_password_and_revokes_sessions(self):
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        from .models import PasswordResetOTP
+
+        user = User.objects.create_user(email="otpflow@example.com", password="OldPass123!", is_verified=True)
+        login_resp = self.client.post(reverse("auth-login"), {"email": "otpflow@example.com", "password": "OldPass123!"})
+        old_jti = RefreshToken(login_resp.data["refresh"]).payload["jti"]
+        self.assertTrue(OutstandingToken.objects.filter(user=user, jti=old_jti).exists())
+
+        self._request_reset_otp("otpflow@example.com")
+        otp = PasswordResetOTP.objects.get(user=user)
+
+        # wrong code is rejected and the attempt is counted
+        bad = self._verify_reset_otp("otpflow@example.com", "000000" if otp.code != "000000" else "111111", "NewPass456!")
+        self.assertEqual(bad.status_code, status.HTTP_400_BAD_REQUEST)
+        otp.refresh_from_db()
+        self.assertEqual(otp.attempt_count, 1)
+
+        # correct code → password updated + code consumed
+        ok = self._verify_reset_otp("otpflow@example.com", otp.code, "NewPass456!")
+        self.assertEqual(ok.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("NewPass456!"))
+        self.assertFalse(user.check_password("OldPass123!"))
+        otp.refresh_from_db()
+        self.assertTrue(otp.is_used)
+
+        # ...and the user can log in with the NEW password
+        relogin = self.client.post(reverse("auth-login"), {"email": "otpflow@example.com", "password": "NewPass456!"})
+        self.assertEqual(relogin.status_code, status.HTTP_200_OK)
+
+        # every pre-reset session was revoked (old refresh token is dead)
+        self.assertFalse(OutstandingToken.objects.filter(user=user, jti=old_jti).exists())
+
+    def test_reset_otp_code_reuse_and_expiry_rejected(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        from .models import PasswordResetOTP
+
+        user = User.objects.create_user(email="otpexpiry@example.com", password="StrongPass123!")
+        self._request_reset_otp("otpexpiry@example.com")
+        otp = PasswordResetOTP.objects.get(user=user)
+
+        used = self._verify_reset_otp("otpexpiry@example.com", otp.code, "NewPass456!")
+        self.assertEqual(used.status_code, status.HTTP_200_OK)
+
+        # the same code cannot be used twice
+        reuse = self._verify_reset_otp("otpexpiry@example.com", otp.code, "Another123!")
+        self.assertEqual(reuse.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("already been used", reuse.data["detail"])
+
+        # an expired code is rejected
+        expired_code = PasswordResetOTP.objects.create(
+            user=user, code="123456",
+            expires_at=timezone.now() - timedelta(minutes=1),
+        )
+        expired = self._verify_reset_otp("otpexpiry@example.com", expired_code.code, "Another123!")
+        self.assertEqual(expired.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("expired", expired.data["detail"].lower())
+
+    def test_change_password_revokes_sessions(self):
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        user = User.objects.create_user(email="chgpass@example.com", password="OldPass123!", is_verified=True)
+        login_resp = self.client.post(reverse("auth-login"), {"email": "chgpass@example.com", "password": "OldPass123!"})
+        access = login_resp.data["access"]
+        old_jti = RefreshToken(login_resp.data["refresh"]).payload["jti"]
+
+        wrong = self.client.post(
+            reverse("auth-change-password"),
+            HTTP_AUTHORIZATION=f"Bearer {access}",
+            data={"old_password": "WrongPass1!", "new_password": "NewPass456!"},
+        )
+        self.assertEqual(wrong.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("old_password", wrong.data)
+
+        ok = self.client.post(
+            reverse("auth-change-password"),
+            HTTP_AUTHORIZATION=f"Bearer {access}",
+            data={"old_password": "OldPass123!", "new_password": "NewPass456!"},
+        )
+        self.assertEqual(ok.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("NewPass456!"))
+        # all sessions (incl. the current one) are revoked
+        self.assertFalse(OutstandingToken.objects.filter(user=user, jti=old_jti).exists())
+        relogin = self.client.post(reverse("auth-login"), {"email": "chgpass@example.com", "password": "NewPass456!"})
+        self.assertEqual(relogin.status_code, status.HTTP_200_OK)
+
 
 class DestinationTests(APITestCase):
     def setUp(self):

@@ -182,6 +182,26 @@ class PasswordResetToken(models.Model):
         return not self.is_used and timezone.now() < self.expires_at
 
 
+class PasswordResetOTP(models.Model):
+    """
+    6-digit one-time code for the password-reset flow, for users who prefer
+    (or need) a code instead of clicking the emailed link. Delivered to the
+    account's phone via SMS (Twilio) when a number + Twilio are configured,
+    otherwise to the account's email. Same shape as SMSVerificationToken
+    (short numeric code, attempt-count brute-force guard, 10-minute life).
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reset_otps")
+    code = models.CharField(max_length=6)
+    channel = models.CharField(max_length=10, default="email", help_text="email | sms")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempt_count = models.PositiveSmallIntegerField(default=0)  # brute-force guard
+
+    def is_valid(self):
+        return not self.is_used and self.attempt_count < 5 and timezone.now() < self.expires_at
+
+
 # ---------------------------------------------------------------------------
 # Tourism module
 # ---------------------------------------------------------------------------

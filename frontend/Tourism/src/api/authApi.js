@@ -11,6 +11,16 @@ const authApi = {
   resetPassword: (payload) =>
     axiosClient.post("/auth/reset-password/", payload),
 
+  // NEW: password reset via 6-digit one-time code (alternative to the
+  // emailed link). Request → backend sends the code by SMS (Twilio, when
+  // the account has a phone + Twilio is configured) or email. Verify →
+  // code + new password change the password in one step and revoke all
+  // sessions for the account.
+  resetPasswordOtpRequest: (email) =>
+    axiosClient.post("/auth/reset-password/otp/request/", { email }),
+  resetPasswordOtpVerify: (payload) =>
+    axiosClient.post("/auth/reset-password/otp/verify/", payload),
+
   // FIX: verifyEmail was only in the legacy services/api.js — the
   // backend emails a /verify-email?token=... link, and without this
   // method (and the page that uses it) newly registered users could

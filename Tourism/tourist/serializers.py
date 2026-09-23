@@ -170,6 +170,23 @@ class ResetPasswordSerializer(serializers.Serializer):
         return value
 
 
+class ResetPasswordOtpRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordOtpVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.RegexField(
+        r"^\d{6}$",
+        error_messages={"invalid": "The code is the 6-digit number you received."},
+    )
+    new_password = serializers.CharField()
+
+    def validate_new_password(self, value):
+        password_validation.validate_password(value)
+        return value
+
+
 class VerifyEmailSerializer(serializers.Serializer):
     token = serializers.UUIDField()
 
