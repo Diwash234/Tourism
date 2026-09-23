@@ -1751,3 +1751,11 @@ and category SVGs this branch carried are already in our tree via the earlier me
 EVERY file carried by 01a00b65 (2026-08-18) is byte-identical in our tree — zero content
 lost. Gained (auto-merged, 3 files): scripts/fix_round24_dead_covers.py,
 scripts/fix_round24b_overshared.py, src/api/localApi.js (case-variant legacy of LocalApi.js).
+
+## Merge: arena/01a01f4c-tourism (Round 22c — 2026-09-23)
+
+119 conflicts, all resolved to our line. Feature-marker audit of all conflicted files:
+the only their-side definitions absent from ours were scoreFromAlerts (now shared in
+utils/safetyScore.js), views_compat image helpers (evolved into _stored_image_url et al.),
+the custom JWT token pair (our CustomLoginView supersedes it) and the inline async logout
+(now in AuthContext) — i.e. older implementations of features ours already carries.
