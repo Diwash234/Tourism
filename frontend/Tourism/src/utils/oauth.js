@@ -24,8 +24,15 @@ export function setPublicOAuthIds(ids) {
 }
 const googleClientId = () => import.meta.env.VITE_GOOGLE_CLIENT_ID || publicClientIds.google
 const githubClientId = () => import.meta.env.VITE_GITHUB_CLIENT_ID || publicClientIds.github
-export const hasGoogleClientId = () => Boolean(googleClientId())
-export const hasGithubClientId = () => Boolean(githubClientId())
+// A real OAuth client id is a long random-ish string (Google: ~28-30 chars
+// ending in ".apps.googleusercontent.com", GitHub: 22 chars). Placeholder
+// values left in a .env (e.g. "dummy-…-client-id") would make the buttons
+// look active and then fail at the provider's consent screen, so treat
+// anything that looks like a placeholder as NOT configured.
+const looksConfigured = (id) =>
+  Boolean(id) && id.length >= 20 && !/dummy|placeholder|your[-_]|example|changeme/i.test(id)
+export const hasGoogleClientId = () => looksConfigured(googleClientId())
+export const hasGithubClientId = () => looksConfigured(githubClientId())
 
 export function getRedirectUri(provider) {
   return `${window.location.origin}/auth/callback/${provider}`
