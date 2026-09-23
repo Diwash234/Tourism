@@ -13,6 +13,10 @@ const destinationApi = {
   getNearbyDestinations: (params = {}) =>
     axiosClient.get("/destinations/nearby/", { params }),
 
+  // Lightweight ALL-destinations feed for the distance/map explorer:
+  // {id, slug, name, district, province, latitude, longitude, category}.
+  getMapPoints: () => axiosClient.get("/destinations/map-points/"),
+
   // Coordinate-first nearby POIs (user location → real-world places, spec §2)
   getPOIsByCoords: (params = {}) =>
     axiosClient.get("/nearby/pois/", { params }),

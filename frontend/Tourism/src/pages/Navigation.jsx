@@ -9,10 +9,10 @@ import MapillaryImages from "../components/map/MapillaryImages"
 import useGeolocation from "../hooks/useGeolocation"
 import {
   FiNavigation, FiMapPin, FiShield,
-  FiArrowLeft, FiArrowRight, FiArrowUp, FiRotateCcw, FiChevronLeft,
-  FiChevronRight, FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
+  FiCompass, FiTarget, FiRadio, FiLayers, FiRepeat,
   FiCheckCircle, FiAlertTriangle, FiPhoneCall, FiSun, FiZap, FiTruck, FiCoffee
 } from "react-icons/fi"
+import { TurnIcon } from "../utils/uiIcons"
 import navigationApi from "../api/navigationApi"
 import emergencyApi from "../api/emergencyApi"
 import useAuth from "../hooks/useAuth"
@@ -135,16 +135,6 @@ const toAmenityCard = (row, origin) => {
     coords: hasValidCoords(lat, lng) ? { lat, lng } : null,
     phone: row.phone_number || row.phone || "",
   }
-}
-
-const TURN_ICONS = {
-  start: FiArrowUp,
-  straight: FiArrowUp,
-  left: FiArrowLeft,
-  right: FiArrowRight,
-  sharp_left: FiChevronLeft,
-  sharp_right: FiChevronRight,
-  uturn: FiRotateCcw,
 }
 
 export default function Navigation() {
@@ -503,8 +493,6 @@ export default function Navigation() {
     instruction: destinationQuery ? `Highway route toward ${destinationQuery}` : "Enter an origin and destination to start turn-by-turn navigation",
     distance_km: distance,
   }
-
-  const TurnIcon = TURN_ICONS[currentStep.turn] || FiArrowUp
 
   // Off-route detection: real GPS-to-polyline distance, recomputed as the
   // position updates. Null (unknown) never counts as off-route.
@@ -1038,7 +1026,7 @@ export default function Navigation() {
             <div className="p-4 rounded-2xl bg-[#102A2E]/60 border border-purple-700 space-y-2">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0">
-                  <TurnIcon size={22} />
+                  <TurnIcon step={currentStep} size={26} />
                 </div>
                 <div>
                   <span className="text-[10px] font-extrabold uppercase text-amber-300">Next Maneuver</span>

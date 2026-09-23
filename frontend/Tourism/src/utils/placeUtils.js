@@ -88,6 +88,46 @@ export function straightLineFromKathmandu(lat, lng) {
   return km == null ? null : `≈ ${km} km (straight line)`
 }
 
+// Unrounded straight-line distance (meters precision for nearby places).
+export function haversineKmPrecise(lat1, lon1, lat2, lon2) {
+  if (!hasValidCoords(lat1, lon1) || !hasValidCoords(lat2, lon2)) return null
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+const COMPASS_16 = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+// Initial great-circle bearing from point 1 to point 2, as a 16-point compass.
+export function compassPoint(lat1, lon1, lat2, lon2) {
+  if (!hasValidCoords(lat1, lon1) || !hasValidCoords(lat2, lon2)) return ""
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const y = Math.sin(dLon) * Math.cos((lat2 * Math.PI) / 180)
+  const x =
+    Math.cos((lat1 * Math.PI) / 180) * Math.sin((lat2 * Math.PI) / 180) -
+    Math.sin((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.cos(dLon)
+  const deg = (Math.atan2(y, x) * 180) / Math.PI
+  return COMPASS_16[Math.round(((deg + 360) % 360) / 22.5) % 16]
+}
+
+const COMPASS_ARROWS = { N: "⬆", NE: "↗", E: "➔", SE: "↘", S: "⬇", SW: "↙", W: "⬅", NW: "↖" }
+export function compassArrow(dir) {
+  for (const k of Object.keys(COMPASS_ARROWS)) if (String(dir || "").startsWith(k)) return COMPASS_ARROWS[k]
+  return "➔"
+}
+
+// "850 m" | "12.4 km" | "1,240 km" — honest straight-line magnitude only.
+export function formatDistanceKm(km) {
+  if (km == null || Number.isNaN(km)) return "Information unavailable"
+  if (km < 1) return `${Math.round(km * 1000)} m`
+  if (km < 100) return `${km.toFixed(1)} km`
+  return `${Math.round(km).toLocaleString("en-US")} km`
+}
+
 // --- Sidebar / header identity helpers (spec item 12) ------------------------
 // The visible username must be a real display name — the email is a fallback
 // of last resort — and the role must be a human label, never a raw enum.

@@ -59,6 +59,22 @@ def _maneuver_from_instruction(text: str, first: bool) -> str:
     return "continue"
 
 
+# maneuver key (provider) -> UI turn key (icon set). Slight turns render
+# with the same arrow as full turns; the instruction text keeps the nuance.
+MANEUVER_TO_TURN = {
+    "depart": "start",
+    "arrive": "arrive",
+    "uturn": "uturn",
+    "turn-sharp-left": "sharp_left",
+    "turn-sharp-right": "sharp_right",
+    "turn-slight-left": "left",
+    "turn-slight-right": "right",
+    "turn-left": "left",
+    "turn-right": "right",
+    "continue": "straight",
+}
+
+
 class BundledGraphProvider(RoutingProvider):
     name = "bundled_graph"
     supported_modes = ("driving", "motorcycle", "walking", "hiking", "cycling")
@@ -107,11 +123,13 @@ class BundledGraphProvider(RoutingProvider):
                     "distance_m": seg_m,
                     "duration_s": round(seg_m / speed, 1),
                     "maneuver": maneuver,
+                    "turn": MANEUVER_TO_TURN.get(maneuver, "straight"),
                     "point": geometry[i] if i < len(geometry) else None,
                 })
             steps.append({
                 "instruction": "Arrive at destination",
                 "distance_m": 0.0, "duration_s": 0.0, "maneuver": "arrive",
+                "turn": "arrive",
                 "point": geometry[-1],
             })
             lats = [g[0] for g in geometry]

@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 import {
-  BsHouseDoor, BsPerson, BsGeoAlt, BsHeart, BsClockHistory, BsBell, BsGear,
-  BsWallet2, BsCalculator, BsCalendar3, BsExclamationTriangle, BsCompass,
-  BsTranslate, BsChatDots, BsJournalBookmark, BsShieldLock, BsBuilding, BsBriefcase,
-  BsPlusCircle, BsCheck2Square, BsX, BsBoxArrowInRight, BsPersonPlus, BsBarChart, BsImage,
-  BsActivity, BsChevronDown, BsChevronRight, BsSignpost, BsSignpost2, BsStar, BsMap, BsBook,
-  BsListOl, BsTicketPerforated, BsPeople, BsChatQuote, BsRobot, BsCardText, BsInbox,
-  BsHospital, BsHouses,
+  BsX, BsBoxArrowInRight, BsPersonPlus, BsChevronDown, BsChevronRight,
 } from "react-icons/bs"
+import { UI_ICON } from "../../utils/uiIcons"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState, { closeSidebar } from "../../hooks/useSidebarState"
@@ -16,73 +11,76 @@ import { useI18n } from "../../i18n"
 import configApi from "../../api/configApi"
 import { userDisplayName, userRoleLabel } from "../../utils/placeUtils"
 
+// link.icon is a name from the real UI icon set (public/icons/ui/) —
+// original duotone pictograms (node scripts/generate-ui-icons.mjs).
 const GROUPS = [
   {
     label: "Explore", tk: "sidebar.explore",
     links: [
-      { to: "/destinations", label: "Destinations", tk: "sidebar.destinations", icon: BsGeoAlt, color: "forest" },
-      { to: "/recommendation", label: "Recommended", tk: "sidebar.recommendations", icon: BsStar, color: "emerald" },
-      { to: "/gallery", label: "Gallery", tk: "sidebar.gallery", icon: BsImage, color: "pink" },
-      { to: "/compare", label: "Compare Places", tk: "sidebar.compare", icon: BsBarChart, color: "orange" },
-      { to: "/nearby-places", label: "Nearby", icon: BsCompass, color: "forest" },
-      { to: "/travel", label: "Travel Planner", tk: "sidebar.travel_planner", icon: BsSignpost2, color: "emerald" },
-      { to: "/explore-map", label: "Explore by Province", tk: "sidebar.explore_map", icon: BsMap, color: "forest" },
-      { to: "/discover-nepal", label: "Discover Nepal", tk: "sidebar.discover", icon: BsBook, color: "himalaya" },
-      { to: "/packages", label: "Travel Packages", tk: "sidebar.packages", icon: BsBriefcase, color: "orange" },
-      { to: "/collaborate", label: "Partner with us", icon: BsBriefcase, color: "emerald" },
+      { to: "/destinations", label: "Destinations", tk: "sidebar.destinations", icon: "pin", color: "forest" },
+      { to: "/recommendation", label: "Recommended", tk: "sidebar.recommendations", icon: "star", color: "emerald" },
+      { to: "/gallery", label: "Gallery", tk: "sidebar.gallery", icon: "image", color: "pink" },
+      { to: "/compare", label: "Compare Places", tk: "sidebar.compare", icon: "bar-chart", color: "orange" },
+      { to: "/nearby-places", label: "Nearby", icon: "compass", color: "forest" },
+      { to: "/distances", label: "Distances & Directions", tk: "sidebar.distances", icon: "distance", color: "amber" },
+      { to: "/travel", label: "Travel Planner", tk: "sidebar.travel_planner", icon: "route", color: "emerald" },
+      { to: "/explore-map", label: "Explore by Province", tk: "sidebar.explore_map", icon: "map", color: "forest" },
+      { to: "/discover-nepal", label: "Discover Nepal", tk: "sidebar.discover", icon: "book", color: "himalaya" },
+      { to: "/packages", label: "Travel Packages", tk: "sidebar.packages", icon: "briefcase", color: "orange" },
+      { to: "/collaborate", label: "Partner with us", icon: "briefcase", color: "emerald" },
     ],
   },
   {
     label: "My Trips", tk: "sidebar.planning",
     links: [
-      { to: "/itinerary", label: "Trip Planner & Itineraries", tk: "sidebar.trip_planner", icon: BsCalendar3, color: "emerald" },
-      { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: BsWallet2, color: "emerald" },
-      { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: BsCalculator, color: "orange" },
-      { to: "/favorites", label: "Saved Trips", tk: "sidebar.favorites", icon: BsHeart, color: "pink" },
-      { to: "/my-bookings", label: "Bookings", tk: "sidebar.bookings", icon: BsTicketPerforated, color: "emerald" },
-      { to: "/trip", label: "Trip requests", icon: BsTicketPerforated, color: "orange" },
-      { to: "/partner", label: "Partner desk", icon: BsBriefcase, color: "saffron" },
+      { to: "/itinerary", label: "Trip Planner & Itineraries", tk: "sidebar.trip_planner", icon: "calendar", color: "emerald" },
+      { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: "wallet", color: "emerald" },
+      { to: "/budget-estimator", label: "Budget Estimator", tk: "sidebar.budget", icon: "calculator", color: "orange" },
+      { to: "/favorites", label: "Saved Trips", tk: "sidebar.favorites", icon: "heart", color: "pink" },
+      { to: "/my-bookings", label: "Bookings", tk: "sidebar.bookings", icon: "ticket", color: "emerald" },
+      { to: "/trip", label: "Trip requests", icon: "ticket", color: "orange" },
+      { to: "/partner", label: "Partner desk", icon: "briefcase", color: "saffron" },
     ],
   },
   {
     label: "Hotels", tk: "sidebar.hotels",
     links: [
-      { to: "/hotels/search", label: "Find Hotels", icon: BsBuilding, color: "saffron" },
-      { to: "/hotels", label: "Saved Hotels", icon: BsHouses, color: "saffron", end: true },
+      { to: "/hotels/search", label: "Find Hotels", icon: "building", color: "saffron" },
+      { to: "/hotels", label: "Saved Hotels", icon: "houses", color: "saffron", end: true },
     ],
   },
   {
     label: "Safety", tk: "sidebar.safety",
     links: [
-      { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: BsExclamationTriangle, color: "red" },
-      { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: BsBell, color: "nepalred" },
-      { to: "/family-safety", label: "Family Safety", icon: BsPeople, color: "emerald" },
-      { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: BsSignpost, color: "sky" },
-      { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: BsChatQuote, color: "emerald" },
-      { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: BsTranslate, color: "cyan" },
-      { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: BsRobot, color: "terracotta" },
+      { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: "warning", color: "red" },
+      { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: "bell", color: "nepalred" },
+      { to: "/family-safety", label: "Family Safety", icon: "people", color: "emerald" },
+      { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: "navigate", color: "sky" },
+      { to: "/language", label: "Phrasebook", tk: "sidebar.phrasebook", icon: "quote", color: "emerald" },
+      { to: "/translation", label: "Live Translation", tk: "sidebar.translation", icon: "translate", color: "cyan" },
+      { to: "/chatbot", label: "Himal AI Assistant", tk: "sidebar.chatbot", icon: "robot", color: "terracotta" },
     ],
   },
   {
     label: "Account", tk: "sidebar.account",
     links: [
-      { to: "/dashboard", label: "My Dashboard", tk: "sidebar.dashboard", icon: BsHouseDoor, color: "himalaya" },
-      { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: BsCardText, color: "himalaya" },
-      { to: "/notifications", label: "Notifications", icon: BsInbox, color: "saffron" },
-      { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: BsCheck2Square, color: "saffron" },
-      { to: "/history", label: "Visit History", tk: "sidebar.history", icon: BsClockHistory, color: "stone" },
-      { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: BsPlusCircle, color: "saffron" },
-      { to: "/submit-service", label: "Submit a Service", icon: BsHospital, color: "emerald" },
-      { to: "/settings", label: "Settings", tk: "sidebar.settings", icon: BsGear, color: "stone" },
+      { to: "/dashboard", label: "My Dashboard", tk: "sidebar.dashboard", icon: "house", color: "himalaya" },
+      { to: "/personal-details", label: "Personal Details", tk: "sidebar.personal_details", icon: "card", color: "himalaya" },
+      { to: "/notifications", label: "Notifications", icon: "inbox", color: "saffron" },
+      { to: "/my-submissions", label: "My Submissions", tk: "sidebar.submissions", icon: "check-square", color: "saffron" },
+      { to: "/history", label: "Visit History", tk: "sidebar.history", icon: "clock", color: "stone" },
+      { to: "/destinations/submit", label: "Submit Place", tk: "sidebar.submit", icon: "plus", color: "saffron" },
+      { to: "/submit-service", label: "Submit a Service", icon: "hospital", color: "emerald" },
+      { to: "/settings", label: "Settings", tk: "sidebar.settings", icon: "gear", color: "stone" },
     ],
   },
   {
     label: "Workspace portals", tk: "sidebar.portals",
     links: [
-      { to: "/admin", label: "Admin Central", tk: "sidebar.admin", icon: BsShieldLock, color: "nepalred", roleCheck: "admin" },
-      { to: "/admin/diagnostics", label: "Diagnostics Center", tk: "sidebar.diagnostics", icon: BsActivity, color: "terracotta", roleCheck: "admin" },
-      { to: "/staff", label: "Staff Operations", tk: "sidebar.staff", icon: BsBriefcase, color: "saffron", roleCheck: "staff" },
-      { to: "/local/dashboard", label: "Local Guide Portal", tk: "sidebar.local", icon: BsHouseDoor, color: "emerald", roleCheck: "local" },
+      { to: "/admin", label: "Admin Central", tk: "sidebar.admin", icon: "shield", color: "nepalred", roleCheck: "admin" },
+      { to: "/admin/diagnostics", label: "Diagnostics Center", tk: "sidebar.diagnostics", icon: "activity", color: "terracotta", roleCheck: "admin" },
+      { to: "/staff", label: "Staff Operations", tk: "sidebar.staff", icon: "briefcase", color: "saffron", roleCheck: "staff" },
+      { to: "/local/dashboard", label: "Local Guide Portal", tk: "sidebar.local", icon: "house", color: "emerald", roleCheck: "local" },
     ],
   },
 ]
@@ -132,6 +130,7 @@ export default function Sidebar() {
 
   const PUBLIC_ROUTES = new Set([
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
+    "/distances",
     "/explore-map", "/discover-nepal", "/packages", "/collaborate", "/hotels/search",
     "/emergency", "/risk-alerts", "/navigation", "/language", "/translation", "/chatbot",
     "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/login", "/register"
@@ -176,7 +175,6 @@ export default function Sidebar() {
     }`
 
   const renderLink = (link) => {
-    const Icon = link.icon
     const colorClass = COLOR_MAP[link.color] || COLOR_MAP.stone
     return (
       <NavLink
@@ -188,8 +186,12 @@ export default function Sidebar() {
         title={link.tk ? t(link.tk) : link.label}
         aria-label={link.tk ? t(link.tk) : link.label}
       >
-        <div className={`p-1.5 rounded-lg shrink-0 ${colorClass}`}>
-          <Icon size={14} />
+        <div className={`p-1 rounded-lg shrink-0 ${colorClass}`}>
+          {typeof link.icon === "string" ? (
+            <img src={UI_ICON(link.icon)} alt="" aria-hidden="true" className="w-5 h-5" draggable={false} />
+          ) : (
+            <link.icon size={14} />
+          )}
         </div>
         {/* Label: never wraps vertically — hidden entirely in icon-rail mode */}
         <span className={`truncate ${iconMode ? "lg:hidden" : ""}`}>{link.tk ? t(link.tk) : link.label}</span>

@@ -589,7 +589,37 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         if page is not None:
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
-   
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny], url_path="map-points")
+    def map_points(self, request):
+        """
+        Lightweight ALL-destinations feed for the distance/map explorer:
+        every active approved destination that has coordinates, as
+        {id, slug, name, district, province, latitude, longitude, category}.
+        No photos, no descriptions — sized for plotting 6,000+ markers.
+        Cached 5 minutes (the set changes slowly).
+        """
+        from django.core.cache import cache
+        cache_key = "dest:map-points:v1"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+        qs = Destination.objects.filter(
+            is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            latitude__isnull=False, longitude__isnull=False,
+        ).select_related("category").order_by("name").values(
+            "id", "slug", "name", "district", "province",
+            "latitude", "longitude", "category__name")
+        points = [{
+            "id": r["id"], "slug": r["slug"], "name": r["name"],
+            "district": r["district"] or "", "province": r["province"] or "",
+            "latitude": float(r["latitude"]), "longitude": float(r["longitude"]),
+            "category": r["category__name"] or "",
+        } for r in qs.iterator(chunk_size=1000)]
+        payload = {"count": len(points), "points": points}
+        cache.set(cache_key, payload, 300)
+        return Response(payload)
+
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def translate(self, request, slug=None):

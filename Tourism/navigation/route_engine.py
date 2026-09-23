@@ -105,6 +105,7 @@ def build_maneuvers(route: dict, max_steps: int = 200) -> list:
             "point": list(geom[0]) if geom else None,
             "distance_m": route.get("distance_m"),
             "maneuver_grade": "none",
+            "turn": "straight",
         }]
     grade = "street" if source == "osrm" else "corridor-node"
 
@@ -125,22 +126,36 @@ def build_maneuvers(route: dict, max_steps: int = 200) -> list:
     steps = []
     acc = [0.0]
 
-    def _push(instruction, point):
+    def _turn_key(angle):
+        """Structured maneuver key for UI icons (left/right/straight/…)."""
+        if angle is None:
+            return "start"
+        a = abs(angle)
+        if a >= 150:
+            return "uturn"
+        if a >= 120:
+            return "sharp_left" if angle < 0 else "sharp_right"
+        if a >= 70:
+            return "left" if angle < 0 else "right"
+        return "left" if angle < 0 else "right"  # slight turns use the same icon
+
+    def _push(instruction, point, angle=None, turn_key=None):
         if steps:
             steps[-1]["distance_m"] = round(acc[0])
         steps.append({"instruction": instruction, "point": list(point),
-                      "distance_m": 0, "maneuver_grade": grade})
+                      "distance_m": 0, "maneuver_grade": grade,
+                      "turn": turn_key or _turn_key(angle)})
         acc[0] = 0.0
 
-    _push(f"Head {_compass(legs[0][1])}", geom[0])
+    _push(f"Head {_compass(legs[0][1])}", geom[0], turn_key="start")
     acc[0] += legs[0][0]
     for i in range(1, len(legs)):
         turn = (legs[i][1] - legs[i - 1][1] + 540) % 360 - 180
         if abs(turn) >= 30 and len(steps) < max_steps:
-            _push(_word(turn), geom[i])
+            _push(_word(turn), geom[i], angle=turn)
         acc[0] += legs[i][0]
     if len(steps) < max_steps:
-        _push("Arrive at destination", geom[-1])
+        _push("Arrive at destination", geom[-1], turn_key="arrive")
     else:
         steps[-1]["instruction"] += " — then continue to destination"
     return steps

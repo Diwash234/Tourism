@@ -320,6 +320,29 @@ const en = {
   "tp.plan_route": "Plan route",
   "tp.plan": "Plan",
 
+  // distances & directions explorer
+  "sidebar.distances": "Distances & Directions",
+  "dx.title": "Distances & Directions",
+  "dx.subtitle": "Straight-line distance and bearing from your source to every destination in Nepal — find any place, then get the real road route and turn-by-turn directions.",
+  "dx.origin": "From (source)",
+  "dx.use_my_location": "Use my location",
+  "dx.location_consent": "Share your location for accurate distances?",
+  "dx.location_denied": "Location unavailable — distances are from Kathmandu (assumed).",
+  "dx.kathmandu_assumed": "Kathmandu (assumed)",
+  "dx.search_placeholder": "Search a place — Rolpa, Humla, Jumla, Dadeldhura, Rukum Chhota…",
+  "dx.loading": "Loading all destinations…",
+  "dx.total": "{n} destinations",
+  "dx.straight_line": "straight line",
+  "dx.bearing": "direction",
+  "dx.nearest_first": "Nearest first",
+  "dx.get_directions": "Get directions",
+  "dx.directions": "Road route & turn-by-turn",
+  "dx.road": "Road route",
+  "dx.road_unavailable": "No road route recorded for this pair — straight-line distance shown instead.",
+  "dx.map_hint": "Tap any point on the map or a row in the list to select it.",
+  "dx.no_results": "No places match — try a district or town name.",
+  "dx.eta": "Travel time",
+
 }
 
 const ne = {
@@ -613,6 +636,29 @@ const ne = {
   "tp.plan_route": "मार्ग योजना",
   "tp.plan": "मार्ग",
 
+  // distances & directions explorer
+  "sidebar.distances": "दूरी र बाटो",
+  "dx.title": "दूरी र बाटो",
+  "dx.subtitle": "तपाईंको स्रोतबाट नेपालका सबै गन्तव्यहरूसम्मको सिधा रेखाको दूरी र दिशा — कुनै पनि ठाउँ भेट्टाउनुहोस्, अनि वास्तविक सडक मार्ग र टर्न-बाइ-टर्न निर्देशन पाउनुहोस्।",
+  "dx.origin": "यहाँबाट (स्रोत)",
+  "dx.use_my_location": "मेरो स्थान प्रयोग गर्नुहोस्",
+  "dx.location_consent": "सटीक दूरीका लागि तपाईंको स्थान साझा गर्नुहुन्छ?",
+  "dx.location_denied": "स्थान उपलब्ध छैन — दूरी काठमाडौंबाट (मानिएको) छ।",
+  "dx.kathmandu_assumed": "काठमाडौं (मानिएको)",
+  "dx.search_placeholder": "ठाउँ खोज्नुहोस् — रोल्पा, हुम्ला, जुम्ला, डडेल्धुरा, रुकुम खोटा…",
+  "dx.loading": "सबै गन्तव्य लोड हुँदैछ…",
+  "dx.total": "{n} वटा गन्तव्य",
+  "dx.straight_line": "सिधा रेखा",
+  "dx.bearing": "दिशा",
+  "dx.nearest_first": "नजिकका पहिले",
+  "dx.get_directions": "बाटो हेर्नुहोस्",
+  "dx.directions": "सडक मार्ग र टर्न-बाइ-टर्न",
+  "dx.road": "सडक मार्ग",
+  "dx.road_unavailable": "यो जोडीको लागि सडक मार्ग दर्ता छैन — सिधा रेखाको दूरी देखाइएको छ।",
+  "dx.map_hint": "नक्सा वा तालिकाको कुनै पनि बिन्दु ट्याप गरी छान्नुहोस्।",
+  "dx.no_results": "कुनै ठाउँ मिल्दैन — जिल्ला वा नगरको नाम प्रयास गर्नुहोस्।",
+  "dx.eta": "यात्रा समय",
+
 }
 
 const hi = {
@@ -905,6 +951,29 @@ const hi = {
   "tp.nearest": "निकटतम गंतव्य",
   "tp.plan_route": "मार्ग योजना",
   "tp.plan": "मार्ग",
+
+  // distances & directions explorer
+  "sidebar.distances": "दूरी और दिशा-निर्देश",
+  "dx.title": "दूरी और दिशा-निर्देश",
+  "dx.subtitle": "आपके स्रोत से नेपाल के हर एक गंतव्य तक सीधी रेखा की दूरी और दिशा — कोई भी जगह खोजें, फिर असली सड़क मार्ग और टर्न-बाय-टर्न निर्देशन पाएँ।",
+  "dx.origin": "यहाँ से (स्रोत)",
+  "dx.use_my_location": "मेरा स्थान उपयोग करें",
+  "dx.location_consent": "सटीक दूरी के लिए क्या आप अपना स्थान साझा करेंगे?",
+  "dx.location_denied": "स्थान उपलब्ध नहीं है — दूरी काठमांडू से (माना गया) है।",
+  "dx.kathmandu_assumed": "काठमांडू (माना गया)",
+  "dx.search_placeholder": "जगह खोजें — रोल्पा, हुम्ला, जुम्ला, डडेल्धुरा, रुकुम खोटा…",
+  "dx.loading": "सभी गंतव्य लोड हो रहे हैं…",
+  "dx.total": "{n} गंतव्य",
+  "dx.straight_line": "सीधी रेखा",
+  "dx.bearing": "दिशा",
+  "dx.nearest_first": "निकटतम पहले",
+  "dx.get_directions": "दिशा-निर्देश पाएँ",
+  "dx.directions": "सड़क मार्ग और टर्न-बाय-टर्न",
+  "dx.road": "सड़क मार्ग",
+  "dx.road_unavailable": "इस जोड़ी के लिए कोई सड़क मार्ग दर्ज नहीं है — बजाय में सीधी रेखा की दूरी दिखाई गई है।",
+  "dx.map_hint": "नक्से या सूची में किसी भी बिंदु पर टैप करके चुनें।",
+  "dx.no_results": "कोई जगह नहीं मिली — ज़िले या शहर का नाम आज़माएँ।",
+  "dx.eta": "यात्रा समय",
 
 }
 

@@ -1,11 +1,4 @@
-import { FiArrowUp, FiArrowLeft, FiArrowRight, FiRotateCcw } from "react-icons/fi"
-
-const TURN_ICONS = {
-  start: FiArrowUp,
-  straight: FiArrowUp,
-  left: FiArrowLeft,
-  right: FiArrowRight,
-}
+import { TurnIcon } from "../../utils/uiIcons"
 
 export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep }) {
   return (
@@ -19,7 +12,6 @@ export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep
 
       <ol className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
         {steps.map((step, idx) => {
-          const Icon = TURN_ICONS[step.turn] || FiArrowUp
           const isCurrent = idx === currentIdx
           return (
             <li
@@ -29,14 +21,22 @@ export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep
                 isCurrent ? "bg-[#F7F8F5] border-purple-400 shadow-sm" : "hover:bg-gray-50 border-gray-100"
               }`}
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
-                isCurrent ? "bg-amber-400 text-gray-950" : "bg-gray-100 text-gray-600"
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                isCurrent ? "bg-amber-100" : "bg-gray-50"
               }`}>
-                <Icon size={16} />
+                <TurnIcon step={step} size={26} />
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-800 leading-snug">{step.instruction}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{step.distance_km} km</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  {step.distance_km != null
+                    ? `${step.distance_km} km`
+                    : step.distance_m != null
+                      ? step.distance_m >= 1000
+                        ? `${(step.distance_m / 1000).toFixed(1)} km`
+                        : `${Math.round(step.distance_m)} m`
+                      : ""}
+                </p>
               </div>
             </li>
           )

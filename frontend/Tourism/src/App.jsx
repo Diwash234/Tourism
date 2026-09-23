@@ -63,6 +63,7 @@ import RiskAlertDashboard from "./pages/RiskAlertDashboard"
 import Hotels from "./pages/Hotels"
 import HotelSearch from "./pages/HotelSearch"
 const Navigation = lazy(() => import("./pages/Navigation"))
+const DistancesExplorer = lazy(() => import("./pages/DistancesExplorer"))
 const TravelPlanner = lazy(() => import("./pages/TravelPlanner"))
 import Language from "./pages/Language"
 import Emergency from "./pages/Emergency"
@@ -227,6 +228,7 @@ function App() {
           <Route path="/safety" element={<FamilySafety />} />
 
           <Route path="/navigation" element={<Navigation />} />
+          <Route path="/distances" element={<DistancesExplorer />} />
           <Route path="/language" element={<Language />} />
 
           <Route 
