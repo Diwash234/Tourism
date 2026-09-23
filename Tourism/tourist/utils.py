@@ -7,6 +7,7 @@ Utility helpers used across the tourist app:
   - Email / SMS / Push notification senders
 """
 import logging
+import threading
 from math import radians, cos, sin, asin, sqrt
 from django.db.models import Q
 
@@ -148,27 +149,17 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
-def geoip_lookup(ip_address):
-    """
-    Resolve an IP address to country/city/lat/lon using a free GeoIP HTTP
-    provider (default: ip-api.com). Returns None on failure so callers can
-    gracefully degrade.
+_GEOIP_IN_PROGRESS = set()
+_GEOIP_IN_PROGRESS_LOCK = threading.Lock()
 
-    FIX: results are cached for 24h. The GeoIPMiddleware calls this for
-    EVERY /api/ request, so without a cache a page firing many parallel
-    requests triggered an external HTTP call each time (slow,
-    rate-limit-prone).
-    """
-    if not ip_address or ip_address in ("127.0.0.1", "localhost"):
-        return None
 
+def _geoip_lookup_sync(ip_address, cache_key):
+    """Perform the external GeoIP call and populate the cache.
+
+    Runs either inline (blocking callers) or inside a daemon thread
+    (non-blocking callers). Never raises.
+    """
     from django.core.cache import cache
-
-    cache_key = f"geoip:{ip_address}"
-    sentinel = object()
-    cached = cache.get(cache_key, sentinel)
-    if cached is not sentinel:
-        return cached
 
     try:
         url = settings.GEOIP_PROVIDER_URL.format(ip=ip_address)
@@ -187,8 +178,61 @@ def geoip_lookup(ip_address):
         return result
     except (requests.RequestException, ValueError) as exc:
         logger.warning("GeoIP lookup failed for %s: %s", ip_address, exc)
-        cache.set(cache_key, None, 60 * 60)
+        # Short negative cache so an unreachable provider does not get hit
+        # once per request for an hour.
+        try:
+            cache.set(cache_key, None, 60 * 60)
+        except Exception:
+            pass
         return None
+
+
+def geoip_lookup(ip_address, blocking=True):
+    """
+    Resolve an IP address to country/city/lat/lon using a free GeoIP HTTP
+    provider (default: ip-api.com). Returns None on failure so callers can
+    gracefully degrade.
+
+    FIX (2026-09): results are cached for 24h. The GeoIPMiddleware calls
+    this for EVERY /api/ request. Previously the external HTTP call
+    (up to 3s, or a full timeout when the provider is unreachable) ran
+    synchronously on a cold cache, adding seconds to login and every page
+    load. With ``blocking=False`` a cache miss returns immediately and a
+    daemon thread warms the cache in the background — the first request
+    after a restart is fast, and the next one gets the cached value.
+    """
+    if not ip_address or ip_address in ("127.0.0.1", "localhost"):
+        return None
+
+    from django.core.cache import cache
+
+    cache_key = f"geoip:{ip_address}"
+    sentinel = object()
+    cached = cache.get(cache_key, sentinel)
+    if cached is not sentinel:
+        return cached
+
+    if blocking:
+        return _geoip_lookup_sync(ip_address, cache_key)
+
+    # Non-blocking path: at most one warm-up thread per IP.
+    with _GEOIP_IN_PROGRESS_LOCK:
+        if ip_address in _GEOIP_IN_PROGRESS:
+            return None
+        _GEOIP_IN_PROGRESS.add(ip_address)
+
+    def _warm():
+        try:
+            _geoip_lookup_sync(ip_address, cache_key)
+        except Exception:  # pragma: no cover - defensive, never surface
+            logger.exception("GeoIP warm-up thread failed for %s", ip_address)
+        finally:
+            with _GEOIP_IN_PROGRESS_LOCK:
+                _GEOIP_IN_PROGRESS.discard(ip_address)
+
+    thread = threading.Thread(target=_warm, name=f"geoip-warm-{ip_address}", daemon=True)
+    thread.start()
+    return None
 
 
 def resolve_location(request, gps_latitude=None, gps_longitude=None):

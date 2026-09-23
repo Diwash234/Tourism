@@ -19,6 +19,11 @@ const Register = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const password = watch("password")
+  const confirm = watch("password_confirm")
+  // Live feedback while typing (before the submit attempt): the moment both
+  // fields are filled and differ, tell the user the passwords do not match.
+  const liveMismatch =
+    password.length > 0 && confirm.length > 0 && confirm !== password && !errors.password_confirm
 
   const onSubmit = async (data) => {
     setLoading(true)
@@ -36,10 +41,13 @@ const Register = () => {
       showToast("Account created! Please check your email to verify your account.", "success")
       navigate("/login")
     } catch (err) {
+      const data = err?.response?.data
       showToast(
-        err?.response?.data?.message ||
-        err?.response?.data?.email?.[0] ||
-        err?.response?.data?.password?.[0] ||
+        data?.message ||
+        data?.password_confirm?.[0] ||
+        data?.password?.[0] ||
+        data?.email?.[0] ||
+        data?.non_field_errors?.[0] ||
         "Registration failed",
         "error"
       )
@@ -128,7 +136,8 @@ const Register = () => {
               validate: (value) => value === password || "Passwords do not match",
             })}
           />
-          {errors.password_confirm && <p className="text-xs text-rose-600 mt-1">{errors.password_confirm.message}</p>}
+          {errors.password_confirm && <p className="text-xs text-rose-600 mt-1 font-medium">{errors.password_confirm.message}</p>}
+          {liveMismatch && <p className="text-xs text-rose-600 mt-1 font-medium">Passwords do not match</p>}
         </div>
 
         <motion.div whileTap={{ scale: 0.98 }}>

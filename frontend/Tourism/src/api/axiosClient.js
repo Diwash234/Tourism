@@ -13,6 +13,11 @@ export const isGuestPreview = () => {
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
+  // Never let a request spin the UI forever: a hung backend/network errors
+  // out after 20s with a catchable rejection instead of an endless spinner
+  // (the browser default can hang for a minute or more). Slow operations
+  // (media uploads) override this per-request with a longer timeout.
+  timeout: 20000,
 })
 
 export const clearAuthStorage = () => {

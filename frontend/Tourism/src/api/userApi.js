@@ -45,6 +45,7 @@ const userApi = {
     formData.append("profile_picture", file)
     return axiosClient.patch("/auth/profile/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: 60000,
     })
   },
 

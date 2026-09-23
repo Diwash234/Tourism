@@ -10,7 +10,12 @@ import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
-const api = axios.create({ baseURL: API_BASE_URL });
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  // Never spin the UI forever on a hung backend/network (see axiosClient.js).
+  // Slow multipart uploads override this per-request with a longer timeout.
+  timeout: 20000,
+});
 
 // --- Attach the JWT access token to every request ---------------------
 api.interceptors.request.use((config) => {
@@ -143,7 +148,7 @@ export const destinationApi = {
   // Tourist place submission — multipart because of the cover_image file.
   // Backend marks it "pending" until an admin approves it.
   submit: (formData) =>
-    api.post("/destinations/", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+    api.post("/destinations/", formData, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60000 }),
 
   mySubmissions: () => api.get("/destinations/my_submissions/"),
   approve: (slug, status, review_note = "") => api.post(`/destinations/${slug}/approve/`, { status, review_note }),
@@ -207,10 +212,10 @@ export const photoApi = {
   // { photos: [...], external_fallback: {url, attribution, source_link} | null }
   get: (slug) => api.get(`/destinations/${slug}/photos/`),
   upload: (slug, formData) =>
-    api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+    api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60000 }),
   getVideos: (slug) => api.get(`/destinations/${slug}/videos/`),
   uploadVideo: (slug, formData) =>
-    api.post(`/destinations/${slug}/videos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+    api.post(`/destinations/${slug}/videos/`, formData, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60000 }),
 };
 
 export const hotelApi = {

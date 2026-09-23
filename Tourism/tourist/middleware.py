@@ -16,5 +16,8 @@ class GeoIPMiddleware:
         request.geo_location = None
         if request.path.startswith("/api/"):
             ip = get_client_ip(request)
-            request.geo_location = geoip_lookup(ip)
+            # Non-blocking: a cold-cache miss must never delay the request
+            # waiting on an external provider. The lookup warms the cache
+            # in a background thread; the next request gets the value.
+            request.geo_location = geoip_lookup(ip, blocking=False)
         return self.get_response(request)

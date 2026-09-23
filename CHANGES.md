@@ -2,6 +2,57 @@
 
 ---
 
+## 🧭 Round 16: Auth clarity + the 30-second login/Explore mystery, solved
+
+### 1. Signup — "passwords do not match" is now said out loud
+- The server **already** rejected mismatches (`{"password_confirm": ["Passwords do not match."]}`)
+  and the form already had an inline RHF rule — but the error toast only read
+  `message` / `email` / `password`, so a mismatch could surface as the
+  opaque "Registration failed". The toast now maps `password_confirm` (and
+  `non_field_errors`) first.
+- Added **live** feedback: the moment both password fields are filled and
+  differ, "Passwords do not match" appears under the confirm field — before
+  the user even clicks Create Account.
+
+### 2. Verification email — verified end-to-end, it is real
+- `POST /auth/register/` → 201 (0.38 s) → `EmailVerificationToken` (24 h)
+  → dispatch via `send_email_notification_async` (background thread, the
+  request never waits on SMTP) → body contains the real link
+  `{FRONTEND_URL}/verify-email?token=<uuid>`.
+- `POST /auth/verify-email/` with that token → 200, user `is_verified=True`.
+- In this sandbox the email lands in the server console (no SMTP creds); on a
+  host with SMTP configured the identical code path delivers to the inbox.
+
+### 3. The ~30 s login / Explore Destination lag — root cause found & fixed (DEF-025)
+- **Root cause:** `GeoIPMiddleware` ran a synchronous external GeoIP HTTP
+  call (ip-api.com, up to 3 s) for **every `/api/` request** whenever the
+  24-h cache was cold (i.e. after every server start). A login landing on
+  the dashboard fires 8 parallel API requests — each could pay the full
+  timeout, and worse when the provider is slow/unreachable from the host or
+  requests serialize. In the sandbox it was invisible because every request
+  arrives from 127.0.0.1 (skipped) — which is why it only hurt on real hosts.
+- **Fix:** `geoip_lookup(ip, blocking=False)` — a cold-cache miss returns
+  immediately; one daemon thread per IP warms the 24-h cache in the
+  background (LocMemCache is thread-safe; an in-flight set stops duplicate
+  threads). The middleware uses the non-blocking path; explicit
+  location-detection callers keep blocking. Provider failures are
+  negative-cached 1 h so an unreachable provider is not re-hit per request.
+- **Proof** (simulated real client IP `8.8.8.8`, no sandbox egress = worst
+  case): destinations **0.06 s** cold (was up to 3 s), login **0.32 s**,
+  0.10 s after warm-up.
+- **Also (DEF-026):** neither axios client had any timeout, so a hung
+  backend/network left spinners running indefinitely. Both now default to a
+  20 s timeout (clear, catchable error + toast instead of an endless
+  spinner); all 12 multipart upload call sites keep a 60 s override for slow
+  connections.
+
+### Verification
+- Backend suite 481/481 OK; eslint 0 errors on touched files; `vite build`
+  clean. Defects DEF-025/DEF-026 registered in
+  `docs/PRODUCTION_DEFECT_REGISTER.md`.
+
+---
+
 ## 🧭 Round (N): Travel Planner — real routes BETWEEN every destination
 
 New tourist-facing route planner: pick **any two destinations** (or your live
