@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import PageHeader from "../components/common/PageHeader"
 import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { FiCamera, FiUser, FiMail, FiPhone, FiGlobe, FiFileText, FiMapPin, FiHeart, FiBookOpen, FiAward } from "react-icons/fi"
@@ -9,6 +10,7 @@ import bookingApi from "../api/bookingApi"
 import { favoriteApi } from "../services/api.js"
 import Loader from "../components/common/Loader"
 import MandalaBackground from "../components/branding/MandalaBackground"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 // NEW: "traveler stats, badges, travel points" from the brief. There is
 // no backend model for any of this (checked tourist/models.py — no
@@ -96,7 +98,8 @@ const Profile = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl fade-in space-y-6">
-      <h1 className="section-title">My Profile</h1>
+      <CMSPageIntro pageKey="profile" />
+      <PageHeader title="My Profile" />
 
       <div className="card-base p-6 relative overflow-hidden">
         <MandalaBackground className="w-72 h-72 -top-10 -right-10 opacity-60" />

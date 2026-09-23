@@ -1,0 +1,113 @@
+from django.conf import settings
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ("tourist", "0039_visitor_notice_and_featured"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="MarketplacePartner",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=200)),
+                ("kind", models.CharField(choices=[("hotel", "Hotel / stay"), ("operator", "Tour operator"), ("guide", "Local guide"), ("restaurant", "Restaurant"), ("transport", "Transport"), ("activity", "Activity provider"), ("agency", "Travel agency")], default="operator", max_length=20)),
+                ("contact_name", models.CharField(blank=True, max_length=160)),
+                ("email", models.EmailField(max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=40)),
+                ("website", models.URLField(blank=True)),
+                ("city", models.CharField(blank=True, max_length=120)),
+                ("district", models.CharField(blank=True, max_length=120)),
+                ("description", models.TextField(blank=True)),
+                ("status", models.CharField(choices=[("pending", "Pending review"), ("approved", "Approved"), ("suspended", "Suspended"), ("rejected", "Rejected")], db_index=True, default="pending", max_length=20)),
+                ("commission_percent", models.DecimalField(decimal_places=2, default=10, max_digits=5)),
+                ("reviewed_at", models.DateTimeField(blank=True, null=True)),
+                ("admin_note", models.TextField(blank=True)),
+                ("reviewed_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="marketplace_partners_reviewed", to=settings.AUTH_USER_MODEL)),
+                ("user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="marketplace_partners", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-created_at"]},
+        ),
+        migrations.CreateModel(
+            name="MarketplaceListing",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("kind", models.CharField(choices=[("package", "Travel package"), ("hotel", "Hotel / stay"), ("tour", "Tour / sightseeing"), ("activity", "Activity"), ("transfer", "Transfer / transport"), ("restaurant", "Food experience"), ("guide", "Guide"), ("ad", "Sponsored offer")], db_index=True, default="package", max_length=20)),
+                ("title", models.CharField(max_length=220)),
+                ("slug", models.SlugField(blank=True, max_length=240, unique=True)),
+                ("summary", models.CharField(blank=True, max_length=320)),
+                ("description", models.TextField(blank=True)),
+                ("includes", models.TextField(blank=True)),
+                ("excludes", models.TextField(blank=True)),
+                ("duration_days", models.PositiveSmallIntegerField(default=1)),
+                ("price_npr", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("currency", models.CharField(default="NPR", max_length=8)),
+                ("image_url", models.URLField(blank=True, max_length=600)),
+                ("external_url", models.URLField(blank=True, help_text="Partner booking page. Must be HTTPS.", max_length=600)),
+                ("city", models.CharField(blank=True, max_length=120)),
+                ("district", models.CharField(blank=True, max_length=120)),
+                ("cancellation_policy", models.CharField(blank=True, max_length=320)),
+                ("capacity", models.PositiveIntegerField(default=10)),
+                ("is_featured", models.BooleanField(default=False)),
+                ("status", models.CharField(choices=[("draft", "Draft"), ("pending", "Pending review"), ("published", "Published"), ("archived", "Archived")], db_index=True, default="draft", max_length=20)),
+                ("destination", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="marketplace_listings", to="tourist.destination")),
+                ("partner", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="listings", to="tourist.marketplacepartner")),
+                ("updated_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="marketplace_listings_updated", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-is_featured", "-updated_at"]},
+        ),
+        migrations.CreateModel(
+            name="MarketplaceOrder",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("reference", models.CharField(blank=True, max_length=20, unique=True)),
+                ("guest_name", models.CharField(blank=True, max_length=160)),
+                ("guest_email", models.EmailField(blank=True, max_length=254)),
+                ("guest_phone", models.CharField(blank=True, max_length=40)),
+                ("travelers", models.PositiveSmallIntegerField(default=1)),
+                ("start_date", models.DateField(blank=True, null=True)),
+                ("notes", models.TextField(blank=True)),
+                ("status", models.CharField(choices=[("draft", "Trip basket"), ("requested", "Booking requested"), ("confirmed", "Confirmed"), ("cancelled", "Cancelled"), ("external", "Sent to partner site")], db_index=True, default="draft", max_length=20)),
+                ("payment_method", models.CharField(choices=[("request", "Request to book (pay later / with operator)"), ("external", "Continue on partner website")], default="request", max_length=20)),
+                ("subtotal_npr", models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ("total_npr", models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ("currency", models.CharField(default="NPR", max_length=8)),
+                ("user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="marketplace_orders", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-created_at"]},
+        ),
+        migrations.CreateModel(
+            name="MarketplaceOrderItem",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("title", models.CharField(max_length=220)),
+                ("quantity", models.PositiveSmallIntegerField(default=1)),
+                ("unit_price_npr", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("line_total_npr", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("travel_date", models.DateField(blank=True, null=True)),
+                ("external_url", models.URLField(blank=True, max_length=600)),
+                ("listing", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="order_items", to="tourist.marketplacelisting")),
+                ("order", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="items", to="tourist.marketplaceorder")),
+            ],
+        ),
+        migrations.AddIndex(
+            model_name="marketplacelisting",
+            index=models.Index(fields=["status", "kind"], name="tourist_mar_status_8a1c2d_idx"),
+        ),
+        migrations.AddIndex(
+            model_name="marketplacelisting",
+            index=models.Index(fields=["is_featured", "status"], name="tourist_mar_is_feat_9b3e4f_idx"),
+        ),
+    ]

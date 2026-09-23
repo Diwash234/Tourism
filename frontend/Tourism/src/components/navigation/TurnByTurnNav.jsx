@@ -9,10 +9,10 @@ const TURN_ICONS = {
 
 export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep }) {
   return (
-    <div className="card-base p-5 shadow-lg border border-purple-100 rounded-3xl space-y-4">
+    <div className="card-base p-5 shadow-lg border border-[#E5E0D5] rounded-3xl space-y-4">
       <div className="flex items-center justify-between border-b pb-3">
         <h3 className="font-bold text-base text-gray-900">Turn-by-Turn Route Guidance</h3>
-        <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold">
+        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#1D5146] font-bold">
           {steps.length} Turns
         </span>
       </div>
@@ -26,7 +26,7 @@ export default function TurnByTurnNav({ steps = [], currentIdx = 0, onSelectStep
               key={idx}
               onClick={() => onSelectStep?.(idx)}
               className={`p-3 rounded-xl cursor-pointer transition-all flex items-start gap-3 border ${
-                isCurrent ? "bg-purple-50 border-purple-400 shadow-sm" : "hover:bg-gray-50 border-gray-100"
+                isCurrent ? "bg-[#F7F8F5] border-purple-400 shadow-sm" : "hover:bg-gray-50 border-gray-100"
               }`}
             >
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${

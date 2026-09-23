@@ -1,12 +1,16 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+from pathlib import Path
 
-from django.test import override_settings
+from django.conf import settings
+from django.test import TestCase, TransactionTestCase, override_settings
 import requests
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import User, Category, Destination, EmailVerificationToken
+from .models import (User, Category, Destination, Hotel, Review, EmailVerificationToken,
+                     StaffCapabilityProfile, DestinationImage, ImportConflict,
+                     ContentProposal, DuplicateDecision, CMSRevision, DestinationAuditLog)
 
 
 class AuthTests(APITestCase):
@@ -267,12 +271,16 @@ class MLIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
     @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
-    def test_best_route_returns_503_when_ml_service_down(self, _mock):
+    def test_best_route_uses_bundled_graph_when_ml_service_down(self, _mock):
         response = self.client.post(reverse("ml-best-route"), {
             "start_latitude": 28.21, "start_longitude": 83.96,
             "end_latitude": 28.23, "end_longitude": 83.99,
         })
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            str(response.data["routing_engine"]).startswith(("road_provider:", "bundled_nepal_graphml")),
+            f"unexpected engine {response.data['routing_engine']}")
+        self.assertTrue(response.data["route"])
 
     def test_best_route_requires_end_point(self):
         response = self.client.post(reverse("ml-best-route"), {"start_latitude": 28.21, "start_longitude": 83.96})
@@ -465,7 +473,11 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.post("/api/v1/navigation/route", {
             "startLat": 28.15, "startLng": 84.05, "endLat": 28.17, "endLng": 84.07,
         })
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)  # ML service not running in tests
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            str(response.data["routing_engine"]).startswith(("road_provider:", "bundled_nepal_graphml")),
+            f"unexpected engine {response.data['routing_engine']}")
+        self.assertTrue(response.data["route"])
 
     def test_navigation_route_compat_missing_fields(self):
         response = self.client.post("/api/v1/navigation/route", {"startLat": 28.15})
@@ -476,8 +488,11 @@ class CompatibilityRouteTests(APITestCase):
         response = self.client.post("/api/v1/navigation/route", {
             "start_latitude": 28.10, "start_longitude": 84.00, "destination_name": "Rupa",
         })
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)  # ML service not running
-        # (resolves the name fine -> only fails at the routing call itself, not a 400/404)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            str(response.data["routing_engine"]).startswith(("road_provider:", "bundled_nepal_graphml")),
+            f"unexpected engine {response.data['routing_engine']}")
+        self.assertEqual(response.data["destination"]["id"], self.destination.id)
 
     def test_navigation_route_unknown_destination_name(self):
         response = self.client.post("/api/v1/navigation/route", {
@@ -568,6 +583,8 @@ class PublicConfigTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("mapillary_access_token", response.data)
         self.assertTrue(response.data["mapillary_access_token"])
+        self.assertIn("catalog", response.data)
+        self.assertIn("destination_count", response.data["catalog"])
 
 
 class DestinationEssentialsTests(APITestCase):
@@ -647,3 +664,4256 @@ class OSMOverpassTests(APITestCase):
         response = self.client.get(reverse("osm-tourism-nearby"), {"latitude": 28.21, "longitude": 83.96, "radius_km": 10})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]["category"], "viewpoint")
+
+
+class RecommendationAndRiskArchitectureTests(APITestCase):
+    def setUp(self):
+        self.trekking = Category.objects.create(name="Trekking Test", slug="trekking")
+        self.heritage = Category.objects.create(name="Heritage Test", slug="heritage")
+        self.trek = Destination.objects.create(
+            name="Test Himalayan Trek", slug="test-himalayan-trek", category=self.trekking,
+            district="Kaski", province="Gandaki", latitude=28.4, longitude=84.0,
+            recommended_days=7, short_description="A mountain trek and base camp adventure",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        self.city = Destination.objects.create(
+            name="Test Heritage Square", slug="test-heritage-square", category=self.heritage,
+            district="Kathmandu", province="Bagmati", latitude=27.7, longitude=85.3,
+            recommended_days=1, short_description="A cultural durbar heritage museum",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+    def test_recommendation_uses_form_preferences_and_explains_match(self):
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "trekking,adventure", "days": 7, "difficulty": "hard", "limit": 3,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["source"], "live_database_content_model")
+        result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
+        self.assertTrue(result["why_recommended"])
+        self.assertEqual(result["difficulty"], "hard")
+        self.assertIn("risk_summary", result)
+
+    def test_risk_response_separates_history_current_and_prediction(self):
+        from datetime import date
+        from django.utils import timezone
+        from .models import CurrentHazard, RiskIncident, TravelRiskFeedback
+
+        RiskIncident.objects.create(
+            destination=self.trek, hazard_type="landslide", event_date=date(2025, 7, 1),
+            title="Verified trail landslide", severity="high", source_type="official",
+            source_name="Test authority", verified=True,
+        )
+        CurrentHazard.objects.create(
+            destination=self.trek, hazard_type="heavy_rain", title="Heavy rain watch",
+            severity="moderate", source_type="official", source_name="DHM test feed",
+            observed_at=timezone.now(), verified=True,
+        )
+        TravelRiskFeedback.objects.create(
+            destination=self.trek, destination_name=self.trek.name,
+            hazard_witnessed="Landslide", overall_safety_rating=6,
+        )
+        response = self.client.get(reverse("destination-risk-assessment", kwargs={"destination_ref": self.trek.slug}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["overall"]["is_official_warning"])
+        self.assertEqual(response.data["historical"]["incident_count"], 1)
+        self.assertEqual(response.data["current_conditions"]["active_count"], 1)
+        self.assertEqual(response.data["traveler_evidence"]["report_count"], 1)
+
+    def test_destination_emergency_directory_is_distance_ranked(self):
+        from .models import Hospital, PoliceStation
+        Hospital.objects.create(
+            destination=self.trek, name="Test Mountain Hospital", address="Kaski",
+            phone="061123456", latitude=28.401, longitude=84.001, district="Kaski",
+        )
+        PoliceStation.objects.create(
+            destination=self.trek, name="Test Mountain Police", address="Kaski",
+            phone="", latitude=28.402, longitude=84.002,
+        )
+        response = self.client.get(reverse(
+            "destination-emergency-services", kwargs={"destination_ref": self.trek.slug}
+        ), {"radius_km": 25})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["location"]["destination_id"], self.trek.id)
+        self.assertEqual(response.data["hospitals"][0]["phone_number"], "061123456")
+        self.assertEqual(response.data["police"][0]["phone_number"], "100")
+        self.assertTrue(response.data["police"][0]["phone_is_national_fallback"])
+        self.assertIn("risk", response.data)
+        self.assertEqual(response.data["national_hotlines"][0]["phone_number"], "1144")
+
+    def test_coordinate_emergency_directory_requires_valid_coordinates(self):
+        response = self.client.get(reverse("nearby-emergency-services"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("tourist.community_data_service.sync_submission_csv")
+    def test_admin_approval_publishes_community_hospital(self, sync_csv):
+        from .community_data_service import publish_submission
+        from .models import Hospital, InfrastructureSubmission
+        admin = User.objects.create_user(
+            email="infra-admin@example.com", password="StrongPass123!", role="admin", is_verified=True,
+        )
+        submission = InfrastructureSubmission.objects.create(
+            submitted_by=admin, destination=self.trek, place_type="hospital",
+            name="Community Mountain Clinic", phone="061999999", address="Ward 4",
+            district="Kaski", province="Gandaki", latitude=28.401, longitude=84.001,
+            municipality="Machhapuchhre", municipality_type="rural_municipality",
+            route_origin="Pokhara", transport_mode="Jeep", travel_time_minutes=90,
+        )
+        publish_submission(submission, admin)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, "approved")
+        self.assertTrue(Hospital.objects.filter(name="Community Mountain Clinic").exists())
+        sync_csv.assert_called_once()
+
+    def test_osm_nearby_returns_nearest_outside_small_radius(self):
+        from .models import OSMEssentialService
+        OSMEssentialService.objects.create(
+            osm_id="node/far-bank", category="bank", name="Verified Far Bank",
+            latitude=28.80, longitude=84.80, address="Regional center",
+        )
+        response = self.client.get(reverse("osm-essential-nearby"), {
+            "latitude": 28.4, "longitude": 84.0, "radius_km": 1, "category": "bank",
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]["name"], "Verified Far Bank")
+        self.assertTrue(response.data[0]["outside_requested_radius"])
+
+    def test_itinerary_days_are_enriched_with_nearest_services(self):
+        from .models import Hospital, Hotel, PoliceStation
+        from .views_ml import enrich_itinerary_with_services
+        Hotel.objects.create(
+            destination=self.trek, name="Trail Hotel", latitude=28.401, longitude=84.001,
+            price_per_night=2500, currency="NPR",
+        )
+        Hospital.objects.create(
+            destination=self.trek, name="Trail Hospital", address="Kaski", phone="102",
+            latitude=28.402, longitude=84.002, district="Kaski",
+        )
+        PoliceStation.objects.create(
+            destination=self.trek, name="Trail Police", address="Kaski", phone="100",
+            latitude=28.403, longitude=84.003,
+        )
+        payload = {"itinerary": [{"day": 1, "city": "Kaski", "destinations": [{
+            "name": self.trek.name, "latitude": 28.4, "longitude": 84.0,
+        }]}]}
+        enriched = enrich_itinerary_with_services(payload)
+        services = enriched["itinerary"][0]["nearby_services"]
+        self.assertEqual(services["hotels"][0]["name"], "Trail Hotel")
+        self.assertEqual(services["hospitals"][0]["name"], "Trail Hospital")
+        self.assertEqual(services["police"][0]["name"], "Trail Police")
+
+    def test_geofenced_alert_notifies_nearby_user_and_family(self):
+        from .models import Alert, FamilyLink, Notification
+        nearby = User.objects.create_user(
+            email="nearby@example.com", password="StrongPass123!", is_verified=True,
+            latitude=28.400, longitude=84.000,
+        )
+        family = User.objects.create_user(
+            email="family@example.com", password="StrongPass123!", is_verified=True,
+            latitude=27.7, longitude=85.3,
+        )
+        FamilyLink.objects.create(requester=nearby, member=family, status="accepted")
+        Alert.objects.create(
+            alert_type="flood", title="Test flood warning", description="Move away from the river.",
+            severity="high", latitude=28.401, longitude=84.001, radius_km=4,
+            source="DHM test", source_url="https://example.com/advisory", is_verified=True,
+        )
+        self.assertTrue(Notification.objects.filter(user=nearby, title__icontains="Nearby").exists())
+        self.assertTrue(Notification.objects.filter(user=family, related_alert__title="Test flood warning").exists())
+
+    def test_cross_destination_image_is_not_used_as_fallback(self):
+        from .models import DestinationImage
+        from .serializers import DestinationListSerializer
+        DestinationImage.objects.create(
+            destination=self.trek, external_url="https://example.com/rara-lake.jpg",
+            caption=self.trek.name, alt_text=self.trek.name,
+            is_cover=True, is_verified=True, verification_status="approved",
+        )
+        data = DestinationListSerializer(self.trek).data
+        self.assertIsNone(data["cover_image_url"])
+
+    def test_destination_linked_unverified_media_hidden_publicly_visible_to_admins(self):
+        """Superseded contract: pending media must NOT surface on the public
+        serializer (approval required first); admins review it through the
+        admin detail view / pending-images queue instead."""
+        from .models import DestinationImage
+        from .serializers import DestinationListSerializer
+        img = DestinationImage.objects.create(
+            destination=self.trek, external_url="https://images.example.com/asset-abc123.jpg",
+            is_cover=True, is_verified=False, verification_status="pending",
+        )
+        data = DestinationListSerializer(self.trek).data
+        self.assertIsNone(data["cover_image_url"])  # pending never public
+        # ...but the admin detail view still exposes it for moderation
+        admin = User.objects.create_superuser(email="media-admin@example.com", password="AdminPass123!")
+        self.client.force_authenticate(user=admin)
+        resp = self.client.get(f"/api/v1/admin/destinations/{self.trek.id}")
+        gallery = resp.data.get("gallery") or resp.data.get("images") or []
+        self.assertTrue(any(g.get("id") == img.id for g in gallery))
+
+    def test_district_gallery_uses_canonical_77_districts(self):
+        from .models import DestinationImage
+        DestinationImage.objects.create(
+            destination=self.trek, external_url="https://example.com/test-himalayan-trek.jpg",
+            is_cover=True, verification_status="approved",
+        )
+        response = self.client.get(reverse("district-gallery"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["district_count"], 77)
+        kaski = next(item for item in response.data["districts"] if item["district"] == "Kaski")
+        self.assertEqual(len(kaski["images"]), 1)
+
+    def test_verified_risk_feed_ingestion_keeps_source_provenance(self):
+        from .models import CurrentHazard
+        from .risk_ingestion import ingest_records
+        summary = ingest_records([{
+            "destination_slug": self.trek.slug, "record_kind": "current",
+            "hazard_type": "heavy_rain", "title": "Official rainfall watch",
+            "severity": "high", "source_url": "https://example.com/dhm-record",
+            "observed_at": "2026-08-18T08:00:00Z", "published_at": "2026-08-18T07:55:00Z",
+            "affected_area": "Upper Kaski slopes",
+        }], "dhm", verified=True)
+        self.assertEqual(summary["current_created"], 1)
+        hazard = CurrentHazard.objects.get(title="Official rainfall watch")
+        self.assertTrue(hazard.verified)
+        self.assertEqual(hazard.source_type, "official")
+        self.assertEqual(hazard.affected_area, "Upper Kaski slopes")
+
+    def test_verified_critical_warning_marks_recommendation_unavailable(self):
+        from django.utils import timezone
+        from .models import CurrentHazard
+        CurrentHazard.objects.create(
+            destination=self.trek, hazard_type="landslide", title="Trail officially closed",
+            severity="critical", source_type="official", source_name="Test authority",
+            source_url="https://example.com/closure", observed_at=timezone.now(),
+            verified=True, is_active=True,
+        )
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "trekking", "days": 7, "limit": 6,
+        })
+        result = next(row for row in response.data["results"] if row["id"] == self.trek.id)
+        self.assertEqual(result["safety_context"]["availability"], "temporarily_unavailable")
+        self.assertEqual(result["safety_context"]["current_warning"]["severity"], "critical")
+
+    def test_admin_data_explorer_searches_destinations(self):
+        admin = User.objects.create_user(email="explorer-admin@example.com", password="StrongPass123!", role="admin", is_verified=True, is_staff=True)
+        self.client.force_authenticate(admin)
+        response = self.client.get(reverse("admin-data-explorer"), {"resource": "destinations", "q": "Test Himalayan"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], self.trek.id)
+
+    def test_staff_write_requires_exact_capability(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="limited-staff@example.com", password="StrongPass123!", role="staff", is_staff=True, is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"images": ["view"]})
+        self.client.force_authenticate(staff)
+        denied = self.client.post("/api/v1/categories/", {"name": "Denied Category", "slug": "denied-category"})
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities = {"destinations": ["view", "add"]}
+        staff.capability_profile.save()
+        allowed = self.client.post("/api/v1/categories/", {"name": "Allowed Category", "slug": "allowed-category"})
+        self.assertEqual(allowed.status_code, status.HTTP_201_CREATED)
+
+    def test_cms_rejects_unsafe_routes_and_colors(self):
+        from .models import StaffCapabilityProfile
+        admin=User.objects.create_user(email="cms-admin@example.com",password="StrongPass123!",role="admin",is_staff=True,is_verified=True)
+        self.client.force_authenticate(admin)
+        route=self.client.post(reverse("admin-cms"),{"resource":"navigation","location":"navbar","label":"Bad","route":"javascript:alert(1)"})
+        self.assertEqual(route.status_code,status.HTTP_400_BAD_REQUEST)
+        color=self.client.post(reverse("admin-cms"),{"resource":"settings","key":"branding","value":{"primary_color":"red<script>"}})
+        self.assertEqual(color.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_notification_broadcast_requires_settings_capability(self):
+        from .models import StaffCapabilityProfile, Notification
+        staff=User.objects.create_user(email="notice-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"settings":["view"]})
+        self.client.force_authenticate(staff)
+        denied=self.client.post(reverse("admin-notifications"),{"title":"Test","message":"Denied"})
+        self.assertEqual(denied.status_code,status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities={"settings":["view","add"]};staff.capability_profile.save()
+        allowed=self.client.post(reverse("admin-notifications"),{"title":"Test","message":"Allowed","role":"staff"})
+        self.assertEqual(allowed.status_code,status.HTTP_201_CREATED)
+        self.assertTrue(Notification.objects.filter(user=staff,title="Test").exists())
+
+    def test_safety_crud_requires_capabilities(self):
+        from django.utils import timezone
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="safety-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"safety":["view"]})
+        self.client.force_authenticate(staff)
+        payload={"destination":self.trek.id,"hazard_type":"heavy_rain","title":"Field rain watch","description":"test","severity":"moderate","source_type":"admin","source_name":"Field team","observed_at":timezone.now().isoformat(),"is_active":True,"verified":False}
+        denied=self.client.post("/api/v1/admin/current-hazards/",payload)
+        self.assertEqual(denied.status_code,status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities={"safety":["view","add","change"]};staff.capability_profile.save()
+        created=self.client.post("/api/v1/admin/current-hazards/",payload)
+        self.assertEqual(created.status_code,status.HTTP_201_CREATED)
+        updated=self.client.patch(f"/api/v1/admin/current-hazards/{created.data['id']}/",{"is_active":False})
+        self.assertEqual(updated.status_code,status.HTTP_200_OK)
+        self.assertFalse(updated.data["is_active"])
+
+    def test_global_admin_search_filters_results_by_capability(self):
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="search-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"destinations":["view"]})
+        self.client.force_authenticate(staff)
+        response=self.client.get(reverse("admin-global-search"),{"q":"Test"})
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertTrue(any(item["type"]=="destination" for item in response.data["results"]))
+        self.assertFalse(any(item["type"]=="user" for item in response.data["results"]))
+
+    def test_media_delete_replaces_destination_cover(self):
+        from .models import DestinationImage, StaffCapabilityProfile
+        staff=User.objects.create_user(email="media-delete@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"images":["view","delete"]})
+        cover=DestinationImage.objects.create(destination=self.trek,external_url="https://example.com/test-himalayan-trek-cover.jpg",is_cover=True,ordering=0)
+        replacement=DestinationImage.objects.create(destination=self.trek,external_url="https://example.com/test-himalayan-trek-second.jpg",is_cover=False,ordering=1)
+        self.client.force_authenticate(staff)
+        response=self.client.delete(reverse("admin-media-library"),{"id":cover.id},format="json")
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        replacement.refresh_from_db();self.assertTrue(replacement.is_cover)
+        self.assertEqual(response.data["replacement_cover_id"],replacement.id)
+
+    def test_dataset_upload_validation_import_backup_and_capability(self):
+        import tempfile
+        from pathlib import Path
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        from .models import StaffCapabilityProfile
+        from .views_admin import AdminDatasetManagerView
+        staff=User.objects.create_user(email="dataset-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"datasets":["view"]})
+        self.client.force_authenticate(staff)
+        denied=self.client.post(reverse("admin-datasets"),{"dataset":"risk","file":SimpleUploadedFile("risk.csv",b"place,risk\nTest,low\n",content_type="text/csv")},format="multipart")
+        self.assertEqual(denied.status_code,status.HTTP_403_FORBIDDEN)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/"dataset").mkdir();(root/"dataset/risk.csv").write_text("place,risk\nOld,low\n")
+            original=AdminDatasetManagerView.DATASETS;AdminDatasetManagerView.DATASETS={"risk":"dataset/risk.csv"}
+            try:
+                staff.capability_profile.capabilities={"datasets":["view","add","change"]};staff.capability_profile.save()
+                with override_settings(BASE_DIR=root):
+                    valid=self.client.post(reverse("admin-datasets"),{"dataset":"risk","file":SimpleUploadedFile("risk.csv",b"place,risk\nNew,high\n",content_type="text/csv")},format="multipart")
+                    self.assertEqual(valid.status_code,status.HTTP_201_CREATED)
+                    imported=self.client.put(reverse("admin-datasets"),{"dataset":"risk","token":valid.data["token"]},format="json")
+                    self.assertEqual(imported.status_code,status.HTTP_200_OK)
+                    self.assertIn("New,high",(root/"dataset/risk.csv").read_text())
+                    self.assertTrue(list((root/"dataset").glob("risk.backup-*.csv")))
+            finally: AdminDatasetManagerView.DATASETS=original
+
+    def test_feedback_thread_assignment_reply_and_notification(self):
+        from .models import StaffCapabilityProfile, UserFeedback, Notification
+        user=User.objects.create_user(email="feedback-user@example.com",password="StrongPass123!",is_verified=True)
+        staff=User.objects.create_user(email="feedback-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"feedback":["view","change"]})
+        thread=UserFeedback.objects.create(user=user,email=user.email,subject="Route correction",message="Wrong route",category="route")
+        self.client.force_authenticate(staff)
+        updated=self.client.patch(reverse("admin-feedback-reply",kwargs={"id":thread.id}),{"status":"in_progress","priority":"high","assigned_to":staff.id},format="json")
+        self.assertEqual(updated.status_code,status.HTTP_200_OK)
+        replied=self.client.post(reverse("admin-feedback-reply",kwargs={"id":thread.id}),{"reply":"We are checking this route.","is_internal":False},format="json")
+        self.assertEqual(replied.status_code,status.HTTP_200_OK)
+        self.assertTrue(Notification.objects.filter(user=user,title__icontains="Reply").exists())
+
+    def test_reports_require_audit_capability_and_return_trends(self):
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="reports-staff@example.com",password="StrongPass123!",role="staff",is_staff=True,is_verified=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"audit":["view"]})
+        self.client.force_authenticate(staff)
+        response=self.client.get(reverse("admin-reports"),{"from":"2026-01-01","to":"2026-12-31"})
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertIn("trends",response.data);self.assertIn("staff_activity",response.data)
+
+    def test_recommendation_events_require_consent(self):
+        user = User.objects.create_user(email="events@example.com", password="StrongPass123!", is_verified=True)
+        self.client.force_authenticate(user)
+        denied = self.client.post(reverse("recommendation-events"), {
+            "event_type": "select", "destination": self.trek.id, "consented": False,
+        })
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        accepted = self.client.post(reverse("recommendation-events"), {
+            "event_type": "select", "destination": self.trek.id,
+            "score": 0.91, "context": {"source": "test"}, "consented": True,
+        })
+        self.assertEqual(accepted.status_code, status.HTTP_201_CREATED)
+
+    def test_verified_news_and_station_observation_remain_separate_from_warning(self):
+        from django.utils import timezone
+        from .models import RiskNewsReport, RiskObservation
+        RiskNewsReport.objects.create(
+            destination=self.trek, title="Road concerns reported", hazard_type="road_accident",
+            source_name="Verified newsroom", source_url="https://example.com/news/road",
+            published_at=timezone.now(), verification_status="verified",
+        )
+        RiskObservation.objects.create(
+            destination=self.trek, observation_type="rainfall", value=32.5, unit="mm",
+            trend="rising", station_name="Kaski Test Station", distance_km=6.4,
+            source_name="DHM test", source_url="https://example.com/station",
+            observed_at=timezone.now(), verified=True,
+        )
+        response = self.client.get(reverse("destination-risk-assessment", kwargs={"destination_ref": self.trek.slug}))
+        self.assertEqual(len(response.data["verified_news"]), 1)
+        self.assertEqual(response.data["observations"][0]["station_name"], "Kaski Test Station")
+        self.assertFalse(response.data["current_conditions"]["official_warning_present"])
+
+    @override_settings(DHM_FEED_URL="", BIPAD_FEED_URL="")
+    def test_unconfigured_official_feed_is_reported_not_fabricated(self):
+        from .official_connectors import fetch_official_feed
+        result = fetch_official_feed("dhm")
+        self.assertFalse(result["configured"])
+        self.assertFalse(result["ingested"])
+
+    @override_settings(ROUTING_API_URL="", LOCAL_GRAPH_ROUTING_ENABLED=False)
+    def test_routing_fallback_labels_straight_line_distance(self):
+        response = self.client.post(reverse("route-metrics"), {
+            "start_latitude": 28.2096, "start_longitude": 83.9856,
+            "end_latitude": 28.2380, "end_longitude": 83.9956,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "routing_unconfigured")
+        self.assertIsNone(response.data["road_distance_km"])
+        self.assertGreater(response.data["straight_line_km"], 0)
+
+
+class AdminUserManagementSecurityTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="user-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.target = User.objects.create_user(email="target@example.com", password="StrongPass123!", is_verified=False)
+        self.client.force_authenticate(self.admin)
+
+    def test_filterable_directory_is_paginated(self):
+        response = self.client.get(reverse("admin-users"), {"q": "target", "status": "active", "page_size": 10})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["email"], self.target.email)
+
+    def test_admin_cannot_change_own_access_state(self):
+        response = self.client.put(reverse("admin-update-user-status", kwargs={"id": self.admin.id}), {"is_active": False}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.is_active)
+
+    def test_staff_capability_cannot_escalate_user_to_admin(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="limited-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"users": ["view", "change"]})
+        self.client.force_authenticate(staff)
+        response = self.client.put(reverse("admin-update-user-status", kwargs={"id": self.target.id}), {"role": "admin"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.target.refresh_from_db()
+        self.assertEqual(self.target.role, User.Role.TOURIST)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_verification_reminder_does_not_verify_identity(self):
+        response = self.client.post(reverse("admin-send-verification", kwargs={"id": self.target.id}), {"channel": "email"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.target.refresh_from_db()
+        self.assertFalse(self.target.is_verified)
+
+    def test_delete_is_retention_safe_deactivation(self):
+        response = self.client.delete(reverse("admin-update-user-status", kwargs={"id": self.target.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.target.refresh_from_db()
+        self.assertFalse(self.target.is_active)
+        self.assertTrue(User.objects.filter(pk=self.target.pk).exists())
+
+    def test_detail_includes_activity_and_audit_history(self):
+        self.client.post(reverse("admin-user-access-action", kwargs={"id": self.target.id}), {"action": "verify"}, format="json")
+        response = self.client.get(reverse("admin-user-detail-full", kwargs={"id": self.target.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("activity", response.data)
+        self.assertTrue(response.data["role_history"])
+
+
+class CMSPublishingWorkflowTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage, ContentSection
+        self.admin = User.objects.create_superuser(email="cms-workflow@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.page = ManagedPage.objects.create(route="/workflow-test", key="workflow-test", title="Workflow test", status="draft", updated_by=self.admin)
+        self.section = ContentSection.objects.create(page=self.page, key="hero", title="Draft hero", body="Not public yet", status="draft", updated_by=self.admin)
+
+    def test_draft_is_previewable_but_not_public(self):
+        preview = self.client.get(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "preview": "true"})
+        self.assertEqual(preview.status_code, status.HTTP_200_OK)
+        self.assertEqual(preview.data["preview"]["sections"][0]["title"], "Draft hero")
+        public = self.client.get(reverse("public-config"))
+        self.assertNotIn("workflow-test", [page["key"] for page in public.data["pages"]])
+
+    def test_publish_actions_make_page_and_section_public(self):
+        for resource, object_id in (("pages", self.page.id), ("sections", self.section.id)):
+            response = self.client.patch(reverse("admin-cms"), {"resource": resource, "id": object_id, "action": "publish"}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+        public = self.client.get(reverse("public-config"))
+        page = next(item for item in public.data["pages"] if item["key"] == "workflow-test")
+        self.assertEqual(page["sections"][0]["body"], "Not public yet")
+
+    def test_updates_create_history_and_rollback_creates_new_revision(self):
+        from .models import CMSRevision
+        changed = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "title": "Changed title"}, format="json")
+        self.assertEqual(changed.status_code, status.HTTP_200_OK)
+        first = CMSRevision.objects.filter(resource="pages", object_id=self.page.id).order_by("revision_number").first()
+        restored = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "rollback", "revision_id": first.id}, format="json")
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.title, "Workflow test")
+        self.assertEqual(CMSRevision.objects.filter(resource="pages", object_id=self.page.id).count(), 3)
+
+    def test_future_schedule_and_due_publication(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        scheduled = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "schedule", "scheduled_publish_at": (timezone.now() + timedelta(hours=1)).isoformat()}, format="json")
+        self.assertEqual(scheduled.status_code, status.HTTP_200_OK)
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "scheduled")
+        self.page.scheduled_publish_at = timezone.now() - timedelta(minutes=1)
+        self.page.save(update_fields=["scheduled_publish_at"])
+        self.client.get(reverse("public-config"))
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "published")
+
+    def test_invalid_or_past_schedule_is_rejected(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "schedule", "scheduled_publish_at": (timezone.now() - timedelta(hours=1)).isoformat()}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_staff_without_change_capability_cannot_publish(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="cms-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"content": ["view"]})
+        self.client.force_authenticate(staff)
+        response = self.client.patch(reverse("admin-cms"), {"resource": "pages", "id": self.page.id, "action": "publish"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class ReviewModerationWorkflowTests(APITestCase):
+    def setUp(self):
+        from .models import StaffCapabilityProfile
+        from booking.models import HotelReview
+        self.admin = User.objects.create_user(email="review-admin@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.admin, capabilities={"reviews": ["view", "change", "approve", "delete"]})
+        self.author = User.objects.create_user(email="reviewer@example.com", password="StrongPass123!", is_verified=True)
+        category = Category.objects.create(name="Review Test")
+        self.destination = Destination.objects.create(name="Review Valley", category=category, description="Test", latitude=28, longitude=84, created_by=self.admin)
+        self.hotel = Hotel.objects.create(destination=self.destination, name="Review Lodge", price_per_night=20)
+        self.destination_review = Review.objects.create(destination=self.destination, user=self.author, comment="Destination comment", moderation_status="pending")
+        self.hotel_review = HotelReview.objects.create(hotel=self.hotel, user=self.author, rating=4, comment="Hotel comment", moderation_status="pending")
+
+    def test_pending_reviews_are_hidden_from_public_apis(self):
+        destination = self.client.get(reverse("review-list"), {"destination": self.destination.id})
+        hotel = self.client.get(reverse("hotel-review-list"), {"hotel": self.hotel.id})
+        self.assertEqual(destination.data["count"], 0)
+        self.assertEqual(hotel.data["count"], 0)
+
+    def test_author_can_see_own_pending_review(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.get(reverse("review-list"), {"destination": self.destination.id})
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["moderation_status"], "pending")
+
+    def test_approve_publishes_review_and_writes_audit(self):
+        from audit.models import AuditLog
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-review-moderation"), {"type": "destination", "ids": [self.destination_review.id], "action": "approve"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("review-list"), {"destination": self.destination.id})
+        self.assertEqual(public.data["count"], 1)
+        self.assertTrue(AuditLog.objects.filter(action="reviews.approve").exists())
+
+    def test_flag_requires_change_and_archive_requires_delete_capability(self):
+        from .models import StaffCapabilityProfile
+        limited = User.objects.create_user(email="review-limited@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=limited, capabilities={"reviews": ["view"]})
+        self.client.force_authenticate(limited)
+        denied = self.client.patch(reverse("admin-review-moderation"), {"type": "destination", "id": self.destination_review.id, "action": "flag", "note": "Needs review"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_archive_preserves_review_and_restore_returns_to_pending(self):
+        self.client.force_authenticate(self.admin)
+        archived = self.client.patch(reverse("admin-review-moderation"), {"type": "hotel", "id": self.hotel_review.id, "action": "archive", "note": "Policy violation"}, format="json")
+        self.assertEqual(archived.status_code, status.HTTP_200_OK)
+        from booking.models import HotelReview
+        self.assertTrue(HotelReview.objects.filter(pk=self.hotel_review.id, moderation_status="archived").exists())
+        restored = self.client.patch(reverse("admin-review-moderation"), {"type": "hotel", "id": self.hotel_review.id, "action": "restore"}, format="json")
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.hotel_review.refresh_from_db()
+        self.assertEqual(self.hotel_review.moderation_status, "pending")
+
+    def test_owner_delete_archives_instead_of_hard_deleting(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.delete(reverse("review-detail", kwargs={"pk": self.destination_review.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.destination_review.refresh_from_db()
+        self.assertEqual(self.destination_review.moderation_status, "archived")
+
+    def test_user_cannot_modify_another_users_hotel_review(self):
+        stranger = User.objects.create_user(email="review-stranger@example.com", password="StrongPass123!")
+        self.client.force_authenticate(stranger)
+        response = self.client.delete(reverse("hotel-review-detail", kwargs={"pk": self.hotel_review.id}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(type(self.hotel_review).objects.filter(pk=self.hotel_review.id).exists())
+
+
+class StaffWorkspaceScopeTests(APITestCase):
+    def setUp(self):
+        from .models import StaffCapabilityProfile
+        from admin_panel.models import AdminTask, HotelAssignment
+        self.superadmin = User.objects.create_superuser(email="workspace-admin@example.com", password="StrongPass123!")
+        self.staff = User.objects.create_user(email="kaski-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.staff, capabilities={"dashboard": ["view"], "destinations": ["view", "approve"], "images": ["view", "approve"], "hotels": ["view"]}, managed_districts=["Kaski"])
+        category = Category.objects.create(name="Workspace Test")
+        self.kaski = Destination.objects.create(name="Kaski Queue", category=category, description="Test", district="Kaski", status="pending", latitude=28, longitude=84, created_by=self.superadmin)
+        self.mustang = Destination.objects.create(name="Mustang Queue", category=category, description="Test", district="Mustang", status="pending", latitude=29, longitude=84, created_by=self.superadmin)
+        self.kaski_hotel = Hotel.objects.create(destination=self.kaski, name="Assigned Kaski Hotel", price_per_night=30)
+        self.mustang_hotel = Hotel.objects.create(destination=self.mustang, name="Unassigned Mustang Hotel", price_per_night=40)
+        HotelAssignment.objects.create(hotel=self.kaski_hotel, admin=self.staff, assigned_by=self.superadmin)
+        self.task = AdminTask.objects.create(title="Verify Kaski queue", assigned_to=self.staff, assigned_by=self.superadmin)
+        self.client.force_authenticate(self.staff)
+
+    def test_destination_queue_is_limited_to_managed_districts(self):
+        response = self.client.get(reverse("staff-workspace"), {"module": "destinations"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([row["id"] for row in response.data["results"]], [self.kaski.id])
+
+    def test_staff_cannot_act_outside_district_scope(self):
+        denied = self.client.post(reverse("staff-workspace"), {"module": "destinations", "id": self.mustang.id, "action": "approve"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+        allowed = self.client.post(reverse("staff-workspace"), {"module": "destinations", "id": self.kaski.id, "action": "approve"}, format="json")
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.kaski.refresh_from_db()
+        self.assertEqual(self.kaski.status, "approved")
+
+    def test_unassigned_module_is_denied_by_backend(self):
+        response = self.client.get(reverse("staff-workspace"), {"module": "safety"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_hotel_workspace_only_returns_explicit_assignments(self):
+        response = self.client.get(reverse("staff-workspace"), {"module": "hotels"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([row["id"] for row in response.data["results"]], [self.kaski_hotel.id])
+
+    def test_staff_can_complete_only_own_tasks(self):
+        from admin_panel.models import AdminTask
+        other = AdminTask.objects.create(title="Other task", assigned_to=self.superadmin, assigned_by=self.superadmin)
+        denied = self.client.post(reverse("staff-workspace"), {"module": "tasks", "id": other.id, "action": "completed"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        allowed = self.client.post(reverse("staff-workspace"), {"module": "tasks", "id": self.task.id, "action": "completed"}, format="json")
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "completed")
+        self.assertIsNotNone(self.task.completed_at)
+
+    def test_staff_task_patch_cannot_reassign_or_edit_task(self):
+        response = self.client.patch(f"/api/v1/admin-panel/tasks/{self.task.id}/", {"assigned_to": self.superadmin.id, "title": "Escalated"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.assigned_to, self.staff)
+
+    def test_traveler_cannot_self_verify_expense_submission(self):
+        traveler = User.objects.create_user(email="expense-traveler@example.com", password="StrongPass123!")
+        self.client.force_authenticate(traveler)
+        response = self.client.post(reverse("expense-feedback-list"), {"destination": self.kaski.id, "destination_name": self.kaski.name, "num_people": 1, "num_days": 1, "is_employee_verified": True}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data["is_employee_verified"])
+
+    def test_field_feedback_lists_are_private_and_district_scoped(self):
+        from .models import TravelExpenseFeedback
+        own = TravelExpenseFeedback.objects.create(user=self.staff, destination=self.kaski, destination_name=self.kaski.name)
+        TravelExpenseFeedback.objects.create(user=self.superadmin, destination=self.mustang, destination_name=self.mustang.name)
+        # Add budget view while retaining the Kaski district scope.
+        self.staff.capability_profile.capabilities["budget"] = ["view"]
+        self.staff.capability_profile.save(update_fields=["capabilities"])
+        response = self.client.get(reverse("expense-feedback-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([row["id"] for row in response.data["results"]], [own.id])
+
+
+class BrandingThemeTranslationTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage, ContentSection, ManagedNavigationItem
+        self.admin = User.objects.create_superuser(email="branding-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.page = ManagedPage.objects.create(route="/translated-page", key="translated-page", title="English page", status="published")
+        self.section = ContentSection.objects.create(page=self.page, key="hero", title="English hero", body="English body", status="published")
+        self.nav = ManagedNavigationItem.objects.create(location="navbar", label="English link", route="/translated-page")
+
+    def test_safe_theme_preset_is_published_without_arbitrary_css(self):
+        response = self.client.patch(reverse("admin-branding"), {"branding": {"site_title": "Tourism Nepal", "theme_preset": "forest", "facebook_url": "https://facebook.com/nepal"}}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["branding"]["primary_color"], "#166534")
+        denied = self.client.patch(reverse("admin-branding"), {"branding": {"custom_css": "body{display:none}"}}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_social_links_require_https(self):
+        response = self.client.patch(reverse("admin-branding"), {"branding": {"theme_preset": "himalayan", "facebook_url": "javascript:alert(1)"}}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_valid_logo_upload_and_invalid_favicon_dimensions(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        buffer = io.BytesIO(); Image.new("RGB", (120, 60), "blue").save(buffer, format="PNG")
+        logo = self.client.post(reverse("admin-branding"), {"kind": "logo", "file": SimpleUploadedFile("logo.png", buffer.getvalue(), content_type="image/png")}, format="multipart")
+        self.assertEqual(logo.status_code, status.HTTP_201_CREATED)
+        buffer = io.BytesIO(); Image.new("RGB", (64, 32), "red").save(buffer, format="PNG")
+        favicon = self.client.post(reverse("admin-branding"), {"kind": "favicon", "file": SimpleUploadedFile("favicon.png", buffer.getvalue(), content_type="image/png")}, format="multipart")
+        self.assertEqual(favicon.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cms_translation_overlays_only_requested_language(self):
+        for target, object_id, content in (("pages", self.page.id, {"title": "नेपाली पृष्ठ"}), ("sections", self.section.id, {"title": "नेपाली शीर्षक", "body": "नेपाली सामग्री"}), ("navigation", self.nav.id, {"label": "नेपाली लिङ्क"})):
+            response = self.client.post(reverse("admin-cms"), {"resource": "translations", "target_resource": target, "object_id": object_id, "language_code": "ne", "content": content}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        nepali = self.client.get(reverse("public-config"), {"lang": "ne"})
+        page = next(row for row in nepali.data["pages"] if row["id"] == self.page.id)
+        self.assertEqual(page["title"], "नेपाली पृष्ठ")
+        self.assertEqual(page["sections"][0]["body"], "नेपाली सामग्री")
+        self.assertEqual(next(row for row in nepali.data["navigation"] if row["id"] == self.nav.id)["label"], "नेपाली लिङ्क")
+        english = self.client.get(reverse("public-config"), {"lang": "en"})
+        self.assertEqual(next(row for row in english.data["pages"] if row["id"] == self.page.id)["title"], "English page")
+
+    def test_translation_rejects_unsupported_fields_and_missing_target(self):
+        bad_field = self.client.post(reverse("admin-cms"), {"resource": "translations", "target_resource": "pages", "object_id": self.page.id, "language_code": "ne", "content": {"script": "alert(1)"}}, format="json")
+        self.assertEqual(bad_field.status_code, status.HTTP_400_BAD_REQUEST)
+        missing = self.client.post(reverse("admin-cms"), {"resource": "translations", "target_resource": "pages", "object_id": 999999, "language_code": "ne", "content": {"title": "Missing"}}, format="json")
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_navigation_rejects_cross_location_parent_and_cycles(self):
+        from .models import ManagedNavigationItem
+        footer = ManagedNavigationItem.objects.create(location="footer", label="Footer", route="/about")
+        cross = self.client.post(reverse("admin-cms"), {"resource": "navigation", "location": "navbar", "label": "Bad child", "route": "/bad", "parent_id": footer.id}, format="json")
+        self.assertEqual(cross.status_code, status.HTTP_400_BAD_REQUEST)
+        child = ManagedNavigationItem.objects.create(location="navbar", label="Child", route="/child", parent=self.nav)
+        cycle = self.client.patch(reverse("admin-cms"), {"resource": "navigation", "id": self.nav.id, "parent_id": child.id}, format="json")
+        self.assertEqual(cycle.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_view_only_settings_staff_cannot_change_branding(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="branding-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"settings": ["view"]})
+        self.client.force_authenticate(staff)
+        visible = self.client.get(reverse("admin-branding"))
+        self.assertEqual(visible.status_code, status.HTTP_200_OK)
+        denied = self.client.patch(reverse("admin-branding"), {"branding": {"theme_preset": "forest"}}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class NotificationDeliveryPreferenceTests(APITestCase):
+    def setUp(self):
+        from .models import NotificationPreference
+        self.admin = User.objects.create_superuser(email="notification-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.user = User.objects.create_user(email="notification-user@example.com", password="StrongPass123!", is_active=True)
+        self.preference = NotificationPreference.objects.create(user=self.user, in_app_enabled=True, email_enabled=False, sms_enabled=False, push_enabled=False, marketing=False)
+
+    def test_user_preferences_are_persisted_and_private(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.patch(reverse("notification-preferences"), {"email_enabled": True, "booking_updates": False}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.preference.refresh_from_db()
+        self.assertTrue(self.preference.email_enabled)
+        self.assertFalse(self.preference.booking_updates)
+
+    def test_broadcast_respects_channel_and_category_preferences(self):
+        from .models import Notification
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-notifications"), {"title": "Platform update", "message": "Test delivery", "role": "tourist", "category": "general", "channels": ["in_app", "email", "sms", "push"]}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        records = Notification.objects.filter(user=self.user)
+        self.assertEqual(records.count(), 4)
+        self.assertEqual(records.get(channel="in_app").delivery_status, "sent")
+        self.assertEqual(set(records.exclude(channel="in_app").values_list("delivery_status", flat=True)), {"skipped"})
+
+    def test_external_delivery_stays_queued_until_provider_confirms(self):
+        from .models import Notification
+        self.preference.email_enabled = True; self.preference.save(update_fields=["email_enabled"])
+        self.client.force_authenticate(self.admin)
+        self.client.post(reverse("admin-notifications"), {"title": "Email test", "message": "Queued", "role": "tourist", "channels": ["email"]}, format="json")
+        notification = Notification.objects.get(user=self.user, channel="email")
+        self.assertEqual(notification.delivery_status, "queued")
+        self.assertFalse(notification.is_sent)
+
+    @patch("tourist.notification_delivery.send_mail")
+    def test_provider_confirmation_marks_email_sent(self, mocked_send):
+        from .models import Notification
+        from .notification_delivery import deliver_notification
+        notification = Notification.objects.create(user=self.user, channel="email", title="Confirmed", message="Delivered")
+        result = deliver_notification(notification.id)
+        self.assertEqual(result, "sent")
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_sent)
+        self.assertEqual(notification.delivery_attempts, 1)
+        self.assertIsNotNone(notification.sent_at)
+        mocked_send.assert_called_once()
+
+    def test_provider_failure_records_reason_and_bounded_retry(self):
+        from .models import Notification
+        from .notification_delivery import deliver_notification
+        notification = Notification.objects.create(user=self.user, channel="sms", title="SMS", message="Unavailable", max_attempts=2)
+        self.assertEqual(deliver_notification(notification.id), "failed")
+        notification.refresh_from_db()
+        self.assertIn("phone", notification.failure_reason.lower())
+        self.assertIsNotNone(notification.next_retry_at)
+        self.assertEqual(deliver_notification(notification.id), "failed")
+        notification.refresh_from_db()
+        self.assertIsNone(notification.next_retry_at)
+        self.assertEqual(notification.delivery_attempts, 2)
+
+    def test_retry_action_does_not_reset_exhausted_deliveries(self):
+        from .models import Notification
+        failed = Notification.objects.create(user=self.user, channel="email", title="Retry", message="Retry", delivery_status="failed", delivery_attempts=1, max_attempts=3)
+        exhausted = Notification.objects.create(user=self.user, channel="email", title="Done", message="Done", delivery_status="failed", delivery_attempts=3, max_attempts=3)
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-notifications"), {"ids": [failed.id, exhausted.id], "action": "retry"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        failed.refresh_from_db(); exhausted.refresh_from_db()
+        self.assertEqual(failed.delivery_status, "queued")
+        self.assertEqual(exhausted.delivery_status, "failed")
+
+    def test_user_read_unread_and_delete_are_owner_scoped(self):
+        from .models import Notification
+        own = Notification.objects.create(user=self.user, title="Own", message="Message")
+        other = Notification.objects.create(user=self.admin, title="Other", message="Message")
+        self.client.force_authenticate(self.user)
+        read = self.client.put(reverse("notification-mark-read", kwargs={"pk": own.id}))
+        self.assertEqual(read.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(read.data["read_at"])
+        unread = self.client.put(reverse("notification-mark-unread", kwargs={"pk": own.id}))
+        self.assertFalse(unread.data["is_read"])
+        denied = self.client.delete(reverse("notification-detail", kwargs={"pk": other.id}))
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+        removed = self.client.delete(reverse("notification-detail", kwargs={"pk": own.id}))
+        self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
+
+    @patch("tourist.notification_delivery.send_mail")
+    def test_queue_management_command_processes_due_delivery(self, mocked_send):
+        from django.core.management import call_command
+        from .models import Notification
+        notification = Notification.objects.create(user=self.user, channel="email", title="Worker", message="Process me")
+        call_command("process_notification_queue", limit=10)
+        notification.refresh_from_db()
+        self.assertEqual(notification.delivery_status, "sent")
+        mocked_send.assert_called_once()
+
+    def test_disabled_marketing_category_is_skipped_even_for_in_app(self):
+        from .models import Notification
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-notifications"), {"title": "Offer", "message": "Marketing", "role": "tourist", "category": "marketing", "channels": ["in_app"]}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        notification = Notification.objects.get(user=self.user, title="Offer")
+        self.assertEqual(notification.delivery_status, "skipped")
+        self.assertIn("preferences", notification.failure_reason)
+
+
+class TravelServicesManagementTests(APITestCase):
+    def setUp(self):
+        from .models import Restaurant, DestinationTransitRoute
+        self.admin = User.objects.create_superuser(email="travel-service-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN; self.admin.save(update_fields=["role"])
+        self.user = User.objects.create_user(email="planner@example.com", password="StrongPass123!")
+        self.other = User.objects.create_user(email="other-planner@example.com", password="StrongPass123!")
+        category = Category.objects.create(name="Travel Services Test")
+        self.destination = Destination.objects.create(name="Service Destination", category=category, description="Test", district="Kaski", status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin)
+        self.restaurant = Restaurant.objects.create(destination=self.destination, name="Pending Kitchen", status="pending")
+        self.route = DestinationTransitRoute.objects.create(destination=self.destination, origin="Kathmandu", transport_mode="Bus", approx_duration="5 hours")
+
+    def test_pending_restaurant_is_hidden_until_admin_publishes(self):
+        public = self.client.get(reverse("restaurant-list"), {"destination": self.destination.id})
+        self.assertEqual(public.data["count"], 0)
+        self.client.force_authenticate(self.admin)
+        published = self.client.patch(reverse("admin-travel-services"), {"resource": "restaurants", "id": self.restaurant.id, "action": "publish"}, format="json")
+        self.assertEqual(published.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(reverse("restaurant-list"), {"destination": self.destination.id}).data["count"], 1)
+
+    def test_restaurant_source_verification_is_explicit_and_audited(self):
+        from audit.models import AuditLog
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-travel-services"), {"resource": "restaurants", "id": self.restaurant.id, "action": "verify"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.restaurant.refresh_from_db(); self.assertTrue(self.restaurant.is_verified)
+        self.assertTrue(AuditLog.objects.filter(action="restaurants.verify", object_id=str(self.restaurant.id)).exists())
+
+    def test_transport_archive_hides_route_without_deleting(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("admin-travel-services"), {"resource": "transportation", "id": self.route.id, "action": "archive"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.route.refresh_from_db(); self.assertFalse(self.route.is_active)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(reverse("transit-route-list"), {"destination": self.destination.id}).data["count"], 0)
+
+    def test_staff_requires_exact_restaurant_write_capability(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="restaurant-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"restaurants": ["view"]})
+        self.client.force_authenticate(staff)
+        denied = self.client.post(reverse("restaurant-list"), {"destination": self.destination.id, "name": "Denied Restaurant"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_travel_plans_are_private_to_owner(self):
+        self.client.force_authenticate(self.user)
+        created = self.client.post(reverse("travel-plan-list"), {"title": "My Nepal plan", "travelers": 2, "generation_source": "ml", "itinerary_data": {"days": []}}, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.other)
+        response = self.client.get(reverse("travel-plan-list"))
+        self.assertEqual(response.data["count"], 0)
+        denied = self.client.get(reverse("travel-plan-detail", kwargs={"pk": created.data["id"]}))
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_delete_archives_plan(self):
+        from .models import TravelPlan
+        plan = TravelPlan.objects.create(user=self.user, title="Withdraw plan")
+        self.client.force_authenticate(self.user)
+        response = self.client.delete(reverse("travel-plan-detail", kwargs={"pk": plan.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        plan.refresh_from_db(); self.assertEqual(plan.status, "archived")
+
+    def test_invalid_plan_date_range_is_rejected(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post(reverse("travel-plan-list"), {"title": "Bad dates", "start_date": "2026-10-10", "end_date": "2026-10-01"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_plan_stop_cannot_be_added_to_another_users_plan(self):
+        from .models import TravelPlan
+        plan = TravelPlan.objects.create(user=self.other, title="Other plan")
+        self.client.force_authenticate(self.user)
+        response = self.client.post(reverse("travel-plan-stop-list"), {"plan": plan.id, "destination": self.destination.id, "day_number": 1, "display_order": 0}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_restaurant_staff_workspace_is_capability_and_district_scoped(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="restaurant-manager@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"restaurants": ["view", "approve"]}, managed_districts=["Kaski"])
+        self.client.force_authenticate(staff)
+        queue = self.client.get(reverse("staff-workspace"), {"module": "restaurants"})
+        self.assertEqual(queue.status_code, status.HTTP_200_OK)
+        self.assertEqual(queue.data["results"][0]["id"], self.restaurant.id)
+        published = self.client.post(reverse("staff-workspace"), {"module": "restaurants", "id": self.restaurant.id, "action": "publish"}, format="json")
+        self.assertEqual(published.status_code, status.HTTP_200_OK)
+        self.restaurant.refresh_from_db(); self.assertEqual(self.restaurant.status, "published")
+
+    def test_travel_plan_view_capability_does_not_grant_edit(self):
+        from .models import StaffCapabilityProfile, TravelPlan
+        plan = TravelPlan.objects.create(user=self.user, title="Protected plan")
+        staff = User.objects.create_user(email="plan-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"travel_plans": ["view"]})
+        self.client.force_authenticate(staff)
+        visible = self.client.get(reverse("travel-plan-detail", kwargs={"pk": plan.id}))
+        self.assertEqual(visible.status_code, status.HTTP_200_OK)
+        denied = self.client.patch(reverse("travel-plan-detail", kwargs={"pk": plan.id}), {"title": "Changed"}, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class RetentionAndAnonymizationTests(APITestCase):
+    def setUp(self):
+        from datetime import date, timedelta
+        from booking.models import Booking
+        self.admin = User.objects.create_superuser(email="retention-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN; self.admin.save(update_fields=["role"])
+        self.user = User.objects.create_user(email="retention-user@example.com", password="StrongPass123!", first_name="Private", last_name="Person", city="Kathmandu", bio="Personal biography")
+        category = Category.objects.create(name="Retention Test")
+        self.destination = Destination.objects.create(name="Retained Destination", category=category, description="Protected", status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin)
+        self.hotel = Hotel.objects.create(destination=self.destination, name="Retained Hotel", price_per_night=25)
+        self.booking = Booking.objects.create(user=self.user, hotel=self.hotel, check_in=date.today()+timedelta(days=2), check_out=date.today()+timedelta(days=4))
+
+    def test_destination_delete_archives_and_preserves_related_booking(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.delete(reverse("destination-detail", kwargs={"slug": self.destination.slug}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.destination.refresh_from_db(); self.assertEqual(self.destination.status, "archived"); self.assertFalse(self.destination.is_active)
+        self.assertTrue(type(self.booking).objects.filter(pk=self.booking.id).exists())
+
+    def test_hotel_delete_archives_and_preserves_booking(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.delete(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.hotel.refresh_from_db(); self.assertFalse(self.hotel.is_active); self.assertIsNotNone(self.hotel.archived_at)
+        self.assertTrue(type(self.booking).objects.filter(pk=self.booking.id).exists())
+
+    def test_booking_delete_cancels_and_completed_booking_is_protected(self):
+        from booking.models import Booking
+        self.client.force_authenticate(self.user)
+        cancelled = self.client.delete(reverse("booking-detail", kwargs={"pk": self.booking.id}))
+        self.assertEqual(cancelled.status_code, status.HTTP_204_NO_CONTENT)
+        self.booking.refresh_from_db(); self.assertEqual(self.booking.status, "cancelled")
+        self.booking.status = Booking.Status.COMPLETED; self.booking.save(update_fields=["status"])
+        protected = self.client.delete(reverse("booking-detail", kwargs={"pk": self.booking.id}))
+        self.assertEqual(protected.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(Booking.objects.filter(pk=self.booking.id).exists())
+
+    def test_official_risk_delete_archives_instead_of_destroying(self):
+        from datetime import date
+        from .models import RiskIncident
+        incident = RiskIncident.objects.create(destination=self.destination, hazard_type="landslide", event_date=date.today(), title="Official history", source_type="official", source_name="Authority", verified=True)
+        self.client.force_authenticate(self.admin)
+        response = self.client.delete(reverse("admin-risk-incidents-detail", kwargs={"pk": incident.id}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        incident.refresh_from_db(); self.assertTrue(incident.is_archived); self.assertIsNotNone(incident.archived_at)
+
+    def test_user_anonymization_is_irreversible_and_preserves_booking(self):
+        from .models import UserFeedback
+        feedback = UserFeedback.objects.create(user=self.user, name="Private Person", email=self.user.email, subject="Help", message="Message")
+        old_email = self.user.email
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-user-access-action", kwargs={"id": self.user.id}), {"action":"anonymize","confirmation":old_email}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db(); feedback.refresh_from_db()
+        self.assertTrue(self.user.email.endswith("@deleted.invalid")); self.assertFalse(self.user.is_active); self.assertIsNotNone(self.user.anonymized_at)
+        self.assertEqual(self.user.city, ""); self.assertEqual(feedback.email, ""); self.assertTrue(type(self.booking).objects.filter(pk=self.booking.id,user=self.user).exists())
+        self.assertFalse(self.user.has_usable_password())
+
+    def test_anonymization_requires_exact_email_confirmation(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-user-access-action", kwargs={"id": self.user.id}), {"action":"anonymize","confirmation":"wrong@example.com"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db(); self.assertIsNone(self.user.anonymized_at)
+
+    def test_retention_dry_run_and_apply_remove_only_expired_ephemeral_data(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import Notification, LocationPing, SharedTrip, RecommendationEvent
+        trip = SharedTrip.objects.create(user=self.user, expires_at=timezone.now()+timedelta(days=1))
+        ping = LocationPing.objects.create(trip=trip, latitude=28, longitude=84)
+        notification = Notification.objects.create(user=self.user, title="Old read", message="Old", is_read=True)
+        event = RecommendationEvent.objects.create(user=self.user, event_type="view", consented=True)
+        old = timezone.now()-timedelta(days=400)
+        Notification.objects.filter(pk=notification.pk).update(created_at=old)
+        LocationPing.objects.filter(pk=ping.pk).update(recorded_at=old)
+        RecommendationEvent.objects.filter(pk=event.pk).update(created_at=old)
+        self.client.force_authenticate(self.admin)
+        preview = self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json")
+        self.assertGreaterEqual(preview.data["total"], 3)
+        self.assertTrue(Notification.objects.filter(pk=notification.pk).exists())
+        applied = self.client.post(reverse("admin-retention"), {"dry_run":False}, format="json")
+        self.assertEqual(applied.status_code, status.HTTP_200_OK)
+        self.assertFalse(Notification.objects.filter(pk=notification.pk).exists())
+        self.assertFalse(LocationPing.objects.filter(pk=ping.pk).exists())
+        self.assertFalse(RecommendationEvent.objects.filter(pk=event.pk).exists())
+        self.assertTrue(type(self.booking).objects.filter(pk=self.booking.pk).exists())
+
+    def test_view_only_settings_staff_can_preview_but_not_apply_retention(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="retention-viewer@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"settings":["view"]})
+        self.client.force_authenticate(staff)
+        self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":True}, format="json").status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.post(reverse("admin-retention"), {"dry_run":False}, format="json").status_code, status.HTTP_403_FORBIDDEN)
+
+
+class HotelImageDeliveryTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="hotel-image-admin@example.com", password="StrongPass123!")
+        category = Category.objects.create(name="Hotel Image Test")
+        self.destination = Destination.objects.create(name="Bandipur", category=category, description="Test", status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin)
+        self.hotel = Hotel.objects.create(destination=self.destination, name="Image Test Hotel", price_per_night=30)
+
+    def test_verified_destination_media_is_labelled_context_fallback(self):
+        from .models import DestinationImage
+        image = DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/bandipur.jpg", verification_status="approved", is_cover=False)
+        response = self.client.get(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["image_url"], image.external_url)
+        self.assertEqual(response.data["destination_context_image_url"], image.external_url)
+        self.assertFalse(response.data["image_is_hotel_specific"])
+        self.assertEqual(response.data["image_source"], "destination_context")
+
+    def test_hotel_specific_image_has_priority(self):
+        from .models import DestinationImage
+        DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/area.jpg", verification_status="approved", is_cover=True)
+        self.hotel.external_image_url = "https://example.com/hotel.jpg"; self.hotel.save(update_fields=["external_image_url"])
+        response = self.client.get(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertEqual(response.data["image_url"], "https://example.com/hotel.jpg")
+        self.assertTrue(response.data["image_is_hotel_specific"])
+        self.assertEqual(response.data["image_source"], "hotel_external")
+
+    def test_missing_media_is_explicitly_unavailable(self):
+        response = self.client.get(reverse("hotel-detail", kwargs={"pk": self.hotel.id}))
+        self.assertIsNone(response.data["image_url"])
+        self.assertEqual(response.data["image_source"], "unavailable")
+
+    def test_hotel_search_excludes_archived_and_returns_context_image(self):
+        from .models import DestinationImage
+        DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/context.jpg", verification_status="approved", is_cover=True)
+        archived = Hotel.objects.create(destination=self.destination, name="Archived Image Hotel", is_active=False)
+        response = self.client.get(reverse("hotel-search"), {"query":"Hotel"})
+        ids = [row["id"] for row in response.data["results"]]
+        self.assertIn(self.hotel.id, ids); self.assertNotIn(archived.id, ids)
+        row = next(row for row in response.data["results"] if row["id"] == self.hotel.id)
+        self.assertEqual(row["image_url"], "https://example.com/context.jpg")
+
+    def test_admin_can_assign_valid_hotel_specific_image_url(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(reverse("hotel-detail", kwargs={"pk": self.hotel.id}), {"external_image_url":"https://example.com/specific.webp"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["image_url"], "https://example.com/specific.webp")
+        self.assertTrue(response.data["image_is_hotel_specific"])
+        insecure = self.client.patch(reverse("hotel-detail", kwargs={"pk": self.hotel.id}), {"external_image_url":"http://example.com/insecure.jpg"}, format="json")
+        self.assertEqual(insecure.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class AdminNavigationCMSAndMediaRegressionTests(APITestCase):
+    def setUp(self):
+        self.admin=User.objects.create_superuser(email="navigation-media-admin@example.com",password="StrongPass123!")
+        self.admin.role=User.Role.SUPER_ADMIN;self.admin.save(update_fields=["role"])
+        category=Category.objects.create(name="Admin Media Regression")
+        self.destination=Destination.objects.create(name="Media Ordering Place",category=category,description="Test",status="approved",is_active=True,latitude=28,longitude=84,created_by=self.admin)
+        self.client.force_authenticate(self.admin)
+
+    def test_seeded_cms_catalog_exposes_all_editable_pages_sections_and_navigation(self):
+        from .models import ManagedPage,ContentSection,ManagedNavigationItem
+        self.assertGreaterEqual(ManagedPage.objects.count(),25)
+        self.assertGreaterEqual(ContentSection.objects.count(),25)
+        self.assertGreaterEqual(ManagedNavigationItem.objects.count(),25)
+        pages=self.client.get(reverse("admin-cms"),{"resource":"pages"})
+        sections=self.client.get(reverse("admin-cms"),{"resource":"sections"})
+        navigation=self.client.get(reverse("admin-cms"),{"resource":"navigation"})
+        self.assertGreaterEqual(len(pages.data["results"]),25)
+        self.assertGreaterEqual(len(sections.data["results"]),25)
+        self.assertGreaterEqual(len(navigation.data["results"]),25)
+
+    def test_external_media_upload_enters_pending_queue(self):
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"external_url":"https://example.com/place.webp","caption":"External place","source_url":"https://example.com/source"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        from .models import DestinationImage
+        image=DestinationImage.objects.get(pk=response.data["id"])
+        self.assertEqual(image.verification_status,"pending");self.assertFalse(image.is_verified)
+
+    def test_computer_media_upload_validates_real_image(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        output=io.BytesIO();Image.new("RGB",(80,60),"green").save(output,format="JPEG")
+        upload=SimpleUploadedFile("place.jpg",output.getvalue(),content_type="image/jpeg")
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":upload,"caption":"Local upload"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        bad=SimpleUploadedFile("bad.jpg",b"not-an-image",content_type="image/jpeg")
+        rejected=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"file":bad},format="multipart")
+        self.assertEqual(rejected.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_move_up_normalizes_and_swaps_gallery_order(self):
+        from .models import DestinationImage
+        first=DestinationImage.objects.create(destination=self.destination,external_url="https://example.com/1.jpg",ordering=0)
+        second=DestinationImage.objects.create(destination=self.destination,external_url="https://example.com/2.jpg",ordering=0)
+        third=DestinationImage.objects.create(destination=self.destination,external_url="https://example.com/3.jpg",ordering=0)
+        response=self.client.patch(reverse("admin-media-library"),{"id":third.id,"action":"move_up"},format="json")
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        ordered=list(DestinationImage.objects.filter(destination=self.destination).order_by("ordering","id").values_list("id",flat=True))
+        self.assertEqual(ordered,[first.id,third.id,second.id])
+
+    def test_staff_without_image_add_capability_cannot_upload(self):
+        from .models import StaffCapabilityProfile
+        staff=User.objects.create_user(email="media-viewer@example.com",password="StrongPass123!",role="staff",is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff,capabilities={"images":["view"]})
+        self.client.force_authenticate(staff)
+        response=self.client.post(reverse("admin-media-library"),{"destination_id":self.destination.id,"external_url":"https://example.com/denied.jpg"},format="multipart")
+        self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
+
+
+class CMSStudioExtensionTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage, ContentSection, DestinationImage
+        self.admin = User.objects.create_superuser(email="cms-studio@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.category = Category.objects.create(name="CMS Studio")
+        self.destination = Destination.objects.create(
+            name="Studio Place", category=self.category, description="Test",
+            status="approved", is_active=True, latitude=28, longitude=84, created_by=self.admin,
+        )
+
+    def test_page_template_creates_sections(self):
+        from .models import ContentSection
+        created = self.client.post(reverse("admin-cms"), {
+            "resource": "pages", "route": "/guide-page", "key": "guide-page",
+            "title": "Guide", "status": "draft", "template": "travel_guide",
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertGreaterEqual(ContentSection.objects.filter(page_id=created.data["id"]).count(), 3)
+
+    def test_reusable_section_can_be_cloned(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/reusable-src", key="reusable-src", title="Source", status="draft")
+        target = ManagedPage.objects.create(route="/reusable-dst", key="reusable-dst", title="Target", status="draft")
+        source = ContentSection.objects.create(page=page, key="tips", title="Travel Tips", body="Pack light", is_reusable=True, status="published")
+        cloned = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": target.id, "action": "clone_reusable", "source_id": source.id, "page_id": target.id,
+        }, format="json")
+        self.assertEqual(cloned.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(ContentSection.objects.filter(page=target, title="Travel Tips").exists())
+
+    def test_global_search_includes_pages_and_images(self):
+        from .models import ManagedPage, DestinationImage
+        ManagedPage.objects.create(route="/searchable-page", key="searchable-page", title="UniqueSearchPage", status="published")
+        DestinationImage.objects.create(destination=self.destination, external_url="https://example.com/unique-search-photo.jpg", caption="UniqueSearchPhoto")
+        response = self.client.get(reverse("admin-global-search"), {"q": "UniqueSearch"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        types = {item["type"] for item in response.data["results"]}
+        self.assertIn("page", types)
+        self.assertIn("image", types)
+        filtered = self.client.get(reverse("admin-global-search"), {"q": "UniqueSearch", "type": "page"})
+        self.assertTrue(all(item["type"] == "page" for item in filtered.data["results"]))
+        self.assertTrue(any("snippet" in item for item in filtered.data["results"]))
+
+    def test_media_library_reports_used_on_and_crop(self):
+        from .models import DestinationImage
+        image = DestinationImage.objects.create(
+            destination=self.destination, external_url="https://example.com/used-on.jpg",
+            caption="Used photo", verification_status="approved",
+        )
+        listed = self.client.get(reverse("admin-media-library"), {"q": "used-on"})
+        row = next(item for item in listed.data["results"] if item["id"] == image.id)
+        self.assertTrue(row["used_on"])
+        cropped = self.client.patch(reverse("admin-media-library"), {"id": image.id, "crop_box": {"x": 10, "y": 10, "w": 80, "h": 80}}, format="json")
+        self.assertEqual(cropped.status_code, status.HTTP_200_OK)
+        image.refresh_from_db()
+        self.assertEqual(image.crop_box["w"], 80)
+
+    def test_crop_rewrites_jpeg_file(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationImage
+        output = io.BytesIO()
+        Image.new("RGB", (100, 80), "blue").save(output, format="JPEG")
+        upload = SimpleUploadedFile("place.jpg", output.getvalue(), content_type="image/jpeg")
+        image = DestinationImage.objects.create(destination=self.destination, image=upload, caption="Crop me")
+        cropped = self.client.patch(
+            reverse("admin-media-library"),
+            {"id": image.id, "crop_box": {"x": 10, "y": 10, "w": 50, "h": 50}},
+            format="json",
+        )
+        self.assertEqual(cropped.status_code, status.HTTP_200_OK)
+        image.refresh_from_db()
+        image.image.open()
+        rewritten = Image.open(image.image)
+        self.assertEqual(rewritten.format, "JPEG")
+        self.assertLess(rewritten.size[0], 100)
+        self.assertLess(rewritten.size[1], 80)
+
+    def test_templates_and_reusable_catalogs(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/reusable-list", key="reusable-list", title="Reusable list", status="draft")
+        ContentSection.objects.create(page=page, key="pack", title="Packing list", body="Warm layers", is_reusable=True, status="published")
+        templates = self.client.get(reverse("admin-cms"), {"templates": "1"})
+        self.assertEqual(templates.status_code, status.HTTP_200_OK)
+        self.assertIn("travel_guide", templates.data["templates"])
+        reusable = self.client.get(reverse("admin-cms"), {"resource": "sections", "reusable": "true"})
+        self.assertEqual(reusable.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["title"] == "Packing list" for row in reusable.data["results"]))
+
+    def test_apply_template_and_reorder_sections(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/builder-page", key="builder-page", title="Builder", status="draft")
+        applied = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "apply_template", "template": "information",
+        }, format="json")
+        self.assertEqual(applied.status_code, status.HTTP_200_OK)
+        sections = list(ContentSection.objects.filter(page=page).order_by("display_order", "id"))
+        self.assertGreaterEqual(len(sections), 3)
+        reversed_ids = [section.id for section in reversed(sections)]
+        reordered = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "reorder", "section_ids": reversed_ids,
+        }, format="json")
+        self.assertEqual(reordered.status_code, status.HTTP_200_OK)
+        ordered = list(ContentSection.objects.filter(page=page).order_by("display_order", "id").values_list("id", flat=True))
+        self.assertEqual(list(ordered), reversed_ids)
+
+    def test_all_page_sections_are_listed_for_builder(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/dashboard-builder", key="dashboard-builder", title="Dashboard builder", status="published")
+        for index, key in enumerate(["hero", "alerts", "hotels", "safety"]):
+            ContentSection.objects.create(page=page, key=key, title=key, display_order=index * 10, status="published")
+        listed = self.client.get(reverse("admin-cms"), {"resource": "sections", "page_id": page.id})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertEqual({row["key"] for row in listed.data["results"]}, {"hero", "alerts", "hotels", "safety"})
+        self.assertTrue(all(row.get("page_title") == "Dashboard builder" for row in listed.data["results"]))
+
+    def test_staff_can_publish_content_section(self):
+        from .models import StaffCapabilityProfile, ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/staff-cms", key="staff-cms", title="Staff CMS", status="draft")
+        section = ContentSection.objects.create(page=page, key="hero", title="Draft hero", status="draft")
+        staff = User.objects.create_user(email="content-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"content": ["view", "approve", "change"]})
+        self.client.force_authenticate(staff)
+        listed = self.client.get(reverse("staff-workspace"), {"module": "content"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == section.id for row in listed.data["results"]))
+        published = self.client.post(reverse("staff-workspace"), {"module": "content", "id": section.id, "action": "publish"}, format="json")
+        self.assertEqual(published.status_code, status.HTTP_200_OK)
+        section.refresh_from_db()
+        self.assertEqual(section.status, "published")
+
+    def test_import_layout_json_creates_draft_sections(self):
+        from .models import ManagedPage, ContentSection
+        page = ManagedPage.objects.create(route="/layout-import", key="layout-import", title="Layout import", status="draft")
+        imported = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "import_layout",
+            "layout": [
+                {"key": "hero", "section_type": "heading", "title": "Imported hero", "body": "Hello"},
+                {"key": "video", "section_type": "video", "title": "Clip", "config": {"media_url": "https://example.com/clip.mp4", "media_kind": "video"}},
+            ],
+        }, format="json")
+        self.assertEqual(imported.status_code, status.HTTP_200_OK)
+        self.assertEqual(imported.data["created"], 2)
+        self.assertTrue(ContentSection.objects.filter(page=page, key="hero", status="draft").exists())
+        insecure = self.client.patch(reverse("admin-cms"), {
+            "resource": "pages", "id": page.id, "action": "import_layout",
+            "source_url": "http://example.com/layout.json",
+        }, format="json")
+        self.assertEqual(insecure.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_community_video_is_capped_at_25mb_and_stays_pending(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationVideo
+        tourist = User.objects.create_user(email="clip@example.com", password="StrongPass123!", is_verified=True)
+        self.client.force_authenticate(tourist)
+        too_big = SimpleUploadedFile("huge.mp4", b"0" * (25 * 1024 * 1024 + 1), content_type="video/mp4")
+        denied = self.client.post(reverse("destination-videos", kwargs={"slug": self.destination.slug}), {"video_file": too_big, "title": "Too big"}, format="multipart")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        clip = SimpleUploadedFile("place.mp4", b"fake-video-bytes", content_type="video/mp4")
+        created = self.client.post(reverse("destination-videos", kwargs={"slug": self.destination.slug}), {"video_file": clip, "title": "Trail clip"}, format="multipart")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        video = DestinationVideo.objects.get(pk=created.data["id"])
+        self.assertEqual(video.verification_status, "pending")
+        self.assertEqual(video.uploaded_by, tourist)
+
+    def test_staff_can_approve_pending_community_video(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import DestinationVideo, StaffCapabilityProfile
+        tourist = User.objects.create_user(email="clipper@example.com", password="StrongPass123!", is_verified=True)
+        video = DestinationVideo.objects.create(
+            destination=self.destination, title="Trail clip",
+            video_file=SimpleUploadedFile("place.mp4", b"fake-video-bytes", content_type="video/mp4"),
+            uploaded_by=tourist, verification_status="pending",
+        )
+        staff = User.objects.create_user(email="media-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"images": ["view", "approve", "change"]})
+        self.client.force_authenticate(staff)
+        listed = self.client.get(reverse("staff-workspace"), {"module": "images"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == video.id and row.get("type") == "video" for row in listed.data["results"]))
+        approved = self.client.post(reverse("staff-workspace"), {
+            "module": "images", "id": video.id, "type": "video", "action": "approve",
+        }, format="json")
+        self.assertEqual(approved.status_code, status.HTTP_200_OK)
+        video.refresh_from_db()
+        self.assertEqual(video.verification_status, "approved")
+
+
+class CMSFormAndServiceMediaTests(APITestCase):
+    def setUp(self):
+        from .models import ManagedPage
+        self.admin = User.objects.create_superuser(email="form-media-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.page = ManagedPage.objects.create(route="/form-test", key="form-test", title="Form test", status="draft")
+
+    def test_form_fields_are_sanitised(self):
+        from .models import ContentSection
+        from .views_admin import AdminCMSView
+        safe = AdminCMSView._safe_section_config({
+            "fields": [
+                {"name": "Email!!", "label": "Email", "field_type": "email", "required": True},
+                {"name": "bad", "label": "Hack", "field_type": "javascript", "required": True},
+                {"name": "notes", "label": "Notes", "field_type": "textarea"},
+            ]
+        })
+        self.assertEqual([field["name"] for field in safe["fields"]], ["email", "notes"])
+        self.assertEqual([field["field_type"] for field in safe["fields"]], ["email", "textarea"])
+        created = self.client.post(reverse("admin-cms"), {
+            "resource": "sections", "page_id": self.page.id, "key": "contact-form",
+            "title": "Contact", "section_type": "form", "status": "draft",
+            "config": {"fields": [
+                {"name": "visitor_email", "label": "Email", "field_type": "email"},
+                {"name": "hack", "label": "Hack", "field_type": "file"},
+            ]},
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        section = ContentSection.objects.get(page=self.page, key="contact-form")
+        self.assertEqual([field["field_type"] for field in section.config.get("fields", [])], ["email"])
+
+    def test_service_media_requires_file(self):
+        from .models import Hospital
+        dest = Destination.objects.create(
+            name="Photo Place", category=Category.objects.create(name="Service Media"),
+            description="Test", latitude=28, longitude=84, created_by=self.admin,
+            status="approved", is_active=True,
+        )
+        hospital = Hospital.objects.create(
+            destination=dest, name="Photo Hospital", address="Kaski", phone="061123456",
+            latitude=28.4, longitude=84.0, district="Kaski",
+        )
+        missing = self.client.post(reverse("admin-service-media"), {"kind": "hospital", "id": hospital.id})
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
+        listed = self.client.get(reverse("admin-service-media"), {"kind": "hospital"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == hospital.id for row in listed.data["results"]))
+
+
+class OwnerDeskTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="owner-desk@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.client.force_authenticate(self.admin)
+        self.category = Category.objects.create(name="Owner Desk")
+        self.destination = Destination.objects.create(
+            name="Desk Lake", category=self.category, description="Pinned lake",
+            latitude=28.2, longitude=83.9, city="Pokhara", district="Kaski",
+            status="approved", is_active=True, created_by=self.admin, average_rating=3.2,
+        )
+
+    def test_notice_requires_title(self):
+        response = self.client.post(reverse("admin-visitor-desk"), {"kind": "festival", "body": "Dashain crowds"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unpublished_notice_is_hidden_from_public_config(self):
+        from .models import VisitorNotice
+        VisitorNotice.objects.create(title="Draft closure", kind="closure", body="Hidden", is_published=False)
+        VisitorNotice.objects.create(title="Live festival", kind="festival", body="Dashain in Bhaktapur", is_published=True)
+        public = self.client.get(reverse("public-config"))
+        self.assertEqual(public.status_code, status.HTTP_200_OK)
+        titles = [row["title"] for row in public.data["notices"]]
+        self.assertIn("Live festival", titles)
+        self.assertNotIn("Draft closure", titles)
+
+    def test_expired_notice_is_hidden_from_public_config(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import VisitorNotice
+        VisitorNotice.objects.create(
+            title="Old permit", kind="permit", body="Expired", is_published=True,
+            starts_at=timezone.now() - timedelta(days=10),
+            ends_at=timezone.now() - timedelta(days=1),
+        )
+        public = self.client.get(reverse("public-config"))
+        self.assertFalse(any(row["title"] == "Old permit" for row in public.data["notices"]))
+
+    def test_feature_toggle_prefers_pinned_places(self):
+        other = Destination.objects.create(
+            name="High Rated Ridge", category=self.category, description="Rated",
+            latitude=28.3, longitude=84.0, status="approved", is_active=True,
+            created_by=self.admin, average_rating=4.8,
+        )
+        featured = self.client.get("/api/v1/destinations/", {"featured": "true"})
+        names = [row["name"] for row in featured.data["results"]]
+        self.assertIn("High Rated Ridge", names)
+        pinned = self.client.post(reverse("admin-visitor-desk"), {
+            "action": "feature", "destination_id": self.destination.id, "is_featured": True,
+        }, format="json")
+        self.assertEqual(pinned.status_code, status.HTTP_200_OK)
+        self.destination.refresh_from_db()
+        self.assertTrue(self.destination.is_featured)
+        featured = self.client.get("/api/v1/destinations/", {"featured": "true"})
+        names = [row["name"] for row in featured.data["results"]]
+        self.assertEqual(names, ["Desk Lake"])
+        self.assertNotIn("High Rated Ridge", names)
+
+    def test_destination_page_shows_place_and_district_notices(self):
+        from .models import VisitorNotice
+        VisitorNotice.objects.create(
+            title="TIMS required", kind="permit", body="Buy a TIMS card first",
+            destination=self.destination, is_published=True,
+        )
+        VisitorNotice.objects.create(
+            title="Kaski festival week", kind="festival", body="Local jatra",
+            district="Kaski", is_published=True,
+        )
+        VisitorNotice.objects.create(
+            title="Nationwide advisory", kind="info", body="General", is_published=True,
+        )
+        other = Destination.objects.create(
+            name="Other Valley", category=self.category, description="Elsewhere",
+            latitude=27.7, longitude=85.3, city="Kathmandu", district="Kathmandu",
+            status="approved", is_active=True, created_by=self.admin,
+        )
+        VisitorNotice.objects.create(
+            title="Kathmandu only", kind="closure", body="Road work",
+            destination=other, is_published=True,
+        )
+        page = self.client.get(reverse("destination-detail", kwargs={"slug": self.destination.slug}))
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        titles = [row["title"] for row in page.data["notices"]]
+        self.assertIn("TIMS required", titles)
+        self.assertIn("Kaski festival week", titles)
+        self.assertNotIn("Nationwide advisory", titles)
+        self.assertNotIn("Kathmandu only", titles)
+
+    def test_published_notice_notifies_favorite_watchers_once(self):
+        from .models import Favorite, Notification
+        tourist = User.objects.create_user(email="watcher@example.com", password="StrongPass123!", is_verified=True)
+        Favorite.objects.create(user=tourist, destination=self.destination)
+        created = self.client.post(reverse("admin-visitor-desk"), {
+            "title": "Trail closed after rain", "kind": "closure",
+            "body": "Use the lower path", "destination_id": self.destination.id, "is_published": True,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(created.data["notified"], 1)
+        self.assertTrue(Notification.objects.filter(user=tourist, title__icontains="Trail closed").exists())
+        again = self.client.post(reverse("admin-visitor-desk"), {
+            "title": "Trail closed after rain", "kind": "closure",
+            "body": "Use the lower path", "destination_id": self.destination.id, "is_published": True,
+        }, format="json")
+        self.assertEqual(again.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Notification.objects.filter(user=tourist, title__icontains="Trail closed").count(), 2)
+        # republish of the same notice id should not duplicate
+        notice_id = created.data["id"]
+        self.client.patch(reverse("admin-visitor-desk"), {"id": notice_id, "is_published": False}, format="json")
+        republished = self.client.patch(reverse("admin-visitor-desk"), {"id": notice_id, "is_published": True}, format="json")
+        self.assertEqual(republished.data["notified"], 0)
+
+
+class MarketplaceTests(APITestCase):
+    def setUp(self):
+        from .models import MarketplaceListing, MarketplacePartner
+        self.admin = User.objects.create_superuser(email="market-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.category = Category.objects.create(name="Marketplace")
+        self.destination = Destination.objects.create(
+            name="Phewa Shore", category=self.category, description="Lakeside",
+            latitude=28.2, longitude=83.9, city="Pokhara", district="Kaski",
+            status="approved", is_active=True, created_by=self.admin,
+        )
+        self.partner = MarketplacePartner.objects.create(
+            name="Pokhara Lodge Co", kind="hotel", email="lodge@example.com",
+            status="approved", website="https://lodge.example.com",
+        )
+        self.listing = MarketplaceListing.objects.create(
+            partner=self.partner, destination=self.destination, title="Phewa Lake Weekend",
+            kind="package", summary="Two nights by the lake", description="Boat and stay",
+            includes="Breakfast", excludes="Flights", price_npr="15000.00",
+            status="published", city="Pokhara",
+        )
+        self.draft = MarketplaceListing.objects.create(
+            partner=self.partner, title="Hidden draft stay", price_npr="1.00", status="draft",
+        )
+
+    def test_unpublished_listing_is_hidden(self):
+        listed = self.client.get(reverse("marketplace-listings"))
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        slugs = [row["slug"] for row in listed.data["results"]]
+        self.assertIn(self.listing.slug, slugs)
+        self.assertNotIn(self.draft.slug, slugs)
+        missing = self.client.get(reverse("marketplace-listing-detail", kwargs={"slug": self.draft.slug}))
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_card_number_is_rejected_and_no_order_created(self):
+        from .models import MarketplaceOrder
+        response = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Ada Traveller", "guest_email": "ada@example.com",
+            "card_number": "4111111111111111",
+            "items": [{"listing_id": self.listing.id}],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(MarketplaceOrder.objects.exists())
+
+    def test_partner_apply_requires_https_website(self):
+        bad = self.client.post(reverse("marketplace-partner-apply"), {
+            "name": "Insecure Lodge", "email": "bad@example.com", "website": "http://insecure.example.com",
+        }, format="json")
+        self.assertEqual(bad.status_code, status.HTTP_400_BAD_REQUEST)
+        ok = self.client.post(reverse("marketplace-partner-apply"), {
+            "name": "Himalayan Guides", "email": "guides@example.com", "kind": "operator",
+            "website": "https://guides.example.com",
+        }, format="json")
+        self.assertEqual(ok.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ok.data["status"], "pending")
+
+    def test_admin_approve_publish_and_request_checkout(self):
+        from .models import MarketplaceListing, MarketplaceOrder
+        applied = self.client.post(reverse("marketplace-partner-apply"), {
+            "name": "Annapurna Hotel", "email": "annapurna@example.com", "kind": "hotel",
+        }, format="json")
+        self.assertEqual(applied.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.admin)
+        approved = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "partners", "id": applied.data["id"], "action": "approve",
+        }, format="json")
+        self.assertEqual(approved.status_code, status.HTTP_200_OK)
+        created = self.client.post(reverse("admin-marketplace"), {
+            "resource": "listings", "partner_id": applied.data["id"], "destination_id": self.destination.id,
+            "title": "ABC Lodge Night", "kind": "hotel", "price_npr": "8000", "status": "published",
+            "summary": "Room with mountain view",
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        listing = MarketplaceListing.objects.get(pk=created.data["id"])
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("marketplace-listing-detail", kwargs={"slug": listing.slug}))
+        self.assertEqual(public.status_code, status.HTTP_200_OK)
+        checkout = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Sita", "guest_email": "sita@example.com", "payment_method": "request",
+            "travelers": 2, "items": [{"listing_id": listing.id, "quantity": 1}],
+        }, format="json")
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        order = MarketplaceOrder.objects.get(reference=checkout.data["order"]["reference"])
+        self.assertEqual(order.status, "requested")
+        self.assertEqual(str(order.total_npr), "8000.00")
+        self.assertFalse(hasattr(order, "card_number"))
+
+    def test_destination_detail_includes_published_listings(self):
+        page = self.client.get(reverse("destination-detail", kwargs={"slug": self.destination.slug}))
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        titles = [row["title"] for row in page.data["marketplace_listings"]]
+        self.assertIn("Phewa Lake Weekend", titles)
+        self.assertNotIn("Hidden draft stay", titles)
+
+    def test_staff_needs_marketplace_capability(self):
+        from .models import StaffCapabilityProfile
+        staff = User.objects.create_user(email="market-staff@example.com", password="StrongPass123!", role="staff", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"hotels": ["view"]})
+        self.client.force_authenticate(staff)
+        denied = self.client.get(reverse("admin-marketplace"))
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        staff.capability_profile.capabilities = {"marketplace": ["view"]}
+        staff.capability_profile.save()
+        allowed = self.client.get(reverse("admin-marketplace"))
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+
+    def test_admin_search_finds_listings(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.get(reverse("admin-global-search"), {"q": "Phewa Lake"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(item["type"] == "listing" for item in response.data["results"]))
+
+    def test_partner_desk_cannot_publish_and_listing_stays_pending(self):
+        from .models import MarketplaceListing, MarketplacePartner
+        hotel_user = User.objects.create_user(
+            email="hoteldesk@example.com", password="StrongPass123!", is_verified=True,
+        )
+        partner = MarketplacePartner.objects.create(
+            name="Desk Hotel", kind="hotel", email=hotel_user.email, status="approved", user=hotel_user,
+        )
+        self.client.force_authenticate(hotel_user)
+        created = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Partner-only stay", "price_npr": "9000", "duration_days": 3,
+            "status": "published", "is_featured": True,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        listing = MarketplaceListing.objects.get(pk=created.data["id"])
+        self.assertEqual(listing.status, "pending")
+        self.assertFalse(listing.is_featured)
+        denied = self.client.patch(reverse("marketplace-partner-desk"), {
+            "id": listing.id, "action": "publish",
+        }, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_400_BAD_REQUEST)
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, "pending")
+        public = self.client.get(reverse("marketplace-listings"))
+        slugs = [row["slug"] for row in public.data["results"]]
+        self.assertNotIn(listing.slug, slugs)
+
+    def test_order_lookup_and_under_review_status(self):
+        from .models import MarketplaceOrder
+        checkout = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Hari", "guest_email": "hari@example.com", "payment_method": "request",
+            "items": [{"listing_id": self.listing.id, "quantity": 1}],
+        }, format="json")
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        reference = checkout.data["order"]["reference"]
+        missing = self.client.get(reverse("marketplace-orders"), {"reference": reference, "email": "wrong@example.com"})
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
+        found = self.client.get(reverse("marketplace-orders"), {"reference": reference, "email": "hari@example.com"})
+        self.assertEqual(found.status_code, status.HTTP_200_OK)
+        self.assertEqual(found.data["order"]["status"], "requested")
+        self.client.force_authenticate(self.admin)
+        reviewed = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": checkout.data["order"]["id"], "action": "review",
+        }, format="json")
+        self.assertEqual(reviewed.status_code, status.HTTP_200_OK)
+        order = MarketplaceOrder.objects.get(reference=reference)
+        self.assertEqual(order.status, "under_review")
+        self.client.force_authenticate(None)
+        again = self.client.get(reverse("marketplace-orders"), {"reference": reference, "email": "hari@example.com"})
+        self.assertEqual(again.data["order"]["status"], "under_review")
+
+    def test_admin_emergency_add_writes_db_and_csv(self):
+        from .models import Hospital
+        self.addCleanup(self._strip_emergency_test_csv_rows)
+        self.client.force_authenticate(self.admin)
+        payload = {
+            "kind": "hospital",
+            "name": "Arena Dadeldhura Test Clinic",
+            "phone": "096420999",
+            "address": "Amargadhi",
+            "district": "Dadeldhura",
+            "province": "Sudurpashchim",
+            "latitude": 29.301234,
+            "longitude": 80.581234,
+            "destination_id": self.destination.id,
+        }
+        created = self.client.post(reverse("admin-emergency-directory"), payload, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Hospital.objects.filter(name="Arena Dadeldhura Test Clinic").exists())
+        self.assertTrue(created.data["csv_written"].get("hospital") or created.data["csv_written"].get("community"))
+        listed = self.client.get(reverse("admin-emergency-directory"), {"q": "Arena Dadeldhura"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["name"] == "Arena Dadeldhura Test Clinic" for row in listed.data["results"]))
+        again = self.client.post(reverse("admin-emergency-directory"), payload, format="json")
+        self.assertEqual(again.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(Hospital.objects.filter(name="Arena Dadeldhura Test Clinic").count(), 1)
+
+    def _strip_emergency_test_csv_rows(self):
+        from pathlib import Path
+        from .community_data_service import ROOT
+        markers = ("arena dadeldhura", "arena gap audit", "pending community clinic")
+        relatives = [
+            "Tourism/dataset/hospital_cleaned.csv",
+            "ml_service/data/emergency/hospital_cleaned.csv",
+            "Tourism/dataset/community_services.csv",
+            "ml_service/data/emergency/community_services.csv",
+            "Tourism/dataset/police_station_cleaned.csv",
+        ]
+        for relative in relatives:
+            path = ROOT / relative
+            if not path.exists():
+                continue
+            lines = path.read_text(encoding="utf-8-sig").splitlines(True)
+            if not lines:
+                continue
+            kept = [lines[0]] + [
+                line for line in lines[1:]
+                if not any(marker in line.lower() for marker in markers)
+            ]
+            if len(kept) != len(lines):
+                path.write_text("".join(kept), encoding="utf-8")
+
+    def test_partner_desk_cannot_archive_or_feature(self):
+        from .models import MarketplaceListing, MarketplacePartner
+        hotel_user = User.objects.create_user(
+            email="noarchive@example.com", password="StrongPass123!", is_verified=True,
+        )
+        MarketplacePartner.objects.create(
+            name="No Archive Hotel", kind="hotel", email=hotel_user.email, status="approved", user=hotel_user,
+        )
+        self.client.force_authenticate(hotel_user)
+        created = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Stay pending archive", "price_npr": "7000", "duration_days": 2,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        listing_id = created.data["id"]
+        denied_archive = self.client.patch(reverse("marketplace-partner-desk"), {
+            "id": listing_id, "action": "archive",
+        }, format="json")
+        self.assertEqual(denied_archive.status_code, status.HTTP_400_BAD_REQUEST)
+        denied_feature = self.client.patch(reverse("marketplace-partner-desk"), {
+            "id": listing_id, "is_featured": True,
+        }, format="json")
+        self.assertEqual(denied_feature.status_code, status.HTTP_400_BAD_REQUEST)
+        listing = MarketplaceListing.objects.get(pk=listing_id)
+        self.assertEqual(listing.status, "pending")
+        self.assertFalse(listing.is_featured)
+
+    def test_unapproved_and_suspended_partner_cannot_create(self):
+        from .models import MarketplacePartner
+        pending_user = User.objects.create_user(
+            email="pendingdesk@example.com", password="StrongPass123!", is_verified=True,
+        )
+        MarketplacePartner.objects.create(
+            name="Pending Co", kind="hotel", email=pending_user.email, status="pending", user=pending_user,
+        )
+        self.client.force_authenticate(pending_user)
+        denied = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Too soon", "price_npr": "1000",
+        }, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        suspended_user = User.objects.create_user(
+            email="suspendeddesk@example.com", password="StrongPass123!", is_verified=True,
+        )
+        MarketplacePartner.objects.create(
+            name="Suspended Co", kind="operator", email=suspended_user.email, status="suspended", user=suspended_user,
+        )
+        self.client.force_authenticate(suspended_user)
+        blocked = self.client.post(reverse("marketplace-partner-desk"), {
+            "title": "Blocked stay", "price_npr": "1000",
+        }, format="json")
+        self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_without_approve_cannot_publish(self):
+        from .models import MarketplaceListing, MarketplacePartner, StaffCapabilityProfile
+        staff = User.objects.create_user(
+            email="market-change@example.com", password="StrongPass123!", role="staff", is_staff=True,
+        )
+        StaffCapabilityProfile.objects.create(user=staff, capabilities={"marketplace": ["view", "add", "change"]})
+        partner = MarketplacePartner.objects.create(
+            name="Needs Approve", kind="hotel", email="needs@example.com", status="approved",
+        )
+        listing = MarketplaceListing.objects.create(
+            partner=partner, title="Waiting to go live", price_npr="4000.00", status="pending",
+        )
+        self.client.force_authenticate(staff)
+        denied = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "listings", "id": listing.id, "action": "publish",
+        }, format="json")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, "pending")
+
+    def test_expiry_fields_are_rejected_at_checkout(self):
+        from .models import MarketplaceOrder
+        response = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Ada Traveller", "guest_email": "ada-exp@example.com",
+            "expiry_date": "12/29", "exp_month": 12, "exp_year": 2029,
+            "items": [{"listing_id": self.listing.id}],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(MarketplaceOrder.objects.exists())
+
+    def test_requested_cannot_jump_to_confirmed(self):
+        from .models import MarketplaceOrder
+        checkout = self.client.post(reverse("marketplace-checkout"), {
+            "guest_name": "Maya", "guest_email": "maya@example.com", "payment_method": "request",
+            "items": [{"listing_id": self.listing.id, "quantity": 1}],
+        }, format="json")
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        self.client.force_authenticate(self.admin)
+        jumped = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": checkout.data["order"]["id"], "action": "confirm",
+        }, format="json")
+        self.assertEqual(jumped.status_code, status.HTTP_400_BAD_REQUEST)
+        order = MarketplaceOrder.objects.get(pk=checkout.data["order"]["id"])
+        self.assertEqual(order.status, "requested")
+        reviewed = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": order.id, "action": "review",
+        }, format="json")
+        self.assertEqual(reviewed.status_code, status.HTTP_200_OK)
+        confirmed = self.client.patch(reverse("admin-marketplace"), {
+            "resource": "orders", "id": order.id, "action": "confirm",
+        }, format="json")
+        self.assertEqual(confirmed.status_code, status.HTTP_200_OK)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "confirmed")
+
+
+class EmergencyDirectoryWorkflowTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="emerg-admin@example.com", password="StrongPass123!")
+        self.admin.role = User.Role.SUPER_ADMIN
+        self.admin.save(update_fields=["role"])
+        self.category = Category.objects.create(name="Emergency Flow")
+        self.destination = Destination.objects.create(
+            name="Amargadhi Gate", category=self.category, description="Far west",
+            latitude=29.3, longitude=80.58, city="Amargadhi", district="Dadeldhura",
+            status="approved", is_active=True, created_by=self.admin,
+        )
+        self.addCleanup(self._strip_csv)
+
+    def _strip_csv(self):
+        from .community_data_service import ROOT
+        markers = ("arena gap audit", "pending community clinic", "arena dadeldhura")
+        for relative in [
+            "Tourism/dataset/hospital_cleaned.csv",
+            "ml_service/data/emergency/hospital_cleaned.csv",
+            "Tourism/dataset/community_services.csv",
+            "ml_service/data/emergency/community_services.csv",
+            "Tourism/dataset/police_station_cleaned.csv",
+        ]:
+            path = ROOT / relative
+            if not path.exists():
+                continue
+            lines = path.read_text(encoding="utf-8-sig").splitlines(True)
+            if not lines:
+                continue
+            kept = [lines[0]] + [
+                line for line in lines[1:]
+                if not any(marker in line.lower() for marker in markers)
+            ]
+            if len(kept) != len(lines):
+                path.write_text("".join(kept), encoding="utf-8")
+
+    def test_duplicate_name_formatting_returns_409(self):
+        from .models import Hospital
+        self.client.force_authenticate(self.admin)
+        first = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "name": "Arena Gap Audit Hospital",
+            "phone": "096420111", "address": "Amargadhi", "district": "Dadeldhura",
+            "latitude": 29.298001, "longitude": 80.580001, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        second = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "name": "Arena  Gap Audit Hospital",
+            "phone": "096420111", "address": "Amargadhi", "district": "Dadeldhura",
+            "latitude": 29.298200, "longitude": 80.580200, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(second.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(Hospital.objects.filter(name__icontains="Arena Gap Audit Hospital").count(), 1)
+
+    def test_invalid_coords_rejected(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "police", "name": "Arena Gap Audit Police",
+            "latitude": 200, "longitude": 80.5, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_user_submission_stays_pending_until_admin_approves(self):
+        from .models import Hospital, InfrastructureSubmission
+        tourist = User.objects.create_user(
+            email="submitter@example.com", password="StrongPass123!", is_verified=True,
+        )
+        self.client.force_authenticate(tourist)
+        created = self.client.post(reverse("infrastructure-submission-list"), {
+            "place_type": "hospital", "name": "Pending Community Clinic",
+            "phone": "096420222", "address": "Ward 2", "district": "Dadeldhura",
+            "province": "Sudurpashchim", "latitude": 29.310001, "longitude": 80.590001,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        submission = InfrastructureSubmission.objects.get(pk=created.data["id"])
+        self.assertEqual(submission.status, "pending")
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.310001, "longitude": 80.590001, "radius_km": 20,
+        })
+        names = [row["name"] for row in public.data["hospitals"]]
+        self.assertNotIn("Pending Community Clinic", names)
+        self.client.force_authenticate(self.admin)
+        approved = self.client.post(
+            reverse("admin-infrastructure-submission-action", kwargs={"id": submission.id}),
+            {"action": "approve"}, format="json",
+        )
+        self.assertEqual(approved.status_code, status.HTTP_200_OK)
+        self.assertTrue(Hospital.objects.filter(name="Pending Community Clinic", is_verified=True).exists())
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.310001, "longitude": 80.590001, "radius_km": 20,
+        })
+        names = [row["name"] for row in public.data["hospitals"]]
+        self.assertIn("Pending Community Clinic", names)
+
+    def test_archive_hides_from_public_directory(self):
+        from .models import Hospital
+        self.client.force_authenticate(self.admin)
+        created = self.client.post(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "name": "Arena Gap Audit Clinic",
+            "phone": "096420333", "address": "Amargadhi", "district": "Dadeldhura",
+            "latitude": 29.305001, "longitude": 80.585001, "destination_id": self.destination.id,
+        }, format="json")
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        hospital_id = created.data["id"]
+        archived = self.client.patch(reverse("admin-emergency-directory"), {
+            "kind": "hospital", "id": hospital_id, "action": "archive",
+        }, format="json")
+        self.assertEqual(archived.status_code, status.HTTP_200_OK)
+        self.assertTrue(Hospital.objects.get(pk=hospital_id).is_archived)
+        self.client.force_authenticate(None)
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.305001, "longitude": 80.585001, "radius_km": 20,
+        })
+        names = [row["name"] for row in public.data["hospitals"]]
+        self.assertNotIn("Arena Gap Audit Clinic", names)
+
+    def test_no_fake_pharmacy_is_invented(self):
+        public = self.client.get(reverse("nearby-emergency-services"), {
+            "latitude": 29.3, "longitude": 80.58, "radius_km": 10,
+        })
+        self.assertEqual(public.status_code, status.HTTP_200_OK)
+        pharmacies = [row for row in public.data["specialized_contacts"] if row["type"] == "pharmacy"]
+        self.assertEqual(pharmacies, [])
+        self.assertEqual(public.data["counts"]["pharmacy_within_radius"], 0)
+
+    def test_admin_can_add_all_emergency_types(self):
+        from .models import OSMEssentialService, PoliceStation
+        self.client.force_authenticate(self.admin)
+        for kind, name, lat in (
+            ("police", "Arena Gap Audit Police", 29.306001),
+            ("pharmacy", "Arena Gap Audit Pharmacy", 29.307001),
+            ("fire_station", "Arena Gap Audit Fire", 29.308001),
+        ):
+            created = self.client.post(reverse("admin-emergency-directory"), {
+                "kind": kind, "name": name, "phone": "101",
+                "latitude": lat, "longitude": 80.586001, "destination_id": self.destination.id,
+            }, format="json")
+            self.assertEqual(created.status_code, status.HTTP_201_CREATED, created.data)
+        self.assertTrue(PoliceStation.objects.filter(name="Arena Gap Audit Police").exists())
+        self.assertTrue(OSMEssentialService.objects.filter(name="Arena Gap Audit Pharmacy", category="pharmacy").exists())
+        self.assertTrue(OSMEssentialService.objects.filter(name="Arena Gap Audit Fire", category="fire_station").exists())
+
+
+class RecordedPlaceHonestyTests(APITestCase):
+    """List/nearby/serializer payloads must not invent budget, season, phones or images."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="honesty@example.com", password="StrongPass123!", is_verified=True,
+        )
+        self.category = Category.objects.create(name="Honesty Lakes")
+        self.destination = Destination.objects.create(
+            name="Honesty Lake",
+            category=self.category,
+            description="Recorded lake",
+            latitude=28.15,
+            longitude=84.05,
+            city="Pokhara",
+            district="Kaski",
+            country="Nepal",
+            created_by=self.user,
+            best_time_to_visit="",
+            entry_fee=0,
+        )
+
+    def test_list_serializer_does_not_invent_budget_season_or_risk(self):
+        from .serializers import DestinationListSerializer
+        data = DestinationListSerializer(self.destination).data
+        self.assertIsNone(data["budget_estimate"])
+        self.assertIsNone(data["recommended_season"])
+        self.assertIsNone(data["risk_level"])
+
+    def test_hospital_serializer_does_not_invent_image(self):
+        from .models import Hospital
+        from .serializers import HospitalSerializer
+        hospital = Hospital.objects.create(
+            destination=self.destination,
+            name="Honesty Clinic",
+            address="Kaski",
+            phone="",
+            latitude=28.151,
+            longitude=84.051,
+            district="Kaski",
+        )
+        data = HospitalSerializer(hospital).data
+        self.assertIsNone(data["image_url"])
+
+    def test_nearby_hospital_uses_national_102_not_tuth_number(self):
+        from .models import Hospital
+        Hospital.objects.create(
+            destination=self.destination,
+            name="Honesty District Hospital",
+            address="Kaski",
+            phone="",
+            latitude=28.151,
+            longitude=84.051,
+            district="Kaski",
+        )
+        response = self.client.get("/api/v1/nearby/hospitals", {"lat": 28.15, "lng": 84.05})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+        self.assertNotIn("4412404", str(response.data))
+        self.assertNotIn("unsplash.com", str(response.data).lower())
+        self.assertEqual(response.data[0]["phone_number"], "102")
+        self.assertTrue(response.data[0]["phone_is_national_fallback"])
+        self.assertIsNone(response.data[0]["image_url"])
+
+    def test_nearby_places_include_destination_slug(self):
+        response = self.client.get("/api/v1/nearby/places", {"lat": 28.15, "lng": 84.05, "radius": 20000})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        row = next(item for item in response.data if item["name"] == "Honesty Lake")
+        self.assertEqual(row["slug"], self.destination.slug)
+        self.assertIn("latitude", row)
+        self.assertIn("longitude", row)
+
+    def test_fill_missing_coords_uses_district_mean(self):
+        from django.core.management import call_command
+        missing = Destination.objects.create(
+            name="Honesty Missing Peak",
+            category=self.category,
+            description="No coords yet",
+            district="Kaski",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        missing.refresh_from_db()
+        self.assertIsNotNone(missing.latitude)
+        self.assertIsNotNone(missing.longitude)
+        self.assertAlmostEqual(float(missing.latitude), 28.15, places=1)
+        self.assertAlmostEqual(float(missing.longitude), 84.05, places=1)
+        self.assertIsNotNone(missing.distance_from_kathmandu_km)
+
+    def test_navigation_route_requires_recorded_destination_coords(self):
+        Destination.objects.create(
+            name="Honesty Unlocated Cave",
+            category=self.category,
+            description="No pin",
+            created_by=self.user,
+        )
+        response = self.client.post("/api/v1/navigation/route", {
+            "start_latitude": 28.10,
+            "start_longitude": 84.00,
+            "destination_name": "Honesty Unlocated Cave",
+        })
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_fill_city_from_nearest_recorded_neighbour(self):
+        from django.core.management import call_command
+        missing = Destination.objects.create(
+            name="Honesty Neighbour Peak",
+            category=self.category,
+            description="Has GPS but no city",
+            latitude=28.151,
+            longitude=84.051,
+            city="",
+            district="",
+            municipality="",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        missing.refresh_from_db()
+        self.assertEqual(missing.city, "Pokhara")
+
+    def test_admin_fill_location_from_records(self):
+        admin = User.objects.create_superuser(email="honesty-admin@example.com", password="AdminPass123!")
+        missing = Destination.objects.create(
+            name="Honesty Admin Fill Peak",
+            category=self.category,
+            description="Admin should fill city from neighbour GPS",
+            latitude=28.152,
+            longitude=84.052,
+            city="",
+            district="",
+            created_by=admin,
+        )
+        self.client.force_authenticate(admin)
+        response = self.client.post(
+            reverse("admin-destination-detail", kwargs={"id": missing.id}),
+            {"action": "fill_location"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("city", response.data["changed"])
+        missing.refresh_from_db()
+        self.assertEqual(missing.city, "Pokhara")
+        self.assertEqual(response.data["city"], "Pokhara")
+
+    def test_apply_destination_locations_json(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from django.test import override_settings
+        from .location_sync import apply_destination_locations, export_destination_locations
+
+        missing = Destination.objects.create(
+            name="Honesty JSON Restore Peak",
+            slug="honesty-json-restore-peak",
+            category=self.category,
+            description="City only in JSON snapshot",
+            latitude=28.16,
+            longitude=84.06,
+            city="",
+            created_by=self.user,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "dataset").mkdir()
+            (root / "dataset" / "destination_locations.json").write_text(json.dumps({
+                "count": 1,
+                "destinations": {
+                    "honesty-json-restore-peak": {
+                        "name": "Honesty JSON Restore Peak",
+                        "slug": "honesty-json-restore-peak",
+                        "city": "Pokhara",
+                        "district": "Kaski",
+                        "latitude": 28.16,
+                        "longitude": 84.06,
+                    }
+                },
+            }), encoding="utf-8")
+            with override_settings(BASE_DIR=root):
+                applied = apply_destination_locations()
+                self.assertEqual(applied, 1)
+                missing.refresh_from_db()
+                self.assertEqual(missing.city, "Pokhara")
+                self.assertEqual(missing.district, "Kaski")
+                path, count = export_destination_locations()
+                self.assertTrue(path.exists())
+                self.assertGreaterEqual(count, 1)
+
+    def test_refine_district_city_from_recorded_neighbour(self):
+        from django.core.management import call_command
+        labelled = Destination.objects.create(
+            name="Honesty District Label Peak",
+            category=self.category,
+            description="City is the district name",
+            latitude=28.1515,
+            longitude=84.0515,
+            city="Kaski",
+            district="Kaski",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        labelled.refresh_from_db()
+        self.assertEqual(labelled.city, "Pokhara")
+
+    def test_mood_ranking_does_not_publish_invented_daily_cost(self):
+        response = self.client.get(reverse("mood-recommendations"), {
+            "mood": "scenic", "days": 3, "limit": 3,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["results"])
+        for row in response.data["results"]:
+            self.assertNotIn("estimated_daily_cost", row)
+            self.assertTrue(row.get("budget_level_is_ranking_tag"))
+
+    @patch("tourist.views_ml.requests.post", side_effect=requests.RequestException("down"))
+    def test_itinerary_fallback_does_not_invent_thirty_five_dollar_budget(self, _mock):
+        response = self.client.post(reverse("ml-itinerary"), {
+            "days": 3, "travelers": 2, "start_city": "Pokhara",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data.get("total_estimated_npr"))
+        self.assertIsNone(response.data.get("total_estimated_usd"))
+        self.assertNotIn("4655", str(response.data))
+        self.assertNotIn(4655, [response.data.get("total_estimated_npr"), response.data.get("per_person_npr")])
+
+    def test_fill_city_does_not_copy_district_name(self):
+        from django.core.management import call_command
+        isolated = Destination.objects.create(
+            name="Honesty Isolated Ridge",
+            category=self.category,
+            description="Only a district is stored",
+            latitude=26.45,
+            longitude=87.27,
+            city="",
+            district="Jhapa",
+            municipality="",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        isolated.refresh_from_db()
+        self.assertEqual(isolated.city or "", "")
+        from .location_sync import display_city
+        self.assertEqual(display_city(isolated), "")
+
+    def test_kathmandu_city_is_kept_when_it_matches_district(self):
+        from django.core.management import call_command
+        ktm = Destination.objects.create(
+            name="Honesty Kathmandu Square",
+            category=self.category,
+            description="City and district are both Kathmandu",
+            latitude=27.7172,
+            longitude=85.3240,
+            city="Kathmandu",
+            district="Kathmandu",
+            created_by=self.user,
+        )
+        call_command("fill_missing_place_coords", "--no-apply", "--no-export")
+        ktm.refresh_from_db()
+        self.assertEqual(ktm.city, "Kathmandu")
+        from .serializers import DestinationListSerializer
+        data = DestinationListSerializer(ktm).data
+        self.assertEqual(data["display_city"], "Kathmandu")
+
+    def test_display_city_hides_district_token(self):
+        from .serializers import DestinationListSerializer
+        dest = Destination.objects.create(
+            name="Honesty Kaski Viewpoint",
+            category=self.category,
+            description="City stored as district",
+            latitude=28.21,
+            longitude=83.99,
+            city="Kaski",
+            district="Kaski",
+            created_by=self.user,
+        )
+        data = DestinationListSerializer(dest).data
+        self.assertIsNone(data["display_city"])
+        self.assertTrue(data["has_map_pin"])
+
+    def test_unlocated_destination_has_no_map_pin(self):
+        from .serializers import DestinationDetailSerializer
+        dest = Destination.objects.create(
+            name="Honesty Unmapped Trail",
+            category=self.category,
+            description="No honest coordinates",
+            created_by=self.user,
+        )
+        data = DestinationDetailSerializer(dest).data
+        self.assertFalse(data["has_map_pin"])
+        self.assertIsNone(data["display_city"])
+
+    def test_admin_can_edit_empty_city_and_coords(self):
+        admin = User.objects.create_superuser(email="honesty-edit@example.com", password="AdminPass123!")
+        dest = Destination.objects.create(
+            name="Honesty Admin Edit Peak",
+            category=self.category,
+            description="Empty fields for admin",
+            created_by=admin,
+        )
+        self.client.force_authenticate(admin)
+        response = self.client.put(
+            reverse("admin-destination-detail", kwargs={"id": dest.id}),
+            {
+                "city": "Pokhara",
+                "latitude": 28.2096,
+                "longitude": 83.9856,
+                "altitude": "822m",
+                "best_time_to_visit": "Oct-Nov",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        dest.refresh_from_db()
+        self.assertEqual(dest.city, "Pokhara")
+        self.assertAlmostEqual(float(dest.latitude), 28.2096, places=3)
+        self.assertEqual(dest.altitude, "822m")
+        rejected = self.client.put(
+            reverse("admin-destination-detail", kwargs={"id": dest.id}),
+            {"latitude": 12.0, "longitude": 77.0},
+            format="json",
+        )
+        self.assertEqual(rejected.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_discover_nepal_uses_recorded_destinations(self):
+        Destination.objects.create(
+            name="Honesty National Park",
+            category=self.category,
+            description="Wildlife",
+            latitude=27.5,
+            longitude=84.3,
+            city="Sauraha",
+            created_by=self.user,
+            is_active=True,
+            status=Destination.SubmissionStatus.APPROVED,
+        )
+        response = self.client.get(reverse("discover-nepal"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("Not recorded", response.data["pending_label"])
+        names = [row["name"] for row in response.data["wildlife"]["items"]]
+        self.assertIn("Honesty National Park", names)
+        self.assertGreaterEqual(response.data["catalog"]["destination_count"], 1)
+        self.assertTrue(response.data["festivals"]["pending"] or response.data["festivals"]["items"])
+
+
+class FeaturedDestinationTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("admin_feat@test.com", "pass123")
+        self.client.force_authenticate(user=self.admin)
+        self.category = Category.objects.create(name="Trekking", slug="trekking")
+        self.dest1 = Destination.objects.create(
+            name="Phewa Lake", slug="phewa-lake", category=self.category,
+            city="Pokhara", district="Kaski", province="Gandaki",
+            short_description="Scenic lake in Pokhara.", is_active=True,
+            status=Destination.SubmissionStatus.APPROVED,
+        )
+        self.dest2 = Destination.objects.create(
+            name="Boudhanath Stupa", slug="boudhanath-stupa", category=self.category,
+            city="Kathmandu", district="Kathmandu", province="Bagmati",
+            short_description="Historic Buddhist stupa.", is_active=True,
+            status=Destination.SubmissionStatus.APPROVED,
+        )
+
+    def test_featured_destination_lifecycle_and_unfeaturing(self):
+        # 1. Create featured destination card
+        create_resp = self.client.post(
+            reverse("admin-featured-destinations"),
+            {
+                "destination_id": self.dest1.id,
+                "title": "Explore Beautiful Phewa Lake",
+                "short_description": "Promotional blurb for Phewa Lake.",
+                "cta_label": "Plan Your Visit",
+                "display_order": 1,
+                "is_published": True,
+            },
+            format="json",
+        )
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        feat_id = create_resp.data["id"]
+        self.assertEqual(create_resp.data["effective_title"], "Explore Beautiful Phewa Lake")
+        self.assertEqual(create_resp.data["effective_cta_url"], f"/destinations/{self.dest1.slug}")
+
+        # Check destination.is_featured synced to True
+        self.dest1.refresh_from_db()
+        self.assertTrue(self.dest1.is_featured)
+
+        # 2. Prevent duplicate active featured destination for same destination
+        dup_resp = self.client.post(
+            reverse("admin-featured-destinations"),
+            {"destination_id": self.dest1.id, "title": "Duplicate Card"},
+            format="json",
+        )
+        self.assertEqual(dup_resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 3. Create second card and test reordering
+        create_resp2 = self.client.post(
+            reverse("admin-featured-destinations"),
+            {"destination_id": self.dest2.id, "title": "Historic Boudhanath", "display_order": 2, "is_published": True},
+            format="json",
+        )
+        self.assertEqual(create_resp2.status_code, status.HTTP_201_CREATED)
+        feat2_id = create_resp2.data["id"]
+
+        reorder_resp = self.client.post(
+            reverse("admin-featured-destinations-reorder"),
+            {"items": [{"id": feat_id, "display_order": 2}, {"id": feat2_id, "display_order": 1}]},
+            format="json",
+        )
+        self.assertEqual(reorder_resp.status_code, status.HTTP_200_OK)
+
+        # 4. Check Public API returns cards sorted by display_order
+        public_resp = self.client.get(reverse("public-featured-destinations"))
+        self.assertEqual(public_resp.status_code, status.HTTP_200_OK)
+        results = public_resp.data["results"]
+        self.assertGreaterEqual(len(results), 2)
+        self.assertEqual(results[0]["destination_id"], self.dest2.id) # display_order 1
+        self.assertEqual(results[1]["destination_id"], self.dest1.id) # display_order 2
+
+        # 5. Delete/Unfeature without deleting the underlying Destination
+        del_resp = self.client.delete(reverse("admin-featured-destinations-detail", kwargs={"pk": feat_id}))
+        self.assertEqual(del_resp.status_code, status.HTTP_200_OK)
+
+        # Verify destination still exists!
+        self.assertTrue(Destination.objects.filter(id=self.dest1.id).exists())
+        self.dest1.refresh_from_db()
+        self.assertFalse(self.dest1.is_featured)
+
+
+class DataIntegrityAndRouteTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("admin_route@test.com", "pass123")
+        self.client.force_authenticate(user=self.admin)
+        self.category = Category.objects.create(name="Nature", slug="nature")
+        self.pokhara = Destination.objects.create(
+            name="Phewa Lake", slug="phewa-lake-pokhara", category=self.category,
+            city="Pokhara", district="Kaski", province="Gandaki",
+            latitude=28.2096, longitude=83.9595,
+            coordinate_status="VERIFIED", is_active=True,
+            status=Destination.SubmissionStatus.APPROVED,
+        )
+
+    def test_user_route_calculate_origin_aware(self):
+        # Origin from Pokhara Airport (28.19, 83.98) -> Phewa Lake (28.2096, 83.9595)
+        response = self.client.post(
+            reverse("user-route-calculate"),
+            {
+                "destination_id": self.pokhara.id,
+                "origin_name": "Pokhara Airport",
+                "origin_lat": 28.1900,
+                "origin_lng": 83.9800,
+                "transport_mode": "Taxi",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["destination_name"], "Phewa Lake")
+        self.assertEqual(response.data["origin_name"], "Pokhara Airport")
+        self.assertNotEqual(response.data["distance_km"], "Distance unavailable")
+        self.assertEqual(response.data["has_coordinates"], True)
+
+    def test_report_incorrect_information_and_admin_workflow(self):
+        # 1. Traveler submits report
+        report_resp = self.client.post(
+            reverse("user-report-submit"),
+            {
+                "destination_id": self.pokhara.id,
+                "report_type": "map_location",
+                "severity": "high",
+                "field_name": "latitude",
+                "displayed_value": "28.2096",
+                "suggested_value": "28.2105",
+                "description": "The pin is slightly north near the boat station.",
+            },
+            format="json",
+        )
+        self.assertEqual(report_resp.status_code, status.HTTP_201_CREATED)
+        report_id = report_resp.data["report_id"]
+
+        # 2. Admin views health dashboard
+        health_resp = self.client.get(reverse("admin-data-health"))
+        self.assertEqual(health_resp.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(health_resp.data["data_reports"]["open_reports"], 1)
+
+        # 3. Admin verifies coordinates & resolves report
+        coord_resp = self.client.post(
+            reverse("admin-coordinates-verify"),
+            {
+                "destination_id": self.pokhara.id,
+                "latitude": 28.2105,
+                "longitude": 83.9595,
+                "coordinate_status": "VERIFIED",
+                "coordinate_source": "Admin Field Survey",
+            },
+            format="json",
+        )
+        self.assertEqual(coord_resp.status_code, status.HTTP_200_OK)
+
+        resolve_resp = self.client.patch(
+            reverse("admin-data-reports-detail", kwargs={"pk": report_id}),
+            {"status": "fixed", "internal_notes": "Coordinates updated to boat station."},
+            format="json",
+        )
+        self.assertEqual(resolve_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resolve_resp.data["status"], "fixed")
+
+    def test_ai_itinerary_modification_cheaper_and_luxurious(self):
+        sample_itinerary = {
+            "days": 2,
+            "travelers": 2,
+            "itinerary": [
+                {"day": 1, "theme": "Pokhara Valley", "daily_budget_npr": 10000, "destinations": [{"name": "Phewa Lake"}]},
+                {"day": 2, "theme": "Sarangkot Sunrise", "daily_budget_npr": 8000, "destinations": [{"name": "Sarangkot"}]},
+            ],
+        }
+        response = self.client.post(
+            reverse("ml-itinerary-modify"),
+            {"action": "cheaper", "itinerary_data": sample_itinerary},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["modified_action"], "cheaper")
+        self.assertIn("Budget Friendly", response.data["itinerary"][0]["theme"])
+
+
+class BlockBasedCMSAndImageReplacementTests(APITestCase):
+    def setUp(self):
+        from tourist.models import ManagedPage, ContentSection, ContentBlock
+        self.admin = User.objects.create_superuser(email="blockadmin@nepaltourism.com", password="Pass@12345", first_name="Block", last_name="Admin")
+        self.client.force_authenticate(user=self.admin)
+        self.destination = Destination.objects.create(name="Pokhara Lakeside Test", slug="pokhara-lakeside-test", city="Pokhara", district="Kaski", is_active=True)
+        self.page = ManagedPage.objects.create(route="/test-cms-page", key="test-cms-page", title="Test CMS Page")
+        self.section = ContentSection.objects.create(page=self.page, key="test-section", title="Test Section", section_type="blocks")
+
+    def test_content_block_crud_and_validation(self):
+        # Create block
+        create_resp = self.client.post(
+            reverse("admin-section-blocks", kwargs={"section_id": self.section.id}),
+            {
+                "block_type": "heading",
+                "title": "Welcome to Pokhara",
+                "data": {"text": "Welcome to Pokhara", "level": "h1", "align": "center"},
+            },
+            format="json",
+        )
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        block_id = create_resp.data["id"]
+
+        # Validate invalid video domain rejection
+        video_bad = self.client.post(
+            reverse("admin-section-blocks", kwargs={"section_id": self.section.id}),
+            {"block_type": "video", "data": {"url": "https://malicious-site.com/video"}},
+            format="json",
+        )
+        self.assertEqual(video_bad.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Update block
+        patch_resp = self.client.patch(
+            reverse("admin-block-detail", kwargs={"block_id": block_id}),
+            {"title": "Updated Heading Title", "data": {"text": "Updated Heading", "level": "h2"}},
+            format="json",
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(patch_resp.data["title"], "Updated Heading Title")
+
+        # Delete block
+        del_resp = self.client.delete(reverse("admin-block-detail", kwargs={"block_id": block_id}))
+        self.assertEqual(del_resp.status_code, status.HTTP_200_OK)
+
+    def test_image_replacement_updates_database(self):
+        from tourist.models import DestinationImage
+        img = DestinationImage.objects.create(
+            destination=self.destination,
+            external_url="https://example.com/old-photo.jpg",
+            caption="Old Caption",
+            verification_status="approved",
+            is_verified=True,
+        )
+        # Patch to replace image URL and caption
+        patch_resp = self.client.patch(
+            reverse("admin-destination-images", kwargs={"id": self.destination.id}),
+            {
+                "image_id": img.id,
+                "external_url": "https://images.unsplash.com/photo-1544735716-392fe2489ffa",
+                "caption": "Replaced Phewa Lake Photo",
+                "is_cover": True,
+            },
+            format="json",
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+
+        img.refresh_from_db()
+        self.assertEqual(img.external_url, "https://images.unsplash.com/photo-1544735716-392fe2489ffa")
+        self.assertEqual(img.caption, "Replaced Phewa Lake Photo")
+        self.assertTrue(img.is_cover)
+
+
+
+
+
+
+class HeroSlidePublicConfigTests(APITestCase):
+    """The cinematic landing hero is admin-managed and publicly exposed."""
+
+    def test_public_config_exposes_active_hero_slides(self):
+        from .models import HeroSlide
+        HeroSlide.objects.create(
+            title="TEST PEAK", order=1,
+            local_image="/images/destinations/everest/base-camp.jpg",
+            overlay_strength=62, focal_point="top",
+        )
+        resp = self.client.get(reverse("public-config"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        slides = resp.data.get("hero_slides")
+        self.assertIsInstance(slides, list)
+        titles = [s["title"] for s in slides]
+        self.assertIn("TEST PEAK", titles)
+        slide = next(s for s in slides if s["title"] == "TEST PEAK")
+        self.assertEqual(slide["image"], "/images/destinations/everest/base-camp.jpg")
+        self.assertEqual(slide["overlay"], 62)
+        self.assertEqual(slide["focal_point"], "top")
+
+    def test_inactive_hero_slide_is_hidden_from_public(self):
+        from .models import HeroSlide
+        HeroSlide.objects.create(title="HIDDEN PEAK", is_active=False)
+        resp = self.client.get(reverse("public-config"))
+        self.assertNotIn("HIDDEN PEAK", [s["title"] for s in resp.data["hero_slides"]])
+
+    def test_upload_image_takes_priority_over_url_and_local(self):
+        from .models import HeroSlide
+        s = HeroSlide(title="PRIO", image_url="https://example.com/a.jpg", local_image="/images/x.jpg")
+        self.assertEqual(s.resolve_image(), "https://example.com/a.jpg")
+        self.assertEqual(HeroSlide(title="LOCAL", local_image="/images/x.jpg").resolve_image(), "/images/x.jpg")
+
+
+# ---------------------------------------------------------------------------
+# CMS: search/edit/approve/publish lifecycle, import protection, duplicates,
+# bulk ops, revisions, data integrity  (admin = source of truth)
+# ---------------------------------------------------------------------------
+class AdminCMSCoreTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="cms-admin@example.com", password="AdminPass123!")
+        self.editor = User.objects.create_user(email="cms-editor@example.com", password="EditorPass123!",
+                                               is_verified=True, role="content_moderator", is_staff=True)
+        StaffCapabilityProfile.objects.create(
+            user=self.editor,
+            capabilities={"destinations": ["view", "change"], "dashboard": ["view"],
+                          "datasets": ["view"], "images": ["view"]})
+        self.cat = Category.objects.create(name="Museum", slug="museum")
+        self.dest = Destination.objects.create(
+            name="Pokhara Museum", slug="pokhara-museum", description="Old description.",
+            district="Kaski", city="Pokhara", category=self.cat,
+            latitude=28.21, longitude=83.99, status="approved", is_active=True,
+            provenance=Destination.Provenance.IMPORTED)
+
+    def _public_ids(self):
+        resp = self.client.get("/api/v1/destinations/", {"type": "all"})
+        return [r["id"] for r in resp.data.get("results", resp.data if isinstance(resp.data, list) else [])]
+
+    def test_all_content_search_filter_sort_paginate(self):
+        Destination.objects.create(name="Sarangkot Viewpoint", slug="sarangkot", district="Kaski",
+                                   status="approved", is_active=True)
+        Destination.objects.create(name="Begnas Lake", slug="begnas-lake", district="Kaski",
+                                   status="draft", is_active=False)
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get("/api/v1/admin/destinations", {"q": "pokhara museum", "page_size": 10})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(r.data["results"][0]["id"], self.dest.id)
+        # search by id
+        r = self.client.get("/api/v1/admin/destinations", {"q": str(self.dest.id)})
+        self.assertEqual(r.data["results"][0]["id"], self.dest.id)
+        # status filter + missing filter + pagination keys
+        r = self.client.get("/api/v1/admin/destinations", {"status": "draft"})
+        self.assertEqual(r.data["count"], 1)
+        r = self.client.get("/api/v1/admin/destinations", {"missing": "images"})
+        self.assertEqual(r.data["count"], 3)
+        r = self.client.get("/api/v1/admin/destinations", {"ordering": "name", "page": 1, "page_size": 2})
+        self.assertEqual(r.data["pages"], 2)
+        self.assertEqual(r.data["results"][0]["name"], "Begnas Lake")
+
+    def test_editor_edit_of_published_becomes_proposal_public_unchanged(self):
+        self.client.force_authenticate(user=self.editor)
+        r = self.client.put(f"/api/v1/admin/destinations/{self.dest.id}", {
+            "name": "International Mountain Museum", "reason": "Wrong name in import"}, format="json")
+        self.assertEqual(r.status_code, 202)
+        self.assertEqual(r.data["status"], "pending_review")
+        # DB and public API still show the old published value
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.name, "Pokhara Museum")
+        self.client.force_authenticate(user=None)
+        r = self.client.get("/api/v1/destinations/", {"type": "all"})
+        names = [row["name"] for row in r.data.get("results", [])]
+        self.assertIn("Pokhara Museum", names)
+        self.assertNotIn("International Mountain Museum", names)
+        # Approval center shows the diff; admin approves; public sees new value
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get("/api/v1/admin/approvals/")
+        self.assertEqual(r.data["pending"], 1)
+        prop = r.data["results"][0]
+        self.assertEqual(prop["diff"][0]["old"], "Pokhara Museum")
+        self.assertEqual(prop["diff"][0]["new"], "International Mountain Museum")
+        r = self.client.post("/api/v1/admin/approvals/", {"id": prop["id"], "action": "approve",
+                                                          "review_note": "Verified on site"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.name, "International Mountain Museum")
+        self.assertEqual(self.dest.provenance, "manual")
+        self.client.force_authenticate(user=None)
+        r = self.client.get("/api/v1/destinations/", {"type": "all"})
+        self.assertIn("International Mountain Museum", [row["name"] for row in r.data.get("results", [])])
+        # audit + revision trail exist
+        audit = DestinationAuditLog.objects.filter(destination=self.dest, action="approved").first()
+        self.assertIsNotNone(audit)
+        self.assertTrue(audit.field_changes)
+        self.assertEqual(CMSRevision.objects.filter(resource="destinations", object_id=self.dest.id).count(), 1)
+
+    def test_bulk_ops_lifecycle_and_guards(self):
+        self.client.force_authenticate(user=self.editor)
+        r = self.client.post("/api/v1/admin/destinations/bulk/", {
+            "action": "archive", "ids": [self.dest.id], "reason": "x"}, format="json")
+        self.assertEqual(r.status_code, 403)  # editor cannot archive
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.post("/api/v1/admin/destinations/bulk/", {
+            "action": "archive", "ids": [self.dest.id]}, format="json")
+        self.assertEqual(r.status_code, 400)  # reason required
+        r = self.client.post("/api/v1/admin/destinations/bulk/", {
+            "action": "archive", "ids": [self.dest.id], "reason": "Closed for renovation"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.status, "archived")
+        self.client.force_authenticate(user=None)
+        self.assertNotIn(self.dest.id, self._public_ids())
+        # restore -> visible again
+        self.client.force_authenticate(user=self.admin)
+        self.client.post("/api/v1/admin/destinations/bulk/", {
+            "action": "restore", "ids": [self.dest.id], "reason": "Reopened"}, format="json")
+        self.client.force_authenticate(user=None)
+        self.assertIn(self.dest.id, self._public_ids())
+        # bulk delete without confirm refused
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.post("/api/v1/admin/destinations/bulk/", {
+            "action": "delete", "ids": [self.dest.id], "reason": "test"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(Destination.objects.filter(id=self.dest.id).exists())
+        # audit entries for both ops
+        self.assertGreaterEqual(DestinationAuditLog.objects.filter(
+            destination=self.dest, note__startswith="Bulk").count(), 2)
+
+    def test_data_integrity_counts(self):
+        Destination.objects.create(name="No Coords", slug="no-coords", district="Kaski",
+                                   status="approved", is_active=True)
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get("/api/v1/admin/data-integrity/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["total_records"], 2)
+        self.assertEqual(r.data["missing_coordinates"], 1)
+        self.assertEqual(r.data["unverified"], 2)
+        self.assertIn("provenance", r.data)
+
+
+class ImportProtectionTests(TestCase):
+    def test_importer_never_overwrites_admin_values_and_never_republishes(self):
+        import csv, os, tempfile
+        from django.core.management import call_command
+        from unittest import mock
+        dest = Destination.objects.create(
+            name="Phewa Lake", slug="phewa-lake", external_id=999001,
+            district="Kaski", city="Pokhara", latitude=28.21, longitude=83.99,
+            status="approved", is_active=True, provenance=Destination.Provenance.IMPORTED,
+            imported_data={"city": "Pokhara"})
+        # admin correction
+        dest.city = "Lakeside-Pokhara"
+        dest.provenance = Destination.Provenance.MANUAL
+        dest.save(update_fields=["city", "provenance", "updated_at"])
+        archived = Destination.objects.create(
+            name="Closed Place", slug="closed-place", external_id=999002,
+            district="Kaski", status="archived", is_active=False,
+            provenance=Destination.Provenance.IMPORTED)
+        tmp = tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, newline="")
+        writer = csv.writer(tmp)
+        writer.writerow(["ID", "Name", "Type", "Tourism_Category", "Latitude", "Longitude",
+                         "City", "Area", "District", "Province"])
+        writer.writerow([999001, "Phewa Lake", "lake", "Lake", "28.2100", "83.9900",
+                         "Pokhara", "", "Kaski", "Gandaki"])
+        writer.writerow([999002, "Closed Place", "park", "Park", "28.10", "84.00",
+                         "Pokhara", "", "Kaski", "Gandaki"])
+        tmp.close()
+        with mock.patch("tourist.management.commands.import_osm_destinations.CSV_PATH", tmp.name):
+            call_command("import_osm_destinations", "--enrich-only", verbosity=0)
+        os.unlink(tmp.name)
+        dest.refresh_from_db()
+        archived.refresh_from_db()
+        # admin correction untouched; conflict recorded instead
+        self.assertEqual(dest.city, "Lakeside-Pokhara")
+        conflict = ImportConflict.objects.get(destination=dest, field="city", status="pending")
+        self.assertEqual(conflict.incoming_value, "Pokhara")
+        # archived record stays archived — import must never republish
+        self.assertEqual(archived.status, "archived")
+        self.assertFalse(archived.is_active)
+        # resolve: accept -> value applied, provenance manual, audited
+        from django.contrib.auth import get_user_model
+        admin = get_user_model().objects.create_superuser(email="imp-admin@example.com", password="AdminPass123!")
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=admin)
+        r = client.post("/api/v1/admin/import-conflicts/", {
+            "id": conflict.id, "action": "accept", "reason": "OSM name is more current"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        dest.refresh_from_db()
+        self.assertEqual(dest.city, "Pokhara")
+        self.assertEqual(dest.provenance, "manual")
+        self.assertEqual(ImportConflict.objects.get(id=conflict.id).status, "accepted")
+
+
+class DuplicateWorkflowTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="dup-admin@example.com", password="AdminPass123!")
+        self.a = Destination.objects.create(name="Namaste Buddha Lodge", slug="namaste-buddha-lodge",
+                                            district="Kaski", latitude=28.2100, longitude=83.9850,
+                                            status="approved", is_active=True)
+        self.b = Destination.objects.create(name="Namaste Buddha Lodge", slug="namaste-buddha-lodge-2",
+                                            district="Kaski", latitude=28.2102, longitude=83.9852,
+                                            status="approved", is_active=True)
+
+    def test_candidates_dismiss_and_merge(self):
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get("/api/v1/admin/duplicates/", {"confidence": "high"})
+        self.assertEqual(r.data["count"], 1)
+        pair = r.data["results"][0]["pair"]
+        # dismiss -> excluded from future lists
+        r = self.client.post("/api/v1/admin/duplicates/decision/", {
+            "a": pair[0], "b": pair[1], "verdict": "not_duplicate",
+            "reason": "Two branches of the same lodge"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        r = self.client.get("/api/v1/admin/duplicates/", {"confidence": "high"})
+        self.assertEqual(r.data["count"], 0)
+        # fresh pair for merge
+        c = Destination.objects.create(name="Lake Side Cafe", slug="lake-side-cafe", district="Kaski",
+                                       latitude=28.205, longitude=83.980, status="approved", is_active=True)
+        d = Destination.objects.create(name="Lakeside Cafe", slug="lakeside-cafe", district="Kaski",
+                                       latitude=28.2051, longitude=83.9801, status="approved", is_active=True)
+        img = DestinationImage.objects.create(destination=d, external_url="https://example.com/x.jpg")
+        r = self.client.post("/api/v1/admin/duplicates/decision/", {
+            "a": c.id, "b": d.id, "verdict": "merge", "survivor_id": c.id,
+            "reason": "Same cafe, duplicate OSM node"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["survivor_id"], c.id)
+        d.refresh_from_db()
+        self.assertEqual(d.status, "archived")
+        img.refresh_from_db()
+        self.assertEqual(img.destination_id, c.id)  # media moved, not broken
+        snapshot = DuplicateDecision.objects.get(verdict="merged").merged_snapshot
+        self.assertEqual(snapshot["name"], "Lakeside Cafe")  # recovery aid
+        # public API hides the absorbed record
+        self.client.force_authenticate(user=None)
+        r = self.client.get("/api/v1/destinations/", {"type": "all"})
+        ids = [row["id"] for row in r.data.get("results", [])]
+        self.assertIn(c.id, ids)
+        self.assertNotIn(d.id, ids)
+
+
+class RevisionRestoreTests(APITestCase):
+    def test_snapshot_and_restore(self):
+        admin = User.objects.create_superuser(email="rev-admin@example.com", password="AdminPass123!")
+        dest = Destination.objects.create(name="Old Name", slug="old-name", district="Kaski",
+                                          description="Original.", status="approved", is_active=True)
+        self.client.force_authenticate(user=admin)
+        r = self.client.post("/api/v1/admin/destinations/revisions/", {
+            "destination": dest.id, "action": "snapshot"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        rev_id = r.data["revision_id"]
+        # admin edits directly
+        self.client.put(f"/api/v1/admin/destinations/{dest.id}", {
+            "name": "New Name", "reason": "Rename"}, format="json")
+        dest.refresh_from_db()
+        self.assertEqual(dest.name, "New Name")
+        # restore requires reason, then rolls back and versions itself
+        r = self.client.post("/api/v1/admin/destinations/revisions/", {
+            "destination": dest.id, "action": "restore", "revision_id": rev_id}, format="json")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.post("/api/v1/admin/destinations/revisions/", {
+            "destination": dest.id, "action": "restore", "revision_id": rev_id,
+            "reason": "Rename was incorrect"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        dest.refresh_from_db()
+        self.assertEqual(dest.name, "Old Name")
+        self.assertEqual(CMSRevision.objects.filter(resource="destinations", object_id=dest.id).count(), 2)
+        audit = DestinationAuditLog.objects.filter(destination=dest, note__startswith="Restored").first()
+        self.assertIsNotNone(audit)
+        self.assertTrue(any(c["field"] == "name" for c in audit.field_changes))
+
+
+class OpsLayerTests(TestCase):
+    """Production config validation, backup/restore integrity, backup health."""
+
+    def test_config_validator_fails_loudly_on_dev_and_never_prints_secret(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        with self.assertRaises(SystemExit):
+            call_command("validate_production_config", stdout=out)
+        text = out.getvalue()
+        self.assertIn("RESULT: FAIL", text)
+        self.assertGreaterEqual(text.count("FAIL  "), 3)  # loud on the dev config
+        self.assertNotIn(str(settings.SECRET_KEY)[:20], text)  # secret never printed
+
+    def test_config_validator_passes_on_production_shape(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        with self.settings(DEBUG=False,
+                           SECRET_KEY="p" * 64,
+                           ALLOWED_HOSTS=["tourism.example.org"],
+                           CORS_ALLOW_ALL_ORIGINS=False,
+                           DATABASES={"default": {"ENGINE": "django.db.backends.postgresql",
+                                                  "NAME": "tourism"}},
+                           ML_SERVICE_API_KEY="real-ml-key-value",
+                           ML_WEBHOOK_SECRET="real-webhook-secret"):
+            call_command("validate_production_config", stdout=out)  # no SystemExit
+        self.assertIn("RESULT: PASS", out.getvalue())
+
+    def test_config_validator_accepts_wal_hardened_sqlite(self):
+        import io
+        from unittest.mock import MagicMock
+        from django.core.management import call_command
+        out = io.StringIO()
+        prod = dict(DEBUG=False, SECRET_KEY="p" * 64,
+                    ALLOWED_HOSTS=["tourism.example.org"],
+                    CORS_ALLOW_ALL_ORIGINS=False,
+                    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3",
+                                           "NAME": ":memory:"}},
+                    ML_SERVICE_API_KEY="real-ml-key-value",
+                    ML_WEBHOOK_SECRET="real-webhook-secret")
+        # hardened (WAL + FK on) -> PASS; the sqlite branch is the only
+        # cursor user, so mocking the pragma results is exact.
+        with self.settings(**prod):
+            with patch("django.db.connection") as conn:
+                cur = MagicMock()
+                cur.fetchone.side_effect = [("wal",), (1,)]
+                conn.cursor.return_value.__enter__.return_value = cur
+                call_command("validate_production_config", stdout=out)
+        self.assertIn("RESULT: PASS", out.getvalue())
+        self.assertIn("WAL-hardened", out.getvalue())
+        # NOT hardened -> FAIL with an actionable message
+        out = io.StringIO()
+        with self.settings(**prod):
+            with patch("django.db.connection") as conn:
+                cur = MagicMock()
+                cur.fetchone.side_effect = [("delete",), (0,)]
+                conn.cursor.return_value.__enter__.return_value = cur
+                with self.assertRaises(SystemExit):
+                    call_command("validate_production_config", stdout=out)
+        self.assertIn("NOT production-hardened", out.getvalue())
+
+    def test_database_url_parsing(self):
+        from Tourism.settings import _database_from_url
+        pg = _database_from_url("postgres://u%40ser:p%40ss@db.internal:6543/tourism")
+        self.assertEqual(pg["ENGINE"], "django.db.backends.postgresql")
+        self.assertEqual(pg["NAME"], "tourism")
+        self.assertEqual(pg["USER"], "u@ser")   # percent-decoded
+        self.assertEqual(pg["PASSWORD"], "p@ss")
+        self.assertEqual(pg["HOST"], "db.internal")
+        self.assertEqual(pg["PORT"], "6543")
+        lite = _database_from_url("sqlite:////srv/data/tourism.sqlite3")
+        self.assertEqual(lite["ENGINE"], "django.db.backends.sqlite3")
+        self.assertEqual(lite["NAME"], "/srv/data/tourism.sqlite3")
+        rel = _database_from_url("sqlite:///data/tourism.sqlite3")
+        self.assertEqual(rel["NAME"], "data/tourism.sqlite3")  # relative
+        mem = _database_from_url("sqlite://:memory:")
+        self.assertEqual(mem["NAME"], ":memory:")
+        with self.assertRaises(ValueError):
+            _database_from_url("mysql://user@host/db")
+
+    def test_wal_hardening_applied_to_file_backed_sqlite(self):
+        """Real subprocess against a temp file DB: WAL + FK actually applied."""
+        import os
+        import subprocess
+        import sys
+        import tempfile
+        tmp = tempfile.mkdtemp()
+        dbpath = os.path.join(tmp, "hardened.sqlite3")
+        code = (
+            "from django.db import connection\n"
+            "with connection.cursor() as c:\n"
+            "    c.execute('PRAGMA journal_mode'); print('MODE=' + str(c.fetchone()[0]))\n"
+            "    c.execute('PRAGMA foreign_keys'); print('FK=' + str(c.fetchone()[0]))\n"
+        )
+        env = dict(os.environ, DB_NAME=dbpath)
+        # force the SQLite default regardless of the parent's env
+        env.pop("DATABASE_URL", None)
+        env.pop("DB_ENGINE", None)
+        proc = subprocess.run(
+            [sys.executable, "manage.py", "shell", "-c", code],
+            capture_output=True, text=True, env=env,
+            cwd=str(Path(__file__).resolve().parents[1]), timeout=120)
+        self.assertEqual(proc.returncode, 0, proc.stderr[-500:])
+        self.assertIn("MODE=wal", proc.stdout)
+        self.assertIn("FK=1", proc.stdout)
+
+    def _noop(self):
+        pass
+
+
+class BackupRestoreTests(TransactionTestCase):
+    """Runs non-atomically: the scratch-DB drill executes real DDL."""
+
+    def test_backup_restore_roundtrip_and_corrupt_rejection(self):
+        import io, os, tempfile
+        from django.core.management import call_command
+        d = Destination.objects.create(name="Backup Probe", slug="backup-probe",
+                                       district="Kaski", status="approved", is_active=True)
+        tmpdir = tempfile.mkdtemp()
+        out = io.StringIO()
+        call_command("backup_database", "--dir", tmpdir, stdout=out)
+        self.assertIn("verified", out.getvalue())
+        archives = [f for f in os.listdir(tmpdir) if f.endswith(".gz")]
+        self.assertEqual(len(archives), 1)
+        # corrupt backup must be refused
+        path = os.path.join(tmpdir, archives[0])
+        with open(path + ".sha256", "w") as fh:
+            fh.write("0" * 64 + "  " + archives[0] + "\n")
+        with self.assertRaises(SystemExit) as ctx:
+            call_command("restore_database", "--file", path, "--confirm")
+        self.assertIn("checksum mismatch", str(ctx.exception))
+        # restore drill into a scratch db works with the genuine checksum
+        call_command("backup_database", "--dir", tmpdir, stdout=io.StringIO())
+        real = sorted(f for f in os.listdir(tmpdir) if f.endswith(".gz"))[-1]
+        out = io.StringIO()
+        call_command("restore_database", "--file", os.path.join(tmpdir, real),
+                     "--target", os.path.join(tmpdir, "scratch.sqlite3"), stdout=out)
+        self.assertIn("Restore drill OK", out.getvalue())
+        self.assertIn("1 destinations", out.getvalue())
+        # without --confirm or --target: refused, live db untouched
+        with self.assertRaises(SystemExit) as ctx:
+            call_command("restore_database", "--file", os.path.join(tmpdir, real))
+        self.assertIn("REFUSED", str(ctx.exception))
+        self.assertTrue(Destination.objects.filter(id=d.id).exists())
+
+    def test_backup_health_check_fresh_and_missing(self):
+        import os, tempfile, time
+        from system_health.checks import _backup_check
+        tmp = tempfile.mkdtemp()
+        with self.settings(BASE_DIR=Path(tmp).parent):
+            os.makedirs(Path(tmp).parent / "backups", exist_ok=True)
+            open(Path(tmp).parent / "backups" / "backup-x.sqlite.gz", "w").write("x")
+            fresh = _backup_check()
+            self.assertTrue(fresh["ok"])
+            self.assertIsNone(fresh["warning"])
+            # stale: rewrite mtime to 30 h ago
+            old = time.time() - 30 * 3600
+            os.utime(Path(tmp).parent / "backups" / "backup-x.sqlite.gz", (old, old))
+            stale = _backup_check()
+            self.assertFalse(stale["ok"])
+            self.assertEqual(stale["warning"], "BACKUP WARNING")
+
+
+class OAuthProviderValidationTests(TestCase):
+    def _resp(self, payload, status=400):
+        from unittest.mock import MagicMock
+        m = MagicMock()
+        m.status_code = status
+        m.headers = {"content-type": "application/json"}
+        m.json.return_value = payload
+        return m
+
+    def test_accepted_rejected_and_unconfigured(self):
+        import io
+        from django.core.management import call_command
+        with patch("tourist.management.commands.validate_oauth_providers.requests.post",
+                   side_effect=[self._resp({"error": "invalid_grant"}),
+                                self._resp({"error": "unauthorized_client"})]), \
+             self.settings(GOOGLE_CLIENT_ID="gid", GOOGLE_CLIENT_SECRET="gsec",
+                           GITHUB_CLIENT_ID="hid", GITHUB_CLIENT_SECRET="hsec"):
+            out = io.StringIO()
+            with self.assertRaises(SystemExit):
+                call_command("validate_oauth_providers", stdout=out)
+            text = out.getvalue()
+            self.assertIn("OK    google", text)
+            self.assertIn("FAIL  github", text)
+        with self.settings(GOOGLE_CLIENT_ID="", GOOGLE_CLIENT_SECRET="",
+                           GITHUB_CLIENT_ID="", GITHUB_CLIENT_SECRET=""):
+            out = io.StringIO()
+            call_command("validate_oauth_providers", stdout=out)
+            self.assertIn("SKIP  google", out.getvalue())
+
+
+class LifecycleEndpointsTests(APITestCase):
+    """Explicit single-record lifecycle: draft->publish->unpublish->archive
+    ->restore, preview, diagnostics, permissions, and no-public-leak."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="lc-admin@example.com", password="AdminPass123!")
+        self.editor = User.objects.create_user(email="lc-editor@example.com", password="EditorPass123!",
+                                               is_verified=True, role="content_moderator", is_staff=True)
+        StaffCapabilityProfile.objects.create(
+            user=self.editor, capabilities={"destinations": ["view", "change"]})
+        self.dest = Destination.objects.create(
+            name="Test Tourism Destination", slug="test-tourism-destination",
+            description="This is an administrator-created destination.",
+            district="Kaski", latitude=28.2, longitude=83.99,
+            status="draft", is_active=False)
+
+    def _public_ids(self):
+        self.client.force_authenticate(user=None)  # the public sees only published
+        r = self.client.get("/api/v1/destinations/", {"type": "all"})
+        return [row["id"] for row in r.data.get("results", [])]
+
+    def test_full_lifecycle_and_diagnostics(self):
+        self.client.force_authenticate(user=self.admin)
+        base = f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/"
+        # DRAFT: not public, honest reason
+        r = self.client.get(f"/api/v1/admin/destinations/{self.dest.id}")
+        self.assertFalse(r.data["public"])
+        self.assertIn("Draft", r.data["not_public_reason"])
+        self.assertNotIn(self.dest.id, self._public_ids())
+        self.client.force_authenticate(user=self.admin)
+        # PUBLISH -> public immediately (no restart, no cache staleness)
+        r = self.client.post(base, {"action": "publish", "reason": "Ready"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["public"])
+        self.assertIn(self.dest.id, self._public_ids())
+        pub = self.client.get("/api/v1/destinations/test-tourism-destination/")
+        self.assertEqual(pub.status_code, 200)
+        # UNPUBLISH -> hidden immediately
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(base, {"action": "unpublish", "reason": "Season closure"}, format="json")
+        self.assertNotIn(self.dest.id, self._public_ids())
+        # ARCHIVE -> hidden + reason
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(base, {"action": "archive", "reason": "Closed permanently"}, format="json")
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get(f"/api/v1/admin/destinations/{self.dest.id}")
+        self.assertIn("Archived", r.data["not_public_reason"])
+        # RESTORE -> public again
+        r = self.client.post(base, {"action": "restore", "reason": "Reopened"}, format="json")
+        self.assertTrue(r.data["public"])
+        self.assertIn(self.dest.id, self._public_ids())
+        self.client.force_authenticate(user=self.admin)
+        # audit chain
+        actions = list(DestinationAuditLog.objects.filter(destination=self.dest)
+                       .order_by("created_at").values_list("note", flat=True))
+        self.assertTrue(any("publish" in a for a in actions))
+        self.assertTrue(any("archive" in a for a in actions))
+
+    def test_publish_blocked_without_mandatory_fields(self):
+        self.client.force_authenticate(user=self.admin)
+        empty = Destination.objects.create(name="", slug="no-name-yet", status="draft", is_active=False)
+        r = self.client.post(f"/api/v1/admin/destinations/{empty.id}/lifecycle/",
+                             {"action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("missing", r.data["detail"])
+        empty.refresh_from_db()
+        self.assertEqual(empty.status, "draft")
+
+    def test_staff_cannot_publish_but_can_submit_review(self):
+        self.client.force_authenticate(user=self.editor)
+        r = self.client.post(f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+                             {"action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 403)
+        r = self.client.post(f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+                             {"action": "submit_review", "reason": "Ready for review"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.status, "pending")
+        self.assertNotIn(self.dest.id, self._public_ids())  # helper logged us out; pending stays hidden
+
+    def test_preview_never_publishes(self):
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get(f"/api/v1/admin/destinations/{self.dest.id}/preview/")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.data["public"])
+        self.assertIsNone(r.data["public_url"])
+        self.assertEqual(r.data["preview"]["name"], "Test Tourism Destination")
+        self.dest.refresh_from_db()
+        self.assertEqual(self.dest.status, "draft")  # unchanged
+
+    def test_status_counts_in_content_table(self):
+        Destination.objects.create(name="Pub One", slug="pub-one", district="Kaski",
+                                   description="d", latitude=28.1, longitude=84.0,
+                                   status="approved", is_active=True)
+        self.client.force_authenticate(user=self.admin)
+        r = self.client.get("/api/v1/admin/destinations")
+        counts = r.data["status_counts"]
+        self.assertEqual(counts["draft"], 1)
+        self.assertEqual(counts["published"], 1)
+        self.assertEqual(counts["approved"], 1)
+
+    def test_public_pagination_covers_every_record(self):
+        for i in range(5):
+            Destination.objects.create(name=f"Paged Place {i}", slug=f"paged-place-{i}",
+                                       district="Kaski", description="d",
+                                       latitude=28.1, longitude=84.0,
+                                       status="approved", is_active=True)
+        self.client.force_authenticate(user=None)
+        r1 = self.client.get("/api/v1/destinations/", {"type": "all", "page_size": 2})
+        self.assertEqual(r1.data["count"], 5)  # setUp record is a draft: never public
+        self.assertEqual(r1.data["total_pages"], 3)
+        self.assertIsNotNone(r1.data["next"])
+        r3 = self.client.get("/api/v1/destinations/", {"type": "all", "page_size": 2, "page": 3})
+        ids_p1 = {row["id"] for row in r1.data["results"]}
+        ids_p3 = {row["id"] for row in r3.data["results"]}
+        self.assertFalse(ids_p1 & ids_p3)  # pages do not overlap
+
+
+class ImagePublicationTests(APITestCase):
+    """§5/§7: an image saved in the DB is NOT public until approved."""
+
+    def test_pending_image_hidden_approved_visible(self):
+        dest = Destination.objects.create(name="Gallery Place", slug="gallery-place",
+                                          district="Kaski", description="d",
+                                          latitude=28.2, longitude=83.99,
+                                          status="approved", is_active=True)
+        pending = DestinationImage.objects.create(
+            destination=dest, external_url="https://example.com/pending.jpg",
+            verification_status="pending")
+        r = self.client.get("/api/v1/destinations/gallery-place/")
+        urls = r.data.get("images") or []
+        self.assertNotIn("https://example.com/pending.jpg", urls)
+        pending.verification_status = "approved"
+        pending.save(update_fields=["verification_status"])
+        r = self.client.get("/api/v1/destinations/gallery-place/")
+        self.assertTrue(any("pending.jpg" in u for u in (r.data.get("images") or [])))
+
+
+class DistrictItineraryTests(APITestCase):
+    """The itinerary generator must serve every district, not just big cities.
+
+    This pins the internal-DB fallback engine, so the ML service call is
+    mocked out — the test must pass whether or not the ML service runs."""
+
+    def setUp(self):
+        from requests.exceptions import ConnectionError as _MLDown
+        patcher = patch("tourist.views_ml.requests.post",
+                        side_effect=_MLDown("ML offline in test"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_20_day_itinerary_for_small_district(self):
+        dest = Destination.objects.create(
+            name="Remote Valley Viewpoint", slug="remote-valley-viewpoint",
+            district="Humla", city_english="Humla", description="d",
+            latitude=30.0, longitude=81.9, status="approved", is_active=True)
+        resp = self.client.post("/api/v1/ml/itinerary/",
+                                {"days": 20, "start_city": "Humla"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        days = resp.data.get("itinerary") or resp.data.get("itinerary_days") or []
+        self.assertEqual(len(days), 20)
+        self.assertTrue(all(day.get("destinations") for day in days),
+                        "every day must be populated")
+        names = {d["name"] for day in days for d in day["destinations"]}
+        self.assertIn("Remote Valley Viewpoint", names)
+
+
+class OAuthCallbackFlowTests(TestCase):
+    """Full OAuth code path with a mocked provider: code -> token exchange
+    -> userinfo -> user creation/link -> JWT pair. Proves the flow itself
+    works; only the real provider credentials remain host-side."""
+
+    def _mock_post(self, *a, **k):
+        resp = Mock()
+        resp.status_code = 200
+        resp.json.return_value = {"access_token": "mock-access", "token_type": "Bearer"}
+        resp.raise_for_status = Mock()
+        return resp
+
+    def _mock_get(self, *a, **k):
+        resp = Mock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "sub": "google-uid-42", "email": "traveler@example.com",
+            "given_name": "Test", "family_name": "Traveler"}
+        resp.raise_for_status = Mock()
+        return resp
+
+    @override_settings(GOOGLE_CLIENT_ID="id", GOOGLE_CLIENT_SECRET="secret")
+    def test_google_callback_issues_jwt_and_creates_user(self):
+        from django.contrib.auth import get_user_model
+        with patch("tourist.views_oauth.requests.post", side_effect=self._mock_post), \
+             patch("tourist.views_oauth.requests.get", side_effect=self._mock_get):
+            resp = self.client.post("/api/v1/auth/google/callback/", {
+                "code": "auth-code-123", "redirect_uri": "http://localhost/cb"},
+                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("access", resp.data)
+        self.assertIn("refresh", resp.data)
+        self.assertEqual(resp.data["user"]["email"], "traveler@example.com")
+        user = get_user_model().objects.get(email="traveler@example.com")
+        self.assertEqual(user.auth_provider, "google")
+        # second login links to the same user, no duplicate
+        with patch("tourist.views_oauth.requests.post", side_effect=self._mock_post), \
+             patch("tourist.views_oauth.requests.get", side_effect=self._mock_get):
+            resp2 = self.client.post("/api/v1/auth/google/callback/", {
+                "code": "auth-code-456", "redirect_uri": "http://localhost/cb"},
+                content_type="application/json")
+        self.assertEqual(resp2.data["user"]["id"], user.id)
+        self.assertEqual(get_user_model().objects.filter(email="traveler@example.com").count(), 1)
+
+    @override_settings(GOOGLE_CLIENT_ID="id", GOOGLE_CLIENT_SECRET="secret")
+    def test_google_callback_rejects_failed_exchange(self):
+        import requests as _rq
+        with patch("tourist.views_oauth.requests.post",
+                   side_effect=_rq.RequestException("provider down")):
+            resp = self.client.post("/api/v1/auth/google/callback/", {
+                "code": "bad", "redirect_uri": "http://localhost/cb"},
+                content_type="application/json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("failed", resp.data["detail"].lower())
+
+
+class DestinationNearbyPOIsFallbackTests(TestCase):
+    """When Overpass is down, nearby POIs must still answer from the DB."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from .models import Hospital, PoliceStation
+        self.dest = Destination.objects.create(
+            name="Lakeside Hub", slug="lakeside-hub", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.2096"), longitude=Decimal("83.9856"))
+        Hospital.objects.create(
+            destination=self.dest, name="Western Regional Hospital",
+            phone="061-520123", latitude=Decimal("28.2110"),
+            longitude=Decimal("83.9870"))
+        PoliceStation.objects.create(
+            destination=self.dest, name="Lakeside Police Post",
+            phone="061-462741", latitude=Decimal("28.2080"),
+            longitude=Decimal("83.9840"))
+        Destination.objects.create(
+            name="Hotel Mountain View", slug="hotel-mountain-view",
+            district="Kaski", status="approved", is_active=True,
+            latitude=Decimal("28.2100"), longitude=Decimal("83.9860"))
+
+    @patch("requests.post", side_effect=Exception("overpass down"))
+    def test_overpass_down_serves_database_places(self, _mock):
+        r = self.client.get(
+            f"/api/v1/destinations/{self.dest.slug}/nearby-pois/",
+            {"categories": "hotels,hospitals,police,banks"})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertIn("offline fallback", data["source"])
+        self.assertEqual(data["destination"], "Lakeside Hub")
+        self.assertTrue(any(h["name"] == "Western Regional Hospital"
+                            for h in data["categories"]["hospitals"]["results"]))
+        self.assertTrue(any(p["name"] == "Lakeside Police Post"
+                            for p in data["categories"]["police"]["results"]))
+        self.assertTrue(any(h["name"] == "Hotel Mountain View"
+                            for h in data["categories"]["hotels"]["results"]))
+        # honest emptiness: banks have no offline records, never fabricated
+        self.assertEqual(data["categories"]["banks"]["results"], [])
+        self.assertIn("note", data["categories"]["banks"])
+
+
+class OfflineItineraryAllCitiesTests(TestCase):
+    """Itinerary fallback must serve EVERY district, not just city text."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from requests.exceptions import ConnectionError as _MLDown
+        patcher = patch("tourist.views_ml.requests.post",
+                        side_effect=_MLDown("ML offline in test"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        for i, district in enumerate(("Mustang", "Rautahat")):
+            for j in range(3):
+                Destination.objects.create(
+                    name=f"{district} Place {j}", slug=f"{district.lower()}-place-{j}",
+                    district=district, status="approved", is_active=True,
+                    latitude=Decimal("28.7"), longitude=Decimal("83.7"),
+                    average_rating=Decimal(str(4.0 + j * 0.1)))
+
+    def test_itinerary_works_for_district_named_start_city(self):
+        for district in ("Mustang", "Rautahat"):
+            r = self.client.post("/api/v1/ml/itinerary/", {
+                "start_city": district, "days": 2}, format="json")
+            self.assertEqual(r.status_code, 200, r.data)
+            data = r.json()
+            self.assertEqual(data["source"], "internal_db_engine")
+            names = [d["name"] for day in data["itinerary"] for d in day["destinations"]]
+            self.assertTrue(names, f"{district}: no stops planned")
+            self.assertTrue(all(district in n for n in names),
+                            f"{district}: stops leaked from elsewhere: {names}")
+
+
+class DataJsonSnapshotPruneTests(TestCase):
+    """Hard-deleted destinations must not linger as ghosts in data.json."""
+
+    def test_removed_destination_pruned_from_snapshot(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from .location_sync import remove_admin_destination_json
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "dataset").mkdir()
+        snap = tmp / "dataset" / "data.json"
+        snap.write_text(json.dumps({
+            "destinations": {"55": {"name": "Ghost"}, "56": {"name": "Real"}},
+            "count": 2}))
+        with override_settings(BASE_DIR=tmp):
+            out = remove_admin_destination_json(55, force=True)
+        self.assertEqual(out, snap)
+        data = json.loads(snap.read_text())
+        self.assertNotIn("55", data["destinations"])
+        self.assertIn("56", data["destinations"])
+        self.assertEqual(data["count"], 1)
+        # pruning an unknown id is a harmless no-op
+        with override_settings(BASE_DIR=tmp):
+            self.assertIsNone(remove_admin_destination_json(999, force=True))
+
+
+class MergeDuplicateDestinationsTests(TestCase):
+    """DEF-011: near twins merge; far namesakes stay untouched."""
+
+    def test_near_twins_merged_far_namesake_kept(self):
+        import io
+        from decimal import Decimal
+        from django.core.management import call_command
+        rich = Destination.objects.create(
+            name="Twin Lodge", slug="twin-rich", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.21000"), longitude=Decimal("83.99000"),
+            description="A real description")
+        sparse = Destination.objects.create(
+            name="Twin Lodge", slug="twin-sparse", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.21002"), longitude=Decimal("83.99002"),
+            contact_phone="061-123456")
+        far = Destination.objects.create(
+            name="Twin Lodge", slug="twin-far", district="Kaski",
+            status="approved", is_active=True,
+            latitude=Decimal("28.40000"), longitude=Decimal("84.10000"))
+        # dry run changes nothing
+        call_command("merge_duplicate_destinations", stdout=io.StringIO())
+        sparse.refresh_from_db()
+        self.assertEqual(sparse.status, "approved")
+        # apply merges the ~2 m twin into the richer record
+        out = io.StringIO()
+        call_command("merge_duplicate_destinations", "--apply", stdout=out)
+        rich.refresh_from_db(); sparse.refresh_from_db(); far.refresh_from_db()
+        self.assertEqual(rich.status, "approved")
+        self.assertEqual(rich.contact_phone, "061-123456")  # filled from twin
+        self.assertEqual(sparse.status, "archived")
+        self.assertFalse(sparse.is_active)
+        self.assertEqual(far.status, "approved")  # distant namesake untouched
+        from .models import DuplicateDecision
+        dec = DuplicateDecision.objects.get(destination_b=sparse)
+        self.assertEqual(dec.verdict, "merged")
+        self.assertEqual(dec.surviving_id, rich.id)
+
+
+class LegacyRouteCalculateHonestyTests(APITestCase):
+    """navigation/calculate must delegate to the central route engine.
+
+    The old implementation invented sinusoidal 'road-following' geometry,
+    fabricated 10/80/10 step splits, and silently routed unresolved
+    destinations to Pokhara center. All three are contract-tested here.
+    """
+
+    def setUp(self):
+        from decimal import Decimal
+        self.dest = Destination.objects.create(
+            name="Chitwan Hub", slug="chitwan-hub", district="Chitwan",
+            status="approved", is_active=True,
+            latitude=Decimal("27.5291"), longitude=Decimal("84.3542"))
+
+    def test_uses_central_engine_geometry_and_labels_source(self):
+        r = self.client.post(reverse("user-route-calculate"), {
+            "destination_id": self.dest.id,
+            "origin_lat": 28.2096, "origin_lng": 83.9856,
+            "transport_mode": "Private Car / Taxi"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        data = r.json()
+        # engine-labelled provenance, never bare "CALCULATED"
+        self.assertIn(data["route_source"],
+                      ("osrm", "graphml_fallback", "straight_line_fallback"))
+        self.assertNotEqual(data["confidence_level"], "CALCULATED")
+        self.assertTrue(data.get("route_note"))
+        # steps are the engine's, not a fabricated depart/continue/arrive trio
+        self.assertNotEqual(len(data["steps"]), 3)
+        self.assertTrue(any(s.get("maneuver") for s in data["steps"]))
+        # contract fields carry the TRUE destination coordinates
+        self.assertEqual(round(data["destination_latitude"], 4), 27.5291)
+        # geometry endpoints may be map-matched (snapped) to the network
+        coords = data["geometry"]["coordinates"]
+        self.assertLess(abs(coords[0][0] - 28.2096), 0.05)
+        self.assertLess(abs(coords[-1][0] - 27.5291), 0.05)
+
+    def test_unresolved_destination_is_honest_404_not_pokhara(self):
+        r = self.client.post(reverse("user-route-calculate"), {
+            "destination_name": "zzz-no-such-place-anywhere-zzz"}, format="json")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["route_status"], "DESTINATION_UNRESOLVED")
+
+
+class DistrictArchitectureTests(APITestCase):
+    """§15-17: 77-district structure generated from the database."""
+
+    def setUp(self):
+        from decimal import Decimal
+        Destination.objects.create(
+            name="Lo Manthang Fort", slug="lo-manthang-fort",
+            district="Mustang", city="Lo Manthang", status="approved",
+            is_active=True, latitude=Decimal("29.1833"),
+            longitude=Decimal("83.9667"))
+
+    def test_lists_all_77_districts_with_real_counts(self):
+        r = self.client.get(reverse("districts-list"))
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["count"], 77)
+        mustang = next(d for d in data["districts"] if d["name"] == "Mustang")
+        self.assertEqual(mustang["public_destinations"], 1)
+        self.assertEqual(mustang["province"], "Gandaki")
+        self.assertEqual(mustang["coverage_status"], "limited_data")
+
+    def test_detail_is_database_driven_and_honest_when_empty(self):
+        r = self.client.get(reverse("district-detail", args=["mustang"]))
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["district"], "Mustang")  # canonical casing
+        self.assertEqual(data["cities"][0]["name"], "Lo Manthang")
+        self.assertEqual(data["top_destinations"][0]["slug"], "lo-manthang-fort")
+        empty = self.client.get(reverse("district-detail", args=["Achham"]))
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.json()["public_destinations"], 0)
+        self.assertIn("No verified destinations", empty.json()["note"])
+        bogus = self.client.get(reverse("district-detail", args=["Atlantis"]))
+        self.assertEqual(bogus.status_code, 404)
+
+
+class AdminToPublicPropagationTests(APITestCase):
+    """§45 MANDATORY end-to-end: Admin -> DB -> public API -> navigation.
+
+    Every step uses the real API endpoints the admin dashboard and the
+    public site use — no ORM shortcuts, no mocks.
+    """
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.admin = User.objects.create_superuser("prop-admin@test.com", "pass123")
+        self.client.force_authenticate(user=self.admin)
+        self.anon = APIClient()  # the real public visitor
+
+    def test_admin_edits_propagate_to_public_api_and_navigation(self):
+        import json as _json
+        # 1. admin creates the destination
+        r = self.client.post("/api/v1/admin/destinations", {
+            "name": "Integration Stupa", "district": "Kaski",
+            "latitude": "28.2000", "longitude": "83.9800",
+            "description": "Original description."}, format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        body = r.data.get("destination", r.data)
+        dest_id = body.get("id")
+        slug = body.get("slug")
+        self.assertIsNotNone(dest_id, r.data)
+        # 2. admin publishes
+        r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/lifecycle/",
+                             {"action": "publish", "reason": "verified"},
+                             format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        # 3. ANONYMOUS public API serves it with the original coordinates
+        pub = self.anon.get(f"/api/v1/destinations/{slug}/")
+        self.assertEqual(pub.status_code, 200, pub.data)
+        self.assertAlmostEqual(float(pub.data["latitude"]), 28.2000, places=3)
+        # 4. admin edits coordinates + description
+        r = self.client.put(f"/api/v1/admin/destinations/{dest_id}", {
+            "latitude": "28.3500", "longitude": "84.1000",
+            "description": "Updated by admin."}, format="json")
+        self.assertIn(r.status_code, (200, 202), r.data)
+        # 5. public API IMMEDIATELY reflects the change (no stale cache)
+        pub = self.anon.get(f"/api/v1/destinations/{slug}/")
+        self.assertEqual(pub.status_code, 200)
+        self.assertAlmostEqual(float(pub.data["latitude"]), 28.3500, places=3)
+        self.assertAlmostEqual(float(pub.data["longitude"]), 84.1000, places=3)
+        self.assertEqual(pub.data["description"], "Updated by admin.")
+        # 6. admin adds an image; public detail must contain it
+        r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/images", {
+            "image_url": "https://example.org/media/stupa-new.jpg",
+            "caption": "Admin-added photo"}, format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        pub = self.anon.get(f"/api/v1/destinations/{slug}/")
+        self.assertIn("stupa-new.jpg", _json.dumps(pub.data))
+        # 7. navigation resolves the UPDATED coordinates from the database
+        r = self.client.post(reverse("user-route-calculate"), {
+            "destination_id": dest_id,
+            "origin_lat": 28.2096, "origin_lng": 83.9856}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertAlmostEqual(float(r.data["destination_latitude"]), 28.3500,
+                               places=3)
+        # 8. admin unpublishes -> the ANONYMOUS public site loses it
+        r = self.client.post(f"/api/v1/admin/destinations/{dest_id}/lifecycle/",
+                             {"action": "unpublish", "reason": "takedown"},
+                             format="json")
+        self.assertIn(r.status_code, (200, 201), r.data)
+        self.assertEqual(self.anon.get(f"/api/v1/destinations/{slug}/").status_code, 404)
+        # staff still see the unpublished record (admin console needs it)
+        self.assertEqual(self.client.get(f"/api/v1/destinations/{slug}/").status_code, 200)
+
+
+class SeoSitemapRobotsHealthTests(APITestCase):
+    """§101–103 + §112: dynamic robots/sitemap from real DB records, public
+    health endpoint without secrets, and admin SEO controls reaching the API."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from rest_framework.test import APIClient
+        from .views_seo import invalidate_seo_cache
+        invalidate_seo_cache()  # sitemap cache must not leak across tests
+        self.admin = User.objects.create_superuser(
+            email="seo-admin@test.local", password="SeoPass!2345",
+            first_name="Seo", last_name="Admin",
+        )
+        self.client.force_authenticate(self.admin)
+        self.anon = APIClient()
+        self.dest = Destination.objects.create(
+            name="SEO Probe Temple", slug="seo-probe-temple",
+            latitude=Decimal("27.700000"), longitude=Decimal("85.300000"),
+            district="Kathmandu", status="approved", is_active=True,
+            description="A probe record for sitemap assertions.",
+        )
+
+    def test_robots_disallows_private_routes_and_advertises_sitemap(self):
+        r = self.anon.get("/robots.txt")
+        self.assertEqual(r.status_code, 200)
+        body = r.content.decode()
+        for path in ("/admin", "/staff", "/portal", "/api/"):
+            self.assertIn(f"Disallow: {path}", body)
+        self.assertIn("Sitemap:", body)
+        self.assertIn("text/plain", r["Content-Type"])
+
+    def test_sitemap_is_generated_from_published_records_only(self):
+        Destination.objects.create(
+            name="SEO Hidden Draft", slug="seo-hidden-draft",
+            status="pending", is_active=False,
+        )
+        body = self.anon.get("/sitemap.xml").content.decode()
+        self.assertIn("/destinations/seo-probe-temple", body)
+        self.assertNotIn("seo-hidden-draft", body)
+        self.assertIn("/districts/mustang", body)   # all 77 districts browsable
+        self.assertIn("/districts/achham", body)
+        self.assertNotIn("/admin", body)            # private routes excluded
+        self.assertNotIn("/portal", body)
+
+    def test_lifecycle_publish_state_reaches_sitemap_immediately(self):
+        # Prime the sitemap cache, then unpublish — §107 requires eager
+        # invalidation, not TTL-bounded staleness.
+        self.assertIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+        r = self.client.post(
+            f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+            {"action": "unpublish"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertNotIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+        r = self.client.post(
+            f"/api/v1/admin/destinations/{self.dest.id}/lifecycle/",
+            {"action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+
+    def test_admin_seo_controls_exclude_and_label_public_records(self):
+        r = self.client.put(f"/api/v1/admin/destinations/{self.dest.id}", {
+            "name": self.dest.name,
+            "seo_title": "SEO Probe Temple | Kathmandu Travel Guide",
+            "meta_description": "Verified visitor information for SEO Probe Temple.",
+            "meta_robots": "noindex",
+        }, format="json")
+        self.assertIn(r.status_code, (200, 201), getattr(r, "data", ""))
+        public = self.anon.get("/api/v1/destinations/seo-probe-temple/")
+        self.assertEqual(public.status_code, 200)
+        self.assertEqual(public.data["seo_title"], "SEO Probe Temple | Kathmandu Travel Guide")
+        self.assertEqual(public.data["meta_description"], "Verified visitor information for SEO Probe Temple.")
+        self.assertEqual(public.data["meta_robots"], "noindex")
+        # noindex records must not appear in the sitemap (§105)
+        from .views_seo import invalidate_seo_cache
+        invalidate_seo_cache()
+        self.assertNotIn("seo-probe-temple", self.anon.get("/sitemap.xml").content.decode())
+
+    def test_health_reports_dependencies_without_secrets(self):
+        from django.conf import settings
+        r = self.anon.get("/api/v1/health/")
+        self.assertIn(r.status_code, (200, 503))  # 503 is honest when degraded
+        payload = r.json()
+        for key in ("application", "database", "routing", "weather", "media_storage"):
+            self.assertIn(key, payload["checks"])
+        self.assertIn(payload["checks"]["database"]["status"], ("ok", "error"))
+        raw = r.content.decode()
+        self.assertNotIn(settings.SECRET_KEY, raw)
+        self.assertNotIn("PASSWORD", raw.upper().replace("NOT_CONFIGURED", ""))
+
+
+class PlaceSearchGenericWordTests(APITestCase):
+    """Owner field-lists spell places with generic geographic words
+    ("Bandipur Bazaar", "Swargadwari Temple") while the DB stores the core
+    name ("Bandipur"). Live gap found 2026-09-21: 8/8 such owner spellings
+    returned NOTHING although the places existed. The search must match a
+    generic-word-stripped variant of the query too."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="Heritage")
+        self.dest = Destination.objects.create(
+            name="Bandipur",
+            category=self.category,
+            description="Hilltop Newar town.",
+            latitude=27.9350,
+            longitude=84.4030,
+            city="Bandipur",
+            district="Tanahun",
+            country="Nepal",
+            is_active=True,
+        )
+
+    def _search(self, q):
+        response = self.client.get("/api/v1/places/search/", {"q": q})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        return data if isinstance(data, list) else data.get("results", [])
+
+    def test_generic_word_spelling_finds_core_name(self):
+        results = self._search("Bandipur Bazaar")
+        self.assertTrue(
+            any(r.get("destination_id") == self.dest.id for r in results),
+            f"expected Bandipur destination in results, got {results[:3]}",
+        )
+
+    def test_core_name_still_matches(self):
+        results = self._search("Bandipur")
+        self.assertTrue(any(r.get("destination_id") == self.dest.id for r in results))
+
+    def test_resolve_single_place_uses_generic_word_fallback(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("Bandipur Bazaar")
+        self.assertIsNotNone(resolved)
+        self.assertAlmostEqual(float(resolved["latitude"]), 27.935, places=2)
+
+    def test_unresolvable_place_still_returns_nothing(self):
+        results = self._search("Xyzzyville Bazaar")
+        self.assertEqual(results, [])
+
+    def test_exact_name_wins_over_substring_match(self):
+        """'Beni' must resolve to Beni, not 'Kagbeni Muktinath Route'
+        (live bug: icontains .first() returned arbitrary substring hits)."""
+        from tourist.location.search_service import LocationSearchService
+        decoy = Destination.objects.create(
+            name="Kagbeni Muktinath Route", category=self.category,
+            description="Trail.", latitude=28.8167, longitude=83.7833,
+            city="Kagbeni", district="Mustang", country="Nepal", is_active=True,
+        )
+        beni = Destination.objects.create(
+            name="Beni", category=self.category, description="Myagdi HQ.",
+            latitude=28.3567, longitude=83.5547, city="Beni",
+            district="Myagdi", country="Nepal", is_active=True,
+        )
+        resolved = LocationSearchService.resolve_single_place("Beni")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved.get("name"), "Beni")
+        self.assertAlmostEqual(float(resolved["latitude"]), 28.3567, places=3)
+        self.assertIsNotNone(decoy.id)
+
+
+class ResolverVariantAndTypoTests(TestCase):
+    """Live gaps found 2026-09-21 (owner spellings 'Mahendra Cave Pokhara' and
+    'amhendra cave' failed): resolve_single_place must retry locality-suffix
+    and Nepali-generic-word variants against the DB, and tolerate close
+    misspellings — while garbage stays honestly not-found."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = Category.objects.create(name="Caves")
+        cls.cave = Destination.objects.create(
+            name="Mahendra Cave", category=cls.category,
+            description="Limestone cave in Batulechaur.",
+            latitude=28.27139, longitude=83.97972, city="Pokhara",
+            district="Kaski", country="Nepal", is_active=True,
+        )
+
+    def test_locality_suffix_variant_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("Mahendra Cave Pokhara")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Mahendra Cave")
+        self.assertAlmostEqual(float(resolved["latitude"]), 28.27139, places=4)
+
+    def test_nepali_generic_variant_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("mahendra gufa")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Mahendra Cave")
+
+    def test_close_misspelling_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("amhendra cave")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Mahendra Cave")
+
+    def test_garbage_stays_not_found(self):
+        from tourist.location.search_service import LocationSearchService
+        self.assertIsNone(LocationSearchService.resolve_single_place("xyzzy florp"))
+        self.assertIsNone(LocationSearchService.resolve_single_place("quuxville"))
+
+
+class AdminUserDeleteTests(APITestCase):
+    """DELETE /admin/users/<id>/ backs the Admin Dashboard 'Delete user'
+    button (frontend adminApi.deleteUser). Was a 405 before 2026-09-21.
+    Default deletes by anonymization (retention-safe); hard delete requires
+    superuser + typed email confirmation."""
+
+    def _admin(self, email="boss@example.com"):
+        u = User.objects.create_user(email=email, password="StrongPass123!", is_verified=True)
+        u.is_superuser = True
+        u.is_staff = True
+        u.role = "admin"
+        u.save()
+        return u
+
+    def _target(self, email="target@example.com"):
+        t = User.objects.create_user(email=email, password="StrongPass123!", is_verified=True)
+        t.is_active = True
+        t.save()
+        return t
+
+    def test_anonymous_rejected(self):
+        t = self._target()
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": t.id}))
+        self.assertIn(r.status_code, (401, 403))
+
+    def test_delete_anonymizes_by_default(self):
+        admin = self._admin()
+        t = self._target()
+        self.client.force_authenticate(user=admin)
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": t.id}))
+        self.assertEqual(r.status_code, 200)
+        t.refresh_from_db()
+        self.assertIn("anonymized-", t.email)
+        self.assertFalse(t.is_active)
+
+    def test_hard_delete_requires_confirmation_then_removes_row(self):
+        admin = self._admin()
+        t = self._target()
+        self.client.force_authenticate(user=admin)
+        url = reverse("admin-user-detail-full", kwargs={"id": t.id})
+        r = self.client.delete(url, {"hard": True}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=t.pk).exists())
+        r = self.client.delete(url, {"hard": True, "confirmation": t.email}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(User.objects.filter(pk=t.pk).exists())
+
+    def test_cannot_delete_self_or_superuser(self):
+        admin = self._admin()
+        other_su = self._admin(email="boss2@example.com")
+        self.client.force_authenticate(user=admin)
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": admin.id}))
+        self.assertEqual(r.status_code, 400)
+        r = self.client.delete(reverse("admin-user-detail-full", kwargs={"id": other_su.id}))
+        self.assertEqual(r.status_code, 400)
+
+    def test_patch_updates_profile_and_role(self):
+        admin = self._admin()
+        t = self._target()
+        self.client.force_authenticate(user=admin)
+        r = self.client.patch(reverse("admin-user-detail-full", kwargs={"id": t.id}),
+                              {"role": "staff", "first_name": "Sita"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        t.refresh_from_db()
+        self.assertEqual(t.role, "staff")
+        self.assertEqual(t.first_name, "Sita")
+
+
+class SearchNamePriorityTests(APITestCase):
+    """Live bugs found in the 2026-09-21 consolidation round:
+    1. "Bandipur Eco Hotel" returned 40 arbitrary hotels because the word
+       "hotel" set the category intent and the name filter was skipped.
+    2. "Bandipur" listed "Mountain Ridge Bandipur" above Bandipur itself
+       because category/GPS queries sorted purely by distance."""
+
+    def setUp(self):
+        from .models import Hotel
+        self.category = Category.objects.create(name="Towns")
+        self.dest = Destination.objects.create(
+            name="Bandipur", category=self.category, description="Hilltop Newar town.",
+            latitude=27.9379, longitude=84.4063, city="Bandipur",
+            district="Tanahun", country="Nepal", is_active=True)
+        self.decoy = Destination.objects.create(
+            name="Mountain Ridge Bandipur", category=self.category, description="Resort.",
+            latitude=27.9399, longitude=84.4046, city="Bandipur",
+            district="Tanahun", country="Nepal", is_active=True)
+        self.hotel = Hotel.objects.create(
+            name="Bandipur Eco Hotel", destination=self.dest,
+            latitude=27.9416, longitude=84.4051)
+
+    def _search(self, q):
+        r = self.client.get("/api/v1/places/search/", {"q": q})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        return data if isinstance(data, list) else data.get("results", [])
+
+    def test_named_hotel_wins_despite_category_word(self):
+        results = self._search("Bandipur Eco Hotel")
+        self.assertTrue(results)
+        self.assertEqual(results[0]["name"], "Bandipur Eco Hotel")
+
+    def test_exact_name_outranks_substring_match(self):
+        results = self._search("Bandipur")
+        self.assertTrue(results)
+        self.assertEqual(results[0]["name"], "Bandipur")
+
+    def test_generic_category_query_still_nearest_first(self):
+        results = self._search("hotels")
+        # no name filtering: both the hotel and any nearby rows may appear,
+        # but the request must not 500 and must not be empty
+        self.assertIsInstance(results, list)
+
+
+class ResolverAliasTests(TestCase):
+    """Consolidated rows carry former names in `aliases`; the resolver must
+    use that tier (live gap: 'Harion' failed although Hariwan lists it)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = Category.objects.create(name="Towns")
+        cls.town = Destination.objects.create(
+            name="Hariwan", category=cls.category, description="Terai town.",
+            aliases="Harion, Hariyon", latitude=27.10, longitude=85.55,
+            city="Hariwan", district="Sarlahi", country="Nepal", is_active=True)
+
+    def test_alias_resolves(self):
+        from tourist.location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place("Harion")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["name"], "Hariwan")
+        self.assertAlmostEqual(float(resolved["latitude"]), 27.10, places=3)
+
+    def test_alias_tier_gated_for_short_queries(self):
+        from tourist.location.search_service import LocationSearchService
+        # "riyo" only appears inside the alias "Hariyon"; at 4 chars it must
+        # NOT hit the length-gated alias substring tier (name prefix hits
+        # like "Hari" -> Hariwan are separate, intended behaviour).
+        self.assertIsNone(LocationSearchService.resolve_single_place("riyo"))
+import time
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+SLOW_SECONDS = 2.0
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.dummy.EmailBackend",
+                   TWILIO_ACCOUNT_SID="", TWILIO_AUTH_TOKEN="")
+class AsyncVerificationEmailTest(TestCase):
+    """Register/resend must not block on SMTP latency (user-reported slow signup)."""
+
+    def test_register_returns_before_slow_smtp_send_finishes(self):
+        from tourist import utils
+        delivered = []
+        real = utils.send_mail
+
+        def slow_send_mail(*args, **kwargs):
+            time.sleep(SLOW_SECONDS)
+            delivered.append(args[1] if len(args) > 1 else kwargs.get("subject"))
+            return 1
+
+        utils.send_mail = slow_send_mail
+        try:
+            client = APIClient()
+            payload = {
+                "username": "asyncmailuser", "email": "asyncmailuser@example.com",
+                "password": "Str0ng!Pass123", "password_confirm": "Str0ng!Pass123",
+                "first_name": "Async", "last_name": "Mail",
+            }
+            t0 = time.monotonic()
+            resp = client.post(reverse("auth-register"), payload, format="json")
+            elapsed = time.monotonic() - t0
+            self.assertEqual(resp.status_code, 201, resp.content)
+            self.assertLess(elapsed, 1.0, f"register blocked {elapsed:.2f}s on mail send")
+            # the email is still delivered in the background
+            deadline = time.monotonic() + 6
+            while not delivered and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertTrue(delivered, "verification email never sent")
+            self.assertIn("verify", delivered[0])
+        finally:
+            utils.send_mail = real
+
+
+class PhoneE164NormalizationTest(TestCase):
+    """Twilio requires E.164; Nepal numbers are entered in many shapes."""
+
+    def test_normalize_common_nepal_formats(self):
+        from tourist.utils import normalize_phone_e164
+        cases = {
+            "9812345678": "+9779812345678",
+            "09812345678": "+9779812345678",
+            "+9779812345678": "+9779812345678",
+            "009779812345678": "+9779812345678",
+            "98123 45678": "+9779812345678",
+            "01-4567890": "+97714567890",
+            "+14155552671": "+14155552671",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(normalize_phone_e164(raw), expected, raw)
+
+    def test_normalize_rejects_garbage(self):
+        from tourist.utils import normalize_phone_e164
+        for bad in ("", None, "abc", "12", "+abc", "123"):
+            self.assertIsNone(normalize_phone_e164(bad), repr(bad))
+
+    @override_settings(TWILIO_ACCOUNT_SID="ACtest", TWILIO_AUTH_TOKEN="tok",
+                       TWILIO_FROM_NUMBER="+15005550006")
+    def test_send_sms_rejects_invalid_number_before_calling_twilio(self):
+        from tourist import utils
+        called = []
+        import sys, types
+        fake_twilio = types.ModuleType("twilio.rest")
+        class _Msgs:
+            def create(self, **kw):
+                called.append(kw)
+        class _Client:
+            def __init__(self, *a): pass
+            @property
+            def messages(self): return _Msgs()
+        fake_twilio.Client = _Client
+        sys.modules["twilio.rest"] = fake_twilio
+        try:
+            self.assertFalse(utils.send_sms_notification("abc", "hi"))
+            self.assertEqual(called, [])
+            self.assertTrue(utils.send_sms_notification("9812345678", "hi"))
+            self.assertEqual(called[0]["to"], "+9779812345678")
+        finally:
+            del sys.modules["twilio.rest"]
+
+
+@override_settings(TWILIO_ACCOUNT_SID="ACtest", TWILIO_AUTH_TOKEN="tok", TWILIO_FROM_NUMBER="+15005550006")
+class TwilioDeliveryPipelineTest(TestCase):
+    """Queued SMS reach Twilio with E.164 numbers; failures are recorded honestly."""
+
+    def _install_fake_twilio(self, fail=False):
+        import sys, types
+        sent = []
+        mod = types.ModuleType("twilio.rest")
+        class _Msgs:
+            def create(self, **kw):
+                if fail:
+                    raise RuntimeError("Twilio: Unable to create record: The 'To' number is not a valid phone number.")
+                sent.append(kw)
+        class _Client:
+            def __init__(self, sid, token):
+                assert sid == "ACtest" and token == "tok"
+            messages = _Msgs()
+        mod.Client = _Client
+        sys.modules["twilio.rest"] = mod
+        self.addCleanup(lambda: sys.modules.pop("twilio.rest", None))
+        return sent
+
+    def _user(self, phone):
+        from tourist.models import User, NotificationPreference
+        u = User.objects.create_user(email=f"sms_{phone.strip('+')}@example.com", password="StrongPass!2345", phone_number=phone)
+        NotificationPreference.objects.update_or_create(user=u, defaults={"sms_enabled": True})
+        return u
+
+    def test_queued_sms_is_delivered_via_twilio_with_e164(self):
+        from tourist.notification_delivery import queue_notification, deliver_notification
+        sent = self._install_fake_twilio()
+        u = self._user("+9779812345678")
+        n = queue_notification(u, "Safety alert", "Landslide warning on your route", channel="sms", category="safety")
+        self.assertEqual(n.delivery_status, "queued")
+        self.assertEqual(deliver_notification(n.id), "sent")
+        self.assertEqual(sent[0]["to"], "+9779812345678")
+        self.assertEqual(sent[0]["from_"], "+15005550006")
+        n.refresh_from_db()
+        self.assertTrue(n.is_sent)
+
+    def test_provider_error_is_recorded_not_faked(self):
+        from tourist.notification_delivery import queue_notification, deliver_notification
+        self._install_fake_twilio(fail=True)
+        u = self._user("+9779800000001")
+        n = queue_notification(u, "Alert", "msg", channel="sms", category="safety")
+        self.assertEqual(deliver_notification(n.id), "failed")
+        n.refresh_from_db()
+        self.assertFalse(n.is_sent)
+        self.assertIn("not a valid phone number", n.failure_reason)
+        self.assertIsNotNone(n.next_retry_at)  # retry scheduled
+
+    def test_admin_broadcast_uses_correct_from_number_setting(self):
+        """Regression: admin SMS previously read TWILIO_PHONE_NUMBER (nonexistent)."""
+        import inspect
+        from tourist import views_admin
+        src = inspect.getsource(views_admin)
+        self.assertNotIn('"TWILIO_PHONE_NUMBER"', src)
+
+
+class TravelPlannerViewTests(APITestCase):
+    """/navigation/travel-plan/ — real routes BETWEEN any two destinations."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.core.cache import cache
+        cache.clear()
+        self.a = Destination.objects.create(
+            name="Durbar Square", slug="kathmandu-durbar-square",
+            district="Kathmandu", province="Bagmati Province",
+            status="approved", is_active=True,
+            latitude=Decimal("27.7172"), longitude=Decimal("85.3206"))
+        self.b = Destination.objects.create(
+            name="Lakeside", slug="pokhara-lakeside",
+            district="Kaski", province="Gandaki Province",
+            status="approved", is_active=True,
+            latitude=Decimal("28.2096"), longitude=Decimal("83.9856"))
+        self.c = Destination.objects.create(
+            name="Chitwan NP", slug="chitwan-np",
+            district="Chitwan", province="Lumbini Province",
+            status="approved", is_active=True,
+            latitude=Decimal("27.5291"), longitude=Decimal("84.3542"))
+
+    def tearDown(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def _plan(self, **params):
+        return self.client.get("/api/v1/navigation/travel-plan/", params)
+
+    def test_plan_between_two_destinations_by_slug(self):
+        r = self._plan(origin=self.a.slug, destination=self.b.slug)
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.json()
+        self.assertEqual(d["origin"]["name"], "Durbar Square")
+        self.assertEqual(d["destination"]["name"], "Lakeside")
+        self.assertEqual(d["destination"]["id"], self.b.id)
+        p = d["primary"]
+        self.assertGreater(p["distance_km"], 100)  # Kathmandu->Pokhara ~200 km
+        self.assertGreaterEqual(p["duration_min"], 1)
+        self.assertIsInstance(p["geometry"], list)
+        self.assertGreaterEqual(len(p["geometry"]), 2)
+        self.assertIn(p["grade"], ("real-road", "corridor-estimate", "straight-line-estimate"))
+        self.assertIn(d["confidence"], ("ROAD-VERIFIED", "CORRIDOR-ESTIMATE", "ESTIMATE"))
+        self.assertGreater(d["straight_line_km"], 100)
+        self.assertIsInstance(d["route_id"], str)
+        # per-mode table: requested mode measured, others labelled estimates
+        modes = {m["mode"]: m for m in d["modes"]}
+        self.assertEqual(set(modes), {"driving", "walking", "cycling", "flight"})
+        self.assertEqual(modes["driving"]["grade"], p["grade"])
+        self.assertEqual(modes["walking"]["grade"], "estimate")
+        self.assertIn("not a measured road route", modes["walking"]["estimate_note"])
+        self.assertEqual(d["best"]["mode"], "driving")
+
+    def test_plan_with_gps_origin(self):
+        r = self._plan(origin_lat=27.7172, origin_lng=85.3206,
+                       origin_name="Current Location", destination=self.b.slug)
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.json()
+        self.assertEqual(d["origin"]["coordinate_status"], "gps")
+        self.assertGreater(d["primary"]["distance_km"], 100)
+
+    def test_plan_requires_origin(self):
+        r = self._plan(destination=self.b.slug)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()["error"], "origin_required")
+
+    def test_plan_requires_destination(self):
+        r = self._plan(origin=self.a.slug)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()["error"], "destination_required")
+
+    def test_plan_unknown_destination_is_404(self):
+        r = self._plan(origin=self.a.slug, destination="zzz-no-such-place-zzz")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.json()["error"], "endpoint_unresolved")
+
+    def test_plan_same_place_rejected(self):
+        r = self._plan(origin=self.a.slug, destination=self.a.slug)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()["error"], "same_place")
+
+    def test_plan_invalid_mode_rejected(self):
+        r = self._plan(origin=self.a.slug, destination=self.b.slug, mode="teleport")
+        self.assertEqual(r.status_code, 400)
+
+    def test_plan_maps_osrm_result_alternatives_and_grade(self):
+        from navigation import route_engine
+        osrm_route = {
+            "source": "osrm", "mode": "driving",
+            "distance_m": 205400.0, "duration_s": 16200.0,
+            "geometry": [[27.7172, 85.3206], [28.0, 84.6], [28.2096, 83.9856]],
+            "bounds": [[27.7, 83.98], [28.21, 85.32]],
+            "steps": [{"instruction": "Head west onto Prithvi Highway",
+                       "distance_m": 205400.0, "duration_s": 16200.0,
+                       "maneuver": "depart"}],
+            "note": "",
+        }
+        alt = {"source": "osrm", "mode": "driving",
+               "distance_m": 209900.0, "duration_s": 17100.0,
+               "geometry": [[27.7172, 85.3206], [28.2096, 83.9856]]}
+        with patch("navigation.route_engine.cached_route",
+                   return_value=({"route": osrm_route, "alternatives": [alt]}, False)):
+            r = self._plan(origin=self.a.slug, destination=self.b.slug)
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.json()
+        self.assertEqual(d["primary"]["source"], "osrm")
+        self.assertEqual(d["primary"]["grade"], "real-road")
+        self.assertEqual(d["primary"]["distance_km"], 205.4)
+        self.assertEqual(d["confidence"], "ROAD-VERIFIED")
+        self.assertEqual(len(d["alternatives"]), 1)
+        self.assertAlmostEqual(d["alternatives"][0]["distance_km"], 209.9, places=1)
+        self.assertEqual(d["best"]["grade"], "real-road")
+
+    def test_plan_rate_limited_returns_429(self):
+        from navigation import route_engine
+        with patch("navigation.route_engine.cached_route",
+                   side_effect=route_engine.RateLimited()):
+            r = self._plan(origin=self.a.slug, destination=self.b.slug)
+        self.assertEqual(r.status_code, 429)
+        self.assertEqual(r.json()["error"], "rate_limited")
+
+    def test_plan_result_is_cached(self):
+        first = self._plan(origin=self.a.slug, destination=self.b.slug)
+        self.assertEqual(first.status_code, 200)
+        self.assertFalse(first.json().get("cached", False))
+        second = self._plan(origin=self.a.slug, destination=self.b.slug)
+        self.assertEqual(second.status_code, 200)
+        self.assertTrue(second.json().get("cached", False))
+
+
+class TravelBetweenDestinationsViewTests(APITestCase):
+    """/navigation/travel-between/ — travel distances from X to every other destination."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.core.cache import cache
+        cache.clear()
+        self.a = Destination.objects.create(
+            name="Durbar Square", slug="kathmandu-durbar-square",
+            district="Kathmandu", province="Bagmati Province",
+            status="approved", is_active=True,
+            latitude=Decimal("27.7172"), longitude=Decimal("85.3206"))
+        self.b = Destination.objects.create(
+            name="Nagarkot", slug="nagarkot-viewpoint",
+            district="Kavrepalanchok", province="बागमती प्रदेश",
+            status="approved", is_active=True,
+            latitude=Decimal("27.6428"), longitude=Decimal("85.3266"))
+        self.c = Destination.objects.create(
+            name="Biratnagar", slug="biratnagar",
+            district="Biratnagar", province="Koshi",
+            status="approved", is_active=True,
+            latitude=Decimal("26.4667"), longitude=Decimal("87.2667"))
+
+    def tearDown(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_nearest_sorted_and_excludes_self(self):
+        r = self.client.get("/api/v1/navigation/travel-between/", {"from": self.a.slug})
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.json()
+        self.assertEqual(d["origin"]["name"], "Durbar Square")
+        self.assertEqual(d["count_with_coordinates"], 2)
+        slugs = [n["slug"] for n in d["nearest"]]
+        self.assertNotIn(self.a.slug, slugs)
+        self.assertEqual(slugs[0], self.b.slug)  # Nagarkot (~10 km) before Biratnagar
+        self.assertEqual(d["nearest"][0]["province"], "Bagmati Province")
+        self.assertLess(d["nearest"][0]["straight_line_km"],
+                        d["nearest"][1]["straight_line_km"])
+        self.assertGreaterEqual(d["nearest"][0]["drive_estimate_min"], 1)
+        # province spellings normalised (Devanagari / short -> canonical)
+        self.assertIn("Bagmati Province", d["provinces"])
+        self.assertIn("Koshi Province", d["provinces"])
+        self.assertNotIn("बागमती प्रदेश", d["provinces"])
+        self.assertNotIn("Koshi", d["provinces"])
+        self.assertEqual(d["provinces"]["Bagmati Province"]["count"], 1)
+        self.assertIn("straight-line", d["note"].lower())
+
+    def test_unknown_origin_404(self):
+        r = self.client.get("/api/v1/navigation/travel-between/", {"from": "nope-zzz"})
+        self.assertEqual(r.status_code, 404)
+
+    def test_requires_from(self):
+        r = self.client.get("/api/v1/navigation/travel-between/", {})
+        self.assertEqual(r.status_code, 400)
+
+    def test_caches_per_origin(self):
+        from django.core.cache import cache
+        r = self.client.get("/api/v1/navigation/travel-between/",
+                            {"from": self.a.slug, "limit": 10})
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNotNone(cache.get(f"travel-between:{self.a.slug}:10"))

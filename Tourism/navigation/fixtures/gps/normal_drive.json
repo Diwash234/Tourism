@@ -1,0 +1,134 @@
+{
+ "expect": {
+  "final_arrived": true,
+  "off_route_max": 0
+ },
+ "fixes": [
+  {
+   "latitude": 28.2096,
+   "longitude": 83.9856,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20914,
+   "longitude": 83.98534,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20868,
+   "longitude": 83.98508,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20822,
+   "longitude": 83.98482,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20776,
+   "longitude": 83.98456,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.2073,
+   "longitude": 83.9843,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20684,
+   "longitude": 83.98404,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20638,
+   "longitude": 83.98378,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20592,
+   "longitude": 83.98352,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20546,
+   "longitude": 83.98326,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.205,
+   "longitude": 83.983,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20379,
+   "longitude": 83.9828,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20258,
+   "longitude": 83.9826,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20137,
+   "longitude": 83.9824,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.20016,
+   "longitude": 83.9822,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.19895,
+   "longitude": 83.982,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.19774,
+   "longitude": 83.9818,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.19653,
+   "longitude": 83.9816,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.19532,
+   "longitude": 83.9814,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.19411,
+   "longitude": 83.9812,
+   "heading": 190,
+   "accuracy": 8
+  },
+  {
+   "latitude": 28.1929,
+   "longitude": 83.981,
+   "heading": 190,
+   "accuracy": 8
+  }
+ ]
+}

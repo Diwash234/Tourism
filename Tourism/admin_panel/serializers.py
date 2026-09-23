@@ -27,9 +27,24 @@ class AdminTaskSerializer(serializers.ModelSerializer):
         fields = [
             "id", "title", "description", "assigned_to", "assigned_to_email",
             "assigned_by", "assigned_by_email", "related_hotel", "hotel_name",
-            "status", "priority", "due_date", "created_at", "updated_at", "completed_at",
+            "status", "priority", "due_date", "created_at", "updated_at",
+            "started_at", "completed_at", "completion_note", "blocked_reason",
+            "escalation_reason", "is_escalated", "review_note", "reviewed_at",
         ]
-        read_only_fields = ["assigned_by", "created_at", "updated_at", "completed_at"]
+        read_only_fields = [
+            "assigned_by", "created_at", "updated_at", "started_at", "completed_at",
+            "review_note", "reviewed_at",
+        ]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if self.instance and request and not request.user.is_superuser:
+            forbidden = set(self.initial_data) - {"status"}
+            if forbidden:
+                raise serializers.ValidationError("Staff may only update task status.")
+            if attrs.get("status") not in {AdminTask.Status.PENDING, AdminTask.Status.IN_PROGRESS, AdminTask.Status.COMPLETED}:
+                raise serializers.ValidationError("Invalid staff task transition.")
+        return attrs
 
     def create(self, validated_data):
         validated_data["assigned_by"] = self.context["request"].user

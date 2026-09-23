@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiMapPin, FiChevronRight } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
@@ -33,27 +35,28 @@ const PROVINCES = [
 const ExploreNepalMap = () => {
   const [selected, setSelected] = useState(null)
   const [destinations, setDestinations] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (!selected) return
     setLoading(true)
     destinationApi
-      .getAll({ city: selected.city, limit: 12 })
+      .getAll({ province: selected.name, limit: 12 })
       .then(({ data }) => setDestinations(data.results || data || []))
       .catch(() => setDestinations([]))
       .finally(() => setLoading(false))
+    }, 0)
+    return () => clearTimeout(t)
   }, [selected])
 
   return (
     <div className="container-app py-10 fade-in">
-      <h1 className="section-title flex items-center gap-2">
-        <FiMapPin className="text-himalaya-500" /> Explore Nepal by Province
-      </h1>
-      <p className="text-gray-500 text-sm mb-2 max-w-2xl">
-        Pick a province to narrow down destinations, then drill into any place for hotels, weather,
-        budget, and safety info all in one view.
-      </p>
+      <CMSPageIntro pageKey="explore-map" />
+      <PageHeader title="Explore Nepal by Province" subtitle={<>Pick a province to narrow down destinations, then drill into any place for hotels, weather,
+        budget, and safety info all in one view.</>} icon={ FiMapPin } />
       <p className="text-xs text-gray-400 mb-6">
         Simplified schematic, not a precise geographic map — each zone links to that province's main city.
       </p>

@@ -1,0 +1,106 @@
+{
+ "summary": {
+  "gps_bhimdatta_far_west_terai": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 489,
+    "straight_line_fallback": 25
+   },
+   "median_route_over_straight": 1.42,
+   "p95_route_over_straight": 2.06
+  },
+  "gps_dhangadhi_west_terai": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "straight_line_fallback": 509,
+    "graphml_fallback": 5
+   },
+   "median_route_over_straight": 1.3,
+   "p95_route_over_straight": 1.3
+  },
+  "gps_birgunj_central_terai": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 488,
+    "straight_line_fallback": 26
+   },
+   "median_route_over_straight": 1.51,
+   "p95_route_over_straight": 2.22
+  },
+  "gps_biratnagar_east_terai": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "straight_line_fallback": 508,
+    "graphml_fallback": 6
+   },
+   "median_route_over_straight": 1.3,
+   "p95_route_over_straight": 1.3
+  },
+  "gps_gorkha_mid_hills": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 490,
+    "straight_line_fallback": 24
+   },
+   "median_route_over_straight": 1.41,
+   "p95_route_over_straight": 2.5
+  },
+  "gps_phungling_east_hills": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 490,
+    "straight_line_fallback": 24
+   },
+   "median_route_over_straight": 1.3,
+   "p95_route_over_straight": 1.56
+  },
+  "gps_namche_high_himalaya": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 490,
+    "straight_line_fallback": 24
+   },
+   "median_route_over_straight": 1.33,
+   "p95_route_over_straight": 1.72
+  },
+  "gps_gamgadhi_remote_northwest": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 490,
+    "straight_line_fallback": 24
+   },
+   "median_route_over_straight": 1.43,
+   "p95_route_over_straight": 2.13
+  },
+  "gps_rasuwagadhi_north_border": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 490,
+    "straight_line_fallback": 24
+   },
+   "median_route_over_straight": 1.49,
+   "p95_route_over_straight": 2.65
+  },
+  "gps_manang_trans_himalaya": {
+   "ok": 514,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 490,
+    "straight_line_fallback": 24
+   },
+   "median_route_over_straight": 2.04,
+   "p95_route_over_straight": 4.1
+  }
+ },
+ "failure_count": 0,
+ "failures_sample": []
+}

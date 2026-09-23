@@ -44,6 +44,10 @@ class HotelReview(models.Model):
     )
     rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
+    moderation_status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("approved", "Approved"), ("flagged", "Flagged"), ("archived", "Archived")], default="approved", db_index=True)
+    moderation_note = models.TextField(blank=True)
+    moderated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="hotel_reviews_moderated")
+    moderated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

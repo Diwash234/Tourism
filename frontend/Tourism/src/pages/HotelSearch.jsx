@@ -1,10 +1,12 @@
 import { useState } from "react";
+import PageHeader from "../components/common/PageHeader"
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiSearch, FiStar } from "react-icons/fi";
 import hotelApi from "../api/hotelApi";
 import EmptyState from "../components/common/EmptyState";
-import PlaceholderImage from "../components/common/PlaceholderImage";
+import HotelMedia from "../components/cards/HotelMedia";
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 const HotelSearch = () => {
   const [query, setQuery] = useState("");
@@ -32,7 +34,8 @@ const HotelSearch = () => {
 
   return (
     <div className="container-app py-10 fade-in">
-      <h1 className="section-title">Find a Hotel</h1>
+      <CMSPageIntro pageKey="hotel-search" />
+      <PageHeader title="Find a Hotel" />
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-2xl">
         <div className="relative flex-1">
@@ -59,11 +62,7 @@ const HotelSearch = () => {
               transition={{ delay: i * 0.03 }}
               className="card-base overflow-hidden"
             >
-              {hotel.image_url ? (
-                <img src={hotel.image_url} alt={hotel.name}  query={`${hotel.name} hotel Nepal`} className="h-40 w-full object-cover" />
-              ) : (
-                <PlaceholderImage seed={hotel.id} className="h-40 w-full" />
-              )}
+              <HotelMedia hotel={hotel} className="h-40 w-full" />
               <div className="p-4">
                 <h3 className="font-bold text-dark">{hotel.name}</h3>
                 <p className="text-sm text-gray-500">{hotel.destination_name}</p>
@@ -71,18 +70,32 @@ const HotelSearch = () => {
                   <FiStar className="fill-saffron-500 text-saffron-500" size={14} />
                   {hotel.rating} · <span className="font-semibold text-forest-600">${hotel.price_per_night}/night</span>
                 </p>
-                <button
-                  className="btn-primary w-full mt-3"
-                  onClick={() => navigate(`/hotels/${hotel.id}/book`)}
-                >
-                  Book Now
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    className="btn-primary flex-1"
+                    onClick={() => navigate(`/hotels/${hotel.id}/book`)}
+                  >
+                    Book Now
+                  </button>
+                  <button
+                    className="flex-1 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-bold hover:bg-emerald-100 transition-colors"
+                    title="Route here from your current location or any starting place"
+                    onClick={() => navigate(`/navigation?dest=${encodeURIComponent(hotel.name)}`)}
+                  >
+                    Directions
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
         </div>
       ) : searched && !loading ? (
         <EmptyState title="No hotels found" subtitle="Try a different city, area, or hotel name." />
+      ) : !searched && !loading ? (
+        <EmptyState
+          title="Find your stay"
+          subtitle="Search a city, area, or hotel name to see available hotels and lodges across Nepal."
+        />
       ) : null}
     </div>
   );

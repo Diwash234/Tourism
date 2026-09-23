@@ -1,17 +1,32 @@
+import { useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FiX } from "react-icons/fi"
 
 export default function Modal({ isOpen, onClose, title, children, maxWidth = "max-w-xl" }) {
+  // Escape closes and background scroll is locked while open (brief §16).
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e) => { if (e.key === "Escape") onClose?.() }
+    window.addEventListener("keydown", onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [isOpen, onClose])
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto" onClick={onClose} role="presentation">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.2 }}
-            className={`bg-white rounded-3xl p-6 sm:p-8 ${maxWidth} w-full shadow-2xl space-y-4 border border-purple-100 max-h-[90vh] overflow-y-auto`}
+            className={`bg-white rounded-3xl p-6 sm:p-8 ${maxWidth} w-full shadow-2xl space-y-4 border border-[#E5E0D5] max-h-[90vh] overflow-y-auto my-auto`}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-lg font-bold text-gray-900">{title}</h3>

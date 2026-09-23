@@ -131,11 +131,15 @@ class Command(BaseCommand):
 
 
 
+    def add_arguments(self, parser):
+        parser.add_argument("--csv", default="dataset/hospital_cleaned.csv",
+                            help="CSV path (raw dataset/hospital.csv also works — headers are normalised)")
+
     def handle(self, *args, **kwargs):
 
 
         df = pd.read_csv(
-            "dataset/hospital_cleaned.csv"
+            kwargs.get("csv") or "dataset/hospital_cleaned.csv"
         )
 
 
@@ -147,6 +151,13 @@ class Command(BaseCommand):
             .str.lower()
             .str.replace(" ", "_")
         )
+
+        # raw CSVs repeat the header row inside the data — keep only rows
+        # whose coordinates actually parse as numbers
+        df = df[
+            pd.to_numeric(df.get("latitude"), errors="coerce").notna()
+            & pd.to_numeric(df.get("longitude"), errors="coerce").notna()
+        ]
 
 
 

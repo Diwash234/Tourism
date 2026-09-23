@@ -7,6 +7,11 @@ import axiosClient from "./axiosClient"
 const hotelApi = {
   list: (params = {}) => axiosClient.get("/hotels/", { params }),
 
+  // Backend-computed nearby query (HotelViewSet.nearby): latitude/longitude/
+  // radius_km -> { count, results: [...HotelSerializer rows + distance_km] },
+  // nearest first. Same contract family as /destinations/nearby/.
+  nearby: (params = {}) => axiosClient.get("/hotels/nearby/", { params }),
+
   getById: (id) => axiosClient.get(`/hotels/${id}/`),
 
   // "Recommended" isn't a real backend action (see HotelViewSet) — this

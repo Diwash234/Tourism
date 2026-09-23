@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
-import { FiMail, FiLock, FiShield, FiUser, FiBriefcase, FiCheckCircle } from "react-icons/fi"
+import { FiMail, FiLock, FiShield, FiUser, FiBriefcase } from "react-icons/fi"
 import { motion } from "framer-motion"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
@@ -14,8 +14,6 @@ const ROLE_PRESETS = [
     id: "tourist",
     label: "Tourist / User",
     icon: FiUser,
-    email: "tourist@nepaltourism.com",
-    pass: "Tourist@12345",
     badge: "Public Portal",
     color: "from-blue-600 to-indigo-600",
   },
@@ -23,8 +21,6 @@ const ROLE_PRESETS = [
     id: "staff",
     label: "Staff / Sub-Admin",
     icon: FiBriefcase,
-    email: "staff@tourism.gov.np",
-    pass: "Staff@12345",
     badge: "Moderation Desk",
     color: "from-purple-600 to-rose-600",
   },
@@ -32,8 +28,6 @@ const ROLE_PRESETS = [
     id: "admin",
     label: "Admin / Super-Admin",
     icon: FiShield,
-    email: "admin@tourism.gov.np",
-    pass: "Admin@12345",
     badge: "Full RBAC Control",
     color: "from-rose-600 to-amber-500",
   },
@@ -41,12 +35,7 @@ const ROLE_PRESETS = [
 
 const Login = () => {
   const [selectedRole, setSelectedRole] = useState("tourist")
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
-    defaultValues: {
-      email: "tourist@nepaltourism.com",
-      password: "Tourist@12345",
-    }
-  })
+  const { register, handleSubmit, formState: { errors } } = useForm()
   const { login } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
@@ -55,8 +44,6 @@ const Login = () => {
 
   const handleRolePreset = (preset) => {
     setSelectedRole(preset.id)
-    setValue("email", preset.email)
-    setValue("password", preset.pass)
   }
 
   const onSubmit = async (data) => {
@@ -65,13 +52,10 @@ const Login = () => {
       const userData = await login(data)
       showToast(`Welcome back, ${userData?.first_name || userData?.email}!`, "success")
 
-      const adminRoles = ["admin", "super_admin", "tourism_admin", "staff", "content_moderator", "district_manager"]
-      const isAdminOrStaff =
-        adminRoles.includes(userData?.role) ||
-        userData?.is_staff === true ||
-        userData?.is_superuser === true
-
-      const fallback = isAdminOrStaff ? "/admin" : "/dashboard"
+      const role = String(userData?.role || "").toLowerCase()
+      const isAdmin = ["admin", "super_admin", "tourism_admin"].includes(role) || userData?.is_superuser === true
+      const isStaff = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"].includes(role)
+      const fallback = isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard"
       navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
       showToast(err?.response?.data?.detail || err?.response?.data?.message || "Invalid email or password", "error")
@@ -81,7 +65,7 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-[85vh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-[85svh] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       <NepalSceneBackground />
 
       <div className="relative z-10 mb-6 bg-white/90 backdrop-blur px-5 py-2.5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
@@ -91,7 +75,7 @@ const Login = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 card-base w-full max-w-md p-8 shadow-2xl border border-purple-100 bg-white"
+        className="relative z-10 card-base w-full max-w-md p-8 shadow-2xl border border-[#E5E0D5] bg-white"
       >
         <div className="text-center mb-6">
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Portal Login</h1>
@@ -110,8 +94,8 @@ const Login = () => {
                 onClick={() => handleRolePreset(preset)}
                 className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
                   isSelected
-                    ? "border-purple-600 bg-purple-50/80 shadow-md ring-2 ring-purple-400"
-                    : "border-gray-200 hover:border-purple-300 bg-gray-50"
+                    ? "border-purple-600 bg-[#F7F8F5]/80 shadow-md ring-2 ring-purple-400"
+                    : "border-gray-200 hover:border-[#2E6B5A] bg-gray-50"
                 }`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white bg-gradient-to-tr ${preset.color}`}>
@@ -120,7 +104,7 @@ const Login = () => {
                 <span className="text-[11px] font-bold text-gray-800 leading-tight">
                   {preset.label}
                 </span>
-                <span className="text-[9px] text-purple-600 font-semibold">
+                <span className="text-[9px] text-emerald-700 font-semibold">
                   {preset.badge}
                 </span>
               </button>
@@ -151,10 +135,7 @@ const Login = () => {
             {errors.password && <p className="text-xs text-red-500 mt-1">Password is required</p>}
           </div>
 
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
-              <FiCheckCircle size={12} /> Auto-filled demo credentials
-            </span>
+          <div className="flex items-center justify-end text-xs text-gray-500">
             <Link to="/forgot-password" className="text-primary-600 hover:underline">
               Forgot Password?
             </Link>
@@ -175,7 +156,7 @@ const Login = () => {
 
         <p className="text-sm text-center text-gray-500 mt-6">
           Don't have an account?{" "}
-          <Link to="/register" className="text-purple-600 font-bold hover:underline">
+          <Link to="/register" className="text-emerald-700 font-bold hover:underline">
             Sign Up
           </Link>
         </p>

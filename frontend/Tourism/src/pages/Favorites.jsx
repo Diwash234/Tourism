@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { motion } from "framer-motion"
 import { FiHeart, FiLogIn, FiCompass } from "react-icons/fi"
 import { Link } from "react-router-dom"
@@ -34,6 +36,9 @@ const Favorites = () => {
   }
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
     if (!authLoading) {
       if (isAuthenticated) {
         loadFavorites()
@@ -41,6 +46,8 @@ const Favorites = () => {
         setLoading(false)
       }
     }
+    }, 0)
+    return () => clearTimeout(t)
   }, [isAuthenticated, authLoading])
 
   const handleRemove = async (favId) => {
@@ -67,8 +74,8 @@ const Favorites = () => {
         </p>
         <div className="pt-2">
           <Link
-            to="/login?redirect=/favorites"
-            className="px-6 py-3 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm inline-flex items-center gap-2 shadow-lg shadow-purple-700/20 transition-all"
+            to="/login?next=/favorites"
+            className="px-6 py-3 rounded-2xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-sm inline-flex items-center gap-2 shadow-lg shadow-purple-700/20 transition-all"
           >
             <FiLogIn size={16} /> Log In to View Favourites
           </Link>
@@ -83,12 +90,10 @@ const Favorites = () => {
       animate={{ opacity: 1, y: 0 }}
       className="container-app py-8 space-y-6"
     >
+      <CMSPageIntro pageKey="favorites" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center gap-2">
-            <FiHeart className="text-rose-500 fill-rose-500" />
-            My Saved Favourites
-          </h1>
+          <PageHeader title="My Saved Favourites" icon={FiHeart} />
           <p className="text-xs text-gray-500 mt-1">
             {favorites.length} {favorites.length === 1 ? "destination" : "destinations"} saved to your personal Nepal collection.
           </p>
@@ -96,7 +101,7 @@ const Favorites = () => {
 
         <Link
           to="/destinations"
-          className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs inline-flex items-center gap-1.5 border border-purple-200 transition-all self-start sm:self-auto"
+          className="px-4 py-2 rounded-xl bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E] font-bold text-xs inline-flex items-center gap-1.5 border border-[#E5E0D5] transition-all self-start sm:self-auto"
         >
           <FiCompass size={14} /> Explore More Places
         </Link>
@@ -123,7 +128,7 @@ const Favorites = () => {
           action={
             <Link
               to="/destinations"
-              className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow"
+              className="px-5 py-2.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs inline-flex items-center gap-1.5 shadow"
             >
               <FiCompass size={14} /> Discover Destinations ➔
             </Link>

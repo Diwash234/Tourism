@@ -15,25 +15,37 @@
 // Register the exact redirect URIs below as authorized redirect URIs on
 // each provider's app settings, or the provider will reject the request.
 
+// Public client ids served by the backend (/api/v1/config/public/ →
+// oauth_client_ids). Lets one backend .env update light up the buttons even
+// when VITE_GOOGLE_CLIENT_ID / VITE_GITHUB_CLIENT_ID are not set.
+let publicClientIds = { google: "", github: "" }
+export function setPublicOAuthIds(ids) {
+  publicClientIds = { google: ids?.google || "", github: ids?.github || "" }
+}
+const googleClientId = () => import.meta.env.VITE_GOOGLE_CLIENT_ID || publicClientIds.google
+const githubClientId = () => import.meta.env.VITE_GITHUB_CLIENT_ID || publicClientIds.github
+export const hasGoogleClientId = () => Boolean(googleClientId())
+export const hasGithubClientId = () => Boolean(githubClientId())
+
 export function getRedirectUri(provider) {
   return `${window.location.origin}/auth/callback/${provider}`
 }
 
 export function getGoogleAuthUrl() {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const clientId = googleClientId()
   const params = new URLSearchParams({
     client_id: clientId || "",
     redirect_uri: getRedirectUri("google"),
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
-    prompt: "consent",
+    prompt: "select_account",
   })
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
 }
 
 export function getGithubAuthUrl() {
-  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
+  const clientId = githubClientId()
   const params = new URLSearchParams({
     client_id: clientId || "",
     redirect_uri: getRedirectUri("github"),

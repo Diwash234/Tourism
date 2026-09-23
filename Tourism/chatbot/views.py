@@ -100,6 +100,7 @@ class ChatMessageView(APIView):
             itinerary_cards = reply_result.get("itinerary_cards")
             distance_cards = reply_result.get("distance_cards")
             emergency_cards = reply_result.get("emergency_cards", [])
+            package_cards = reply_result.get("package_cards", [])
         else:
             reply_text = str(reply_result)
             destination_cards = []
@@ -107,6 +108,7 @@ class ChatMessageView(APIView):
             itinerary_cards = None
             distance_cards = None
             emergency_cards = []
+            package_cards = []
 
         reply = ChatMessage.objects.create(
             conversation=conversation, role=ChatMessage.Role.ASSISTANT, content=reply_text
@@ -122,6 +124,7 @@ class ChatMessageView(APIView):
             "itinerary_cards": itinerary_cards,
             "distance_cards": distance_cards,
             "emergency_cards": emergency_cards,
+            "package_cards": package_cards,
         })
 
     def _get_or_create_conversation(self, request, conversation_id):

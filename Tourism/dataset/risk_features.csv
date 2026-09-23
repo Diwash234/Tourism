@@ -411,8 +411,8 @@ Shaileshwari Temple,29.3000,80.6000,Doti,2,5,0,3,5,3,3,1,60,45,51.0,MEDIUM
 Khaptad Lake,29.3500,81.1000,Bajhang,4,10,4,3,7,0,0,0,100,80,88.0,HIGH
 Khaptad Baba Ashram,29.3600,81.1100,Bajhang,3,8,2,3,6,0,0,0,100,70,82.0,HIGH
 Badimalika Trail,29.1500,81.5000,Bajura,5,12,5,3,8,0,0,0,100,90,96.0,HIGH
-Ramaroshan Lake,29.2500,81.3500,Achham,3,9,2,4,6,0,
-1,0,90,75,81.0,HIGH
+Ramaroshan Lake,29.2500,81.3500,Achham,3,9,2,4,6,0,,,,,,
+1,0,90,75,81.0,HIGH,,,,,,,,,,
 Ramaroshan Area,29.2500,81.3500,Achham,3,9,2,4,6,0,1,0,90,75,81.0,HIGH
 Bajrabarahi Temple,29.1200,81.2500,Achham,2,5,0,3,5,2,2,1,65,45,53.0,MEDIUM
 Sanphebagar Airport Area,29.2400,81.2200,Achham,1,3,0,5,3,8,6,2,35,35,35.0,MEDIUM
@@ -1809,12 +1809,9 @@ Dhakmar Village,29.1800,83.9500,Mustang,12,16,10,0,9,0,0,0,100,90,92.0,HIGH
 Ghami Village,29.1700,83.9500,Mustang,10,15,8,0,9,0,0,0,100,90,92.0,HIGH
 Tsarang Village,29.1300,83.9700,Mustang,8,12,5,0,8,5,5,2,70,75,78.0,HIGH
 Kagbeni Mustang Trail,28.8500,83.7800,Mustang,6,10,5,2,8,5,5,2,70,75,78.0,HIGH
-You already have 2200 rows completed. I can continue expanding beyond that.
-
-Continuing with:
-
-Nepal_Tourism_Risk_Dataset_Part_7A.csv (Rows 2201–2300)
-
+You already have 2200 rows completed. I can continue expanding beyond that.,,,,,,,,,,,,,,,
+Continuing with:,,,,,,,,,,,,,,,
+Nepal_Tourism_Risk_Dataset_Part_7A.csv (Rows 2201–2300),,,,,,,,,,,,,,,
 Place,Latitude,Longitude,District,accidents,landslide,avalanche,flood,earthquake_damage,Hospital,Police,Fire Station,Emergency_Risk,Natural_Disaster_Risk,Tourism_Risk_Index,Risk_Category
 Tsho Rolpa Lake Trail,27.9500,86.4700,Dolakha,18,20,15,1,10,0,0,0,100,100,98.0,HIGH
 Beding Village,27.9000,86.4000,Dolakha,12,16,10,1,9,0,0,0,100,90,92.0,HIGH
@@ -2347,7 +2344,6 @@ Resunga Forest,28.0500,83.2500,Gulmi,3,7,1,3,5,5,4,1,60,55,58.0,MEDIUM
 Satyawati Lake Gulmi,28.0000,83.2500,Gulmi,3,6,0,4,5,5,4,1,60,55,58.0,MEDIUM
 Jaljala Rolpa,28.3500,82.6000,Rolpa,6,14,8,2,9,0,0,0,100,95,98.0,HIGH
 Thawang Rolpa,28.5000,82.7000,Rolpa,5,12,5,3,8,0,1,0,95,85,89.0,HIGH
-
 Upper Seti River Trail,28.2000,84.0000,Kaski,3,3,0,12,4,60,50,20,15,35,40.0,MEDIUM
 Annapurna Cable Route Area,28.2100,83.9600,Kaski,2,2,0,5,3,90,80,30,0,15,18.0,LOW
 Fewa Lake Boating Area,28.2100,83.9500,Kaski,2,1,0,15,3,90,80,30,0,25,30.0,LOW
@@ -2614,7 +2610,7 @@ Bara Gadhimai Area,27.0500,85.0000,Bara,1,0,0,10,2,25,20,5,20,30,25.0,LOW
 Simara Tourism Area,27.1600,84.9800,Bara,1,0,0,7,2,30,25,8,10,15,12.0,LOW
 Hetauda Martyr Memorial,27.4300,85.0300,Makwanpur,1,2,0,5,5,25,20,5,20,30,25.0,LOW
 Chisapani Makwanpur,27.5500,85.1000,Makwanpur,4,10,3,4,7,1,1,0,90,80,84.0,HIGH
-Daman View Tower,27.6000,85.1000,Makwanpur,3,8,2,3,6,5,4,1,70,70,70. HIGH
+Daman View Tower,27.6000,85.1000,Makwanpur,3,8,2,3,6,5,4,1,70,70,70. HIGH,
 Narchyang Village Trail,28.5600,83.6500,Myagdi,8,12,4,5,8,5,5,2,70,75,78.0,HIGH
 Dana Rural Hot Spring,28.4900,83.6300,Myagdi,3,5,0,12,5,25,20,5,40,55,60.0,MEDIUM
 Kuhu Village Route,28.3500,83.5000,Myagdi,5,9,2,4,7,15,10,3,60,65,68.0,HIGH
@@ -3105,7 +3101,6 @@ Rima Village Route,28.4500,83.5000,Myagdi,7,12,3,4,8,5,5,2,70,75,78.0,HIGH
 Kuwa Village Homestay,28.5000,83.4500,Myagdi,5,9,2,5,7,10,8,3,65,70,72.0,HIGH
 Gurja Rural Camp,28.6000,83.3500,Myagdi,13,17,10,1,9,0,0,0,100,95,95.0,HIGH
 Dhaulagiri Base Rural Route,28.7500,83.3000,Myagdi,19,20,20,0,10,0,0,0,100,100,99.0,HIGH
-
 Charikot Bazaar,27.6700,86.0300,Dolakha,1,4,0,5,5,15,12,3,35,40,38.0,MEDIUM
 Jiri Valley,27.6300,86.2300,Dolakha,5,12,6,3,8,2,1,0,90,85,87.0,HIGH
 Kalinchowk Bhagwati,27.8000,86.0200,Dolakha,6,14,9,2,9,0,0,0,100,95,98.0,HIGH
@@ -3248,8 +3243,7 @@ Bhairav Kunda Trail,28.0500,85.5500,Rasuwa,11,16,7,1,9,0,0,0,100,90,92.0,HIGH
 Manaslu Rural Route,28.6500,84.6500,Gorkha,15,18,12,0,10,0,0,0,100,95,95.0,HIGH
 Tsum Valley Village,28.5200,84.6500,Gorkha,16,20,15,0,10,0,0,0,100,100,98.0,HIGH
 Chhekampar Rural Camp,28.5700,84.6200,Gorkha,15,19,12,0,10,0,0,0,100,95,96.0,HIGH
-Continuing with the next 100 tourism risk datasets:
-
+Continuing with the next 100 tourism risk datasets:,,,,,,,,,,,,,,,
 Place,Latitude,Longitude,District,accidents,landslide,avalanche,flood,earthquake_damage,Hospital,Police,Fire Station,Emergency_Risk,Natural_Disaster_Risk,Tourism_Risk_Index,Risk_Category
 Panchase Forest Trail,28.2300,83.8000,Kaski,3,7,1,3,5,5,4,1,55,60,58.0,MEDIUM
 Kaskikot View Point,28.2600,83.9500,Kaski,2,4,0,3,5,15,12,3,35,40,38.0,MEDIUM
@@ -3325,8 +3319,7 @@ Tolka Village,28.3500,83.8500,Kaski,2,4,0,3,5,12,10,3,40,40,40.0,MEDIUM
 Dhampus Trail,28.3200,83.8600,Kaski,1,3,0,3,4,15,12,3,30,30,30.0,LOW
 Sarangkot Viewpoint,28.2500,83.9500,Kaski,2,1,0,3,4,50,40,10,15,20,17.0,LOW
 World Peace Pagoda,28.2000,83.9400,Kaski,1,1,0,2,4,50,40,10,10,15,12.0,LOW
-Continuing Rural Nepal Tourism Risk Dataset — Rows 3501–3600
-
+Continuing Rural Nepal Tourism Risk Dataset — Rows 3501–3600,,,,,,,,,,,,,,,
 Place,Latitude,Longitude,District,accidents,landslide,avalanche,flood,earthquake_damage,Hospital,Police,Fire Station,Emergency_Risk,Natural_Disaster_Risk,Tourism_Risk_Index,Risk_Category
 Chumling Village Trail,28.5500,84.6200,Gorkha,9,14,5,2,8,5,5,2,70,80,82.0,HIGH
 Lokpa Rural Settlement,28.5300,84.6000,Gorkha,8,13,4,2,8,5,5,2,70,75,78.0,HIGH
@@ -3361,8 +3354,7 @@ Dole Village Camp,27.9000,86.7200,Solukhumbu,9,14,5,1,8,5,5,2,70,80,82.0,HIGH
 Sotang Rural Homestay,27.5500,86.7500,Khotang,5,9,2,4,7,10,8,3,65,70,72.0,HIGH
 Mahakulung Village Route,27.6000,86.7500,Solukhumbu,11,15,7,2,9,0,0,0,100,90,92.0,HIGH
 Necha Rural Trail,27.4500,86.5800,Solukhumbu,4,7,0,5,5,20,15,5,45,55,60.0,MEDIUM
-Continuing with the next 100 tourism risk datasets:
-
+Continuing with the next 100 tourism risk datasets:,,,,,,,,,,,,,,,
 Place,Latitude,Longitude,District,accidents,landslide,avalanche,flood,earthquake_damage,Hospital,Police,Fire Station,Emergency_Risk,Natural_Disaster_Risk,Tourism_Risk_Index,Risk_Category
 Dhaulagiri Base Camp,28.7500,83.4500,Myagdi,10,20,20,1,10,0,0,0,100,100,100.0,HIGH
 Italian Base Camp,28.7200,83.4700,Myagdi,9,18,18,1,10,0,0,0,100,100,100.0,HIGH
@@ -5055,11 +5047,3 @@ Kyanjin Gompa,28.2100,85.5700,Rasuwa,9,19,18,1,10,0,0,0,100,100,100.0,HIGH
 Tserko Ri,28.2000,85.5600,Rasuwa,10,20,20,1,10,0,0,0,100,100,100.0,HIGH
 Gosainkunda Lake,28.0800,85.4100,Rasuwa,8,17,14,1,10,0,0,0,100,100,100.0,HIGH
 Dhunchhe Bazaar,28.1100,85.3000,Rasuwa,2,5,0,5,6,10,8,2,55,60,58.0,MEDIUM
-
-
-
-
-
-
-
-

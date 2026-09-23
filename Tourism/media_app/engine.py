@@ -1,8 +1,3 @@
-"""
-media_app/engine.py -- moved from tourist/image_pipeline.py, same app split
-rationale as translation/engine.py. Logic unchanged.
-"""
-
 import logging
 import requests
 from django.conf import settings

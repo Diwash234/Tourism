@@ -1,8 +1,13 @@
 import authApi from "../api/authApi"
 import React, { createContext, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom"
+import { isGuestPreview } from "../api/axiosClient"
 export const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
+  const location = useLocation()
+  const guestPreview = isGuestPreview() || new URLSearchParams(location.search).get("as") === "traveller"
+
 
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("user")
@@ -16,8 +21,40 @@ export const AuthProvider = ({ children }) => {
 
   const [loading, setLoading] = useState(true)
 
+  // "Session expired, sign in again" UX. axiosClient dispatches these when a
+  // token refresh fails ("session-expired") or a stale session was silently
+  // dropped while public data recovered ("session-downgraded"). "auth-logout"
+  // is kept for backwards compatibility.
+  const [sessionNotice, setSessionNotice] = useState(null)
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null)
+      setSessionNotice("expired")
+    }
+    const onDowngraded = () => {
+      setUser(null)
+      setSessionNotice("downgraded")
+    }
+    window.addEventListener("session-expired", onExpired)
+    window.addEventListener("session-downgraded", onDowngraded)
+    window.addEventListener("auth-logout", onExpired)
+    return () => {
+      window.removeEventListener("session-expired", onExpired)
+      window.removeEventListener("session-downgraded", onDowngraded)
+      window.removeEventListener("auth-logout", onExpired)
+    }
+  }, [])
+  const dismissSessionNotice = () => setSessionNotice(null)
+
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
+    if (guestPreview) {
+      setLoading(false)
+      return
+    }
 
     const token = localStorage.getItem("access")
 
@@ -53,8 +90,9 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
 
       })
-
-  }, [])
+    }, 0)
+    return () => clearTimeout(t)
+  }, [guestPreview])
 
 
 
@@ -161,20 +199,19 @@ export const AuthProvider = ({ children }) => {
 
 
 
-  const isAuthenticated = !!user
+  const visibleUser = guestPreview ? null : user
+  const isAuthenticated = !!visibleUser
 
-  // FIX: role check was `=== "admin"` only, which locked out super_admin
-  // and tourism_admin accounts (backend permission hierarchy in
-  // tourist/permissions.py treats all three as admin tiers). Also honor
-  // is_staff/is_superuser when the backend exposes them.
-  const ADMIN_ROLES = [
-    "admin", "super_admin", "tourism_admin", "staff",
-    "content_moderator", "district_manager", "hotel_manager", "tourist_police"
-  ]
-  const isAdmin =
-    (user && ADMIN_ROLES.includes(user.role)) ||
-    user?.is_staff === true ||
-    user?.is_superuser === true
+  const role = String(visibleUser?.role || "").toLowerCase()
+  const ADMIN_ROLES = ["admin", "super_admin", "tourism_admin"]
+  const STAFF_ROLES = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"]
+
+  // Staff Django is_staff flags must NOT unlock the Admin console.
+  const isAdmin = !!(visibleUser && (ADMIN_ROLES.includes(role) || visibleUser.is_superuser === true))
+  const isStaff = !!(visibleUser && (STAFF_ROLES.includes(role) || isAdmin))
+  const isLocal =
+    (visibleUser && (role === "local" || role === "local_guide" || visibleUser.is_local === true)) ||
+    isAdmin
 
 
 
@@ -182,7 +219,7 @@ export const AuthProvider = ({ children }) => {
 
     <AuthContext.Provider
       value={{
-        user,
+        user: visibleUser,
         setUser,
         login,
         loginWithTokens,
@@ -190,11 +227,47 @@ export const AuthProvider = ({ children }) => {
         logout,
         isAuthenticated,
         isAdmin,
+        isStaff,
+        isLocal,
         loading,
+        sessionNotice,
+        dismissSessionNotice,
       }}
     >
 
       {children}
+
+      {sessionNotice && (
+        <div
+          role="alert"
+          className="fixed bottom-4 left-1/2 z-[120] w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-amber-300 bg-white p-4 shadow-2xl dark:border-amber-500/40 dark:bg-slate-900"
+        >
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {sessionNotice === "expired"
+              ? "Your session has expired. Please sign in again."
+              : "You were signed out because your session became invalid."}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Public information remains available while you browse as a guest.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <a
+              href="/login"
+              onClick={dismissSessionNotice}
+              className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+            >
+              Sign in
+            </a>
+            <button
+              type="button"
+              onClick={dismissSessionNotice}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Keep browsing
+            </button>
+          </div>
+        </div>
+      )}
 
     </AuthContext.Provider>
 

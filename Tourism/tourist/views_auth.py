@@ -18,7 +18,7 @@ from .serializers import (
     VerifyEmailSerializer,
     UpdateLocationSerializer,
 )
-from .utils import send_email_notification, resolve_location, issue_phone_verification
+from .utils import send_email_notification_async, resolve_location, issue_phone_verification
 
 User = get_user_model()
 
@@ -32,7 +32,7 @@ def _issue_email_verification(user):
     from django.conf import settings
 
     link = f"{settings.FRONTEND_URL}/verify-email?token={token.token}"
-    send_email_notification(
+    send_email_notification_async(
         user.email,
         "Verify your email - Tourism Portal",
         f"Hi {user.first_name or user.email},\n\nPlease verify your email by visiting:\n{link}\n\n"
@@ -153,6 +153,14 @@ class ResendPhoneOTPView(APIView):
             )
 
         issue_phone_verification(request.user)
+        if not getattr(issue_phone_verification, "last_delivered", False):
+            from django.conf import settings as djsettings
+            configured = bool(djsettings.TWILIO_ACCOUNT_SID and djsettings.TWILIO_AUTH_TOKEN and djsettings.TWILIO_FROM_NUMBER)
+            return Response(
+                {"detail": ("SMS could not be delivered to your number right now. Check the number in your profile or try again shortly."
+                            if configured else "SMS verification is not enabled on this server yet.")},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return Response({"message": "Verification code sent."})
 
 
@@ -208,7 +216,7 @@ class ForgotPasswordView(APIView):
             user=user, expires_at=timezone.now() + timedelta(hours=1)
         )
         link = f"{settings.FRONTEND_URL}/reset-password?token={token.token}"
-        send_email_notification(
+        send_email_notification_async(
             user.email,
             "Reset your password - Tourism Portal",
             f"Hi {user.first_name or user.email},\n\nReset your password here:\n{link}\n\nThis link expires in 1 hour.",
@@ -272,6 +280,7 @@ class UpdateLocationView(APIView):
     """
     Sets the user's current location. Prefers browser-supplied GPS
     coordinates; falls back to server-side GeoIP lookup when GPS is absent.
+    Automatically reverse-geocodes GPS coordinates into real Nepal cities.
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -285,15 +294,20 @@ class UpdateLocationView(APIView):
 
         location = resolve_location(request, gps_latitude=lat, gps_longitude=lon)
         user = request.user
-        user.latitude = location["latitude"]
-        user.longitude = location["longitude"]
+        if location.get("latitude") is not None:
+            user.latitude = location["latitude"]
+        if location.get("longitude") is not None:
+            user.longitude = location["longitude"]
         if location.get("country"):
             user.country = location["country"]
         if location.get("city"):
             user.city = location["city"]
-        user.location_source = location["source"]
+        user.location_source = location.get("source") or "gps"
         user.save(update_fields=["latitude", "longitude", "country", "city", "location_source"])
         return Response(UserProfileSerializer(user).data)
+
+    put = post
+    patch = post
 
 
 class DetectLocationView(APIView):
@@ -305,3 +319,20 @@ class DetectLocationView(APIView):
     def get(self, request):
         location = resolve_location(request)
         return Response(location)
+
+class MyCapabilitiesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = None
+
+    def get(self, request):
+        user = request.user
+        admin = user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}
+        if admin:
+            from .models import StaffCapabilityProfile
+            capabilities = {module: ["*"] for module in StaffCapabilityProfile.MODULES}
+            districts = []
+        else:
+            profile = getattr(user, "capability_profile", None)
+            capabilities = profile.capabilities if profile and profile.is_active else {}
+            districts = profile.managed_districts if profile else []
+        return Response({"role": user.role, "is_admin": admin, "capabilities": capabilities, "managed_districts": districts})

@@ -11,15 +11,15 @@ export default function SmoothButton({
   size = "md",
 }) {
   const baseVariants = {
-    primary: "bg-gradient-to-r from-purple-700 to-rose-600 hover:from-purple-800 hover:to-rose-700 text-white shadow-md shadow-purple-900/20",
-    secondary: "bg-purple-900/70 hover:bg-purple-800 text-purple-100 border border-purple-700/50",
-    gold: "bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-gray-950 font-black shadow-md shadow-amber-400/20",
-    danger: "bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 text-white shadow-md shadow-rose-600/30",
-    outline: "bg-transparent border border-purple-300 text-purple-800 hover:bg-purple-50",
+    primary: "bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold shadow-lg shadow-[#102A2E]/20 border border-[#2E6B5A]/30",
+    secondary: "bg-[#1D5146] hover:bg-[#2E6B5A] text-white font-bold border border-white/20 shadow-md",
+    gold: "bg-[#D99048] hover:bg-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/20",
+    danger: "bg-rose-700 hover:bg-rose-800 text-white font-bold shadow-md shadow-rose-900/20",
+    outline: "bg-transparent border border-[#102A2E]/30 text-[#102A2E] hover:bg-[#F7F8F5] font-bold",
   }
 
   const sizeClasses = {
-    sm: "px-3 py-1.5 text-xs rounded-lg",
+    sm: "px-3 py-1.5 text-xs rounded-xl",
     md: "px-5 py-2.5 text-sm rounded-xl",
     lg: "px-7 py-3.5 text-base font-bold rounded-2xl",
   }

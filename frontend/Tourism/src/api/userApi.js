@@ -1,9 +1,36 @@
 import axiosClient from "./axiosClient"
 
+// Personal Details field mapping: page state is camelCase, the
+// TravelerDocumentSerializer speaks snake_case.
+const docToApi = ({ fullName, relationTag, relation, phone, idType, idNumber, nationality, notes }) => ({
+  full_name: fullName,
+  relation_tag: relationTag || "self",
+  relation: relation || "",
+  phone: phone || "",
+  id_type: idType || "passport",
+  id_number: idNumber || "",
+  nationality: nationality || "",
+  notes: notes || "",
+})
+
+const docFromApi = (d) => ({
+  id: d.id,
+  fullName: d.full_name,
+  relationTag: d.relation_tag,
+  relation: d.relation,
+  phone: d.phone,
+  idType: d.id_type,
+  idNumber: d.id_number,
+  nationality: d.nationality,
+  notes: d.notes,
+})
+
 const userApi = {
   // Profile
   getProfile: () =>
     axiosClient.get("/auth/profile/"),
+
+  getCapabilities: () => axiosClient.get("/auth/capabilities/"),
 
   updateProfile: (payload) =>
     axiosClient.put("/auth/profile/", payload),
@@ -64,16 +91,17 @@ const userApi = {
 
   // Backend now accepts both POST and PUT for this action, so this call
   // works as-is.
-  markNotificationRead: (id) =>
-    axiosClient.put(`/notifications/${id}/mark_read/`),
+  markNotificationRead: (id) => axiosClient.put(`/notifications/${id}/mark_read/`),
+  markNotificationUnread: (id) => axiosClient.put(`/notifications/${id}/mark_unread/`),
+  markAllNotificationsRead: () => axiosClient.post("/notifications/mark_all_read/"),
+  markAllNotificationsUnread: () => axiosClient.post("/notifications/mark_all_unread/"),
+  deleteNotification: (id) => axiosClient.delete(`/notifications/${id}/`),
+  getNotificationPreferences: () => axiosClient.get("/notification-preferences/"),
+  updateNotificationPreferences: (payload) => axiosClient.patch("/notification-preferences/", payload),
 
 
-  // NOTE: there is currently no backend model for these preferences
-  // (email/push/SMS notification toggles, currency). This call will
-  // succeed (200) because the profile serializer silently ignores unknown
-  // fields, but nothing is actually persisted. See Settings.jsx comment
-  // for details — this needs a real backend UserSettings model to work.
-  // NEW: needed for Settings.jsx's language dropdown — preferred_language
+  // Language options use database IDs when updating the profile.
+  // preferred_language
   // on the backend is a ForeignKey to Language (expects the language's
   // numeric id, not a code string like "en"), so the dropdown needs the
   // real list of Language records to build valid options.
@@ -82,6 +110,56 @@ const userApi = {
 
   updateSettings: (payload) =>
     axiosClient.put("/auth/profile/", payload),
+
+  getMarketplaceListings: (params) => axiosClient.get("/marketplace/listings/", { params }),
+  getMarketplaceListing: (slug) => axiosClient.get(`/marketplace/listings/${slug}/`),
+  applyMarketplacePartner: (payload) => axiosClient.post("/marketplace/partners/apply/", payload),
+  checkoutMarketplace: (payload) => axiosClient.post("/marketplace/checkout/", payload),
+  getPartnerDesk: () => axiosClient.get("/marketplace/partner/desk/"),
+  createPartnerListing: (payload) => axiosClient.post("/marketplace/partner/desk/", payload),
+  updatePartnerListing: (payload) => axiosClient.patch("/marketplace/partner/desk/", payload),
+  lookupMarketplaceOrder: (reference, email) => axiosClient.get("/marketplace/orders/", { params: { reference, email } }),
+  listMarketplaceOrders: () => axiosClient.get("/marketplace/orders/"),
+
+  // Trip request — live marketplace only. Never send or store card numbers.
+  bookPackage: async (payload) => {
+    if (payload?.items || payload?.listing_id) {
+      return axiosClient.post("/marketplace/checkout/", payload.items ? payload : {
+        guest_name: payload.guest_name,
+        guest_email: payload.guest_email,
+        guest_phone: payload.guest_phone,
+        travelers: payload.travelers || 1,
+        start_date: payload.start_date,
+        notes: payload.notes,
+        payment_method: payload.payment_method || "request",
+        items: [{ listing_id: payload.listing_id, quantity: payload.quantity || 1, travel_date: payload.travel_date }],
+      })
+    }
+    throw new Error("Choose a published package from the marketplace")
+  },
+
+  // Personal Details — real endpoint: /traveler-documents/ (TravelerDocumentViewSet,
+  // strictly scoped to the authenticated user). The page speaks camelCase; the
+  // API speaks snake_case, so both directions are mapped here. Errors propagate
+  // to the caller — the previous localStorage fallback faked "saved" success
+  // against a /user/personal-details/ endpoint that never existed on the backend.
+  getPersonalDetails: async () => {
+    const res = await axiosClient.get("/traveler-documents/")
+    const rows = res.data.results || res.data || []
+    return { data: rows.map(docFromApi) }
+  },
+
+  addPersonalDetails: async (payload) => {
+    const res = await axiosClient.post("/traveler-documents/", docToApi(payload))
+    return { data: docFromApi(res.data) }
+  },
+
+  updatePersonalDetails: async (id, payload) => {
+    const res = await axiosClient.patch(`/traveler-documents/${id}/`, docToApi(payload))
+    return { data: docFromApi(res.data) }
+  },
+
+  deletePersonalDetails: async (id) => axiosClient.delete(`/traveler-documents/${id}/`),
 }
 
 export default userApi

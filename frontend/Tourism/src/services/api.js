@@ -52,6 +52,12 @@ api.interceptors.response.use(
     isRefreshing = true;
     try {
       const refresh = localStorage.getItem("refresh");
+      if (!refresh) {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        localStorage.removeItem("user");
+        return Promise.reject(error);
+      }
       const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
       localStorage.setItem("access", data.access);
       resolvePending(data.access);
@@ -60,7 +66,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
-      window.location.href = "/login";
+      localStorage.removeItem("user");
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
@@ -164,6 +170,16 @@ export const historyApi = {
   remove: (id) => api.delete(`/history/${id}/`),
 };
 
+export const savedRoutesApi = {
+  list: (savedOnly = false) => api.get("/navigation/routes/", savedOnly ? { params: { saved: 1 } } : {}),
+  create: (payload) => api.post("/navigation/routes/", payload),
+  update: (id, payload) => api.patch(`/navigation/routes/${id}/`, payload),
+  remove: (id) => api.delete(`/navigation/routes/${id}/`),
+  recalculate: (id) => api.post(`/navigation/routes/${id}/recalculate/`),
+  routeOptions: (payload) => api.post("/navigation/route-options/", payload),
+  provinces: () => api.get("/navigation/provinces/"),
+};
+
 export const alertApi = {
   nearby: (latitude, longitude, radius_km = 25) =>
     api.get("/alerts/nearby/", { params: { latitude, longitude, radius_km } }),
@@ -192,6 +208,9 @@ export const photoApi = {
   get: (slug) => api.get(`/destinations/${slug}/photos/`),
   upload: (slug, formData) =>
     api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  getVideos: (slug) => api.get(`/destinations/${slug}/videos/`),
+  uploadVideo: (slug, formData) =>
+    api.post(`/destinations/${slug}/videos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
 };
 
 export const hotelApi = {

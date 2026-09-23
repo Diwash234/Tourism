@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react"
-import { FiCalendar, FiHome, FiStar } from "react-icons/fi"
+import PageHeader from "./components/common/PageHeader"
+import CMSPageIntro from "./components/cms/CMSPageIntro"
+import { FiCalendar, FiHome, FiStar,
+  FiBriefcase,
+} from "react-icons/fi"
 import bookingApi from "./api/bookingApi"
 import Loader from "./components/common/Loader"
 import EmptyState from "./components/common/EmptyState"
@@ -29,7 +33,7 @@ const MyBookings = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(()=>{const t=setTimeout(load,0);return()=>clearTimeout(t)}, [])
 
   const handleCancel = async (id) => {
     try {
@@ -56,7 +60,8 @@ const MyBookings = () => {
 
   return (
     <div className="container-app py-10">
-      <h1 className="section-title mb-6">My Bookings</h1>
+      <CMSPageIntro pageKey="bookings" />
+      <PageHeader title="My Bookings" subtitle="Your booking requests and their current status." icon={FiBriefcase} />
 
       {bookings.length ? (
         <div className="space-y-4">

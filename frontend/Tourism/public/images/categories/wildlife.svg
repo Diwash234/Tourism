@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6b8c2a"/><stop offset="60%" stop-color="#3d5918"/><stop offset="100%" stop-color="#1a2b0a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <ellipse cx="200" cy="420" rx="80" ry="20" fill="#2a4010" opacity=".5"/>
+  <path d="M320,420 Q360,300 400,300 Q440,300 480,420 Z" fill="#9c8f7a" opacity=".9"/>
+  <path d="M340,330 Q350,280 370,290 L380,260 Q390,250 400,260 L410,290 Q425,280 440,320 Z" fill="#7a6d58" opacity=".95"/>
+  <circle cx="380" cy="300" r="3" fill="#0a0a0a"/>
+  <path d="M375,310 L385,310 L383,318 L377,318 Z" fill="#0a0a0a"/>
+  <path d="M0,260 Q200,240 400,260 T800,250 L800,500 L0,500 Z" fill="#2a4010"/>
+  <path d="M0,290 Q200,275 400,290 T800,280 L800,500 L0,500 Z" fill="#1a2b0a"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".9" font-style="italic">Jungle &amp; Wildlife</text>
+</svg>

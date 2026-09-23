@@ -10,6 +10,7 @@ router = APIRouter()
 class RecommendationRequest(BaseModel):
     interest: Optional[Union[str, List[str]]] = None
     interests: Optional[List[str]] = None
+    category: Optional[str] = None
     limit: Optional[int] = None
     top_n: Optional[int] = None
     latitude: Optional[float] = None
@@ -21,7 +22,7 @@ class RecommendationRequest(BaseModel):
 @router.post("")
 @router.post("/")
 def recommendation(request: RecommendationRequest):
-    # Extract query text
+    # Extract query terms
     query_terms = []
     if request.interest:
         if isinstance(request.interest, list):
@@ -34,7 +35,14 @@ def recommendation(request: RecommendationRequest):
     query = " ".join(query_terms) if query_terms else "nepal tourism heritage nature mountain"
     count = request.top_n or request.limit or 5
 
-    results = recommend(query, top_n=count)
+    results = recommend(
+        user_input=query,
+        top_n=count,
+        user_lat=request.latitude,
+        user_lon=request.longitude,
+        category_filter=request.category,
+    )
+
     return {
         "success": True,
         "recommendations": results,

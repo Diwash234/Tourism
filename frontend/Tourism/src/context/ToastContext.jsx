@@ -1,4 +1,4 @@
-import { createContext, useState, useCallback } from "react";
+import { createContext, useState, useCallback, useRef } from "react";
 import Toast from "../components/common/Toast";
 
 
@@ -9,11 +9,24 @@ export const ToastProvider = ({ children }) => {
 
   const [toasts, setToasts] = useState([]);
 
+  // Suppress identical toasts fired back-to-back (e.g. React StrictMode runs a
+  // mount effect twice in dev, which used to show "This workspace is not
+  // assigned to you" twice on /staff).
+  const lastToast = useRef({ message: null, type: null, at: 0 });
 
   const showToast = useCallback(
     (message, type = "info") => {
+      const now = Date.now();
+      if (
+        lastToast.current.message === message &&
+        lastToast.current.type === type &&
+        now - lastToast.current.at < 1500
+      ) {
+        return;
+      }
+      lastToast.current = { message, type, at: now };
 
-      const id = Date.now() + Math.random();
+      const id = now + Math.random();
 
 
       setToasts((prev) => [
@@ -56,7 +69,7 @@ export const ToastProvider = ({ children }) => {
       <div
         className="
           fixed
-          top-4
+          top-20
           right-4
           z-[9999]
           space-y-2

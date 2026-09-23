@@ -12,3 +12,10 @@ UNSPLASH_ACCESS_KEY=
 UNSPLASH_SECRET_KEY=
 OPENAI_API_KEY=sk-
 GEONAMES_USERNAME=
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache
+tests-nav/nav-test-bundle.cjs
+.layout-failed
+test-results.json
