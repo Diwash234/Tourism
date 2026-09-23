@@ -34,6 +34,8 @@ import StaffLogin from "./pages/auth/StaffLogin"
 import AdminLogin from "./pages/auth/AdminLogin"
 import Register from "./pages/auth/Register"
 import ForgotPassword from "./pages/auth/ForgotPassword"
+import VerifyEmail from "./pages/auth/VerifyEmail"
+import ResetPassword from "./pages/auth/ResetPassword"
 import OAuthCallback from "./pages/auth/OAuthCallback"
 import VerifyPhone from "./pages/VerifyPhone"
 
@@ -147,6 +149,10 @@ function App() {
         <Route path="/portal" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* The emailed links point here — these routes were missing, so
+            verification / password-reset links dead-ended (Round 21 fix). */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
       </Route>
 
