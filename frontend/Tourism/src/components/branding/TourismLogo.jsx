@@ -1,4 +1,3 @@
-import React from "react"
 import { Link } from "react-router-dom"
 import usePublicConfig from "../../hooks/usePublicConfig"
 
@@ -77,7 +76,7 @@ export const NepalYatraSymbol = ({ size = 40, className = "" }) => {
  * TourismLogo — Primary Nepal Yatra Brand Component
  * Used across Navbar, Auth pages, Footer, and Admin Dashboard.
  */
-const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = false }) => {
+const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = false, responsiveText = false }) => {
   const { branding } = usePublicConfig()
   const siteTitle = branding.site_title || "Nepal Yatra"
   const tagline = branding.tagline || "Himalayan Journeys & Travel Planning"
@@ -102,7 +101,7 @@ const TourismLogo = ({ to = "/", showTagline = true, size = "md", darkText = fal
         <NepalYatraSymbol size={dims.box} className="group-hover:scale-105 transition-transform" />
       )}
 
-      <div className="leading-tight flex flex-col justify-center min-w-0">
+      <div className={`leading-tight flex flex-col justify-center min-w-0 ${responsiveText ? "hidden xl:flex" : ""}`}>
         <div className="flex items-center gap-1 font-heading font-black tracking-tight whitespace-nowrap">
           {/* darkText: for light surfaces (navbar). Stays readable in dark
               mode via the dark: variant — brand never disappears (brief §2). */}

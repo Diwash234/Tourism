@@ -10,6 +10,7 @@ import useSidebarState, { closeSidebar } from "../../hooks/useSidebarState"
 import { useI18n } from "../../i18n"
 import configApi from "../../api/configApi"
 import { userDisplayName, userRoleLabel } from "../../utils/placeUtils"
+import LanguageSwitcher from "../common/LanguageSwitcher"
 
 // link.icon is a name from the real UI icon set (public/icons/ui/) —
 // original duotone pictograms (node scripts/generate-ui-icons.mjs).
@@ -246,6 +247,20 @@ export default function Sidebar() {
               <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-600 text-emerald-100 text-xs font-bold hover:bg-emerald-800">
                 <BsPersonPlus size={13} /> Sign up
               </Link>
+            </div>
+          )}
+
+          {/* Language — lives here (expanded view) so it stays reachable on
+              phones, where the navbar's switcher is hidden. The navbar shows
+              it too on md+ screens. Hidden in the collapsed icon-rail. */}
+          {!iconMode && (
+            <div className="px-1">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 mb-1.5 px-1">
+                {t("sidebar.language")}
+              </p>
+              <div className="flex items-center gap-2 px-1">
+                <LanguageSwitcher compact />
+              </div>
             </div>
           )}
 

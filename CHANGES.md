@@ -2,6 +2,80 @@
 
 ---
 
+## 🔎 Round 21f: "Login says wrong password" forensics + navbar now responsive at every width
+
+Owner reports: (a) login returns 401 "despite the correct email and
+password" (5 attempts), (b) navbar content "gets hidden/lost" at some
+screen resolutions.
+
+### (a) Login 401 — root cause: the report came from a stale local clone, not this server
+Forensics, all verified against the live sandbox:
+- The 5 reported 401s are **absent from this server's log** for that time
+  window — the requests never reached the sandbox, i.e. they were sent to
+  a locally-run copy of the app.
+- In the current code the login endpoint has exactly **one 401 path**:
+  `wrong_password` (404 = unknown email, 403 = deactivated account,
+  400 = missing field). All 7 seeded users are active, and the demo
+  admin logs in fine (200) from here — so "correct password rejected"
+  on the current code is impossible for a known account.
+- The reported 104-byte 401 body matches **no** version of the endpoint:
+  current code returns 114 bytes; the pre-Round-21 SimpleJWT login
+  returned ~64 bytes. → the local clone is on an old commit.
+- **Fix for the reporter:** `git pull origin arena/01a0b949-tourism` and
+  restart the local server (runserver --noreload never picks up new
+  code); or use *Forgot password* → OTP tab → reset, which works on any
+  version.
+- **Hardening added:** the login view now writes an audit line for every
+  denial — `WARNING tourist.auth: Login denied (wrong_password |
+  account_deactivated) email=...` (email only, never the password).
+  Verified live: a wrong-password attempt logs the exact account, so the
+  next "my password is rejected" report is diagnosable from the server
+  log alone.
+
+### (b) Navbar — nothing hidden or lost at any resolution
+Audit of the old markup: the 5 primary links were `hidden lg:flex`
+(missing on mobile **and** tablet), the user actions (language/theme/
+notifications/profile/login/register) were `hidden md:flex` (missing on
+phones), and the search box was always inline — squeezed to an
+unreadable sliver at ~1024–1300px.
+
+New responsive contract (verified by width budget at 320/360/640/768/
+1024/1280/1400/1536 with a conservative wide-font metric — every band
+fits with margin):
+
+| Width          | Navbar shows                                                                 |
+|----------------|------------------------------------------------------------------------------|
+| < 768 (phones) | hamburger + emblem + search-icon (opens full-width bar) + theme + Login/Register (guest) / theme + bell + profile (authed) |
+| 768–1023 (tablet) | same, user actions at full size; primary links via sidebar drawer + bottom nav |
+| 1024–1279 (laptop) | + the 5 primary links with dropdowns; emblem only (wordmark + language live in the sidebar at this band) |
+| 1280–1399 (desktop) | + "Nepal Yatra" wordmark + language switcher |
+| ≥ 1400         | + inline search box (replaces the icon; expands to max-w-md) |
+
+Nothing is ever removed — at each band, everything not in the navbar is
+one tap away in the sidebar drawer (always present) and the bottom nav
+(phones/tablet), per the standing "navbar + sidebar on all pages" rule.
+
+Changes:
+- `Navbar.jsx` — search: inline box only ≥1400px, icon + full-width
+  expanding bar (autofocus, closes on submit/Escape/route change/
+  breakpoint crossing) below that; links from `lg`; compact mobile user
+  cluster (`md:hidden`) so phones keep theme/login/register or
+  theme/bell/profile; language switcher joins the bar at `xl` (fits the
+  1024px math).
+- `TourismLogo.jsx` — new `responsiveText` prop: wordmark collapses to
+  the emblem below `xl` in the navbar (brand never disappears).
+- `Sidebar.jsx` — language switcher section (expanded view) so it stays
+  reachable on phones/tablet; `sidebar.language` key added to en/ne/hi
+  (i18n parity 324/324/324).
+- `LanguageSwitcher.jsx` — trigger restyled for the dark green surface
+  (the old gray-on-transparent was low-contrast on the navbar in both
+  themes).
+
+Verified: eslint 0 errors, `vite build` green, `test:nav` 130/130,
+i18n parity 324/324/324, compiled CSS contains the `min-[1400px]` rules.
+
+---
+
 ## 🐛 Round 21e: Bug hunt — 2 real API bugs in the revived field-verification flow + 2 smaller fixes
 
 Owner request: keep updating, fix anything that errors/bugs.

@@ -63,6 +63,7 @@ const en = {
   "sidebar.settings": "Settings",
   "sidebar.personal_details": "Personal Details",
   "sidebar.diagnostics": "Diagnostics",
+  "sidebar.language": "Language",
   // auth
   "auth.traveller_signin": "Traveller Sign In",
   "auth.staff_signin": "Staff Sign In",
@@ -403,6 +404,7 @@ const ne = {
   "sidebar.settings": "सेटिङहरू",
   "sidebar.personal_details": "व्यक्तिगत विवरण",
   "sidebar.diagnostics": "डायग्नोस्टिक्स",
+  "sidebar.language": "भाषा",
   "auth.traveller_signin": "यात्रु साइन इन",
   "auth.staff_signin": "कर्मचारी साइन इन",
   "auth.email": "इमेल",
@@ -735,6 +737,7 @@ const hi = {
   "sidebar.settings": "सेटिंग्स",
   "sidebar.personal_details": "व्यक्तिगत विवरण",
   "sidebar.diagnostics": "डायग्नोस्टिक्स",
+  "sidebar.language": "भाषा",
   "auth.traveller_signin": "यात्री साइन इन",
   "auth.staff_signin": "स्टाफ़ साइन इन",
   "auth.email": "ईमेल",
