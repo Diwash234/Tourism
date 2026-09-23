@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f9c478"/><stop offset="50%" stop-color="#e8864a"/><stop offset="100%" stop-color="#7a3f1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <circle cx="550" cy="180" r="55" fill="#faf8f4" opacity=".95"/>
+  <polygon points="0,340 150,200 280,280 400,170 540,270 680,210 800,300 800,500 0,500" fill="#4a2818" opacity=".9"/>
+  <polygon points="0,390 120,280 280,340 420,240 580,310 700,270 800,320 800,500 0,500" fill="#2c1810" opacity=".9"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".9" font-style="italic">Himalayan Viewpoint</text>
+</svg>

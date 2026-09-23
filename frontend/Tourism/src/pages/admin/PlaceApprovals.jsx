@@ -22,8 +22,8 @@ const PlaceApprovals = () => {
   const [actingOn, setActingOn] = useState(null)
   const { showToast } = useToast()
 
-  const load = () => {
-    setLoading(true)
+  const load = (showSpinner = true) => {
+    if (showSpinner) setLoading(true)
     adminPanelApi
       .getPendingDestinations()
       .then(({ data }) => {
@@ -34,7 +34,10 @@ const PlaceApprovals = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    const t = setTimeout(() => load(false), 0)
+    return () => clearTimeout(t)
+  }, [])
 
   const handleDecision = async (slug, decision) => {
     setActingOn(slug)

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#0284C7" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAV1BMVEVHcEzh6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O3h6O1drexdrexdrexdrexdrexdrexdrexdrexdrexdrexdrexdrexdrexdrewkKwzXAAAAHXRSTlMAEGCv7/+AIM8wcJ+/UI9g71DfML//IBCPQHDPn/HEXKUAAAGdSURBVHgBrNNVgsUgDIXhH24OhNr+dzvuU6X53iHOoZQfphf2yIkbiumLFXpV1y9e6dJMf1ijQzX9Y5XrXCucywatGrjKtMo4JQ2uFz6krHUaJ72ZSmPTbPpgrmOeWZd11VRZMes6m1f6Y+qRV+bdZ+YPV4e1bVeviV+SuuWoj5xf1K+FNPtF4U1dXC9MN9u96D4guQJE/SNYFIKqGCyKgSvEhGIUFKOhEA4KkcEVYAq6M6tA1X1z0OlnIOD4bYaIn6bKt0W9PPNLXVzXTaXxXC7Z5FQMgzHwCPl7Tgnl/ucEJG+sfhqJDZs3S0up3UzemNardMwqBdZLeqa7TIHrQz9wipjRFUcoJZpUHBllivTyyHS6MwYjS9WHtsxBrzaSH7ripmUWerWR+ImZzU47GwwjvtaRzU5bbbA2MqY0RzY7beCVjLiZvaIRelHplYxAM3h9GsHmwqsJI+azc3N6NWnkl3NL0BxegeureFG5lDGt1y8qljIpHJcyIXzzUuaPT5ORWbyUAeHVUuakcFzKnJd0D1jKMLCUgaX/wjc9YFbvFSGOnQAAAABJRU5ErkJggg==" x="8.5" y="7.5" width="15" height="15"/>
+  <title>rain_water</title>
+</svg>

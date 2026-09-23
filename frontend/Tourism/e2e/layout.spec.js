@@ -1,0 +1,150 @@
+import { test, expect } from "@playwright/test"
+
+// Layout & overlap guard.
+// For every key route at a spread of viewport widths, assert:
+//   1. No unintended horizontal scrolling (content fits the viewport).
+//   2. No two visible, non-nested text/badge elements overlap significantly.
+// This is the "does it actually view perfectly on mobile & desktop" check.
+
+const ROUTES = [
+  "/",
+  "/destinations",
+  "/hotels",
+  "/emergency",
+  "/budget-estimator",
+  "/recommendation",
+  "/itinerary",
+  "/packages",
+  "/gallery",
+  "/discover-nepal",
+  "/compare",
+  "/translation",
+  "/language",
+  "/navigation",
+  "/family-safety",
+  "/risk-alerts",
+  "/chatbot",
+  "/trip",
+]
+
+const WIDTHS = [320, 375, 414, 768, 1024, 1280]
+
+// Returns the count of significantly-overlapping visible element pairs.
+async function countOverlaps(page) {
+  return page.evaluate(() => {
+    const isTextual = (el) => {
+      const tag = el.tagName
+      return (
+        ["H1", "H2", "H3", "H4", "H5", "H6", "P", "SPAN", "B", "STRONG", "BUTTON", "A", "LABEL"].includes(tag) &&
+        (el.innerText || "").trim().length > 0
+      )
+    }
+    const visible = (el) => {
+      const r = el.getBoundingClientRect()
+      const st = getComputedStyle(el)
+      return r.width > 1 && r.height > 1 && st.visibility !== "hidden" && st.display !== "none"
+    }
+    // An element scrolled out of (or clipped by) an overflow container is not
+    // visible to the user even though getBoundingClientRect still reports its
+    // layout position — e.g. welcome-message cards pushed above the chat
+    // viewport by auto-scroll-to-bottom. Return the rect actually visible
+    // after intersecting every clipping ancestor, or null if fully clipped.
+    const clippedRect = (el) => {
+      let r = el.getBoundingClientRect()
+      const fullArea = r.width * r.height
+      let node = el.parentElement
+      while (node && node !== document.documentElement) {
+        const st = getComputedStyle(node)
+        if (st.overflow !== "visible" || st.overflowX !== "visible" || st.overflowY !== "visible") {
+          const nr = node.getBoundingClientRect()
+          r = {
+            left: Math.max(r.left, nr.left), top: Math.max(r.top, nr.top),
+            right: Math.min(r.right, nr.right), bottom: Math.min(r.bottom, nr.bottom),
+            get width() { return Math.max(0, this.right - this.left) },
+            get height() { return Math.max(0, this.bottom - this.top) },
+          }
+          if (r.width <= 1 || r.height <= 1) return null
+        }
+        node = node.parentElement
+      }
+      return r.width * r.height > fullArea * 0.5 ? r : null
+    }
+    // Only sample leaf-ish textual elements to keep the pair count tractable.
+    const candidates = Array.from(document.querySelectorAll("h1,h2,h3,h4,p,span,button,a,label"))
+      .filter(isTextual)
+      .filter(visible)
+      .filter((el) => !el.querySelector("h1,h2,h3,h4,p,button")) // skip wrappers
+    const els = []
+    for (const el of candidates) {
+      if (clippedRect(el)) els.push(el) // drop elements clipped out of view
+    }
+    // Overlap is only a layout bug WITHIN one stacking layer. Fixed chrome
+    // (cookie banner, mobile bottom nav, floating SOS/chat button) floats
+    // above scrolled content by design, so skip pairs whose elements live in
+    // different fixed layers — but keep counting pairs inside the same layer
+    // (including plain in-flow content, layer === null).
+    const layerCache = new Map()
+    const layerOf = (el) => {
+      if (layerCache.has(el)) return layerCache.get(el)
+      let node = el, layer = null
+      while (node && node !== document.documentElement) {
+        if (getComputedStyle(node).position === "fixed") { layer = node; break }
+        node = node.parentElement
+      }
+      layerCache.set(el, layer)
+      return layer
+    }
+    const rects = els.map((el) => clippedRect(el))
+    let overlaps = 0
+    const samples = []
+    const inter = (a, b) => {
+      const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+      const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+      return x * y
+    }
+    const area = (r) => r.width * r.height
+    const desc = (el) => {
+      const cls = (el.className && String(el.className).split(/\s+/)[0]) || ""
+      return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}["${(el.innerText || "").trim().slice(0, 24).replace(/\n/g, " ")}"]`
+    }
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i], b = rects[j]
+        const elA = els[i], elB = els[j]
+        if (elA.contains(elB) || elB.contains(elA)) continue // nested is fine
+        if (layerOf(elA) !== layerOf(elB)) continue // different stacking layers (fixed overlay vs content) is by design
+        const o = inter(a, b)
+        if (o <= 0) continue
+        const smaller = Math.min(area(a), area(b))
+        if (smaller > 0 && o / smaller > 0.5) {
+          overlaps++
+          if (samples.length < 8) samples.push(`${desc(elA)} X ${desc(elB)}`)
+        }
+      }
+    }
+    return { count: overlaps, samples }
+  })
+}
+
+for (const route of ROUTES) {
+  for (const width of WIDTHS) {
+    test(`no horizontal overflow + no text overlap ${route} @${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto(route, { waitUntil: "domcontentloaded" })
+      // Give lazy images / data a moment to settle.
+      await page.waitForTimeout(1200)
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth
+      )
+      expect(overflow, `horizontal overflow of ${overflow}px at ${width}px`).toBeLessThanOrEqual(1)
+
+      const overlaps = await countOverlaps(page)
+      expect(
+        overlaps.count,
+        `${overlaps.count} overlapping text pairs at ${width}px` +
+          (overlaps.samples.length ? ` | ${overlaps.samples.join(" ; ")}` : "")
+      ).toBe(0)
+    })
+  }
+}

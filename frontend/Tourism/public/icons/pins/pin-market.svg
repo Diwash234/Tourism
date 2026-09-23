@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#BE185D" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAmVBMVEVHcEz0kAz0kAz0kAz0kAz0kAz0kAzdLkR0Tqr/zE3dLkT/zE3/zE3/zE3/zE3/zE3/zE3dLkT0kAz0kAz0kAz0kAz0kAz0kAz/zE3/zE3/zE3/zE3/zE10TqrdLkT/zE30kAzmUy+ofYf5rkvjTEbfOEXufUmbQoSISJfWMErmVkbqaUf0m0r1mBTsc0j3oyD8vT3+yEn3pUv8KBxrAAAAHXRSTlMAQL/PgBAwn5/Pz78QMIBgQBBgUO9wIK/vUK8gcN6XGI0AAAGoSURBVHja7dLZbsIwEAVQkw1oEkIJIWxZWLuv//9xnTtElR1cZXmo1Mr3ZRTZc4zHiHo8xyo5luOJ/pnZpRR71pNZWGUt1qKPE8/Lq8zjHteqetNkQEnS6rPz9eKS47iiiuuUnLjjfPhetqe8oM236zYnix1XKHFZsjoPCE5d6jombtD8Az0+oL3D+x3diiOdEE78guNPQsHRb3d1K+73EdG4kDKOfhx1KrRJL+Pe+EUt/kazG8cmeijBmlgti6ssV3pooIcGWIuq3vV2Stmuq8+oK/RWcCaBqBJMCo7ym25uGdpRRYZDodZd+fLB41VeKhzz7eQ55SSQk1NFX55DkOvuHT2HQCgJWPJliAQ4qOiDoNQndk6qA6k2JghwUNEHQakHNBxzUU/IF5aghhyx/5wDqoUnHraGzth+0kEBP2Vr6JN2P+c6SKwx7tYQjn3VQ1usdYIe9dD096H7B4b2dxdoNEKDVPeAqDZCGUnkZBlJtD/L0CJXklCbIZLgQEIfBLlCQm2GSIIDCX0QanWP2gy1iYEMZCADGchABjLQP4KaYiAD/VHoCzV1kmKtgTbmAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>market</title>
+</svg>

@@ -33,6 +33,8 @@ class AdminTask(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         IN_PROGRESS = "in_progress", "In Progress"
+        BLOCKED = "blocked", "Blocked"
+        IN_REVIEW = "in_review", "Submitted for Review"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
 
@@ -58,7 +60,20 @@ class AdminTask(models.Model):
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # Assignment-driven workflow (Staff Operations spec): staff submit work
+    # for review; admins approve/reject. Notes keep the accountability trail.
+    completion_note = models.TextField(blank=True)
+    blocked_reason = models.TextField(blank=True)
+    escalation_reason = models.TextField(blank=True)
+    is_escalated = models.BooleanField(default=False)
+    review_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="tasks_reviewed",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-priority", "due_date", "-created_at"]

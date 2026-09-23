@@ -87,14 +87,14 @@ const VerifyPhone = () => {
 
   if (!user?.phone_number) {
     return (
-      <div className="container-app py-16 text-center">
+      <div className="container-app section-space text-center">
         <p className="text-gray-500">No phone number on file — add one in Settings first.</p>
       </div>
     )
   }
 
   return (
-    <div className="container-app py-16 max-w-md mx-auto fade-in">
+    <div className="container-app section-space max-w-md mx-auto fade-in">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-8 text-center">
         {verified ? (
           <>

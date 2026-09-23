@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#16A34A" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAM1BMVEVHcEx3slV3slV3slV3slV3slV3slV3slV3slV3slV3slV3slV3slV3slV3slV3slV3slXeF2vCAAAAEXRSTlMAQGCAv58wEN//71Agr3DPjxgMFrEAAAFBSURBVHgB7dXXgoMgEIXhQ1E4VN//Zbc3sxPDRC797naT/DYYMZmxzvl3i7MrnhPsErmTFgO9nCjw+tMqlSILtUaRgZqlJGJWyUJvoaBCL3QKYobaSpEP0HIUJQMtz0nrqaRZpUxOWpmWshRmleqpSVArf2RoFf9nBbVT284siWS3+7Fgsbdat/h3zmWDxyq/9N1pb5E7fcs4FhK/lN//LRTEMrhx3PH2pgtjp/R7bWInreODKuxOUd2BudknkYKMAfubVCjYVNOl/p7gjRgwYuMnf3dCZOXkvHerPcaY31DwFBR1qHQKnPr10hIFHcN4pAcM03f0IR9wIhQTP6UGlX9XUz5naAs4E6oBzzp42jr6pyQrwiv39BmtmBNymBPymBQqk0IOk0JhVghX6ApdoSt0ha6QWuKHhLNK829awQOvu7AtoMhJWZYAAAAASUVORK5CYII=" x="8.5" y="7.5" width="15" height="15"/>
+  <title>tea_coffee</title>
+</svg>

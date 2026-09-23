@@ -1,0 +1,26 @@
+{
+ "summary": {
+  "source_city_kathmandu": {
+   "ok": 4750,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 4749,
+    "straight_line_fallback": 1
+   },
+   "median_route_over_straight": 1.25,
+   "p95_route_over_straight": 1.79
+  },
+  "user_gps_current_location": {
+   "ok": 4750,
+   "failed": 0,
+   "sources": {
+    "graphml_fallback": 4749,
+    "straight_line_fallback": 1
+   },
+   "median_route_over_straight": 1.54,
+   "p95_route_over_straight": 2.27
+  }
+ },
+ "failure_count": 0,
+ "failures_sample": []
+}

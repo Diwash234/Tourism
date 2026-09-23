@@ -1,4 +1,8 @@
+import logging
+
 from rest_framework import permissions, status
+
+logger = logging.getLogger(__name__)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import sys
@@ -24,17 +28,26 @@ class NearbyEmergencyView(APIView):
 
     def get(self, request):
 
-        lat = float(request.GET.get("latitude"))
-        lon = float(request.GET.get("longitude"))
+        try:
+            lat = float(request.GET.get("latitude"))
+            lon = float(request.GET.get("longitude"))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "latitude and longitude query parameters are required and must be numbers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         category = request.GET.get("category")
 
-        limit = int(
-            request.GET.get(
-                "limit",
-                5
+        try:
+            limit = int(
+                request.GET.get(
+                    "limit",
+                    5
+                )
             )
-        )
+        except (TypeError, ValueError):
+            limit = 5
 
 
         results = nearest_facilities(
@@ -49,6 +62,41 @@ class NearbyEmergencyView(APIView):
             "facilities": results
         })
 
+
+
+def _broadcast(conversation_id, payload):
+    """Push a persisted chat event to every WebSocket in the conversation.
+
+    Best-effort by design: chat rendering must never depend on the socket
+    layer being reachable (spec: the chatbot must not block the site).
+    """
+    try:
+        import asyncio
+
+        from channels.layers import get_channel_layer
+
+        from .consumers import get_main_loop
+
+        layer = get_channel_layer()
+        if layer is None:
+            return
+        group = f"chat_{conversation_id}"
+        event = {"type": "chat.message", "payload": payload}
+        main_loop = get_main_loop()
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        if main_loop is not None and main_loop.is_running() and main_loop is not running:
+            # Consumers live on the server's main loop; hand the coroutine to
+            # it thread-safely (in-memory layer queues are bound to that loop).
+            asyncio.run_coroutine_threadsafe(layer.group_send(group, event), main_loop)
+        else:
+            from asgiref.sync import async_to_sync
+
+            async_to_sync(layer.group_send)(group, event)
+    except Exception:  # pragma: no cover - socket push is optional
+        logger.warning("chat websocket broadcast skipped for conversation %s", conversation_id)
 
 
 class ChatMessageView(APIView):
@@ -71,28 +119,62 @@ class ChatMessageView(APIView):
 
 
         conversation = self._get_or_create_conversation(request, data.get("conversation_id"))
-        ChatMessage.objects.create(conversation=conversation, role=ChatMessage.Role.USER, content=data["message"])
+        user_msg = ChatMessage.objects.create(conversation=conversation, role=ChatMessage.Role.USER, content=data["message"])
+        _broadcast(conversation.id, {
+            "type": "user_message", "conversation_id": conversation.id,
+            "message_id": user_msg.id, "content": user_msg.content,
+        })
 
         history = [
             {"role": m.role, "content": m.content}
             for m in conversation.messages.order_by("created_at")
         ]
-        reply_text = get_chatbot_reply(
-    history,
-    latitude=latitude,
-    longitude=longitude
-)
+        
+        reply_result = get_chatbot_reply(
+            history,
+            latitude=latitude,
+            longitude=longitude
+        )
 
+        if isinstance(reply_result, dict):
+            reply_text = reply_result.get("reply", "")
+            destination_cards = reply_result.get("destination_cards", [])
+            image_cards = reply_result.get("image_cards", [])
+            itinerary_cards = reply_result.get("itinerary_cards")
+            distance_cards = reply_result.get("distance_cards")
+            emergency_cards = reply_result.get("emergency_cards", [])
+            package_cards = reply_result.get("package_cards", [])
+        else:
+            reply_text = str(reply_result)
+            destination_cards = []
+            image_cards = []
+            itinerary_cards = None
+            distance_cards = None
+            emergency_cards = []
+            package_cards = []
 
         reply = ChatMessage.objects.create(
             conversation=conversation, role=ChatMessage.Role.ASSISTANT, content=reply_text
         )
         conversation.save()  # bumps updated_at via auto_now
+        _broadcast(conversation.id, {
+            "type": "bot_reply", "conversation_id": conversation.id,
+            "message_id": reply.id, "reply": reply_text,
+            "destination_cards": destination_cards, "image_cards": image_cards,
+            "itinerary_cards": itinerary_cards, "distance_cards": distance_cards,
+            "emergency_cards": emergency_cards, "package_cards": package_cards,
+        })
 
         return Response({
             "conversation_id": conversation.id,
             "reply": reply_text,
             "message_id": reply.id,
+            "destination_cards": destination_cards,
+            "image_cards": image_cards,
+            "itinerary_cards": itinerary_cards,
+            "distance_cards": distance_cards,
+            "emergency_cards": emergency_cards,
+            "package_cards": package_cards,
         })
 
     def _get_or_create_conversation(self, request, conversation_id):

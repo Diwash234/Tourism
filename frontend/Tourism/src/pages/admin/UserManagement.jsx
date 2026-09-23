@@ -29,8 +29,8 @@ const UserManagement = () => {
   const [accountData, setAccountData] = useState(null)
   const [loadingAccount, setLoadingAccount] = useState(false)
 
-  const load = () => {
-    setLoading(true)
+  const load = (showSpinner = true) => {
+    if (showSpinner) setLoading(true)
     adminPanelApi
       .getUsers()
       .then(({ data }) => setUsers(data.results || data || []))
@@ -38,7 +38,10 @@ const UserManagement = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    const t = setTimeout(() => load(false), 0)
+    return () => clearTimeout(t)
+  }, [])
 
   const openAccount = (u) => {
     setViewingUser(u)

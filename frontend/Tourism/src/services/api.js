@@ -8,9 +8,14 @@
  */
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
-const api = axios.create({ baseURL: API_BASE_URL });
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  // Never spin the UI forever on a hung backend/network (see axiosClient.js).
+  // Slow multipart uploads override this per-request with a longer timeout.
+  timeout: 20000,
+});
 
 // --- Attach the JWT access token to every request ---------------------
 api.interceptors.request.use((config) => {
@@ -52,6 +57,12 @@ api.interceptors.response.use(
     isRefreshing = true;
     try {
       const refresh = localStorage.getItem("refresh");
+      if (!refresh) {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        localStorage.removeItem("user");
+        return Promise.reject(error);
+      }
       const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
       localStorage.setItem("access", data.access);
       resolvePending(data.access);
@@ -60,7 +71,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
-      window.location.href = "/login";
+      localStorage.removeItem("user");
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
@@ -137,7 +148,7 @@ export const destinationApi = {
   // Tourist place submission — multipart because of the cover_image file.
   // Backend marks it "pending" until an admin approves it.
   submit: (formData) =>
-    api.post("/destinations/", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+    api.post("/destinations/", formData, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60000 }),
 
   mySubmissions: () => api.get("/destinations/my_submissions/"),
   approve: (slug, status, review_note = "") => api.post(`/destinations/${slug}/approve/`, { status, review_note }),
@@ -162,6 +173,16 @@ export const favoriteApi = {
 export const historyApi = {
   list: () => api.get("/history/"),
   remove: (id) => api.delete(`/history/${id}/`),
+};
+
+export const savedRoutesApi = {
+  list: (savedOnly = false) => api.get("/navigation/routes/", savedOnly ? { params: { saved: 1 } } : {}),
+  create: (payload) => api.post("/navigation/routes/", payload),
+  update: (id, payload) => api.patch(`/navigation/routes/${id}/`, payload),
+  remove: (id) => api.delete(`/navigation/routes/${id}/`),
+  recalculate: (id) => api.post(`/navigation/routes/${id}/recalculate/`),
+  routeOptions: (payload) => api.post("/navigation/route-options/", payload),
+  provinces: () => api.get("/navigation/provinces/"),
 };
 
 export const alertApi = {
@@ -191,7 +212,10 @@ export const photoApi = {
   // { photos: [...], external_fallback: {url, attribution, source_link} | null }
   get: (slug) => api.get(`/destinations/${slug}/photos/`),
   upload: (slug, formData) =>
-    api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" } }),
+    api.post(`/destinations/${slug}/photos/`, formData, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60000 }),
+  getVideos: (slug) => api.get(`/destinations/${slug}/videos/`),
+  uploadVideo: (slug, formData) =>
+    api.post(`/destinations/${slug}/videos/`, formData, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60000 }),
 };
 
 export const hotelApi = {

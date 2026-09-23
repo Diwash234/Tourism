@@ -39,11 +39,12 @@ const ImageGallery = ({ images = [], name, context = "Nepal", count = 6, seed = 
   const [extra, setExtra] = useState([])
   const [loaded, setLoaded] = useState(false)
 
+  const needed = count - backendUrls.length
+  const nothingToFetch = needed <= 0 || !name
+
   useEffect(() => {
     let cancelled = false
-    const needed = count - backendUrls.length
-    if (needed <= 0 || !name) {
-      setLoaded(true)
+    if (nothingToFetch) {
       return
     }
     resolvePlaceImages(name, { context, orientation: "landscape", count: needed })
@@ -68,7 +69,7 @@ const ImageGallery = ({ images = [], name, context = "Nepal", count = 6, seed = 
   ].slice(0, count)
 
   if (allImages.length === 0) {
-    if (!loaded) {
+    if (!loaded && !nothingToFetch) {
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (

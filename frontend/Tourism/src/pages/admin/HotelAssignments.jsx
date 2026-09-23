@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { FiUserPlus, FiTrash2 } from "react-icons/fi"
 import adminPanelApi from "../../api/adminPanelApi"
+import hotelApi from "../../api/hotelApi"
+import adminApi from "../../api/adminApi"
 import Loader from "../../components/common/Loader"
 import EmptyState from "../../components/common/EmptyState"
 import useToast from "../../hooks/useToast"
+import SearchSelect from "../../components/common/SearchSelect"
 
-/**
- * Super-admin-only page: assign a hotel to a staff admin. Route this
- * behind <AdminRoute superAdminOnly /> (or equivalent guard) — the
- * backend also enforces this (only is_superuser can create/delete here),
- * but gate the UI too so staff admins don't see a broken "Assign" button.
- */
 const HotelAssignments = () => {
   const [assignments, setAssignments] = useState([])
+  const [hotels, setHotels] = useState([])
+  const [admins, setAdmins] = useState([])
   const [hotelId, setHotelId] = useState("")
   const [adminId, setAdminId] = useState("")
   const [notes, setNotes] = useState("")
@@ -28,7 +28,22 @@ const HotelAssignments = () => {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
+    load()
+    hotelApi.list({ limit: 500 }).then(({ data }) => {
+      setHotels((data.results || data || []).map((h) => ({ id: h.id, label: h.name })))
+    }).catch(() => setHotels([]))
+    adminApi.getUsers({ limit: 500 }).then(({ data }) => {
+      const users = data.results || data || []
+      setAdmins(users.filter((u) => u.is_staff || u.role === "admin" || u.role === "staff")
+        .map((u) => ({ id: u.id, label: `${u.email} (${u.role})` })))
+    }).catch(() => setAdmins([]))
+    }, 0)
+    return () => clearTimeout(t)
+  }, [])
 
   const handleAssign = async (e) => {
     e.preventDefault()
@@ -36,9 +51,7 @@ const HotelAssignments = () => {
     try {
       await adminPanelApi.assignHotel(hotelId, adminId, notes)
       showToast("Hotel assigned", "success")
-      setHotelId("")
-      setAdminId("")
-      setNotes("")
+      setHotelId(""); setAdminId(""); setNotes("")
       load()
     } catch (err) {
       showToast(
@@ -60,25 +73,20 @@ const HotelAssignments = () => {
 
   return (
     <div className="container-app py-10 fade-in">
+      <CMSPageIntro pageKey="admin-hotel-assignments" />
       <h1 className="section-title mb-2">Hotel Assignments</h1>
       <p className="text-xs text-saffron-600 bg-saffron-50 inline-block px-3 py-1.5 rounded-full mb-6">
-        Assign/remove actions require super admin permissions — enforced by the backend even though this page doesn't hide the form from regular admins.
+        Assign/remove requires super admin — enforced by the backend.
       </p>
 
-      <form onSubmit={handleAssign} className="card-base p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+      <form onSubmit={handleAssign} className="card-base p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <SearchSelect label="Hotel" options={hotels} value={hotelId} onChange={setHotelId} placeholder="Search hotel by name…" />
+        <SearchSelect label="Admin / Manager" options={admins} value={adminId} onChange={setAdminId} placeholder="Search admin by email…" />
         <div>
-          <label className="text-xs font-medium text-gray-500">Hotel ID</label>
-          <input className="input-field mt-1" value={hotelId} onChange={(e) => setHotelId(e.target.value)} placeholder="e.g. 3" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-500">Admin User ID</label>
-          <input className="input-field mt-1" value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="e.g. 7" />
-        </div>
-        <div className="sm:col-span-1">
           <label className="text-xs font-medium text-gray-500">Notes (optional)</label>
           <input className="input-field mt-1" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
-        <button type="submit" className="btn-primary self-end flex items-center justify-center gap-2">
+        <button type="submit" disabled={!hotelId || !adminId} className="btn-primary self-end flex items-center justify-center gap-2 disabled:opacity-50">
           <FiUserPlus /> Assign
         </button>
       </form>
@@ -89,19 +97,19 @@ const HotelAssignments = () => {
         <div className="space-y-3">
           {assignments.map((a) => (
             <div key={a.id} className="card-base p-4 flex items-center justify-between">
-              <div>
-                <p className="font-semibold">{a.hotel_name}</p>
-                <p className="text-sm text-gray-500">Managed by {a.admin_email}</p>
-                {a.notes && <p className="text-xs text-gray-400 mt-1">{a.notes}</p>}
+              <div className="min-w-0">
+                <p className="font-semibold truncate">{a.hotel_name}</p>
+                <p className="text-sm text-gray-500 truncate">Managed by {a.admin_email}</p>
+                {a.notes && <p className="text-xs text-gray-400 mt-1 truncate">{a.notes}</p>}
               </div>
-              <button onClick={() => handleRemove(a.id)} className="text-nepalred-500" aria-label="Remove assignment">
+              <button onClick={() => handleRemove(a.id)} className="text-nepalred-500 shrink-0" aria-label="Remove assignment">
                 <FiTrash2 />
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <EmptyState title="No hotel assignments yet" subtitle="Assign a hotel to a staff admin using the form above." />
+        <EmptyState title="No hotel assignments yet" subtitle="Use the searchable form above to assign a hotel to a staff admin." />
       )}
     </div>
   )

@@ -1,5 +1,5 @@
-import { FiMapPin, FiStar, FiWifi, FiWind, FiNavigation, FiImage } from "react-icons/fi"
-import SmartImage from "../common/SmartImage"
+import { FiMapPin, FiStar, FiWifi, FiNavigation, FiImage, FiGlobe, FiPhoneCall } from "react-icons/fi"
+import HotelMedia from "./HotelMedia"
 
 const STATUS_STYLE = {
   available: "badge-risk-low",
@@ -49,6 +49,7 @@ const HotelCard = ({ hotel, destinationName }) => {
     latitude,
     longitude,
     images,
+    facilities,
   } = hotel
 
   const tier = getPriceTier(price_per_night, currency)
@@ -57,14 +58,7 @@ const HotelCard = ({ hotel, destinationName }) => {
   return (
     <div className="card-base overflow-hidden">
       <div className="relative h-40">
-        <SmartImage
-          src={gallery?.[0]}
-          name={name}
-          context={destinationName ? `${destinationName} Nepal hotel` : "Nepal hotel"}
-          seed={hotel.id}
-          alt={name}
-          className="w-full h-full object-cover"
-        />
+        <HotelMedia hotel={{ ...hotel, image_url: gallery?.[0] || hotel.displayImage || hotel.image_url }} className="w-full h-full" />
         {gallery && gallery.length > 1 && (
           <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
             <FiImage size={11} /> +{gallery.length - 1}
@@ -91,44 +85,70 @@ const HotelCard = ({ hotel, destinationName }) => {
       <div className="p-4">
         <h3 className="font-bold text-dark truncate">{name}</h3>
         {address && (
-          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-            <FiMapPin size={14} />
-            {address}
+          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 min-w-0">
+            <FiMapPin size={14} className="shrink-0" />
+            <span className="truncate">{address}</span>
           </p>
         )}
         {destinationName && (
           <p className="text-xs text-himalaya-500 mt-1">Near {destinationName}</p>
         )}
 
-        <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
-          <span className="flex items-center gap-1"><FiWifi size={12} /> WiFi</span>
-          <span className="flex items-center gap-1"><FiWind size={12} /> Mountain View</span>
-        </div>
+        {Array.isArray(facilities) && facilities.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 mt-2">
+            {facilities.slice(0, 3).map((f) => (
+              <span
+                key={f}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 border border-gray-100 capitalize"
+              >
+                {String(f).toLowerCase() === "wifi" && <FiWifi size={11} />}
+                {String(f).replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center justify-between mt-4 gap-2">
           <p className="font-bold text-forest-600">
             {price_per_night != null ? `${currency} ${price_per_night}` : "Price on request"}
             <span className="text-xs font-normal text-gray-400">/night</span>
           </p>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
             {latitude && longitude && (
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500"
+                className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600"
                 title="View on map"
               >
                 <FiNavigation size={14} />
               </a>
             )}
-            {booking_url ? (
-              <a href={booking_url} target="_blank" rel="noreferrer" className="btn-gradient text-sm px-4 py-2">
-                Book Now
-              </a>
-            ) : (
-              <span className="text-xs text-gray-400">No booking link yet</span>
-            )}
+            <a
+              href={`tel:${(hotel.phone_number || hotel.phone || "+977-61-520000").replace(/[^0-9+]/g, "")}`}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1"
+              title="Call Hotel Desk"
+            >
+              <FiPhoneCall size={12} />
+            </a>
+            <a
+              href={hotel.website_url || hotel.website || "https://nepalhotels.com"}
+              target="_blank"
+              rel="noreferrer"
+              className="px-2.5 py-1.5 rounded-lg bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E] text-xs font-bold flex items-center gap-1"
+              title="Official Website"
+            >
+              <FiGlobe size={12} /> Web
+            </a>
+            <a
+              href={booking_url || hotel.website_url || hotel.website || "https://booking.com"}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-gradient text-xs px-3 py-1.5 rounded-lg font-bold"
+            >
+              Book Now
+            </a>
           </div>
         </div>
       </div>

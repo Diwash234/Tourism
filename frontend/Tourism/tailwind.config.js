@@ -1,9 +1,49 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // Dark theme is class-driven: ThemeContext toggles `.dark` on <html> and
+  // persists the choice in localStorage (key: ny_theme).
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        // Semantic tokens from the UI audit — single source of truth for
+        // role-based colors. Existing per-page classes keep working; new
+        // code should use these.
+        brand: {
+          DEFAULT: '#047857', // emerald-700 — primary actions, active nav
+          hover: '#065f46',   // emerald-800 — hover/pressed state of brand
+          light: '#d1fae5',   // emerald-100 — brand tinted backgrounds
+          gradientFrom: '#1e3a8a', // blue-900 — hero CTAs
+          gradientTo: '#059669',   // emerald-600
+        },
+        // NOTE: a bare `accent: '#f59e0b'` string used to live here and was
+        // silently shadowed by the accent{} scale object below (duplicate key
+        // in the same literal — last one wins). Removed; use accent-500 or
+        // saffron-500 for the amber attention color.
+        surface: {
+          light: '#f9fafb', // gray-50 — page background (light theme)
+          dark: '#0f172a',  // slate-900 — page background (dark theme)
+        },
+        // ONE Nepal-Yatra nav palette — shared tokens for Navbar, Sidebar and
+        // nav-adjacent chrome. Hex values match the emerald shades these
+        // components already used; consolidating here means future re-theming
+        // happens in one place instead of ~30 scattered utility classes.
+        nav: {
+          base: '#022c22',       // emerald-950 — deepest nav surface
+          surface: '#064e3b',    // emerald-900 — panels, admin chips
+          active: '#047857',     // emerald-700 — active items, primary CTAs
+          hover: '#065f46',      // emerald-800 — hover/pressed
+          strong: '#059669',     // emerald-600 — secondary emphasis
+          tint: '#ecfdf5',       // emerald-50  — light hover tint
+          tintStrong: '#d1fae5', // emerald-100 — light active tint / borders
+          deep: '#065f46',       // emerald-800 — labels on light bg
+          darkText: '#6ee7b7',   // emerald-300 — text on dark bg
+          dark: '#0f172a',       // slate-900  — dark-mode surface
+          darkAlt: '#1e293b',    // slate-800  — dark-mode elevated
+        },
+        danger: '#dc2626',  // red-600 — SOS/emergency/destructive ONLY
+        ai: '#9333ea',      // purple-600 — genuinely AI-powered features ONLY
         // RE-THEMED: primary/secondary used to be coral/teal (the old
         // generic starter palette). They're referenced by className
         // across every page — btn-primary, input-field's focus ring,
@@ -12,18 +52,36 @@ export default {
         // every file that uses them) reskins the whole app to Nepal
         // colors in one place, safely, with zero JSX/logic changes.
         primary: {
-          50: '#eaf0fb',
-          100: '#c9d8f3',
-          300: '#3f66b8',
-          500: '#0B3D91', // was coral #FF5A5F — now Himalayan blue
-          600: '#092f70',
-          700: '#072454',
+          50: '#e8f4ee',
+          100: '#c7e4d5',
+          200: '#9cccb6',
+          300: '#67ad8e',
+          400: '#3f936f',
+          500: '#1f6b4d',  /* deep mountain green */
+          600: '#175a40',
+          700: '#114733',
+          800: '#0d3526',
+          900: '#08231a',
         },
         secondary: {
-          500: '#1B8A5A', // was teal #00A699 — now forest green
-          600: '#146c46',
+          50: '#fcefe8',
+          100: '#f8d4c0',
+          200: '#f0b08e',
+          300: '#dd875c',
+          400: '#cf7046',
+          500: '#c2603a',  /* warm terracotta */
+          600: '#a14e2d',
+          700: '#7f3d25',
         },
-        dark: '#222222',
+        accent: {
+          50: '#faf3e2',
+          100: '#f2e0b0',
+          300: '#d8ab57',
+          400: '#c9993e',
+          500: '#b8862f',  /* Himalayan gold */
+          600: '#966b23',
+        },
+        dark: '#1c1917',
 
         // --- Nepal Tourism brand palette (new) ---
         himalaya: {
@@ -55,17 +113,52 @@ export default {
           500: '#DC143C', // Nepal flag red
           600: '#b10f30',
         },
+        // CEE "AI Index" reference palette — deep indigo anchor + glacier/turquoise data accents.
+        cee: {
+          bg: '#F9FAFE',
+          glacier: '#8BB2FC',
+          blue: '#71A0F7',
+          indigo: '#3E58B0',
+          navy: '#231E54',
+          ink: '#0d1330',
+          night: '#070c20',
+          lavender: '#8E70AE',
+          turquoise: '#70B1AB',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        heading: ['"Playfair Display"', 'Georgia', 'serif'],
-        devanagari: ['"Noto Sans Devanagari"', 'Inter', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        heading: ['Outfit', '"Playfair Display"', 'system-ui', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Cinzel', 'Georgia', 'serif'],
+        royal: ['Cinzel', '"Playfair Display"', 'serif'],
+        // CEE "AI Index" reference typeface — clean, geometric, data-confident.
+        ubuntu: ['Ubuntu', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        devanagari: ['"Noto Sans Devanagari"', 'sans-serif'],
       },
       boxShadow: {
         card: '0 6px 16px rgba(0,0,0,0.08)',
         hover: '0 10px 28px rgba(0,0,0,0.14)',
         premium: '0 10px 25px rgba(11,61,145,0.10)',
         'premium-hover': '0 20px 40px rgba(11,61,145,0.16)',
+        refero: '0 20px 40px -15px rgba(0, 0, 0, 0.07), 0 0 1px 1px rgba(0, 0, 0, 0.05)',
+        'refero-dark': '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(255, 255, 255, 0.08)',
+        'glow-amber': '0 0 30px -5px rgba(245, 158, 11, 0.3)',
+        'glow-purple': '0 0 35px -5px rgba(168, 85, 247, 0.3)',
+        'glow-emerald': '0 0 30px -5px rgba(16, 185, 129, 0.3)',
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 2.5s infinite',
+        float: 'float 4s ease-in-out infinite',
       },
       borderRadius: {
         xl2: '1.25rem',

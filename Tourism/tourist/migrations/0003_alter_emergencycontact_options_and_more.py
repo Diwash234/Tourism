@@ -9,28 +9,4 @@ class Migration(migrations.Migration):
         ('tourist', '0002_alter_destinationimage_options_and_more'),
     ]
 
-    operations = [
-        migrations.AlterModelOptions(
-            name='emergencycontact',
-            options={'ordering': ['contact_type', 'ward_number', 'name']},
-        ),
-        migrations.AddField(
-            model_name='emergencycontact',
-            name='designation',
-            field=models.CharField(blank=True, help_text="Role, e.g. 'Ward Chairperson', 'Ward Member - Female', 'Ward Secretary' (ward contacts only)", max_length=100),
-        ),
-        migrations.AddField(
-            model_name='emergencycontact',
-            name='ward_number',
-            field=models.PositiveIntegerField(blank=True, help_text='Local ward number (ward contacts only)', null=True),
-        ),
-        migrations.AlterField(
-            model_name='emergencycontact',
-            name='contact_type',
-            field=models.CharField(choices=[('police', 'Police'), ('hospital', 'Hospital'), ('tourism_office', 'Tourism Office'), ('fire_station', 'Fire Station'), ('ambulance', 'Ambulance'), ('embassy', 'Embassy'), ('ward_office', 'Ward Office'), ('ward_member', 'Local Ward Member')], max_length=20),
-        ),
-        migrations.AddIndex(
-            model_name='emergencycontact',
-            index=models.Index(fields=['ward_number'], name='tourist_eme_ward_nu_55cac0_idx'),
-        ),
-    ]
+    operations = []

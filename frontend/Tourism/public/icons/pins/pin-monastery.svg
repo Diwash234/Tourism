@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#4F46E5" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAUVBMVEVHcEyZqrVmdX9mdX/R09SpsLRmdX9zgYpmdX9mdX9mdX9mdX9mdX9mdX9mdX9mdX9mdX9tbnHZnoLZnoLZnoLZnoLZnoLZnoLZnoLZnoLZnoK1TD+IAAAAG3RSTlMA//+f//9A/3DPIFDvjxAwYP+A/xDvnzC/UN+k2xQlAAABJ0lEQVR4Ae3UBY7DQAyF4dRhZrz/PReKsRxrNPOWt7+w9KljJ/G0Tifzu7JPhZS+DyKlJ3TPJyUfcACJOUICHOR0gZJn7gkBUBhaQxGdC/aFMVEcsrfoXOTpJXSOM+fiUECJ+UrkDAnKfF2mdI4zkqJzqe2zIw7Poswwa8HIP0emaScKo1CJYdaCkZRp2qnCCMo0bYVRKYXJUrIszY6cvCDrilw6JTlVQseSx5PHwo5XElQpH2aWCeDLoSdU2d9r1ZFTu9xrtXQacqqRD0fHfGg8clByPMigGgJrwPFogwocYsA3QE+odehfQV3vWMedYXSFxoFBU+/ctHfmHmjeQQsCLQ9n7aHWO7Rh0MZWj9SJ1WOXwNTDTWz1SDNbPdDCVo+0stUDba9ZUW1/ovoZjwAAAABJRU5ErkJggg==" x="8.5" y="7.5" width="15" height="15"/>
+  <title>monastery</title>
+</svg>

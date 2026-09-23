@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#b8862f"/><stop offset="60%" stop-color="#8c6523"/><stop offset="100%" stop-color="#4a330f"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <rect x="200" y="280" width="400" height="130" fill="#c98a4a"/>
+  <polygon points="400,130 200,280 600,280" fill="#7a2f1a"/>
+  <rect x="370" y="320" width="60" height="90" fill="#4a2010"/>
+  <rect x="250" y="320" width="40" height="50" fill="#4a2010"/>
+  <rect x="510" y="320" width="40" height="50" fill="#4a2010"/>
+  <circle cx="400" cy="200" r="22" fill="#b8862f"/>
+  <text x="400" y="475" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="#faf8f4" opacity=".9" font-style="italic">Nepal Heritage Site</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#15803D" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAZlBMVEVHcExckTtckTtckTtckTtckTtckTtckTtckTtckTtckTtckTtckTtckTtmIRNckTtmIRNmIRNmIRNmIRNmIRNckTtmIRNmIRNdiDhmIRNckTs+ch1mIRNAdB9WizVHfCZfdTFajzmc/7qVAAAAGnRSTlMAv0DP7yBgEICfcN+PUBCv7zC/r4AwcN/PQOXVn7UAAAG4SURBVHhexZfrboMwDEaBhFyA9b5e3Ove/yU3VdXU8NV14k7r+YdAR7b8ySTVU1oXDV0x0bWVEu8MJRjnFZo2WALsUFqWv2kAG4qq+rDEYj/yy5nSU6aZRX32JNB/5ngcZeBkz0BZDJInUiZR4VGYwKM0dVREx8aQCmGi2VoqxD5eCIaKMY88gRQE9LSkApurKeV03v9wPsFzSj32NJTyddxfOeJzSgMFKUU1FKRpDUuawqcMqJ2ORobFI9j4eHDdK6IuCbW+NTJsGPWhdPQSDva0kgHSWAhm0rJBRPA92V8RM1iAey+LsAJZhKXLYhQBcquZIqxQKUL+RfT3gYwE6A4BHZtoeQjJQmrZMcuxSFek4YMnB9Ukq5b9UEp4umq9Je1/jaxnThBCa8I5wvekpPfwq9XRwPFItyFDBUTNhozM2bhsQ948SCjdkKFiaPqSDdk3mRdHrACvkoIKQU2bcbmuSaCG6zbrimzS+wgWQdaEYXuhOy7bITS+0rA7JOwqLatUtHq/aJmKlmrRIhUt1KJNKtqoRYcRWs9kLJq8uSIUvX/889m9ZzavXjCBR8lkfQvlYi2M7BsB5UIOIe5hlwAAAABJRU5ErkJggg==" x="8.5" y="7.5" width="15" height="15"/>
+  <title>park</title>
+</svg>

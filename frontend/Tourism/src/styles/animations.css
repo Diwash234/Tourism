@@ -58,6 +58,47 @@
 
 /* Landing hero cinematic effects — all CSS-driven (no scroll listeners,
    no JS animation loop) so they stay cheap performance-wise. */
+
+/* Ken Burns: slow cinematic push-in on the active hero photograph. The img is
+   remounted per slide (keyed) so the animation restarts each transition. */
+.kenburns {
+  animation: kenburns 14s ease-out both;
+  will-change: transform;
+}
+@keyframes kenburns {
+  from { transform: scale(1.02) translateY(0); }
+  to   { transform: scale(1.12) translateY(-1.5%); }
+}
+
+/* Continuous data ticker (CEE-index style). Track is duplicated in JSX so the
+   -50% translate loops seamlessly. Pauses on hover / focus. */
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 38s linear infinite;
+}
+.ticker-track:hover,
+.ticker-track:focus-within {
+  animation-play-state: paused;
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Respect users who opt out of motion: freeze hero + marquee loops. */
+@media (prefers-reduced-motion: reduce) {
+  .kenburns,
+  .ticker-track,
+  .marquee-track,
+  .hero-cloud,
+  .hero-mountain-layer,
+  .hero-snowflake,
+  .hero-flag {
+    animation: none !important;
+  }
+}
+
 .hero-cloud {
   animation: cloudDrift 40s ease-in-out infinite;
 }

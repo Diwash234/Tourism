@@ -1,0 +1,201 @@
+import { useEffect, useState, useRef } from "react"
+import { Link } from "react-router-dom"
+import { FiPlus, FiRefreshCw, FiRadio, FiShield, FiAlertTriangle } from "react-icons/fi"
+import adminApi from "../../api/adminApi"
+import useToast from "../../hooks/useToast"
+
+const KINDS = [
+  ["hospital", "Hospital / clinic"],
+  ["police", "Police station"],
+  ["pharmacy", "Pharmacy"],
+  ["fire_station", "Fire & rescue"],
+  ["ambulance", "Ambulance"],
+  ["blood_bank", "Blood bank"],
+]
+
+const empty = {
+  kind: "hospital", name: "", phone: "", address: "", city: "",
+  district: "", province: "", latitude: "", longitude: "", source_url: "", opening_hours: "",
+}
+
+export default function EmergencyDirectoryPanel() {
+  const { showToast } = useToast()
+  const [form, setForm] = useState(empty)
+  const [rows, setRows] = useState([])
+  const [pending, setPending] = useState([])
+  const [coverage, setCoverage] = useState({})
+  const [query, setQuery] = useState("")
+  const [kind, setKind] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [lastUpdatedSec, setLastUpdatedSec] = useState(0)
+
+  const prevPendingCount = useRef(0)
+
+  const load = async (isBackground = false) => {
+    if (!isBackground) setLoading(true)
+    try {
+      const { data } = await adminApi.getEmergencyDirectory({ q: query, kind })
+      setRows(data.results || [])
+      const newPending = data.pending_submissions || []
+      setPending(newPending)
+      setCoverage(data.coverage || {})
+
+      if (isBackground && newPending.length > prevPendingCount.current) {
+        showToast(`🚨 New community emergency submission received! (${newPending.length} pending)`, "warning")
+      }
+      prevPendingCount.current = newPending.length
+      setLastUpdatedSec(0)
+    } catch (error) {
+      if (!isBackground) showToast(error.response?.data?.detail || "Could not load emergency directory", "error")
+    } finally {
+      if (!isBackground) setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // Deferred one tick so the loader's synchronous setLoading(true) runs
+    // outside the effect flush (react-hooks/set-state-in-effect).
+    const t = setTimeout(() => load(), 0)
+    return () => clearTimeout(t)
+  }, [kind])
+
+  // Live 5-second polling interval + timer counter
+  useEffect(() => {
+    const pollTimer = setInterval(() => {
+      load(true)
+    }, 5000)
+
+    const secTimer = setInterval(() => {
+      setLastUpdatedSec((prev) => prev + 1)
+    }, 1000)
+
+    return () => {
+      clearInterval(pollTimer)
+      clearInterval(secTimer)
+    }
+  }, [query, kind])
+
+  const save = async (event) => {
+    event.preventDefault()
+    try {
+      const { data } = await adminApi.createEmergencyDirectory(form)
+      showToast(data.message || "Saved", "success")
+      setForm(empty)
+      load()
+    } catch (error) {
+      if (error.response?.status === 409) {
+        showToast(error.response.data.detail || "This facility is already in the directory", "error")
+      } else {
+        showToast(error.response?.data?.detail || "Could not save record", "error")
+      }
+    }
+  }
+
+  const act = async (row, action) => {
+    try {
+      const { data } = await adminApi.updateEmergencyDirectory({ kind: row.kind, id: row.id, action })
+      showToast(data.message || "Updated", "success")
+      load()
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Could not update record", "error")
+    }
+  }
+
+  return (
+    <div className="space-y-6" data-testid="emergency-directory-panel">
+      <div className="rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Safety</p>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                <FiRadio className="animate-pulse text-emerald-600" /> Live 5s Polling · Updated {lastUpdatedSec}s ago
+              </span>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mt-1">Emergency directory</h2>
+            <p className="text-sm text-slate-500 mt-1 max-w-3xl">
+              Add accurate hospitals, police, pharmacies or fire stations with coordinates.
+              Saves to the database and appends the official CSV. This does not scrape Google or Facebook,
+              and it does not invent 50–60 pharmacies per ward.
+            </p>
+          </div>
+          <button type="button" onClick={() => load(false)} className="px-4 py-2 rounded-xl border border-rose-200 text-rose-800 text-sm font-bold flex items-center gap-2">
+            <FiRefreshCw className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-3 mt-4 text-xs font-bold text-slate-600">
+          <span>Hospitals: <b>{coverage.hospitals ?? "—"}</b></span>
+          <span>Police: <b>{coverage.police ?? "—"}</b></span>
+          <span>Pharmacies: <b>{coverage.pharmacy ?? "—"}</b></span>
+          <span>Fire & Rescue: <b>{coverage.fire_station ?? "—"}</b></span>
+        </div>
+        <form className="flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); load(false) }}>
+          <input className="input-field" placeholder="Search Dadeldhura, Amargadhi, pharmacy…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <select className="input-field max-w-[180px]" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="">All types</option>
+            {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <button type="submit" className="px-4 rounded-xl bg-rose-700 text-white font-black">Search</button>
+        </form>
+      </div>
+
+      {pending.length > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="font-black text-slate-900 mb-2 flex items-center gap-1.5"><FiAlertTriangle className="text-amber-600" /> Pending community submissions ({pending.length})</h3>
+          <p className="text-xs text-slate-500 mb-3">These stay hidden until an administrator verifies them. Approve from Infrastructure, or add the verified row here.</p>
+          <div className="space-y-2">
+            {pending.map((row) => (
+              <div key={row.id} className="rounded-xl border border-amber-200 bg-white p-3">
+                <p className="font-bold text-slate-900">{row.name}</p>
+                <p className="text-xs text-slate-500">{row.kind} · {row.district || "Nepal"} · {row.status} · {row.phone || "no phone"}</p>
+              </div>
+            ))}
+          </div>
+          <Link to="/submit-service" className="inline-block mt-3 text-xs font-black text-rose-800 underline">Open public submit form</Link>
+        </section>
+      )}
+
+      <div className="grid xl:grid-cols-[360px_1fr] gap-5">
+        <form onSubmit={save} className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+          <h3 className="font-black text-slate-900">Add a verified local service</h3>
+          <select className="input-field" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
+            {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <input className="input-field" required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <input className="input-field" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <input className="input-field" placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2">
+            <input className="input-field" placeholder="District (e.g. Dadeldhura)" value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} />
+            <input className="input-field" placeholder="Province" value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input className="input-field" required placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
+            <input className="input-field" required placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
+          </div>
+          <input className="input-field" placeholder="HTTPS source URL (optional)" value={form.source_url} onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
+          <button type="submit" className="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black py-2 flex items-center justify-center gap-2">
+            <FiPlus /> Save to database & CSV
+          </button>
+        </form>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black text-slate-900 mb-3">Directory rows</h3>
+          <div className="space-y-2 max-h-[80vh] overflow-y-auto">
+            {rows.length === 0 && <p className="text-sm text-slate-500">No matching records. Add an accurate row for this district.</p>}
+            {rows.map((row) => (
+              <div key={`${row.kind}-${row.id}`} className="rounded-xl border border-slate-200 p-3">
+                <p className="font-bold text-slate-900">{row.name}</p>
+                <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
+                <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>
+                <div className="flex gap-2 mt-2">
+                  {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}
+                  {!row.is_archived && <button type="button" onClick={() => act(row, "archive")} className="text-xs font-bold text-rose-700">Archive</button>}
+                  {row.is_archived && <button type="button" onClick={() => act(row, "restore")} className="text-xs font-bold text-slate-700">Restore</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}

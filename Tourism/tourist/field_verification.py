@@ -31,7 +31,10 @@ class FieldVerificationReportSerializer(serializers.ModelSerializer):
             "hazards_observed", "transport_ease", "local_helpfulness", "local_behavior_notes",
             "general_notes", "review_status", "reviewed_by", "review_note", "photos", "created_at",
         ]
-        read_only_fields = ["submitted_by", "review_status", "reviewed_by", "review_note"]
+        # `task` is set by the view (submit_report passes task=task), never
+        # by the client — without read_only the serializer rejects every
+        # submission with "task: This field is required."
+        read_only_fields = ["task", "submitted_by", "review_status", "reviewed_by", "review_note"]
 
 
 class FieldVerificationTaskSerializer(serializers.ModelSerializer):
@@ -73,7 +76,7 @@ class FieldVerificationTaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(assigned_by=self.request.user)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], url_path="submit-report")
     def submit_report(self, request, pk=None):
         """
         POST /field-verification-tasks/{id}/submit-report/

@@ -16,11 +16,11 @@ const WeatherCard = ({ location, temp_c, condition = "clear", humidity, wind_kmh
   const Icon = CONDITION_ICON[condition?.toLowerCase()] || FiSun
 
   if (loading) {
-    return <div className="card-base p-5 h-32 skeleton" />
+    return <div className="card-base overflow-hidden p-5 h-32 skeleton" />
   }
 
   return (
-    <div className="card-base p-5 bg-gradient-to-br from-himalaya-500 to-himalaya-700 text-white">
+    <div className="card-base overflow-hidden p-5 bg-gradient-to-br from-himalaya-500 to-himalaya-700 text-white">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-white/80">{location || "Current location"}</p>

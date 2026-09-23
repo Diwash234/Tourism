@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /destinations
+Allow: /explore-map
+Allow: /emergency
+Allow: /language
+Allow: /about
+Allow: /contact
+Disallow: /admin/
+Disallow: /staff/
+Disallow: /profile/
+Disallow: /my-bookings/
+Disallow: /settings/
+Disallow: /api/
+
+Sitemap: https://nepaltourism.gov.np/sitemap.xml

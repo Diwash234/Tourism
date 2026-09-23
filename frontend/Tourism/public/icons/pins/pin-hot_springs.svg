@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#E11D48" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAM1BMVEVHcEzdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkTdLkQVM82yAAAAEXRSTlMAEL//z49A7yCfUGCvgHAw3yn6ulQAAAHkSURBVHgB7dbBbuMgFIVhLgcAbAO8/9NOe2UVMyI9ZBZZzbf7VeWKGIJrFkRI7RELWOHFiMMXy4vxUEKKCoASUpSFsqR2FxQTLSJDHaQ4KEuKO6BOXlt7H3nt7dnFiov4VlhxUIHW/0EHr71dy7yYCyrxIk4oy4uJUJUXUaBio8V0KCektu/sTIvxUKi0GDceBSkiRShHizmgUGntngGhxTiowotoUJ3Xx96TCcqT2r5PLC+mQvFiAhSpTw5qULw+tqITitT2reRIbd+4F6sF8YubpPLyYiatp8XPP/FKvU1zYl2ca8tKO7bnnL56kwRWqo9J0uGn5UFZWsqjy9jPMH8v1UjdwvOCGYPE4lZIPQbdT94/B1ncMqvHoHtJ7jFIcHNC6jnoPubQkfOgLKzmX9PP3/v81QqtoU+DcD4etm2G1XCOq+CXVycncQxyiye4S+4Pa3ioS/5hzvV8yaXlru6vZ1wF/s4YzFtChBqHp2NxRBjJuHWZfu8qFtkcU8Zn2nxz3GJuhmo5YjVHJw2uJvOLVB2wmqOSw1PP53Jh7cwdTy4t/3Oc2avU8K2FL7VcFn8ryyVnvCknsxbeGpWDeS35ji3dJ0McudMp+TBbWr36yyFXbeYdEmqxNuJHtLbUIOaFP+azIC53s783AAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>hot_springs</title>
+</svg>

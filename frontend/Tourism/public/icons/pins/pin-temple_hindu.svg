@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#EA580C" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAArlBMVEVHcEzHUh7/gETHUh7HUh7HUh7HUh7/gETHUh7/gERmIRP/gETHUh7HUh7HUh5mIRPHUh7HUh5mIRNmIRPHUh7HUh7HUh7/gERmIRPHUh7/gET/gET/gET/gET/gESVPiJmIRNmIRNmIRPHUh7/gEQpLzNyJxT/oGydPRlsJBR4KhXBTx2XOhmEMBb/kFijQBpkPCszMTKzTiGMRSagSSNaOizZaDi7TB2zUSy8Vi9I/pgDAAAAInRSTlMAQEC/IDDfn4C/QICPEO+/z2Bwn3BQrxAQn+8wcK/fz4+A+4FSMAAAAhVJREFUeF7l1Ndu4zAQhWHbkmy6xY4Tp2zfGUpu6WXL+7/YrogDKyMPCEvkRbD7X+rigwgcsvN/N5tFgojscDge93oRIOTA1s6I6Ifd96UXBxpfdmJAw48AQiEcKxyyny+DIfThU3toQfTbVg1bQ9+JfjkhdJTfiL4CCGtGhMv2XiD6WwznqoSuIkCjEhpFgBYltIgAnZXQWbgzsK5BJCdc4n3/GpRUUBLiTJhvyHXDPGnvpMy8JdeWmdOQH2JCHPJLcwnNW0MsIQ6Bfgoo1h9Nox3tXUAFuQpAYU9I+6dkmsJRpHTaAOoaOIpkuo0gOIpklg2g8wkeIr4ndI8PHWMaQCYBtNsQ2uwAJU2g6z6gNe1bA5pfHO9kJ3zKrtsKumXXKZ9kR0OGGW9sUUFbdiXM5qj9lPUZMb2JEfcdkE79+yljL4Q313TDocxBS+9+xB27W4nuxJ0zxr8f56BVLXHnEuPdDxwfBGl+4d+Pc3xHg3Su7EnZD1pvaN9mzci/J7kfeWPlvRV70uNahYQKrpUqi1YhqrVjWYaF14eI/YgVqUuSe+oKyDmylZI9lMxSLBpOEwiSMWLRcJocDVJilBdR9PJqbf4ma19f+CAsXLyIsuc8l1DJPksFL6a+aPSUa1D+BEBfeJ8Pe9ChBwD6wlnpUYceWSn1QbkO5RqUwcGC1FX7J4AGioNWnqwiwQmBIMEJORqkP9KRBgTmddWvAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>temple_hindu</title>
+</svg>

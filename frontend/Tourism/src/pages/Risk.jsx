@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
-import { predictRisk } from "../services/mlService"
+import { getRisk as predictRisk } from "../services/mlService"
 
 import Loader from "../components/common/Loader"
 import EmptyState from "../components/common/EmptyState"
@@ -13,6 +15,9 @@ const Risk = () => {
 
 
   useEffect(() => {
+    // Deferred one tick: keeps synchronous setState out of the effect
+    // flush (react-hooks/set-state-in-effect) without changing behavior.
+    const t = setTimeout(() => {
 
     if (!navigator.geolocation) {
       setLoading(false)
@@ -37,11 +42,16 @@ const Risk = () => {
 
           setRisk(result)
 
+
         } catch (error) {
 
-          console.log("Risk prediction error:", error)
+          console.log(
+            "Risk prediction error:",
+            error
+          )
 
           setRisk(null)
+
 
         } finally {
 
@@ -54,15 +64,18 @@ const Risk = () => {
 
       (error) => {
 
-        console.log("Location error:", error)
+        console.log(
+          "Location error:",
+          error
+        )
 
         setLoading(false)
 
       }
 
     )
-
-
+    }, 0)
+    return () => clearTimeout(t)
   }, [])
 
 
@@ -98,15 +111,12 @@ const Risk = () => {
     <div className="container-app py-10 theme-amber">
 
 
-      <h1 className="section-title">
-
-        Travel Safety Risk
-
-      </h1>
+      <PageHeader title="Travel Safety Risk" />
+      <CMSPageIntro pageKey="risk-alerts" />
 
 
 
-      <div className="card-base p-6 mt-5">
+      <div className="card-base overflow-hidden p-6 mt-5">
 
 
         <p>
@@ -120,6 +130,12 @@ const Risk = () => {
           </strong>
 
         </p>
+
+        {risk?.degraded && (
+          <p className="mt-2 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            ⚠️ {risk.data_note || "Limited local risk data for this location — showing a general estimate."}
+          </p>
+        )}
 
 
 
