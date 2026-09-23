@@ -61,11 +61,12 @@ const Login = () => {
       setVerifyMsg({ text: "Enter your email above, then press 'Send link'.", ok: false })
       return
     }
-    setVerifyEmail("")
+    // Keep the email until the send succeeds (see UserLogin.jsx).
     setVerifyBusy(true)
     setVerifyMsg(null)
     try {
       const { data } = await authApi.resendVerification(email)
+      setVerifyEmail("")
       setVerifyMsg({ text: data.message || "Verification link sent — check your inbox.", ok: true })
     } catch (err) {
       const d = err?.response?.data

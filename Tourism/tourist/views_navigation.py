@@ -1064,7 +1064,13 @@ class TravelBetweenDestinationsView(APIView):
         except ValueError:
             limit = 24
 
-        cache_key = f"travel-between:{origin}:{limit}"
+        # Sanitize for the cache key: memcached rejects keys containing
+        # spaces/colons, and `origin` is free-form user input (a name,
+        # slug or "dest:<id>").
+        import hashlib
+
+        digest = hashlib.sha1(origin.encode("utf-8", "ignore")).hexdigest()[:16]
+        cache_key = f"travel-between-{digest}-{limit}"
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)

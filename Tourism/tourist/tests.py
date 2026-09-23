@@ -5129,8 +5129,100 @@ class TravelBetweenDestinationsViewTests(APITestCase):
         self.assertEqual(r.status_code, 400)
 
     def test_caches_per_origin(self):
+        import hashlib
         from django.core.cache import cache
         r = self.client.get("/api/v1/navigation/travel-between/",
                             {"from": self.a.slug, "limit": 10})
         self.assertEqual(r.status_code, 200)
-        self.assertIsNotNone(cache.get(f"travel-between:{self.a.slug}:10"))
+        # Cache key is sanitized (memcached-safe); must match the view's.
+        digest = hashlib.sha1(self.a.slug.encode("utf-8", "ignore")).hexdigest()[:16]
+        self.assertIsNotNone(cache.get(f"travel-between-{digest}-10"))
+
+
+class FieldVerificationWorkflowTests(APITestCase):
+    """
+    /field-verification-tasks/ assign -> submit -> review workflow.
+
+    Regression coverage for two real bugs found by live testing (Round
+    21e):
+      1. The submit_report action was routed at "submit_report/"
+         (underscore) while its own docstring documents "submit-report/"
+         -- any client following the documented URL got a 404.
+      2. The report serializer had a writable `task` field, so every
+         submission was rejected with "task: This field is required."
+         even though the view sets task server-side.
+    """
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.core.cache import cache
+        from .models import FieldVerificationTask
+        cache.clear()
+        self.dest = Destination.objects.create(
+            name="Test Temple", slug="test-temple",
+            district="Kathmandu", province="Bagmati Province",
+            status="approved", is_active=True,
+            latitude=Decimal("27.7172"), longitude=Decimal("85.3206"))
+        self.admin = User.objects.create_user(
+            email="fv-admin@example.com", password="StrongPass123!",
+            role="tourism_admin", is_staff=True, is_verified=True)
+        self.verifier = User.objects.create_user(
+            email="fv-verifier@example.com", password="StrongPass123!",
+            role="tourist", is_verified=True)
+        self.task = FieldVerificationTask.objects.create(
+            destination=self.dest, assigned_to=self.verifier,
+            assigned_by=self.admin, due_date="2026-10-01",
+            instructions="Check the pin")
+
+    def test_submit_report_uses_hyphen_url_and_task_is_not_client_required(self):
+        self.client.force_authenticate(self.verifier)
+        r = self.client.post(
+            f"/api/v1/field-verification-tasks/{self.task.id}/submit-report/",
+            {"visit_date": "2026-09-20", "is_place_accurate": True,
+             "general_notes": "Pin is right."})
+        self.assertEqual(r.status_code, 201, r.data)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "submitted")
+        # The report's task FK was set by the VIEW, not the payload.
+        self.assertEqual(self.task.report.task, self.task)
+        self.assertEqual(self.task.report.submitted_by, self.verifier)
+
+    def test_double_submit_rejected(self):
+        self.client.force_authenticate(self.verifier)
+        payload = {"visit_date": "2026-09-20", "general_notes": "first"}
+        self.assertEqual(
+            self.client.post(
+                f"/api/v1/field-verification-tasks/{self.task.id}/submit-report/", payload
+            ).status_code, 201)
+        again = self.client.post(
+            f"/api/v1/field-verification-tasks/{self.task.id}/submit-report/",
+            {"visit_date": "2026-09-21", "general_notes": "second"})
+        self.assertEqual(again.status_code, 400)
+        self.assertIn("already been submitted", again.data["detail"])
+
+    def test_review_requires_report_and_approves(self):
+        self.client.force_authenticate(self.verifier)
+        self.client.post(
+            f"/api/v1/field-verification-tasks/{self.task.id}/submit-report/",
+            {"visit_date": "2026-09-20", "general_notes": "ok"})
+        self.client.force_authenticate(self.admin)
+        r = self.client.post(
+            f"/api/v1/field-verification-tasks/{self.task.id}/review/",
+            {"decision": "approved", "note": "Good report"})
+        self.assertEqual(r.status_code, 200, r.data)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "reviewed")
+        self.assertEqual(self.task.report.review_status, "approved")
+
+    def test_only_assigned_verifier_can_submit(self):
+        # The queryset is scoped to assigned_to=user for non-admins, so a
+        # stranger can't even see the task -> get_object() 404s (no
+        # existence leak). Either 404 (hidden) or 403 (denied) is correct.
+        stranger = User.objects.create_user(
+            email="fv-stranger@example.com", password="StrongPass123!",
+            role="tourist", is_verified=True)
+        self.client.force_authenticate(stranger)
+        r = self.client.post(
+            f"/api/v1/field-verification-tasks/{self.task.id}/submit-report/",
+            {"visit_date": "2026-09-20", "general_notes": "not mine"})
+        self.assertIn(r.status_code, (403, 404))

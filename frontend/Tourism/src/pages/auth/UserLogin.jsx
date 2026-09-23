@@ -34,11 +34,13 @@ export default function UserLogin() {
       setVerifyMsg({ text: "Enter your email, then press 'Send link'.", ok: false })
       return
     }
-    setVerifyEmail("")
+    // Keep the email in the box until the request succeeds, so a failed
+    // send (throttled, network…) doesn't cost the user their input.
     setVerifyBusy(true)
     setVerifyMsg(null)
     try {
       const { data } = await authApi.resendVerification(email)
+      setVerifyEmail("")
       setVerifyMsg({ text: data.message || "Verification link sent — check your inbox.", ok: true })
     } catch (err) {
       const d = err?.response?.data

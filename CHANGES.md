@@ -2,6 +2,60 @@
 
 ---
 
+## 🐛 Round 21e: Bug hunt — 2 real API bugs in the revived field-verification flow + 2 smaller fixes
+
+Owner request: keep updating, fix anything that errors/bugs.
+
+### Live smoke test (whole API surface)
+Re-ran every feature group end-to-end against the running server
+(public catalog, distances, ML itinerary, itineraries, trip feedback,
+field verification, travel-plans, admin panel, auth flows): 23/23 real
+checks pass; the initial "failures" were all my own wrong test inputs
+(e.g. `travel-between` takes `from=<slug>`, not coordinates).
+
+### Fixed: field verification could never submit a report
+The assign → submit → review workflow (merged from main in 21b) had
+**two** bugs that made every submission fail:
+1. **Wrong route** — the `submit_report` action was reachable at
+   `.../submit_report/` (underscore) while its own docstring documents
+   `.../submit-report/` (hyphen, matching the API's convention). Any
+   client following the documented URL got a 404. → added
+   `url_path="submit-report"`.
+2. **Serializer rejected every payload** — `task` was a writable field
+   on the report serializer, but the view sets it server-side, so all
+   submissions died with `"task: This field is required."` → made
+   `task` read-only.
+
+Verified live: task → submit-report → (double-submit rejected) →
+admin review approved, full loop 201/400/200. 4 new regression tests
+lock in: hyphen URL, task not client-required, double-submit
+rejection, review approval, stranger 404 (no existence leak).
+
+### Fixed: travel-between cache key was memcached-unsafe
+The cache key was `travel-between:<origin>:<limit>` with `origin` being
+free-form user input (spaces/colons) — Django logged a
+`CacheKeyWarning` and it would break the moment the cache backend
+becomes memcached. → sanitized via sha1 digest. Test updated to match.
+
+### Fixed: verify-email box lost the email on failure
+On `/login` (UserLogin) and `/portal` (Login), the "activate account"
+box cleared the email field *before* the resend request finished, so a
+throttled/failed send made the user retype their email. Now cleared
+only on success.
+
+### Verified working (no change needed)
+- `admin-panel/my-hotels/` returns all hotels for super-admins by
+  design (frontend consumes the full list) — large but intentional.
+- ML itinerary falls back to the internal DB engine when the ML service
+  (port 8001) is down — honest `source` label, 200.
+- `trip-feedback` requires an `itinerary` (non-null FK by design).
+- Weather 503 without an API key — honest, not fabricated.
+
+**555 backend tests OK** (551 + 4 new). Frontend lint 0 errors, build
+green.
+
+---
+
 ## 🔍 Round 21d: Whole-project audit — one real API gap found and fixed, i18n/dark-mode coverage for the new UI
 
 Owner request: check the whole project and fill anything missing.
