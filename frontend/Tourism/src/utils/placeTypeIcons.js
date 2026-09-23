@@ -1,9 +1,10 @@
 import {
   FaMountain, FaGopuram, FaChurch, FaMosque, FaHiking, FaWater, FaUtensils,
-  FaHotel, FaTree, FaLandmark, FaTheaterMasks, FaFish, FaCampground,
+  FaHotel, FaTree, FaLandmark, FaTheaterMasks, FaCampground,
   FaMapMarkerAlt, FaShoppingBag, FaCamera, FaSun, FaCloudRain, FaRoute,
   FaSpa, FaPaw, FaSeedling, FaGlassCheers, FaFire, FaSnowflake,
   FaUmbrellaBeach, FaAppleAlt, FaBaby, FaWalking, FaMoneyBillWave, FaStar,
+  FaHospital,
 } from "react-icons/fa"
 
 /**
@@ -21,6 +22,37 @@ import {
  */
 
 const TYPES = [
+  // Service places come FIRST: their name IS the identity. A "Rudra Resort,
+  // Bardiya" is a hotel (not a wildlife spot); "Nepal Bank Limited, Kaski"
+  // is a bank (not a market); "Buddha Hospital, Bhaktapur" is a hospital
+  // (not a temple). Theme keywords below must never override these.
+  {
+    key: "hospital",
+    Icon: FaHospital,
+    label: "Hospital / Clinic",
+    chip: "bg-red-100 text-red-900",
+    emoji: "🏥",
+    pin: "#DC2626",
+    keywords: ["hospital", "clinic", "medical", "health post", "healthpost", "poly clinic", "polyclinic", "ambulance", "dha ", "dhars", "base camp hospital"],
+  },
+  {
+    key: "hotel",
+    Icon: FaHotel,
+    label: "Hotel / Lodge",
+    chip: "bg-sky-100 text-sky-900",
+    emoji: "🏨",
+    pin: "#0369A1",
+    keywords: ["hotel", "lodge", "resort", "inn ", "guest house", "guesthouse", "hostel", "banquet and party", "palace hotel"],
+  },
+  {
+    key: "money",
+    Icon: FaMoneyBillWave,
+    label: "Bank / ATM",
+    chip: "bg-green-100 text-green-900",
+    emoji: "🏦",
+    pin: "#15803D",
+    keywords: ["bank", "atm", "exchange"],
+  },
   {
     key: "waterfall",
     Icon: FaWater,
@@ -55,7 +87,10 @@ const TYPES = [
     chip: "bg-orange-100 text-orange-900",
     emoji: "🛕",
     pin: "#EA580C",
-    keywords: ["temple", "mandir", "mandira", "mandir", "pashupatinath", "pashupati", "swayambhu", "boudha", "boudhanath", "kasthamandap", "tal barahi", "barahi", "chharghat", "chhargo", "shivapuri", "nagkotha", "changu narayan", "nagadevta", "deusi", "mukti", "patal chhango", "devis fall"],
+    // NOTE: stupa names (boudhanath, swayambhunath, …) live ONLY in the
+    // "stupa" type below — they are Buddhist, not Hindu, and temple matches
+    // first in the scan order, so listing them here would mislabel them.
+    keywords: ["temple", "mandir", "mandira", "mandir", "pashupatinath", "pashupati", "kasthamandap", "tal barahi", "barahi", "chharghat", "chhargo", "shivapuri", "nagkotha", "changu narayan", "nagadevta", "deusi", "mukti", "patal chhango", "devis fall"],
   },
   {
     key: "stupa",
@@ -229,15 +264,6 @@ const TYPES = [
     keywords: ["orchard", "mango", "apple farm", "budi", "citrus"],
   },
   {
-    key: "hotel",
-    Icon: FaHotel,
-    label: "Hotel / Lodge",
-    chip: "bg-sky-100 text-sky-900",
-    emoji: "🏨",
-    pin: "#0369A1",
-    keywords: ["hotel", "lodge", "resort", "inn ", "guest house", "guesthouse", "hostel", "banquet and party", "palace hotel"],
-  },
-  {
     key: "village",
     Icon: FaMapMarkerAlt,
     label: "Village",
@@ -326,15 +352,6 @@ const TYPES = [
     emoji: "",
     pin: "#9333EA",
     keywords: ["party", "club", "nightlife", "bar ", "pub"],
-  },
-  {
-    key: "money",
-    Icon: FaMoneyBillWave,
-    label: "Bank / ATM",
-    chip: "bg-green-100 text-green-900",
-    emoji: "💴",
-    pin: "#15803D",
-    keywords: ["bank", "atm", "exchange"],
   },
   {
     key: "attraction",

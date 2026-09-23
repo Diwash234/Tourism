@@ -971,7 +971,7 @@ export default function DestinationDetails() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(pois.categories?.[poiTab]?.results || []).map((row) => (
                 <a
-                  key={`${row.osm_id}-${row.name}`}
+                  key={`${row.osm_id || row.slug || row.name}-${row.name}`}
                   href={`https://www.openstreetmap.org/?mlat=${row.latitude}&mlon=${row.longitude}#map=17/${row.latitude}/${row.longitude}`}
                   target="_blank"
                   rel="noreferrer"
@@ -979,7 +979,14 @@ export default function DestinationDetails() {
                 >
                   <div className="min-w-0">
                     <p className="truncate font-bold text-sm text-slate-900">{row.name}</p>
-                    <p className="text-[11px] text-slate-500">{pois.categories[poiTab].label} · OpenStreetMap</p>
+                    <p className="truncate text-[11px] text-slate-500">
+                      {pois.categories[poiTab].label} · {row.source || "OpenStreetMap"}
+                    </p>
+                    {row.latitude != null && row.longitude != null && (
+                      <p className="text-[10px] text-slate-400 tabular-nums">
+                        {formatCoords(row.latitude, row.longitude)} · straight-line {row.distance_km} km
+                      </p>
+                    )}
                   </div>
                   <span className="shrink-0 rounded-full bg-primary-600 px-2.5 py-1 text-[11px] font-black text-white">
                     {row.distance_km} km

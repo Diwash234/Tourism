@@ -231,7 +231,11 @@ class LocationSearchService:
             })
 
         # 2. Search OSMEssentialService (Banks, ATMs, Pharmacies, Stores, Gas Stations, etc.)
-        osm_qs = OSMEssentialService.objects.exclude(is_archived=True)
+        # Anonymous OSM nodes imported without a name are carried as
+        # "<Category> (name not recorded in OSM)" — a real, located facility
+        # but not a nameable place; keep them out of user-facing lists.
+        osm_qs = OSMEssentialService.objects.exclude(is_archived=True).exclude(
+            name__icontains="name not recorded")
         if cat_filter:
             osm_qs = osm_qs.filter(category__icontains=cat_filter)
         elif search_term:

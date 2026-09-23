@@ -2,6 +2,71 @@
 
 ---
 
+## 🧭 Round 17: Destination enrichment — real nearby services, honest data, fixed location icons
+
+### 1. Nearby banks / ATMs / pharmacies were always empty — now real (DEF-027)
+- `GET /destinations/<ref>/nearby-pois/` had no database branch for
+  banks/ATMs/pharmacies, so it answered "live OpenStreetMap required" even
+  though the DB already held **838 bank + 346 ATM + 351 pharmacy** rows with
+  real OSM coordinates.
+- The offline fallback now serves them from the `OSMEssentialService`
+  directory (bounding-box + haversine, real coordinates, honest source
+  labels). Verified live:
+  - Boudhanath → sunrise bank 0.16 km · macchapuchre bank 0.17 km ·
+    Siddartha Bank 0.19 km (all named, all with coordinates).
+  - Dhangadhi → Nepal Bank Limited — Dhangadhi Branch 3.5 km with the
+    honest "approximate — district HQ municipality" provenance.
+- 541 anonymous OSM nodes (imported as "Bank (name not recorded in OSM)")
+  are excluded from every user-facing nearby list — a real, located
+  facility but not a nameable place.
+
+### 2. "More real destinations" — junk curated out, real ones kept
+- 10 clearly non-tourist records were **archived** (status=archived,
+  is_active=False — recoverable, never deleted): an engineering
+  consultancy, a wire supplier, a road-construction board office (×2), a
+  private training centre, a bank misfiled under "Lakes", an IT firm, a
+  parts supplier, and a company with boilerplate description. Public
+  destinations 4,760 → 4,750 — all with real coordinates.
+- Real travel agencies, trekking operators and hotels (whose Nepali
+  corporate names contain "Pvt Ltd") were deliberately **kept**.
+
+### 3. Nearby POI cards now show what the user asked for
+- Each nearby hotel/hospital/bank/… card now displays its **coordinates**
+  plus the straight-line distance, and the row's real `source` (e.g.
+  "Tourism database — bank directory (OSM-sourced)") instead of a
+  hard-coded "OpenStreetMap" label. Cards link out to the exact OSM
+  location.
+
+### 4. Location icons fixed
+- **Hospital** type added (🏥 red pin, `FaHospital`) — hospitals previously
+  fell through to the generic pin.
+- Bank icon corrected 💴 (a *yen* note) → 🏦.
+- Service identity now wins over theme keywords: "Rudra Resort, Bardiya" is
+  a hotel (not a wildlife spot), "Nepal Bank Limited, Kaski" is a bank,
+  "Buddha Hospital, Bhaktapur" is a hospital.
+- Buddhist **stupas** (Boudhanath, Swayambhunath) no longer mislabelled as
+  Hindu temples — stupa names live only in the stupa type.
+- 13/13 resolution tests pass (resort-in-wildlife-area, bank, hospital,
+  stupa-vs-temple, park, lake, cave, village, viewpoint, health post…).
+
+### 5. Real routes / distance / displacement / turn-by-turn — verified in place
+- `POST /navigation/travel-plan/` returns road distance + duration, the
+  **straight-line displacement** (`straight_line_km`), a per-mode table
+  (drive/walk/cycle/fly) with honest source + grade, and genuine
+  alternatives. `GettingThereCard` on every destination page renders it
+  (grade badge: real-road / corridor-estimate / estimate) with one-tap
+  hand-off to the Travel Planner and live turn-by-turn navigation.
+- Unresolvable endpoints fail **honestly** (422 "could not be resolved to a
+  real place") — never a fabricated route. On a host with
+  `ROUTING_BASE_URL` set, the same flow is `ROAD-VERIFIED` via OSRM.
+
+### Verification
+- Backend suite 481/481 OK · eslint 0 errors on touched files · `vite build`
+  clean. Defect DEF-027 registered. Icon resolution verified with 13
+  bundled module tests.
+
+---
+
 ## 🧭 Round 16: Auth clarity + the 30-second login/Explore mystery, solved
 
 ### 1. Signup — "passwords do not match" is now said out loud

@@ -1809,13 +1809,14 @@ class DestinationNearbyPOIsView(APIView):
 
         Hospitals/police come from the curated service directories, stays
         from name-matched approved destinations, category groups from
-        categorized destinations. Categories with no offline records
-        (e.g. banks/ATMs) come back empty with an explicit note — they are
-        never fabricated.
+        categorized destinations, and banks/ATMs/pharmacies from the
+        OSM-sourced essential-service directories (real imported
+        coordinates — never fabricated). Any category still without
+        offline records comes back empty with an explicit note.
         """
         from django.db.models import Q
 
-        from .models import Destination, Hospital, PoliceStation
+        from .models import Destination, Hospital, OSMEssentialService, PoliceStation
 
         box = bounding_box(lat, lon, radius_km)
         bbox = dict(latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
@@ -1846,6 +1847,15 @@ class DestinationNearbyPOIsView(APIView):
                           "restaurants": ["food-culinary"],
                           "peaks": ["mountains", "hills"]}
 
+        # OSM-sourced essential-service directories (imported, real
+        # coordinates, never fabricated): banks, ATMs, pharmacies.
+        service_categories = {
+            "banks": (["bank"], "Tourism database — bank directory (OSM-sourced)"),
+            "atms": (["atm"], "Tourism database — ATM directory (OSM-sourced)"),
+            "pharmacies": (["pharmacy"],
+                           "Tourism database — pharmacy directory (OSM-sourced)"),
+        }
+
         categories = {}
         for key in wanted:
             if key == "hospitals":
@@ -1865,6 +1875,17 @@ class DestinationNearbyPOIsView(APIView):
                              for d in dest_qs.filter(
                                  category__slug__in=category_slugs[key])),
                             "Tourism database — admin-verified destinations")
+            elif key in service_categories:
+                svc_cats, svc_label = service_categories[key]
+                data = rows(((s.name, s.latitude, s.longitude,
+                              {"phone": s.phone or None,
+                               "address": s.address or None})
+                             for s in OSMEssentialService.objects.filter(
+                                 category__in=svc_cats, is_archived=False,
+                                 **bbox)
+                             # skip anonymous OSM nodes (no real name)
+                             .exclude(name__icontains="name not recorded")),
+                            svc_label)
             else:
                 data = []
             entry = {"label": cls.CATEGORIES[key][1], "results": data}
