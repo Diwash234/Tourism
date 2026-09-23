@@ -1,28 +1,26 @@
 import L from "leaflet"
 import { getPlaceTypeIcon } from "../../utils/placeTypeIcons"
+import { LOCATION_PIN_URL } from "../../utils/locationIcons"
 
-const shadowSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 18" width="40" height="18">
-  <ellipse cx="20" cy="9" rx="16" ry="6" fill="#000000" fill-opacity="0.25"/>
-</svg>`
-const shadowDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(shadowSvg)}`
+/**
+ * Leaflet map markers.
+ *
+ * Place markers are REAL icon pins: a coloured teardrop carrying the
+ * place's actual icon artwork (Twemoji — Mozilla, CC-BY 4.0), e.g. a 🏥
+ * pin for hospitals, 🏦 for banks, 🏨 for hotels, 🛕 for temples. The pin
+ * SVGs are pre-generated (scripts/generate-location-pins.mjs) with the icon
+ * embedded as a base64 data URI — Leaflet loads pin icons through <img>,
+ * whose document context forbids external resource loads.
+ */
 
-const makeSvgIcon = (colorHex, letter = "") => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
-    <path fill="${colorHex}" stroke="#FFFFFF" stroke-width="2" d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z"/>
-    <circle cx="16" cy="15" r="7" fill="#FFFFFF"/>
-    ${letter ? `<text x="16" y="19" font-size="10" font-weight="900" font-family="sans-serif" text-anchor="middle" fill="${colorHex}">${letter}</text>` : `<circle cx="16" cy="15" r="4" fill="${colorHex}"/>`}
-  </svg>`
-  const iconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-  return new L.Icon({
-    iconUrl,
-    shadowUrl: shadowDataUrl,
-    iconSize: [32, 42],
-    iconAnchor: [16, 42],
-    popupAnchor: [0, -38],
-    shadowSize: [32, 16],
-    shadowAnchor: [16, 8],
-  })
+const PIN_GEOMETRY = {
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -38],
 }
+
+const makePinIcon = (key, alt) =>
+  new L.Icon({ iconUrl: LOCATION_PIN_URL(key), alt, ...PIN_GEOMETRY })
 
 // Navigation arrow pointer (Google-Maps-style): emerald disc with a white
 // directional triangle. Original SVG — no third-party icon assets.
@@ -43,45 +41,20 @@ export const makeUserArrowIcon = (deg = 0) => {
 }
 
 export const userIcon = makeUserArrowIcon(0)
-export const destinationIcon = makeSvgIcon("#DC2626", "D")
-export const hospitalIcon = makeSvgIcon("#059669", "+")
-export const policeIcon = makeSvgIcon("#7C3AED", "P")
-export const attractionIcon = makeSvgIcon("#D97706", "★")
+export const destinationIcon = makePinIcon("destination", "Destination")
+export const hospitalIcon = makePinIcon("hospital", "Hospital")
+export const policeIcon = makePinIcon("police", "Police")
+export const attractionIcon = makePinIcon("attraction", "Attraction")
 
-/**
- * Place-type map pin — the pin is colour-coded and carries the type's emoji
- * (🛕 temple, 🏔️ mountain, 💦 waterfall…) so a destination "shows the actual
- * destination" at its location icon, per destination type.
- */
-const makeTypePinIcon = (colorHex, emoji = "") => {
-  const safeEmoji = emoji ? encodeURIComponent(emoji) : ""
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
-    <path fill="${colorHex}" stroke="#FFFFFF" stroke-width="2" d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z"/>
-    <circle cx="16" cy="15" r="8" fill="#FFFFFF"/>
-    ${safeEmoji ? `<text x="16" y="19" font-size="10" text-anchor="middle">${decodeURIComponent(safeEmoji)}</text>` : ""}
-  </svg>`
-  const iconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-  return new L.Icon({
-    iconUrl,
-    shadowUrl: shadowDataUrl,
-    iconSize: [32, 42],
-    iconAnchor: [16, 42],
-    popupAnchor: [0, -38],
-    shadowSize: [32, 16],
-    shadowAnchor: [16, 8],
-  })
-}
-
-const typeIconCache = new Map()
+const pinCache = new Map()
 
 /** Leaflet icon for a destination-shaped object (memoized per type key). */
 export const placeTypeIcon = (destination) => {
   const type = getPlaceTypeIcon(destination || {})
-  if (!typeIconCache.has(type.key)) {
-    typeIconCache.set(type.key, makeTypePinIcon(type.pin || "#D97706", type.emoji || ""))
+  // The generic fallback type is keyed "place" but carries the 📍 pin icon.
+  const pinKey = type.key === "place" ? "pin" : type.key
+  if (!pinCache.has(pinKey)) {
+    pinCache.set(pinKey, makePinIcon(pinKey, type.label))
   }
-  return typeIconCache.get(type.key)
+  return pinCache.get(pinKey)
 }
-
-export const createCustomIcon = (colorHex, label = "") => makeSvgIcon(colorHex, label)
-export default makeSvgIcon

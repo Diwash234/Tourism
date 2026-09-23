@@ -15,6 +15,7 @@ import emergencyApi from "../../api/emergencyApi"
 import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
 import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
+import { LOCATION_ICON_URL } from "../../utils/locationIcons"
 import { photoApi } from "../../services/api"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { CMSExtras } from "../../components/cms/CMSBlock"
@@ -38,6 +39,20 @@ import CircularGallery from "../../components/ui/CircularGallery"
 import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
 import DestinationHero from "../../components/destinations/DestinationHero"
+
+// Real icon per nearby-POI category (Twemoji — Mozilla, CC-BY 4.0).
+const POI_CATEGORY_ICONS = {
+  hotels: "hotel",
+  hospitals: "hospital",
+  temples: "temple_hindu",
+  viewpoints: "viewpoint",
+  restaurants: "food",
+  banks: "money",
+  atms: "money",
+  pharmacies: "pharmacy",
+  police: "police",
+  peaks: "mountain",
+}
 
 export default function DestinationDetails() {
   const { slug } = useParams()
@@ -890,17 +905,23 @@ export default function DestinationDetails() {
 
             <div className="space-y-2 text-xs">
               {(emergency?.hospitals || []).slice(0, 2).map((row) => (
-                <div key={row.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <div key={row.id} className="flex items-start gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <img src={LOCATION_ICON_URL("hospital")} alt="Hospital" draggable={false} className="w-6 h-6 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
                   <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "102"}</p>
                   {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
+                  </div>
                 </div>
               ))}
               {(emergency?.police || []).slice(0, 1).map((row) => (
-                <div key={row.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <div key={row.id} className="flex items-start gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <img src={LOCATION_ICON_URL("police")} alt="Police" draggable={false} className="w-6 h-6 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
                   <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "100"}</p>
                   {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km</p>}
+                  </div>
                 </div>
               ))}
               {!(emergency?.hospitals?.length) && (
@@ -977,6 +998,12 @@ export default function DestinationDetails() {
                   rel="noreferrer"
                   className="flex items-center justify-between gap-3 rounded-2xl border border-primary-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-all"
                 >
+                  <img
+                    src={LOCATION_ICON_URL(POI_CATEGORY_ICONS[poiTab] || "pin")}
+                    alt=""
+                    draggable={false}
+                    className="w-8 h-8 shrink-0"
+                  />
                   <div className="min-w-0">
                     <p className="truncate font-bold text-sm text-slate-900">{row.name}</p>
                     <p className="truncate text-[11px] text-slate-500">

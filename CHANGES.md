@@ -2,6 +2,47 @@
 
 ---
 
+## 🧭 Round 18: Real location icons site-wide (Twemoji — Mozilla, CC-BY 4.0)
+
+Replaced the emoji-in-SVG map pins and letter pins with **real, consistent
+location icon artwork** in the professional flat style the owner requested
+(like the hospital-building and phone-with-ambulance references):
+
+- **42 icon assets** (hospital 🏥, ambulance 🚑, bank/ATM 🏦, hotel 🏨,
+  temple 🛕, stupa 🕉️, lake 🌊, waterfall 💦, mountain ️, park ,
+  wildlife 🐾, river 🚣, museum 🖼️, pharmacy 💊, police 🚓, map pin 📍,
+  …) added as `public/icons/locations/*.png`, plus **43 pre-generated
+  teardrop map pins** (`public/icons/pins/*.svg`) carrying the icons.
+- **Why pre-generated pins:** Leaflet loads pin SVGs through `<img>`, whose
+  document context forbids external resource loads — so each pin embeds its
+  icon as a base64 data URI. `scripts/generate-location-pins.mjs` regenerates
+  the whole set (`node scripts/generate-location-pins.mjs`).
+- **Everywhere location icons appear now uses the real set:**
+  - All map layers (destination, POI, hospital, police, attraction markers)
+    — a hospital is a red 🏥 pin, a bank a green 🏦 pin, a temple an orange
+    🛕 pin, etc.
+  - Place-type chips on Nearby Places / Travel Planner.
+  - Destination "nearby places" cards — each hotel/hospital/bank/… row now
+    shows its category icon + name + coordinates + honest source.
+  - Emergency & Medical Contacts card (hospital + police rows).
+  - Travel Planner origin/destination pickers.
+- **Latent crash fixed:** the Travel Planner pickers rendered the icon
+  *type object* as a React child (guaranteed crash on open) — now render the
+  new `PlaceTypeIconImg` component.
+- **Licensing done properly:** icons are Mozilla's Twemoji under CC-BY 4.0
+  (full license in `docs/TWEMOJI_LICENSE.txt`), credit line in the site
+  footer. (Direct downloads from flaticon.com/icons8.com CDNs are not
+  reachable from this build environment; Twemoji was chosen as the
+  equivalent professional, permissively-licensed, consistent set.)
+
+### Verification
+37 place types + generic all resolve to existing icon + pin files; 13
+resolution tests still pass; eslint 0 errors on touched files; `vite build`
+clean; icons verified serving via dev server and present in the production
+build output.
+
+---
+
 ## 🧭 Round 17: Destination enrichment — real nearby services, honest data, fixed location icons
 
 ### 1. Nearby banks / ATMs / pharmacies were always empty — now real (DEF-027)

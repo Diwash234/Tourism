@@ -1,11 +1,5 @@
-import {
-  FaMountain, FaGopuram, FaChurch, FaMosque, FaHiking, FaWater, FaUtensils,
-  FaHotel, FaTree, FaLandmark, FaTheaterMasks, FaCampground,
-  FaMapMarkerAlt, FaShoppingBag, FaCamera, FaSun, FaCloudRain, FaRoute,
-  FaSpa, FaPaw, FaSeedling, FaGlassCheers, FaFire, FaSnowflake,
-  FaUmbrellaBeach, FaAppleAlt, FaBaby, FaWalking, FaMoneyBillWave, FaStar,
-  FaHospital,
-} from "react-icons/fa"
+import { createElement } from "react"
+import { LOCATION_ICON_URL } from "./locationIcons"
 
 /**
  * Destination-type icon system.
@@ -21,6 +15,22 @@ import {
  *   3. generic pin fallback.
  */
 
+
+// Real icon artwork per place type (Twemoji — Mozilla, CC-BY 4.0). The
+// component renders an <img> so every existing <TypeIcon className="…"/>
+// call site keeps working; `emoji` is retained only as a text fallback.
+const typeIcon = (key, label) =>
+  function LocationTypeIcon(props) {
+    return createElement("img", {
+      src: LOCATION_ICON_URL(key),
+      alt: label,
+      draggable: false,
+      style: { display: "inline-block", objectFit: "contain" },
+      ...props,
+    })
+  }
+
+
 const TYPES = [
   // Service places come FIRST: their name IS the identity. A "Rudra Resort,
   // Bardiya" is a hotel (not a wildlife spot); "Nepal Bank Limited, Kaski"
@@ -28,7 +38,7 @@ const TYPES = [
   // (not a temple). Theme keywords below must never override these.
   {
     key: "hospital",
-    Icon: FaHospital,
+    Icon: typeIcon("hospital", "Hospital / Clinic"),
     label: "Hospital / Clinic",
     chip: "bg-red-100 text-red-900",
     emoji: "🏥",
@@ -37,7 +47,7 @@ const TYPES = [
   },
   {
     key: "hotel",
-    Icon: FaHotel,
+    Icon: typeIcon("hotel", "Hotel / Lodge"),
     label: "Hotel / Lodge",
     chip: "bg-sky-100 text-sky-900",
     emoji: "🏨",
@@ -46,7 +56,7 @@ const TYPES = [
   },
   {
     key: "money",
-    Icon: FaMoneyBillWave,
+    Icon: typeIcon("money", "Bank / ATM"),
     label: "Bank / ATM",
     chip: "bg-green-100 text-green-900",
     emoji: "🏦",
@@ -55,7 +65,7 @@ const TYPES = [
   },
   {
     key: "waterfall",
-    Icon: FaWater,
+    Icon: typeIcon("waterfall", "Waterfall"),
     label: "Waterfall",
     chip: "bg-cyan-100 text-cyan-900",
     emoji: "💦",
@@ -64,7 +74,7 @@ const TYPES = [
   },
   {
     key: "lake",
-    Icon: FaWater,
+    Icon: typeIcon("lake", "Lake"),
     label: "Lake",
     chip: "bg-sky-100 text-sky-900",
     emoji: "🌊",
@@ -73,7 +83,7 @@ const TYPES = [
   },
   {
     key: "hot_springs",
-    Icon: FaSpa,
+    Icon: typeIcon("hot_springs", "Hot Springs"),
     label: "Hot Springs",
     chip: "bg-rose-100 text-rose-900",
     emoji: "♨️",
@@ -82,7 +92,7 @@ const TYPES = [
   },
   {
     key: "temple_hindu",
-    Icon: FaGopuram,
+    Icon: typeIcon("temple_hindu", "Hindu Temple"),
     label: "Hindu Temple",
     chip: "bg-orange-100 text-orange-900",
     emoji: "🛕",
@@ -94,7 +104,7 @@ const TYPES = [
   },
   {
     key: "stupa",
-    Icon: FaLandmark,
+    Icon: typeIcon("stupa", "Stupa"),
     label: "Stupa",
     chip: "bg-amber-100 text-amber-900",
     emoji: "🕉️",
@@ -103,7 +113,7 @@ const TYPES = [
   },
   {
     key: "monastery",
-    Icon: FaMosque,
+    Icon: typeIcon("monastery", "Monastery / Gumba"),
     label: "Monastery / Gumba",
     chip: "bg-indigo-100 text-indigo-900",
     emoji: "🏯",
@@ -112,7 +122,7 @@ const TYPES = [
   },
   {
     key: "church",
-    Icon: FaChurch,
+    Icon: typeIcon("church", "Church"),
     label: "Church",
     chip: "bg-blue-100 text-blue-900",
     emoji: "⛪",
@@ -121,7 +131,7 @@ const TYPES = [
   },
   {
     key: "heritage",
-    Icon: FaLandmark,
+    Icon: typeIcon("heritage", "Heritage Site"),
     label: "Heritage Site",
     chip: "bg-amber-100 text-amber-900",
     emoji: "🏛️",
@@ -130,7 +140,7 @@ const TYPES = [
   },
   {
     key: "museum",
-    Icon: FaTheaterMasks,
+    Icon: typeIcon("museum", "Museum / Gallery"),
     label: "Museum / Gallery",
     chip: "bg-purple-100 text-purple-900",
     emoji: "🖼️",
@@ -139,7 +149,7 @@ const TYPES = [
   },
   {
     key: "mountain",
-    Icon: FaMountain,
+    Icon: typeIcon("mountain", "Mountain / Peak"),
     label: "Mountain / Peak",
     chip: "bg-slate-100 text-slate-900",
     emoji: "🏔️",
@@ -148,7 +158,7 @@ const TYPES = [
   },
   {
     key: "viewpoint",
-    Icon: FaCamera,
+    Icon: typeIcon("viewpoint", "Viewpoint"),
     label: "Viewpoint",
     chip: "bg-emerald-100 text-emerald-900",
     emoji: "📸",
@@ -157,7 +167,7 @@ const TYPES = [
   },
   {
     key: "trekking",
-    Icon: FaHiking,
+    Icon: typeIcon("trekking", "Trekking Trail"),
     label: "Trekking Trail",
     chip: "bg-lime-100 text-lime-900",
     emoji: "🥾",
@@ -166,7 +176,7 @@ const TYPES = [
   },
   {
     key: "hills",
-    Icon: FaMountain,
+    Icon: typeIcon("hills", "Hill / Danda"),
     label: "Hill / Danda",
     chip: "bg-green-100 text-green-900",
     emoji: "⛰️",
@@ -175,7 +185,7 @@ const TYPES = [
   },
   {
     key: "cave",
-    Icon: FaMapMarkerAlt,
+    Icon: typeIcon("cave", "Cave"),
     label: "Cave",
     chip: "bg-stone-100 text-stone-900",
     emoji: "🦇",
@@ -184,7 +194,7 @@ const TYPES = [
   },
   {
     key: "park",
-    Icon: FaTree,
+    Icon: typeIcon("park", "Park / Garden"),
     label: "Park / Garden",
     chip: "bg-green-100 text-green-900",
     emoji: "🌳",
@@ -193,7 +203,7 @@ const TYPES = [
   },
   {
     key: "wildlife",
-    Icon: FaPaw,
+    Icon: typeIcon("wildlife", "Wildlife / Safari"),
     label: "Wildlife / Safari",
     chip: "bg-amber-100 text-amber-900",
     emoji: "🦏",
@@ -202,7 +212,7 @@ const TYPES = [
   },
   {
     key: "forest",
-    Icon: FaSeedling,
+    Icon: typeIcon("forest", "Forest"),
     label: "Forest",
     chip: "bg-green-100 text-green-900",
     emoji: "🌲",
@@ -211,7 +221,7 @@ const TYPES = [
   },
   {
     key: "river",
-    Icon: FaRoute,
+    Icon: typeIcon("river", "River / Rafting"),
     label: "River / Rafting",
     chip: "bg-cyan-100 text-cyan-900",
     emoji: "🚣",
@@ -220,7 +230,7 @@ const TYPES = [
   },
   {
     key: "water_sports",
-    Icon: FaUmbrellaBeach,
+    Icon: typeIcon("water_sports", "Water Sports"),
     label: "Water Sports",
     chip: "bg-sky-100 text-sky-900",
     emoji: "🪂",
@@ -229,7 +239,7 @@ const TYPES = [
   },
   {
     key: "camping",
-    Icon: FaCampground,
+    Icon: typeIcon("camping", "Camping"),
     label: "Camping",
     chip: "bg-lime-100 text-lime-900",
     emoji: "⛺",
@@ -238,7 +248,7 @@ const TYPES = [
   },
   {
     key: "food",
-    Icon: FaUtensils,
+    Icon: typeIcon("food", "Food & Cuisine"),
     label: "Food & Cuisine",
     chip: "bg-orange-100 text-orange-900",
     emoji: "🍜",
@@ -247,7 +257,7 @@ const TYPES = [
   },
   {
     key: "tea_coffee",
-    Icon: FaSeedling,
+    Icon: typeIcon("tea_coffee", "Tea / Coffee Gardens"),
     label: "Tea / Coffee Gardens",
     chip: "bg-green-100 text-green-900",
     emoji: "☕",
@@ -256,7 +266,7 @@ const TYPES = [
   },
   {
     key: "orchard",
-    Icon: FaAppleAlt,
+    Icon: typeIcon("orchard", "Fruit Orchard"),
     label: "Fruit Orchard",
     chip: "bg-rose-100 text-rose-900",
     emoji: "🥭",
@@ -265,7 +275,7 @@ const TYPES = [
   },
   {
     key: "village",
-    Icon: FaMapMarkerAlt,
+    Icon: typeIcon("village", "Village"),
     label: "Village",
     chip: "bg-stone-100 text-stone-900",
     emoji: "🏘️",
@@ -274,7 +284,7 @@ const TYPES = [
   },
   {
     key: "festival",
-    Icon: FaFire,
+    Icon: typeIcon("festival", "Festival / Event"),
     label: "Festival / Event",
     chip: "bg-rose-100 text-rose-900",
     emoji: "🎉",
@@ -283,7 +293,7 @@ const TYPES = [
   },
   {
     key: "market",
-    Icon: FaShoppingBag,
+    Icon: typeIcon("market", "Market / Bazaar"),
     label: "Market / Bazaar",
     chip: "bg-pink-100 text-pink-900",
     emoji: "🛍️",
@@ -292,7 +302,7 @@ const TYPES = [
   },
   {
     key: "shopping",
-    Icon: FaShoppingBag,
+    Icon: typeIcon("shopping", "Shopping"),
     label: "Shopping",
     chip: "bg-pink-100 text-pink-900",
     emoji: "🛍️",
@@ -301,7 +311,7 @@ const TYPES = [
   },
   {
     key: "snow",
-    Icon: FaSnowflake,
+    Icon: typeIcon("snow", "Snow / Winter"),
     label: "Snow / Winter",
     chip: "bg-sky-100 text-sky-900",
     emoji: "❄️",
@@ -310,7 +320,7 @@ const TYPES = [
   },
   {
     key: "sunset",
-    Icon: FaSun,
+    Icon: typeIcon("sunset", "Sunrise / Sunset Point"),
     label: "Sunrise / Sunset Point",
     chip: "bg-amber-100 text-amber-900",
     emoji: "🌅",
@@ -319,7 +329,7 @@ const TYPES = [
   },
   {
     key: "rain_water",
-    Icon: FaCloudRain,
+    Icon: typeIcon("rain_water", "Rain / Weather Spot"),
     label: "Rain / Weather Spot",
     chip: "bg-sky-100 text-sky-900",
     emoji: "🌧️",
@@ -328,7 +338,7 @@ const TYPES = [
   },
   {
     key: "walking",
-    Icon: FaWalking,
+    Icon: typeIcon("walking", "Walking / Cycling"),
     label: "Walking / Cycling",
     chip: "bg-emerald-100 text-emerald-900",
     emoji: "🚶",
@@ -337,7 +347,7 @@ const TYPES = [
   },
   {
     key: "family",
-    Icon: FaBaby,
+    Icon: typeIcon("family", "Family Spot"),
     label: "Family Spot",
     chip: "bg-rose-100 text-rose-900",
     emoji: "👨‍👩‍",
@@ -346,7 +356,7 @@ const TYPES = [
   },
   {
     key: "celebration",
-    Icon: FaGlassCheers,
+    Icon: typeIcon("celebration", "Party / Celebration"),
     label: "Party / Celebration",
     chip: "bg-purple-100 text-purple-900",
     emoji: "",
@@ -355,7 +365,7 @@ const TYPES = [
   },
   {
     key: "attraction",
-    Icon: FaStar,
+    Icon: typeIcon("attraction", "Tourist Attraction"),
     label: "Tourist Attraction",
     chip: "bg-emerald-100 text-emerald-900",
     emoji: "⭐",
@@ -437,14 +447,14 @@ const CATEGORY_HINTS = {
 
 const GENERIC = {
   key: "place",
-  Icon: FaMapMarkerAlt,
+  Icon: typeIcon("pin", "Place"),
   label: "Place",
   chip: "bg-gray-100 text-gray-900",
   emoji: "📍",
   pin: "#D97706",
 }
 
-const byKey = Object.fromEntries(TYPES.map((t) => [t.key, t]))
+const byKey =  Object.fromEntries(TYPES.map((t) => [t.key, t]))
 
 function nameMatch(name) {
   const n = ` ${String(name || "").toLowerCase()} `
@@ -479,6 +489,18 @@ export function getPlaceTypeIcon(destination) {
     categoryMatch(destination.category_name) ||
     categoryMatch(typeof destination.category === "string" ? destination.category : null)
   return found || GENERIC
+}
+
+
+/**
+ * Ready-to-render <img> icon for a destination-shaped object.
+ * Use this where a plain icon is wanted — never render the type object
+ * returned by getPlaceTypeIcon() directly.
+ */
+export const PlaceTypeIconImg = ({ destination, className, ...rest }) => {
+  const type = getPlaceTypeIcon(destination)
+  const TypeIcon = type.Icon
+  return createElement(TypeIcon, { className, "aria-hidden": "true", ...rest })
 }
 
 /** Convenience: icon component + classes for JSX. */

@@ -260,6 +260,13 @@ const Footer = () => {
         © {new Date().getFullYear()} {siteTitle}. {branding.footer_text || "All rights reserved."}
         <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="ml-4 font-bold text-emerald-300 hover:text-white hover:underline">Back to top</button>
       </div>
+      <div className="px-4 pb-4 text-center text-[10px] leading-relaxed text-gray-500">
+        📍 Location icons:{" "}
+        <a href="https://twemoji.js.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300">
+          Twemoji
+        </a>{" "}
+        by Mozilla, licensed CC-BY 4.0. Map © OpenStreetMap contributors.
+      </div>
     </footer>
   );
 };

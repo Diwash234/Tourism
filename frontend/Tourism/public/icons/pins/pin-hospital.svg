@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#DC2626" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABIBAMAAACnw650AAAAJFBMVEVHcEyZqrWZqrXM1t3M1t2ZqrXh6O3M1t2ZqrVVrO47iMPdLkQU7bmfAAAABnRSTlMAUN/fUBAJW16oAAAAoklEQVR4Xu3RsQkDMQyGUQUufcobwRu4ve420QI2qI4rrZAVsoKXCwbhBOuMikCcBH+leMUPgtcWT1LYoNdOtdhFvoCcCwpdRE9EP4ayNB7p4X+JpPfQyXFTuii0suqqkNMotebMB6kteFDdtrKByjZnowRsIwaSEG9NiCR9HslJI7kMRKphaOTv5u/m7+bvSvcalkj6SuRtFGC3UYTFWyhsD55YEaSLdUbmAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>hospital</title>
+</svg>

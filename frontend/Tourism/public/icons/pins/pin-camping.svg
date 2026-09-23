@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#4D7C0F" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAwFBMVEVHcEz/zE3/zE30kAz/zE3/zE30kAz0kAz0kAz0kAz/zE3/zE3/zE30kAz/zE30kAz0kAz0kAz/zE33nxz/zE3/zE3/6LYpLzP/zE3/1nH/5q//3o//2of/0Fr/2Hv/5an/46P/zlT0kAz/0mRfXVSUjHX/rDP9tTfKupX/xkb/4Jk7Pz55dGS8ro2HgGyvo4Xk0abXxZ1RUkyhl33/tkdsaVzy3K7/0oX1lRH8vT33nBn4pyT6ri3/xmz/ynX/v1w26uTOAAAAFnRSTlMAv98wEJ8QgJ+/IHDvYFDfr1CPgGCveUgMvQAAAhJJREFUeF7tltdu3DAQRVfO2o5T1ql3qN62d9fU8v9/lRFFzKNY8hRA53EXGEg8ZwROmJGRkZGRkU+fP3y8Hua9y5xLpdTmazPMS/ucV6pj1Vh44fRAzD8/0vSN0vxsLFxZBr1WPZvGwrVl0IUy/LAMuh2eM1NMoZhvjYW3g4MixZSxYr5bBt1Y3cenrVsBNvfpEblTARb3NebrzK2AYfcFdofSrYBh9xVogTa4AHHfYk17pMEFiPsUB5ojqUMLkL1PsKAdEAcWIO5jYE/0jCrwGyB7vwXmRGsgDypA3OcAiOgEZEEFiPsMeCZi/0hCvgHiXpVg+0RPAOLAAiJz1DgRsX9gq/wLEPcpwPYZMLl3AeK+BvNEzBlA4V2AuC/A3BNp/yiVZwHiXlVgqOMBTOtZgLhvwZypYwEm9S9gJkfd2TfakNTeBURmX5kH6rhHR+xVgLiPAWPf+Eflew+4VGZfoVfW+GdyjwLEfQ6Ife2fyTwKEPcZYOyLNiR+94ALs68dd9RzhCb2KWAmR23si3+9ue4FRBIRRBrt0JM7FiDua/QcyYCewrEAcV8AYl9zB03pfBNk97KvzI4MB/S0jgUY9y0MROK/J3UtIJI3E2maPcSby3HfmkEqTtBxoB7xn9Vugxpz1mqz+l2JffH/5XFl/rad9rvJNOoFL5fLP1myJwHbX4/840bPsbV9czX5Dxn5C8TAJi1da9elAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>camping</title>
+</svg>

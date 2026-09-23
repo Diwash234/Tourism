@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#0D9488" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAWlBMVEVHcEy7GjS7GjS7GjT9y1i7GjT9y1j9y1i7GjT9y1j9y1j9y1i7GjT9y1i7GjS7GjT9y1j9y1j2uVTIPTv9y1i7GjS/JTbkiUvUXELxqlH1tVT5wFbHOzvgfkhmF12yAAAAFHRSTlMAYCDPIBBQn58Qz++PYO9Qj4Cfn9Hq/WEAAAE/SURBVHherdRpbsNADINRehlrHMdO00rde/9rFsifLvAoYcDvAA8EBAi/m1c7+KWDrTPubTT/k40K5pLNoJsW32mZQPbgjc6gMm9m5B6JNLlLpHFxjWTuEml010jmGml210iriyRzkXRwkeQuklwluUpyleQqyckek/NTvdYGZKQT0ZBW1mlJM+m0JaOcRBoZJ5WMcFJpXggnlaZbnK+I69L5uvMScYtkjJNLlJNLuUNIqUNJucNLucNLucNLb88hkH6ctGMiMU7EKZEYJ7aSSISTvCfSiegTiXCSL046EaUlvXNOdNjNPj6Dq2K/pyAb0KiyElQSVBJUElQSVBJE0gCRVCGSOoikAo1UAY3UQyNVQCJtBRrpBEikIyCRKqiOyR6u07bHbCfQlZ3j1YJ76v9Rtce9la4OcWmo3Z8130vL7pbovzNSAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>pharmacy</title>
+</svg>

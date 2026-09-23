@@ -15,7 +15,7 @@ import destinationApi from "../api/destinationApi"
 import travelApi from "../api/travelApi"
 import { savedRoutesApi } from "../services/api"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
-import { getPlaceTypeIcon } from "../utils/placeTypeIcons"
+import { PlaceTypeIconImg } from "../utils/placeTypeIcons"
 
 const MODES = [
   { id: "driving", labelKey: "tp.mode.drive", icon: BsSpeedometer2 },
@@ -137,7 +137,7 @@ export default function TravelPlanner() {
                 onClick={() => pick(row)}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-emerald-50 dark:hover:bg-slate-700"
               >
-                <span className="text-base">{getPlaceTypeIcon(row) || "📍"}</span>
+                <PlaceTypeIconImg destination={row} className="w-4 h-4 shrink-0" />
                 <span className="flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">{row.name}</span>
                 {(row.district || row.province) && (
                   <span className="text-[10px] text-slate-400 shrink-0">{row.district || row.province}</span>
@@ -575,7 +575,7 @@ export default function TravelPlanner() {
                   <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                     {(between.nearest || []).map((n) => (
                       <li key={n.id} className="flex items-center gap-3 py-2">
-                        <span className="text-base">{getPlaceTypeIcon({ name: n.name, category: n.category }) || "📍"}</span>
+                        <PlaceTypeIconImg destination={{ name: n.name, category: n.category }} className="w-4 h-4 shrink-0" />
                         <span className="flex-1 min-w-0">
                           <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-200">{n.name}</span>
                           <span className="block text-[11px] text-slate-400">{n.province}{n.district ? ` · ${n.district}` : ""}</span>

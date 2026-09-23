@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#B45309" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAb1BMVEVHcEzM1t3M1t3M1t3M1t3M1t2aqrTM1t3M1t3M1t3M1t3h6O3M1t2aqrTh6O3M1t3M1t3M1t2aqrSaqrTM1t3M1t2aqrSgsLnJ09qtu8Odrbe5xs6ntb7h6O3G0djAy9OzwMkpLzOquMG2w8vDztX+nqogAAAAFXRSTlMAQBCfIO9Q379ggL9Q3xAwz68QQI8b7PnhAAABJ0lEQVR4Xu3WyXKEIBSG0SutorY9JQGcesjw/s+YxOiFmNgi3FRlwbdjc6r0ZwEsFj8lPAfv4o34LCmYFxP1zEDF7kwmvrVxo3JkdKdoPcMRaJVqq5HKVlGsQKa6KflRc0OK5/ZMoplGDjX1RVPMam9kLnXPYPWbnpAtMkIz8kfdFam7E0YnZK4v8tdUu3wbokwznZxNvd6fMD8ae88zkwmzcvbaVMjcy5wQdAc+2XsVlRwQOhp729eNFEdIeEYGMXKo8HMKwB6kR2C2c3d2YJa6QynQSI8waQSeh2zP8GeQGBoh2zMJFKAABShAAQpQgAKUKumUSoH06Uf/GKV5HpdceMXLwRHefUncH+I9JAgCgP32TNB2D+h4SnAmigwi+zS6n/3vegdjNWk/FYUgCQAAAABJRU5ErkJggg==" x="8.5" y="7.5" width="15" height="15"/>
+  <title>heritage</title>
+</svg>

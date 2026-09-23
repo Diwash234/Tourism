@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#15803D" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAbFBMVEVHcExmdX9mdX9mdX+quMJmdX9mdX9mdX9mdX9mdX9mdX/M1t1mdX9mdX9mdX9mdX9mdX/M1t3M1t0pLzMtMzhmdX9ASVBebHaquMK/ytGsuMCZpq5zgYvG0NeAjZdbaHH1+Prh6O2ImaZicXpH1WCoAAAAEnRSTlMAgK+fgCC/7xBAUN/fz3Awj1DXmN3nAAABP0lEQVR4Xu2T2WrDMBQF5SROvMWxtXjJ2uX//7EiVqXAEaliidIazYv1cBkYwyE/k1dVTvxJV0KySn09yU7c2SVemnwvNPv5fdl6UpzP03edzfPUqup0uZxUXz1Dc9hOmutIJeN1Um0Pr1Y1qupIFUfV17zUV+gqqtF9hbMmNVWGx77UrSrRVcB3X5K5DAKrsK/KXQaBVdiHo8FBYBX24WhwEFiFfTAaGARUPeuzj6bGKpe+GgbhUAV9MJqswSr3PjOaAquc+8xoNkMQNmQIxIJF4X42ITQAhPyaKIr+6dbi1iY+FEJi3ojtTikWL6IKITFvxHYXRX3HGeNd7yu6cXaH3/xEPWcK3nuJOqbpvETciLiP6JM98CdEIookURRFg5V3C/bLxYvakiJvT6BI2UoPSBxESEvKMKKS0DAi+gXYalJg/W7vsgAAAABJRU5ErkJggg==" x="8.5" y="7.5" width="15" height="15"/>
+  <title>money</title>
+</svg>

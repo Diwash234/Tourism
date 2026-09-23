@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#CA8A04" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAM1BMVEVHcExmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNmIRNlEi7PAAAAEHRSTlMAn79w70DPgBAgMK9g31CPuG1hNQAAATpJREFUeF7tll1vwzAIRWuHGpzP+/9/7WZnC1ocNTFRpU7yeUOqTyHwcB8fDgNefgtxwGLzzAAw/ZgkpGo0iQISw1oMyFqLR7DyTEWPlWgQPbHiUuHUahZRKuiWSMeJuCHSx3+kBqgU0cOCK0WuSjASfNS1QXTMPo3sQePlb0OyHWFI8mk7TqGr99RtQ0h+Pucus1K2gfmCiHU/4rcnC+Ak91sr6l70W4gMP9W/OSVeEcXr99O9Erlzy37BkUOqAsfdcZyiJ6cN6Kx6rlVIgIKgfdg8900eO4LNwyhgiycSCigaRAsOWAwiwgFU7+lxSF8t6nBIZ9tZCf8Tkf0bldmJDVurzE4BmWngb4YJmWDITuK851nbn9l7J2/ITi07tezUslPLTi07tezUslPLTu/fmiE7HWPITp/KFwOzTgHC4AdSAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>wildlife</title>
+</svg>

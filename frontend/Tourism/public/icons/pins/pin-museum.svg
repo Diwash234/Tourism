@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+  <ellipse cx="16" cy="40" rx="10" ry="2.5" fill="#000000" fill-opacity="0.22"/>
+  <path fill="#7C3AED" stroke="#FFFFFF" stroke-width="2" d="M16 1C7.716 1 1 7.716 1 16c0 11.4 15 25 15 25s15-13.6 15-25C31 7.716 24.284 1 16 1z"/>
+  <circle cx="16" cy="15" r="9" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAMAAABiM0N1AAAAwFBMVEVHcEzXnoTBbFS/aVK/aVLXnoTNiXDXnoQpLzP///9ndX/G5fs5QUe33vrN6PxUc4lCTFLnWnBfo9hOaX1wP0rTlHvi8v2i1PmMyvdQW2PCbVa/aVLLg2pbaHGp1/nx+P5neYdept6EuN1KVFvp9f5bfZV8Qk5WYWnU6/xwip1hmMMtMzjIe2NdrexmfI3Ec1tjiaW7GjRikrjPjHLb7v28b1xjcXrWm4GTzfiAZ1w1PEFlgJOmmqWQjqJgn9GvrbfIm7ewAAAAB3RSTlMAUFAQ399Q2v6A0gAAAYtJREFUeF7t11dywyAQgGHbkQOouvbeS2rv5f63io3irI1WjBAkT/oP8A3D7svmDJWVVbC6WlmFH6erXShZ2k6vuHNOdJnOHSEmoKs6CaGcnnP+RIxAPUKMQHWCQO8t5b4IAj20UvSnUFcEns1APmNshVgBpUFiyHP8e7arEXGqdFs1IbRivzUxByQ55DHIQRyQZJDn+0MGDZ2B4IAkhWYskic4tRpIsZDDkJrHTrkMUizUwCBHcEBKBQV7B6QgHuLbg38SOCDFQ03EmYXrDQ5IkqkNhqLTCJ3WnNJF+aAFpfN4iFuHHW72DrjZtqckU0P6fyiDJiMbTRla22agiW0IWitBF7FtbCNQ5RYjHqeuW2onhyqXNlqb8hJD45HEUYGuJY4KNEZ/Z+lSBQh70LLkgqECHY+rD4gS9CnMq39GU0EbG3FUIXCgV5oKqojOlKaD3sSRnylAH5FxQSXcecGgTp2kDCC4KfShHgAaED+59CF+cpmALP49WhU5dEq0y+d4+aLme7hjoKysb9X3HkSnAv8fAAAAAElFTkSuQmCC" x="8.5" y="7.5" width="15" height="15"/>
+  <title>museum</title>
+</svg>
