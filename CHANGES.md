@@ -1774,3 +1774,16 @@ tourist/tests_regression.py (133 regression tests), chatbot WebSocket tests
 chatbot/consumers.py, eslint.config.js, CMS hero slides, redirect/newsletter models
 (already in our tree via shared lineage), and their e2e test accounts (imported in the
 data-union step).
+
+## Merge: gaurav-frontend-update (Round 22e — 2026-09-23)
+
+Unrelated-history early line (2026-07-23, root 85a1e27) merged for completeness.
+106 conflicts, all resolved to our line (2 months of evolution beyond this branch).
+Gained: frontend/public/{favicon.svg,icons.svg} for the legacy root frontend app,
+src/pages/Adminagencies.jsc (legacy page, unimported). Excluded on purpose:
+.env (was DJANGO_SETTINGS_MODULE only; .env stays uncommitted per repo policy),
+Tourism/.gitignore (empty file), .vscode/settings.json (editor-local), and the two
+lowercase case-twin components pageheader.jsx / Authcontext.jsx — re-adding them next
+to PageHeader.jsx / AuthContext.jsx breaks case-insensitive (Windows) checkouts;
+the canonical files were already unified in the user-approved PageHeader commit.
+Gaurav-line users (gauravkhadka6677@gmail.com) imported in the data-union step.
