@@ -44,7 +44,7 @@ const SocialLoginButtons = () => {
         </a>
       ) : (
         <span className={disabledCls} title="Google sign-in is not configured on this server yet">
-          <GoogleMark /> Google (soon)
+          <GoogleMark /> Google unavailable
         </span>
       )}
       {githubReady ? (
@@ -56,7 +56,7 @@ const SocialLoginButtons = () => {
         </a>
       ) : (
         <span className={disabledCls} title="GitHub sign-in is not configured on this server yet">
-          <FiGithub size={18} /> GitHub (soon)
+          <FiGithub size={18} /> GitHub unavailable
         </span>
       )}
     </div>

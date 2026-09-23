@@ -47,6 +47,19 @@ class AuthTests(APITestCase):
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
 
+    def test_login_unverified_user_gets_verification_guidance(self):
+        User.objects.create_user(email="unverified@example.com", password="StrongPass123!", is_verified=False)
+        response = self.client.post(reverse("auth-login"), {"email": "unverified@example.com", "password": "StrongPass123!"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("verify your email", response.data["detail"].lower())
+        self.assertTrue(response.data["require_verification"])
+
+    def test_resend_verification_email_allows_email_only_request(self):
+        user = User.objects.create_user(email="resend@example.com", password="StrongPass123!", is_verified=False)
+        response = self.client.post(reverse("auth-resend-verification-email"), {"email": user.email})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("verification email sent", response.data["message"].lower())
+
     def test_verify_email_with_valid_token(self):
         user = User.objects.create_user(email="verify@example.com", password="StrongPass123!")
         from django.utils import timezone

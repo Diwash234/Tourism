@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { FiMail, FiLock, FiShield, FiUser, FiBriefcase } from "react-icons/fi"
 import { motion } from "framer-motion"
+import authApi from "../../api/authApi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import TourismLogo from "../../components/branding/TourismLogo"
@@ -41,13 +42,31 @@ const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(false)
+  const [verificationEmail, setVerificationEmail] = useState("")
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
 
   const handleRolePreset = (preset) => {
     setSelectedRole(preset.id)
   }
 
+  const handleResendVerification = async () => {
+    if (!verificationEmail) return
+    setResendLoading(true)
+    try {
+      await authApi.resendVerificationEmail(verificationEmail)
+      showToast("A fresh verification email has been sent.", "success")
+    } catch (err) {
+      showToast(err?.response?.data?.detail || "We could not resend the verification email right now.", "error")
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   const onSubmit = async (data) => {
     setLoading(true)
+    setVerificationEmail(String(data.email || "").trim())
+    setShowVerificationPrompt(false)
     try {
       const userData = await login(data)
       showToast(`Welcome back, ${userData?.first_name || userData?.email}!`, "success")
@@ -58,7 +77,11 @@ const Login = () => {
       const fallback = isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard"
       navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
-      showToast(err?.response?.data?.detail || err?.response?.data?.message || "Invalid email or password", "error")
+      const detail = err?.response?.data?.detail || err?.response?.data?.message || "Invalid email or password"
+      showToast(detail, "error")
+      if (err?.response?.data?.require_verification || /verify your email/i.test(detail)) {
+        setShowVerificationPrompt(true)
+      }
     } finally {
       setLoading(false)
     }
@@ -148,6 +171,20 @@ const Login = () => {
           >
             {loading ? "Logging in..." : `Login to ${ROLE_PRESETS.find(p => p.id === selectedRole)?.label}`}
           </button>
+
+          {showVerificationPrompt && (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-left">
+              <p className="text-xs font-medium text-amber-800">Please verify your email before logging in.</p>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="mt-2 text-xs font-semibold text-amber-900 underline disabled:opacity-60"
+              >
+                {resendLoading ? "Sending..." : "Resend verification email"}
+              </button>
+            </div>
+          )}
         </form>
 
         <div className="mt-6">

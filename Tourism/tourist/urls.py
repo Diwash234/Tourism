@@ -1,4 +1,7 @@
 from django.urls import path, include
+from rest_framework import status
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -19,6 +22,7 @@ from . import views_marketplace
 from . import views_emergency_admin
 from . import views_navigation
 from . import views_workforce
+from .models import User
 from .serializers import UserProfileSerializer
 
 
@@ -31,6 +35,36 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        email = str(request.data.get("email", "")).strip()
+        user = User.objects.filter(email__iexact=email).first() if email else None
+
+        try:
+            return super().post(request, *args, **kwargs)
+        except AuthenticationFailed:
+            if user and not getattr(user, "is_active", True):
+                return Response(
+                    {
+                        "detail": "Your account is inactive. Please contact support or verify your email to activate it.",
+                        "require_activation": True,
+                        "email": user.email,
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            if user and not getattr(user, "is_verified", False):
+                return Response(
+                    {
+                        "detail": "Please verify your email before logging in. Check your inbox for the verification link or request a new one.",
+                        "require_verification": True,
+                        "email": user.email,
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            return Response(
+                {"detail": "Invalid email or password. Please check your credentials and verify your account if needed."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
 
 router = DefaultRouter()

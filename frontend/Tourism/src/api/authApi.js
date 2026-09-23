@@ -8,6 +8,9 @@ const authApi = {
   forgotPassword: (payload) =>
     axiosClient.post("/auth/forgot-password/", payload),
 
+  resendVerificationEmail: (email) =>
+    axiosClient.post("/auth/resend-verification-email/", { email }),
+
   resetPassword: (payload) =>
     axiosClient.post("/auth/reset-password/", payload),
 

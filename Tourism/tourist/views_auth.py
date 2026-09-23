@@ -165,15 +165,25 @@ class ResendPhoneOTPView(APIView):
 
 
 class ResendVerificationEmailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     throttle_scope = "auth"
     serializer_class = None
 
     def post(self, request):
-        if request.user.is_verified:
+        email = str(request.data.get("email", "")).strip().lower()
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({"message": "If that email exists, a verification link has been sent."})
+
+        if user.is_verified:
             return Response({"detail": "Email already verified."}, status=status.HTTP_400_BAD_REQUEST)
-        _issue_email_verification(request.user)
-        return Response({"message": "Verification email sent."})
+
+        _issue_email_verification(user)
+        return Response({"message": "Verification email sent. Please check your inbox to activate your account."})
 
 
 class LogoutView(APIView):
