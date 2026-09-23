@@ -1744,3 +1744,10 @@ data/nepalDestinations.js, pages/TripPlanner.jsx (legacy, unimported), ml_servic
 Database: kept the merged DB; user records from this branch (admin123@gmail.com and the
 personal accounts) imported in the data-union step. Images: the named destination photos
 and category SVGs this branch carried are already in our tree via the earlier merge.
+
+## Merge: arena/01a00b65-tourism (Round 22b — 2026-09-23)
+
+83 conflicts, all resolved to our line. Verified before resolving: after the 03355 merge,
+EVERY file carried by 01a00b65 (2026-08-18) is byte-identical in our tree — zero content
+lost. Gained (auto-merged, 3 files): scripts/fix_round24_dead_covers.py,
+scripts/fix_round24b_overshared.py, src/api/localApi.js (case-variant legacy of LocalApi.js).
