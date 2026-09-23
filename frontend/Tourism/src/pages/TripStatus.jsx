@@ -46,11 +46,7 @@ export default function TripStatus() {
     if (isAuthenticated) {
       userApi.listMarketplaceOrders().then(({ data }) => setMine(data.results || [])).catch(() => setMine([]))
     }
-<<<<<<< HEAD
      
-=======
-    // eslint-disable-next-line react-hooks/exhaustive-deps
->>>>>>> origin/arena/01a07999-tourism
     }, 0)
     return () => clearTimeout(t)
   }, [routeRef, isAuthenticated])

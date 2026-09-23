@@ -31,19 +31,11 @@ export default function LanguageSwitcher({ compact = false, className = "" }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Select language"
-<<<<<<< HEAD
         className={`flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-900/50 hover:bg-emerald-800 px-2.5 py-1.5 text-sm font-medium text-emerald-50 transition ${
           compact ? "" : "min-w-[140px] justify-between"
         }`}
       >
         <FiGlobe className="text-emerald-300" size={16} />
-=======
-        className={`flex items-center gap-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 px-2.5 py-1.5 text-sm font-medium text-gray-700 transition ${
-          compact ? "" : "min-w-[140px] justify-between"
-        }`}
-      >
-        <FiGlobe className="text-gray-500" size={16} />
->>>>>>> origin/arena/01a07999-tourism
         {!compact && <span>{current.native}</span>}
         {compact && <span className="uppercase text-xs font-bold">{current.code}</span>}
       </button>

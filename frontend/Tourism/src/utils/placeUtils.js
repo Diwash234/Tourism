@@ -88,7 +88,6 @@ export function straightLineFromKathmandu(lat, lng) {
   return km == null ? null : `≈ ${km} km (straight line)`
 }
 
-<<<<<<< HEAD
 // Unrounded straight-line distance (meters precision for nearby places).
 export function haversineKmPrecise(lat1, lon1, lat2, lon2) {
   if (!hasValidCoords(lat1, lon1) || !hasValidCoords(lat2, lon2)) return null
@@ -129,8 +128,6 @@ export function formatDistanceKm(km) {
   return `${Math.round(km).toLocaleString("en-US")} km`
 }
 
-=======
->>>>>>> origin/arena/01a07999-tourism
 // --- Sidebar / header identity helpers (spec item 12) ------------------------
 // The visible username must be a real display name — the email is a fallback
 // of last resort — and the role must be a human label, never a raw enum.
