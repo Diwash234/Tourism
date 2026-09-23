@@ -1729,3 +1729,18 @@ fully legible.
 - `npm run build` → clean (2573 modules). Live preview serves the new bundle;
   `/api/v1/config/public/` returns 6 `hero_slides` over both :8000 and the
   :5173 proxy.
+
+## Merge: arena/01a03355-tourism (Round 22a — 2026-09-23)
+
+Merged the user data line (tip 737ee8b, state 2026-09-07) into arena/01a0b949-tourism.
+185 file conflicts resolved: our line (Rounds 20-21f + merged arena/01a07999) is the newer
+evolution of every conflicted file (verified: notifications/services.py is now a re-export
+of the real delivery layer in tourist/utils.py; icons.js and Navigation.jsx use the real
+Twemoji pin / turn-icon systems; admin panels, ML engines and responsive layouts match or
+exceed the 2026-09-07 state). Gained from this branch (auto-merged, 8 files):
+dataset/destination_locations.json, tourist/verified_wikimedia_photos.json,
+public/robots.txt, public/sitemap.xml, components/common/pageheader.jsx,
+data/nepalDestinations.js, pages/TripPlanner.jsx (legacy, unimported), ml_service/model/destinations.csv.
+Database: kept the merged DB; user records from this branch (admin123@gmail.com and the
+personal accounts) imported in the data-union step. Images: the named destination photos
+and category SVGs this branch carried are already in our tree via the earlier merge.

@@ -46,6 +46,16 @@ class AdminTaskSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Invalid staff task transition.")
         return attrs
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if self.instance and request and not request.user.is_superuser:
+            forbidden = set(self.initial_data) - {"status"}
+            if forbidden:
+                raise serializers.ValidationError("Staff may only update task status.")
+            if attrs.get("status") not in {AdminTask.Status.PENDING, AdminTask.Status.IN_PROGRESS, AdminTask.Status.COMPLETED}:
+                raise serializers.ValidationError("Invalid staff task transition.")
+        return attrs
+
     def create(self, validated_data):
         validated_data["assigned_by"] = self.context["request"].user
         return super().create(validated_data)

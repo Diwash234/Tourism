@@ -101,7 +101,7 @@ const Profile = () => {
       <CMSPageIntro pageKey="profile" />
       <PageHeader title="My Profile" />
 
-      <div className="card-base p-6 relative overflow-hidden">
+      <div className="card-base overflow-hidden p-6 relative overflow-hidden">
         <MandalaBackground className="w-72 h-72 -top-10 -right-10 opacity-60" />
 
         <div className="relative flex items-center gap-4 mb-6">
@@ -163,7 +163,7 @@ const Profile = () => {
       </div>
 
       {/* NEW: Travel Stats — real counts derived from history/favorites/bookings */}
-      <div className="card-base p-6 relative overflow-hidden">
+      <div className="card-base overflow-hidden p-6 relative overflow-hidden">
         <MandalaBackground className="w-64 h-64 -bottom-16 -left-16 opacity-40" />
         <h2 className="font-semibold mb-4 relative">Travel Stats</h2>
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4">

@@ -24,13 +24,13 @@ export default function ImageApproval({ pendingImages = [], onApprove, onReject 
             <div className="flex gap-2 pt-1 border-t border-orange-800/40">
               <button
                 onClick={() => onReject(img.id)}
-                className="flex-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+                className="flex-1 min-w-0 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
               >
                 Reject (Red)
               </button>
               <button
                 onClick={() => onApprove(img.id)}
-                className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs"
+                className="flex-1 min-w-0 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs"
               >
                 Approve (Green)
               </button>

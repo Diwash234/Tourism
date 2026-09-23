@@ -14,7 +14,7 @@ const AIRecommendationCard = ({ basedOn, suggestions = [] }) => {
   if (!basedOn || suggestions.length === 0) return null
 
   return (
-    <div className="card-base p-5 border border-himalaya-100">
+    <div className="card-base overflow-hidden p-5 border border-himalaya-100">
       <div className="flex items-center gap-2 text-himalaya-500 font-semibold text-sm mb-3">
         <FiCpu size={16} />
         AI Suggestion
