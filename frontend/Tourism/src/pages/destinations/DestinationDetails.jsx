@@ -689,7 +689,7 @@ export default function DestinationDetails() {
           </div>
 
           {/* Featured 3-Star to 5-Star Hotel Showcase & Promotional Ad Banner */}
-          <div className="card-base p-6 sm:p-8 space-y-6 shadow-xl border border-amber-200 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B3D91] to-slate-950 text-white">
+          <div className="card-base p-6 sm:p-8 space-y-6 shadow-xl border border-amber-200 rounded-3xl bg-gradient-to-br from-[#14503a] via-[#1f6b4d] to-[#0a281d] text-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4">
               <div>
                 <div className="flex items-center gap-2">

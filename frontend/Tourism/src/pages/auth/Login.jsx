@@ -143,7 +143,7 @@ const Login = () => {
 
           <button
             type="submit"
-            className="btn-primary w-full py-3 bg-gradient-to-r from-purple-700 to-rose-600 hover:from-purple-800 hover:to-rose-700 text-white font-bold rounded-xl shadow-lg transition-all"
+            className="btn-primary w-full py-3 bg-gradient-to-r from-[#1f6b4d] to-[#14503a] hover:from-[#2a8562] hover:to-[#14503a] text-white font-bold rounded-xl shadow-lg transition-all"
             disabled={loading}
           >
             {loading ? "Logging in..." : `Login to ${ROLE_PRESETS.find(p => p.id === selectedRole)?.label}`}

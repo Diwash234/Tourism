@@ -316,7 +316,7 @@ const Dashboard = () => {
       {showBlock("national-symbols") && <NationalSymbols />}
 
       {/* 2. Welcome Banner & Persona Header */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[#0B3D91] to-slate-950 text-white p-6 md:p-10 border border-slate-800 shadow-2xl">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#14503a] via-[#1f6b4d] to-[#0a281d] text-white p-6 md:p-10 border border-emerald-900/50 shadow-2xl">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%)]" />
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
@@ -485,9 +485,9 @@ const Dashboard = () => {
       {activeTab === "overview" && (
         <div className="space-y-8">
           {/* Quick Action Bar */}
-          <div className="bg-gradient-to-r from-purple-900 via-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-purple-800/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-950 text-white p-6 rounded-3xl border border-emerald-800/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-purple-300 text-[10px] font-black uppercase tracking-wider">
+              <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
                 Interactive Traveler Services
               </span>
               <h2 className="text-xl font-black mt-1">Ready to Explore or Personalize Your Next Trip?</h2>
@@ -700,8 +700,8 @@ const Dashboard = () => {
             </div>
 
             {/* AI Modification Toolbar */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900 to-slate-900 text-white space-y-3">
-              <p className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-900 to-slate-900 text-white space-y-3">
+              <p className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
                 <FiZap /> 1-Click AI Modification Studio (Applies directly to selected itinerary):
               </p>
               <div className="flex flex-wrap items-center gap-2">

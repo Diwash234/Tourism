@@ -642,7 +642,7 @@ export default function SubmitPlacePage() {
         <button
           type="submit"
           disabled={loading}
-          className="btn-primary w-full py-4 text-base font-bold bg-gradient-to-r from-purple-700 to-rose-600 hover:from-purple-800 hover:to-rose-700 shadow-xl rounded-2xl text-white transition-all disabled:opacity-50"
+          className="btn-primary w-full py-4 text-base font-bold bg-gradient-to-r from-[#1f6b4d] to-[#14503a] hover:from-[#2a8562] hover:to-[#14503a] shadow-xl rounded-2xl text-white transition-all disabled:opacity-50"
         >
           {loading ? "Submitting for Verification..." : "Submit Destination for Admin Approval"}
         </button>
