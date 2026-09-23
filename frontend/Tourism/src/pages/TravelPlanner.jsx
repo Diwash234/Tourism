@@ -7,6 +7,7 @@ import {
 } from "react-icons/bs"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import useGeolocation from "../hooks/useGeolocation"
 import { useI18n } from "../i18n"
 import useAuth from "../hooks/useAuth"
@@ -285,6 +286,9 @@ export default function TravelPlanner() {
           <p className="mt-2 text-emerald-200 text-sm md:text-base max-w-3xl">{t("tp.subtitle")}</p>
         </div>
       </div>
+
+      {/* Admin-editable intro / extra sections (renders nothing until written) */}
+      <CMSPageIntro pageKey="travel" />
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* ---------- planner form ---------- */}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiBriefcase, FiMapPin, FiClock, FiDollarSign, FiSearch, FiCheckCircle } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
@@ -79,6 +80,7 @@ export default function TourismJobs() {
         title="Tourism Work & Gigs"
         subtitle="Seasonal and contract work across Nepal's tourism industry — guiding, hosting, content, support and more."
       />
+      <CMSPageIntro pageKey="tourism-jobs" />
       <div className="max-w-5xl mx-auto px-4 pb-16 -mt-6">
         <div className="bg-white rounded-3xl border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">

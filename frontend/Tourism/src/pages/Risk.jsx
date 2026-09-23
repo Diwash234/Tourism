@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 import { getRisk as predictRisk } from "../services/mlService"
 
@@ -111,6 +112,7 @@ const Risk = () => {
 
 
       <PageHeader title="Travel Safety Risk" />
+      <CMSPageIntro pageKey="risk-alerts" />
 
 
 
