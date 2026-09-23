@@ -13,7 +13,9 @@ import { formatDistance, formatDuration } from "../../utils/formatDistance"
  */
 export default function GettingThereCard({ destination }) {
   const { t } = useI18n()
-  const { position, retry: retryGeo } = useGeolocation()
+  // auto: false — destination pages are public; GPS is only requested when
+  // the traveller presses "Use my location" (privacy/consent §22/58).
+  const { position, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const [gpsMode, setGpsMode] = useState(true)
   const [originQuery, setOriginQuery] = useState("")
   const [suggestions, setSuggestions] = useState([])
@@ -36,7 +38,12 @@ export default function GettingThereCard({ destination }) {
 
   const plan = async () => {
     if (!destination?.slug) return
-    if (gpsMode && !position) { retryGeo(); setError(t("tp.gps_unavailable")); return }
+    if (gpsMode && !position) {
+      if (locating) { setError(t("tp.gps_pending")); return }
+      retryGeo()
+      setError(t("tp.gps_pending"))
+      return
+    }
     if (!gpsMode && !originPick?.slug && originQuery.trim().length < 2) return
     setLoading(true)
     setError("")

@@ -87,7 +87,9 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
 export default function TravelPlanner() {
   const { t } = useI18n()
   const { isAuthenticated } = useAuth() || {}
-  const { position, error: geoError, retry: retryGeo } = useGeolocation()
+  // auto: false — /travel is a public page; GPS is only requested when the
+  // traveller explicitly presses "Use my location" (privacy/consent §22/58).
+  const { position, error: geoError, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const [searchParams] = useSearchParams()
 
   const [originText, setOriginText] = useState(searchParams.get("origin") || "")
@@ -172,6 +174,11 @@ export default function TravelPlanner() {
   const planRoute = async (m = mode) => {
     const dest = destPick || (destinationText.trim() ? { kind: "name", name: destinationText.trim() } : null)
     if (!dest) { setError(t("tp.error.need_destination")); return }
+    if (gpsUsed && !position) {
+      if (!locating) retryGeo()
+      setError(locating ? t("tp.gps_pending") : t("tp.gps_pending"))
+      return
+    }
     setLoading(true)
     setError("")
     setActiveAlt(null)
