@@ -58,6 +58,11 @@ def resolve_image_url(image_field, request=None):
     if _is_external_url(raw):
         return raw.strip()
 
+    # Absolute site URL (e.g. deterministic postcard route
+    # "/api/v1/postcard/...") — serve as-is, never via media storage.
+    if raw.startswith("/"):
+        return raw
+
     # Genuinely local media file
     try:
         url = image_field.url

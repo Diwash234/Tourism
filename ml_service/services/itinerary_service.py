@@ -106,6 +106,18 @@ CITY_ALIASES = {
     "जोमसोम": "Jomsom",
     "मुस्ताङ": "Mustang",
     "तानसेन नगरपालिका": "Tansen",
+    # District names travellers actually type -> the dataset city that is
+    # the district seat / main tourism hub (public administrative facts).
+    "kaski": "Pokhara",
+    "tanahun": "Bandipur",
+    "chitwan": "Chitwan",
+    "rupandehi": "Lumbini",
+    "kathmandu district": "Kathmandu",
+    "lalitpur district": "Patan",
+    "bhaktapur district": "Bhaktapur",
+    "mustang district": "Mustang",
+    "gorkha district": "Gorkha",
+    "sindhupalchok": "Nagarkot",
 }
 
 
@@ -119,6 +131,10 @@ def _normalize_city(city):
     for canon in PRIORITY_CITIES:
         if canon.lower() == low:
             return canon
+    # alias lookup is case-insensitive so traveller-typed district names
+    # ("kaski", "Kaski") normalise the same way dataset values do
+    if low in CITY_ALIASES:
+        return CITY_ALIASES[low]
     if city in CITY_ALIASES:
         return CITY_ALIASES[city]
     return city
@@ -256,6 +272,9 @@ def build_rich_itinerary(
     if df is None:
         return {"error": "Destination dataset not found. Run the ML training/data setup first."}
 
+    # district names typed by travellers ("Kaski") must map to the dataset
+    # city that serves them ("Pokhara") before city picking
+    start_city = _normalize_city(start_city)
     cities = _pick_cities(df, interests, days, start_city)
     if not cities:
         cities = ["Kathmandu", "Pokhara"][: days]

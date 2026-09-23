@@ -1,5 +1,8 @@
+import re
+
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Sum, F, Q
+from django.db import models
+from django.db.models import Count, Sum, F, Q, Max
 from django.utils import timezone
 from django.conf import settings
 from rest_framework.views import APIView
@@ -898,6 +901,12 @@ class AdminDestinationDetailView(APIView):
             "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
         }
         payload = dict(request.data)
+        # Rich text editor hardening (same rule as CMS body): neutralize
+        # javascript: URLs in admin-authored rich text fields.
+        _rich_fields = ("description", "short_description", "history", "cultural_significance", "food_cuisine_info", "travel_safety_tips")
+        for _field in _rich_fields:
+            if isinstance(payload.get(_field), str):
+                payload[_field] = re.sub(r"(?is)(href|src)\s*=\s*([\"']?)\s*javascript:[^\"'>\s]*\2", r"\1=\2#\2", payload[_field])
         lat_in = payload.get("latitude", destination.latitude)
         lng_in = payload.get("longitude", destination.longitude)
 
@@ -1669,14 +1678,196 @@ class AdminDataExplorerView(APIView):
         "newsletter_signups": ("tourist.NewsletterSignup", ["email","is_active"]),
         "marketplace_partners": ("tourist.MarketplacePartner", ["name","email","city","status"]),
         "marketplace_orders": ("tourist.MarketplaceOrder", ["reference","guest_email","guest_name","status"]),
+        "restaurants": ("tourist.Restaurant", ["name","destination__name","cuisine_type","city","status"]),
+        "hospitals": ("tourist.Hospital", ["name","district","phone","address"]),
+        "police_stations": ("tourist.PoliceStation", ["name","district","phone","address"]),
+        "transit_routes": ("tourist.DestinationTransitRoute", ["destination__name","mode","from_location","is_verified"]),
     }
+
+    # Generic editing: only plain scalar model fields are ever editable.
+    # Relations, files, JSON, primary keys and auto timestamps are excluded
+    # by type — the safe boundary is the field type itself.
+    EDITABLE_FIELD_TYPES = (
+        models.CharField, models.TextField, models.SlugField, models.URLField,
+        models.EmailField, models.IntegerField, models.PositiveIntegerField,
+        models.PositiveSmallIntegerField, models.SmallIntegerField,
+        models.BigIntegerField, models.DecimalField, models.BooleanField,
+    )
+
+    @classmethod
+    def _editable_fields(cls, model):
+        out = []
+        for field in model._meta.get_fields():
+            if not isinstance(field, cls.EDITABLE_FIELD_TYPES):
+                continue
+            if getattr(field, "primary_key", False) or getattr(field, "auto_now", False) or getattr(field, "auto_now_add", False):
+                continue
+            if field.name in {"created_at", "updated_at"}:
+                continue
+            out.append(field)
+        return out
+
+    @classmethod
+    def _field_spec(cls, field):
+        spec = {"name": field.name, "type": "text"}
+        if isinstance(field, models.BooleanField):
+            spec["type"] = "boolean"
+        elif isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
+            spec["type"] = "integer"
+        elif isinstance(field, models.DecimalField):
+            spec["type"] = "decimal"
+        elif isinstance(field, models.TextField):
+            spec["type"] = "textarea"
+        elif isinstance(field, models.URLField):
+            spec["type"] = "url"
+        elif isinstance(field, models.EmailField):
+            spec["type"] = "email"
+        if getattr(field, "choices", None):
+            spec["choices"] = [str(c[0]) for c in field.choices]
+        if getattr(field, "max_length", None):
+            spec["max_length"] = field.max_length
+        return spec
+
+    def _resource_model(self, resource):
+        from django.apps import apps
+        if resource not in self.RESOURCES:
+            return None
+        return apps.get_model(self.RESOURCES[resource][0])
+
+    def patch(self, request):
+        """Generic row editing for every explorer resource.
+
+        Payload: {"resource": "...", "id": <pk>, "fields": {name: value, ...}}.
+        Only scalar whitelisted-by-type fields are accepted; values are coerced
+        to the field type, validated against model choices, and everything else
+        is rejected instead of silently ignored.
+        """
+        from decimal import Decimal, InvalidOperation
+        resource = request.data.get("resource")
+        row_id = request.data.get("id")
+        fields_in = request.data.get("fields") or {}
+        if not isinstance(fields_in, dict) or not fields_in:
+            return Response({"detail": "fields object is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if resource == "destinations":
+            return Response({"detail": "Use the dedicated destination editor for destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        model = self._resource_model(resource)
+        if model is None:
+            return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
+        obj = model.objects.filter(pk=row_id).first()
+        if obj is None:
+            return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
+        editable = {f.name: f for f in self._editable_fields(model)}
+        changed = []
+        for name, raw in fields_in.items():
+            field = editable.get(name)
+            if field is None:
+                return Response({"detail": f"Field '{name}' is not editable for {resource}."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                value = self._coerce_field(field, raw)
+                self._validate_choices(field, value)
+            except (InvalidOperation, TypeError, ValueError) as exc:
+                return Response({"detail": f"{name}: invalid value ({exc})"}, status=status.HTTP_400_BAD_REQUEST)
+            if getattr(obj, name) != value:
+                setattr(obj, name, value)
+                changed.append(name)
+        if changed:
+            obj.save()
+        return Response({"message": "Record updated", "changed": changed})
+
+    def _coerce_field(self, field, raw):
+        from decimal import Decimal
+        if isinstance(field, models.BooleanField):
+            return bool(raw) if not isinstance(raw, str) else str(raw).lower() in {"1", "true", "yes", "on"}
+        if isinstance(field, models.DecimalField):
+            if raw in ("", None):
+                return None
+            value = Decimal(str(raw))
+            max_digits = getattr(field, "max_digits", None)
+            decimal_places = getattr(field, "decimal_places", 0) or 0
+            if max_digits is not None and abs(value) >= 10 ** (max_digits - decimal_places):
+                raise ValueError(f"too large (max {max_digits - decimal_places} integer digits)")
+            if decimal_places:
+                value = value.quantize(Decimal(1).scaleb(-decimal_places))
+            return value
+        if isinstance(field, (models.IntegerField, models.PositiveIntegerField, models.PositiveSmallIntegerField, models.SmallIntegerField, models.BigIntegerField)):
+            return None if raw in ("", None) and field.null else int(raw)
+        value = "" if raw is None else str(raw)
+        max_len = getattr(field, "max_length", None)
+        if max_len and len(value) > max_len:
+            raise ValueError(f"too long (max {max_len} characters)")
+        return value
+
+    def _validate_choices(self, field, value):
+        choices = [str(c[0]) for c in (getattr(field, "choices", None) or [])]
+        if choices and value not in (None, "") and str(value) not in choices:
+            raise ValueError(f"must be one of {', '.join(choices)}")
+
+    def post(self, request):
+        """Generic record creation for explorer resources.
+
+        Payload: {"resource": "...", "fields": {name: value, ...}}. Same
+        type-based whitelist as PATCH; model-level NOT NULL violations are
+        reported as 400 instead of crashing.
+        """
+        from decimal import InvalidOperation
+        from django.db import IntegrityError, transaction
+        resource = request.data.get("resource")
+        fields_in = request.data.get("fields") or {}
+        if not isinstance(fields_in, dict) or not fields_in:
+            return Response({"detail": "fields object is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if resource == "destinations":
+            return Response({"detail": "Use the dedicated destination editor to create destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        model = self._resource_model(resource)
+        if model is None:
+            return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
+        editable = {f.name: f for f in self._editable_fields(model)}
+        values = {}
+        for name, raw in fields_in.items():
+            field = editable.get(name)
+            if field is None:
+                return Response({"detail": f"Field '{name}' is not editable for {resource}."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                value = self._coerce_field(field, raw)
+                self._validate_choices(field, value)
+            except (InvalidOperation, TypeError, ValueError) as exc:
+                return Response({"detail": f"{name}: invalid value ({exc})"}, status=status.HTTP_400_BAD_REQUEST)
+            values[name] = value
+        try:
+            with transaction.atomic():
+                obj = model.objects.create(**values)
+        except IntegrityError as exc:
+            return Response({"detail": f"Required fields are missing or invalid for {resource}: {str(exc).splitlines()[0][:160]}"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Record created", "id": obj.pk}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        """Delete one explorer record. Params: ?resource=...&id=...
+
+        Records referenced by other data are refused with 409 instead of
+        cascade-deleting related content.
+        """
+        from django.db.models import ProtectedError
+        resource = request.query_params.get("resource")
+        row_id = request.query_params.get("id")
+        if resource == "destinations":
+            return Response({"detail": "Use the dedicated destination archive flow for destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        model = self._resource_model(resource)
+        if model is None:
+            return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
+        obj = model.objects.filter(pk=row_id).first()
+        if obj is None:
+            return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            obj.delete()
+        except ProtectedError:
+            return Response({"detail": "This record is referenced by other data and cannot be deleted. Edit or archive it instead."}, status=status.HTTP_409_CONFLICT)
+        return Response({"message": "Record deleted"})
 
     def get(self, request):
         from django.apps import apps
         from django.db.models import Q
         from django.forms.models import model_to_dict
         resource = request.query_params.get("resource", "destinations")
-        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit","marketplace_listings":"marketplace","marketplace_partners":"marketplace","marketplace_orders":"marketplace"}
+        module_map = {"destinations":"destinations","destination_features":"destinations","destination_images":"images","destination_translations":"content","categories":"destinations","languages":"content","hotels":"hotels","bookings":"hotels","hotel_reviews":"reviews","reviews":"reviews","ratings":"reviews","favorites":"users","visit_history":"users","family_links":"users","email_tokens":"users","alerts":"safety","current_hazards":"safety","emergency_contacts":"safety","osm_services":"safety","osm_places":"destinations","budgets":"budget","feedback":"feedback","feedback_evidence":"feedback","audit_logs":"audit","error_events":"audit","marketplace_listings":"marketplace","marketplace_partners":"marketplace","marketplace_orders":"marketplace","restaurants":"destinations","hospitals":"safety","police_stations":"safety","transit_routes":"destinations"}
         user = request.user
         if not (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"}):
             profile = getattr(user, "capability_profile", None)
@@ -1684,6 +1875,20 @@ class AdminDataExplorerView(APIView):
                 return Response({"detail": "Staff capability denied."}, status=403)
         if resource not in self.RESOURCES:
             return Response({"detail": "Unknown resource."}, status=400)
+        if request.query_params.get("schema"):
+            model = self._resource_model(resource)
+            return Response({
+                "resource": resource,
+                "editable": [self._field_spec(f) for f in self._editable_fields(model)],
+            })
+        edit_id = request.query_params.get("edit_id")
+        if edit_id:
+            model = self._resource_model(resource)
+            obj = model.objects.filter(pk=edit_id).first()
+            if obj is None:
+                return Response({"detail": "Record not found."}, status=404)
+            values = {f.name: getattr(obj, f.name) for f in self._editable_fields(model)}
+            return Response({"resource": resource, "id": obj.pk, "values": values})
         label, search_fields = self.RESOURCES[resource]
         model = apps.get_model(label)
         qs = model.objects.all().order_by("-pk")
@@ -1718,7 +1923,6 @@ class AdminDataExplorerView(APIView):
             preferred += [key for key in rows[0].keys() if key not in preferred][:10]
         total_pages = max(1, (count + page_size - 1) // page_size)
         return Response({"resource": resource, "count": count, "page": page, "page_size": page_size, "total_pages": total_pages, "columns": preferred, "results": rows})
-
 
 class StaffWorkspaceView(APIView):
     """Capability and assignment scoped operational queues for staff users."""
@@ -2172,6 +2376,10 @@ class AdminCMSView(APIView):
         if resource == "sections" and "body" in payload:
             payload["body"] = re.sub(r"(?is)<script.*?>.*?</script>", "", str(payload.get("body") or ""))
             payload["body"] = re.sub(r"(?is)on\w+\s*=", "", payload["body"])
+            # Rich text editor hardening (§46): neutralize javascript: URLs in
+            # href/src server-side — the editor validates too, but storage is
+            # the source of truth and must never hold an executable URL.
+            payload["body"] = re.sub(r"(?is)(href|src)\s*=\s*([\"']?)\s*javascript:[^\"'>\s]*\2", r"\1=\2#\2", payload["body"])
         if resource == "pages" and payload.get("og_image_url") and not str(payload["og_image_url"]).startswith("https://") and not str(payload["og_image_url"]).startswith("/"):
             raise ValueError("Social image must be an HTTPS URL or an internal path")
         if resource == "settings" and payload.get("key") == "branding":
@@ -2440,11 +2648,26 @@ class AdminCMSView(APIView):
             "padding_style": {"compact", "medium", "spacious"},
             "text_scale": {"sm", "base", "lg", "xl"},
             "align": {"left", "center", "right"},
+            # Typography (section content controls): structured values only,
+            # mapped to fixed class/font stacks by the frontend — never raw CSS.
+            "font_family": {"default", "serif", "mono", "display"},
+            "heading_level": {"h1", "h2", "h3", "h4"},
+            "heading_size": {"sm", "base", "lg", "xl"},
         }
         for key, allowed in style_enums.items():
             value = str(config.get(key) or "").strip().lower()
             if value in allowed:
                 safe[key] = value
+        # Custom colors: strict hex allow-list (the frontend renderer applies
+        # the same rule) — previously these keys were silently dropped here,
+        # which meant custom_bg/custom_color could never be saved.
+        hex_re = r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})"
+        for color_key in ("custom_bg", "custom_color", "title_color"):
+            raw_color = str(config.get(color_key) or "").strip()
+            if raw_color:
+                if not re.fullmatch(hex_re, raw_color):
+                    raise ValueError(f"{color_key} must be a hex color like #0A7F5C")
+                safe[color_key] = raw_color
         bg_image = str(config.get("bg_image") or "").strip()
         if bg_image:
             if not bg_image.startswith("https://"):
@@ -2509,6 +2732,53 @@ class AdminCMSView(APIView):
                 vis["devices"] = devices
             if vis:
                 safe["visibility"] = vis
+        # Admin-managed content collections (merged from the devin
+        # dark-mode-compat layer — regression contract): sanitized, NOT
+        # dropped. Previously a panel save silently destroyed seeded
+        # cards/badges/section titles because they were not whitelisted.
+        _strip_scripts = lambda value: re.sub(r"(?is)<script.*?>.*?</script>", "", str(value))
+        badge = str(config.get("badge") or "").strip()
+        if badge:
+            safe["badge"] = _strip_scripts(badge)[:200]
+        if isinstance(config.get("section_titles"), dict):
+            titles = {}
+            for k, v in list(config["section_titles"].items())[:30]:
+                tkey = re.sub(r"[^a-z0-9_-]", "", str(k).lower())[:60]
+                if tkey and isinstance(v, str):
+                    titles[tkey] = _strip_scripts(v)[:200]
+            if titles:
+                safe["section_titles"] = titles
+
+        def _clean_record(rec):
+            out = {}
+            for k, v in rec.items():
+                rkey = re.sub(r"[^a-z0-9_]", "", str(k).lower())[:30]
+                if not rkey:
+                    continue
+                if isinstance(v, bool):
+                    out[rkey] = v
+                elif isinstance(v, str):
+                    vv = v.strip()
+                    if rkey in {"image_url", "image", "to", "url", "bgimg"}:
+                        if vv.startswith("https://") or vv.startswith("/"):
+                            out[rkey] = vv[:600]
+                    else:
+                        out[rkey] = _strip_scripts(vv)[:400]
+                elif isinstance(v, (int, float)):
+                    out[rkey] = v
+                elif isinstance(v, list):
+                    out[rkey] = [
+                        _clean_record(x) if isinstance(x, dict) else _strip_scripts(x)[:200]
+                        for x in v[:12]
+                    ]
+            return out
+
+        for list_key in ("cards", "foods", "festivals", "all_symbols", "faq_cards", "topic_cards"):
+            if isinstance(config.get(list_key), list):
+                cleaned = [_clean_record(r) for r in config[list_key][:40] if isinstance(r, dict)]
+                cleaned = [r for r in cleaned if r]
+                if cleaned:
+                    safe[list_key] = cleaned
         return safe
 
     def _import_layout(self, request, page):
@@ -2604,6 +2874,11 @@ class AdminCMSView(APIView):
 
     def patch(self, request):
         _require_capability(request, "content", "change")
+        # Role-differentiated workflow (spec §11): editing and submitting for
+        # review need content.change; approving/publishing/rollback need the
+        # stronger content.publish capability (admins always pass).
+        if request.data.get("action") in {"publish", "approve", "schedule", "rollback"}:
+            _require_capability(request, "content", "publish")
         resource = request.data.get("resource")
         model = self.MODELS.get(resource)
         obj = model.objects.filter(pk=request.data.get("id")).first() if model else None
@@ -2624,6 +2899,47 @@ class AdminCMSView(APIView):
         if action == "reorder":
             page = obj if resource == "pages" else getattr(obj, "page", None)
             return self._reorder_sections(request, page)
+        if action == "duplicate":
+            if resource == "pages":
+                base_key = f"{obj.key}-copy"
+                route_base = f"{obj.route.rstrip('/')}-copy" if obj.route else ""
+                n = 2
+                while ManagedPage.objects.filter(key=base_key).exists() or (route_base and ManagedPage.objects.filter(route=route_base).exists()):
+                    base_key = f"{obj.key}-copy-{n}"
+                    route_base = f"{obj.route.rstrip('/')}-copy-{n}" if obj.route else ""
+                    n += 1
+                route = route_base
+                new_page = ManagedPage.objects.create(
+                    key=base_key, route=route, title=f"{obj.title} (copy)",
+                    meta_description=obj.meta_description, seo_title=obj.seo_title,
+                    og_image_url=obj.og_image_url, search_visible=obj.search_visible,
+                    status="draft", is_enabled=False, updated_by=request.user,
+                )
+                for sec in obj.sections.order_by("display_order"):
+                    ContentSection.objects.create(
+                        page=new_page, key=self._unique_section_key(new_page, sec.key),
+                        title=sec.title, subtitle=sec.subtitle, body=sec.body,
+                        image_url=sec.image_url, cta_text=sec.cta_text, cta_url=sec.cta_url,
+                        icon=sec.icon, section_type=sec.section_type, layout_variant=sec.layout_variant,
+                        config=dict(sec.config or {}), display_order=sec.display_order,
+                        is_visible=sec.is_visible, is_reusable=sec.is_reusable, status=sec.status,
+                    )
+                self._revision("pages", new_page, request.user, "create")
+                return Response({"id": new_page.pk, "message": "Page duplicated as draft", "record": self._row("pages", new_page)})
+            if resource == "sections":
+                page = obj.page
+                new_sec = ContentSection.objects.create(
+                    page=page, key=self._unique_section_key(page, obj.key),
+                    title=f"{obj.title or obj.key} (copy)"[:240], subtitle=obj.subtitle, body=obj.body,
+                    image_url=obj.image_url, cta_text=obj.cta_text, cta_url=obj.cta_url,
+                    icon=obj.icon, section_type=obj.section_type, layout_variant=obj.layout_variant,
+                    config=dict(obj.config or {}),
+                    display_order=(page.sections.aggregate(m=Max("display_order"))["m"] or 0) + 1,
+                    is_visible=obj.is_visible, is_reusable=obj.is_reusable, status="draft",
+                )
+                self._revision("sections", new_sec, request.user, "create")
+                return Response({"id": new_sec.pk, "message": "Section duplicated", "record": self._row("sections", new_sec)})
+            return Response({"detail": "Duplication applies to pages and sections"}, status=400)
         # Seed a baseline for records that predate revision tracking, so the
         # first edit can always be safely undone.
         if not CMSRevision.objects.filter(resource=resource, object_id=obj.pk).exists():
@@ -2636,6 +2952,18 @@ class AdminCMSView(APIView):
             payload.pop("published_at", None)
             payload.pop("scheduled_publish_at", None)
             action_name = "rollback"
+        elif action in {"submit_review", "approve", "request_changes"}:
+            if resource not in {"pages", "sections"}:
+                return Response({"detail": "Review workflow applies to pages and sections"}, status=400)
+            current = obj.status
+            allowed_from = {"submit_review": {"draft", "changes_requested", "in_review"},
+                            "approve": {"in_review", "draft"},
+                            "request_changes": {"in_review", "draft", "approved"}}
+            if current not in allowed_from[action]:
+                return Response({"detail": f"Cannot {action.replace('_', ' ')} a record with status '{current}'"}, status=400)
+            payload = {"status": {"submit_review": "in_review", "approve": "approved", "request_changes": "changes_requested"}[action],
+                       "scheduled_publish_at": None}
+            action_name = action
         elif action in {"publish", "unpublish", "schedule"}:
             if resource not in {"pages", "sections"}:
                 return Response({"detail": "Publication workflow applies to pages and sections"}, status=400)
@@ -3842,9 +4170,32 @@ class DeleteImageView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def delete(self, request, id):
+        import json
         img = DestinationImage.objects.filter(pk=id).first()
         if not img:
             return Response({"detail": "not found"}, status=404)
+        # Deletion protection (spec: media referenced by published pages must
+        # not be blindly destroyed). Scan published CMS content for this exact
+        # image URL; refuse unless the admin explicitly confirms with ?force=1.
+        url = (img.external_url or "").strip()
+        if url and request.query_params.get("force") != "1":
+            referencing = []
+            published = ContentSection.objects.filter(status="published", is_visible=True).select_related("page")
+            for sec in published.iterator():
+                haystack = " ".join(filter(None, [
+                    sec.image_url,
+                    sec.body if isinstance(sec.body, str) else "",
+                    json.dumps(sec.config) if isinstance(sec.config, dict) else "",
+                    json.dumps(sec.published_snapshot) if isinstance(sec.published_snapshot, dict) else "",
+                ]))
+                if url and url in haystack:
+                    referencing.append(f"{sec.page.title} → {sec.title or sec.key}")
+            if referencing:
+                return Response({
+                    "detail": "This image is used by published content and was NOT deleted.",
+                    "used_by": referencing[:10],
+                    "hint": "Remove it from those sections first, or retry with ?force=1 to delete anyway.",
+                }, status=409)
         was_cover = img.is_cover
         dest = img.destination
         img.delete()
@@ -5171,3 +5522,104 @@ class AdminAuditActivityView(APIView):
             "field_changes": log.field_changes,
             "created_at": log.created_at,
         } for log in qs]})
+
+
+# ---------------------------------------------------------------------------
+# Admin control for the road-routing provider (merged from devin
+# dark-mode-compat layer; pairs with routing_service.provider_config).
+# ---------------------------------------------------------------------------
+
+class AdminRoutingProviderView(APIView):
+    """Admin control for the road-routing provider (SiteSetting
+    ``routing_provider``): the single switch that upgrades navigation from
+    the bundled coordinate-based graph to street-level OSRM-protocol routes.
+    HTTPS-only, api_key never echoed back in full, connection test included
+    so the admin sees an honest verdict instead of guessing."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrStaff]
+
+    def _setting(self):
+        from .models import SiteSetting
+        return SiteSetting.objects.filter(key="routing_provider").first()
+
+    def _public_state(self, row):
+        if row is None or not isinstance(row.value, dict):
+            return {"configured": False, "enabled": False, "base_url": "", "api_key_set": False, "api_key_last4": ""}
+        value = row.value
+        api_key = str(value.get("api_key") or "")
+        return {
+            "configured": True,
+            "enabled": bool(value.get("enabled", True)) and str(value.get("base_url") or "").startswith("https://"),
+            "base_url": str(value.get("base_url") or ""),
+            "api_key_set": bool(api_key),
+            "api_key_last4": api_key[-4:] if api_key else "",
+        }
+
+    def get(self, request):
+        _require_capability(request, "settings", "view")
+        return Response(self._public_state(self._setting()))
+
+    def patch(self, request):
+        _require_capability(request, "settings", "change")
+        import re
+        from .models import SiteSetting
+        data = request.data
+        if not isinstance(data, dict):
+            return Response({"detail": "Provider configuration must be structured data"}, status=400)
+        unknown = set(data) - {"enabled", "base_url", "api_key"}
+        if unknown:
+            return Response({"detail": f"Unsupported provider fields: {', '.join(sorted(unknown))}"}, status=400)
+        before_row = self._setting()
+        before = dict(before_row.value) if before_row and isinstance(before_row.value, dict) else {}
+        base_url = str(data.get("base_url", before.get("base_url", ""))).strip().rstrip("/")
+        enabled = bool(data.get("enabled", before.get("enabled", True)))
+        # api_key: absent/None keeps the stored secret; "" clears it.
+        if "api_key" in data and data["api_key"] is not None:
+            api_key = str(data["api_key"])
+        else:
+            api_key = str(before.get("api_key") or "")
+        if enabled and not re.fullmatch(r"https://[^\s]{3,500}", base_url):
+            return Response({"detail": "base_url must be a secure https:// URL (an OSRM-protocol endpoint, e.g. https://router.example.org) — http is rejected."}, status=400)
+        if len(api_key) > 500:
+            return Response({"detail": "api_key is too long (500 characters max)"}, status=400)
+        value = {"enabled": enabled, "base_url": base_url, "api_key": api_key}
+        row, _ = SiteSetting.objects.get_or_create(key="routing_provider", defaults={"value": value, "description": "Road-routing provider (OSRM protocol)", "is_public": False})
+        row.value = value
+        row.is_public = False  # credentials must never enter the public config
+        row.updated_by = request.user
+        row.save()
+        from audit.models import AuditLog
+        masked = {**value, "api_key": ("***" + api_key[-4:]) if api_key else ""}
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", "admin"),
+            category="admin", severity="info", source="backend", action="routing.provider.update",
+            message="Routing provider configuration updated", extra={"before": {**before, "api_key": "***"}, "after": masked})
+        return Response({"message": "Routing provider saved", **self._public_state(row)})
+
+    def post(self, request):
+        """action=test: server-side probe of the stored provider with a short
+        fixed Kathmandu pair — an honest ok/error verdict for the admin."""
+        _require_capability(request, "settings", "view")
+        import requests as http_requests
+        if str(request.data.get("action") or "test") != "test":
+            return Response({"detail": "Only action=test is supported"}, status=400)
+        state = self._public_state(self._setting())
+        if not state["base_url"].startswith("https://"):
+            return Response({"ok": False, "error": "No https provider base URL configured yet."})
+        row = self._setting()
+        api_key = str((row.value or {}).get("api_key") or "")
+        headers = {"Accept": "application/json", "User-Agent": "NepalTourismRouting/1.0"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        url = f"{state['base_url'].rstrip('/')}/route/v1/driving/85.3240,27.7172;85.3340,27.7272"
+        started = timezone.now()
+        try:
+            response = http_requests.get(url, params={"overview": "false"}, headers=headers, timeout=8)
+            latency_ms = int((timezone.now() - started).total_seconds() * 1000)
+            response.raise_for_status()
+            payload = response.json()
+            return Response({"ok": True, "latency_ms": latency_ms,
+                             "routes_count": len(payload.get("routes", []))})
+        except Exception as exc:  # noqa: BLE001 — any probe failure is an honest "not reachable" verdict
+            return Response({"ok": False, "error": str(exc)[:200]})
+
+

@@ -2974,7 +2974,7 @@ class ManagedPage(TimeStampedModel):
     og_image_url = models.URLField(max_length=600, blank=True)
     search_visible = models.BooleanField(default=True)
     is_enabled = models.BooleanField(default=True)
-    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("in_review","In Review"),("changes_requested","Changes Requested"),("approved","Approved"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_pages_updated")
@@ -3017,7 +3017,7 @@ class ContentSection(TimeStampedModel):
     display_order = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
     is_reusable = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=[("draft","Draft"),("scheduled","Scheduled"),("published","Published")], default="published")
+    status = models.CharField(max_length=20, choices=[("draft","Draft"),("in_review","In Review"),("changes_requested","Changes Requested"),("approved","Approved"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     published_snapshot = models.JSONField(
@@ -3847,3 +3847,47 @@ class DuplicateDecision(TimeStampedModel):
                 name="unique_duplicate_verdict",
             )
         ]
+
+
+# ---------------------------------------------------------------------------
+# Province / District structure (merged from devin dark-mode-compat layer;
+# tables created by migration 0069_province_district). Honest design: no
+# fabricated tourism facts — empty fields render as "Information unavailable".
+# ---------------------------------------------------------------------------
+
+class Province(TimeStampedModel):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True)
+    capital = models.CharField(max_length=150, blank=True)
+    order = models.PositiveSmallIntegerField(default=0, db_index=True)
+
+    class Meta:
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class District(TimeStampedModel):
+    name = models.CharField(max_length=120, unique=True, db_index=True)
+    slug = models.SlugField(max_length=140, unique=True)
+    province = models.ForeignKey(
+        Province, on_delete=models.PROTECT, related_name="districts"
+    )
+    region_type = models.CharField(
+        max_length=150, blank=True,
+        help_text="Geographic character note from the seed dataset (e.g. 'Hill/Libang (Rolpa Bazar)').",
+    )
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    elevation_m = models.IntegerField(null=True, blank=True)
+    description = models.TextField(
+        blank=True,
+        help_text="Curated/verified text. Left blank until verified — the API renders 'Information unavailable', never fabricated copy.",
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.province.name})"

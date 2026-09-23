@@ -24,3 +24,7 @@ numpy>=1.26.0
 
 networkx==3.3
 twilio>=9.0
+
+# WebSocket chat (chatbot consumers; merged from devin dark-mode line)
+channels==4.3.2
+daphne==4.2.3

@@ -178,3 +178,47 @@ class ChatbotTests(APITestCase):
             if card["name"] == "Silent Clinic":
                 self.assertEqual(card["phone"], "102")
                 self.assertTrue(card["phone_is_national_fallback"])
+
+class ChatWebSocketTests(APITestCase):
+    """Master spec §30: live full-duplex socket push per conversation."""
+
+    def test_consumer_accepts_and_receives_group_broadcasts(self):
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from channels.testing import WebsocketCommunicator
+        from Tourism.asgi import application
+
+        async def scenario():
+            communicator = WebsocketCommunicator(application, "/ws/chat/4242/")
+            connected, _ = await communicator.connect()
+            assert connected, "websocket should accept the connection"
+            welcome = await communicator.receive_json_from()
+            assert welcome["type"] == "chat.connected"
+            assert welcome["conversation_id"] == 4242
+            layer = get_channel_layer()
+            await layer.group_send(
+                "chat_4242",
+                {"type": "chat.message", "payload": {"type": "bot_reply", "message_id": 7, "reply": "Namaste"}},
+            )
+            event = await communicator.receive_json_from()
+            assert event == {"type": "bot_reply", "message_id": 7, "reply": "Namaste"}
+            await communicator.disconnect()
+
+        async_to_sync(scenario)()
+
+    def test_message_post_broadcasts_user_and_bot_events(self):
+        from unittest.mock import patch
+
+        captured = []
+
+        class FakeLayer:
+            async def group_send(self, group, event):
+                captured.append((group, event))
+
+        with patch("channels.layers.get_channel_layer", return_value=FakeLayer()):
+            response = self.client.post(reverse("chatbot-message"), {"message": "Hello live chat"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        conversation_id = response.data["conversation_id"]
+        self.assertEqual([group for group, _ in captured], [f"chat_{conversation_id}"] * 2)
+        self.assertEqual([event["payload"]["type"] for _, event in captured], ["user_message", "bot_reply"])
+        self.assertEqual(captured[1][1]["payload"]["message_id"], response.data["message_id"])

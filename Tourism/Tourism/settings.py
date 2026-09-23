@@ -93,6 +93,15 @@ TEMPLATES = [
 WSGI_APPLICATION = "Tourism.wsgi.application"
 ASGI_APPLICATION = "Tourism.asgi.application"
 
+# Channels: live-chat WebSocket fan-out (master spec §30, merged from the
+# devin dark-mode line). In-memory layer — the app runs as a single process
+# (daphne/uvicorn), and tests exercise the same path without Redis.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
 # ------------------------------------------------------------------
 # Database
 # ------------------------------------------------------------------
@@ -155,7 +164,9 @@ else:
             "NAME": BASE_DIR / config("DB_NAME", default="db.sqlite3"),
             # SQLite busy timeout (seconds): wait instead of failing with
             # "database is locked" when a writer holds the lock briefly.
-            "OPTIONS": {"timeout": 30},
+            # 20s busy-timeout per the SQLite lock-hardening regression suite
+            # (devin dark-mode line); WAL enabled via tourist.signals.
+            "OPTIONS": {"timeout": 20},
         }
     }
 

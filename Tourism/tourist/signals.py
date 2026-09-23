@@ -68,3 +68,26 @@ def notify_nearby_users_of_new_alert(sender, instance, created, **kwargs):
                 channel="in_app", related_alert=instance,
             )
             notified_ids.add(relative.id)
+
+
+def _enable_sqlite_wal(sender, connection, **kwargs):
+    """WAL lets readers proceed while an audit-log write holds the lock.
+
+    Root-cause fix for `sqlite3.OperationalError: database is locked` 500s
+    (config/public, discover-nepal) under the threaded dev server. No-op for
+    other backends; harmless for test databases.
+    """
+    if connection.vendor != "sqlite":
+        return
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.execute("PRAGMA synchronous=NORMAL;")
+            cursor.execute("PRAGMA busy_timeout=20000;")
+    except Exception:  # pragma: no cover - never block startup on pragmas
+        pass
+
+
+from django.db.backends.signals import connection_created  # noqa: E402
+
+connection_created.connect(_enable_sqlite_wal)

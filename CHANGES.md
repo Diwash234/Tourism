@@ -1729,3 +1729,61 @@ fully legible.
 - `npm run build` → clean (2573 modules). Live preview serves the new bundle;
   `/api/v1/config/public/` returns 6 `hero_slides` over both :8000 and the
   :5173 proxy.
+
+## Merge: arena/01a03355-tourism (Round 22a — 2026-09-23)
+
+Merged the user data line (tip 737ee8b, state 2026-09-07) into arena/01a0b949-tourism.
+185 file conflicts resolved: our line (Rounds 20-21f + merged arena/01a07999) is the newer
+evolution of every conflicted file (verified: notifications/services.py is now a re-export
+of the real delivery layer in tourist/utils.py; icons.js and Navigation.jsx use the real
+Twemoji pin / turn-icon systems; admin panels, ML engines and responsive layouts match or
+exceed the 2026-09-07 state). Gained from this branch (auto-merged, 8 files):
+dataset/destination_locations.json, tourist/verified_wikimedia_photos.json,
+public/robots.txt, public/sitemap.xml, components/common/pageheader.jsx,
+data/nepalDestinations.js, pages/TripPlanner.jsx (legacy, unimported), ml_service/model/destinations.csv.
+Database: kept the merged DB; user records from this branch (admin123@gmail.com and the
+personal accounts) imported in the data-union step. Images: the named destination photos
+and category SVGs this branch carried are already in our tree via the earlier merge.
+
+## Merge: arena/01a00b65-tourism (Round 22b — 2026-09-23)
+
+83 conflicts, all resolved to our line. Verified before resolving: after the 03355 merge,
+EVERY file carried by 01a00b65 (2026-08-18) is byte-identical in our tree — zero content
+lost. Gained (auto-merged, 3 files): scripts/fix_round24_dead_covers.py,
+scripts/fix_round24b_overshared.py, src/api/localApi.js (case-variant legacy of LocalApi.js).
+
+## Merge: arena/01a01f4c-tourism (Round 22c — 2026-09-23)
+
+119 conflicts, all resolved to our line. Feature-marker audit of all conflicted files:
+the only their-side definitions absent from ours were scoreFromAlerts (now shared in
+utils/safetyScore.js), views_compat image helpers (evolved into _stored_image_url et al.),
+the custom JWT token pair (our CustomLoginView supersedes it) and the inline async logout
+(now in AuthContext) — i.e. older implementations of features ours already carries.
+
+## Merge: devin/1789139722-dark-mode-compat-layer (Round 22d — 2026-09-23)
+
+120 conflicts resolved. Feature-marker audit: every their-side definition absent from ours
+proved to be an older/parallel implementation of a feature our line already carries
+(Province/District models + admin at models.py:3890/admin.py:649, RouteOptionsView
+superseding TravelOptionsView, rerouteFromGps at Navigation.jsx:254, _publish_loop in
+apps.py, _enable_sqlite_wal in signals.py:75, RedirectHandler in App.jsx:132, itinerary
+helpers in views_ml.py). Migration chain: devin tourist migrations 0001-0073 are a strict
+prefix of our 0001-0076 — no collision. Gained from this branch:
+tourist/tests_regression.py (133 regression tests), chatbot WebSocket tests
+(their tests.py = ours + ChatWebSocketTests), tests-nav/nav-test-entry.jsx harness,
+chatbot/consumers.py, eslint.config.js, CMS hero slides, redirect/newsletter models
+(already in our tree via shared lineage), and their e2e test accounts (imported in the
+data-union step).
+
+## Merge: gaurav-frontend-update (Round 22e — 2026-09-23)
+
+Unrelated-history early line (2026-07-23, root 85a1e27) merged for completeness.
+106 conflicts, all resolved to our line (2 months of evolution beyond this branch).
+Gained: frontend/public/{favicon.svg,icons.svg} for the legacy root frontend app,
+src/pages/Adminagencies.jsc (legacy page, unimported). Excluded on purpose:
+.env (was DJANGO_SETTINGS_MODULE only; .env stays uncommitted per repo policy),
+Tourism/.gitignore (empty file), .vscode/settings.json (editor-local), and the two
+lowercase case-twin components pageheader.jsx / Authcontext.jsx — re-adding them next
+to PageHeader.jsx / AuthContext.jsx breaks case-insensitive (Windows) checkouts;
+the canonical files were already unified in the user-approved PageHeader commit.
+Gaurav-line users (gauravkhadka6677@gmail.com) imported in the data-union step.

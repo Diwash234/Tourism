@@ -3,6 +3,7 @@ from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
+    District, Province,
     User, Language, Category, Destination, DestinationTranslation,
     DestinationImage, DestinationVideo, Review, Rating, Favorite,
     VisitHistory, Budget, Alert, EmergencyContact, Notification,
@@ -633,3 +634,30 @@ class ManagedNavigationItemAdmin(admin.ModelAdmin):
 @admin.register(FeedbackMessage)
 class FeedbackMessageAdmin(admin.ModelAdmin):
     list_display=['feedback','sender','is_internal','created_at']; list_filter=['is_internal']; search_fields=['body','feedback__subject']
+
+
+class ProvinceAdmin(admin.ModelAdmin):
+    list_display = ("name", "capital", "order")
+    ordering = ("order", "name")
+    search_fields = ("name", "capital")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(District)
+class DistrictAdmin(admin.ModelAdmin):
+    list_display = ("name", "province", "region_type", "elevation_m")
+    list_filter = ("province",)
+    search_fields = ("name", "region_type")
+    prepopulated_fields = {"slug": ("name",)}
+    autocomplete_fields = ("province",)
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "province", "region_type")}),
+        ("Geography", {"fields": ("latitude", "longitude", "elevation_m")}),
+        ("Verified content", {
+            "fields": ("description",),
+            "description": "Only enter text verified from a trustworthy source. Blank shows as 'Information unavailable' publicly.",
+        }),
+    )
+
+
+admin.site.register(Province, ProvinceAdmin)

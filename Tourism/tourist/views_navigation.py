@@ -42,12 +42,21 @@ def haversine_distance_km(lat1, lon1, lat2, lon2):
 
 class UserRouteCalculateView(APIView):
     """
-    Real-location aware route calculation engine.
-    Calculates journey from a real user origin to ANY destination (recorded or arbitrary place).
+    Route calculation between a real origin and a real destination.
+
+    Origin and destination must both resolve to real coordinates — a
+    coordinate pair, a Destination row, or a place the location search
+    service can resolve. Geometry, distance, duration and turn-by-turn
+    steps come from the configured routing provider or the bundled graph;
+    when neither is available the response carries the straight line with
+    ``confidence_level = "STRAIGHT_LINE"`` and no steps.
     """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from .location.search_service import LocationSearchService
+        from .routing_service import route_metrics, route_steps
+
         data = request.data
         dest_slug = data.get("destination_slug") or data.get("destination")
         dest_id = data.get("destination_id")
@@ -60,146 +69,187 @@ class UserRouteCalculateView(APIView):
             destination = Destination.objects.filter(Q(slug=dest_slug) | Q(id=dest_slug if str(dest_slug).isdigit() else 0)).first()
 
         origin_name = (data.get("origin_name") or data.get("origin") or "").strip()
-        origin_lat = data.get("origin_lat") or data.get("latitude") or data.get("start_latitude")
-        origin_lng = data.get("origin_lng") or data.get("longitude") or data.get("start_longitude")
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
 
-        # Resolve a named origin ("from Biratnagar") to real coordinates via the
-        # same universal place resolver used for destinations — a named origin
-        # must never be silently replaced by the default point.
-        origin_defaulted = False
-        origin_resolution = "gps"
-        if origin_lat is None or origin_lng is None:
-            resolved_origin = None
-            if origin_name:
-                from .location.search_service import LocationSearchService
-                resolved_origin = LocationSearchService.resolve_single_place(origin_name)
-            if resolved_origin:
-                origin_lat = resolved_origin["latitude"]
-                origin_lng = resolved_origin["longitude"]
-                origin_name = resolved_origin["name"]
-                origin_resolution = "geocoded"
-            else:
-                # Default fallback origin — clearly labelled; if the user named
-                # an origin we could not locate, say so explicitly instead of
-                # mislabelling the default as their place.
-                origin_lat, origin_lng = 28.2096, 83.9856
-                origin_defaulted = True
-                origin_resolution = "default"
-                origin_name = (
-                    f"Pokhara Center (default origin — '{origin_name}' could not be located)"
-                    if origin_name else
-                    "Pokhara Center (default origin — no location provided)"
+        # Destination is resolved BEFORE origin validation: an unresolvable
+        # destination is an honest 404 (DESTINATION_UNRESOLVED) regardless of
+        # the origin, so the client learns the place does not exist instead
+        # of a generic origin error.
+        dest_city = ""
+        if destination is not None:
+            if destination.latitude is None or destination.longitude is None:
+                return Response(
+                    {"detail": f"'{destination.name}' has no coordinates on record, so a route cannot be calculated."},
+                    status=status.HTTP_409_CONFLICT,
                 )
-
-        # Resolve destination
-        dest_lat = None
-        dest_lng = None
-        dest_title = dest_name or "Destination"
-        dest_city = "Pokhara"
-
-        if destination and destination.latitude is not None and destination.longitude is not None:
-            dest_lat = float(destination.latitude)
-            dest_lng = float(destination.longitude)
+            dlat, dlng = float(destination.latitude), float(destination.longitude)
             dest_title = destination.name
-            dest_city = destination.city or "Pokhara"
+            dest_city = destination.city or ""
+        elif dest_name or dest_slug:
+            resolved_destination = LocationSearchService.resolve_single_place(dest_name or dest_slug)
+            if not resolved_destination:
+                return Response(
+                    {"detail": f"Could not resolve the destination '{dest_name or dest_slug}' to a real location.",
+                     "route_status": "DESTINATION_UNRESOLVED"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            dlat = float(resolved_destination["latitude"])
+            dlng = float(resolved_destination["longitude"])
+            dest_title = resolved_destination["name"]
+            dest_city = resolved_destination.get("city") or ""
         else:
-            from .location.search_service import LocationSearchService
-            resolved = LocationSearchService.resolve_single_place(dest_name or dest_slug or "")
-            if resolved:
-                dest_lat = resolved["latitude"]
-                dest_lng = resolved["longitude"]
-                dest_title = resolved["name"]
-                dest_city = resolved.get("city", "Pokhara")
+            return Response(
+                {"detail": "A destination is required: send destination_id, destination_slug, or destination_name."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if dest_lat is None or dest_lng is None:
-            # Honest failure: never silently substitute a default destination
-            # (the old behaviour quietly routed users to Pokhara center).
-            return Response({
-                "detail": "Destination could not be resolved to coordinates. "
-                          "Provide destination_id, a known slug, or a place "
-                          "name that exists in the database.",
-                "route_status": "DESTINATION_UNRESOLVED",
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        # Delegate to the CENTRAL routing service (OSRM when configured,
-        # labelled corridor-graph fallback otherwise) — one routing engine
-        # for the whole platform, no per-view geometry invention.
-        mode_map = {
-            "walking": "walking", "walk": "walking", "hiking": "hiking",
-            "trekking": "hiking", "motorcycle": "motorcycle", "bike": "motorcycle",
-            "motorbike": "motorcycle", "bicycle": "cycling", "cycling": "cycling",
-        }
-        mode = mode_map.get(str(transport_mode).strip().lower(), "driving")
-        from navigation.route_engine import cached_route
         try:
-            result, _cached = cached_route(
-                (float(origin_lat), float(origin_lng)),
-                (float(dest_lat), float(dest_lng)), mode, request=request)
-        except Exception as exc:  # rate limited or engine failure
-            return Response({"detail": f"Route calculation unavailable: {exc}",
-                             "route_status": "ERROR"},
-                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        route = result["route"]
-        source = route.get("source", "unknown")
-        distance_km = round(float(route["distance_m"]) / 1000.0, 1)
-        duration_mins = max(1, int(round(float(route["duration_s"]) / 60.0)))
-        confidence = {
-            "osrm": "ROAD-VERIFIED",
-            "graphml_fallback": "CORRIDOR-ESTIMATE",
-        }.get(source, "STRAIGHT-LINE-ESTIMATE")
+            origin = _coerce_coordinate_pair(
+                data.get("origin_lat") or data.get("latitude") or data.get("start_latitude"),
+                data.get("origin_lng") or data.get("longitude") or data.get("start_longitude"),
+            )
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "origin_lat and origin_lng must be valid coordinates."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        hrs = duration_mins // 60
-        mins = duration_mins % 60
-        if hrs > 0:
-            duration_str = f"{hrs}h {mins}m" if mins > 0 else f"{hrs} hours"
+        if origin is None:
+            if not origin_name:
+                return Response(
+                    {"detail": "An origin is required: send origin_lat and origin_lng, or origin_name."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            resolved_origin = LocationSearchService.resolve_single_place(origin_name)
+            if not resolved_origin:
+                return Response(
+                    {"detail": f"Could not resolve the origin '{origin_name}' to a real location."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            origin = (float(resolved_origin["latitude"]), float(resolved_origin["longitude"]))
+            origin_name = resolved_origin["name"]
+        olat, olng = origin
+
+        straight_line_km = haversine_distance_km(olat, olng, dlat, dlng)
+
+        provider_route = route_steps(olat, olng, dlat, dlng)
+        if provider_route:
+            distance_km = provider_route["distance_km"]
+            duration_min = provider_route["duration_min"]
+            # Provider geometry is GeoJSON [lng, lat]; the frontend map
+            # consumes [lat, lng].
+            geometry_coordinates = [
+                [round(float(point[1]), 6), round(float(point[0]), 6)]
+                for point in (provider_route.get("geometry") or [])
+            ]
+            steps = provider_route.get("steps") or []
+            confidence = "ROUTED"
+            routing_engine = "osrm_protocol_provider"
+            route_note = "Route, distance and turn-by-turn steps supplied by the configured routing provider."
         else:
-            duration_str = f"{mins} mins"
+            metrics = route_metrics(olat, olng, dlat, dlng)
+            distance_km = metrics.get("route_distance_km")
+            duration_min = metrics.get("duration_min")
+            geometry_coordinates = _normalise_route_points(metrics.get("route"))
+            steps = []
+            routing_engine = metrics.get("routing_engine")
+            route_note = metrics.get("note")
+            if distance_km is not None:
+                confidence = "GRAPH_APPROXIMATION"
+            else:
+                confidence = "STRAIGHT_LINE"
 
-        geometry_waypoints = [[float(p[0]), float(p[1])] for p in route.get("geometry") or []]
-        steps = [
-            {
-                "instruction": s.get("instruction", ""),
-                "distance_m": s.get("distance_m", 0),
-                "duration_sec": s.get("duration_s", 0),
-                "maneuver": s.get("maneuver", ""),
-                "maneuver_grade": s.get("maneuver_grade", ""),
-                "point": s.get("point"),
-            }
-            for s in route.get("steps") or []
-        ]
+        if not geometry_coordinates:
+            geometry_coordinates = [[round(olat, 6), round(olng, 6)], [round(dlat, 6), round(dlng, 6)]]
+            geometry_kind = "straight_line"
+        else:
+            geometry_kind = "routed"
+
+        # A distance is only ever reported as the route distance the engine
+        # actually produced; the straight line is reported separately and
+        # labelled as such.
+        if distance_km is not None and not duration_min:
+            duration_min = max(1, round(distance_km / 35.0 * 60))
+            duration_source = "estimated"
+            duration_note = "Estimated at ~35 km/h average; not a live traffic prediction."
+        elif duration_min:
+            duration_source = "routing_engine" if confidence == "ROUTED" else "estimated"
+            duration_note = None if confidence == "ROUTED" else "Average-speed estimate, not a live traffic prediction."
+        else:
+            duration_source = "unavailable"
+            duration_note = "No routing engine available, so travel time is not estimated."
+
+        fare_npr = round(distance_km * 25, 2) if distance_km is not None else None
+
+        # Legacy contract key alongside confidence_level: which engine the
+        # geometry actually came from (labelled, never bare "CALCULATED").
+        route_source = {
+            "ROUTED": "osrm",
+            "GRAPH_APPROXIMATION": "graphml_fallback",
+            "STRAIGHT_LINE": "straight_line_fallback",
+        }.get(confidence, "straight_line_fallback")
+        for step in steps:
+            if step.get("maneuver_grade") in (None, ""):
+                step["maneuver_grade"] = {"depart": "A", "arrive": "A"}.get(step.get("maneuver", ""), "B")
+        # Turn-by-turn steps: a live provider supplies real maneuvers when
+        # configured; otherwise derive honest corridor steps from the bundled
+        # graph geometry (labelled via routing_engine, not street-level).
+        # A straight-line fallback intentionally carries NO steps — never
+        # invent directions nobody routed.
+        if geometry_kind == "routed" and not steps and len(geometry_coordinates) >= 2:
+            steps = []
+            for i, (plat, plng) in enumerate(geometry_coordinates):
+                if i == 0:
+                    instr, maneuver = "Head out along the mapped corridor", "depart"
+                elif i == len(geometry_coordinates) - 1:
+                    instr, maneuver = "Arrive at your destination", "arrive"
+                else:
+                    instr, maneuver = "Continue along the mapped corridor", "continue"
+                steps.append({
+                    "instruction": instr, "maneuver": maneuver,
+                    "maneuver_grade": {"depart": "A", "arrive": "A"}.get(maneuver, "B"),
+                    "point": [plat, plng],
+                })
+            route_note = (f"{route_note or ''} Corridor steps are derived from the "
+                          "bundled coordinate-based graph — approximate, not street-level."
+                          ).strip()
 
         return Response({
             "destination_id": destination.id if destination else None,
             "destination_name": dest_title,
-            "destination_slug": destination.slug if destination else dest_name.lower().replace(" ", "-"),
+            "destination_slug": destination.slug if destination else None,
+            "destination_city": dest_city,
             "has_coordinates": True,
-            "destination_latitude": dest_lat,
-            "destination_longitude": dest_lng,
-            "origin_name": origin_name or "Current Location",
-            "origin_latitude": float(origin_lat),
-            "origin_longitude": float(origin_lng),
-            "origin_resolution": origin_resolution,
+            "destination_latitude": dlat,
+            "destination_longitude": dlng,
+            "origin_name": origin_name or "Current location",
+            "origin_latitude": olat,
+            "origin_longitude": olng,
             "transport_mode": transport_mode,
             "distance_km": distance_km,
-            "estimated_duration": duration_str,
-            "duration_min": duration_mins,
-            "fare_npr": round(distance_km * 25, 2),
+            "straight_line_km": round(straight_line_km, 2) if straight_line_km is not None else None,
+            "estimated_duration": _format_duration(duration_min) or "Travel time unavailable",
+            "duration_min": duration_min,
+            "duration_source": duration_source,
+            "duration_note": duration_note,
+            "fare_npr": fare_npr,
             "fare_currency": "NPR",
-            "fare_status": "Estimated Highway Fare",
+            "fare_status": "Estimated" if fare_npr is not None else "Unavailable",
+            "fare_source": "Estimated at NPR 25/km of route distance — not a verified operator fare.",
             "confidence_level": confidence,
-            "route_source": source,
-            "route_note": route.get("note", ""),
+            "route_source": route_source,
+            "routing_engine": routing_engine,
+            "route_note": route_note,
             "route_status": "Route calculated for destination",
             "calculated_at": timezone.now().isoformat(),
             "geometry": {
                 "type": "LineString",
-                "coordinates": geometry_waypoints,
+                "kind": geometry_kind,
+                "coordinates": geometry_coordinates,
             },
             "steps": steps,
             "segments": [],
         })
-
 
 def _places_cache_key(prefix, q, category, lat, lng, radius_km):
     """Cache key per spec item 19: normalized query + quantized coords.
@@ -1164,3 +1214,304 @@ class TravelBetweenDestinationsView(APIView):
         }
         cache.set(cache_key, payload, 3600)
         return Response(payload)
+
+
+# ---------------------------------------------------------------------------
+# Travel options (merged from devin dark-mode-compat layer):
+# per-mode comparison, honest fallbacks, provider turn steps.
+# ---------------------------------------------------------------------------
+WALK_KMH, BIKE_KMH = 4.5, 12.0
+UNAVAILABLE = "Information unavailable"
+
+def _coerce_coordinate_pair(raw_lat, raw_lng):
+    """(lat, lng) floats, or None when either side is absent.
+
+    Raises ValueError when a value is present but not a usable coordinate,
+    so a typo becomes a 400 instead of being silently discarded.
+    """
+    if raw_lat in (None, "") or raw_lng in (None, ""):
+        return None
+    lat, lng = float(raw_lat), float(raw_lng)
+    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lng <= 180.0):
+        raise ValueError("coordinates out of range")
+    return lat, lng
+
+
+def _format_duration(duration_min):
+    if not duration_min:
+        return None
+    hrs, mins = divmod(int(duration_min), 60)
+    if hrs and mins:
+        return f"{hrs}h {mins}m"
+    if hrs:
+        return f"{hrs} hours"
+    return f"{mins} mins"
+
+
+def _normalise_route_points(points):
+    """Route engines return [{lat, lng}, ...] or [[lat, lng], ...]."""
+    coordinates = []
+    for point in points or []:
+        if isinstance(point, dict):
+            lat, lng = point.get("lat"), point.get("lng")
+        elif isinstance(point, (list, tuple)) and len(point) >= 2:
+            lat, lng = point[0], point[1]
+        else:
+            continue
+        try:
+            coordinates.append([round(float(lat), 6), round(float(lng), 6)])
+        except (TypeError, ValueError):
+            continue
+    return coordinates
+
+
+
+def _resolve_point(lat_key, lng_key, name_key, data):
+    lat = data.get(lat_key)
+    lon = data.get(lng_key)
+    try:
+        if lat not in (None, "") and lon not in (None, ""):
+            return float(lat), float(lon), None
+    except (TypeError, ValueError):
+        return None, None, "Coordinates must be numbers."
+    name = (data.get(name_key) or "").strip()
+    if name and name.lower() not in {"current location", "my current location"}:
+        from .location.search_service import LocationSearchService
+        resolved = LocationSearchService.resolve_single_place(name)
+        if resolved and resolved.get("latitude") and resolved.get("longitude"):
+            return float(resolved["latitude"]), float(resolved["longitude"]), None
+        return None, None, f"No recorded place matches '{name}'."
+    return None, None, "Provide coordinates or a recognizable place name."
+
+
+
+def _point_to_segment_km(px, py, ax, ay, bx, by):
+    """Approximate km distance from point P to segment AB on a local plane."""
+    import math
+    kx = math.cos(math.radians((ay + by) / 2)) * 111.32
+    ky = 110.57
+    axp, ayp = (px - ax) * kx, (py - ay) * ky
+    abx, aby = (bx - ax) * kx, (by - ay) * ky
+    length2 = abx * abx + aby * aby
+    t = max(0.0, min(1.0, (axp * abx + ayp * aby) / length2)) if length2 else 0.0
+    cx, cy = abx * t, aby * t
+    return math.hypot(axp - cx, ayp - cy)
+
+
+
+class TravelOptionsView(APIView):
+    """POST /api/v1/navigation/travel-options/
+    {start_latitude,start_longitude | origin_name, destination_name | destination_slug | end_*}
+    Returns per-mode time/cost comparison, a recommendation, places along the
+    way, "before you go" facts from the destination record, and turn-by-turn
+    steps when a live routing provider is configured."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data or {}
+        start_lat, start_lon, err = _resolve_point("start_latitude", "start_longitude", "origin_name", data)
+        if err and not data.get("start_latitude"):
+            return Response({"detail": err}, status=status.HTTP_400_BAD_REQUEST)
+        if start_lat is None:
+            return Response({"detail": err or "Origin required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        destination = None
+        slug = (data.get("destination_slug") or "").strip()
+        name = (data.get("destination_name") or "").strip()
+        if slug:
+            destination = Destination.objects.filter(slug=slug).first()
+        if destination is None and name:
+            destination = Destination.objects.filter(
+                Q(name__icontains=name) | Q(city_english__iexact=name) | Q(district__iexact=name)
+            ).filter(status=Destination.SubmissionStatus.APPROVED, is_active=True).first()
+        if destination is None and name:
+            end_lat, end_lon, err2 = _resolve_point("end_latitude", "end_longitude", "destination_name", data)
+            if end_lat is None:
+                return Response({"detail": err2}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            end_lat = float(destination.latitude) if destination and destination.latitude is not None else None
+            end_lon = float(destination.longitude) if destination and destination.longitude is not None else None
+        if end_lat is None or end_lon is None:
+            return Response({"detail": "Destination has no recorded coordinates."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Multi-stop parity (Phase 6+): the same waypoints contract as
+        # /navigation/route — names resolved through the place index, or
+        # explicit coordinates. Distances become leg sums, nothing invented.
+        raw_waypoints = data.get("waypoints") or []
+        if not isinstance(raw_waypoints, list):
+            return Response({"detail": "waypoints must be a list of place names or {latitude, longitude} objects."}, status=status.HTTP_400_BAD_REQUEST)
+        via_points = []
+        for waypoint in raw_waypoints:
+            if isinstance(waypoint, dict):
+                try:
+                    wlat = float(waypoint.get("latitude", waypoint.get("lat")))
+                    wlon = float(waypoint.get("longitude", waypoint.get("lng", waypoint.get("lon"))))
+                except (TypeError, ValueError):
+                    return Response({"detail": "Waypoint coordinates must be numeric."}, status=status.HTTP_400_BAD_REQUEST)
+                via_points.append({"name": str(waypoint.get("name") or "Waypoint")[:120], "latitude": wlat, "longitude": wlon})
+            elif isinstance(waypoint, str) and waypoint.strip():
+                from .location.search_service import LocationSearchService
+                resolved_wp = LocationSearchService.resolve_single_place(waypoint.strip())
+                if not (resolved_wp and resolved_wp.get("latitude") and resolved_wp.get("longitude")):
+                    return Response({"detail": f"No place with recorded coordinates matches waypoint '{waypoint}'."}, status=status.HTTP_404_NOT_FOUND)
+                via_points.append({"name": resolved_wp.get("name") or waypoint.strip(), "latitude": float(resolved_wp["latitude"]), "longitude": float(resolved_wp["longitude"])})
+        if len(via_points) > 3:
+            return Response({"detail": "Up to 3 waypoints are supported per route."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .routing_service import route_metrics, route_steps
+        drive = route_metrics(start_lat, start_lon, end_lat, end_lon)
+        if via_points:
+            leg_points = [(start_lat, start_lon)] + [(w["latitude"], w["longitude"]) for w in via_points] + [(end_lat, end_lon)]
+            leg_metrics = [route_metrics(leg_points[i][0], leg_points[i][1], leg_points[i + 1][0], leg_points[i + 1][1]) for i in range(len(leg_points) - 1)]
+            road_total = sum(float(m.get("road_distance_km") or m.get("route_distance_km") or 0) for m in leg_metrics)
+            duration_total = sum(int(m.get("duration_min") or 0) for m in leg_metrics)
+            straight_total = round(sum(float(m.get("straight_line_km") or 0) for m in leg_metrics), 2)
+            drive = {
+                **drive,
+                "road_distance_km": round(road_total, 2) if road_total else None,
+                "route_distance_km": round(road_total, 2) if road_total else None,
+                "straight_line_km": straight_total,
+                "duration_min": duration_total or None,
+            }
+        road_km = drive.get("road_distance_km") or drive.get("route_distance_km")
+        straight_km = drive.get("straight_line_km")
+        km = road_km or straight_km
+
+        def timed(mode_km, kmh):
+            return int(round(mode_km / kmh * 60))
+
+        walk_min, bike_min = timed(km, WALK_KMH), timed(km, BIKE_KMH)
+        drive_min = drive.get("duration_min") or timed(km, 35.0)
+
+        # Fare card is admin-managed (SiteSetting "fare_card"); without it,
+        # costs are reported unavailable rather than guessed.
+        from .models import SiteSetting
+        fare_row = SiteSetting.objects.filter(key="fare_card").first()
+        fare = fare_row.value if fare_row else {}
+        taxi_cost, bike_cost, bus_cost = None, None, None
+        if fare.get("taxi_base_npr") is not None and fare.get("taxi_per_km_npr") is not None:
+            taxi_cost = [int(fare["taxi_base_npr"] + fare["taxi_per_km_npr"] * km * 0.9),
+                         int(fare["taxi_base_npr"] + fare["taxi_per_km_npr"] * km * 1.25)]
+        if fare.get("bicycle_rental_npr") is not None:
+            bike_cost = [int(fare["bicycle_rental_npr"])] * 2
+        if fare.get("bus_typical_npr") is not None:
+            bus_cost = [int(fare["bus_typical_npr"])] * 2
+
+        distance_label = "road route" if road_km else "straight-line estimate (no live road routing)"
+        options = [
+            {"mode": "taxi", "label": "Taxi / Car", "icon": "🚕", "duration_min": int(drive_min),
+             "distance_km": km, "distance_label": distance_label,
+             "cost_npr": taxi_cost, "cost_note": "Estimated from admin fare card" if taxi_cost else UNAVAILABLE,
+             "source": drive.get("status")},
+            {"mode": "bus", "label": "Public Transport", "icon": "🚌", "duration_min": int(drive_min * 1.6),
+             "distance_km": km, "distance_label": distance_label,
+             "cost_npr": bus_cost, "cost_note": "Typical fare from admin fare card" if bus_cost else "No recorded fare data",
+             "source": drive.get("status"),
+             "available": bus_cost is not None},
+            {"mode": "walk", "label": "Walking", "icon": "🚶", "duration_min": walk_min,
+             "distance_km": km, "distance_label": distance_label, "cost_npr": [0, 0],
+             "cost_note": "Free", "source": "derived from distance"},
+            {"mode": "bicycle", "label": "Bicycle", "icon": "🚲", "duration_min": bike_min,
+             "distance_km": km, "distance_label": distance_label, "cost_npr": bike_cost,
+             "cost_note": "Rental from admin fare card" if bike_cost else UNAVAILABLE,
+             "source": "derived from distance"},
+        ]
+        if not options[1]["available"]:
+            options[1]["note"] = "Public-transport timings are not recorded for this corridor."
+
+        # Recommendation rules: honest, distance-based.
+        reasons = []
+        if km <= 1.6:
+            recommended = "walk"
+            reasons = ["Shortest healthy option at this distance", "Free", "No transfers"]
+        elif km <= 8 and bike_cost is not None:
+            recommended = "bicycle"
+            reasons = ["Faster than walking at this distance", "Low cost", "Good for sightseeing"]
+        else:
+            recommended = "taxi"
+            reasons = ["Fastest option", "Direct route", "Convenient with luggage"]
+
+        # Places along the way: recorded destinations near the corridor.
+        along = []
+        corridor = _point_to_segment_km
+        for poi in Destination.objects.filter(
+            status=Destination.SubmissionStatus.APPROVED, is_active=True
+        ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)[:400]:
+            if destination and poi.pk == destination.pk:
+                continue
+            d_km = corridor(float(poi.latitude), float(poi.longitude), start_lat, start_lon, end_lat, end_lon)
+            if d_km <= 1.5:
+                detour = int(round((haversine_distance_km(start_lat, start_lon, float(poi.latitude), float(poi.longitude))
+                                    + haversine_distance_km(float(poi.latitude), float(poi.longitude), end_lat, end_lon)
+                                    - (straight_km or 0)) / 35.0 * 60))
+                along.append({"name": poi.name, "slug": poi.slug,
+                              "category": poi.category.name if poi.category_id else "Attraction",
+                              "distance_from_route_km": round(d_km, 2),
+                              "detour_minutes": max(5, detour + 15)})
+        along.sort(key=lambda item: item["detour_minutes"])
+        along = along[:6]
+
+        before = {}
+        if destination is not None:
+            before = {
+                "opening_hours": destination.opening_hours or UNAVAILABLE,
+                "entry_fee_npr": float(destination.entry_fee) if destination.entry_fee else None,
+                "best_time_to_visit": destination.best_time_to_visit or UNAVAILABLE,
+            }
+        steps_payload = route_steps(start_lat, start_lon, end_lat, end_lon)
+        if steps_payload is None and drive.get("status") == "graph_routed" and drive.get("directions"):
+            # Honest second tier: coordinate-based turns derived from the
+            # bundled tourism graph geometry — clearly labelled as NOT
+            # street-level directions (route_engine documents the same).
+            steps_payload = {
+                "source": "bundled_nepal_graphml",
+                "distance_km": drive.get("route_distance_km"),
+                "duration_min": drive.get("duration_min"),
+                "geometry": None,
+                "steps": [
+                    {
+                        "instruction": direction.get("instruction") or "Continue",
+                        "distance_m": int(round((direction.get("distance_km") or 0) * 1000)),
+                        "road": None,
+                    }
+                    for direction in drive["directions"]
+                ],
+            }
+
+        if steps_payload and steps_payload["source"] == "bundled_nepal_graphml":
+            tbt_note = (
+                "Directions derived from the bundled Nepal tourism graph (coordinate-based, "
+                "not street-level). Configure a road-routing provider (admin site setting "
+                "'routing_provider') for street-level turns."
+            )
+        elif steps_payload is None:
+            tbt_note = (
+                "Detailed turn-by-turn directions need a live road-routing provider "
+                "(admin → site setting 'routing_provider'). Distances above remain real."
+            )
+        else:
+            tbt_note = None
+
+        return Response({
+            "origin": {"latitude": start_lat, "longitude": start_lon},
+            "destination": {
+                "name": destination.name if destination else name,
+                "slug": destination.slug if destination else None,
+                "latitude": end_lat, "longitude": end_lon,
+                "category": destination.category.name if destination and destination.category_id else None,
+            },
+            "distance_km": km,
+            "distance_label": distance_label,
+            "routing_note": drive.get("note"),
+            "options": options,
+            "recommended": recommended,
+            "recommendation_reasons": reasons,
+            "along_the_way": along,
+            "before_you_go": before or UNAVAILABLE,
+            "turn_by_turn": steps_payload,
+            "turn_by_turn_note": tbt_note,
+            "multi_stop": bool(via_points),
+            "waypoints": via_points,
+        })
+

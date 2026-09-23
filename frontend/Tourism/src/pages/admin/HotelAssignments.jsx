@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { FiUserPlus, FiTrash2 } from "react-icons/fi"
 import adminPanelApi from "../../api/adminPanelApi"
 import hotelApi from "../../api/hotelApi"
@@ -72,6 +73,7 @@ const HotelAssignments = () => {
 
   return (
     <div className="container-app py-10 fade-in">
+      <CMSPageIntro pageKey="admin-hotel-assignments" />
       <h1 className="section-title mb-2">Hotel Assignments</h1>
       <p className="text-xs text-saffron-600 bg-saffron-50 inline-block px-3 py-1.5 rounded-full mb-6">
         Assign/remove requires super admin — enforced by the backend.

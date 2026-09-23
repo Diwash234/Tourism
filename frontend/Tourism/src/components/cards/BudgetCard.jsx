@@ -15,7 +15,7 @@ const ACCENTS = {
 }
 
 const BudgetCard = ({ label, amount, icon: Icon = FiDollarSign, accent = "primary" }) => (
-  <div className="card-base p-5 flex items-center gap-4">
+  <div className="card-base overflow-hidden p-5 flex items-center gap-4">
     <div className={`p-3 rounded-xl ${ACCENTS[accent] || ACCENTS.primary}`}>
       <Icon size={22} />
     </div>

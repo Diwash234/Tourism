@@ -213,6 +213,16 @@ export const AuthProvider = ({ children }) => {
     (visibleUser && (role === "local" || role === "local_guide" || visibleUser.is_local === true)) ||
     isAdmin
 
+  const STAFF_ROLES = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"]
+  const isStaff =
+    (user && STAFF_ROLES.includes(user.role)) ||
+    user?.is_staff === true ||
+    isAdmin
+
+  const isLocal =
+    (user && (user.role === "local" || user.role === "local_guide" || user.is_local === true)) ||
+    isAdmin
+
 
 
   return (

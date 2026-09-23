@@ -462,9 +462,9 @@ def publish_official_emergency(data, reviewer=None):
     kind = str(data.get("kind") or "").strip().lower()
     if kind == "fire":
         kind = "fire_station"
-    allowed = {"hospital", "police", "pharmacy", "fire_station", "ambulance", "blood_bank", "clinic"}
+    allowed = {"hospital", "police", "pharmacy", "fire_station", "ambulance", "blood_bank", "clinic", "atm", "bank"}
     if kind not in allowed:
-        raise ValueError("kind must be hospital, police, pharmacy, fire_station, ambulance, blood_bank or clinic")
+        raise ValueError("kind must be hospital, police, pharmacy, fire_station, ambulance, blood_bank, clinic, atm or bank")
     name = str(data.get("name") or "").strip()
     if not name:
         raise ValueError("name is required")
