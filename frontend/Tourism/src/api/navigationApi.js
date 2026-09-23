@@ -14,6 +14,10 @@ const navigationApi = {
             payload
         );
 
+    },
+
+    getTravelOptions:(payload)=>{
+        return axiosClient.post("/navigation/travel-options/", payload);
     }
 
 };

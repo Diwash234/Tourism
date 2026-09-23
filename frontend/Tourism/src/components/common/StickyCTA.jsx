@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Link, useLocation } from "react-router-dom"
 import { FiCompass, FiShield, FiPhoneCall, FiArrowRight, FiZap } from "react-icons/fi"
 
-export default function StickyCTA() {
+export default function StickyCTA({ section = null }) {
   const [visible, setVisible] = useState(false)
   const location = useLocation()
 
@@ -39,7 +39,7 @@ export default function StickyCTA() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
               <span className="text-xs font-bold text-gray-200">
-                Planning a trip to Nepal?
+                {section?.cta_text || "Planning a trip to Nepal?"}
               </span>
               <span className="text-[11px] text-amber-300 font-semibold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
                 ⚡ 24/7 Helpline: 1144
@@ -48,7 +48,7 @@ export default function StickyCTA() {
 
             <div className="flex items-center gap-2">
               <Link
-                to="/destinations"
+                to={section?.cta_url || "/destinations"}
                 className="px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 text-xs font-black hover:scale-105 transition-all shadow flex items-center gap-1"
               >
                 <FiCompass size={13} /> Explore Places <FiArrowRight size={12} />

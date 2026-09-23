@@ -159,6 +159,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
         "police_within_radius": sum(1 for item in police if not item["outside_requested_radius"]),
         "specialized_contacts_within_radius": sum(1 for item in specialized if not item["outside_requested_radius"]),
         "pharmacy_within_radius": sum(1 for item in specialized if item["type"] == "pharmacy" and not item["outside_requested_radius"]),
+        "atm_bank_within_radius": sum(1 for item in specialized if item["type"] in {"atm", "bank"} and not item["outside_requested_radius"]),
         "fire_within_radius": sum(1 for item in specialized if item["type"] == "fire_station" and not item["outside_requested_radius"]),
         "database_hospitals": Hospital.objects.exclude(is_archived=True).count(),
         "database_police_stations": PoliceStation.objects.exclude(is_archived=True).count(),

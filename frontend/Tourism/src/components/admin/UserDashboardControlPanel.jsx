@@ -123,6 +123,11 @@ export default function UserDashboardControlPanel() {
           <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
             Customize which components, engagement tools, AI replanning actions, and broadcast announcements appear on all traveler user dashboards in real time.
           </p>
+          <p className="text-[10px] text-slate-400 mt-1 max-w-2xl">
+            Scope: this panel controls the <b>user Dashboard page only</b> (the same dashboard every traveller sees).
+            To edit any other page of the website — sections, headings, images, CTAs — use <b>Website → Page Editor</b>;
+            site-wide branding, theme and routing live under <b>Branding, Theme & Routing</b>.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">

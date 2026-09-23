@@ -1759,3 +1759,18 @@ the only their-side definitions absent from ours were scoreFromAlerts (now share
 utils/safetyScore.js), views_compat image helpers (evolved into _stored_image_url et al.),
 the custom JWT token pair (our CustomLoginView supersedes it) and the inline async logout
 (now in AuthContext) — i.e. older implementations of features ours already carries.
+
+## Merge: devin/1789139722-dark-mode-compat-layer (Round 22d — 2026-09-23)
+
+120 conflicts resolved. Feature-marker audit: every their-side definition absent from ours
+proved to be an older/parallel implementation of a feature our line already carries
+(Province/District models + admin at models.py:3890/admin.py:649, RouteOptionsView
+superseding TravelOptionsView, rerouteFromGps at Navigation.jsx:254, _publish_loop in
+apps.py, _enable_sqlite_wal in signals.py:75, RedirectHandler in App.jsx:132, itinerary
+helpers in views_ml.py). Migration chain: devin tourist migrations 0001-0073 are a strict
+prefix of our 0001-0076 — no collision. Gained from this branch:
+tourist/tests_regression.py (133 regression tests), chatbot WebSocket tests
+(their tests.py = ours + ChatWebSocketTests), tests-nav/nav-test-entry.jsx harness,
+chatbot/consumers.py, eslint.config.js, CMS hero slides, redirect/newsletter models
+(already in our tree via shared lineage), and their e2e test accounts (imported in the
+data-union step).

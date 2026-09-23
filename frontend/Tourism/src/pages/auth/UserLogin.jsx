@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { FiMail, FiLock, FiUser, FiLogIn, FiAlertCircle, FiHelpCircle, FiSend } from "react-icons/fi"
@@ -76,6 +77,7 @@ export default function UserLogin() {
 
   return (
     <AuthShell portal="tourist" title="Welcome back">
+      <CMSPageIntro pageKey="auth-login" />
       <div className="absolute inset-0 -z-0 overflow-hidden rounded-[2rem]">
         <LightRays color="#1f6b4d" accent="#b8862f" intensity={0.22} speed={24} />
       </div>

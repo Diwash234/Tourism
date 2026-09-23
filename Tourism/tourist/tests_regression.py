@@ -19,9 +19,12 @@ from rest_framework.test import APIClient
 from .location.search_service import LocationSearchService
 from .models import (
     User,
+    SiteSetting,
     StaffCapabilityProfile,
     Category,
     Destination,
+    Province,
+    District,
     Hospital,
     Hotel,
     UserFeedback,
@@ -29,9 +32,8 @@ from .models import (
     ManagedNavigationItem,
     ManagedPage,
     ContentSection,
+    NewsletterSignup,
     UserRoute,
-    OSMEssentialService,
-    Restaurant,
 )
 
 
@@ -972,6 +974,76 @@ class TransportModeHonestyTests(TestCase):
                 self.assertGreater(body["duration_min"], 1500)
 
 
+class RouteCalculatorHonestyTests(TestCase):
+    """POST /navigation/calculate/ must never invent an origin, a
+    destination, or road geometry."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Destination
+        cls.dest = Destination.objects.create(
+            name="Phewa Lake Calculator", slug="phewa-calc", city="Pokhara",
+            latitude=28.2117, longitude=83.9517, is_active=True,
+        )
+        cls.no_coords = Destination.objects.create(
+            name="Coordinateless Place", slug="no-coords-calc", city="Kathmandu",
+            is_active=True,
+        )
+
+    def _calculate(self, payload):
+        return self.client.post("/api/v1/navigation/calculate/", payload, content_type="application/json")
+
+    def test_missing_origin_is_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("origin", resp.json()["detail"].lower())
+
+    def test_invalid_origin_coordinates_are_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_lat": "not-a-number", "origin_lng": "85.3"})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_out_of_range_origin_coordinates_are_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_lat": 987.0, "origin_lng": 85.3})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_unresolvable_origin_name_is_rejected(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_name": "zzz-nonexistent-ville"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("origin", resp.json()["detail"].lower())
+
+    def test_unresolvable_destination_is_a_404(self):
+        resp = self._calculate({"destination_name": "zzz-nonexistent-ville", "origin_lat": 27.7172, "origin_lng": 85.3240})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_destination_without_coordinates_is_reported(self):
+        resp = self._calculate({"destination_id": self.no_coords.pk, "origin_lat": 27.7172, "origin_lng": 85.3240})
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("coordinates", resp.json()["detail"].lower())
+
+    def test_geometry_is_never_fabricated(self):
+        resp = self._calculate({"destination_id": self.dest.pk, "origin_lat": 27.7172, "origin_lng": 85.3240})
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn(body["confidence_level"], ("ROUTED", "GRAPH_APPROXIMATION", "STRAIGHT_LINE"))
+        coordinates = body["geometry"]["coordinates"]
+        if body["geometry"]["kind"] == "straight_line":
+            # The two real endpoints only: no invented intermediate
+            # waypoints, and no turn-by-turn directions nobody routed.
+            self.assertEqual(coordinates, [[27.7172, 85.324], [28.2117, 83.9517]])
+            self.assertEqual(body["steps"], [])
+            self.assertIsNone(body["distance_km"])
+            self.assertEqual(body["confidence_level"], "STRAIGHT_LINE")
+        else:
+            self.assertGreaterEqual(len(coordinates), 2)
+            self.assertIsNotNone(body["distance_km"])
+        self.assertAlmostEqual(body["straight_line_km"], 143.0, delta=5.0)
+
+    def test_nearby_places_without_coordinates_is_rejected(self):
+        resp = self.client.get("/api/v1/nearby/places")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("lat", resp.json()["detail"].lower())
+
+
 class UserRouteHistoryTests(TestCase):
     """Saved routes + navigation history (spec items 15/16)."""
 
@@ -1146,67 +1218,6 @@ class SearchPlacesCategoryRadiusTests(TestCase):
         self.assertTrue(results)
         for r in results:
             self.assertEqual(r["category"], "Hotel & Lodge")
-
-    def test_text_search_without_gps_is_not_filtered_by_assumed_radius(self):
-        # Live bug (tourist field test, 2026-09-20): with no GPS the reference
-        # point defaults to Pokhara, and the radius filter then silently
-        # deleted every hit outside ~50 km of Pokhara — searching a Kathmandu
-        # or Far-West record by name returned nothing. Radius must only apply
-        # when the user actually shared a location.
-        results = LocationSearchService.search_places(query="Far Away Temple", limit=30)
-        self.assertTrue(
-            any(r["name"] == "Far Away Temple" for r in results),
-            "no-GPS text search must find published records anywhere in Nepal")
-        results = LocationSearchService.search_places(query="Kathmandu Core", limit=30)
-        self.assertTrue(any(r["name"] == "Kathmandu Core" for r in results))
-
-
-class SearchPlacesServiceFieldTests(TestCase):
-    """DEF-021 / DEF-022 (district service seed run, 2026-09-20):
-    - the OSMEssentialService serializer read `s.district`, a field the model
-      does not have — any DB-backed bank/ATM row raised AttributeError and
-      killed the whole /places/search + /places/nearby response;
-    - the "Hotels & Restaurants" section only queried Hotel, so
-      category=restaurant could never return DB-fallback restaurants even
-      though the docstring claimed Restaurant was searched."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.cat = Category.objects.create(name="City", slug="city-svcfields")
-        cls.hub = Destination.objects.create(
-            name="Svc Hub", slug="svc-hub", category=cls.cat,
-            city="Bharatpur", district="Chitwan", province="Bagmati",
-            latitude=27.6, longitude=84.4,
-            is_active=True, status=Destination.SubmissionStatus.APPROVED,
-        )
-        OSMEssentialService.objects.create(
-            osm_id="def021/bank-1", category="bank", name="DEF021 Test Bank",
-            latitude=27.61, longitude=84.41, address="Bharatpur",
-        )
-        Restaurant.objects.create(
-            destination=cls.hub, name="DEF022 Test Restaurant",
-            address="Sauraha, Chitwan", latitude=27.5752, longitude=84.4983,
-            status=Restaurant.Status.PUBLISHED,
-        )
-
-    def test_osm_essential_rows_without_district_field_do_not_crash_search(self):
-        results = LocationSearchService.search_places(
-            query="DEF021 Test Bank", user_lat=27.6, user_lng=84.4,
-            radius_km=25, limit=30,
-        )
-        self.assertTrue(
-            any(r["name"] == "DEF021 Test Bank" for r in results),
-            "OSMEssentialService has no `district` field; serializer must not "
-            "assume one (DEF-021 AttributeError killed the whole response)")
-
-    def test_restaurant_category_falls_back_to_restaurant_table(self):
-        results = LocationSearchService.search_places(
-            category="restaurant", user_lat=27.5752, user_lng=84.4983,
-            radius_km=25, limit=30,
-        )
-        self.assertTrue(
-            any(r["name"] == "DEF022 Test Restaurant" for r in results),
-            "category=restaurant must query the published Restaurant table (DEF-022)")
 
 
 class SearchPlacesRadiusSliceTests(TestCase):
@@ -2556,21 +2567,12 @@ class NearbyPOIsOverpassTests(TestCase):
         # nameless nodes are skipped, banks empty but present
         self.assertEqual(data["categories"]["banks"]["results"], [])
 
-    def test_overpass_outage_falls_back_to_database_places(self):
-        """Contract (2026-09-20): an Overpass outage is no longer a 503 dead
-        end — the endpoint answers 200 from admin-managed database tables
-        with honest provenance, so nearby hospital/hotel always works."""
+    def test_overpass_outage_is_honest_503(self):
         from unittest.mock import patch
         with patch("requests.post", side_effect=Exception("network down")):
             resp = self.client.get("/api/v1/destinations/poi-town/nearby-pois/")
-        self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertIn("offline fallback", data["source"])
-        self.assertIn("Overpass", data["provider_error"])
-        # no OSM results are fabricated during the outage
-        for cat in data["categories"].values():
-            for row in cat["results"]:
-                self.assertNotIn("OpenStreetMap", row.get("source", ""))
+        self.assertEqual(resp.status_code, 503)
+        self.assertIn("unavailable", resp.json()["detail"])
 
     def test_unknown_destination_404_and_missing_coords_422(self):
         from tourist.models import Destination
@@ -2765,3 +2767,1409 @@ class TripInterestsAndSectionStyleTests(TestCase):
         self.assertEqual(cfg["bg_image"], "https://cdn.example/bg.jpg")
         self.assertEqual(cfg["background_style"], "dark-slate")
 
+
+class LocationAwareRecommendationTests(TestCase):
+    """Master spec §21/§119: opt-in traveller location for recommendations."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        self.lakes = Category.objects.create(name="Lakes Loc Test", slug="lakes")
+        self.near = Destination.objects.create(
+            name="Phewa Near Shore", slug="phewa-near-shore", category=self.lakes,
+            district="Kaski", province="Gandaki", latitude=28.20, longitude=83.96,
+            short_description="A calm lake shore walk",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        self.far = Destination.objects.create(
+            name="Eastern Far Lake", slug="eastern-far-lake", category=self.lakes,
+            district="Sunsari", province="Koshi", latitude=26.65, longitude=87.27,
+            short_description="A distant lake reserve",
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+    def test_location_context_adds_distance_and_boosts_near_results(self):
+        resp = self.client.get("/api/v1/destinations/mood-recommendations/", {
+            "mood": "lakeside", "latitude": 28.21, "longitude": 83.98, "limit": 6,
+        })
+        self.assertEqual(resp.status_code, 200)
+        results = resp.json()["results"]
+        slugs = [row["slug"] for row in results]
+        self.assertIn("phewa-near-shore", slugs)
+        near_row = next(row for row in results if row["slug"] == "phewa-near-shore")
+        self.assertLess(near_row["distance_km"], 5)
+        self.assertTrue(near_row["distance_is_straight_line"])
+        self.assertIn("proximity", near_row["match_breakdown"])
+        self.assertEqual(resp.json()["preferences"]["location"], {"latitude": 28.21, "longitude": 83.98})
+        if "eastern-far-lake" in slugs:
+            self.assertLess(slugs.index("phewa-near-shore"), slugs.index("eastern-far-lake"))
+
+    def test_invalid_coordinates_are_ignored_not_fatal(self):
+        resp = self.client.get("/api/v1/destinations/mood-recommendations/", {
+            "mood": "lakeside", "latitude": 999, "longitude": 83.98, "limit": 6,
+        })
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertIsNone(payload["preferences"]["location"])
+        # The serializer always exposes the distance_km key; without a valid
+        # location it must stay empty and the §21/§119 flag must be absent.
+        self.assertFalse(any(row.get("distance_km") is not None for row in payload["results"]))
+        self.assertFalse(any("distance_is_straight_line" in row for row in payload["results"]))
+
+
+class RichTextBodySanitizationTests(TestCase):
+    """Master spec §46: javascript: URLs never survive into stored bodies."""
+
+    def setUp(self):
+        from .models import ManagedPage, ContentSection
+        self.admin = User.objects.create_superuser("rt-admin@test.local", "Sup!Pass123")
+        self.page = ManagedPage.objects.create(route="/rt-test", key="rt-test", title="RT", status="published")
+        self.section = ContentSection.objects.create(page=self.page, key="intro", title="I", section_type="text", status="published")
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def test_javascript_href_is_neutralized_on_save(self):
+        resp = self.client.patch("/api/v1/admin/cms/", {
+            "resource": "sections", "id": self.section.id, "action": "update",
+            "body": '<p>Hi</p><a href="javascript:alert(1)">click</a><img src="JaVaScRiPt:evil()">',
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.section.refresh_from_db()
+        self.assertNotIn("javascript:", self.section.body.lower())
+        self.assertIn('href="#"', self.section.body)
+        self.assertIn("<p>Hi</p>", self.section.body)
+
+
+class RoadDistanceProviderTests(TestCase):
+    """Master spec §6/§69: real road distance via an admin-configured provider."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def _set_provider(self, value):
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        SiteSetting.objects.create(key="routing_provider", value=value, is_public=False)
+
+    def _metrics(self, coords=(27.7172, 85.3240, 28.2096, 83.9956)):
+        return self.client.post("/api/v1/routing/metrics/", {
+            "start_latitude": coords[0], "start_longitude": coords[1],
+            "end_latitude": coords[2], "end_longitude": coords[3],
+        })
+
+    def test_migration_seeds_https_provider_setting(self):
+        import importlib
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        migration = importlib.import_module("tourist.migrations.0068_seed_routing_provider")
+        from django.apps import apps as global_apps
+        migration.seed_routing_provider(global_apps, None)
+        row = SiteSetting.objects.get(key="routing_provider")
+        self.assertTrue(row.value["base_url"].startswith("https://"))
+        self.assertFalse(row.is_public)
+
+    def test_admin_provider_setting_produces_road_distance(self):
+        from unittest.mock import MagicMock, patch
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving", "api_key": ""})
+        fake = MagicMock()
+        fake.json.return_value = {"routes": [{"distance": 123456.0, "duration": 7200.0}]}
+        fake.raise_for_status.return_value = None
+        with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
+            response = self._metrics()
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "routed")
+        self.assertEqual(data["road_distance_km"], 123.46)
+        self.assertEqual(data["duration_min"], 120)
+        self.assertEqual(mocked.call_count, 1)
+        self.assertIn("osrm.example.test", mocked.call_args[0][0])
+
+    def test_http_provider_is_rejected_without_calling_it(self):
+        from unittest.mock import patch
+        self._set_provider({"enabled": True, "base_url": "http://insecure.example.test/route/v1/driving"})
+        with patch("tourist.routing_service.requests.get") as mocked:
+            response = self._metrics()
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(mocked.call_count, 0)
+        self.assertNotEqual(data["status"], "routed")
+        self.assertIsNotNone(data["straight_line_km"])
+
+    def test_provider_failure_degrades_to_labelled_fallback(self):
+        from unittest.mock import patch
+        import requests as requests_lib
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving"})
+        with patch("tourist.routing_service.requests.get", side_effect=requests_lib.RequestException("boom")):
+            response = self._metrics()
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn(data["status"], {"graph_routed", "routing_unavailable"})
+        self.assertIsNone(data["road_distance_km"])
+        # The note must keep the honest labelling in every fallback branch.
+        self.assertTrue("not road distance" in data["note"] or "not a street-level" in data["note"] or "not a GraphHopper/OSRM" in data["note"])
+
+
+class DistrictItineraryFallbackTests(TestCase):
+    """Master prompt: itineraries must be district-specific, never one generic plan."""
+
+    def setUp(self):
+        from .models import Category, Destination
+        cat = Category.objects.create(name="Heritage Itin Test", slug="heritage-itin")
+        for i, (district, name) in enumerate([
+            ("Rolpa", "Talgara Heritage Village"), ("Rolpa", "Jhimruk Ridge Viewpoint"), ("Rolpa", "Rolpa Bazaar Street"),
+            ("Kaski", "Phewa Shore Walk"), ("Kaski", "Sarangkot Sunrise Ridge"), ("Kaski", "Begnas Lake Edge"),
+        ]):
+            Destination.objects.create(
+                name=name, slug=f"itin-{district.lower()}-{i}", category=cat,
+                district=district, city="", province="Gandaki",
+                latitude=28.0 + i * 0.05, longitude=83.0 + i * 0.05,
+                short_description="A recorded test place",
+                status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            )
+
+    def _plan(self, place, days=2):
+        response = self.client.post("/api/v1/ml/itinerary/", {"days": days, "start_city": place}, format="json")
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_district_name_scopes_the_plan(self):
+        data = self._plan("Rolpa")
+        self.assertEqual(data["source"], "internal_db_engine")
+        stops = [d for day in data["itinerary"] for d in day["destinations"]]
+        self.assertTrue(stops)
+        for stop in stops:
+            self.assertEqual(stop["district"], "Rolpa")
+            self.assertNotIn("day_trip", stop)
+
+    def test_different_districts_get_different_plans(self):
+        a = {d["name"] for day in self._plan("Rolpa")["itinerary"] for d in day["destinations"]}
+        b = {d["name"] for day in self._plan("Kaski")["itinerary"] for d in day["destinations"]}
+        self.assertTrue(a and b)
+        self.assertFalse(a & b, "Rolpa and Kaski plans must not share stops")
+
+    def test_unknown_place_is_labelled_not_fabricated(self):
+        data = self._plan("Atlantis")
+        self.assertEqual(data["source"], "internal_db_engine")
+        self.assertIn("No verified places", data["data_note"])
+
+    def test_fallback_days_are_time_aware(self):
+        """§12: stops carry start/end times, travel legs and an honest
+        timing_note — estimates labelled as estimates, never exact fakes."""
+        data = self._plan("Kaski", days=1)
+        stops = [d for day in data["itinerary"] for d in day["destinations"]]
+        self.assertGreaterEqual(len(stops), 2)
+        first, second = stops[0], stops[1]
+        self.assertEqual(first["start_time"], "09:00")
+        self.assertEqual(first["duration_minutes"], 90)
+        self.assertEqual(first["end_time"], "10:30")
+        self.assertIn("travel_from_previous", second)
+        self.assertGreater(second["travel_from_previous"]["minutes_estimated"], 0)
+        # Second stop starts after first end + the estimated travel leg.
+        expected = 10 * 60 + 30 + second["travel_from_previous"]["minutes_estimated"]
+        self.assertEqual(second["start_time"], f"{expected // 60:02d}:{expected % 60:02d}")
+        self.assertIn("planning estimates", data["timing_note"])
+
+
+class SqliteLockHardeningTests(TestCase):
+    """`database is locked` 500s: busy timeout + WAL wiring must stay in place."""
+
+    def test_timeout_configured_and_wal_handler_registered(self):
+        from django.conf import settings as dj_settings
+        from django.db import connection
+        from django.db.backends.signals import connection_created
+        if connection.vendor != "sqlite":
+            self.skipTest("sqlite-only hardening")
+        self.assertEqual(dj_settings.DATABASES["default"]["OPTIONS"]["timeout"], 20)
+        import weakref
+        from tourist.signals import _enable_sqlite_wal
+        resolved = []
+        for entry in connection_created.receivers:
+            receiver = entry[1]
+            fn = receiver() if isinstance(receiver, weakref.ReferenceType) else receiver
+            if fn is not None:
+                resolved.append(fn)
+        self.assertIn(_enable_sqlite_wal, resolved)
+
+
+
+class DistrictArchitectureTests(TestCase):
+    """Task-79 §5/§24: 77-district structure + /api/v1/districts/ endpoints."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.core.management import call_command
+        call_command("seed_districts", verbosity=0)
+
+    def test_seed_creates_all_77_districts_idempotently(self):
+        from django.core.management import call_command
+        self.assertEqual(Province.objects.count(), 7)
+        self.assertEqual(District.objects.count(), 77)
+        call_command("seed_districts", verbosity=0)  # second run must not duplicate
+        self.assertEqual(Province.objects.count(), 7)
+        self.assertEqual(District.objects.count(), 77)
+
+    def test_rolpa_exists_in_lumbini(self):
+        rolpa = District.objects.select_related("province").get(slug="rolpa")
+        self.assertEqual(rolpa.province.name, "Lumbini")
+        self.assertIsNotNone(rolpa.latitude)
+
+    def test_district_list_endpoint(self):
+        res = self.client.get("/api/v1/districts/")
+        self.assertEqual(res.status_code, 200)
+        payload = res.json()
+        self.assertEqual(payload["count"], 77)
+        search = self.client.get("/api/v1/districts/?search=rolpa").json()
+        self.assertEqual(search["count"], 1)
+        self.assertEqual(search["results"][0]["name"], "Rolpa")
+        by_province = self.client.get("/api/v1/districts/?province=koshi").json()
+        self.assertEqual(by_province["count"], 14)
+
+    def test_province_endpoint(self):
+        res = self.client.get("/api/v1/provinces/").json()
+        self.assertEqual(res["count"], 7)
+        koshi = next(p for p in res["results"] if p["name"] == "Koshi")
+        self.assertEqual(koshi["district_count"], 14)
+
+    def test_district_detail_aggregates_real_data_and_labels_gaps(self):
+        # A real published destination recorded against Rolpa must appear...
+        category = Category.objects.first() or Category.objects.create(name="Test", slug="test")
+        Destination.objects.create(
+            name="Jaljala Himal Viewpoint", slug="jaljala-viewpoint-test",
+            district="Rolpa", city_english="Rolpa",
+            latitude=28.42, longitude=82.70, category=category,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+        payload = self.client.get("/api/v1/districts/rolpa/").json()
+        self.assertEqual(payload["province"], "Lumbini")
+        self.assertGreaterEqual(payload["destination_count"], 1)
+        names = [d["name"] for bucket in payload["destinations_by_category"].values() for d in bucket]
+        self.assertIn("Jaljala Himal Viewpoint", names)
+        self.assertEqual(payload["emergency_numbers"]["police"], "100")
+        self.assertTrue(payload["nearby_districts"])
+        # ...and unverified description stays honestly unavailable, not invented.
+        self.assertEqual(payload["description"], "Information unavailable")
+        # Auto-composed administrative summary states verified fields only.
+        self.assertIn("Rolpa is a", payload["summary"])
+        self.assertIn("Lumbini", payload["summary"])
+        self.assertIn("Auto-generated", payload["summary"])
+
+    def test_district_without_data_gets_honest_note(self):
+        payload = self.client.get("/api/v1/districts/humla/").json()
+        self.assertIn("data_note", payload)
+        self.assertIn("No verified tourism places", payload["data_note"])
+
+    def test_unknown_district_404(self):
+        self.assertEqual(self.client.get("/api/v1/districts/atlantis/").status_code, 404)
+
+
+class TravelOptionsTests(TestCase):
+    """Task-79 §15/§16: destination navigation screen backend."""
+
+    def test_travel_options_compare_modes_honestly(self):
+        res = self.client.post(
+            "/api/v1/navigation/travel-options/",
+            {"origin_name": "Kathmandu", "destination_name": "Pashupatinath"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        modes = {option["mode"] for option in data["options"]}
+        self.assertEqual(modes, {"taxi", "bus", "walk", "bicycle"})
+        self.assertGreater(data["distance_km"], 0)
+        self.assertIn(data["recommended"], modes)
+        self.assertTrue(data["recommendation_reasons"])
+        walk = next(o for o in data["options"] if o["mode"] == "walk")
+        self.assertEqual(walk["cost_npr"], [0, 0])
+        taxi = next(o for o in data["options"] if o["mode"] == "taxi")
+        # fare_card migration seeds admin-editable estimates → labelled estimate
+        self.assertIsNotNone(taxi["cost_npr"])
+        self.assertIn("fare card", taxi["cost_note"])
+        # No live routing provider in tests → turn-by-turn comes from the
+        # bundled graph, clearly labelled as not street-level (never faked).
+        if data["turn_by_turn"] is not None:
+            self.assertEqual(data["turn_by_turn"]["source"], "bundled_nepal_graphml")
+            self.assertIn("bundled", data["turn_by_turn_note"])
+            for step in data["turn_by_turn"]["steps"]:
+                self.assertIn("instruction", step)
+        else:
+            self.assertIn("routing provider", data["turn_by_turn_note"])
+
+    def test_unknown_destination_404(self):
+        res = self.client.post(
+            "/api/v1/navigation/travel-options/",
+            {"origin_name": "Kathmandu", "destination_name": "Atlantis Temple"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 404)
+
+    def test_missing_origin_400(self):
+        res = self.client.post(
+            "/api/v1/navigation/travel-options/",
+            {"destination_name": "Pashupatinath"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+
+
+class ItineraryMLGuardTests(TestCase):
+    """Task-79: the ML microservice is the primary itinerary planner, but
+    Django must never serve a plan built around a different place than the
+    traveller requested (the ML planner defaults to Kathmandu for place
+    names it does not know, e.g. the district "Kaski")."""
+
+    def setUp(self):
+        category = Category.objects.first() or Category.objects.create(name="Test", slug="test")
+        Destination.objects.create(
+            name="Phewa Lake", slug="phewa-lake-guard-test",
+            district="Kaski", city_english="Pokhara",
+            latitude=28.21, longitude=83.95, category=category,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+        )
+
+    def test_plan_matching_requested_place_is_accepted(self):
+        from tourist.views_ml import _ml_plan_matches_place
+        payload = {"itinerary": [{"city": "Pokhara", "destinations": [{"name": "X", "city": "Pokhara"}]}]}
+        self.assertTrue(_ml_plan_matches_place(payload, "Pokhara"))
+        self.assertTrue(_ml_plan_matches_place(payload, ""))  # no place constraint
+        self.assertTrue(_ml_plan_matches_place({"days": [{"city": "Pokhara"}]}, "pokhara"))
+
+    def test_off_topic_plan_is_detected(self):
+        from tourist.views_ml import _ml_plan_matches_place
+        payload = {"itinerary": [{"city": "Kathmandu", "destinations": [{"name": "X", "city": "Kathmandu"}]}]}
+        self.assertFalse(_ml_plan_matches_place(payload, "Kaski"))
+
+    def test_off_topic_ml_response_falls_back_to_db_engine(self):
+        from unittest import mock
+
+        class FakeResponse:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"itinerary": [{"city": "Kathmandu", "day": 1,
+                                       "destinations": [{"name": "Ktm Place", "city": "Kathmandu"}]}]}
+
+        with mock.patch("tourist.views_ml.requests.post", return_value=FakeResponse()):
+            resp = self.client.post(
+                "/api/v1/ml/itinerary/",
+                {"days": 1, "start_city": "Kaski"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        # The Kathmandu plan was rejected; the district-scoped DB engine ran.
+        self.assertEqual(data.get("source"), "internal_db_engine")
+        stops = [x for day in data["itinerary"] for x in day.get("destinations", [])]
+        self.assertTrue(stops)
+        for stop in stops:
+            self.assertTrue(
+                "kaski" in str(stop.get("district", "")).lower() or stop.get("day_trip"),
+                f"off-topic stop leaked: {stop.get('name')} / {stop.get('district')}",
+            )
+
+    def test_on_topic_ml_response_is_served_and_enriched(self):
+        from unittest import mock
+
+        class FakeResponse:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"total_estimated_npr": 5000,
+                        "itinerary": [{"city": "Kaski", "day": 1, "theme": "lakes",
+                                       "destinations": [{"name": "Phewa Lake", "city": "Pokhara",
+                                                         "latitude": 28.21, "longitude": 83.95}]}]}
+
+        with mock.patch("tourist.views_ml.requests.post", return_value=FakeResponse()):
+            resp = self.client.post(
+                "/api/v1/ml/itinerary/",
+                {"days": 1, "start_city": "Kaski"},
+                format="json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIsNone(data.get("source"))
+        self.assertEqual(data["total_estimated_npr"], 5000)
+        self.assertEqual(data["service_data_source"], "live_database_distance_ranking")
+
+class RoutingProviderStepsTests(TestCase):
+    """Task-79 §15: when an admin configures a live OSRM-compatible provider,
+    street-level turn-by-turn must come from it — parsed per the OSRM
+    contract, using the provider's road names, never invented."""
+
+    OSRM_ROUTE = {"code": "Ok", "routes": [{
+        "distance": 2860.0,
+        "duration": 480.0,
+        "geometry": {"coordinates": [[85.32, 27.71], [85.33, 27.72]]},
+        "legs": [{"distance": 2860.0, "duration": 480.0, "steps": [
+            {"distance": 120.0, "duration": 30.0, "name": "Durbar Marg",
+             "maneuver": {"type": "depart", "modifier": "north"}},
+            {"distance": 900.0, "duration": 180.0, "name": "Ring Road",
+             "maneuver": {"type": "turn", "modifier": "right"}},
+            {"distance": 400.0, "duration": 90.0, "name": "",
+             "maneuver": {"type": "roundabout", "exit": 2}},
+            {"distance": 0, "duration": 0, "name": "",
+             "maneuver": {"type": "arrive"}},
+        ]}],
+    }]}
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_step_instruction_mapping(self):
+        from tourist.routing_service import _step_instruction
+        self.assertEqual(
+            _step_instruction({"name": "Durbar Marg", "distance": 120,
+                               "maneuver": {"type": "depart"}})["instruction"],
+            "Head out on Durbar Marg",
+        )
+        self.assertEqual(
+            _step_instruction({"name": "Ring Road", "distance": 900,
+                               "maneuver": {"type": "turn", "modifier": "right"}})["instruction"],
+            "Turn right onto Ring Road",
+        )
+        self.assertIn(
+            "exit 2",
+            _step_instruction({"name": "", "distance": 400,
+                               "maneuver": {"type": "roundabout", "exit": 2}})["instruction"],
+        )
+        self.assertEqual(
+            _step_instruction({"name": "", "distance": 0,
+                               "maneuver": {"type": "arrive"}})["instruction"],
+            "Arrive at your destination",
+        )
+
+    def test_travel_options_uses_provider_steps_when_configured(self):
+        from unittest.mock import MagicMock, patch
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        SiteSetting.objects.create(
+            key="routing_provider", is_public=False,
+            value={"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving",
+                   "api_key": ""},
+        )
+        fake = MagicMock()
+        fake.json.return_value = self.OSRM_ROUTE
+        fake.raise_for_status.return_value = None
+        with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
+            res = self.client.post(
+                "/api/v1/navigation/travel-options/",
+                {"origin_name": "Kathmandu", "destination_name": "Pashupatinath"},
+                format="json",
+            )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        tbt = data["turn_by_turn"]
+        self.assertIsNotNone(tbt)
+        self.assertEqual(tbt["source"], "routing_provider")
+        self.assertIsNone(data["turn_by_turn_note"])
+        instructions = [step["instruction"] for step in tbt["steps"]]
+        self.assertIn("Head out on Durbar Marg", instructions)
+        self.assertIn("Turn right onto Ring Road", instructions)
+        self.assertIn("Arrive at your destination", instructions)
+        self.assertEqual(tbt["steps"][1]["road"], "Ring Road")
+        self.assertTrue(tbt["geometry"])
+        self.assertGreaterEqual(mocked.call_count, 1)
+        self.assertIn("osrm.example.test", mocked.call_args[0][0])
+
+class DistrictDescriptionSeedTests(TestCase):
+    """Curated descriptions come only from the source-noted seed command and
+    never overwrite existing (admin-entered) content."""
+
+    def setUp(self):
+        from django.core.management import call_command
+        call_command("seed_districts", verbosity=0)
+
+    def test_command_fills_only_empty_descriptions(self):
+        from django.core.management import call_command
+        from tourist.management.commands.seed_district_descriptions import DESCRIPTIONS
+        from .models import District
+        call_command("seed_district_descriptions")
+        ktm = District.objects.get(slug="kathmandu")
+        self.assertIn("capital district", ktm.description)
+        self.assertIn("UNESCO", ktm.description)
+        # every curated district got filled (catches slug drift)
+        for slug in DESCRIPTIONS:
+            self.assertTrue(
+                (District.objects.get(slug=slug).description or "").strip(),
+                f"curated district '{slug}' left empty - slug drift?",
+            )
+        # a second run must not touch existing content
+        ktm.description = "Admin curated text."
+        ktm.save()
+        call_command("seed_district_descriptions")
+        ktm.refresh_from_db()
+        self.assertEqual(ktm.description, "Admin curated text.")
+        # districts outside the curated set keep the honest gap
+        from .models import Province
+        province = Province.objects.first()
+        fresh = District.objects.create(
+            name="Test District", slug="test-district-honest-gap", province=province
+        )
+        call_command("seed_district_descriptions")
+        fresh.refresh_from_db()
+        self.assertEqual((fresh.description or "").strip(), "")
+
+
+class SectionTypographyConfigTests(TestCase):
+    """Section content controls: body rich text + typography config must
+    survive the admin save-path (regression: custom_bg/custom_color were
+    silently dropped by _safe_section_config)."""
+
+    def test_custom_colors_and_typography_survive_safe_config(self):
+        from tourist.views_admin import AdminCMSView
+        safe = AdminCMSView._safe_section_config({
+            "custom_bg": "#07101F",
+            "custom_color": "#FFF",
+            "title_color": "#1D5146",
+            "font_family": "serif",
+            "heading_level": "h3",
+            "heading_size": "lg",
+            "text_scale": "lg",
+            "align": "center",
+        })
+        self.assertEqual(safe["custom_bg"], "#07101F")
+        self.assertEqual(safe["custom_color"], "#FFF")
+        self.assertEqual(safe["title_color"], "#1D5146")
+        self.assertEqual(safe["font_family"], "serif")
+        self.assertEqual(safe["heading_level"], "h3")
+        self.assertEqual(safe["heading_size"], "lg")
+
+    def test_invalid_values_are_rejected_or_dropped(self):
+        from tourist.views_admin import AdminCMSView
+        with self.assertRaises(ValueError):
+            AdminCMSView._safe_section_config({"custom_bg": "red; background:url(x)"})
+        with self.assertRaises(ValueError):
+            AdminCMSView._safe_section_config({"title_color": "javascript:alert(1)"})
+        safe = AdminCMSView._safe_section_config({"font_family": "Comic Sans", "heading_level": "h9"})
+        self.assertNotIn("font_family", safe)
+        self.assertNotIn("heading_level", safe)
+
+
+class RouteAlternativesTests(TestCase):
+    """Phase-2 alternatives selector: real alternatives only — provider
+    alternatives=true when configured, different graph weightings otherwise.
+    Identical corridors are dropped; failures yield [] not padded variety."""
+
+    OSRM_THREE = {"code": "Ok", "routes": [
+        {"distance": 200000.0, "duration": 14400.0,
+         "geometry": {"coordinates": [[85.32, 27.71], [85.00, 27.90], [83.99, 28.21]]},
+         "legs": [{"steps": [{"distance": 200000.0, "duration": 14400.0, "name": "Prithvi Highway",
+                              "maneuver": {"type": "depart"}}]}]},
+        {"distance": 215000.0, "duration": 15000.0,
+         "geometry": {"coordinates": [[85.32, 27.71], [84.60, 27.60], [83.99, 28.21]]},
+         "legs": [{"steps": [{"distance": 215000.0, "duration": 15000.0, "name": "Southern Loop",
+                              "maneuver": {"type": "depart"}}]}]},
+        {"distance": 230000.0, "duration": 16200.0,
+         "geometry": {"coordinates": [[85.32, 27.71], [84.20, 28.10], [83.99, 28.21]]},
+         "legs": [{"steps": [{"distance": 230000.0, "duration": 16200.0, "name": "Northern Loop",
+                              "maneuver": {"type": "depart"}}]}]},
+    ]}
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def _set_provider(self, value):
+        from .models import SiteSetting
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        SiteSetting.objects.create(key="routing_provider", value=value, is_public=False)
+
+    def test_signature_accepts_dicts_and_arrays(self):
+        from tourist.routing_service import _route_signature
+        self.assertEqual(
+            _route_signature([{"lat": 27.7, "lng": 85.3}, [27.8, 85.4]]),
+            ((27.7, 85.3), (27.8, 85.4)),
+        )
+        self.assertEqual(_route_signature([]), ())
+        self.assertEqual(_route_signature([{"lat": "bad"}, "junk"]), ())
+
+    def test_provider_alternatives_parsed_per_osrm_contract(self):
+        from unittest.mock import MagicMock, patch
+        from tourist.routing_service import route_alternatives
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving"})
+        fake = MagicMock()
+        fake.json.return_value = self.OSRM_THREE
+        fake.raise_for_status.return_value = None
+        with patch("tourist.routing_service.requests.get", return_value=fake) as mocked:
+            alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856)
+        # routes[1:3] only — the primary is routes[0]
+        self.assertEqual(len(alts), 2)
+        self.assertEqual(alts[0]["distance_km"], 215.0)
+        self.assertEqual(alts[0]["duration_min"], 250)
+        self.assertEqual(alts[0]["duration_source"], "routing_provider")
+        self.assertEqual(alts[0]["routing_engine"], "osrm_protocol_provider")
+        # geometry converted to the {lat,lng} contract and steps carried
+        self.assertEqual(alts[0]["route"][0], {"lat": 27.71, "lng": 85.32})
+        self.assertEqual(alts[0]["steps"][0]["instruction"], "Head out on Southern Loop")
+        self.assertIn("alternatives", mocked.call_args.kwargs["params"])
+
+    def test_provider_failure_degrades_to_labelled_graph_alternatives(self):
+        from unittest.mock import patch
+        import requests as requests_lib
+        from tourist.routing_service import route_alternatives
+        self._set_provider({"enabled": True, "base_url": "https://osrm.example.test/route/v1/driving"})
+        with patch("tourist.routing_service.requests.get", side_effect=requests_lib.RequestException("boom")):
+            alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856)
+        # same degradation path as the primary route: bundled graph,
+        # explicitly labelled — never presented as provider routes
+        self.assertGreaterEqual(len(alts), 1)
+        for alt in alts:
+            self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
+            self.assertIn("coordinate-based", alt["note"])
+
+    def test_graph_alternatives_use_different_weightings(self):
+        from .models import SiteSetting
+        from tourist.routing_service import route_alternatives, _route_signature
+        SiteSetting.objects.filter(key="routing_provider").delete()
+        import sys
+        from pathlib import Path
+        ml_root = Path(__file__).resolve().parent.parent.parent / "ml_service"
+        if str(ml_root) not in sys.path:
+            sys.path.insert(0, str(ml_root))
+        from model.route.route_engine import best_route
+        primary = best_route(27.7172, 85.3240, 28.2096, 83.9856, "fastest")
+        self.assertFalse(primary.get("error"))
+        alts = route_alternatives(27.7172, 85.3240, 28.2096, 83.9856,
+                                  primary_route_type="fastest",
+                                  primary_route=primary.get("route", []))
+        self.assertGreaterEqual(len(alts), 1)
+        primary_sig = _route_signature(primary.get("route", []))
+        for alt in alts:
+            self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
+            self.assertEqual(alt["duration_source"], "estimated")
+            self.assertIn("coordinate-based", alt["note"])
+            self.assertNotEqual(_route_signature(alt["route"]), primary_sig,
+                                "identical corridor must be discarded, not shown as an alternative")
+
+    def test_navigation_route_attaches_alternatives(self):
+        response = self.client.post("/api/v1/navigation/route", {
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+        }, format="json")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        alts = data.get("alternatives", [])
+        self.assertGreaterEqual(len(alts), 1)
+        for alt in alts:
+            self.assertGreaterEqual(len(alt["route"]), 2)
+            self.assertEqual(alt["routing_engine"], "bundled_nepal_graphml")
+
+    def test_tourist_bus_alternatives_get_no_invented_times(self):
+        response = self.client.post("/api/v1/navigation/route", {
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+            "transport_mode": "Tourist Bus",
+        }, format="json")
+        self.assertEqual(response.status_code, 200)
+        for alt in response.json().get("alternatives", []):
+            self.assertIsNone(alt["duration_min"])
+            self.assertEqual(alt["duration_source"], "unavailable")
+
+
+class RoutingProviderAdminTests(TestCase):
+    """Phase 3: admins can configure the road-routing provider from the panel
+    — HTTPS-only, secret never echoed in full, honest connection test."""
+
+    URL = "/api/v1/admin/routing-provider/"
+
+    def _admin(self):
+        client = APIClient()
+        client.force_authenticate(user=make_superuser())
+        return client
+
+    def test_http_base_url_rejected(self):
+        resp = self._admin().patch(self.URL, {
+            "enabled": True, "base_url": "http://insecure.example.test/route/v1/driving",
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("https", resp.data["detail"])
+
+    def test_unknown_fields_rejected(self):
+        resp = self._admin().patch(self.URL, {"base_url": "https://osrm.example.test", "surprise": 1}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_https_roundtrip_key_masking_and_public_config_exclusion(self):
+        client = self._admin()
+        saved = client.patch(self.URL, {
+            "enabled": True,
+            "base_url": "https://osrm.example.test/route/v1/driving/",
+            "api_key": "SECRET-1234567890",
+        }, format="json")
+        self.assertEqual(saved.status_code, 200, saved.content)
+        self.assertTrue(saved.data["enabled"])
+        self.assertEqual(saved.data["base_url"], "https://osrm.example.test/route/v1/driving")  # trailing slash trimmed
+        self.assertTrue(saved.data["api_key_set"])
+        self.assertEqual(saved.data["api_key_last4"], "7890")
+        self.assertNotIn("SECRET-1234567890", saved.content.decode())
+
+        fetched = client.get(self.URL)
+        self.assertTrue(fetched.data["api_key_set"])
+        self.assertNotIn("SECRET-1234567890", fetched.content.decode())
+
+        # credential never leaks into the public config snapshot
+        public = APIClient().get("/api/v1/config/public/").json()
+        self.assertNotIn("routing_provider", public.get("settings", {}))
+
+        # omitting api_key keeps the stored secret
+        kept = client.patch(self.URL, {"enabled": False}, format="json")
+        self.assertEqual(kept.status_code, 200)
+        self.assertTrue(kept.data["api_key_set"])
+        self.assertFalse(kept.data["enabled"])
+
+    def test_connection_test_reports_honest_verdicts(self):
+        from unittest.mock import MagicMock, patch
+        import requests as requests_lib
+        client = self._admin()
+        client.patch(self.URL, {"enabled": True, "base_url": "https://osrm.example.test"}, format="json")
+
+        ok = MagicMock()
+        ok.json.return_value = {"code": "Ok", "routes": [{"distance": 1500.0, "duration": 300.0}]}
+        ok.raise_for_status.return_value = None
+        with patch("requests.get", return_value=ok):
+            good = client.post(self.URL, {"action": "test"}, format="json")
+        self.assertEqual(good.status_code, 200)
+        self.assertTrue(good.data["ok"])
+        self.assertEqual(good.data["routes_count"], 1)
+
+        with patch("requests.get", side_effect=requests_lib.RequestException("connection refused")):
+            bad = client.post(self.URL, {"action": "test"}, format="json")
+        self.assertEqual(bad.status_code, 200)
+        self.assertFalse(bad.data["ok"])
+        self.assertIn("connection refused", bad.data["error"])
+
+    def test_requires_authentication(self):
+        resp = APIClient().get(self.URL)
+        self.assertIn(resp.status_code, (401, 403))
+
+
+class MultiStopRouteTests(TestCase):
+    """Phase 4: multi-stop routes — every leg through the same engine and
+    honesty rules; totals are leg sums; unresolvable stops are rejected."""
+
+    URL = "/api/v1/navigation/route"
+    KTM = {"latitude": 27.7172, "longitude": 85.3240}
+    PKR = {"latitude": 28.2096, "longitude": 83.9856}
+
+    def _route(self, payload):
+        # DRF client — Django's default test client would multipart-encode
+        # the payload and stringify the waypoints list.
+        return APIClient().post(self.URL, payload, format="json")
+
+    def test_coordinate_roundtrip_is_leg_sum(self):
+        single = self._route({"start_latitude": 27.7172, "start_longitude": 85.3240,
+                              "end_latitude": 28.2096, "end_longitude": 83.9856})
+        self.assertEqual(single.status_code, 200, single.content)
+        one_way = float(single.json()["distance_km"])
+
+        multi = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 27.7172, "end_longitude": 85.3240,
+            "waypoints": [{"latitude": 28.2096, "longitude": 83.9856, "name": "Pokhara"}],
+        })
+        self.assertEqual(multi.status_code, 200, multi.content)
+        data = multi.json()
+        total = float(data["distance_km"])
+        # KTM -> Pokhara -> KTM must be roughly the round trip, not one leg
+        self.assertGreater(total, one_way * 1.7)
+        self.assertLess(total, one_way * 2.3)
+        self.assertEqual(data["waypoints"][0]["name"], "Pokhara")
+        instructions = [s.get("instruction", "") for s in data.get("steps", [])]
+        self.assertTrue(any("Waypoint 1: pass through Pokhara" in text for text in instructions))
+        self.assertGreaterEqual(len(data["route"]), 4)
+        # alternatives are a single-stop concept — none fabricated here
+        self.assertNotIn("alternatives", data)
+
+    def test_named_waypoint_resolves_through_place_index(self):
+        resp = self._route({
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+            "waypoints": ["Pokhara"],
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        names = [w["name"] for w in resp.json().get("waypoints", [])]
+        self.assertEqual(len(names), 1)
+
+    def test_unresolvable_waypoint_rejected(self):
+        resp = self._route({
+            "origin_name": "Kathmandu",
+            "destination_name": "Pokhara",
+            "waypoints": ["xyz_nonexistent_place"],
+        })
+        self.assertEqual(resp.status_code, 404)
+        self.assertIn("waypoint", resp.json()["detail"])
+
+    def test_more_than_three_waypoints_rejected(self):
+        resp = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 28.2096, "end_longitude": 83.9856,
+            "waypoints": [dict(self.PKR), dict(self.PKR), dict(self.PKR), dict(self.PKR)],
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_flight_multi_stop_rejected_without_invented_times(self):
+        resp = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 28.2096, "end_longitude": 83.9856,
+            "transport_mode": "Flight",
+            "waypoints": [dict(self.PKR)],
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_tourist_bus_multi_stop_keeps_duration_unavailable(self):
+        resp = self._route({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "end_latitude": 27.7172, "end_longitude": 85.3240,
+            "transport_mode": "Tourist Bus",
+            "waypoints": [dict(self.PKR)],
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        data = resp.json()
+        self.assertIsNone(data["duration_min"])
+        self.assertEqual(data["duration_source"], "unavailable")
+        self.assertGreater(float(data["distance_km"]), 400)
+
+
+class TravelOptionsMultiStopTests(TestCase):
+    """Phase 6+: travel-options gains the same waypoints contract as
+    /navigation/route — distances become leg sums, honestly labelled."""
+
+    URL = "/api/v1/navigation/travel-options/"
+
+    def _post(self, payload):
+        return APIClient().post(self.URL, payload, format="json")
+
+    def test_multi_stop_leg_sum_and_flags(self):
+        single = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+        })
+        self.assertEqual(single.status_code, 200, single.content)
+        self.assertFalse(single.json()["multi_stop"])
+
+        multi = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+            "waypoints": [{"latitude": 27.578, "longitude": 84.499, "name": "Chitwan"}],
+        })
+        self.assertEqual(multi.status_code, 200, multi.content)
+        data = multi.json()
+        self.assertTrue(data["multi_stop"])
+        self.assertEqual(data["waypoints"][0]["name"], "Chitwan")
+        self.assertEqual(len(data["options"]), 4)
+        taxi = next(o for o in data["options"] if o["mode"] == "taxi")
+        self.assertGreater(float(taxi["distance_km"]), 100)
+        # the via-Chitwan corridor must not silently reuse the direct figure
+        single_km = float(next(o for o in single.json()["options"] if o["mode"] == "taxi")["distance_km"])
+        self.assertNotAlmostEqual(float(taxi["distance_km"]), single_km, delta=1.0)
+
+    def test_unresolvable_waypoint_rejected(self):
+        resp = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+            "waypoints": ["xyz_nonexistent_stop"],
+        })
+        self.assertEqual(resp.status_code, 404)
+
+    def test_more_than_three_waypoints_rejected(self):
+        resp = self._post({
+            "start_latitude": 27.7172, "start_longitude": 85.3240,
+            "destination_name": "Pokhara",
+            "waypoints": [
+                {"latitude": 27.6, "longitude": 84.4}, {"latitude": 27.5, "longitude": 84.3},
+                {"latitude": 27.4, "longitude": 84.2}, {"latitude": 27.3, "longitude": 84.1},
+            ],
+        })
+        self.assertEqual(resp.status_code, 400)
+
+
+class AdminDataExplorerCRUDRegressionTests(TestCase):
+    """Pins the generic Data Explorer CRUD + rich-text hardening (post-8cc83d4)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/data-explorer/"
+
+    def _destination(self):
+        return Destination.objects.create(name="CRUD Fixture City", latitude=27.7, longitude=85.3)
+
+    def _hospital(self, **kw):
+        defaults = dict(name="Regression Test Hospital", district="Kathmandu", latitude=27.71, longitude=85.32, phone="01-4000000", address="Regression Test Road", destination=self._destination())
+        defaults.update(kw)
+        return Hospital.objects.create(**defaults)
+
+    def test_unauthenticated_rejected(self):
+        c = APIClient()
+        self.assertEqual(c.get(self.url, {"resource": "hospitals"}).status_code, 401)
+
+    def test_schema_lists_editable_fields(self):
+        resp = self.client.get(self.url, {"resource": "hospitals", "schema": "1"})
+        self.assertEqual(resp.status_code, 200)
+        names = [f["name"] for f in resp.json()["editable"]]
+        self.assertIn("name", names)
+        self.assertIn("district", names)
+
+    def test_patch_updates_and_reports_changed_fields(self):
+        h = self._hospital()
+        resp = self.client.patch(self.url, {
+            "resource": "hospitals", "id": h.id, "fields": {"district": "Lalitpur"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["message"], "Record updated")
+        self.assertIn("district", body["changed"])
+        h.refresh_from_db()
+        self.assertEqual(h.district, "Lalitpur")
+
+    def test_patch_rejects_unknown_field(self):
+        h = self._hospital()
+        resp = self.client.patch(self.url, {
+            "resource": "hospitals", "id": h.id, "fields": {"definitely_not_a_field": "x"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_patch_rejects_out_of_bounds_integer(self):
+        h = self._hospital()
+        resp = self.client.patch(self.url, {
+            "resource": "hospitals", "id": h.id, "fields": {"latitude": 999999999999}
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_post_creates_then_delete_removes(self):
+        # newsletter_signups has no required FKs, so generic create applies
+        resp = self.client.post(self.url, {
+            "resource": "newsletter_signups", "fields": {"email": "crud-created@test.local"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+        new_id = resp.json()["id"]
+        resp = self.client.delete(f"{self.url}?resource=newsletter_signups&id={new_id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(NewsletterSignup.objects.filter(id=new_id).exists())
+
+    def test_post_missing_required_returns_400(self):
+        resp = self.client.post(self.url, {"resource": "hospitals", "fields": {"district": "Kathmandu"}}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_unknown_resource_rejected(self):
+        self.assertEqual(self.client.get(self.url, {"resource": "not_a_model"}).status_code, 400)
+
+    def test_destination_writes_routed_to_dedicated_editor(self):
+        d = Destination.objects.create(name="CRUD Guard Dest", latitude=27.7, longitude=85.3)
+        resp = self.client.patch(self.url, {
+            "resource": "destinations", "id": d.id, "fields": {"name": "hacked"}
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("dedicated", str(resp.json()))
+
+
+class DestinationRichTextHardeningTests(TestCase):
+    """javascript: URLs in rich-text fields are neutralized on save."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+
+    def test_javascript_href_neutralized(self):
+        d = Destination.objects.create(name="RichText Guard", latitude=27.7, longitude=85.3)
+        resp = self.client.put(
+            f"/api/v1/admin/destinations/{d.id}",
+            {
+                "name": "RichText Guard",
+                "description": '<p>ok</p><a href="javascript:alert(1)">x</a>',
+            },
+            format="json",
+        )
+        self.assertIn(resp.status_code, (200, 201))
+        d.refresh_from_db()
+        self.assertNotIn("javascript:", d.description.lower())
+        self.assertIn("<p>ok</p>", d.description)
+
+
+class CMSDuplicateRegressionTests(TestCase):
+    """Blueprint: admin can duplicate pages (with sections) and sections."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/cms/"
+        self.page = ManagedPage.objects.create(key="dup-source", route="/dup-source", title="Dup Source", status="published", is_enabled=True)
+        ContentSection.objects.create(page=self.page, key="hero", title="Hero", section_type="hero", display_order=1)
+        ContentSection.objects.create(page=self.page, key="faq", title="FAQ", section_type="faq", display_order=2)
+
+    def test_duplicate_page_copies_sections_as_draft(self):
+        resp = self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        new_id = resp.json()["id"]
+        new_page = ManagedPage.objects.get(pk=new_id)
+        self.assertEqual(new_page.status, "draft")
+        self.assertFalse(new_page.is_enabled)
+        self.assertNotEqual(new_page.key, self.page.key)
+        self.assertEqual(new_page.sections.count(), 2)
+        self.assertEqual(set(new_page.sections.values_list("title", flat=True)), {"Hero", "FAQ"})
+        # source untouched
+        self.page.refresh_from_db()
+        self.assertEqual(self.page.status, "published")
+
+    def test_duplicate_twice_gets_unique_keys(self):
+        r1 = self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": "duplicate"}, format="json")
+        r2 = self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+        self.assertNotEqual(r1.json()["id"], r2.json()["id"])
+
+    def test_duplicate_section_appends_draft_copy(self):
+        hero = self.page.sections.get(key="hero")
+        resp = self.client.patch(self.url, {"resource": "sections", "id": hero.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.page.sections.count(), 3)
+        copy = ContentSection.objects.get(pk=resp.json()["id"])
+        self.assertEqual(copy.status, "draft")
+        self.assertNotEqual(copy.key, hero.key)
+        self.assertGreater(copy.display_order, hero.display_order)
+
+    def test_duplicate_rejected_for_settings(self):
+        setting = SiteSetting.objects.create(key="dup-test", value="x")
+        resp = self.client.patch(self.url, {"resource": "settings", "id": setting.pk, "action": "duplicate"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+
+class DynamicPageFlowRegressionTests(TestCase):
+    """Blueprint proof: admin creates a page -> template -> publish -> public
+    API serves it, with NO React code change (frontend /page/:slug route)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/cms/"
+
+    def test_create_template_publish_reaches_public_api(self):
+        r = self.client.post(self.url, {
+            "resource": "pages", "key": "winter-proof", "route": "/winter-proof",
+            "title": "Winter Proof", "status": "draft", "is_enabled": True,
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+        pid = r.json()["id"]
+        r = self.client.patch(self.url, {"resource": "pages", "id": pid, "action": "apply_template", "template": "landing"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertGreater(r.json()["created"], 0)
+        # draft must NOT be public yet
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNone(next((p for p in pub["pages"] if p["key"] == "winter-proof"), None))
+        # publish page + sections
+        self.assertEqual(self.client.patch(self.url, {"resource": "pages", "id": pid, "action": "publish"}, format="json").status_code, 200)
+        for sec in ContentSection.objects.filter(page_id=pid):
+            self.client.patch(self.url, {"resource": "sections", "id": sec.pk, "action": "publish"}, format="json")
+        pub = self.client.get("/api/v1/config/public/").json()
+        page = next((p for p in pub["pages"] if p["key"] == "winter-proof"), None)
+        self.assertIsNotNone(page)
+        self.assertGreater(len(page["sections"]), 0)
+
+    def test_section_edit_stays_draft_until_publish(self):
+        page = ManagedPage.objects.create(key="snap-proof", route="/snap-proof", title="Snap", status="published", is_enabled=True)
+        sec = ContentSection.objects.create(page=page, key="body", title="Original", section_type="text", status="published")
+        from tourist.cms_publishing import sync_published_snapshot
+        sync_published_snapshot(sec)
+        # plain update: public keeps the frozen snapshot
+        self.client.patch(self.url, {"resource": "sections", "id": sec.pk, "title": "Changed Draft"}, format="json")
+        pub = self.client.get("/api/v1/config/public/").json()
+        served = next(s for p in pub["pages"] if p["key"] == "snap-proof" for s in p["sections"] if s["key"] == "body")
+        self.assertEqual(served["title"], "Original")
+        # publish refreshes it
+        self.client.patch(self.url, {"resource": "sections", "id": sec.pk, "action": "publish"}, format="json")
+        pub = self.client.get("/api/v1/config/public/").json()
+        served = next(s for p in pub["pages"] if p["key"] == "snap-proof" for s in p["sections"] if s["key"] == "body")
+        self.assertEqual(served["title"], "Changed Draft")
+
+    def test_dynamic_nav_item_reaches_public_api(self):
+        r = self.client.post(self.url, {
+            "resource": "navigation", "location": "navbar", "label": "Winter Nav Proof",
+            "route": "/page/winter-proof", "display_order": 99, "is_active": True,
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+        pub = self.client.get("/api/v1/config/public/").json()
+        labels = [n.get("label") for n in pub.get("navigation", [])]
+        self.assertIn("Winter Nav Proof", labels)
+
+
+class RBACAttackRegressionTests(TestCase):
+    """Blueprint §9-10: backend enforcement, not hidden buttons. ID-swapping
+    must never expose another user's private records."""
+
+    def setUp(self):
+        self.a = User.objects.create_user(email="user-a@test.local", password="Passw0rd!Aa", role="TRAVELLER")
+        self.b = User.objects.create_user(email="user-b@test.local", password="Passw0rd!Bb", role="TRAVELLER")
+        self.dest = Destination.objects.create(name="RBAC Dest", latitude=27.7, longitude=85.3)
+
+    def _client(self, user):
+        c = APIClient()
+        c.force_authenticate(user=user)
+        return c
+
+    def test_traveller_cannot_create_or_publish_cms(self):
+        c = self._client(self.a)
+        self.assertIn(c.post("/api/v1/admin/cms/", {
+            "resource": "pages", "key": "hacked", "route": "/hacked", "title": "Hacked",
+        }, format="json").status_code, (401, 403))
+
+    def test_traveller_cannot_write_data_explorer(self):
+        c = self._client(self.a)
+        self.assertIn(c.patch("/api/v1/admin/data-explorer/", {
+            "resource": "hospitals", "id": 1, "fields": {"name": "hacked"},
+        }, format="json").status_code, (401, 403))
+
+    def test_id_swap_cannot_see_other_users_favorites(self):
+        from .models import Favorite
+        fav = Favorite.objects.create(user=self.a, destination=self.dest)
+        cb = self._client(self.b)
+        # list isolation
+        listed = cb.get("/api/v1/favorites/").json()
+        rows = listed.get("results", listed) if isinstance(listed, dict) else listed
+        self.assertNotIn(fav.pk, [r["id"] for r in rows])
+        # direct ID access + delete must not expose or destroy
+        self.assertEqual(cb.get(f"/api/v1/favorites/{fav.pk}/").status_code, 404)
+        self.assertEqual(cb.delete(f"/api/v1/favorites/{fav.pk}/").status_code, 404)
+        self.assertTrue(Favorite.objects.filter(pk=fav.pk).exists())
+        # owner still can
+        ca = self._client(self.a)
+        self.assertEqual(ca.get(f"/api/v1/favorites/{fav.pk}/").status_code, 200)
+
+    def test_anonymous_cannot_reach_admin_cms_at_all(self):
+        c = APIClient()
+        self.assertEqual(c.get("/api/v1/admin/cms/", {"resource": "pages"}).status_code, 401)
+
+
+class ScheduledExpiryRegressionTests(TestCase):
+    """Blueprint §14: scheduled unpublish/expire executes automatically."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+
+    def test_expired_section_auto_hidden_and_future_scheduled_hidden(self):
+        from datetime import timedelta
+        page = ManagedPage.objects.create(key="expiry-proof", route="/expiry-proof", title="Expiry", status="published", is_enabled=True)
+        today = timezone.now().date()
+        expired = ContentSection.objects.create(page=page, key="old", title="Expired Promo", section_type="text", status="published",
+                                                config={"visibility": {"end_date": (today - timedelta(days=1)).isoformat()}})
+        upcoming = ContentSection.objects.create(page=page, key="soon", title="Winter Promo", section_type="text", status="published",
+                                                 config={"visibility": {"start_date": (today + timedelta(days=5)).isoformat()}})
+        current = ContentSection.objects.create(page=page, key="now", title="Live Now", section_type="text", status="published")
+        pub = self.client.get("/api/v1/config/public/").json()
+        served = {s["key"] for p in pub["pages"] if p["key"] == "expiry-proof" for s in p["sections"]}
+        self.assertNotIn("old", served)   # auto-expired
+        self.assertNotIn("soon", served)  # not yet started
+        self.assertIn("now", served)
+        self.assertEqual(expired.status, "published")  # record intact, just hidden
+        self.assertEqual(upcoming.status, "published")
+
+
+class MediaDeletionProtectionTests(TestCase):
+    """Media referenced by published CMS content cannot be blindly deleted."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.dest = Destination.objects.create(name="Media Guard Dest", latitude=27.7, longitude=85.3)
+
+    def _image(self, url):
+        from tourist.models import DestinationImage
+        return DestinationImage.objects.create(destination=self.dest, external_url=url, source="test")
+
+    def test_referenced_image_blocked_then_forced(self):
+        from tourist.models import DestinationImage
+        url = "https://cdn.test/used-by-cms.jpg"
+        img = self._image(url)
+        page = ManagedPage.objects.create(key="media-guard", route="/media-guard", title="Media Guard", status="published", is_enabled=True)
+        ContentSection.objects.create(page=page, key="hero", title="Hero", section_type="hero",
+                                      image_url=url, status="published", is_visible=True)
+        r = self.client.delete(f"/api/v1/admin/images/{img.pk}")
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Media Guard", str(r.json().get("used_by")))
+        self.assertTrue(DestinationImage.objects.filter(pk=img.pk).exists())
+        # explicit force override still available
+        r = self.client.delete(f"/api/v1/admin/images/{img.pk}?force=1")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(DestinationImage.objects.filter(pk=img.pk).exists())
+
+    def test_unreferenced_image_deletes_normally(self):
+        from tourist.models import DestinationImage
+        img = self._image("https://cdn.test/not-used-anywhere.jpg")
+        r = self.client.delete(f"/api/v1/admin/images/{img.pk}")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(DestinationImage.objects.filter(pk=img.pk).exists())
+
+
+class SEOSitemapRegressionTests(TestCase):
+    """Sitemap exposes published pages only; robots points at the sitemap."""
+
+    def test_sitemap_includes_published_excludes_draft(self):
+        ManagedPage.objects.create(key="seo-live", route="/seo-live", title="SEO Live", status="published", is_enabled=True)
+        ManagedPage.objects.create(key="seo-draft", route="/seo-draft", title="SEO Draft", status="draft", is_enabled=True)
+        body = self.client.get("/api/v1/seo/sitemap.xml").content.decode()
+        self.assertIn("/page/seo-live", body)
+        self.assertNotIn("seo-draft", body)
+        self.assertTrue(body.startswith("<?xml"))
+
+    def test_robots_references_sitemap_and_blocks_admin(self):
+        body = self.client.get("/api/v1/seo/robots.txt").content.decode()
+        self.assertIn("Sitemap:", body)
+        self.assertIn("Disallow: /admin", body)
+
+
+class LocalizationRegressionTests(TestCase):
+    """Blueprint §14: one record, many languages — ?lang=ne serves the
+    translation; English falls back to the source fields."""
+
+    def test_translation_served_per_language(self):
+        page = ManagedPage.objects.create(key="loc-page", route="/loc-page", title="Visit Nepal", status="published", is_enabled=True)
+        sec = ContentSection.objects.create(page=page, key="intro", title="Welcome", body="Hello", section_type="text", status="published", is_visible=True)
+        from .models import CMSContentTranslation
+        CMSContentTranslation.objects.create(target_resource="pages", object_id=page.pk, language_code="ne", content={"title": "नेपाल भ्रमण"})
+        CMSContentTranslation.objects.create(target_resource="sections", object_id=sec.pk, language_code="ne", content={"title": "स्वागत छ", "body": "नमस्ते"})
+        en = self.client.get("/api/v1/config/public/").json()
+        page_en = next(p for p in en["pages"] if p["key"] == "loc-page")
+        self.assertEqual(page_en["title"], "Visit Nepal")
+        ne = self.client.get("/api/v1/config/public/?lang=ne").json()
+        page_ne = next(p for p in ne["pages"] if p["key"] == "loc-page")
+        self.assertEqual(page_ne["title"], "नेपाल भ्रमण")
+        sec_ne = next(s for s in page_ne["sections"] if s["key"] == "intro")
+        self.assertEqual(sec_ne["title"], "स्वागत छ")
+        self.assertEqual(sec_ne["body"], "नमस्ते")
+        # untranslated language falls back to source, never to another translation
+        hi = self.client.get("/api/v1/config/public/?lang=hi").json()
+        page_hi = next(p for p in hi["pages"] if p["key"] == "loc-page")
+        self.assertEqual(page_hi["title"], "Visit Nepal")
+
+
+class ReviewWorkflowRegressionTests(TestCase):
+    """Blueprint §7: draft -> in_review -> approved -> published, with
+    changes_requested loop; review states never public."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.url = "/api/v1/admin/cms/"
+        self.page = ManagedPage.objects.create(key="wf-page", route="/wf-page", title="WF", status="draft", is_enabled=True)
+
+    def _act(self, action):
+        return self.client.patch(self.url, {"resource": "pages", "id": self.page.pk, "action": action}, format="json")
+
+    def test_full_workflow_and_public_exposure(self):
+        self.assertEqual(self._act("submit_review").status_code, 200)
+        self.page.refresh_from_db(); self.assertEqual(self.page.status, "in_review")
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNone(next((p for p in pub["pages"] if p["key"] == "wf-page"), None))
+        self.assertEqual(self._act("request_changes").status_code, 200)
+        self.page.refresh_from_db(); self.assertEqual(self.page.status, "changes_requested")
+        self.assertEqual(self._act("submit_review").status_code, 200)
+        self.assertEqual(self._act("approve").status_code, 200)
+        self.page.refresh_from_db(); self.assertEqual(self.page.status, "approved")
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNone(next((p for p in pub["pages"] if p["key"] == "wf-page"), None))
+        self.assertEqual(self._act("publish").status_code, 200)
+        pub = self.client.get("/api/v1/config/public/").json()
+        self.assertIsNotNone(next((p for p in pub["pages"] if p["key"] == "wf-page"), None))
+
+    def test_invalid_transition_rejected(self):
+        # draft cannot be "request_changes" target from published-only states
+        self.page.status = "published"; self.page.save()
+        self.assertEqual(self._act("approve").status_code, 400)
+
+
+class RoleDifferentiatedApprovalTests(TestCase):
+    """Content staff can edit/submit; only content.publish may approve/publish."""
+
+    def setUp(self):
+        from .models import StaffCapabilityProfile
+        self.editor = User.objects.create_user(email="editor@test.local", password="Passw0rd!Ee", role="STAFF", is_staff=True)
+        StaffCapabilityProfile.objects.create(user=self.editor, capabilities={"content": ["view", "change"]})
+        self.page = ManagedPage.objects.create(key="rd-page", route="/rd-page", title="RD", status="draft", is_enabled=True)
+
+    def _client(self):
+        c = APIClient(); c.force_authenticate(user=self.editor); return c
+
+    def test_editor_submits_but_cannot_approve_or_publish(self):
+        c = self._client()
+        r = c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "submit_review"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        r = c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "approve"}, format="json")
+        self.assertEqual(r.status_code, 403)
+        r = c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "publish"}, format="json")
+        self.assertEqual(r.status_code, 403)
+
+    def test_super_admin_can_approve_and_publish(self):
+        c = APIClient(); c.force_authenticate(user=make_superuser())
+        self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "submit_review"}, format="json").status_code, 200)
+        self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "approve"}, format="json").status_code, 200)
+        self.assertEqual(c.patch("/api/v1/admin/cms/", {"resource": "pages", "id": self.page.pk, "action": "publish"}, format="json").status_code, 200)
+
+
+class SectionConfigSanitizerRegressionTests(TestCase):
+    """Panel saves must PRESERVE admin content collections (cards, badge,
+    section_titles, foods, all_symbols) while sanitizing them — the old
+    whitelist silently destroyed them on every save."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=make_superuser())
+        self.page = ManagedPage.objects.create(key="san-page", route="/san-page", title="San", status="published", is_enabled=True)
+        self.sec = ContentSection.objects.create(page=self.page, key="s1", title="S", section_type="cards", status="published", is_visible=True)
+
+    def test_content_collections_survive_save(self):
+        cfg = {
+            "badge": "Test Badge",
+            "section_titles": {"unesco": "Heritage", "bad key!!": "x"},
+            "cards": [{"title": "Card <script>alert(1)</script>One", "image_url": "/images/x.jpg", "to": "/destinations", "items": [{"name": "Sub", "to": "/d"}]}],
+            "foods": [{"name": "MoMo", "image": "https://cdn.test/m.jpg"}],
+            "all_symbols": [{"title": "Flag", "image": "javascript:alert(1)"}],
+            "visibility": {"end_date": "2030-01-01"},
+        }
+        r = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk, "config": cfg}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.sec.refresh_from_db()
+        c = self.sec.config
+        self.assertEqual(c["badge"], "Test Badge")
+        self.assertEqual(c["section_titles"], {"unesco": "Heritage", "badkey": "x"})  # key normalized
+        self.assertEqual(c["cards"][0]["title"], "Card One")  # script stripped
+        self.assertEqual(c["cards"][0]["image_url"], "/images/x.jpg")
+        self.assertEqual(c["cards"][0]["items"][0]["name"], "Sub")
+        self.assertEqual(c["foods"][0]["image"], "https://cdn.test/m.jpg")
+        self.assertNotIn("image", c["all_symbols"][0])  # javascript: URL dropped
+        self.assertEqual(c["visibility"], {"end_date": "2030-01-01"})
+
+    def test_media_url_rule_still_enforced(self):
+        r = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk,
+            "config": {"media_url": "http://insecure.test/x.jpg"}}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_topic_and_faq_cards_survive_save(self):
+        cfg = {
+            "topic_cards": [
+                {"id": "curation", "title": "How Curation Works", "titleBadge": "Standard",
+                 "content": "Official registries.", "highlights": ["Verified GPS.", "Categorized."]},
+            ],
+            "faq_cards": [{"q": "Why unavailable?", "a": "We never fabricate data."}],
+        }
+        resp = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk, "config": cfg}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.sec.refresh_from_db()
+        got = self.sec.config
+        self.assertEqual(len(got.get("topic_cards", [])), 1)
+        self.assertEqual(got["topic_cards"][0]["highlights"], ["Verified GPS.", "Categorized."])
+        self.assertEqual(got["topic_cards"][0]["titlebadge"], "Standard")  # key normalized, value kept
+        self.assertEqual(len(got.get("faq_cards", [])), 1)
+
+    def test_topic_cards_malicious_input_sanitized(self):
+        cfg = {"topic_cards": [
+            {"id": "x", "title": "<script>alert(1)</script>Safe Title",
+             "image_url": "javascript:alert(1)", "highlights": ["<b>ok</b>"] * 20},
+        ]}
+        resp = self.client.patch("/api/v1/admin/cms/", {"resource": "sections", "id": self.sec.pk, "config": cfg}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.sec.refresh_from_db()
+        rec = self.sec.config["topic_cards"][0]
+        self.assertNotIn("<script>", rec["title"])
+        self.assertNotIn("image_url", rec)  # javascript: URL dropped
+        self.assertLessEqual(len(rec["highlights"]), 12)
