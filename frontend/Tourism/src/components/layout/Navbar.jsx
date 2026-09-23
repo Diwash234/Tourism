@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom"
-import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon } from "react-icons/fi"
+import { FiMenu, FiBell, FiSearch, FiChevronDown, FiSun, FiMoon, FiX } from "react-icons/fi"
 
 import useAuth from "../../hooks/useAuth"
 import useSidebarState from "../../hooks/useSidebarState"
@@ -18,6 +18,10 @@ const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <di
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
+  // Below xl the search box is an icon that expands into a full-width bar
+  // under the header (the inline box used to be squeezed to a sliver on
+  // ~1024px screens, making it unreadable).
+  const [searchOpen, setSearchOpen] = useState(false)
   const [sidebarOpen, , toggleSidebar] = useSidebarState()
   const { isAuthenticated, user, isAdmin, isStaff } = useAuth()
   const { t } = useI18n()
@@ -50,14 +54,22 @@ const Navbar = () => {
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
-    const t = setTimeout(() => { setOpenMenu(null)
+    const t = setTimeout(() => { setOpenMenu(null); setSearchOpen(false)
     }, 0)
     return () => clearTimeout(t)
   }, [location.pathname])
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") setOpenMenu(null) }
+    const onKey = (e) => { if (e.key === "Escape") { setOpenMenu(null); setSearchOpen(false) } }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
+  }, [])
+  // If the viewport crosses the 1400px search breakpoint while the expanding
+  // bar is open, close it (the inline box takes over / the icon reappears).
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1400px)")
+    const onChange = () => setSearchOpen(false)
+    mql.addEventListener?.("change", onChange)
+    return () => mql.removeEventListener?.("change", onChange)
   }, [])
   // Close the open dropdown on any outside click (brief §36: menus must not
   // stay floating over the page).
@@ -82,7 +94,7 @@ const Navbar = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] bg-emerald-950/95 backdrop-blur border-b border-emerald-800 shadow-lg shadow-emerald-950/30 w-full min-w-0">
-      <nav data-nav-root className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0">
+      <nav data-nav-root className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0 relative">
 
         {/* Sidebar Toggle */}
         <button
@@ -97,12 +109,18 @@ const Navbar = () => {
           <FiMenu size={20} />
         </button>
 
-        <TourismLogo size="md" showTagline={false} />
+        {/* Wordmark hidden below lg — the emblem alone keeps the brand
+            visible while freeing room for search + links + actions so
+            nothing is ever clipped at tablet/laptop widths. */}
+        <TourismLogo size="md" showTagline={false} responsiveText />
 
-        {/* Search (visible on all screens; grows to fill space) */}
+        {/* Search: inline box only from 1400px, where it has real room;
+            below that it's an icon that opens a full-width bar under the
+            header (the old always-inline box squeezed to an unreadable
+            sliver at ~1024–1300px widths). */}
         {features.search && <form
           onSubmit={handleSmartSearch}
-          className="nav-search-form flex flex-1 min-w-0 max-w-md items-center gap-1.5"
+          className="nav-search-form hidden min-[1400px]:flex flex-1 min-w-0 max-w-md items-center gap-1.5"
         >
           <div className="relative flex-1 min-w-0">
             <FiSearch
@@ -133,8 +151,25 @@ const Navbar = () => {
           </button>
         </form>}
 
-        {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-4 xl:gap-6 shrink-0">
+        {/* Search toggle (icon) — shown below 1400px, where the inline box
+            above is hidden. */}
+        {features.search && (
+          <button
+            type="button"
+            onClick={() => setSearchOpen((v) => !v)}
+            className="min-[1400px]:hidden p-2 rounded-lg text-emerald-100 hover:text-white hover:bg-emerald-800 transition-colors shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
+            aria-label={searchOpen ? "Close search" : "Open search"}
+            aria-expanded={searchOpen}
+          >
+            <FiSearch size={20} />
+          </button>
+        )}
+
+        {/* Primary Navigation — inline from laptop (lg) up; the full set of
+            five links plus the user actions overflows tablet widths, so at
+            md–lg the same tree stays reachable via the sidebar drawer
+            (hamburger) and the bottom nav — nothing is ever lost. */}
+        <div className="hidden lg:flex items-center gap-2 xl:gap-4 shrink-0">
           {managedLinks.map((link, idx) => (
             <div key={link.id || `${link.path}-${idx}`} className="relative group" onMouseLeave={() => setOpenMenu(null)}>
               <div className="flex items-center gap-0.5">
@@ -162,9 +197,15 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Desktop User Actions */}
+        {/* User actions. Language switcher joins at xl — at 1024–1279 the
+            five primary links + auth actions already fill the bar, and the
+            switcher stays reachable in the sidebar at every width. */}
         <div className="hidden md:flex items-center gap-3 shrink-0 ml-auto">
-          {features.language_switcher && <LanguageSwitcher compact />}
+          {features.language_switcher && (
+            <div className="hidden xl:block">
+              <LanguageSwitcher compact />
+            </div>
+          )}
           {isAuthenticated ? (
             <>
               {isAdmin && (
@@ -208,6 +249,70 @@ const Navbar = () => {
             </>
           )}
         </div>
+
+        {/* Mobile user actions (below md) — previously login/register,
+            theme, notifications and profile were all absent from the
+            navbar on phones. Compact cluster keeps everything reachable.
+            (Admin/Staff links stay in the sidebar on small screens.) */}
+        <div className="md:hidden flex items-center gap-1 shrink-0 ml-auto">
+          {features.theme_toggle && (
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800 transition-colors"
+              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
+            </button>
+          )}
+          {isAuthenticated ? (
+            <>
+              {features.notifications && (
+                <Link to="/notifications" className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800 transition-colors" aria-label="Notifications">
+                  <FiBell size={18} />
+                </Link>
+              )}
+              {features.profile && <ProfileMenu />}
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-xs font-bold px-2 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors">
+                {t("nav.login")}
+              </Link>
+              <Link to="/register" className="text-xs font-bold px-2 py-1.5 rounded-lg border border-emerald-600 text-emerald-100 hover:bg-emerald-800 transition-colors">
+                {t("nav.signup")}
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Expanding search bar (below 1400px). Full-width under the header
+            so it never squeezes the other items. */}
+        {searchOpen && (
+          <div className="min-[1400px]:hidden absolute top-full inset-x-0 bg-emerald-950/95 backdrop-blur border-b border-emerald-800 shadow-lg shadow-emerald-950/40 px-3 py-2.5 z-50">
+            <form
+              onSubmit={(e) => { setSearchOpen(false); handleSmartSearch(e) }}
+              className="relative"
+            >
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" size={16} />
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search destinations, map, safety..."
+                className="w-full text-sm rounded-full border border-emerald-700 bg-emerald-900/70 text-white placeholder:text-emerald-300/70 pl-9 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-emerald-300 hover:text-white hover:bg-emerald-800 transition-colors"
+                aria-label="Close search"
+              >
+                <FiX size={16} />
+              </button>
+            </form>
+          </div>
+        )}
       </nav>
     </header>
   )

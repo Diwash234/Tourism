@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 import secrets
@@ -32,6 +33,11 @@ from .utils import (
 User = get_user_model()
 
 TOKEN_LIFETIME_HOURS = 24
+
+# Auth-audit logger. Logs WHICH account an action was denied for (email
+# only — never the password) so "my correct password is rejected" reports
+# can be diagnosed from the server log alone.
+logger = logging.getLogger("tourist.auth")
 
 
 def _issue_email_verification(user):
@@ -116,6 +122,8 @@ class LoginView(APIView):
             )
 
         if not user.is_active:
+            logger.warning(
+                "Login denied (account_deactivated) email=%s", user.email)
             return Response(
                 {
                     "detail": "This account has been deactivated. Please contact support to reactivate it.",
@@ -125,6 +133,8 @@ class LoginView(APIView):
             )
 
         if not user.check_password(password):
+            logger.warning(
+                "Login denied (wrong_password) email=%s", user.email)
             return Response(
                 {
                     "detail": "Incorrect password for this email. Please try again or use 'Forgot password'.",
