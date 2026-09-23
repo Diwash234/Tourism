@@ -46,11 +46,11 @@ function gradeBadge(grade, t) {
   )
 }
 
-function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickLabel, loading, dark }) {
+function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickLabel, loading }) {
   const { t } = useI18n()
   return (
     <div className="relative">
-      <label htmlFor={id} className={`block text-[11px] font-black uppercase tracking-wider mb-1.5 ${dark ? "text-emerald-200" : "text-slate-500"}`}>
+      <label htmlFor={id} className="block text-[11px] font-black uppercase tracking-wider mb-1.5 text-slate-500 dark:text-slate-400">
         {label}
       </label>
       <div className="relative">
@@ -62,11 +62,9 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
           placeholder={t("tp.endpoint.placeholder")}
           onChange={(e) => onChange(e.target.value)}
           autoComplete="off"
-          className={`w-full rounded-xl border pl-10 pr-3 py-3 text-sm font-semibold outline-none transition
-            ${dark
-              ? "bg-emerald-900/60 border-emerald-700 text-white placeholder-emerald-300/60 focus:border-amber-400"
-              : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600"}
-          `}
+          className="w-full rounded-xl border pl-10 pr-3 py-3 text-sm font-semibold outline-none transition
+            bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600
+            dark:bg-slate-800 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
         />
       </div>
       <div className="flex items-center gap-2 mt-1.5">
@@ -74,16 +72,13 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
           <button
             type="button"
             onClick={onPickLocation}
-            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border transition
-              ${dark
-                ? "border-emerald-600 text-emerald-200 hover:bg-emerald-800"
-                : "border-slate-300 text-slate-600 hover:bg-slate-100"}
-            `}
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border transition
+              border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <BsGeoAltFill className="text-[11px]" /> {pickLabel}
           </button>
         )}
-        {loading && <span className={`text-[11px] font-semibold ${dark ? "text-emerald-300" : "text-slate-400"}`}>…</span>}
+        {loading && <span className="text-[11px] font-semibold text-slate-400">…</span>}
       </div>
     </div>
   )
@@ -131,16 +126,16 @@ export default function TravelPlanner() {
     const pick = (row) => { onPick(row); setOpen(false) }
     const dropdown = (keyPrefix) => (
       open && (
-        <ul className={`absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl ${keyPrefix}`}>
+        <ul className={`absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-xl ${keyPrefix}`}>
           {items.map((row) => (
             <li key={row.id}>
               <button
                 type="button"
                 onClick={() => pick(row)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-emerald-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-emerald-50 dark:hover:bg-slate-700"
               >
                 <span className="text-base">{getPlaceTypeIcon(row) || "📍"}</span>
-                <span className="flex-1 truncate font-semibold text-slate-800">{row.name}</span>
+                <span className="flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">{row.name}</span>
                 {(row.district || row.province) && (
                   <span className="text-[10px] text-slate-400 shrink-0">{row.district || row.province}</span>
                 )}
@@ -297,7 +292,6 @@ export default function TravelPlanner() {
                 onChange={(v) => { setOriginText(v); setOriginPick(null); setGpsUsed(false) }}
                 onPickLocation={useMyLocation}
                 pickLabel={t("tp.origin.my_location")}
-                dark={false}
               />
               {originAc.dropdown("origin-suggest")}
             </div>
@@ -318,7 +312,6 @@ export default function TravelPlanner() {
                 icon={<span aria-hidden>🏔️</span>}
                 value={destinationText}
                 onChange={(v) => { setDestinationText(v); setDestPick(null) }}
-                dark={false}
               />
               {destAc.dropdown("dest-suggest")}
             </div>
