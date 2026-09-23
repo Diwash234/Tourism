@@ -38,7 +38,7 @@ export default function FlowingMenu({
     const onResize = () => activeKey && moveTo(activeKey)
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [activeKey])
 
   const onKey = (e, idx) => {

@@ -101,8 +101,8 @@ const OtpFlow = () => {
   if (step === "done") {
     return (
       <div className="text-center space-y-4">
-        <FiCheckCircle size={40} className="mx-auto text-emerald-600" />
-        <p className="text-sm text-gray-700">
+        <FiCheckCircle size={40} className="mx-auto text-emerald-600 dark:text-emerald-400" />
+        <p className="text-sm text-gray-700 dark:text-slate-200">
           Password updated! All your other sessions were signed out for safety.
         </p>
         <Link to="/login" className="btn-primary w-full inline-flex items-center justify-center gap-2">
@@ -115,8 +115,8 @@ const OtpFlow = () => {
   if (step === "code") {
     return (
       <form onSubmit={submitReset} className="space-y-4">
-        <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2.5">
-          A 6-digit code was sent to <span className="font-semibold text-gray-800">{email}</span>'s
+        <p className="text-xs text-gray-500 dark:text-slate-300 bg-gray-50 dark:bg-slate-800 rounded-lg p-2.5">
+          A 6-digit code was sent to <span className="font-semibold text-gray-800 dark:text-slate-100">{email}</span>'s
           phone (SMS) or email — whichever is on file. It expires in 10 minutes.
         </p>
         <div>
@@ -151,7 +151,7 @@ const OtpFlow = () => {
           {loading ? "Updating..." : "Update Password"}
         </button>
         <button type="button" onClick={() => { setStep("email"); setCode(""); setError("") }}
-          className="text-xs text-gray-500 hover:underline w-full text-center">
+          className="text-xs text-gray-500 dark:text-slate-300 hover:underline w-full text-center">
           ← Use a different email
         </button>
       </form>
@@ -203,14 +203,14 @@ const ForgotPassword = () => {
         </p>
 
         {/* method picker */}
-        <div className="grid grid-cols-2 gap-1 bg-gray-100 rounded-xl p-1 mb-5" role="tablist">
+        <div className="grid grid-cols-2 gap-1 bg-gray-100 dark:bg-slate-800 rounded-xl p-1 mb-5" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={tab === "link"}
             onClick={() => setTab("link")}
             className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold transition-colors ${
-              tab === "link" ? "bg-white text-primary-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              tab === "link" ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-emerald-300 shadow-sm" : "text-gray-500 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-100"
             }`}
           >
             <FiMail size={14} /> Email link
@@ -221,7 +221,7 @@ const ForgotPassword = () => {
             aria-selected={tab === "otp"}
             onClick={() => setTab("otp")}
             className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold transition-colors ${
-              tab === "otp" ? "bg-white text-primary-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              tab === "otp" ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-emerald-300 shadow-sm" : "text-gray-500 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-100"
             }`}
           >
             <FiKey size={14} /> One-time code

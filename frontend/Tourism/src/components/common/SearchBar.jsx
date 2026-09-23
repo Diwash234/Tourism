@@ -38,7 +38,7 @@ const SearchBar = ({
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
     if (defaultValue !== query) setQuery(defaultValue)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, 0)
     return () => clearTimeout(t)
   }, [defaultValue])

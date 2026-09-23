@@ -56,15 +56,17 @@ const adminPanelApi = {
   getDestinationsMissingImages: (page = 1) =>
     axiosClient.get("/admin-panel/destinations-missing-images/", { params: { page } }),
 
-  // FIXED: UserManagement.jsx already called all four of these methods
-  // and had a whole "backend endpoint not built yet" fallback UI ready
-  // for exactly this situation -- none of them were defined here, and
-  // nothing existed on the backend either (see
-  // admin_panel.views.UserManagementViewSet, newly added).
-  getUsers: (page = 1) => axiosClient.get("/admin-panel/users/", { params: { page, page_size: 100 } }),
-  updateUserRole: (userId, role) => axiosClient.patch(`/admin-panel/users/${userId}/`, { role }),
-  deactivateUser: (userId) => axiosClient.post(`/admin-panel/users/${userId}/deactivate/`),
-  activateUser: (userId) => axiosClient.post(`/admin-panel/users/${userId}/activate/`),
+  // FIXED: UserManagement.jsx calls all four of these. They previously
+  // pointed at /admin-panel/users/..., which was NEVER built (the comment
+  // here referenced an admin_panel UserManagementViewSet that doesn't
+  // exist). The real user-management endpoints live in tourist.views_admin
+  // (see tourist/urls.py "admin/users..." routes): a filterable directory
+  // at GET /admin/users and a status/role writer at
+  // PUT|PATCH /admin/users/<id>/status {role?, is_active?, is_verified?}.
+  getUsers: (params) => axiosClient.get("/admin/users", { params }),
+  updateUserRole: (userId, role) => axiosClient.patch(`/admin/users/${userId}/status`, { role }),
+  deactivateUser: (userId) => axiosClient.patch(`/admin/users/${userId}/status`, { is_active: false }),
+  activateUser: (userId) => axiosClient.patch(`/admin/users/${userId}/status`, { is_active: true }),
 
   // ADDED -- lets an admin view a specific user's activity across
   // parts of the site that were previously invisible to admins

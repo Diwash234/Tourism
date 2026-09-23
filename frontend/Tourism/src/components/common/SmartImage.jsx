@@ -100,7 +100,7 @@ const SmartImage = ({
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [effectiveStatus, name, context, orientation])
 
   if (effectiveStatus === "backend") {

@@ -2,6 +2,62 @@
 
 ---
 
+## 🔍 Round 21d: Whole-project audit — one real API gap found and fixed, i18n/dark-mode coverage for the new UI
+
+Owner request: check the whole project and fill anything missing.
+
+### Audit performed
+- **Every frontend API call (149 distinct endpoints) cross-referenced
+  against every backend route (861 routes)** → exactly ONE gap:
+  Admin Dashboard → User Management.
+- All backend view/serializer modules import-tested (no more dead-code
+  ImportErrors like the itinerary one).
+- Full backend suite across ALL apps: **551 tests OK**.
+- Every internal link in Navbar/Sidebar/Footer and all `to=`/`navigate()`
+  targets (17 nav links, all static links app-wide) → all resolve to
+  defined routes.
+- Footer contact data: real Nepal Tourism Board details in the DB
+  (Bhrikutimandap, Kathmandu · info@ntb.org.np · +977-1-5356909),
+  editable from Admin → Branding; placeholder fallbacks only.
+- `manage.py check --deploy`: remaining notices are dev-mode security
+  settings (DEBUG, HSTS, SECRET_KEY via .env) — production concerns,
+  not defects.
+
+### Fixed: Admin → User Management (the one real gap)
+`adminPanelApi` pointed its 4 user functions at
+`/admin-panel/users/...` — a route that was **never built** (the code
+comment referenced an `admin_panel UserManagementViewSet` that doesn't
+exist). The real user-management API lives in `tourist.views_admin`.
+Repointed:
+- `getUsers` → `GET /admin/users` (filterable directory)
+- `updateUserRole` → `PATCH /admin/users/<id>/status {role}`
+- `deactivateUser` / `activateUser` → `PATCH /admin/users/<id>/status {is_active}`
+
+Verified live with the admin account: user list loads (all fields the
+UI shows), role change (guide → `is_staff` synced), deactivate,
+activate — all 200 with correct DB effects.
+
+### New UI made consistent with site-wide rules
+- **i18n**: all 14 user-facing strings from the new OTP reset flow +
+  change-password toast registered in English, Nepali and Hindi
+  (dictionaries verified 323/323/323 keys, full parity).
+- **Dark mode**: the new tab picker, code hint box and success text on
+  /forgot-password get `dark:` variants (slate surfaces, readable text).
+- **Lint**: `eslint --fix` across the whole frontend (405 → 396
+  warnings; 0 errors both before and after). Remaining warnings are
+  pre-existing unused-variable noise in legacy files.
+
+### Documented, deliberately not touched
+- `notifications/` app directory: models/urls/tests exist but the app
+  was never added to INSTALLED_APPS (its tables were never migrated).
+  The LIVE notification system is the `tourist` one
+  (`tourist_notification*` tables, `/notifications/` endpoints, all
+  tested). Left in place per "remove nothing" — redundant scaffold.
+- Defect register: DEF-012 (1,641 records with blank district) stays
+  **Open by design** — no fabricated district assignment.
+
+---
+
 ## 🔑 Round 21c: Password reset by OTP + re-login enforced on every password change
 
 Owner request: the Forgot-password page should offer a **one-time code**

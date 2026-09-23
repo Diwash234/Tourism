@@ -343,6 +343,22 @@ const en = {
   "dx.no_results": "No places match — try a district or town name.",
   "dx.eta": "Travel time",
 
+  // forgot-password / OTP reset
+  "fp.subtitle": "Get a reset link by email, or use a one-time code",
+  "fp.tab_link": "Email link",
+  "fp.tab_otp": "One-time code",
+  "fp.otp_intro": "No email access? We can send a one-time code to the phone or email on your account.",
+  "fp.otp_email_ph": "Email you signed up with",
+  "fp.otp_send": "Send One-Time Code",
+  "fp.otp_resend": "Resend code",
+  "fp.otp_new_pw_ph": "New password",
+  "fp.otp_confirm_ph": "Confirm new password",
+  "fp.otp_update": "Update Password",
+  "fp.otp_other_email": "← Use a different email",
+  "fp.otp_done": "Password updated! All your other sessions were signed out for safety.",
+  "fp.otp_login_cta": "Log in with your new password",
+  "fp.changed_toast": "Password changed! Please log in again with your new password.",
+
 }
 
 const ne = {
@@ -659,6 +675,22 @@ const ne = {
   "dx.no_results": "कुनै ठाउँ मिल्दैन — जिल्ला वा नगरको नाम प्रयास गर्नुहोस्।",
   "dx.eta": "यात्रा समय",
 
+  // forgot-password / OTP reset
+  "fp.subtitle": "रिसेट लिंक इमेलमाँ प्राप्त गर्नुहोस्, वा एक-पटक कोड प्रयोग गर्नुहोस्",
+  "fp.tab_link": "इमेल लिंक",
+  "fp.tab_otp": "एक-पटक कोड",
+  "fp.otp_intro": "इमेल पहुँच छैन? हामी तपाईंको खातामा दर्ताविएको फोन वा इमेलमा एक-पटक कोड पठाउन सक्छौं।",
+  "fp.otp_email_ph": "दर्ता गर्दा प्रयोग गरेको इमेल",
+  "fp.otp_send": "एक-पटक कोड पठाउनुहोस्",
+  "fp.otp_resend": "कोड फेरि पठाउनुहोस्",
+  "fp.otp_new_pw_ph": "नयाँ पासवर्ड",
+  "fp.otp_confirm_ph": "नयाँ पासवर्ड पुष्टि गर्नुहोस्",
+  "fp.otp_update": "पासवर्ड अपडेट गर्नुहोस्",
+  "fp.otp_other_email": "← फरक इमेल प्रयोग गर्नुहोस्",
+  "fp.otp_done": "पासवर्ड अपडेट भयो! सुरक्षाका लागि तपाईंका अन्य सत्रहरू साइन आउट गरिए।",
+  "fp.otp_login_cta": "नयाँ पासवर्डले लगइन गर्नुहोस्",
+  "fp.changed_toast": "पासवर्ड परिवर्तन भयो! कृपया नयाँ पासवर्डले फेरि लगइन गर्नुहोस्।",
+
 }
 
 const hi = {
@@ -974,6 +1006,22 @@ const hi = {
   "dx.map_hint": "नक्से या सूची में किसी भी बिंदु पर टैप करके चुनें।",
   "dx.no_results": "कोई जगह नहीं मिली — ज़िले या शहर का नाम आज़माएँ।",
   "dx.eta": "यात्रा समय",
+
+  // forgot-password / OTP reset
+  "fp.subtitle": "रिसेट लिंक ईमेल पर पाएं, या वन-टाइम कोड उपयोग करें",
+  "fp.tab_link": "ईमेल लिंक",
+  "fp.tab_otp": "वन-टाइम कोड",
+  "fp.otp_intro": "ईमेल एक्सेस नहीं है? हम आपके खाते में दर्ज फोन या ईमेल पर वन-टाइम कोड भेज सकते हैं।",
+  "fp.otp_email_ph": "दर्ज किया हुआ ईमेल",
+  "fp.otp_send": "वन-टाइम कोड भेजें",
+  "fp.otp_resend": "कोड पुनः भेजें",
+  "fp.otp_new_pw_ph": "नयां पासवर्ड",
+  "fp.otp_confirm_ph": "नयां पासवर्ड की पुष्टि करें",
+  "fp.otp_update": "पासवर्ड अपडेट करें",
+  "fp.otp_other_email": "← भिन्न ईमेल उपयोग करें",
+  "fp.otp_done": "पासवर्ड अपडेट हुआ! सुरक्षा के लिए आपकी अन्य सत्र साइन आउट किए गए।",
+  "fp.otp_login_cta": "नए पासवर्ड से लॉगिन करें",
+  "fp.changed_toast": "पासवर्ड बदल गया! कृपया नए पासवर्ड से पुनः लॉगिन करें।",
 
 }
 
