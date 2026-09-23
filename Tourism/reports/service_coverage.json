@@ -1,90 +1,98 @@
 {
  "summary": {
-  "destinations": 6602,
-  "routable": 6602,
+  "destinations": 4750,
+  "routable": 4750,
   "routable_pct": 100.0,
   "service_counts": {
-   "hospital": 859,
-   "police": 1024,
+   "hospital": 801,
+   "police": 959,
    "bank": 838,
    "hotel": 5003,
    "restaurant": 445
   },
   "coverage": {
    "hospital": {
-    "within_10km": 4122,
-    "within_25km": 6024,
-    "within_50km": 6505,
-    "within_10km_pct": 62.4,
-    "within_25km_pct": 91.2,
-    "within_50km_pct": 98.5
+    "within_10km": 3020,
+    "within_25km": 4366,
+    "within_50km": 4688,
+    "within_10km_pct": 63.6,
+    "within_25km_pct": 91.9,
+    "within_50km_pct": 98.7
    },
    "police": {
-    "within_10km": 5262,
-    "within_25km": 6307,
-    "within_50km": 6580,
-    "within_10km_pct": 79.7,
-    "within_25km_pct": 95.5,
-    "within_50km_pct": 99.7
+    "within_10km": 3819,
+    "within_25km": 4532,
+    "within_50km": 4726,
+    "within_10km_pct": 80.4,
+    "within_25km_pct": 95.4,
+    "within_50km_pct": 99.5
    },
    "bank": {
-    "within_10km": 3763,
-    "within_25km": 5860,
-    "within_50km": 6506,
-    "within_10km_pct": 57.0,
-    "within_25km_pct": 88.8,
-    "within_50km_pct": 98.5
+    "within_10km": 2732,
+    "within_25km": 4268,
+    "within_50km": 4703,
+    "within_10km_pct": 57.5,
+    "within_25km_pct": 89.9,
+    "within_50km_pct": 99.0
    },
    "hotel": {
-    "within_10km": 5887,
-    "within_25km": 6426,
-    "within_50km": 6586,
-    "within_10km_pct": 89.2,
-    "within_25km_pct": 97.3,
-    "within_50km_pct": 99.8
+    "within_10km": 3992,
+    "within_25km": 4560,
+    "within_50km": 4730,
+    "within_10km_pct": 84.0,
+    "within_25km_pct": 96.0,
+    "within_50km_pct": 99.6
    },
    "restaurant": {
-    "within_10km": 5417,
-    "within_25km": 6096,
-    "within_50km": 6522,
-    "within_10km_pct": 82.1,
-    "within_25km_pct": 92.3,
-    "within_50km_pct": 98.8
+    "within_10km": 3604,
+    "within_25km": 4208,
+    "within_50km": 4658,
+    "within_10km_pct": 75.9,
+    "within_25km_pct": 88.6,
+    "within_50km_pct": 98.1
    }
   },
   "districts_missing_any_at_50km": {
    "(unknown)": {
-    "hospital": 62,
+    "hospital": 38,
     "police": 11,
-    "bank": 70,
+    "bank": 28,
     "hotel": 4,
     "restaurant": 15
    },
    "Baitadi": {
-    "restaurant": 2
+    "restaurant": 3
    },
    "Bara": {
-    "restaurant": 1
+    "hotel": 1,
+    "restaurant": 2
    },
    "Darchula": {
-    "restaurant": 5
+    "hospital": 1,
+    "police": 1,
+    "bank": 1,
+    "restaurant": 6
+   },
+   "Dhankuta": {
+    "restaurant": 1
    },
    "Dolpa": {
-    "hospital": 3
+    "hospital": 3,
+    "bank": 2
    },
    "Doti": {
     "restaurant": 3
    },
    "Gorkha": {
-    "hospital": 13,
-    "bank": 21
+    "hospital": 3,
+    "bank": 2
    },
    "Gulmi": {
     "restaurant": 3
    },
    "Humla": {
     "hospital": 2,
-    "police": 6,
+    "police": 7,
     "restaurant": 1
    },
    "Jajarkot": {
@@ -95,16 +103,20 @@
     "restaurant": 1
    },
    "Jumla": {
-    "restaurant": 12
+    "restaurant": 14
    },
    "Kanchanpur": {
-    "restaurant": 3
+    "restaurant": 4
+   },
+   "Khotang": {
+    "restaurant": 1
    },
    "Mugu": {
     "restaurant": 13
    },
    "Mustang": {
-    "hospital": 12
+    "hospital": 10,
+    "bank": 9
    },
    "Parsa": {
     "restaurant": 4
@@ -117,14 +129,14 @@
     "restaurant": 2
    },
    "Saptari": {
-    "hotel": 7,
-    "restaurant": 7
+    "hotel": 8,
+    "restaurant": 9
    },
    "Sarlahi": {
-    "hotel": 1
+    "hotel": 3
    },
    "Siraha": {
-    "restaurant": 1
+    "restaurant": 2
    },
    "Taplejung": {
     "hospital": 5,
@@ -133,36 +145,16 @@
     "restaurant": 2
    },
    "Udayapur": {
-    "restaurant": 1
+    "restaurant": 2
    }
   },
-  "destinations_with_gaps": 211
+  "destinations_with_gaps": 161
  },
  "gaps": [
   {
    "district": "(unknown)",
    "destination": "A One Hotel",
    "missing": "restaurant (nearest 68 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Akley Bhatti Hotel & Lodge",
-   "missing": "hospital (nearest 52 km); bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Altitude  4400 m",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Altitude 4200 m",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Altitude 4300 m",
-   "missing": "bank (nearest 52 km)"
   },
   {
    "district": "(unknown)",
@@ -186,33 +178,13 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Budhi Gandaki Hotel",
-   "missing": "hospital (nearest 58 km); bank (nearest 54 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Bur 2073 m + passerelle",
    "missing": "hospital (nearest 60 km); bank (nearest 55 km)"
   },
   {
    "district": "(unknown)",
-   "destination": "Bur Guest House",
-   "missing": "hospital (nearest 60 km); bank (nearest 55 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Cani Gate",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Cascade",
    "missing": "hospital (nearest 59 km); bank (nearest 55 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Chhumbeli Tibetan Yak Hotel",
-   "missing": "hospital (nearest 51 km); bank (nearest 50 km)"
   },
   {
    "district": "(unknown)",
@@ -226,36 +198,6 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Chorten",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Chorten Gate",
-   "missing": "bank (nearest 50 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Chorten Gate",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Chum Gate Way Hotel & Lodge",
-   "missing": "hospital (nearest 53 km); bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Chum Nubri Ekle Bhatti Chisopi Guest House",
-   "missing": "hospital (nearest 52 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Chumling Guest House",
-   "missing": "hospital (nearest 52 km); bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Dharamsala",
    "missing": "hotel (nearest 50 km); restaurant (nearest 58 km)"
   },
@@ -263,11 +205,6 @@
    "district": "(unknown)",
    "destination": "D\u00e9part sentier",
    "missing": "hospital (nearest 61 km); bank (nearest 56 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Ekelebhatti Long Bridge Guesthouse & Restaurant",
-   "missing": "hospital (nearest 52 km); bank (nearest 52 km)"
   },
   {
    "district": "(unknown)",
@@ -296,28 +233,13 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Gap Cottage",
-   "missing": "hospital (nearest 58 km); bank (nearest 54 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Gapkaltal Guest House",
-   "missing": "hospital (nearest 61 km); bank (nearest 56 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Gapshya 2150 m",
    "missing": "hospital (nearest 57 km); bank (nearest 54 km)"
   },
   {
    "district": "(unknown)",
    "destination": "Gate",
-   "missing": "hospital (nearest 50 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Ghap Cottage Guest House",
-   "missing": "hospital (nearest 58 km); bank (nearest 54 km)"
+   "missing": "hospital (nearest 50 km)"
   },
   {
    "district": "(unknown)",
@@ -326,28 +248,8 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Hotel Kyimolung",
-   "missing": "hospital (nearest 57 km); bank (nearest 54 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Hotel Manasovar Restaurant and Bar",
    "missing": "hospital (nearest 51 km); police (nearest 50 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Hotel Motherland Tsum",
-   "missing": "hospital (nearest 53 km); bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Hotel Potala",
-   "missing": "hospital (nearest 50 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Hotel Sherpa Lodge & Caf\u00e9 - Magasin",
-   "missing": "bank (nearest 51 km)"
   },
   {
    "district": "(unknown)",
@@ -386,53 +288,13 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Karma Hotel",
-   "missing": "hospital (nearest 60 km); bank (nearest 56 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Kern (4967 m)",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Kern (end of grass, start of stones, 5042 m)",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Khadka Hotel",
    "missing": "restaurant (nearest 50 km)"
   },
   {
    "district": "(unknown)",
-   "destination": "Kham-Sangbo Hotel & Lodge",
-   "missing": "hospital (nearest 54 km); bank (nearest 53 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Lapche La",
    "missing": "hospital (nearest 53 km); police (nearest 85 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Laprak Gurung Bamboo Cottage & Restaurant",
-   "missing": "hospital (nearest 52 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Larke La Hotel & Lodge",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Larke La Hotel & Lodge",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Lhaptang Guest House",
-   "missing": "hospital (nearest 51 km); bank (nearest 51 km)"
   },
   {
    "district": "(unknown)",
@@ -451,48 +313,8 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Mani - Mur \u00e0 pri\u00e8re",
-   "missing": "hospital (nearest 56 km); bank (nearest 53 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Mani Wall",
-   "missing": "bank (nearest 50 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Mani Wall",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Mani Wall",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Namgyal Guest House",
-   "missing": "hospital (nearest 58 km); bank (nearest 55 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "New Chandrapur Hotel",
    "missing": "restaurant (nearest 54 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "New Pewa Guesthouse",
-   "missing": "hospital (nearest 57 km); bank (nearest 55 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Nile Norling Guest House",
-   "missing": "hospital (nearest 52 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Pace Hotel",
-   "missing": "bank (nearest 51 km)"
   },
   {
    "district": "(unknown)",
@@ -501,23 +323,13 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Peace Lodge",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Porte",
    "missing": "hospital (nearest 59 km); bank (nearest 55 km)"
   },
   {
    "district": "(unknown)",
-   "destination": "Royal Mustang Resort",
-   "missing": "hospital (nearest 50 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Royal Palace",
-   "missing": "hospital (nearest 50 km)"
+   "missing": "hospital (nearest 50 km); bank (nearest 50 km)"
   },
   {
    "district": "(unknown)",
@@ -537,7 +349,7 @@
   {
    "district": "(unknown)",
    "destination": "Shepherds Camp",
-   "missing": "hospital (nearest 55 km)"
+   "missing": "hospital (nearest 55 km); bank (nearest 51 km)"
   },
   {
    "district": "(unknown)",
@@ -561,11 +373,6 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Shyo 2960 m",
-   "missing": "bank (nearest 50 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "Suksum",
    "missing": "hospital (nearest 54 km); bank (nearest 52 km)"
   },
@@ -578,11 +385,6 @@
    "district": "(unknown)",
    "destination": "Sumitra Party Palace",
    "missing": "hotel (nearest 60 km); restaurant (nearest 60 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Tashi Delek Lobshang Lodge & Restaurant",
-   "missing": "hospital (nearest 53 km); bank (nearest 52 km)"
   },
   {
    "district": "(unknown)",
@@ -606,21 +408,6 @@
   },
   {
    "district": "(unknown)",
-   "destination": "Yak Hotel",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Zambala Hotel",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
-   "destination": "Zambala Hotel",
-   "missing": "bank (nearest 51 km)"
-  },
-  {
-   "district": "(unknown)",
    "destination": "kanchenjunga iceland guesthouse",
    "missing": "hospital (nearest 61 km); police (nearest 61 km); bank (nearest 61 km)"
   },
@@ -641,6 +428,11 @@
   },
   {
    "district": "Baitadi",
+   "destination": "Patan Bazaar",
+   "missing": "restaurant (nearest 50 km)"
+  },
+  {
+   "district": "Baitadi",
    "destination": "Sharmali Guest House",
    "missing": "restaurant (nearest 71 km)"
   },
@@ -648,6 +440,11 @@
    "district": "Bara",
    "destination": "Gauri Baba's Home",
    "missing": "restaurant (nearest 50 km)"
+  },
+  {
+   "district": "Bara",
+   "destination": "Simraungadh",
+   "missing": "hotel (nearest 61 km); restaurant (nearest 79 km)"
   },
   {
    "district": "Darchula",
@@ -666,8 +463,18 @@
   },
   {
    "district": "Darchula",
+   "destination": "Lipulekh Pass",
+   "missing": "hospital (nearest 63 km); police (nearest 63 km); bank (nearest 53 km)"
+  },
+  {
+   "district": "Darchula",
    "destination": "Mahakali River",
    "missing": "restaurant (nearest 50 km)"
+  },
+  {
+   "district": "Darchula",
+   "destination": "Malikarjun Temple",
+   "missing": "restaurant (nearest 68 km)"
   },
   {
    "district": "Darchula",
@@ -675,14 +482,19 @@
    "missing": "restaurant (nearest 70 km)"
   },
   {
+   "district": "Dhankuta",
+   "destination": "Mulghat",
+   "missing": "restaurant (nearest 51 km)"
+  },
+  {
    "district": "Dolpa",
    "destination": "Dolpo Saldang Labrang",
-   "missing": "hospital (nearest 53 km)"
+   "missing": "hospital (nearest 53 km); bank (nearest 50 km)"
   },
   {
    "district": "Dolpa",
    "destination": "Saldang",
-   "missing": "hospital (nearest 53 km)"
+   "missing": "hospital (nearest 53 km); bank (nearest 50 km)"
   },
   {
    "district": "Dolpa",
@@ -706,98 +518,8 @@
   },
   {
    "district": "Gorkha",
-   "destination": "An imposing huge fold",
-   "missing": "bank (nearest 57 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Buddhi Gandaki Homestay and Teahouse",
-   "missing": "bank (nearest 50 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Cheese Karsay Lodge",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Himal chuli hotel",
-   "missing": "hospital (nearest 50 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Hotel SnowLion",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Kagni Lodge",
-   "missing": "hospital (nearest 51 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Larke Pass Viewpoint",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Manaslu Bamboo Hotel",
-   "missing": "hospital (nearest 58 km); bank (nearest 55 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Mt. Manaslu View",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Namrung Guest House",
-   "missing": "hospital (nearest 53 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Namrung Tibetan Guest House",
-   "missing": "hospital (nearest 53 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "New Tashi Deleg",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
    "destination": "Nyak or Pewa",
    "missing": "hospital (nearest 54 km); bank (nearest 53 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Organic Apple Farme Guest House",
-   "missing": "hospital (nearest 54 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Small Hut",
-   "missing": "bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Solukhumbu Guest House",
-   "missing": "hospital (nearest 60 km); bank (nearest 55 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Tashi Delek Lobsang Lodge & Restaurant",
-   "missing": "hospital (nearest 52 km); bank (nearest 52 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "The River View Cottage",
-   "missing": "hospital (nearest 53 km); bank (nearest 51 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Tsum Jhambala Hotel & Restaurant",
-   "missing": "hospital (nearest 52 km); bank (nearest 51 km)"
   },
   {
    "district": "Gorkha",
@@ -808,11 +530,6 @@
    "district": "Gorkha",
    "destination": "Tsum Valley or Larke Pass",
    "missing": "hospital (nearest 53 km); bank (nearest 53 km)"
-  },
-  {
-   "district": "Gorkha",
-   "destination": "Zambala Hotel",
-   "missing": "bank (nearest 51 km)"
   },
   {
    "district": "Gulmi",
@@ -861,6 +578,11 @@
   },
   {
    "district": "Humla",
+   "destination": "Limi River",
+   "missing": "police (nearest 52 km)"
+  },
+  {
+   "district": "Humla",
    "destination": "Salli Lodge and Restaurant",
    "missing": "police (nearest 51 km)"
   },
@@ -873,6 +595,11 @@
    "district": "Jhapa",
    "destination": "\u0915\u0947\u091a\u0928\u093e",
    "missing": "hotel (nearest 55 km); restaurant (nearest 61 km)"
+  },
+  {
+   "district": "Jumla",
+   "destination": "Chandannath Temple",
+   "missing": "restaurant (nearest 57 km)"
   },
   {
    "district": "Jumla",
@@ -893,6 +620,11 @@
    "district": "Jumla",
    "destination": "Hotel Royal Garden",
    "missing": "restaurant (nearest 58 km)"
+  },
+  {
+   "district": "Jumla",
+   "destination": "Jumla Bazaar",
+   "missing": "restaurant (nearest 57 km)"
   },
   {
    "district": "Jumla",
@@ -946,8 +678,18 @@
   },
   {
    "district": "Kanchanpur",
+   "destination": "Dodhara Chandani",
+   "missing": "restaurant (nearest 54 km)"
+  },
+  {
+   "district": "Kanchanpur",
    "destination": "Hotel Swastik",
    "missing": "restaurant (nearest 50 km)"
+  },
+  {
+   "district": "Khotang",
+   "destination": "Barahapokhari",
+   "missing": "restaurant (nearest 54 km)"
   },
   {
    "district": "Mugu",
@@ -1017,57 +759,47 @@
   {
    "district": "Mustang",
    "destination": "Dhuk",
-   "missing": "hospital (nearest 55 km)"
+   "missing": "hospital (nearest 55 km); bank (nearest 55 km)"
   },
   {
    "district": "Mustang",
    "destination": "Garphu Cave",
-   "missing": "hospital (nearest 57 km)"
-  },
-  {
-   "district": "Mustang",
-   "destination": "Hotel Mandala",
-   "missing": "hospital (nearest 50 km)"
+   "missing": "hospital (nearest 57 km); bank (nearest 57 km)"
   },
   {
    "district": "Mustang",
    "destination": "Lo Manthang Gompas",
-   "missing": "hospital (nearest 50 km)"
-  },
-  {
-   "district": "Mustang",
-   "destination": "Lo Manthang Guesthouse",
-   "missing": "hospital (nearest 50 km)"
+   "missing": "hospital (nearest 50 km); bank (nearest 50 km)"
   },
   {
    "district": "Mustang",
    "destination": "Lomangthang Hot Spring",
-   "missing": "hospital (nearest 54 km)"
+   "missing": "hospital (nearest 54 km); bank (nearest 54 km)"
   },
   {
    "district": "Mustang",
    "destination": "Nenyul",
-   "missing": "hospital (nearest 52 km)"
+   "missing": "hospital (nearest 52 km); bank (nearest 52 km)"
   },
   {
    "district": "Mustang",
    "destination": "Royal Summer Palace",
-   "missing": "hospital (nearest 52 km)"
+   "missing": "hospital (nearest 52 km); bank (nearest 52 km)"
   },
   {
    "district": "Mustang",
    "destination": "Thubchen Gompa (Lo Manthang)",
-   "missing": "hospital (nearest 50 km)"
+   "missing": "hospital (nearest 50 km); bank (nearest 50 km)"
   },
   {
    "district": "Mustang",
    "destination": "Ticket Office and Caf\u00e9",
-   "missing": "hospital (nearest 56 km)"
+   "missing": "hospital (nearest 56 km); bank (nearest 56 km)"
   },
   {
    "district": "Mustang",
    "destination": "Tiji Festival (Lo Manthang)",
-   "missing": "hospital (nearest 50 km)"
+   "missing": "hospital (nearest 50 km); bank (nearest 50 km)"
   },
   {
    "district": "Mustang",
@@ -1121,6 +853,11 @@
   },
   {
    "district": "Saptari",
+   "destination": "Chhinnamasta",
+   "missing": "hotel (nearest 55 km); restaurant (nearest 55 km)"
+  },
+  {
+   "district": "Saptari",
    "destination": "Deep Shajan Hotel & Lage Rajbiraj,Saptari",
    "missing": "hotel (nearest 53 km); restaurant (nearest 53 km)"
   },
@@ -1151,8 +888,23 @@
   },
   {
    "district": "Saptari",
+   "destination": "Rupani",
+   "missing": "restaurant (nearest 61 km)"
+  },
+  {
+   "district": "Saptari",
    "destination": "Star Hotel",
    "missing": "hotel (nearest 53 km); restaurant (nearest 53 km)"
+  },
+  {
+   "district": "Sarlahi",
+   "destination": "Barahathwa",
+   "missing": "hotel (nearest 55 km)"
+  },
+  {
+   "district": "Sarlahi",
+   "destination": "Hariwan",
+   "missing": "hotel (nearest 51 km)"
   },
   {
    "district": "Sarlahi",
@@ -1163,6 +915,11 @@
    "district": "Siraha",
    "destination": "Hotel Maruti",
    "missing": "restaurant (nearest 62 km)"
+  },
+  {
+   "district": "Siraha",
+   "destination": "Sukhipur",
+   "missing": "restaurant (nearest 51 km)"
   },
   {
    "district": "Taplejung",
@@ -1193,6 +950,11 @@
    "district": "Udayapur",
    "destination": "Karki Chowk",
    "missing": "restaurant (nearest 68 km)"
+  },
+  {
+   "district": "Udayapur",
+   "destination": "Triyuga River",
+   "missing": "restaurant (nearest 69 km)"
   }
  ]
 }

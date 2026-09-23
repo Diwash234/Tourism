@@ -42,13 +42,26 @@ const Register = () => {
       navigate("/login")
     } catch (err) {
       const data = err?.response?.data
-      showToast(
-        data?.message ||
+      // Round 21: show the ACTUAL reason, not a bare "Registration failed".
+      // Priority: field errors (email taken, password rules, phone) →
+      // non_field_errors (Django password validators) → detail (throttle /
+      // server errors) → last-resort human-readable summary.
+      const fieldError =
         data?.password_confirm?.[0] ||
         data?.password?.[0] ||
         data?.email?.[0] ||
+        data?.phone_number?.[0] ||
+        data?.first_name?.[0]
+      const reason =
+        data?.message ||
+        fieldError ||
         data?.non_field_errors?.[0] ||
-        "Registration failed",
+        data?.detail ||
+        (typeof data === "string" && data) ||
+        "Registration failed. Please check your details and try again."
+      const emailTaken = /already exists/i.test(String(data?.email?.[0] || ""))
+      showToast(
+        emailTaken ? "An account with this email already exists — please sign in instead." : reason,
         "error"
       )
     } finally {

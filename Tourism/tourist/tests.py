@@ -14,6 +14,14 @@ from .models import (User, Category, Destination, Hotel, Review, EmailVerificati
 
 
 class AuthTests(APITestCase):
+    def setUp(self):
+        # Django's test runner shares the locmem cache across the whole
+        # run (no per-test clearing since Django 4.2+), and the "auth"
+        # throttle scope is 10/min — this class intentionally hammers the
+        # auth endpoints, so reset the throttle counters per test.
+        from django.core.cache import cache
+        cache.clear()
+
     def test_register_creates_unverified_user_and_sends_token(self):
         url = reverse("auth-register")
         payload = {
@@ -47,19 +55,6 @@ class AuthTests(APITestCase):
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
 
-    def test_login_unverified_user_gets_verification_guidance(self):
-        User.objects.create_user(email="unverified@example.com", password="StrongPass123!", is_verified=False)
-        response = self.client.post(reverse("auth-login"), {"email": "unverified@example.com", "password": "StrongPass123!"})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn("verify your email", response.data["detail"].lower())
-        self.assertTrue(response.data["require_verification"])
-
-    def test_resend_verification_email_allows_email_only_request(self):
-        user = User.objects.create_user(email="resend@example.com", password="StrongPass123!", is_verified=False)
-        response = self.client.post(reverse("auth-resend-verification-email"), {"email": user.email})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("verification email sent", response.data["message"].lower())
-
     def test_verify_email_with_valid_token(self):
         user = User.objects.create_user(email="verify@example.com", password="StrongPass123!")
         from django.utils import timezone
@@ -83,6 +78,88 @@ class AuthTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
         response = self.client.post(reverse("auth-logout"), {"refresh": refresh})
         self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+    # --- Round 21: honest, specific login failure reasons ----------------
+    # (owner complaint: every failure said "No active account found with
+    # the given credentials", correct or not — indistinguishable.)
+
+    def test_login_unknown_email_reports_email_not_found(self):
+        response = self.client.post(reverse("auth-login"), {"email": "ghost@example.com", "password": "StrongPass123!"})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["code"], "email_not_found")
+        self.assertIn("sign up", response.data["detail"].lower())
+
+    def test_login_wrong_password_reports_wrong_password(self):
+        User.objects.create_user(email="wrongpw@example.com", password="StrongPass123!")
+        response = self.client.post(reverse("auth-login"), {"email": "wrongpw@example.com", "password": "NotThePassword!"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["code"], "wrong_password")
+
+    def test_login_deactivated_account_reports_deactivated(self):
+        user = User.objects.create_user(email="inactive@example.com", password="StrongPass123!")
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        response = self.client.post(reverse("auth-login"), {"email": "inactive@example.com", "password": "StrongPass123!"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["code"], "account_deactivated")
+
+    def test_login_unverified_flags_verification_required(self):
+        # Unverified users CAN log in, but the response flags it so the UI
+        # can offer the verify/resend option.
+        User.objects.create_user(email="unverified@example.com", password="StrongPass123!", is_verified=False)
+        response = self.client.post(reverse("auth-login"), {"email": "unverified@example.com", "password": "StrongPass123!"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["verification_required"])
+        self.assertFalse(response.data["user"]["is_verified"])
+
+    def test_login_verified_has_no_verification_flag(self):
+        User.objects.create_user(email="verified2@example.com", password="StrongPass123!", is_verified=True)
+        response = self.client.post(reverse("auth-login"), {"email": "verified2@example.com", "password": "StrongPass123!"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("verification_required", response.data)
+
+    def test_login_email_lookup_is_case_insensitive(self):
+        User.objects.create_user(email="CaseTest@example.com", password="StrongPass123!")
+        response = self.client.post(reverse("auth-login"), {"email": "casetest@example.com", "password": "StrongPass123!"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_login_missing_fields_get_specific_400s(self):
+        no_email = self.client.post(reverse("auth-login"), {"password": "StrongPass123!"})
+        self.assertEqual(no_email.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(no_email.data["code"], "missing_email")
+        no_pw = self.client.post(reverse("auth-login"), {"email": "who@example.com"})
+        self.assertEqual(no_pw.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(no_pw.data["code"], "missing_password")
+
+    # --- Round 21: resend verification link without logging in ------------
+
+    def test_resend_verification_full_flow(self):
+        user = User.objects.create_user(email="resend@example.com", password="StrongPass123!", is_verified=False)
+        url = reverse("auth-resend-verification")
+
+        first = self.client.post(url, {"email": "resend@example.com"})
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertIn("Verification link sent", first.data["message"])
+        # a fresh token was created for the user
+        self.assertTrue(EmailVerificationToken.objects.filter(user=user).exists())
+
+        # immediate repeat is rate-limited (1 per 60s per address)
+        again = self.client.post(url, {"email": "RESEND@EXAMPLE.COM"})
+        self.assertEqual(again.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # unknown address gets a specific reason, not a generic failure
+        missing = self.client.post(url, {"email": "nobody@example.com"})
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(missing.data["code"], "email_not_found")
+
+        # already-verified account is told so
+        user.is_verified = True
+        user.save(update_fields=["is_verified"])
+        from django.core.cache import cache
+        cache.clear()
+        verified = self.client.post(url, {"email": "resend@example.com"})
+        self.assertEqual(verified.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("already verified", verified.data["detail"].lower())
 
 
 class DestinationTests(APITestCase):

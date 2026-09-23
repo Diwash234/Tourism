@@ -1,11 +1,11 @@
 import { useForm } from "react-hook-form"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
-import { FiMail, FiLock, FiShield, FiUser, FiBriefcase } from "react-icons/fi"
+import { FiMail, FiLock, FiShield, FiUser, FiBriefcase, FiAlertCircle, FiHelpCircle, FiSend } from "react-icons/fi"
 import { motion } from "framer-motion"
-import authApi from "../../api/authApi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
+import authApi from "../../api/authApi"
 import TourismLogo from "../../components/branding/TourismLogo"
 import NepalSceneBackground from "../../components/branding/NepalSceneBackground"
 import SocialLoginButtons from "./SocialLoginButtons"
@@ -36,40 +36,54 @@ const ROLE_PRESETS = [
 
 const Login = () => {
   const [selectedRole, setSelectedRole] = useState("tourist")
-  const { register, handleSubmit, formState: { errors } } = useForm()
+  const { register, handleSubmit, getValues, formState: { errors } } = useForm()
   const { login } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(false)
-  const [verificationEmail, setVerificationEmail] = useState("")
-  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false)
-  const [resendLoading, setResendLoading] = useState(false)
+  // Specific login failure reason from the backend (Round 21):
+  // { code: "email_not_found" | "wrong_password" | "account_deactivated" | "", detail: "..." }
+  const [loginError, setLoginError] = useState(null)
+  // "Didn't get a verification email?" resend flow (no login required)
+  const [verifyEmail, setVerifyEmail] = useState("")
+  const [verifyBusy, setVerifyBusy] = useState(false)
+  const [verifyMsg, setVerifyMsg] = useState(null) // { text, ok }
 
   const handleRolePreset = (preset) => {
     setSelectedRole(preset.id)
   }
 
-  const handleResendVerification = async () => {
-    if (!verificationEmail) return
-    setResendLoading(true)
+  const sendVerification = async () => {
+    // Dedicated box first, then the email already typed in the login form.
+    const email = (verifyEmail || getValues("email") || "").trim()
+    if (!email) {
+      setVerifyMsg({ text: "Enter your email above, then press 'Send link'.", ok: false })
+      return
+    }
+    setVerifyEmail("")
+    setVerifyBusy(true)
+    setVerifyMsg(null)
     try {
-      await authApi.resendVerificationEmail(verificationEmail)
-      showToast("A fresh verification email has been sent.", "success")
+      const { data } = await authApi.resendVerification(email)
+      setVerifyMsg({ text: data.message || "Verification link sent — check your inbox.", ok: true })
     } catch (err) {
-      showToast(err?.response?.data?.detail || "We could not resend the verification email right now.", "error")
+      const d = err?.response?.data
+      setVerifyMsg({ text: d?.detail || d?.message || "Could not send the verification email. Please try again.", ok: false })
     } finally {
-      setResendLoading(false)
+      setVerifyBusy(false)
     }
   }
 
   const onSubmit = async (data) => {
     setLoading(true)
-    setVerificationEmail(String(data.email || "").trim())
-    setShowVerificationPrompt(false)
+    setLoginError(null)
     try {
       const userData = await login(data)
       showToast(`Welcome back, ${userData?.first_name || userData?.email}!`, "success")
+      if (userData?.is_verified === false) {
+        showToast("Your email is not verified yet — check your inbox, or resend the link from the box on this page.", "warning")
+      }
 
       const role = String(userData?.role || "").toLowerCase()
       const isAdmin = ["admin", "super_admin", "tourism_admin"].includes(role) || userData?.is_superuser === true
@@ -77,11 +91,11 @@ const Login = () => {
       const fallback = isAdmin ? "/admin" : isStaff ? "/staff" : "/dashboard"
       navigate(location.state?.from?.pathname || fallback)
     } catch (err) {
-      const detail = err?.response?.data?.detail || err?.response?.data?.message || "Invalid email or password"
-      showToast(detail, "error")
-      if (err?.response?.data?.require_verification || /verify your email/i.test(detail)) {
-        setShowVerificationPrompt(true)
-      }
+      const d = err?.response?.data
+      setLoginError({
+        code: d?.code || "",
+        detail: d?.detail || (typeof d === "string" && d ? d : "Invalid email or password. Please check and try again."),
+      })
     } finally {
       setLoading(false)
     }
@@ -158,6 +172,34 @@ const Login = () => {
             {errors.password && <p className="text-xs text-red-500 mt-1">Password is required</p>}
           </div>
 
+          {loginError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800"
+            >
+              <div className="flex items-start gap-2">
+                <FiAlertCircle className="mt-0.5 shrink-0" size={16} />
+                <div>
+                  <p className="font-medium">{loginError.detail}</p>
+                  {loginError.code === "email_not_found" && (
+                    <p className="mt-1 text-xs">
+                      No account with this email yet?{" "}
+                      <Link to="/register" className="font-bold underline">Create one here</Link>.
+                    </p>
+                  )}
+                  {loginError.code === "wrong_password" && (
+                    <p className="mt-1 text-xs">
+                      You can also <Link to="/forgot-password" className="font-bold underline">reset your password</Link>.
+                    </p>
+                  )}
+                  {loginError.code === "account_deactivated" && (
+                    <p className="mt-1 text-xs">Support can reactivate your account — contact info is in the footer.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-end text-xs text-gray-500">
             <Link to="/forgot-password" className="text-primary-600 hover:underline">
               Forgot Password?
@@ -171,21 +213,45 @@ const Login = () => {
           >
             {loading ? "Logging in..." : `Login to ${ROLE_PRESETS.find(p => p.id === selectedRole)?.label}`}
           </button>
-
-          {showVerificationPrompt && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-left">
-              <p className="text-xs font-medium text-amber-800">Please verify your email before logging in.</p>
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={resendLoading}
-                className="mt-2 text-xs font-semibold text-amber-900 underline disabled:opacity-60"
-              >
-                {resendLoading ? "Sending..." : "Resend verification email"}
-              </button>
-            </div>
-          )}
         </form>
+
+        {/* Verify / activate account — the option that was missing:
+            when the backend says an account exists but its email was
+            never verified (or the link was lost), the user can resend
+            the verification link from right here without logging in. */}
+        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
+          <div className="flex items-center gap-2 text-amber-800">
+            <FiHelpCircle size={16} className="shrink-0" />
+            <h3 className="text-sm font-bold">Verify your email / activate account</h3>
+          </div>
+          <p className="mt-1 text-xs text-amber-700 leading-relaxed">
+            Signed up but haven't verified your email yet — or the link didn't arrive?
+            Enter your email and we'll send a fresh verification link.
+          </p>
+          <div className="mt-2.5 flex gap-2">
+            <input
+              type="email"
+              value={verifyEmail}
+              onChange={(e) => setVerifyEmail(e.target.value)}
+              placeholder="Email you signed up with"
+              className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <button
+              type="button"
+              onClick={sendVerification}
+              disabled={verifyBusy}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              <FiSend size={14} />
+              {verifyBusy ? "Sending…" : "Send link"}
+            </button>
+          </div>
+          {verifyMsg && (
+            <p className={`mt-2 text-xs font-medium ${verifyMsg.ok ? "text-emerald-700" : "text-rose-700"}`}>
+              {verifyMsg.text}
+            </p>
+          )}
+        </div>
 
         <div className="mt-6">
           <SocialLoginButtons />

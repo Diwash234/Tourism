@@ -8,9 +8,6 @@ const authApi = {
   forgotPassword: (payload) =>
     axiosClient.post("/auth/forgot-password/", payload),
 
-  resendVerificationEmail: (email) =>
-    axiosClient.post("/auth/resend-verification-email/", { email }),
-
   resetPassword: (payload) =>
     axiosClient.post("/auth/reset-password/", payload),
 
@@ -19,6 +16,14 @@ const authApi = {
   // method (and the page that uses it) newly registered users could
   // never verify their email.
   verifyEmail: (token) => axiosClient.post("/auth/verify-email/", { token }),
+
+  // NEW (Round 21): resend the email-verification link for an existing
+  // UNVERIFIED account. No login required — this is the "activate
+  // account" option shown on the login page. Backend:
+  // views_auth.ResendVerificationByEmailView (rate-limited 1/60s per
+  // address, specific error messages: email_not_found / already
+  // verified / sent-recently).
+  resendVerification: (email) => axiosClient.post("/auth/resend-verification/", { email }),
 
   refreshToken: (payload) =>
     axiosClient.post("/auth/token/refresh/", payload),

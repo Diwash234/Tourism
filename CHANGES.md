@@ -2,6 +2,151 @@
 
 ---
 
+## 🔐 Round 21: Login / Sign-up / OAuth — honest errors + activate-account + working social buttons
+
+Owner request (three complaints):
+1. **Sign-up** said "Registration failed" without any reason.
+2. **Login** said "No active account / no active login with these
+   credentials" for *any* id/password — right or wrong — and there was no
+   way to **activate/verify the account**.
+3. **Google / GitHub** buttons showed **"(soon)"** even though the OAuth
+   API keys are already in the local `.env`.
+
+### 1) Sign-up now shows the *actual* reason
+- `Register.jsx` now reads every field error **and** `detail` (throttle /
+  server errors), in priority order: email-taken → password rules →
+  phone/name → non-field (Django password validators) → `detail`.
+- A duplicate email now reads: **"An account with this email already
+  exists — please sign in instead."** (was a bare "Registration failed").
+- Weak passwords surface the exact rule, e.g. "This password is too short.
+  It must contain at least 8 characters."
+
+### 2) Login now distinguishes *why* it failed, and offers activation
+Replaced the stock SimpleJWT `TokenObtainPairView` (which lumps every
+failure into one message) with `views_auth.LoginView`:
+| Situation | Before | Now |
+|---|---|---|
+| Email has no account | "No active account found…" | `404` `email_not_found` → "No account found with **x@y**. … sign up first." + **Create one here** link |
+| Wrong password | same vague message | `401` `wrong_password` → "Incorrect password for this email…" + **reset your password** link |
+| Account deactivated | same vague message | `403` `account_deactivated` → "…contact support to reactivate it." |
+| Missing field | generic | `400` `missing_email` / `missing_password` |
+| Correct credentials | worked | still works (same `{access, refresh, user}` shape) |
+| Correct but email unverified | silent | 200 **plus** `verification_required: true` → login page shows a warning |
+
+- **Email lookup is now case-insensitive** (`x@Y.com` == `x@y.com`) — a
+  common reason correct credentials "failed" before.
+- **New "Verify your email / activate account" box on the login page**:
+  enter the email → `POST /auth/resend-verification/` (no login needed,
+  rate-limited 1/min per address) → sends a fresh 24 h verification link.
+  Specific answers for: no such account / already verified / sent
+  recently. This is the missing "activate account" option.
+- **New endpoint**: `POST /api/v1/auth/resend-verification/`
+  (`views_auth.ResendVerificationByEmailView`) — reuses the same token +
+  email pipeline as registration.
+- **Verification links now point at the right port**: `FRONTEND_URL`
+  default fixed `:3000` → `:5173` (vite dev port) and documented in
+  `.env.example` (set it to your production domain in prod). With the old
+  default, emailed verify/reset links opened a dead port.
+
+### 3) Google / GitHub — the "(soon)" was a *configuration* state, now proven + documented
+The whole OAuth stack was already built (authorize URL with
+**`prompt=select_account`** — i.e. Google **shows the accounts signed in on
+the device and lets you pick one**, then sign-in *or* account creation;
+callback exchanges the code for the client secret from `.env`,
+finds-or-links the account by email, issues the normal JWT). The buttons
+only light up once the **client IDs** are present. What was missing:
+
+- **The `.env.example` documented the WRONG redirect URIs** (the
+  `/api/v1/.../callback/` API endpoint) — but the browser is actually sent
+  to the **frontend** route. Registering the API URL with Google/GitHub
+  would make the provider reject the flow even with valid keys.
+  `.env.example` now states the correct URIs:
+  - Google → `http://localhost:5173/auth/callback/google`
+    (and `https://<your-domain>/auth/callback/google` in prod)
+  - GitHub → `http://localhost:5173/auth/callback/github`
+    (and `https://<your-domain>/auth/callback/github` in prod)
+- **Setup steps + file location are now explicit** in `.env.example`:
+  put `.env` next to `manage.py` (`Tourism/Tourism/.env`), fill
+  `GOOGLE_CLIENT_ID/SECRET` + `GITHUB_CLIENT_ID/SECRET`, **restart the
+  backend** — the client IDs are then served via
+  `/api/v1/config/public/` and the buttons activate with no frontend
+  change.
+- **Proven end-to-end in this environment** with a sandbox `.env`
+  (dummy IDs, gitignored, never committed): public config exposes the IDs
+  → buttons render as live links with the correct authorize URLs;
+  callback endpoints exchange codes and fail with a clean `400` (not a
+  500) on bad codes; the mocked-provider test
+  (`OAuthCallbackFlowTests`) covers code→token→userinfo→user→JWT.
+- **To make it live on your machine** (your real keys, already in your
+  `.env`): confirm the file is at `Tourism/Tourism/.env`, the four
+  `GOOGLE_*`/`GITHUB_*` values match the provider consoles, the redirect
+  URIs registered in Google/GitHub are the **frontend** ones above, and
+  the backend was restarted after the last `.env` edit.
+
+### Tests
+- `AuthTests` +8: unknown email / wrong password / deactivated /
+  unverified-flag / verified-no-flag / case-insensitive login / missing
+  fields / full resend-verification flow (sent → 429 repeat → unknown →
+  already-verified).
+- Full suite: **523 tests OK** (was 515). Frontend: 0 lint errors,
+  production build green.
+
+---
+
+## 🧭 Round 20: Every destination audited — routes, navigation & nearby places
+
+Owner request: verify that **every** destination has proper routes +
+navigation and that nearby hotels / hospitals / banks / police etc. are all
+there — and where something is missing, **add the real data**.
+
+### Audit results (all 4,750 approved+active destinations)
+- **Coordinates**: 4,750/4,750 have valid in-Nepal coordinates (0 missing,
+  0 out-of-bounds).
+- **Routes**: `manage.py audit_routes` (same central engine as the public
+  API, from both a city source and a raw GPS "current location") →
+  **4,750 ok / 0 failed** from both origins. 4,749 get a real corridor
+  route; 1 is honestly labelled straight-line-only. Median
+  route/straight-line ratio 1.25 (no inflated geometry).
+- **Nearby services** (`manage.py audit_service_coverage`, same tables the
+  public nearby endpoint uses): within 50 km — hotels 99.6%, police 99.5%,
+  banks 99.0%, hospitals ~98.7%, restaurants 98.1%; within 10 km — hotels
+  84.0%, police 80.4%, restaurants 75.9%, banks 57.5%. The 161 remaining
+  hard gaps are remote trekking waypoints (e.g. "Bur 2073 m", "Chorten")
+  where the nearest hospital/bank genuinely is 50-68 km away — reported
+  honestly, not fabricated.
+
+### Fixes made with real data
+1. **128 destinations could not be routed at all** (Biratnagar, Dhangadhi,
+   Bandipur, Nar Phu, …) — the bundled road graph
+   (`ml_service/model/route/nepal_graph.graphml`, 5,764 nodes) contained 7
+   disconnected island components (duplicate hotel clusters). All islands
+   are now bridged to the main network: 145 real bridge edges, each
+   weighted at 1.3× its measured straight-line gap (same honest
+   corridor-estimate grading). Verified: 4,750/4,750 routable;
+   Kathmandu→Dhangadhi 715 km/75 steps, →Biratnagar 294 km/61 steps,
+   →Simikot 560 km/74 steps, all with turn-by-turn.
+2. **Facility backfill from the bundled real datasets**: ran the
+   idempotent `import_hospital --csv dataset/hospital.csv` (2,071 rows),
+   `import_police --csv dataset/nearbypolice.csv` (2,601 rows) and
+   `import_hotels_csv --csv dataset/hotel.csv` (2,104 rows). The raw files
+   are ~99% duplicates of what was already imported, so the net effect is
+   completeness + de-duplication: **420 unique hospitals** and **878
+   unique police stations** (221 exact-duplicate rows removed, one kept per
+   name+coordinates). Hotels were already complete (5,003).
+   Verified live: Limi River (Humla) now shows Salli Lodge 0.76 km,
+   Humla District Hospital 18.6 km, Nepal Bank Simikot 16.5 km; Rupani
+   (Saptari) shows 8 hospitals + 10 police stations within 25 km.
+3. **Pharmacies** remain 351 real OSM-sourced records (urban); 2,918 rural
+   destinations have none within 100 km — the endpoint reports that
+   honestly instead of inventing pharmacies.
+
+**Verified:** 515 backend tests pass; `reports/route_audit.json`
+(failure_count: 0) and `reports/service_coverage.json` regenerated;
+all key pages 200; nearby-pois + travel-plan endpoints verified on
+previously broken destinations.
+
+---
+
 ## 🧭 Round 19: Real UI icons across the whole app + Distances & Directions explorer
 
 The owner asked for real icons on **every** surface (not just the two map

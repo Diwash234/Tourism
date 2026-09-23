@@ -65,6 +65,134 @@ class RegisterView(generics.CreateAPIView):
         )
 
 
+class LoginView(APIView):
+    """
+    Email + password login with HONEST, specific failure reasons.
+
+    SimpleJWT's stock view lumps "unknown email", "wrong password" and
+    "deactivated account" into one vague 401 ("No active account found
+    with the given credentials") — which made it look like login was
+    broken for correct credentials too. This view reports exactly what
+    is wrong and points at the fix:
+
+      404 email_not_found      → sign up first
+      403 account_deactivated  → contact support
+      401 wrong_password       → try again / forgot password
+      200 (+verification_required when email unverified)
+    """
+
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth"
+    serializer_class = None
+
+    def post(self, request):
+        email = str(request.data.get("email") or "").strip()
+        password = str(request.data.get("password") or "")
+        if not email:
+            return Response({"detail": "Email is required.", "code": "missing_email"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not password:
+            return Response({"detail": "Password is required.", "code": "missing_password"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "detail": f"No account found with {email}. If you don't have an account yet, sign up first.",
+                    "code": "email_not_found",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not user.is_active:
+            return Response(
+                {
+                    "detail": "This account has been deactivated. Please contact support to reactivate it.",
+                    "code": "account_deactivated",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not user.check_password(password):
+            return Response(
+                {
+                    "detail": "Incorrect password for this email. Please try again or use 'Forgot password'.",
+                    "code": "wrong_password",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        refresh = RefreshToken.for_user(user)
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": UserProfileSerializer(user).data,
+        }
+        if not user.is_verified:
+            data["verification_required"] = True
+            data["verification_hint"] = (
+                "Your email is not verified yet. Use 'Resend verification email' "
+                "below the login form (or check your inbox for the original link)."
+            )
+        return Response(data)
+
+
+class ResendVerificationByEmailView(APIView):
+    """
+    POST /auth/resend-verification/  {"email": "..."}
+
+    Re-sends the email verification link for an existing, UNVERIFIED
+    account. No login required (the user may not be able to log in yet),
+    rate-limited to one send per 60 seconds per address, and answers
+    with a specific reason instead of a blank failure.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth"
+    serializer_class = None
+
+    def post(self, request):
+        from django.core.cache import cache
+
+        email = str(request.data.get("email") or "").strip()
+        if not email:
+            return Response({"detail": "Email is required.", "code": "missing_email"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": f"No account found with {email}.", "code": "email_not_found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if user.is_verified:
+            return Response({"detail": "Email already verified."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        key = f"resend-verify:{email.lower()}"
+        if cache.get(key):
+            return Response(
+                {
+                    "detail": "A verification email was sent recently — please wait a minute, "
+                              "then check your inbox (and spam folder)."
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        _issue_email_verification(user)
+        cache.set(key, 1, 60)
+        return Response(
+            {
+                "message": f"Verification link sent to {email} — check your inbox (and spam folder). "
+                           f"It expires in {TOKEN_LIFETIME_HOURS} hours."
+            }
+        )
+
+
 class VerifyEmailView(APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = VerifyEmailSerializer
@@ -165,25 +293,15 @@ class ResendPhoneOTPView(APIView):
 
 
 class ResendVerificationEmailView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_scope = "auth"
     serializer_class = None
 
     def post(self, request):
-        email = str(request.data.get("email", "")).strip().lower()
-        if not email:
-            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
-            return Response({"message": "If that email exists, a verification link has been sent."})
-
-        if user.is_verified:
+        if request.user.is_verified:
             return Response({"detail": "Email already verified."}, status=status.HTTP_400_BAD_REQUEST)
-
-        _issue_email_verification(user)
-        return Response({"message": "Verification email sent. Please check your inbox to activate your account."})
+        _issue_email_verification(request.user)
+        return Response({"message": "Verification email sent."})
 
 
 class LogoutView(APIView):

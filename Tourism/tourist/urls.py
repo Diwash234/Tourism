@@ -1,11 +1,6 @@
 from django.urls import path, include
-from rest_framework import status
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from . import views
 from . import views_auth
@@ -22,49 +17,13 @@ from . import views_marketplace
 from . import views_emergency_admin
 from . import views_navigation
 from . import views_workforce
-from .models import User
-from .serializers import UserProfileSerializer
 
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        data["user"] = UserProfileSerializer(self.user).data
-        return data
-
-
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
-
-    def post(self, request, *args, **kwargs):
-        email = str(request.data.get("email", "")).strip()
-        user = User.objects.filter(email__iexact=email).first() if email else None
-
-        try:
-            return super().post(request, *args, **kwargs)
-        except AuthenticationFailed:
-            if user and not getattr(user, "is_active", True):
-                return Response(
-                    {
-                        "detail": "Your account is inactive. Please contact support or verify your email to activate it.",
-                        "require_activation": True,
-                        "email": user.email,
-                    },
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-            if user and not getattr(user, "is_verified", False):
-                return Response(
-                    {
-                        "detail": "Please verify your email before logging in. Check your inbox for the verification link or request a new one.",
-                        "require_verification": True,
-                        "email": user.email,
-                    },
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-            return Response(
-                {"detail": "Invalid email or password. Please check your credentials and verify your account if needed."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+# NOTE (Round 21): login moved to views_auth.LoginView — SimpleJWT's stock
+# view answered every failure (unknown email / wrong password / deactivated
+# account) with the same vague "No active account found with the given
+# credentials" message, which made login look broken even for correct
+# credentials. The custom view returns specific, actionable reasons.
 
 
 router = DefaultRouter()
@@ -108,7 +67,8 @@ urlpatterns = [
     path("notification-preferences/", views.NotificationPreferenceView.as_view(), name="notification-preferences"),
     # Auth endpoints
     path("auth/register/", views_auth.RegisterView.as_view(), name="auth-register"),
-    path("auth/login/", CustomTokenObtainPairView.as_view(), name="auth-login"),
+    path("auth/login/", views_auth.LoginView.as_view(), name="auth-login"),
+    path("auth/resend-verification/", views_auth.ResendVerificationByEmailView.as_view(), name="auth-resend-verification"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="auth-token-refresh"),
     path("auth/logout/", views_auth.LogoutView.as_view(), name="auth-logout"),
     path("auth/profile/", views_auth.ProfileView.as_view(), name="auth-profile"),

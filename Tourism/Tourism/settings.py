@@ -321,7 +321,11 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@tourism-portal.local")
 
-FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+# Base URL of the FRONTEND (SPA), used to build the links inside
+# verification / password-reset emails. Default matches the vite dev
+# server (port 5173). Override in .env for production so emailed links
+# point at your deployed site, e.g. FRONTEND_URL=https://your-domain.com
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
 
 # ------------------------------------------------------------------
 # SMS (Twilio) - optional, disabled unless credentials are supplied
