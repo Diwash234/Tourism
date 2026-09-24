@@ -522,12 +522,11 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         else:
             qs = Destination.publicly_visible(qs)
 
-        # Default destination listing: show real attractions, not hotels/info/noise.
-        # Pass ?type=all or ?type=hotel to override (see DestinationFilter).
+        # Default destination listing: return all publicly visible destinations.
+        # Specific filtering by category or type is applied when query params are provided.
         if self.action == "list":
             requested_type = (self.request.query_params.get("type") or "").lower()
-            if requested_type not in ("all", "hotel", "hotels", "lodging", "accommodation", "stay",
-                                      "attraction", "attractions", "destination", "destinations"):
+            if requested_type in ("attraction", "attractions"):
                 from .filters import (
                     ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
                     NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,

@@ -87,9 +87,11 @@ class RecommendedDestinationsView(APIView):
         if interest:
             from django.db.models import Q
             candidate_qs = candidate_qs.filter(
+                Q(name__icontains=interest) |
                 Q(type__icontains=interest) |
                 Q(description__icontains=interest) |
-                Q(tags__icontains=interest) |
+                Q(short_description__icontains=interest) |
+                Q(cultural_significance__icontains=interest) |
                 Q(category__name__icontains=interest)
             )
 
@@ -159,9 +161,11 @@ class RecommendedDestinationsView(APIView):
             if interest:
                 from django.db.models import Q
                 fallback_qs = fallback_qs.filter(
+                    Q(name__icontains=interest) |
                     Q(type__icontains=interest) |
                     Q(description__icontains=interest) |
-                    Q(tags__icontains=interest) |
+                    Q(short_description__icontains=interest) |
+                    Q(cultural_significance__icontains=interest) |
                     Q(category__name__icontains=interest)
                 )
 
