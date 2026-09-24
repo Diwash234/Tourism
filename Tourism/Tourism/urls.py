@@ -24,8 +24,9 @@ urlpatterns = [
     # Public SEO surface (§101-103): generated from live DB records.
     path("robots.txt", views_seo.RobotsTxtView.as_view(), name="robots-txt"),
     path("sitemap.xml", views_seo.SitemapView.as_view(), name="sitemap-xml"),
-    # Deployment health check (§112) — complements system_health liveness
-    # with routing/weather/media provider status, no secrets.
+    # Deployment health check (§112) — root and api/v1/ health endpoints
+    path("health", views_seo.HealthView.as_view(), name="root-health"),
+    path("health/", views_seo.HealthView.as_view(), name="root-health-slash"),
     path("api/v1/health/", views_seo.HealthView.as_view(), name="health"),
     path("api/v1/", include("tourist.urls")),
 
@@ -34,6 +35,6 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
-    
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

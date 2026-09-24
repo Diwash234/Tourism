@@ -439,8 +439,8 @@ class NavigationRouteView(APIView):
                     return data[key]
             return None
 
-        start_lat_raw = pick("start_latitude", "startLat", "start_lat", "originLat")
-        start_lon_raw = pick("start_longitude", "startLng", "start_lng", "originLng")
+        start_lat_raw = pick("start_latitude", "startLat", "start_lat", "originLat", "origin_lat", "lat", "latitude")
+        start_lon_raw = pick("start_longitude", "startLng", "start_lng", "originLng", "origin_lng", "lng", "longitude", "lon")
         try:
             # Coordinates are optional when origin_name can supply the start.
             start_lat = _parse_float(start_lat_raw, "start latitude") if start_lat_raw is not None else None
@@ -475,9 +475,16 @@ class NavigationRouteView(APIView):
         # than raw coordinates — resolve it against real Destination rows
         # first. Match destination name, city, country or slug so queries like
         # "kathmandu" still work even when the user is searching by district/city.
+        from .models import Destination
+
         destination_obj = None
         destination_dict = None
-        destination_name = pick("destination_name", "destinationName")
+        destination_name = pick("destination_name", "destinationName", "destination_slug", "destinationSlug", "destination", "dest")
+        dest_id = pick("destination_id", "destinationId")
+        if dest_id and not destination_name:
+            d_found = Destination.objects.filter(pk=dest_id).first()
+            if d_found:
+                destination_name = d_found.slug or d_found.name
         if destination_name:
             from .models import Destination
 
