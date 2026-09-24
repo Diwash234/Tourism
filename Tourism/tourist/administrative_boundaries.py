@@ -109,6 +109,7 @@ NEPAL_DISTRICTS_DATA = {
     "Arghakhanchi": {"province": "Lumbini", "lat": 27.8944, "lng": 83.1225, "altitude": 1200, "type": "Hill/Sandhikharka"},
     "Dang": {"province": "Lumbini", "lat": 28.0000, "lng": 82.4833, "altitude": 350, "type": "Inner Terai/Ghorahi (Deukhuri)"},
     "Eastern Rukum": {"province": "Lumbini", "lat": 28.6500, "lng": 82.6500, "altitude": 1500, "type": "Himalayan/Rukumkot"},
+    "Rukum East": {"province": "Lumbini", "lat": 28.6500, "lng": 82.6500, "altitude": 1500, "type": "Himalayan/Rukumkot"},
     "Gulmi": {"province": "Lumbini", "lat": 28.0833, "lng": 83.3000, "altitude": 1100, "type": "Hill/Tamghas"},
     "Parasi": {"province": "Lumbini", "lat": 27.5333, "lng": 83.6667, "altitude": 100, "type": "Terai/Ramgram Stupa"},
     "Pyuthan": {"province": "Lumbini", "lat": 28.1000, "lng": 82.8500, "altitude": 1200, "type": "Hill/Khalanga"},
@@ -121,6 +122,7 @@ NEPAL_DISTRICTS_DATA = {
     "Kalikot": {"province": "Karnali", "lat": 29.1500, "lng": 81.6500, "altitude": 1300, "type": "Hill/Manma"},
     "Salyan": {"province": "Karnali", "lat": 28.3500, "lng": 82.1700, "altitude": 1300, "type": "Hill/Salyan Khalanga"},
     "Western Rukum": {"province": "Karnali", "lat": 28.6258, "lng": 82.4331, "altitude": 1500, "type": "Himalayan/Musikot"},
+    "Rukum West": {"province": "Karnali", "lat": 28.6258, "lng": 82.4331, "altitude": 1500, "type": "Himalayan/Musikot"},
 
     # Sudurpashchim Province (completed)
     "Achham": {"province": "Sudurpashchim", "lat": 29.0500, "lng": 81.2800, "altitude": 900, "type": "Hill/Mangalsen"},

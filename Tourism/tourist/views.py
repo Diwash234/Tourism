@@ -1958,7 +1958,19 @@ class DestinationNearbyPOIsView(APIView):
                         found[-1].update(extra or {})
                 if found:
                     found.sort(key=lambda row: row["distance_km"])
-                    return found[:10], radius
+                    # Collapse same-site duplicates: the same facility is
+                    # often recorded twice under slightly different names at
+                    # identical coordinates (88 hospital / 222 police pairs
+                    # in the current directories). Keep the nearest entry.
+                    seen_sites = set()
+                    unique = []
+                    for row in found:
+                        site = (round(row["latitude"], 3), round(row["longitude"], 3))
+                        if site in seen_sites:
+                            continue
+                        seen_sites.add(site)
+                        unique.append(row)
+                    return unique[:10], radius
             return [], radii[-1]
 
         categories = {}

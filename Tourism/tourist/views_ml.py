@@ -11,6 +11,7 @@ INBOUND: ML service -> backend (webhook)
 """
 
 import logging
+import math
 import re
 import requests
 
@@ -230,6 +231,121 @@ class MLResultWebhookView(APIView):
 
 
 
+def _haversine_km(lat1, lon1, lat2, lon2):
+    lat1, lon1, lat2, lon2 = map(float, (lat1, lon1, lat2, lon2))
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def _parse_altitude_m(value):
+    """altitude is a CharField like '4,130m' / '742' -> int meters or None."""
+    if value is None:
+        return None
+    digits = re.sub(r"[^0-9]", "", str(value))
+    return int(digits) if digits else None
+
+
+def _rule_based_safety_fallback(latitude, longitude, destination=None):
+    """Honest rule-based safety estimate for when the AI safety microservice
+    is not running (it is an optional service — off in most deployments).
+
+    Uses ONLY recorded data: elevation of the nearest recorded place and
+    hospital/police coverage within 50 km. The response is flagged
+    degraded=True with a data_note, mirroring the other offline fallbacks
+    (route graphml_fallback, itinerary dataset engine) — never presented
+    as a model prediction.
+    """
+    latitude = float(latitude)
+    longitude = float(longitude)
+    factors = []
+    score = 0.10  # baseline
+
+    def _box(rkm):
+        dlat = rkm / 111.0
+        dlon = rkm / (111.0 * max(0.2, math.cos(math.radians(latitude))))
+        return dict(
+            latitude__gte=latitude - dlat, latitude__lte=latitude + dlat,
+            longitude__gte=longitude - dlon, longitude__lte=longitude + dlon,
+        )
+
+    nearest = None
+    max_alt_10km = None
+    if destination is not None:
+        nearest = destination
+        max_alt_10km = _parse_altitude_m(getattr(destination, "altitude", None))
+    else:
+        best, best_d = None, 1e18
+        for dest in Destination.objects.filter(**_box(30)).exclude(
+            latitude=None, longitude=None
+        ).values("name", "latitude", "longitude", "altitude", "district"):
+            d = _haversine_km(latitude, longitude, dest["latitude"], dest["longitude"])
+            if d < best_d:
+                best, best_d = dest, d
+            if d <= 10:
+                alt = _parse_altitude_m(dest["altitude"])
+                if alt and (max_alt_10km is None or alt > max_alt_10km):
+                    max_alt_10km = alt
+        nearest = best if best_d <= 30 else None
+
+    if max_alt_10km:
+        if max_alt_10km >= 3000:
+            score += 0.35
+            factors.append(f"High-altitude terrain: a recorded place within 10 km sits at about {max_alt_10km:,} m — thin air and fast weather changes")
+        elif max_alt_10km >= 2500:
+            score += 0.22
+            factors.append(f"Upper-hill terrain: a recorded place within 10 km sits at about {max_alt_10km:,} m")
+
+    try:
+        hosp = list(Hospital.objects.filter(**_box(60)).exclude(
+            latitude=None, longitude=None).values_list("latitude", "longitude"))
+        pol = list(PoliceStation.objects.filter(**_box(60)).exclude(
+            latitude=None, longitude=None).values_list("latitude", "longitude"))
+        n_hosp = sum(1 for (la, lo) in hosp if _haversine_km(latitude, longitude, la, lo) <= 50)
+        n_pol = sum(1 for (la, lo) in pol if _haversine_km(latitude, longitude, la, lo) <= 50)
+    except Exception:
+        n_hosp = n_pol = None
+    if n_hosp is not None:
+        n = n_hosp + n_pol
+        if n == 0:
+            score += 0.30
+            factors.append("Remote: no hospital or police station recorded within 50 km — carry first-aid supplies and a charged phone")
+        elif n < 3:
+            score += 0.15
+            factors.append(f"Thin emergency coverage: only {n} hospital(s)/police station(s) recorded within 50 km")
+
+    if not factors:
+        factors.append("No major risk signals in the recorded data for this location")
+
+    score = round(min(0.95, score), 2)
+    if score < 0.3:
+        category = "Low"
+    elif score < 0.55:
+        category = "Moderate"
+    elif score < 0.75:
+        category = "High"
+    else:
+        category = "Very High"
+
+    name = (nearest or {}).get("name") if isinstance(nearest, dict) else getattr(nearest, "name", None) if nearest is not None else None
+    return {
+        "risk_category": category,
+        "tourism_risk_index": score,
+        "degraded": True,
+        "data_note": (
+            "The AI safety model is offline on this deployment — this is a "
+            "rule-based estimate from recorded elevation and emergency-service "
+            "coverage (hospitals/police within 50 km), not a model prediction."
+        ),
+        "source": "rule-based-fallback",
+        "factors": factors,
+        "nearest_recorded_place": name,
+    }
+
+
 class SafetyPredictionView(APIView):
 
     permission_classes = [permissions.AllowAny]
@@ -266,6 +382,12 @@ class SafetyPredictionView(APIView):
             city = None
             country = None
 
+        if latitude is None or longitude is None:
+            return Response(
+                {"detail": "This destination has no recorded coordinates, so no safety estimate is possible."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
 
 
         result = get_ml_safety_prediction(
@@ -277,10 +399,19 @@ class SafetyPredictionView(APIView):
 
 
         if result is None:
-            return Response(
-                {"detail": "Safety prediction service unavailable."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            # The AI safety microservice is optional and often not running —
+            # degrade to the honest rule-based estimate instead of a bare 503,
+            # so the Risk page always shows something real.
+            result = _rule_based_safety_fallback(latitude, longitude, destination)
+            if destination:
+                MLInsight.objects.create(
+                    destination=destination,
+                    insight_type=MLInsight.InsightType.CROWD_PREDICTION,
+                    label=result["risk_category"],
+                    score=result["tourism_risk_index"],
+                    raw_result=result,
+                )
+            return Response(result)
 
 
 
