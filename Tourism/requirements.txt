@@ -1,38 +1,85 @@
+# =============================================================================
 # Core Django backend (Tourism/) — NOT the ML microservice
-# (that one has its own ml_service/requirements.txt).
+# (ml_service has its own requirements.txt).
 #
-# Verified against the working sandbox venv (Python 3.11 / Django 5.0.6).
-# Install:
-#   python3 -m venv .venv && source .venv/bin/activate
+# This is the EXACT verified-working dependency set (frozen from the
+# sandbox environment where every feature was tested end-to-end).
+#
+# Local setup (the whole thing):
+#   python3 -m venv .venv
+#   source .venv/bin/activate        # Windows: .venv\Scripts\activate
 #   pip install -r Tourism/requirements.txt
+#   cd Tourism && python manage.py runserver 0.0.0.0:8000
 #
-# NOTE: torch/torchvision/transformers are intentionally NOT listed here —
-# only ml_service needs them when training, and the website runs fine
-# without them (bundled fallback engines + committed pickles).
-
+# The database (Tourism/db.sqlite3) is committed in this repo — do NOT
+# delete it or re-migrate a fresh one unless you also run
+# `python manage.py setup_system` afterwards. See docs/SETUP_AND_COMMANDS.md
+# and `python scripts/local_check.py` (self-diagnostic).
+# =============================================================================
+Automat==25.4.16
 Django==5.0.6
-djangorestframework==3.15.2
+Incremental==24.11.0
+PyJWT==2.15.0
+PyYAML==6.0.3
+Twisted==26.4.0
+aiohappyeyeballs==2.7.1
+aiohttp-retry==2.9.1
+aiohttp==3.14.3
+aiosignal==1.4.0
+asgiref==3.12.1
+attrs==26.1.0
+autobahn==26.7.1
+beautifulsoup4==4.15.0
+cbor2==6.1.4
+certifi==2026.7.22
+cffi==2.1.1
+channels==4.3.2
+charset-normalizer==3.5.1
+constantly==23.10.4
+cryptography==50.0.1
+daphne==4.2.3
+deep-translator==1.11.4
 django-cors-headers==4.3.1
+django-filter==24.2
 django-phonenumber-field==7.3.0
 djangorestframework-simplejwt==5.3.1
+djangorestframework==3.15.2
 drf-spectacular==0.27.2
-whitenoise==6.6.0
-
-# WebSockets (chat/tour guide live features)
-channels==4.3.2
-daphne==4.2.3
-asgiref==3.12.1
-
-# HTTP / data
-requests==2.32.3
-Pillow==12.3.0
-pandas>=2.2
-numpy>=1.26
-scikit-learn>=1.5
-joblib>=1.4
+frozenlist==1.8.0
+gunicorn==22.0.0
+hyperlink==21.0.0
+idna==3.20
+inflection==0.5.1
+jsonschema-specifications==2025.9.1
+jsonschema==4.26.0
+msgpack==1.2.2
+multidict==6.9.1
 networkx==3.3
-
-# Free translation tier (Google Translate endpoint, no API key needed).
-# If the install fails on your platform, the site still works — the
-# translation page then reports "no translation provider available".
-deep-translator>=1.11
+numpy==2.4.6
+packaging==26.3
+pandas==3.0.6
+phonenumbers==8.13.37
+pillow==12.3.0
+propcache==0.5.4
+psycopg2-binary==2.9.13
+pyOpenSSL==26.4.0
+pycparser==3.0
+python-dateutil==2.9.0.post0
+python-decouple==3.8
+python-dotenv==1.0.1
+referencing==0.37.0
+requests==2.32.3
+rpds-py==2026.6.3
+service-identity==26.1.0
+six==1.17.0
+soupsieve==2.9.2
+sqlparse==0.6.0
+twilio==9.11.1
+txaio==26.6.1
+typing_extensions==4.16.0
+ujson==6.0.0
+uritemplate==4.2.0
+urllib3==2.8.0
+whitenoise==6.6.0
+yarl==1.25.1
+zope.interface==8.6
