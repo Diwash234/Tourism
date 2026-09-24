@@ -1852,7 +1852,7 @@ class DestinationNearbyPOIsView(APIView):
         so the UI can say "nearest hospital 23 km away" rather than
         pretending nothing exists. A category with no records even at the
         maximum radius comes back empty with an explicit note."""
-        from .models import Destination, Hospital, OSMEssentialService, PoliceStation
+        from .models import Destination, Hospital, OSMEssentialService, PoliceStation, Hotel, Restaurant
 
         # Step radii: requested -> x2 -> x4 ... up to 150 km. Sparse
         # national directories need the wider steps; the distance_km on
@@ -1886,9 +1886,18 @@ class DestinationNearbyPOIsView(APIView):
                      "homestay", "inn"):
             stay_q |= Q(name__icontains=word)
         hotel_rows = [
+            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone, "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
+            for h in Hotel.objects.filter(is_active=True).exclude(latitude=None).exclude(longitude=None)
+        ] + [
             (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
-            for d in dest_qs.filter(stay_q)
-            if d.latitude is not None and d.longitude is not None
+            for d in dest_qs.filter(stay_q).exclude(latitude=None).exclude(longitude=None)
+        ]
+        restaurant_rows = [
+            (r.name, float(r.latitude), float(r.longitude), {"phone": r.phone, "address": r.address, "cuisine": r.cuisine_types})
+            for r in Restaurant.objects.exclude(latitude=None).exclude(longitude=None)
+        ] + [
+            (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
+            for d in dest_qs.filter(category__slug__in=["food-culinary"]).exclude(latitude=None).exclude(longitude=None)
         ]
         category_slugs = {"temples": ["temples"], "viewpoints": ["viewpoints"],
                           "restaurants": ["food-culinary"],
@@ -1935,6 +1944,8 @@ class DestinationNearbyPOIsView(APIView):
                 return police_rows
             if key == "hotels":
                 return hotel_rows
+            if key == "restaurants":
+                return restaurant_rows
             if key in category_rows:
                 return category_rows[key]
             if key in service_rows:

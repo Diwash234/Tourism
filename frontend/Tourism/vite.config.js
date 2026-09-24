@@ -18,23 +18,14 @@ const noStaleReactChunks = {
   },
 }
 
-// Split heavy vendor libraries into their own cacheable chunks. Without this
-// everything (leaflet, chart.js, framer-motion, gsap, react-icons) lands in
-// one ~2 MB bundle that must download before the first paint — a big part of
-// "the site feels slow" on mobile. With manual chunks the initial page loads
-// a small core + one parallel chunk per feature area, and revisits hit the
-// browser cache for the big libraries.
+// Split heavy vendor libraries into their own cacheable chunks.
 const manualChunks = (id) => {
   if (!id.includes("node_modules")) return undefined
   if (id.includes("leaflet") || id.includes("react-leaflet")) return "map"
   if (id.includes("chart.js") || id.includes("react-chartjs-2")) return "charts"
   if (id.includes("framer-motion") || id.includes("gsap")) return "motion"
   if (id.includes("react-icons") || id.includes("lucide-react")) return "icons"
-  if (
-    id.includes("react-router") || id.includes("react-dom") ||
-    id.includes("/react/") || id.includes("scheduler")
-  ) return "react"
-  return "vendor"
+  return undefined
 }
 
 export default defineConfig({
