@@ -13,7 +13,8 @@ echo "======================================================================"
 # 1. Install Python Backend & ML Microservice Requirements
 echo ""
 echo "📦 [1/6] Installing Python & ML requirements..."
-python3 -m pip install -r Tourism/requirement.txt -r ml_service/requirements.txt --break-system-packages --quiet || true
+echo "   (if pip fails, check you are using a venv: python3 -m venv .venv && source .venv/bin/activate)"
+python3 -m pip install -r Tourism/requirements.txt -r ml_service/requirements.txt --break-system-packages --quiet
 
 # 2. Train Machine Learning Models & Build Route Graph
 echo ""

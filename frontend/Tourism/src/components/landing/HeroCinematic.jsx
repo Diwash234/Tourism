@@ -124,7 +124,7 @@ export default function HeroCinematic() {
               </p>
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
-                  onClick={() => navigate(`/destinations/${active?.link_slug || ""}`)}
+                  onClick={() => navigate(active?.link_slug ? `/destinations/${active.link_slug}` : "/destinations")}
                   className="px-8 py-3.5 rounded-2xl bg-[#D99048] hover:bg-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.04] flex items-center gap-2"
                 >
                   <FiCompass size={18} /> Explore {active?.title} <FiArrowRight size={16} />

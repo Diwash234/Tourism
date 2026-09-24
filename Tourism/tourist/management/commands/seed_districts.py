@@ -45,8 +45,9 @@ class Command(BaseCommand):
             if province is None:
                 self.stderr.write(f"Skipping {name}: unknown province {info['province']!r}")
                 continue
+            primary_slug = slugify(name)
             _, created = District.objects.update_or_create(
-                slug=slugify(name),
+                slug=primary_slug,
                 defaults={
                     "name": name,
                     "province": province,

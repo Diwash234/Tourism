@@ -18,8 +18,25 @@ const noStaleReactChunks = {
   },
 }
 
+// Split heavy vendor libraries into their own cacheable chunks.
+const manualChunks = (id) => {
+  if (!id.includes("node_modules")) return undefined
+  if (id.includes("leaflet") || id.includes("react-leaflet")) return "map"
+  if (id.includes("chart.js") || id.includes("react-chartjs-2")) return "charts"
+  if (id.includes("framer-motion") || id.includes("gsap")) return "motion"
+  if (id.includes("react-icons") || id.includes("lucide-react")) return "icons"
+  return undefined
+}
+
 export default defineConfig({
   plugins: [react(), noStaleReactChunks],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks,
+      },
+    },
+  },
   // Prevent invalid-hook-call / null React dispatcher errors when linked
   // packages or Vite dependency optimization resolve React more than once.
   resolve: {

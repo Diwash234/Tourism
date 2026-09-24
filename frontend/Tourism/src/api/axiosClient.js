@@ -29,8 +29,13 @@ export const clearAuthStorage = () => {
 // Attach access token to request if present (per-request only — never on
 // axiosClient.defaults, which would leak a stale token after logout).
 axiosClient.interceptors.request.use((config) => {
-  if (isGuestPreview()) {
-    if (config.headers) delete config.headers.Authorization
+  if (isGuestPreview() || config._retryNoAuth) {
+    if (config.headers) {
+      delete config.headers.Authorization
+      if (typeof config.headers.delete === "function") {
+        config.headers.delete("Authorization")
+      }
+    }
     return config
   }
   const token = localStorage.getItem("access")
@@ -67,8 +72,12 @@ const notifySession = (kind) => {
 
 const retryWithoutAuth = (config) => {
   const cfg = { ...config, _retryNoAuth: true }
-  cfg.headers = { ...(config.headers || {}) }
-  delete cfg.headers.Authorization
+  if (cfg.headers) {
+    delete cfg.headers.Authorization
+    if (typeof cfg.headers.delete === "function") {
+      cfg.headers.delete("Authorization")
+    }
+  }
   return axiosClient(cfg)
 }
 
@@ -78,6 +87,23 @@ axiosClient.interceptors.response.use(
     const originalRequest = error.config
     const status = error.response?.status
     const url = originalRequest?.url || ""
+
+    // Network-level failure (no HTTP response at all — "connection
+    // refused", DNS, dropped line, timeout). Browsers surface these as a
+    // raw "Network Error" string, so pages often showed cryptic toasts.
+    // Replace the message with an actionable explanation while keeping
+    // the error object otherwise intact for logging/retry logic.
+    if (status === undefined) {
+      error.apiUnreachable = true
+      if (error.code === "ECONNABORTED" || /timeout/i.test(String(error.message || ""))) {
+        error.message =
+          "The Tourism API took too long to respond. Please check your internet connection and try again."
+      } else {
+        error.message =
+          "Couldn't reach the Tourism API (connection refused). Please check your internet connection — if you run this site locally, make sure the Django backend is running on port 8000."
+      }
+      return Promise.reject(error)
+    }
 
     // Never refresh for the auth endpoints themselves or public config.
     const isAuthRoute =
@@ -98,7 +124,8 @@ axiosClient.interceptors.response.use(
 
     // Settle a request after session loss: retry public reads anonymously.
     const settleAnonymously = (cfg) => {
-      if (!sentAuth) return Promise.reject(error) // was never authed; nothing to strip
+      const isSafeRead = !cfg.method || ["get", "head", "options"].includes(String(cfg.method).toLowerCase())
+      if (!sentAuth && !isSafeRead) return Promise.reject(error)
       return retryWithoutAuth(cfg).catch((retryError) => {
         if (retryError?.response?.status === 401 && hadSession) notifySession("expired")
         return Promise.reject(retryError)

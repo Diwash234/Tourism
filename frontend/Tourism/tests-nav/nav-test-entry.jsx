@@ -293,10 +293,12 @@ export function mountLiveProbe(initialActive = true) {
   const container = document.createElement("div")
   document.body.appendChild(container)
   const root = createRoot(container)
-  let setActive = null
+  let setProbeActive = null
   function Probe() {
     const [active, setA] = React.useState(initialActive)
-    setActive = setA
+    // Capture the setter in an effect (not during render) so the probe can
+    // drive the hook from outside without render-phase side effects.
+    React.useEffect(() => { setProbeActive = setA }, [setA])
     const live = useLivePosition(active)
     return React.createElement(
       "div", null,
@@ -308,7 +310,7 @@ export function mountLiveProbe(initialActive = true) {
   React.act(() => { root.render(React.createElement(Probe)) })
   return {
     container,
-    setActive: (v) => React.act(() => setActive(v)),
+    setActive: (v) => React.act(() => setProbeActive(v)),
     unmount: () => React.act(() => root.render(null)),
   }
 }

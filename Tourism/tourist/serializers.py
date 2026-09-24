@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth import password_validation
 from django.utils import timezone
 from django.db.models import Q
@@ -767,6 +769,12 @@ def is_destination_specific_image(destination, photo):
     # A locally uploaded/generated file is explicitly attached by destination_id.
     if (local_image or image_path) and not external_url:
         return True
+    # Named external photos (e.g. Wikimedia titles) can be verified from the
+    # URL: a title that shares no place token with this destination is strong
+    # mismatch evidence and must not be displayed as its imagery.
+    for candidate_url in (external_url, getattr(photo, "source_url", "") or ""):
+        if image_url_matches_destination(destination, candidate_url) is False:
+            return False
     own_match = any(token in evidence for token in allowed)
     strict_subject = any(term in destination_text for term in ["cave", "gupha", "gufa", "balloon", "ultralight", "paragliding", "zipflyer", "zip flyer"])
     if strict_subject and not own_match:
@@ -790,6 +798,123 @@ def verified_destination_photos(destination):
         if photo.verification_status == DestinationImage.ImageStatus.APPROVED
         and is_destination_specific_image(destination, photo)
     ]
+
+
+_WIKIMEDIA_HOST = "upload.wikimedia.org"
+
+# Descriptive/common words that do not identify a specific place. Token
+# overlap excluding these is what verifies a named photo against a
+# destination (a "hotel" in the filename proves nothing).
+_IMAGE_STOPWORDS = {
+    "the", "and", "for", "view", "views", "photo", "photos", "with", "from",
+    "lake", "park", "temple", "stupa", "mountain", "national", "area",
+    "valley", "museum", "city", "nepal", "tourism", "hotel", "lodge",
+    "resort", "guest", "house", "homestay", "cafe", "restaurant", "point",
+    "top", "peak", "hill", "road", "street", "bridge", "gate", "door",
+    "wall", "statue", "monument", "memorial", "shrine", "mandir", "basti",
+    "chowk", "chaur", "toll", "border", "check", "post", "jpg", "jpeg",
+    "png", "gif", "webp", "file", "image",
+}
+
+
+def _destination_identity_tokens(destination):
+    text = " ".join(filter(None, [
+        destination.name,
+        getattr(destination, "aliases", "") or "",
+        destination.city,
+        destination.district,
+        getattr(destination, "municipality", "") or "",
+        destination.province,
+    ])).lower()
+    return {t for t in re.findall(r"[a-z0-9]{4,}", text) if t not in _IMAGE_STOPWORDS}
+
+
+def _named_external_photo_title(url):
+    """Descriptive title of a named external photo (Wikimedia), or None.
+
+    Opaque/hash-based URLs carry no verifiable title and keep the legacy
+    lenient treatment — we only make strong claims for named sources."""
+    try:
+        from urllib.parse import unquote, urlparse
+
+        parts = urlparse(str(url or ""))
+    except Exception:
+        return None
+    if _WIKIMEDIA_HOST not in (parts.netloc or ""):
+        return None
+    path = unquote(parts.path)
+    if not path:
+        return None
+    fn = path.split("/thumb/")[-1].split("/")[-1] if "/thumb/" in path else path.split("/")[-1]
+    fn = re.sub(r"^\d+px-", "", fn)
+    fn = re.sub(r"\.\w+$", "", fn)
+    return fn or None
+
+
+def image_url_matches_destination(destination, url):
+    """Strong-evidence check for named external photos.
+
+    Import-era data assigned many photos of UNRELATED places (a vintage
+    phone photo for a consultancy, a monastery pool for a homestay...).
+    Wikimedia filenames are descriptive titles, so the match is verifiable
+    from the URL itself: the photo title must share a place token with the
+    destination's name/aliases/city/district/municipality.
+
+      True  — verified match, safe to display
+      False — strong mismatch evidence; never display as this destination
+      None  — opaque URL, not verifiable (legacy lenient behaviour)
+    """
+    title = _named_external_photo_title(url)
+    if title is None:
+        return None
+    tl = title.lower()
+    for candidate in filter(None, [
+        destination.name,
+        destination.city,
+        destination.district,
+        getattr(destination, "municipality", "") or "",
+    ]):
+        c2 = str(candidate).lower().strip()
+        if len(c2) >= 5 and (c2 in tl or tl in c2):
+            return True
+    for alias in filter(None, [
+        a.strip() for a in (getattr(destination, "aliases", "") or "").split(",")
+    ]):
+        a2 = alias.lower().strip(" ()")
+        if len(a2) >= 4 and a2 in tl:
+            return True
+    title_tokens = {t for t in re.findall(r"[a-z0-9]{4,}", tl) if t not in _IMAGE_STOPWORDS}
+    return bool(title_tokens & _destination_identity_tokens(destination))
+
+
+POSTCARD_URL_MARKER = "/api/v1/postcard/"
+
+
+def is_generated_postcard_url(url):
+    """True for generated SVG postcard placeholder URLs.
+
+    Postcards are an honest "no real photo yet" state: they must never be
+    served as destination photography (spec: generated media is rejected as
+    real photography; a postcard-only destination renders as an empty/
+    placeholder state on the public site, not as fake imagery)."""
+    if not url:
+        return False
+    return POSTCARD_URL_MARKER in str(url)
+
+
+def real_photo_url(photo, request=None):
+    """Resolve a verified photo to a display URL, or None when the media is
+    a generated postcard or carries no usable file."""
+    url = None
+    if photo.image_path:
+        url = image_server_url(photo.image_path)
+    elif photo.external_url:
+        url = photo.external_url
+    elif photo.image:
+        url = resolve_image_url(photo.image, request)
+    if url and is_generated_postcard_url(url):
+        return None
+    return url or None
 
 
 def resolve_authentic_destination_image(obj):
@@ -895,21 +1020,20 @@ class DestinationListSerializer(serializers.ModelSerializer):
     def get_gallery_preview(self, obj):
         request = self.context.get("request")
         items = []
-        for photo in verified_destination_photos(obj)[:5]:
-            if photo.image_path:
-                url = image_server_url(photo.image_path)
-            elif photo.external_url:
-                url = photo.external_url
-            elif photo.image:
-                url = resolve_image_url(photo.image, request)
-            else:
-                continue
+        # Walk the verified set (not just the first 5 rows) so postcard
+        # placeholders can never crowd out up to 5 real preview photos.
+        for photo in verified_destination_photos(obj):
+            url = real_photo_url(photo, request)
+            if not url:
+                continue  # generated postcard or no usable media — skip
             items.append({
                 "id": photo.id, "url": url, "caption": photo.caption or obj.name,
                 "source": photo.source, "source_url": photo.source_url,
                 "photographer": photo.photographer, "license": photo.license_type,
                 "verification_status": photo.verification_status,
             })
+            if len(items) >= 5:
+                break
         return items
 
     @extend_schema_field(serializers.URLField(allow_null=True))
@@ -918,17 +1042,33 @@ class DestinationListSerializer(serializers.ModelSerializer):
         # cover_image is an ImageField, but a large amount of seed data
         # stored external http(s) URLs in it. resolve_image_url returns
         # those verbatim instead of producing broken /media/https%3A/...
+        # A generated postcard stored there is NOT photography — approved
+        # real media takes priority, and a postcard-only destination
+        # honestly renders as no cover (None), never fake imagery.
         if obj.cover_image:
-            return resolve_image_url(obj.cover_image, request)
+            cover = resolve_image_url(obj.cover_image, request)
+            # Never present a photo of a different place as this
+            # destination's cover (verified from the URL title where
+            # possible); fall through to real gallery media or an honest
+            # no-photo state instead.
+            if not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
+                return cover
+        if getattr(obj, "og_image_url", None):
+            og = resolve_image_url(obj.og_image_url, request)
+            if not is_generated_postcard_url(og) and image_url_matches_destination(obj, og) is not False:
+                return og
         photos = verified_destination_photos(obj)
-        cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
-        if cover:
-            if cover.image_path:
-                return image_server_url(cover.image_path)
-            if cover.external_url:
-                return cover.external_url
-            if cover.image:
-                return resolve_image_url(cover.image, request)
+        cover_photo = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+        if cover_photo:
+            url = real_photo_url(cover_photo, request)
+            if url:
+                return url
+            # Admin-designated cover is a generated postcard — fall through
+            # to the first verified REAL photo instead.
+            for photo in photos:
+                url = real_photo_url(photo, request)
+                if url:
+                    return url
         return None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
@@ -1086,32 +1226,64 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         # cover_image is an ImageField, but a large amount of seed data
         # stored external http(s) URLs in it. resolve_image_url returns
         # those verbatim instead of producing broken /media/https%3A/...
+        # A generated postcard stored there is NOT photography — approved
+        # real media takes priority, and a postcard-only destination
+        # honestly renders as no cover (None), never fake imagery.
         if obj.cover_image:
-            return resolve_image_url(obj.cover_image, request)
+            cover = resolve_image_url(obj.cover_image, request)
+            # Never present a photo of a different place as this
+            # destination's cover (verified from the URL title where
+            # possible); fall through to real gallery media or an honest
+            # no-photo state instead.
+            if not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
+                return cover
+        if getattr(obj, "og_image_url", None):
+            og = resolve_image_url(obj.og_image_url, request)
+            if not is_generated_postcard_url(og) and image_url_matches_destination(obj, og) is not False:
+                return og
         photos = verified_destination_photos(obj)
-        cover = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
-        if cover:
-            if cover.image_path:
-                return image_server_url(cover.image_path)
-            if cover.external_url:
-                return cover.external_url
-            if cover.image:
-                return resolve_image_url(cover.image, request)
+        cover_photo = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
+        if cover_photo:
+            url = real_photo_url(cover_photo, request)
+            if url:
+                return url
+            # Admin-designated cover is a generated postcard — fall through
+            # to the first verified REAL photo instead.
+            for photo in photos:
+                url = real_photo_url(photo, request)
+                if url:
+                    return url
         return None
 
     def get_gallery(self, obj):
-        photos = verified_destination_photos(obj)
+        # Generated postcards are honest "no photo yet" placeholders — they
+        # must not appear as gallery photography on the public site.
+        photos = [
+            photo for photo in verified_destination_photos(obj)
+            if not is_generated_postcard_url(photo.external_url)
+            and not is_generated_postcard_url(str(getattr(photo, "image", "") or ""))
+        ]
         return DestinationImageSerializer(photos, many=True, context=self.context).data
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField(), allow_empty=True))
     def get_images(self, obj):
-        """Ordered list of absolute image URLs.
+        """Ordered list of image URLs.
 
         The admin-designated cover photo comes first so that clients reading
         images[0] always see the admin's current choice, then the remaining
-        verified gallery photos in their stored order."""
+        verified gallery photos in their stored order.
+
+        Generated postcard URLs are never included: a destination whose only
+        media is a postcard returns an empty list (honest placeholder state)
+        rather than serving the generated SVG as photography."""
         urls = []
         seen = set()
+        request = self.context.get("request")
+        if obj.cover_image:
+            cover = resolve_image_url(obj.cover_image, request)
+            if cover and not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
+                seen.add(cover)
+                urls.append(cover)
         photos = sorted(verified_destination_photos(obj),
                         key=lambda p: (0 if getattr(p, "is_cover", False) else 1,
                                        getattr(p, "ordering", 0) or 0, p.id))
@@ -1120,10 +1292,11 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             if photo.image_path:
                 url = image_server_url(photo.image_path)
             elif photo.image:
-                request = self.context.get("request")
-                url = request.build_absolute_uri(photo.image.url) if request else photo.image.url
+                url = resolve_image_url(photo.image, request)
             else:
                 url = photo.external_url
+            if is_generated_postcard_url(url):
+                continue  # generated postcard — not real photography
             if url and url not in seen:
                 seen.add(url)
                 urls.append(url)
@@ -1236,6 +1409,23 @@ class NearbyDestinationQuerySerializer(serializers.Serializer):
     latitude = CoordinateField(min_value=Decimal("-90"), max_value=Decimal("90"))
     longitude = CoordinateField(min_value=Decimal("-180"), max_value=Decimal("180"))
     radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=2000)
+
+    def to_internal_value(self, data):
+        if hasattr(data, "dict") and callable(getattr(data, "dict")):
+            data = data.dict()
+        elif hasattr(data, "copy"):
+            data = data.copy()
+        else:
+            data = dict(data)
+        if "latitude" not in data or data["latitude"] in (None, ""):
+            if "lat" in data:
+                data["latitude"] = data["lat"]
+        if "longitude" not in data or data["longitude"] in (None, ""):
+            if "lng" in data:
+                data["longitude"] = data["lng"]
+            elif "lon" in data:
+                data["longitude"] = data["lon"]
+        return super().to_internal_value(data)
 
 
 class TranslateRequestSerializer(serializers.Serializer):
@@ -1368,6 +1558,12 @@ class MLRecommendationRequestSerializer(serializers.Serializer):
     latitude = CoordinateField(required=False, allow_null=True)
     longitude = CoordinateField(required=False, allow_null=True)
     top_n = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)
+    interest = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    category = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    province = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    budget = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    travel_style = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    difficulty = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class MLWebhookResultSerializer(serializers.Serializer):

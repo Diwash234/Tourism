@@ -61,7 +61,7 @@ export default function AdminLayout() {
   return (
     <div className="admin-green-theme min-h-screen bg-emerald-50 text-slate-900">
       <a href="#admin-main" className="admin-skip-link">Skip to admin content</a>
-      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 overflow-visible border-b border-emerald-800 bg-emerald-950 px-3 text-white shadow-sm sm:px-5">
+      <header className="fixed inset-x-0 top-0 z-[100] flex h-16 items-center gap-3 overflow-visible border-b border-emerald-800 bg-emerald-950 px-3 text-white shadow-sm sm:px-5">
         <button
           onClick={toggleSidebar}
           className="admin-icon-button !bg-emerald-800 !text-white"
@@ -102,7 +102,7 @@ export default function AdminLayout() {
       <aside
         id="admin-navigation"
         aria-label="Admin navigation"
-        className={`fixed bottom-0 top-16 z-40 w-72 max-w-[90vw] overflow-y-auto overflow-x-hidden overscroll-contain border-r border-emerald-900 bg-emerald-950 text-emerald-50 shadow-lg transition-[transform,width] ${
+        className={`fixed bottom-0 top-16 z-[90] w-72 max-w-[90vw] overflow-y-auto overflow-x-hidden overscroll-contain border-r border-emerald-900 bg-emerald-950 text-emerald-50 shadow-lg transition-[transform,width] ${
           open ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 ${collapsed ? "lg:w-16" : "lg:w-72"}`}
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
@@ -191,7 +191,7 @@ export default function AdminLayout() {
         </nav>
       </aside>
       {open && (
-        <button onClick={() => setOpen(false)} className="fixed inset-0 top-16 z-30 bg-black/45 lg:hidden" aria-label="Close admin navigation overlay">
+        <button onClick={() => setOpen(false)} className="fixed inset-0 top-16 z-[80] bg-black/45 lg:hidden" aria-label="Close admin navigation overlay">
           <FiX className="sr-only" />
         </button>
       )}

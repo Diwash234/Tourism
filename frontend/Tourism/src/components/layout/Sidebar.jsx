@@ -131,9 +131,9 @@ export default function Sidebar() {
 
   const PUBLIC_ROUTES = new Set([
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
-    "/distances",
-    "/explore-map", "/discover-nepal", "/packages", "/collaborate", "/hotels/search",
-    "/emergency", "/risk-alerts", "/navigation", "/language", "/translation", "/chatbot",
+    "/distances", "/travel", "/explore-map", "/discover-nepal", "/packages", "/collaborate",
+    "/hotels/search", "/hotels", "/emergency", "/risk-alerts", "/family-safety",
+    "/navigation", "/language", "/translation", "/chatbot",
     "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/login", "/register"
   ])
 
@@ -141,8 +141,8 @@ export default function Sidebar() {
   const visibleGroups = GROUPS.map((grp) => ({
     ...grp,
     links: grp.links
-      .filter(link => managedItems.length === 0 || managedByRoute.has(link.to) || link.roleCheck)
-      .map(link => managedByRoute.has(link.to) ? { ...link, label: managedByRoute.get(link.to).label } : link)
+      .filter(link => !managedByRoute.has(link.to) || managedByRoute.get(link.to).is_active !== false)
+      .map(link => managedByRoute.has(link.to) ? { ...link, label: managedByRoute.get(link.to).label || link.label } : link)
       .filter((link) => {
         if (!isAuthenticated && !PUBLIC_ROUTES.has(link.to)) return false
         if (link.roleCheck === "admin" && !isAdmin) return false
