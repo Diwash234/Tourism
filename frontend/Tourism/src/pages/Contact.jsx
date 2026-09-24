@@ -21,9 +21,11 @@ const Contact = () => {
     formState: { errors, isSubmitting },
   } = useForm()
 
-  const contactAddress = branding?.contact_address || "Pokhara, Gandaki, Nepal"
-  const contactEmail = branding?.contact_email || "support@tourists.app"
-  const contactPhone = branding?.contact_phone || "+977-000-0000"
+  // Never invent contact details; CMS/branding is the source of truth.
+  const contactAddress = branding?.contact_address || ""
+  const contactEmail = branding?.contact_email || ""
+  const contactPhone = branding?.contact_phone || ""
+  const contactHours = branding?.contact_hours || ""
   const siteTitle = (branding?.site_title || "Nepal Yatra").replace(/Digital Nepal Tourism Platform/g, "Nepal Yatra")
 
   const onSubmit = async () => {
@@ -57,25 +59,11 @@ const Contact = () => {
         </div>
 
         <div className="space-y-4 text-sm text-gray-700 p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
-          <p className="flex items-center gap-3 font-semibold">
-            <FiMail className="text-[#102A2E] text-lg shrink-0" />
-            <span>Official Email: <b>{contactEmail}</b></span>
-          </p>
-
-          <p className="flex items-center gap-3 font-semibold">
-            <FiPhone className="text-[#102A2E] text-lg shrink-0" />
-            <span>Support Phone: <b>{contactPhone}</b></span>
-          </p>
-
-          <p className="flex items-center gap-3 font-semibold">
-            <FiMapPin className="text-[#102A2E] text-lg shrink-0" />
-            <span>Address: <b>{contactAddress}</b></span>
-          </p>
-
-          <p className="flex items-center gap-3 text-xs text-gray-500 pt-2 border-t">
-            <FiClock className="text-[#102A2E] shrink-0" />
-            <span>Desk Hours: <b>24/7 Traveler Help Desk & Admin Sentinel</b></span>
-          </p>
+          {contactEmail && <p className="flex items-center gap-3 font-semibold"><FiMail className="text-[#102A2E] text-lg shrink-0" /><span>Official Email: <b>{contactEmail}</b></span></p>}
+          {contactPhone && <p className="flex items-center gap-3 font-semibold"><FiPhone className="text-[#102A2E] text-lg shrink-0" /><span>Support Phone: <b>{contactPhone}</b></span></p>}
+          {contactAddress && <p className="flex items-center gap-3 font-semibold"><FiMapPin className="text-[#102A2E] text-lg shrink-0" /><span>Address: <b>{contactAddress}</b></span></p>}
+          {contactHours && <p className="flex items-center gap-3 text-xs text-gray-500 pt-2 border-t"><FiClock className="text-[#102A2E] shrink-0" /><span>Desk Hours: <b>{contactHours}</b></span></p>}
+          {!contactEmail && !contactPhone && !contactAddress && !contactHours && <p className="text-sm text-gray-500">Contact details are not configured yet. Please use the message form to contact the admin team.</p>}
         </div>
       </motion.div>
 
