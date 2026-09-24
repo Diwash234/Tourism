@@ -84,6 +84,24 @@ export default function DistrictDetail() {
         )}
       </header>
 
+      <section className="rounded-xl bg-emerald-900/30 border border-emerald-600/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-white">
+            Plan your trip — {data.district}
+          </h2>
+          <p className="text-slate-300 text-sm">
+            Build a day-by-day itinerary starting from {data.district} with
+            recorded places, hotels and emergency services.
+          </p>
+        </div>
+        <Link
+          to={`/itinerary?city=${encodeURIComponent(data.district)}`}
+          className="sm:ml-auto shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-5 py-2.5 transition-colors"
+        >
+          View {data.district} itinerary
+        </Link>
+      </section>
+
       {data.cities?.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-white mb-2">

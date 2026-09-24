@@ -2558,7 +2558,11 @@ class NearbyPOIsOverpassTests(TestCase):
             resp = self.client.get("/api/v1/destinations/poi-town/nearby-pois/?radius_km=5")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual(data["source"], "OpenStreetMap (Overpass API)")
+        # Live OSM is still the primary source. The banks category is empty
+        # in the fake OSM response, so the endpoint supplements it from the
+        # (empty) database and discloses that in the source label.
+        self.assertTrue(data["source"].startswith("OpenStreetMap (Overpass API)"))
+        self.assertIn("supplemented", data["source"])
         hotels = data["categories"]["hotels"]["results"]
         self.assertEqual([h["name"] for h in hotels], ["Near Hotel", "Far Hotel"])  # nearest first
         self.assertLess(hotels[0]["distance_km"], hotels[1]["distance_km"])

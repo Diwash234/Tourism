@@ -139,7 +139,10 @@ class EmergencyContactsCompatView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        return _nearest_contacts_response(request, contact_type=None)
+        # Frontend mlService.getEmergency() sends ?category=hospital|police|...
+        # — honor it so the requested type is actually filtered.
+        category = request.query_params.get("category")
+        return _nearest_contacts_response(request, contact_type=category or None)
 
 
 def clean_phone(p_str, default="100"):
@@ -167,7 +170,13 @@ def _stored_image_url(obj):
 
 def _nearby_query_coords(request):
     lat_val = request.query_params.get("lat") or request.query_params.get("latitude")
-    lon_val = request.query_params.get("lng") or request.query_params.get("longitude")
+    # Accept every param name our frontends have sent: lng (OpenLayers),
+    # lon (mlService.getEmergency) and longitude (canonical).
+    lon_val = (
+        request.query_params.get("lng")
+        or request.query_params.get("lon")
+        or request.query_params.get("longitude")
+    )
     if lat_val in (None, "") or lon_val in (None, ""):
         raise ValueError("lat and lng query params are required.")
     return _parse_float(lat_val, "lat"), _parse_float(lon_val, "lng")
@@ -391,8 +400,19 @@ def _nearest_contacts_response(request, contact_type):
     if contact_type == EmergencyContact.ContactType.POLICE:
         return NearbyPoliceView().get(request)
 
-    h_res = NearbyHospitalsView().get(request).data
-    p_res = NearbyPoliceView().get(request).data
+    # The nested views return a plain list on success, but a 400 dict when
+    # params are missing — never combine them blindly (dict + dict is a 500).
+    h_resp = NearbyHospitalsView().get(request)
+    p_resp = NearbyPoliceView().get(request)
+    if h_resp.status_code >= 400 or p_resp.status_code >= 400:
+        detail = (h_resp.data if isinstance(h_resp.data, dict) else {}).get(
+            "detail") or (p_resp.data if isinstance(p_resp.data, dict) else {}).get("detail")
+        return Response(
+            {"detail": detail or "lat and lng query params are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    h_res = h_resp.data if isinstance(h_resp.data, list) else []
+    p_res = p_resp.data if isinstance(p_resp.data, list) else []
     all_contacts = sorted(h_res + p_res, key=lambda x: x.get("distance_km", 999))[:20]
     return Response(_attach_emergency_routes(request, all_contacts, lat, lon))
 

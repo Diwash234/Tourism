@@ -1843,87 +1843,132 @@ class DestinationNearbyPOIsView(APIView):
         from name-matched approved destinations, category groups from
         categorized destinations, and banks/ATMs/pharmacies from the
         OSM-sourced essential-service directories (real imported
-        coordinates — never fabricated). Any category still without
-        offline records comes back empty with an explicit note.
-        """
-        from django.db.models import Q
+        coordinates — never fabricated).
 
+        The directories are sparsely populated (a few hundred records for
+        the whole country), so a strict small-radius box returns empty for
+        most districts. Instead we EXPAND the search radius in steps until
+        each category finds records, and report the effective search radius
+        so the UI can say "nearest hospital 23 km away" rather than
+        pretending nothing exists. A category with no records even at the
+        maximum radius comes back empty with an explicit note."""
         from .models import Destination, Hospital, OSMEssentialService, PoliceStation
 
-        box = bounding_box(lat, lon, radius_km)
-        bbox = dict(latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
-                    longitude__gte=box["min_lon"], longitude__lte=box["max_lon"])
+        # Step radii: requested -> x2 -> x4 ... up to 150 km. Sparse
+        # national directories need the wider steps; the distance_km on
+        # every row stays truthful either way.
+        radii = []
+        r = max(1.0, float(radius_km))
+        while r <= 150.0:
+            radii.append(r)
+            r *= 2
+        if radii[-1] < 150.0:
+            radii.append(150.0)
 
-        def rows(pairs, source_label):
-            out = []
-            for name, rlat, rlon, extra in pairs:
-                if rlat is None or rlon is None:
-                    continue
-                d = haversine_distance(lat, lon, float(rlat), float(rlon))
-                if d <= radius_km:
-                    row = {"name": name, "distance_km": round(d, 2),
-                           "latitude": float(rlat), "longitude": float(rlon),
-                           "source": source_label}
-                    row.update(extra or {})
-                    out.append(row)
-            out.sort(key=lambda r: r["distance_km"])
-            return out[:10]
-
+        # Load each candidate set ONCE (no bounding-box pre-filter — the
+        # tables are small: <6k rows total) and distance-rank in Python so
+        # tier expansion never re-queries.
+        hospital_rows = [
+            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone})
+            for h in Hospital.objects.filter(is_archived=False)
+            if h.latitude is not None and h.longitude is not None
+        ]
+        police_rows = [
+            (p.name, float(p.latitude), float(p.longitude), {"phone": p.phone})
+            for p in PoliceStation.objects.filter(is_archived=False)
+            if p.latitude is not None and p.longitude is not None
+        ]
         dest_qs = Destination.objects.filter(
-            is_active=True, status=Destination.SubmissionStatus.APPROVED, **bbox)
+            is_active=True, status=Destination.SubmissionStatus.APPROVED
+        )
         stay_q = Q()
         for word in ("hotel", "lodge", "resort", "guest house", "guesthouse",
                      "homestay", "inn"):
             stay_q |= Q(name__icontains=word)
+        hotel_rows = [
+            (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
+            for d in dest_qs.filter(stay_q)
+            if d.latitude is not None and d.longitude is not None
+        ]
         category_slugs = {"temples": ["temples"], "viewpoints": ["viewpoints"],
                           "restaurants": ["food-culinary"],
                           "peaks": ["mountains", "hills"]}
-
-        # OSM-sourced essential-service directories (imported, real
-        # coordinates, never fabricated): banks, ATMs, pharmacies.
+        category_rows = {}
+        for key, slugs in category_slugs.items():
+            category_rows[key] = [
+                (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
+                for d in dest_qs.filter(category__slug__in=slugs)
+                if d.latitude is not None and d.longitude is not None
+            ]
         service_categories = {
             "banks": (["bank"], "Tourism database — bank directory (OSM-sourced)"),
             "atms": (["atm"], "Tourism database — ATM directory (OSM-sourced)"),
             "pharmacies": (["pharmacy"],
                            "Tourism database — pharmacy directory (OSM-sourced)"),
         }
+        service_rows = {
+            key: [
+                (s.name, float(s.latitude), float(s.longitude),
+                 {"phone": s.phone or None, "address": s.address or None})
+                for s in OSMEssentialService.objects.filter(
+                    category__in=cats, is_archived=False
+                ).exclude(name__icontains="name not recorded")
+                if s.latitude is not None and s.longitude is not None
+            ]
+            for key, (cats, _label) in service_categories.items()
+        }
+
+        source_for = {
+            "hospitals": "Tourism database — hospital directory",
+            "police": "Tourism database — police directory",
+            "hotels": "Tourism database — likely stays (name-matched)",
+            "temples": "Tourism database — admin-verified destinations",
+            "viewpoints": "Tourism database — admin-verified destinations",
+            "restaurants": "Tourism database — admin-verified destinations",
+            "peaks": "Tourism database — admin-verified destinations",
+        }
+
+        def candidate_pool(key):
+            if key == "hospitals":
+                return hospital_rows
+            if key == "police":
+                return police_rows
+            if key == "hotels":
+                return hotel_rows
+            if key in category_rows:
+                return category_rows[key]
+            if key in service_rows:
+                return service_rows[key]
+            return []
+
+        def search(key):
+            """Nearest-first results with tiered radius expansion."""
+            pool = candidate_pool(key)
+            if not pool:
+                return [], radii[-1]
+            for radius in radii:
+                found = []
+                for name, rlat, rlon, extra in pool:
+                    d = haversine_distance(lat, lon, rlat, rlon)
+                    if d is not None and d <= radius:
+                        found.append({"name": name, "distance_km": round(d, 2),
+                                      "latitude": rlat, "longitude": rlon,
+                                      "source": source_for.get(key,
+                                                              service_categories.get(key, ("", "Tourism database"))[1])})
+                        found[-1].update(extra or {})
+                if found:
+                    found.sort(key=lambda row: row["distance_km"])
+                    return found[:10], radius
+            return [], radii[-1]
 
         categories = {}
         for key in wanted:
-            if key == "hospitals":
-                data = rows(((h.name, h.latitude, h.longitude, {"phone": h.phone})
-                             for h in Hospital.objects.filter(**bbox)),
-                            "Tourism database — hospital directory")
-            elif key == "police":
-                data = rows(((p.name, p.latitude, p.longitude, {"phone": p.phone})
-                             for p in PoliceStation.objects.filter(**bbox)),
-                            "Tourism database — police directory")
-            elif key == "hotels":
-                data = rows(((d.name, d.latitude, d.longitude, {"slug": d.slug})
-                             for d in dest_qs.filter(stay_q)),
-                            "Tourism database — likely stays (name-matched)")
-            elif key in category_slugs:
-                data = rows(((d.name, d.latitude, d.longitude, {"slug": d.slug})
-                             for d in dest_qs.filter(
-                                 category__slug__in=category_slugs[key])),
-                            "Tourism database — admin-verified destinations")
-            elif key in service_categories:
-                svc_cats, svc_label = service_categories[key]
-                data = rows(((s.name, s.latitude, s.longitude,
-                              {"phone": s.phone or None,
-                               "address": s.address or None})
-                             for s in OSMEssentialService.objects.filter(
-                                 category__in=svc_cats, is_archived=False,
-                                 **bbox)
-                             # skip anonymous OSM nodes (no real name)
-                             .exclude(name__icontains="name not recorded")),
-                            svc_label)
-            else:
-                data = []
-            entry = {"label": cls.CATEGORIES[key][1], "results": data}
+            data, searched_radius = search(key)
+            entry = {"label": cls.CATEGORIES[key][1], "results": data,
+                     "searched_radius_km": round(searched_radius, 1)}
             if not data:
-                entry["note"] = ("No offline records for this category — live "
-                                 "OpenStreetMap data is required for it.")
+                entry["note"] = (f"No offline records within {round(searched_radius)} km — "
+                                 "live OpenStreetMap data is required for this category here.")
             categories[key] = entry
 
         return {
@@ -1972,7 +2017,14 @@ class DestinationNearbyPOIsView(APIView):
             # Never a dead end: serve admin-managed database places instead
             # (hospitals, police, stays, category-matched destinations) with
             # clear provenance, so "nearby hospital/hotel" always answers.
+            # Cache the fallback too (short TTL) — otherwise every repeat
+            # visit re-pays the full 18 s Overpass failover when the
+            # network/OSM is unreachable, which made pages feel "very slow".
             payload = self._database_fallback(float(lat), float(lon), radius_km, wanted)
+            try:
+                cache.set(cache_key, payload, 300)
+            except Exception:  # pragma: no cover — cache backend failures
+                pass
             return Response({**payload, "destination": destination.name})
 
         grouped = {key: [] for key in wanted}
@@ -1995,12 +2047,30 @@ class DestinationNearbyPOIsView(APIView):
         for key in wanted:
             rows = sorted(grouped[key], key=lambda row: row["distance_km"])[:10]
             categories[key] = {"label": self.CATEGORIES[key][1], "results": rows}
+        # OSM amenity nodes are sparse in rural Nepal (a whole district may
+        # have zero hospital/bank nodes) while the admin-managed directories
+        # have nationwide coverage. When live OSM is empty for a category,
+        # supplement from those directories — per-row provenance stays
+        # truthful, and a category that exists nowhere stays honestly empty.
+        supplemented = [key for key in wanted if not categories[key]["results"]]
+        if supplemented:
+            fallback = self._database_fallback(float(lat), float(lon), radius_km, supplemented)
+            for key in supplemented:
+                fb_entry = fallback["categories"][key]
+                if fb_entry.get("results"):
+                    fb_entry["note"] = ("Live map data has no records here; showing "
+                                        "admin-managed database places instead.")
+                categories[key] = fb_entry
+            payload_source = ("OpenStreetMap (Overpass API), empty categories "
+                              "supplemented from the Tourism database")
+        else:
+            payload_source = "OpenStreetMap (Overpass API)"
         payload = {
             "latitude": lat,
             "longitude": lon,
             "radius_km": radius_km,
             "distance_note": "Straight-line distances from the destination coordinates.",
-            "source": "OpenStreetMap (Overpass API)",
+            "source": payload_source,
             "categories": categories,
         }
         # Cache the external OSM payload only; the admin-managed destination

@@ -79,6 +79,23 @@ axiosClient.interceptors.response.use(
     const status = error.response?.status
     const url = originalRequest?.url || ""
 
+    // Network-level failure (no HTTP response at all — "connection
+    // refused", DNS, dropped line, timeout). Browsers surface these as a
+    // raw "Network Error" string, so pages often showed cryptic toasts.
+    // Replace the message with an actionable explanation while keeping
+    // the error object otherwise intact for logging/retry logic.
+    if (status === undefined) {
+      error.apiUnreachable = true
+      if (error.code === "ECONNABORTED" || /timeout/i.test(String(error.message || ""))) {
+        error.message =
+          "The Tourism API took too long to respond. Please check your internet connection and try again."
+      } else {
+        error.message =
+          "Couldn't reach the Tourism API (connection refused). Please check your internet connection — if you run this site locally, make sure the Django backend is running on port 8000."
+      }
+      return Promise.reject(error)
+    }
+
     // Never refresh for the auth endpoints themselves or public config.
     const isAuthRoute =
       url.includes("/auth/token/refresh/") || url.includes("/auth/login/") || url.includes("/config/public/")

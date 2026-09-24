@@ -49,8 +49,11 @@ const SocialLoginButtons = ({ showDivider = true }) => {
           <GoogleMark /> Google
         </a>
       ) : (
-        <span className={disabledCls} title="Google sign-in is not configured on this server yet">
-          <GoogleMark /> Google unavailable
+        <span
+          className={disabledCls}
+          title="Sign in with Google is not enabled on this deployment yet — email sign-in works right below/above."
+        >
+          <GoogleMark /> Google (coming soon)
         </span>
       )}
       {githubReady ? (
@@ -61,8 +64,11 @@ const SocialLoginButtons = ({ showDivider = true }) => {
           <FiGithub size={18} /> GitHub
         </a>
       ) : (
-        <span className={disabledCls} title="GitHub sign-in is not configured on this server yet">
-          <FiGithub size={18} /> GitHub unavailable
+        <span
+          className={disabledCls}
+          title="Sign in with GitHub is not enabled on this deployment yet — email sign-in works right below/above."
+        >
+          <FiGithub size={18} /> GitHub (coming soon)
         </span>
       )}
     </div>
