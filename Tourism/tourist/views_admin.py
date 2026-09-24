@@ -43,14 +43,18 @@ def _media_public_url(image):
     but browsers/CDNs may cache the old bytes at the same path, so local
     Django-served files carry ?v=<updated_at epoch>. External URLs are
     returned untouched (their hosts may reject unknown query strings)."""
-    if image.external_url:
-        return image.external_url
-    if image.image:
+    if not image:
+        return ""
+    if getattr(image, "image_path", None):
+        return image_server_url(image.image_path)
+    if getattr(image, "image", None):
         try:
-            version = int(image.updated_at.timestamp())
+            version = int(image.updated_at.timestamp()) if hasattr(image, "updated_at") else 0
         except Exception:
             version = 0
         return f"{image.image.url}?v={version}" if version else image.image.url
+    if getattr(image, "external_url", None):
+        return image.external_url
     return ""
 
 
@@ -897,10 +901,12 @@ class AdminDestinationDetailView(APIView):
             "best_time_to_visit", "history", "cultural_significance", "religious_significance",
             "food_cuisine_info", "travel_safety_tips", "website",
             "nearest_major_city", "nearest_hospital_info", "nearest_hotel_info",
-            "nearest_police_info", "recommended_days",
+            "nearest_police_info", "recommended_days", "cover_image", "cover_image_url",
             "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
         }
         payload = dict(request.data)
+        if "cover_image_url" in payload and not payload.get("cover_image"):
+            payload["cover_image"] = payload["cover_image_url"]
         # Rich text editor hardening (same rule as CMS body): neutralize
         # javascript: URLs in admin-authored rich text fields.
         _rich_fields = ("description", "short_description", "history", "cultural_significance", "food_cuisine_info", "travel_safety_tips")
@@ -1194,7 +1200,7 @@ class AdminDestinationImageView(APIView):
         img.delete()
         if was_cover:
             next_img = destination.gallery.first()
-            new_cover = next_img.external_url if next_img and next_img.external_url else ""
+            new_cover = _media_public_url(next_img) if next_img else ""
             if next_img:
                 next_img.is_cover = True
                 next_img.save(update_fields=["is_cover"])
@@ -1285,12 +1291,20 @@ class AdminDestinationVideoView(APIView):
 
 
 def _cover_of(destination):
-    raw = str(destination.cover_image or "").strip()
-    if raw.startswith("http"):
-        return raw
+    if destination.cover_image:
+        url = resolve_image_url(destination.cover_image)
+        if url and not is_generated_postcard_url(url):
+            return url
     cover = destination.gallery.filter(is_cover=True).first()
-    if cover and cover.external_url:
-        return cover.external_url
+    if cover:
+        url = _media_public_url(cover)
+        if url and not is_generated_postcard_url(url):
+            return url
+    first = destination.gallery.first()
+    if first:
+        url = _media_public_url(first)
+        if url and not is_generated_postcard_url(url):
+            return url
     from . import photo_catalog
     return photo_catalog.resolve_cover_photo(destination)["url"]
 
@@ -3837,13 +3851,8 @@ class AdminMediaLibraryView(APIView):
             if uploaded:
                 uploaded.seek(0)
                 dest.cover_image = uploaded
-            elif image.external_url:
-                # Matches the existing seed-data convention: cover_image may
-                # hold an external http(s) URL, which resolve_image_url
-                # returns verbatim.
-                dest.cover_image = image.external_url
             else:
-                dest.cover_image = ""
+                dest.cover_image = _media_public_url(image) or image.external_url or ""
             dest.save(update_fields=["cover_image", "updated_at"])
         # Propagate the replacement to every string reference (CMS sections,
         # page OG images, hero slides) that pointed at the OLD url — otherwise

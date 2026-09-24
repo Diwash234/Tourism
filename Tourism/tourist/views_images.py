@@ -160,7 +160,7 @@ class DestinationImageSetCoverView(APIView):
         image.is_cover = True
         image.save(update_fields=["is_cover"])
 
-        cover_url = image.external_url
+        cover_url = image.external_url or (image.image.url if image.image else "") or getattr(image, "image_path", "") or ""
         Destination.objects.filter(pk=destination.pk).update(cover_image=cover_url or "")
 
         return Response({

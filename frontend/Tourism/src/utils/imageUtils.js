@@ -625,28 +625,36 @@ const CORRECTED_DESTINATION_MEDIA = {
   "gupteswor gupha": "/images/destinations/gupteswor-gupha/img1.jpg",
 }
 
+export const normalizeImageUrl = (url) => {
+  if (!url || typeof url !== "string") return ""
+  let u = url.trim()
+  u = u.replace(/^https?:\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0|testserver)(:\d+)?/i, "")
+  return u
+}
+
 /**
  * Return a usable image URL for a destination/hotel/card.
  */
 export const getDestinationImageUrl = (destination) => {
   if (!destination) return "/images/destinations/kathmandu/durbar-square.jpg"
+  // The cover field is what the admin sets (set-cover / replace-cover flows
+  // update it), so it MUST win over default stock maps — otherwise
+  // admin cover changes never appear because static overrides keep taking precedence.
+  const cover = destination.cover_image_url || destination.cover_image || destination.image_url || destination.image
+  if (isUsable(cover)) return normalizeImageUrl(cover)
+
   const corrected = CORRECTED_DESTINATION_MEDIA[normalizeName(destination.name)]
   if (corrected) return corrected
-  // The cover field is what the admin sets (set-cover / replace-cover flows
-  // update it), so it MUST win over the gallery `images[]` array — otherwise
-  // admin cover changes never appear because the first (oldest) gallery
-  // photo keeps taking precedence.
-  const cover = destination.cover_image_url || destination.cover_image || destination.image_url || destination.image
-  if (isUsable(cover)) return cover
+
   if (Array.isArray(destination.images)) {
     const first = destination.images.find(isUsable)
-    if (first) return first
+    if (first) return normalizeImageUrl(first)
   }
   if (Array.isArray(destination.gallery)) {
     for (const media of destination.gallery) {
       if (media.verification_status === "rejected") continue
       const url = media.display_url || media.image_url || media.external_url || media.image || media.url
-      if (isUsable(url)) return url
+      if (isUsable(url)) return normalizeImageUrl(url)
     }
   }
   // Restore the previously generated, bundled place-specific media for known

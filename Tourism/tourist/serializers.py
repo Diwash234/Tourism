@@ -1267,7 +1267,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField(), allow_empty=True))
     def get_images(self, obj):
-        """Ordered list of absolute image URLs.
+        """Ordered list of image URLs.
 
         The admin-designated cover photo comes first so that clients reading
         images[0] always see the admin's current choice, then the remaining
@@ -1279,6 +1279,11 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         urls = []
         seen = set()
         request = self.context.get("request")
+        if obj.cover_image:
+            cover = resolve_image_url(obj.cover_image, request)
+            if cover and not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
+                seen.add(cover)
+                urls.append(cover)
         photos = sorted(verified_destination_photos(obj),
                         key=lambda p: (0 if getattr(p, "is_cover", False) else 1,
                                        getattr(p, "ordering", 0) or 0, p.id))
@@ -1287,7 +1292,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             if photo.image_path:
                 url = image_server_url(photo.image_path)
             elif photo.image:
-                url = request.build_absolute_uri(photo.image.url) if request else photo.image.url
+                url = resolve_image_url(photo.image, request)
             else:
                 url = photo.external_url
             if is_generated_postcard_url(url):
