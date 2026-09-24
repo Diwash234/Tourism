@@ -376,7 +376,7 @@ DESCRIPTIONS = {
         "Bhedetar hill station and viewpoint, its waterfall, and the "
         "Bhanu Bhakta Memorial."
     ),
-    "eastern-rukum": (
+    "rukum-east": (
         "Eastern Rukum is a Himalayan district of Lumbini Province, formed "
         "in 2017 when Rukum was split in two, with Rukumkot as its seat "
         "beneath sacred Mount Sisne. Tourism places are still being "
@@ -489,7 +489,7 @@ DESCRIPTIONS = {
         "as its seat in the Udayapur valley. Recorded on this platform: "
         "the Chaudandigadhi fort and local Shiva shrines."
     ),
-    "western-rukum": (
+    "rukum-west": (
         "Western Rukum is a Himalayan district of Karnali Province, formed "
         "in 2017 when Rukum was split in two, with Musikot as its seat in "
         "the Bheri river valley. Tourism places are still being recorded "

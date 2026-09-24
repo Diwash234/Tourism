@@ -474,9 +474,12 @@ class MLIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     @patch("tourist.utils.requests.post", side_effect=requests.RequestException("down"))
-    def test_safety_prediction_returns_503_when_ml_service_down(self, _mock):
+    def test_safety_prediction_degrades_gracefully_when_ml_service_down(self, _mock):
         response = self.client.post(reverse("ml-safety"), {"latitude": 28.21, "longitude": 83.96})
-        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertTrue(data.get("degraded"))
+        self.assertEqual(data.get("source"), "rule-based-fallback")
 
     def test_safety_prediction_requires_coords_or_destination(self):
         response = self.client.post(reverse("ml-safety"), {})
