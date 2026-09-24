@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 import { diffSnapshots, formatSnapshotValue } from "../../utils/revisionDiff"
 import { FiActivity, FiClock, FiExternalLink, FiEye, FiFilePlus, FiRefreshCw, FiRotateCcw, FiSave, FiSend, FiX } from "react-icons/fi"
@@ -7,7 +8,37 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
-const resources = ["settings", "pages", "sections", "navigation", "translations"]
+const resources = [
+  "pages",
+  "sections",
+  "destinations",
+  "travel_content",
+  "media_library",
+  "homepage_manager",
+  "seo_metadata",
+  "global_content",
+  "announcements",
+  "translations",
+  "publishing",
+  "settings",
+  "navigation",
+]
+
+const RESOURCE_LABELS = {
+  pages: "Website Pages",
+  sections: "Page Sections",
+  destinations: "Destinations",
+  travel_content: "Travel Content",
+  media_library: "Media Library",
+  homepage_manager: "Homepage Manager",
+  seo_metadata: "SEO & Metadata",
+  global_content: "Global Content",
+  announcements: "Announcements",
+  translations: "Translations",
+  publishing: "Publishing",
+  settings: "Site Settings",
+  navigation: "Navigation Links",
+}
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -25,17 +56,33 @@ const templates = {
   sections: { page_id: null, key: "new-section", title: "New section", subtitle: "", body: "", image_url: "", cta_text: "", cta_url: "", icon: "", section_type: "text", layout_variant: "default", config: {}, display_order: 0, is_visible: true, is_reusable: false, status: "draft" },
   navigation: { location: "navbar", label: "New link", route: "/", icon: "", parent_id: null, allowed_roles: [], display_order: 0, is_active: true },
   translations: { target_resource: "pages", object_id: null, language_code: "ne", content: { title: "" } },
+  destinations: { name: "New Destination", slug: "", description: "", short_description: "", district: "Kathmandu", province: "Bagmati", latitude: 27.7172, longitude: 85.3240, image_url: "", status: "approved", seo_title: "", meta_description: "" },
+  travel_content: { title: "New Activity / Package", category: "Tour", description: "", status: "published" },
+  media_library: { title: "New Media Asset", image_url: "", alt_text: "", status: "approved" },
+  seo_metadata: { key: "new-seo-page", seo_title: "", meta_description: "", og_image_url: "", meta_robots: "" },
+  global_content: { key: "site_branding", value: {}, description: "Global header and footer configuration" },
+  announcements: { title: "New Announcement", message: "", level: "info", is_active: true },
+  publishing: { target_resource: "pages", object_id: null, action: "publish", status: "published" },
 }
 const clean = (row) => Object.fromEntries(Object.entries(row || {}).filter(([key]) => !["updated_at", "published_at", "scheduled_publish_at"].includes(key)))
 const displayName = (row) => {
-  const name = row.title || row.label || row.key || row.route || `Record #${row.id}`
+  const name = row.name || row.title || row.label || row.key || row.route || `Record #${row.id}`
   if (row.page_title) return `${name} · ${row.page_title}`
   return name
 }
 
-export default function CMSPanel() {
+export default function CMSPanel({ defaultResource }) {
   const { showToast } = useToast()
-  const [resource, setResource] = useState("pages")
+  const [searchParams] = useSearchParams()
+  const initialResource = defaultResource || searchParams.get("resource") || "pages"
+  const [resource, setResource] = useState(initialResource)
+
+  useEffect(() => {
+    const target = defaultResource || searchParams.get("resource")
+    if (target && target !== resource) {
+      setResource(target)
+    }
+  }, [defaultResource, searchParams])
   const [rows, setRows] = useState([])
   // Record-list search / status filter / sort (brief §22/§88) — client-side
   // over the loaded rows; reordering always operates on the FULL row order.
@@ -342,13 +389,13 @@ export default function CMSPanel() {
             <button
               key={item}
               onClick={() => switchResource(item)}
-              className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-300 hover:bg-emerald-50"}`}
+              className={`block w-full text-left px-3 py-2.5 rounded-xl mb-1 text-xs font-bold transition-colors ${resource === item ? "bg-emerald-800 text-white shadow-sm font-extrabold" : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-900"}`}
             >
-              {item}
+              {RESOURCE_LABELS[item] || item}
             </button>
           ))}
-          <button onClick={createNew} className="mt-4 w-full px-3 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-            <FiFilePlus /> New {resource.slice(0, -1)}
+          <button onClick={createNew} className="mt-4 w-full px-3 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm">
+            <FiFilePlus /> New {(RESOURCE_LABELS[resource] || resource).replace(/s$/, "")}
           </button>
         </aside>
 
@@ -817,6 +864,34 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
           ? <input type="checkbox" className="ml-3" checked={Boolean(value[key])} onChange={e => set(key, e.target.checked)} />
           : <input type={type} className="input-field mt-1" value={value[key] ?? ""} onChange={e => set(key, type === "number" ? Number(e.target.value) : e.target.value)} />}
     </label>
+  )
+  if (resource === "destinations") return (
+    <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">
+      {field("name", "Destination Name")}
+      {field("slug", "Slug Identifier")}
+      {field("district", "District")}
+      {field("province", "Province")}
+      {field("latitude", "Latitude", "number")}
+      {field("longitude", "Longitude", "number")}
+      {field("short_description", "Short Description", "textarea")}
+      <label className="sm:col-span-2 text-xs font-semibold text-slate-700">Detailed Description
+        <RichTextEditor value={value.description || ""} onChange={html => set("description", html)} />
+      </label>
+      {field("image_url", "Cover Image URL / Path")}
+      <label className="text-xs font-semibold text-slate-700">Approval & Publication Status
+        <select className="input-field mt-1" value={value.status || "approved"} onChange={e => set("status", e.target.value)}>
+          <option value="approved">Approved / Live</option>
+          <option value="pending">Pending Review</option>
+          <option value="draft">Draft</option>
+          <option value="submitted">Submitted</option>
+          <option value="rejected">Rejected</option>
+          <option value="archived">Archived</option>
+        </select>
+      </label>
+      {field("seo_title", "SEO Title")}
+      {field("meta_description", "Meta Description", "textarea")}
+      <SeoSuite value={value} />
+    </div>
   )
   if (resource === "pages") return (
     <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">

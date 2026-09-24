@@ -2633,6 +2633,38 @@ class CMSAdminControlTests(TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertTrue(ManagedPage.objects.filter(pk=home.pk).exists())
 
+    def test_admin_cms_destinations_resource(self):
+        from tourist.models import Destination
+        dest = Destination.objects.create(
+            name="Test CMS Destination",
+            slug="test-cms-destination",
+            district="Kathmandu",
+            province="Bagmati",
+            description="Original description",
+            status="approved",
+            latitude=27.7172,
+            longitude=85.3240,
+        )
+        resp = self.client.get("/api/v1/admin/cms/", {"resource": "destinations"})
+        self.assertEqual(resp.status_code, 200)
+        results = resp.json().get("results", [])
+        self.assertTrue(any(d["id"] == dest.id for d in results))
+
+        patch_resp = self.client.patch(
+            "/api/v1/admin/cms/",
+            {
+                "resource": "destinations",
+                "id": dest.id,
+                "description": "Updated CMS description",
+                "seo_title": "SEO Title Test",
+            },
+            format="json",
+        )
+        self.assertEqual(patch_resp.status_code, 200)
+        dest.refresh_from_db()
+        self.assertEqual(dest.description, "Updated CMS description")
+        self.assertEqual(dest.seo_title, "SEO Title Test")
+
     def test_tourist_cannot_delete_pages(self):
         tourist = User.objects.create_user(email="cmsctl-tourist@test.local", password="Tour!Pass123", role="tourist")
         self.client.force_authenticate(tourist)

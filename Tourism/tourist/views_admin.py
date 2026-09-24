@@ -2345,13 +2345,23 @@ PAGE_TEMPLATES = {
 class AdminCMSView(APIView):
     """Versioned CMS workflow: draft, preview, schedule, publish and rollback."""
     permission_classes = [IsAdminOrStaff]
-    MODELS = {"settings": SiteSetting, "pages": ManagedPage, "sections": ContentSection, "navigation": ManagedNavigationItem, "translations": CMSContentTranslation}
+    MODELS = {
+        "settings": SiteSetting,
+        "pages": ManagedPage,
+        "sections": ContentSection,
+        "navigation": ManagedNavigationItem,
+        "translations": CMSContentTranslation,
+        "destinations": Destination,
+        "announcements": VisitorNotice,
+    }
     FIELDS = {
         "settings": {"key", "value", "description", "is_public"},
         "pages": {"route", "key", "title", "meta_description", "seo_title", "og_image_url", "search_visible", "is_enabled", "status", "scheduled_publish_at", "published_at"},
         "sections": {"page_id", "key", "title", "subtitle", "body", "image_url", "cta_text", "cta_url", "icon", "section_type", "layout_variant", "config", "display_order", "is_visible", "is_reusable", "status", "scheduled_publish_at", "published_at"},
         "navigation": {"location", "label", "route", "icon", "parent_id", "allowed_roles", "display_order", "is_active"},
         "translations": {"target_resource", "object_id", "language_code", "content"},
+        "destinations": {"name", "slug", "description", "short_description", "district", "province", "city_english", "latitude", "longitude", "status", "seo_title", "meta_description", "og_image_url"},
+        "announcements": {"title", "message", "level", "is_active"},
     }
 
     def _validate_payload(self, resource, payload):
@@ -2407,6 +2417,14 @@ class AdminCMSView(APIView):
         for field in self.FIELDS[resource]:
             key = field[:-3] if field.endswith("_id") else field
             row[field] = getattr(obj, field, getattr(obj, key, None))
+        if resource == "destinations":
+            row["title"] = getattr(obj, "name", "")
+            cover = getattr(obj, "cover_image", None)
+            row["image_url"] = cover.url if cover else (getattr(obj, "og_image_url", "") or "")
+            cat = getattr(obj, "category", None)
+            row["category_name"] = cat.name if cat else None
+            slug_val = getattr(obj, "slug", None) or obj.pk
+            row["route"] = f"/destinations/{slug_val}"
         if resource == "sections":
             page = getattr(obj, "page", None)
             row["published_snapshot"] = obj.published_snapshot
