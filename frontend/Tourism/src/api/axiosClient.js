@@ -29,8 +29,13 @@ export const clearAuthStorage = () => {
 // Attach access token to request if present (per-request only — never on
 // axiosClient.defaults, which would leak a stale token after logout).
 axiosClient.interceptors.request.use((config) => {
-  if (isGuestPreview()) {
-    if (config.headers) delete config.headers.Authorization
+  if (isGuestPreview() || config._retryNoAuth) {
+    if (config.headers) {
+      delete config.headers.Authorization
+      if (typeof config.headers.delete === "function") {
+        config.headers.delete("Authorization")
+      }
+    }
     return config
   }
   const token = localStorage.getItem("access")
@@ -67,8 +72,12 @@ const notifySession = (kind) => {
 
 const retryWithoutAuth = (config) => {
   const cfg = { ...config, _retryNoAuth: true }
-  cfg.headers = { ...(config.headers || {}) }
-  delete cfg.headers.Authorization
+  if (cfg.headers) {
+    delete cfg.headers.Authorization
+    if (typeof cfg.headers.delete === "function") {
+      cfg.headers.delete("Authorization")
+    }
+  }
   return axiosClient(cfg)
 }
 
@@ -115,7 +124,8 @@ axiosClient.interceptors.response.use(
 
     // Settle a request after session loss: retry public reads anonymously.
     const settleAnonymously = (cfg) => {
-      if (!sentAuth) return Promise.reject(error) // was never authed; nothing to strip
+      const isSafeRead = !cfg.method || ["get", "head", "options"].includes(String(cfg.method).toLowerCase())
+      if (!sentAuth && !isSafeRead) return Promise.reject(error)
       return retryWithoutAuth(cfg).catch((retryError) => {
         if (retryError?.response?.status === 401 && hadSession) notifySession("expired")
         return Promise.reject(retryError)
