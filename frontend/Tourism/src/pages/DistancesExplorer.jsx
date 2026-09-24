@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import L from "leaflet"
 import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useI18n } from "../i18n"
 import useGeolocation from "../hooks/useGeolocation"
 import destinationApi from "../api/destinationApi"
@@ -280,6 +281,7 @@ export default function DistancesExplorer() {
 
   return (
     <div className="space-y-6">
+      <CMSPageIntro pageKey="distances" />
       <PageHeader
         title={t("dx.title")}
         subtitle={t("dx.subtitle")}

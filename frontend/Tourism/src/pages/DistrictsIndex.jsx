@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import useSeo from "../hooks/useSeo"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
 import axiosClient from "../api/axiosClient"
 
@@ -43,6 +44,7 @@ export default function DistrictsIndex() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
+      <CMSPageIntro pageKey="districts" />
       <h1 className="text-3xl font-bold text-white">Explore Nepal by district</h1>
       <p className="text-slate-300 mt-1 text-sm">
         {data.count} districts · coverage reflects verified database records

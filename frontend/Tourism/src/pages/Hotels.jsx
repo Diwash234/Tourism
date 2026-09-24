@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import usePublicConfig from "../hooks/usePublicConfig"
 import CMSIntro from "../components/cms/CMSIntro"
 import { FiSearch } from "react-icons/fi"
@@ -43,6 +44,7 @@ const Hotels = () => {
 
   return (
     <div className="space-y-6 fade-in theme-gold">
+      <CMSPageIntro pageKey="hotels" />
       <CMSIntro section={cmsBlock("intro")} />
 
       <div>
