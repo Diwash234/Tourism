@@ -1397,6 +1397,23 @@ class NearbyDestinationQuerySerializer(serializers.Serializer):
     longitude = CoordinateField(min_value=Decimal("-180"), max_value=Decimal("180"))
     radius_km = serializers.FloatField(default=10, min_value=0.1, max_value=2000)
 
+    def to_internal_value(self, data):
+        if hasattr(data, "dict") and callable(getattr(data, "dict")):
+            data = data.dict()
+        elif hasattr(data, "copy"):
+            data = data.copy()
+        else:
+            data = dict(data)
+        if "latitude" not in data or data["latitude"] in (None, ""):
+            if "lat" in data:
+                data["latitude"] = data["lat"]
+        if "longitude" not in data or data["longitude"] in (None, ""):
+            if "lng" in data:
+                data["longitude"] = data["lng"]
+            elif "lon" in data:
+                data["longitude"] = data["lon"]
+        return super().to_internal_value(data)
+
 
 class TranslateRequestSerializer(serializers.Serializer):
     text = serializers.CharField()

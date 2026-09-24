@@ -430,8 +430,13 @@ class NavigationRouteView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    def get(self, request):
+        return self._handle_route(request, request.query_params)
+
     def post(self, request):
-        data = request.data
+        return self._handle_route(request, request.data)
+
+    def _handle_route(self, request, data):
 
         def pick(*keys):
             for key in keys:

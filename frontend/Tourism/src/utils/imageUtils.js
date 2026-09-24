@@ -59,8 +59,16 @@ const LOCAL_NEPAL_PHOTOS = {
   "bharatpur metropolitan city": "/images/destinations/chitwan/safari.jpg",
   "bharatpur metropolitan": "/images/destinations/chitwan/safari.jpg",
   narayani:        "/images/destinations/chitwan/safari.jpg",
-  // Lumbini
+  // Lumbini & Sacred Sites
   lumbini:         "/images/destinations/lumbini/garden.jpg",
+  "lumbini garden": "/images/destinations/lumbini/garden.jpg",
+  "maya devi":      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Maya_Devi_Temple_Lumbini_Nepal.jpg/960px-Maya_Devi_Temple_Lumbini_Nepal.jpg",
+  "maya devi temple": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Maya_Devi_Temple_Lumbini_Nepal.jpg/960px-Maya_Devi_Temple_Lumbini_Nepal.jpg",
+  "lumbini maya devi": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Maya_Devi_Temple_Lumbini_Nepal.jpg/960px-Maya_Devi_Temple_Lumbini_Nepal.jpg",
+  "lumbini sacred garden": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Lumbini_Sacred_Garden-118029.jpg/960px-Lumbini_Sacred_Garden-118029.jpg",
+  "lumbini monastic zone": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Samai_Mai_Temple_Tilaurakot_Taulihawa_Kapilbastu_Lumbini_Zone_Nepal_Rajesh_Dhungana_%2817%29.jpg/960px-Samai_Mai_Temple_Tilaurakot_Taulihawa_Kapilbastu_Lumbini_Zone_Nepal_Rajesh_Dhungana_%2817%29.jpg",
+  tilaurakot:      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Samai_Mai_Temple_Tilaurakot_Taulihawa_Kapilbastu_Lumbini_Zone_Nepal_Rajesh_Dhungana_%2817%29.jpg/960px-Samai_Mai_Temple_Tilaurakot_Taulihawa_Kapilbastu_Lumbini_Zone_Nepal_Rajesh_Dhungana_%2817%29.jpg",
+  "ashoka pillar": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Lumbini_Sacred_Garden-118029.jpg/960px-Lumbini_Sacred_Garden-118029.jpg",
   // Annapurna / Ghandruk / Sarangkot
   annapurna:       "/images/destinations/annapurna/trek.jpg",
   "annapurna circuit": "/images/destinations/annapurna/trek.jpg",
