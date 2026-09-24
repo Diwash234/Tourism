@@ -466,7 +466,7 @@ export default function CMSPanel({ defaultResource }) {
             <p className="text-slate-500 py-20 text-center">Select a record or create a new draft.</p>
           ) : (
             <div className="space-y-3">
-              <div className="sticky top-[4.25rem] z-20 -mx-4 -mt-4 flex flex-wrap gap-2 items-center rounded-t-2xl border-b border-emerald-100 bg-white/95 px-4 py-2.5 backdrop-blur">
+              <div className="sticky top-16 z-20 -mx-4 -mt-4 flex flex-wrap gap-2 items-center rounded-t-2xl border-b border-emerald-100 bg-white/95 px-4 py-2.5 backdrop-blur">
                 <b className="mr-auto truncate">{selected.id ? displayName(selected) : `New ${resource.slice(0, -1)}`}</b>
                 <button type="button" onClick={undo} disabled={!histCounts.past} title="Undo (draft edits)" aria-label="Undo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↶</button>
                 <button type="button" onClick={redo} disabled={!histCounts.future} title="Redo" aria-label="Redo" className="px-2.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 disabled:opacity-30">↷</button>
