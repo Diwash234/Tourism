@@ -66,27 +66,48 @@ class RecommendedDestinationsView(APIView):
 
         latitude = data.get("latitude")
         longitude = data.get("longitude")
+        interest = data.get("interest")
+        province = data.get("province")
+        category = data.get("category")
+        top_n = data.get("top_n", 5)
 
         if latitude is None and request.user.is_authenticated:
             latitude = getattr(request.user, "latitude", None)
             longitude = getattr(request.user, "longitude", None)
 
-        # Compact, bounded catalogue payload: real public Destination rows
-        # with lean fields only — no galleries, no reviews, no related
-        # lookups. The full DestinationListSerializer used to serialise
-        # every approved destination (with photo previews) into this
-        # request, which is exactly the payload bloat the recommendation
-        # API must avoid; a `.values()` query keeps it a single index scan.
-        compact_rows = (
-            Destination.publicly_visible()
-            .exclude(latitude__isnull=True)
-            .exclude(longitude__isnull=True)
-            .order_by("-is_featured", "-average_rating", "-views_count")
-            .values(
+        # Smart candidate selection: query real approved Destination rows,
+        # filtered by user interest/province if supplied, bounded to top 100 candidates
+        # to avoid payload bloat and network delays.
+        candidate_qs = Destination.publicly_visible().exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        if province:
+            candidate_qs = candidate_qs.filter(province__iexact=province)
+        if category:
+            candidate_qs = candidate_qs.filter(category__name__icontains=category)
+        if interest:
+            from django.db.models import Q
+            candidate_qs = candidate_qs.filter(
+                Q(type__icontains=interest) |
+                Q(description__icontains=interest) |
+                Q(tags__icontains=interest) |
+                Q(category__name__icontains=interest)
+            )
+
+        compact_rows = candidate_qs.order_by("-is_featured", "-average_rating", "-views_count").values(
+            "id", "name", "slug", "type", "city", "district",
+            "province", "latitude", "longitude", "average_rating",
+        )[:100]
+
+        # If strict filtering yielded too few rows, fall back to general candidate selection
+        if len(compact_rows) < top_n:
+            compact_rows = Destination.publicly_visible().exclude(
+                latitude__isnull=True
+            ).exclude(longitude__isnull=True).order_by(
+                "-is_featured", "-average_rating", "-views_count"
+            ).values(
                 "id", "name", "slug", "type", "city", "district",
                 "province", "latitude", "longitude", "average_rating",
-            )[:2000]
-        )
+            )[:100]
         destinations = [
             {
                 "id": row["id"],
@@ -110,7 +131,6 @@ class RecommendedDestinationsView(APIView):
             "destinations": destinations,
         }
 
-
         try:
             response = requests.post(
                 f"{settings.ML_SERVICE_URL}/recommendation",
@@ -118,36 +138,47 @@ class RecommendedDestinationsView(APIView):
                 headers={
                     "X-API-Key": settings.ML_SERVICE_API_KEY,
                 },
-                timeout=10,
+                timeout=3.5,
             )
-
 
             response.raise_for_status()
 
+            res_json = response.json()
+            if isinstance(res_json, dict):
+                res_json.setdefault("source", "ml_recommendation_engine")
             return Response(
-                response.json(),
+                res_json,
                 status=response.status_code
             )
 
-
         except requests.RequestException:
-            # Diverse fallback across categories & provinces — the canonical
-            # public-visibility rule (approved AND active) on a compact,
-            # bounded slice; never fabricated rows.
-            fallback_destinations = Destination.publicly_visible().order_by(
-                "-is_featured", "-average_rating", "-views_count"
-            )[:data["top_n"] * 2]
+            # Deterministic DB fallback matching interest/province or top-rated destinations
+            fallback_qs = Destination.publicly_visible()
+            if province:
+                fallback_qs = fallback_qs.filter(province__iexact=province)
+            if interest:
+                from django.db.models import Q
+                fallback_qs = fallback_qs.filter(
+                    Q(type__icontains=interest) |
+                    Q(description__icontains=interest) |
+                    Q(tags__icontains=interest) |
+                    Q(category__name__icontains=interest)
+                )
+
+            fallback_destinations = list(fallback_qs.order_by("-is_featured", "-average_rating", "-views_count")[:top_n * 2])
+            if len(fallback_destinations) < top_n:
+                fallback_destinations = list(Destination.publicly_visible().order_by("-is_featured", "-average_rating", "-views_count")[:top_n * 2])
 
             # Apply category & district diversity filtering
             seen_cats, seen_districts, diverse_list = set(), set(), []
             for dest in fallback_destinations:
                 cat_id = dest.category_id
                 dist = dest.district or dest.city
-                if cat_id not in seen_cats or dist not in seen_districts or len(diverse_list) < data["top_n"]:
+                if cat_id not in seen_cats or dist not in seen_districts or len(diverse_list) < top_n:
                     diverse_list.append(dest)
                     if cat_id: seen_cats.add(cat_id)
                     if dist: seen_districts.add(dist)
-                if len(diverse_list) >= data["top_n"]:
+                if len(diverse_list) >= top_n:
                     break
 
             results = DestinationListSerializer(

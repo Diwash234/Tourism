@@ -1553,6 +1553,12 @@ class MLRecommendationRequestSerializer(serializers.Serializer):
     latitude = CoordinateField(required=False, allow_null=True)
     longitude = CoordinateField(required=False, allow_null=True)
     top_n = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)
+    interest = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    category = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    province = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    budget = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    travel_style = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    difficulty = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class MLWebhookResultSerializer(serializers.Serializer):

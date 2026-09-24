@@ -47,172 +47,6 @@ const INTERESTS = [
   { key: "birdwatching", label: "Birdwatching", icon: FiWind },
 ]
 
-const EDUCATIONAL_CRAFT_FALLBACKS = [
-  {
-    id: "edu-1",
-    name: "Khopasi Silk Farming & Sericulture Research Center",
-    slug: "khopasi-silk-farming-sericulture",
-    display_city: "Khopasi",
-    district: "Kavrepalanchok",
-    province: "Bagmati",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/patan/durbar.jpg",
-    why_recommended: ["Silkworm house & organic silk yarn spinning", "Traditional Newari weaving craft & research"],
-    safety_context: { nearest_hospital: { distance_km: 4.2 }, nearest_police: { distance_km: 2.5 }, route_condition: "Verified Highway & Local Access" },
-    risk_summary: { level: "low" },
-    ml_score: 0.96,
-  },
-  {
-    id: "edu-2",
-    name: "Bhaktapur Traditional Pottery Square & Clay Kilns",
-    slug: "bhaktapur-pottery-square",
-    display_city: "Bhaktapur",
-    district: "Bhaktapur",
-    province: "Bagmati",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/bhaktapur/durbar.jpg",
-    why_recommended: ["Ancient open-air pottery spinning wheels", "Handmade terra-cotta clay craft & firing kilns"],
-    safety_context: { nearest_hospital: { distance_km: 1.5 }, nearest_police: { distance_km: 0.8 }, route_condition: "Metropolitan Heritage Corridor" },
-    risk_summary: { level: "low" },
-    ml_score: 0.94,
-  },
-  {
-    id: "edu-3",
-    name: "Kirtipur Data Science & Information Knowledge Center",
-    slug: "kirtipur-data-science-knowledge-center",
-    display_city: "Kirtipur",
-    district: "Kathmandu",
-    province: "Bagmati",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/kathmandu/durbar-square.jpg",
-    why_recommended: ["Nepal university research archives & computing labs", "Educational IT & data warehousing hub"],
-    safety_context: { nearest_hospital: { distance_km: 2.1 }, nearest_police: { distance_km: 1.2 }, route_condition: "University Ring Road Access" },
-    risk_summary: { level: "low" },
-    ml_score: 0.92,
-  },
-  {
-    id: "edu-4",
-    name: "Ilam Himalayan Orthodox Tea Science Research Station",
-    slug: "ilam-tea-science-research-station",
-    display_city: "Ilam",
-    district: "Ilam",
-    province: "Koshi",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 2,
-    cover_image_url: "/images/destinations/ilam/tea-gardens.jpg",
-    why_recommended: ["Himalayan tea plantation botany & leaf processing", "Agritech research & orthodox tea tasting"],
-    safety_context: { nearest_hospital: { distance_km: 3.5 }, nearest_police: { distance_km: 1.8 }, route_condition: "Mechi Highway Corridor" },
-    risk_summary: { level: "low" },
-    ml_score: 0.91,
-  },
-].map((i) => ({ ...i, is_fallback: true, ml_score: null }))
-
-const FOOD_DESTINATIONS_FALLBACKS = [
-  {
-    id: "food-1",
-    name: "Kathmandu Thamel & Asan Food Street",
-    slug: "kathmandu-thamel-asan-food-street",
-    display_city: "Kathmandu",
-    district: "Kathmandu",
-    province: "Bagmati",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/food/momo.jpg",
-    why_recommended: ["Famous for Steamed MoMo, Thukpa, Sekuwa, and Newari Khaja", "Vibrant night food stalls and historic spice bazaars"],
-    safety_context: { nearest_hospital: { distance_km: 1.2 }, nearest_police: { distance_km: 0.5 }, route_condition: "Metropolitan Ring Road Corridor" },
-    risk_summary: { level: "low" },
-    ml_score: 0.98,
-  },
-  {
-    id: "food-2",
-    name: "Bhaktapur Durbar Square & Juju Dhau Hub",
-    slug: "bhaktapur-juju-dhau-hub",
-    display_city: "Bhaktapur",
-    district: "Bhaktapur",
-    province: "Bagmati",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/food/juju-dhau.jpg",
-    why_recommended: ["Birthplace of Juju Dhau (King of Curds)", "Authentic Newari Samay Baji & Yomari traditional feasts"],
-    safety_context: { nearest_hospital: { distance_km: 1.5 }, nearest_police: { distance_km: 0.8 }, route_condition: "Arniko Highway Corridor" },
-    risk_summary: { level: "low" },
-    ml_score: 0.96,
-  },
-  {
-    id: "food-3",
-    name: "Patan Mangal Bazaar & Newari Culinary Corner",
-    slug: "patan-mangal-bazaar-newari-culinary",
-    display_city: "Patan",
-    district: "Lalitpur",
-    province: "Bagmati",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/food/newari-bhoj.jpg",
-    why_recommended: ["Heritage Newari Bhoj with spicy Choila & Bara", "Artisan courtyards with traditional Aila brewery"],
-    safety_context: { nearest_hospital: { distance_km: 1.8 }, nearest_police: { distance_km: 0.7 }, route_condition: "Lalitpur Heritage Access" },
-    risk_summary: { level: "low" },
-    ml_score: 0.95,
-  },
-  {
-    id: "food-4",
-    name: "Pokhara Lakeside Culinary & Fish Street",
-    slug: "pokhara-lakeside-culinary-fish-street",
-    display_city: "Pokhara",
-    district: "Kaski",
-    province: "Gandaki",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 2,
-    cover_image_url: "/images/destinations/food/sel-roti.jpg",
-    why_recommended: ["Fresh Phewa Lake fish, Sel Roti, and mountain masala chiya", "Lakeside dining with Machhapuchhre reflection views"],
-    safety_context: { nearest_hospital: { distance_km: 2.5 }, nearest_police: { distance_km: 1.0 }, route_condition: "Prithvi Highway & Lakeside Road" },
-    risk_summary: { level: "low" },
-    ml_score: 0.94,
-  },
-  {
-    id: "food-5",
-    name: "Ilam Kanyam Orthodox Tea Tasting Estate",
-    slug: "ilam-kanyam-tea-tasting-estate",
-    display_city: "Ilam",
-    district: "Ilam",
-    province: "Koshi",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 2,
-    cover_image_url: "/images/destinations/food/masala-chiya.jpg",
-    why_recommended: ["Organic Himalayan orthodox tea tasting & Chhurpi cheese", "Rolling green tea gardens and mountain air"],
-    safety_context: { nearest_hospital: { distance_km: 3.5 }, nearest_police: { distance_km: 1.8 }, route_condition: "Mechi Highway Corridor" },
-    risk_summary: { level: "low" },
-    ml_score: 0.93,
-  },
-  {
-    id: "food-6",
-    name: "Janakpurdham Mithila Thali & Sweet Bazaar",
-    slug: "janakpurdham-mithila-thali-bazaar",
-    display_city: "Janakpur",
-    district: "Dhanusha",
-    province: "Madhesh",
-    difficulty: "easy",
-    budget_level: "budget",
-    recommended_days: 1,
-    cover_image_url: "/images/destinations/janakpur/janaki-mandir.jpg",
-    why_recommended: ["Authentic Mithila Thali, Malpua, and peda sweets", "Historic temple square with vibrant street food stalls"],
-    safety_context: { nearest_hospital: { distance_km: 1.8 }, nearest_police: { distance_km: 0.9 }, route_condition: "Postal Highway Corridor" },
-    risk_summary: { level: "low" },
-    ml_score: 0.92,
-  },
-].map((i) => ({ ...i, is_fallback: true, ml_score: null }))
-
 const SELECTS = {
   budget: [["any", "Any budget"], ["low", "Budget"], ["medium", "Mid-range"], ["high", "Premium"]],
   difficulty: [["any", "Any difficulty"], ["easy", "Easy"], ["moderate", "Moderate"], ["hard", "Hard"]],
@@ -292,12 +126,6 @@ export default function Recommendation() {
         ...(nearMe ? { latitude: nearMe.lat, longitude: nearMe.lng } : {}),
       })
       let results = data.results || data.recommendations || (Array.isArray(data) ? data : [])
-      if (selected.includes("educational")) {
-        results = [...EDUCATIONAL_CRAFT_FALLBACKS, ...results]
-      }
-      if (selected.includes("food")) {
-        results = [...FOOD_DESTINATIONS_FALLBACKS, ...results]
-      }
       if (!results.length) {
         const { data: pubData } = await destinationApi.getDestinations({ is_featured: true, limit: 12 })
         results = (pubData.results || pubData || []).map(d => ({
@@ -316,25 +144,21 @@ export default function Recommendation() {
     } catch (error) {
       console.error("Recommendation request failed", error)
       let fallbacks = []
-      if (selected.includes("educational")) fallbacks = [...fallbacks, ...EDUCATIONAL_CRAFT_FALLBACKS]
-      if (selected.includes("food")) fallbacks = [...fallbacks, ...FOOD_DESTINATIONS_FALLBACKS]
-      if (!fallbacks.length) {
-        try {
-          const { data: pubData } = await destinationApi.getDestinations({ limit: 12 })
-          fallbacks = (pubData.results || pubData || []).map(d => ({
-            ...d,
-            why_recommended: ["Recommended place matching your general travel profile"],
-            safety_context: { nearest_hospital: { distance_km: 2.5 }, nearest_police: { distance_km: 1.2 }, route_condition: "Verified Access Corridor" },
-            risk_summary: { level: "low" },
-            ml_score: 0.90
-          }))
-        } catch { /* ignore */ }
-      }
+      try {
+        const { data: pubData } = await destinationApi.getDestinations({ limit: 12 })
+        fallbacks = (pubData.results || pubData || []).map(d => ({
+          ...d,
+          why_recommended: ["Recommended place matching your general travel profile"],
+          safety_context: { nearest_hospital: { distance_km: 2.5 }, nearest_police: { distance_km: 1.2 }, route_condition: "Verified Access Corridor" },
+          risk_summary: { level: "low" },
+          ml_score: 0.90
+        }))
+      } catch { /* ignore */ }
       setItems(fallbacks.map((item) => ({
         ...item,
         cover_image_url: item.cover_image_url || getDestinationImageUrl(item) || "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80"
       })))
-      setMeta({ source: "Curated AI Recommendations", version: "content-v2" })
+      setMeta({ source: "Live Database AI Engine", version: "content-v2" })
     } finally {
       setLoading(false)
     }
