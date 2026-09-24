@@ -1682,8 +1682,8 @@ class NearbyEmergencyServicesView(APIView):
 
     def get(self, request):
         try:
-            latitude = float(request.query_params["latitude"])
-            longitude = float(request.query_params["longitude"])
+            latitude = float(request.query_params.get("latitude") or request.query_params.get("lat"))
+            longitude = float(request.query_params.get("longitude") or request.query_params.get("lng"))
             radius_km = max(1, min(float(request.query_params.get("radius_km", 50)), 300))
             limit = max(1, min(int(request.query_params.get("limit", 8)), 25))
         except (KeyError, TypeError, ValueError):

@@ -456,7 +456,7 @@ class NavigationRouteView(APIView):
         # Origin by name (e.g. "From: Kathmandu") — lets travellers plan a
         # route without GPS. Resolved through the same universal place index
         # as destinations; a fabricated default origin is never substituted.
-        origin_name = pick("origin_name", "originName")
+        origin_name = pick("origin_name", "originName", "origin", "start", "from", "start_name", "start_city")
         origin_label = None
         if (start_lat is None or start_lon is None) and origin_name and origin_name.lower() not in {"current location", "my current location"}:
             from .location.search_service import LocationSearchService
