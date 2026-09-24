@@ -1053,6 +1053,10 @@ class DestinationListSerializer(serializers.ModelSerializer):
             # no-photo state instead.
             if not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
                 return cover
+        if getattr(obj, "og_image_url", None):
+            og = resolve_image_url(obj.og_image_url, request)
+            if not is_generated_postcard_url(og) and image_url_matches_destination(obj, og) is not False:
+                return og
         photos = verified_destination_photos(obj)
         cover_photo = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
         if cover_photo:
@@ -1233,6 +1237,10 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
             # no-photo state instead.
             if not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
                 return cover
+        if getattr(obj, "og_image_url", None):
+            og = resolve_image_url(obj.og_image_url, request)
+            if not is_generated_postcard_url(og) and image_url_matches_destination(obj, og) is not False:
+                return og
         photos = verified_destination_photos(obj)
         cover_photo = next((photo for photo in photos if photo.is_cover), None) or (photos[0] if photos else None)
         if cover_photo:
