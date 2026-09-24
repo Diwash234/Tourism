@@ -1806,7 +1806,7 @@ class DestinationNearbyPOIsView(APIView):
         "police": ('node["amenity"="police"]', "Police"),
         "pharmacies": ('node["amenity"="pharmacy"]', "Pharmacies"),
     }
-    DEFAULT_CATEGORIES = ["hotels", "hospitals", "temples", "viewpoints", "restaurants", "banks"]
+    DEFAULT_CATEGORIES = ["hotels", "hospitals", "police", "temples", "viewpoints", "restaurants", "banks"]
 
     @staticmethod
     def _categorize(tags):
