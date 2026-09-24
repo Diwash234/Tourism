@@ -88,6 +88,7 @@ export default function CMSPanel({ defaultResource }) {
   // over the loaded rows; reordering always operates on the FULL row order.
   const [listQuery, setListQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [pageFilter, setPageFilter] = useState("all")
   const [sortMode, setSortMode] = useState("default")
   const [selected, setSelected] = useState(null)
   const [json, setJson] = useState("")
@@ -362,12 +363,18 @@ export default function CMSPanel({ defaultResource }) {
   // Filtered/sorted view of the record list (brief §22/§88). Reordering and
   // saving always use the full `rows` array — this is display-only.
   const statuses = ["all", ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))]
+  const pagesList = Array.from(new Set(rows.map((r) => r.page_title || r.page_key || r.page_route).filter(Boolean))).sort()
+
   const visibleRows = rows
     .filter((row) => {
       if (statusFilter !== "all" && row.status !== statusFilter) return false
+      if (resource === "sections" && pageFilter !== "all") {
+        const pMatch = String(row.page_title || row.page_key || row.page_route || "")
+        if (pMatch !== pageFilter) return false
+      }
       const q = listQuery.trim().toLowerCase()
       if (!q) return true
-      return [row.title, row.label, row.key, row.route, row.status, `#${row.id}`]
+      return [row.title, row.label, row.key, row.route, row.status, row.page_title, row.page_route, `#${row.id}`]
         .some((value) => String(value || "").toLowerCase().includes(q))
     })
     .sort((a, b) => {
@@ -412,6 +419,14 @@ export default function CMSPanel({ defaultResource }) {
               aria-label={`Search ${resource}`}
               className="w-full rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
             />
+            {resource === "sections" && pagesList.length > 0 && (
+              <select value={pageFilter} onChange={(event) => setPageFilter(event.target.value)} aria-label="Filter sections by page" className="w-full rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs font-bold text-emerald-950">
+                <option value="all">All Pages ({rows.length} total sections)</option>
+                {pagesList.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            )}
             <div className="flex gap-1.5">
               <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status" className="flex-1 rounded-lg border border-emerald-200 px-1.5 py-1 text-[11px] capitalize">
                 {statuses.map((value) => <option key={value} value={value}>{value === "all" ? "All statuses" : value}</option>)}
@@ -488,7 +503,7 @@ export default function CMSPanel({ defaultResource }) {
               </div>
               {resource === "pages" && (
                 <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[1fr_auto_auto]">
-                  <label className="text-xs font-semibold text-slate-300">Page template
+                  <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Page template
                     <select className="input-field mt-1" value={pageTemplate} onChange={event => setPageTemplate(event.target.value)}>
                       {Object.entries(catalog).map(([key, item]) => <option key={key} value={key}>{item.label || key}</option>)}
                     </select>
@@ -503,7 +518,7 @@ export default function CMSPanel({ defaultResource }) {
                     </div>
                   )}
                   {selected.id && (
-                    <label className="sm:col-span-3 text-xs font-semibold text-slate-300">Import layout JSON (HTTPS pack)
+                    <label className="sm:col-span-3 text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Import layout JSON (HTTPS pack)
                       <div className="mt-1 flex gap-2">
                         <input className="input-field" value={layoutUrl} onChange={(e) => setLayoutUrl(e.target.value)} placeholder="https://example.com/layout.json" />
                         <button type="button" disabled={busy || !layoutUrl.startsWith("https://")} onClick={() => workflow("import_layout", { source_url: layoutUrl })} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">Import</button>
@@ -856,7 +871,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
   }
   const set = (key, next) => setJson(JSON.stringify({ ...value, [key]: next }, null, 2))
   const field = (key, label, type = "text") => (
-    <label key={key} className="text-xs font-semibold text-slate-300">
+    <label key={key} className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">
       {label}
       {type === "textarea"
         ? <textarea rows="4" className="input-field mt-1" value={value[key] ?? ""} onChange={e => set(key, e.target.value)} />
@@ -901,7 +916,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
       {field("route", "Page route")}
       {field("meta_description", "Search description", "textarea")}
       {field("og_image_url", "Social image URL")}
-      <label className="text-xs font-semibold text-slate-300">Publication status
+      <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Publication status
         <select className="input-field mt-1" value={value.status || "draft"} onChange={e => set("status", e.target.value)}>
           <option>draft</option><option>scheduled</option><option>published</option>
         </select>
@@ -918,14 +933,14 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         {field("key", "Section key")}
         {field("title", "Section title")}
         {field("subtitle", "Subtitle")}
-        <label className="sm:col-span-2 text-xs font-semibold text-slate-300">Body content
+        <label className="sm:col-span-2 text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Body content
           <RichTextEditor value={value.body || ""} onChange={html => set("body", html)} />
         </label>
         {field("image_url", "Image URL")}
-        <label className="text-xs font-semibold text-slate-300">Media URL (HTTPS or /)
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Media URL (HTTPS or /)
           <input className="input-field mt-1" value={value.config?.media_url || ""} onChange={e => set("config", { ...(value.config || {}), media_url: e.target.value })} />
         </label>
-        <label className="text-xs font-semibold text-slate-300">Background Theme / Style
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Background Theme / Style
           <select className="input-field mt-1" value={value.config?.background_style || "clean-white"} onChange={e => set("config", { ...(value.config || {}), background_style: e.target.value })}>
             <option value="clean-white">Clean White (Standard Card)</option>
             <option value="gradient-emerald">Gradient Emerald (Himalayan Forest)</option>
@@ -935,14 +950,14 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
             <option value="border-accent">Border Accent (Gold Border Highlighting)</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Padding & Spacing
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Padding & Spacing
           <select className="input-field mt-1" value={value.config?.padding_style || "medium"} onChange={e => set("config", { ...(value.config || {}), padding_style: e.target.value })}>
             <option value="compact">Compact (p-4)</option>
             <option value="medium">Medium (p-6)</option>
             <option value="spacious">Spacious (p-10)</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Text Size
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Text Size
           <select className="input-field mt-1" value={value.config?.text_scale || "base"} onChange={e => set("config", { ...(value.config || {}), text_scale: e.target.value })}>
             <option value="sm">Small</option>
             <option value="base">Normal</option>
@@ -950,22 +965,22 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
             <option value="xl">Extra large</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Alignment
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Alignment
           <select className="input-field mt-1" value={value.config?.align || "left"} onChange={e => set("config", { ...(value.config || {}), align: e.target.value })}>
             <option value="left">Left</option>
             <option value="center">Center</option>
             <option value="right">Right</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Background Image (HTTPS, optional)
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Background Image (HTTPS, optional)
           <input className="input-field mt-1" value={value.config?.bg_image || ""} onChange={e => set("config", { ...(value.config || {}), bg_image: e.target.value })} placeholder="https://…" />
         </label>
-        <label className="text-xs font-semibold text-slate-300">Animation
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Animation
           <select className="input-field mt-1" value={value.config?.effect || "none"} onChange={e => set("config", { ...(value.config || {}), effect: e.target.value })}>
             {["none", "marquee", "fade", "slide"].map(item => <option key={item}>{item}</option>)}
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Placement
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Placement
           <select className="input-field mt-1" value={value.config?.placement || "main"} onChange={e => set("config", { ...(value.config || {}), placement: e.target.value })}>
             {["main", "hero", "sidebar", "footer"].map(item => <option key={item}>{item}</option>)}
           </select>
@@ -975,12 +990,12 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         {field("icon", "Icon")}
         <SectionConfigFields value={value} set={set} />
         <VisibilityFields value={value} set={set} />
-        <label className="text-xs font-semibold text-slate-300">Section type
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Section type
           <select className="input-field mt-1" value={value.section_type || "text"} onChange={e => set("section_type", e.target.value)}>
             {sectionTypes.map(type => <option key={type}>{type}</option>)}
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Layout Variant
+        <label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Layout Variant
           <select className="input-field mt-1" value={value.layout_variant || "default"} onChange={e => set("layout_variant", e.target.value)}>
             {["default", "compact", "wide", "cards", "hero", "split"].map(item => <option key={item}>{item}</option>)}
           </select>
@@ -999,9 +1014,9 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
       </div>
     </div>
   )
-  if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-300">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-300">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
-  if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-300">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
-  return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-300">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
+  if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
+  if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
+  return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-900 font-bold dark:text-emerald-100">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
 
 export function ContentBlocksBuilder({ sectionId, onToast }) {
@@ -1189,10 +1204,10 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
               {editingBlock?.id === b.id && (
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 space-y-3 text-xs">
                   <div className="grid sm:grid-cols-2 gap-2">
-                    <label className="block font-semibold text-slate-300">Block Title
+                    <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Block Title
                       <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, title: e.target.value })} />
                     </label>
-                    <label className="flex items-center gap-2 mt-5 font-semibold text-slate-300">
+                    <label className="flex items-center gap-2 mt-5 font-semibold text-slate-900 font-bold dark:text-emerald-100">
                       <input type="checkbox" checked={editingBlock.is_visible !== false} onChange={(e) => setEditingBlock({ ...editingBlock, is_visible: e.target.checked })} />
                       Visible on page
                     </label>
@@ -1201,10 +1216,10 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                   {/* TAILORED DATA FIELDS BY BLOCK TYPE */}
                   {editingBlock.block_type === "heading" && (
                     <div className="grid sm:grid-cols-3 gap-2">
-                      <label className="block font-semibold text-slate-300">Heading Text
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Heading Text
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.text || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, text: e.target.value } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Heading Level
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Heading Level
                         <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.level || "h2"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, level: e.target.value } })}>
                           <option value="h1">H1 (Main Title)</option>
                           <option value="h2">H2 (Section Heading)</option>
@@ -1212,7 +1227,7 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                           <option value="h4">H4 (Minor Heading)</option>
                         </select>
                       </label>
-                      <label className="block font-semibold text-slate-300">Alignment
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Alignment
                         <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.align || "left"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, align: e.target.value } })}>
                           <option value="left">Left</option>
                           <option value="center">Center</option>
@@ -1223,23 +1238,23 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                   )}
 
                   {editingBlock.block_type === "rich_text" && (
-                    <label className="block font-semibold text-slate-300">Rich Text Body
+                    <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Rich Text Body
                       <RichTextEditor value={editingBlock.data?.html || editingBlock.data?.text || ""} onChange={(html) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, html } })} />
                     </label>
                   )}
 
                   {editingBlock.block_type === "image" && (
                     <div className="grid sm:grid-cols-2 gap-2">
-                      <label className="block font-semibold text-slate-300">Image URL
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Image URL
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} placeholder="/images/... or https://..." />
                       </label>
-                      <label className="block font-semibold text-slate-300">Caption
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Caption
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.caption || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, caption: e.target.value } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Alt Text
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Alt Text
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.alt || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, alt: e.target.value } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Link URL (optional)
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Link URL (optional)
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.link || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, link: e.target.value } })} />
                       </label>
                     </div>
@@ -1247,13 +1262,13 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
 
                   {editingBlock.block_type === "button" && (
                     <div className="grid sm:grid-cols-3 gap-2">
-                      <label className="block font-semibold text-slate-300">Button Label
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Button Label
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.label || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, label: e.target.value } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Destination Route / URL
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Destination Route / URL
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Button Style
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Button Style
                         <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.style || "primary"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, style: e.target.value } })}>
                           <option value="primary">Primary Emerald</option>
                           <option value="gold">Saffron Gold</option>
@@ -1266,10 +1281,10 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                   {editingBlock.block_type === "table" && (
                     <div className="space-y-2">
                       <p className="font-bold text-amber-300">Table Data Builder</p>
-                      <label className="block font-semibold text-slate-300">Columns (comma separated)
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Columns (comma separated)
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={(editingBlock.data?.columns || []).join(", ")} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, columns: e.target.value.split(",").map(x => x.trim()).filter(Boolean) } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Rows JSON (array of arrays)
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Rows JSON (array of arrays)
                         <textarea rows="4" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.rows || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, rows: JSON.parse(e.target.value) } }) } catch { /* keep */ } }} />
                       </label>
                     </div>
@@ -1277,10 +1292,10 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
 
                   {editingBlock.block_type === "card_grid" && (
                     <div className="space-y-2">
-                      <label className="block font-semibold text-slate-300">Cards JSON (array of {"{ emoji, title, description, url, image }"} — url must start with /, image must be HTTPS)
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Cards JSON (array of {"{ emoji, title, description, url, image }"} — url must start with /, image must be HTTPS)
                         <textarea rows="6" className="input-field mt-1 font-mono bg-slate-900 text-white border-slate-700" value={JSON.stringify(editingBlock.data?.items || [], null, 2)} onChange={(e) => { try { setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, items: JSON.parse(e.target.value) } }) } catch { /* keep until valid */ } }} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Columns on desktop
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Columns on desktop
                         <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.columns || 4} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, columns: Number(e.target.value) } })}>
                           <option value={1}>1 column</option>
                           <option value={2}>2 columns</option>
@@ -1293,10 +1308,10 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
 
                   {editingBlock.block_type === "packages" && (
                     <div className="grid sm:grid-cols-2 gap-2">
-                      <label className="block font-semibold text-slate-300">Max packages (1-12)
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Max packages (1-12)
                         <input type="number" min="1" max="12" className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.limit ?? 6} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, limit: parseInt(e.target.value, 10) || 6 } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Only kind (optional: package, hotel, tour…)
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Only kind (optional: package, hotel, tour…)
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.kind || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, kind: e.target.value } })} />
                       </label>
                     </div>
@@ -1304,10 +1319,10 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
 
                   {editingBlock.block_type === "video" && (
                     <div className="grid sm:grid-cols-2 gap-2">
-                      <label className="block font-semibold text-slate-300">YouTube / Vimeo Embed URL
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">YouTube / Vimeo Embed URL
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.url || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, url: e.target.value } })} placeholder="https://www.youtube.com/watch?v=..." />
                       </label>
-                      <label className="block font-semibold text-slate-300">Video Title
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Video Title
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, title: e.target.value } })} />
                       </label>
                     </div>
@@ -1315,7 +1330,7 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
 
                   {editingBlock.block_type === "alert" && (
                     <div className="grid sm:grid-cols-3 gap-2">
-                      <label className="block font-semibold text-slate-300">Alert Variant
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Alert Variant
                         <select className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.variant || "info"} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, variant: e.target.value } })}>
                           <option value="info">Info (Blue)</option>
                           <option value="warning">Warning (Gold)</option>
@@ -1323,17 +1338,17 @@ export function ContentBlocksBuilder({ sectionId, onToast }) {
                           <option value="success">Success (Emerald)</option>
                         </select>
                       </label>
-                      <label className="block font-semibold text-slate-300">Alert Title
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Alert Title
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.title || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, title: e.target.value } })} />
                       </label>
-                      <label className="block font-semibold text-slate-300">Alert Message Body
+                      <label className="block font-semibold text-slate-900 font-bold dark:text-emerald-100">Alert Message Body
                         <input className="input-field mt-1 bg-slate-900 text-white border-slate-700" value={editingBlock.data?.body || ""} onChange={(e) => setEditingBlock({ ...editingBlock, data: { ...editingBlock.data, body: e.target.value } })} />
                       </label>
                     </div>
                   )}
 
                   <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-                    <button type="button" onClick={() => setEditingBlock(null)} className="px-3 py-1.5 rounded bg-slate-800 text-slate-300 font-bold">Cancel</button>
+                    <button type="button" onClick={() => setEditingBlock(null)} className="px-3 py-1.5 rounded bg-slate-800 text-slate-900 font-bold dark:text-emerald-100 font-bold">Cancel</button>
                     <button type="button" onClick={() => saveBlock(editingBlock)} className="px-4 py-1.5 rounded bg-emerald-600 text-white font-black shadow hover:bg-emerald-500">Save Block</button>
                   </div>
                 </div>
@@ -1483,13 +1498,13 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
             )}
             {openId === section.id && draft && (
               <div className="mt-3 grid gap-2 rounded-lg bg-slate-900 text-white p-3 sm:grid-cols-2">
-                <label className="font-semibold text-slate-300">Title<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
-                <label className="font-semibold text-slate-300">Key<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.key || ""} onChange={(e) => setDraft({ ...draft, key: e.target.value })} /></label>
-                <label className="font-semibold text-slate-300">Subtitle<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></label>
-                <label className="font-semibold text-slate-300">Image / media URL<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
-                <label className="font-semibold text-slate-300">Button Text (CTA)<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.cta_text || ""} onChange={(e) => setDraft({ ...draft, cta_text: e.target.value })} placeholder="e.g. Explore Now" /></label>
-                <label className="font-semibold text-slate-300">Button Link Route<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.cta_url || ""} onChange={(e) => setDraft({ ...draft, cta_url: e.target.value })} placeholder="/destinations" /></label>
-                <label className="font-semibold text-slate-300">Background Theme / Style
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Title<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Key<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.key || ""} onChange={(e) => setDraft({ ...draft, key: e.target.value })} /></label>
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Subtitle<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></label>
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Image / media URL<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.image_url || ""} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} /></label>
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Button Text (CTA)<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.cta_text || ""} onChange={(e) => setDraft({ ...draft, cta_text: e.target.value })} placeholder="e.g. Explore Now" /></label>
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Button Link Route<input className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.cta_url || ""} onChange={(e) => setDraft({ ...draft, cta_url: e.target.value })} placeholder="/destinations" /></label>
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Background Theme / Style
                   <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.background_style || "clean-white"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), background_style: e.target.value } })}>
                     <option value="clean-white">Clean White (Standard Card)</option>
                     <option value="gradient-emerald">Gradient Emerald (Himalayan Forest)</option>
@@ -1499,33 +1514,33 @@ function PageSectionBuilder({ pageId, refreshKey, onToast }) {
                     <option value="border-accent">Border Accent (Gold Border Highlighting)</option>
                   </select>
                 </label>
-                <label className="font-semibold text-slate-300">Padding & Spacing
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Padding & Spacing
                   <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.config?.padding_style || "medium"} onChange={(e) => setDraft({ ...draft, config: { ...(draft.config || {}), padding_style: e.target.value } })}>
                     <option value="compact">Compact (p-4)</option>
                     <option value="medium">Medium (p-6)</option>
                     <option value="spacious">Spacious (p-10)</option>
                   </select>
                 </label>
-                <label className="font-semibold text-slate-300">Section type
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Section type
                   <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.section_type || "text"} onChange={(e) => setDraft({ ...draft, section_type: e.target.value })}>
                     {sectionTypes.map((type) => <option key={type}>{type}</option>)}
                   </select>
                 </label>
-                <label className="font-semibold text-slate-300">Layout Variant
+                <label className="font-semibold text-slate-900 font-bold dark:text-emerald-100">Layout Variant
                   <select className="input-field mt-1 text-slate-100 bg-slate-800 border-slate-700" value={draft.layout_variant || "default"} onChange={(e) => setDraft({ ...draft, layout_variant: e.target.value })}>
                     {["default", "compact", "wide", "cards", "hero", "split"].map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </label>
-                <label className="sm:col-span-2 font-semibold text-slate-300">Body Content
+                <label className="sm:col-span-2 font-semibold text-slate-900 font-bold dark:text-emerald-100">Body Content
                   <RichTextEditor value={draft.body || ""} onChange={(html) => setDraft({ ...draft, body: html })} />
                 </label>
                 <div className="sm:col-span-2 mt-2">
                   <ContentBlocksBuilder sectionId={draft.id} onToast={onToast} />
                 </div>
-                <label className="flex items-center gap-2 font-semibold text-slate-300"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
+                <label className="flex items-center gap-2 font-semibold text-slate-900 font-bold dark:text-emerald-100"><input type="checkbox" checked={Boolean(draft.is_visible)} onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })} /> Visible on traveller page</label>
                 <div className="flex gap-2 self-end">
                   <button type="button" onClick={saveSection} className="rounded-lg bg-amber-400 text-slate-950 font-black px-4 py-2 text-xs shadow">Save & Publish Section</button>
-                  <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-300 px-3 py-2 text-xs font-bold">Cancel</button>
+                  <button type="button" onClick={() => { setOpenId(null); setDraft(null) }} className="rounded-lg bg-slate-800 text-slate-900 font-bold dark:text-emerald-100 px-3 py-2 text-xs font-bold">Cancel</button>
                 </div>
               </div>
             )}
