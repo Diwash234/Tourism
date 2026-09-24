@@ -162,12 +162,14 @@ export default function CMSPanel() {
   }, [resource, sectionPageId])
 
   useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
-    adminApi.getCMS("pages", { templates: true }).then(({ data }) => {
-      if (data.templates) setCatalog(data.templates)
-    }).catch(() => setCatalog(fallbackTemplates))
+      Promise.all([
+        adminApi.getCMS("pages", { templates: true }),
+        adminApi.getCMS("pages"),
+      ]).then(([templatesResponse, pagesResponse]) => {
+        if (templatesResponse.data.templates) setCatalog(templatesResponse.data.templates)
+        setPageRows(pagesResponse.data.results || [])
+      }).catch(() => setCatalog(fallbackTemplates))
     }, 0)
     return () => clearTimeout(t)
   }, [])
@@ -285,7 +287,7 @@ export default function CMSPanel() {
     catch (error) { showToast(error.response?.data?.detail || "Preview failed", "error") }
   }
   const travellerPreviewSrc = () => {
-    const route = preview?.route || selected?.route || "/"
+    const route = preview?.route || preview?.page_route || selected?.route || selected?.page_route || "/"
     try {
       const url = new URL(route, window.location.origin)
       url.searchParams.set("as", "traveller")
@@ -361,6 +363,17 @@ export default function CMSPanel() {
             <b>{RESOURCE_LABELS[resource]} <span className="ml-1 text-xs font-normal text-emerald-700">({rows.length})</span></b>
             <button onClick={() => load()} title="Refresh" aria-label="Refresh list"><FiRefreshCw /></button>
           </div>
+          {resource === "sections" && (
+            <div className="p-2 border-b border-emerald-100 bg-emerald-50">
+              <label className="block text-[11px] font-bold text-slate-700">
+                Page
+                <select value={sectionPageId} onChange={(event) => setSectionPageId(event.target.value)} className="input-field mt-1">
+                  <option value="">All pages</option>
+                  {pageRows.map((page) => <option key={page.id} value={page.id}>{page.title || page.key} · {page.route}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
           <div className="p-2 space-y-2 border-b border-emerald-100">
             <input
               value={listQuery}
