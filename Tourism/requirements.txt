@@ -1,0 +1,38 @@
+# Core Django backend (Tourism/) — NOT the ML microservice
+# (that one has its own ml_service/requirements.txt).
+#
+# Verified against the working sandbox venv (Python 3.11 / Django 5.0.6).
+# Install:
+#   python3 -m venv .venv && source .venv/bin/activate
+#   pip install -r Tourism/requirements.txt
+#
+# NOTE: torch/torchvision/transformers are intentionally NOT listed here —
+# only ml_service needs them when training, and the website runs fine
+# without them (bundled fallback engines + committed pickles).
+
+Django==5.0.6
+djangorestframework==3.15.2
+django-cors-headers==4.3.1
+django-phonenumber-field==7.3.0
+djangorestframework-simplejwt==5.3.1
+drf-spectacular==0.27.2
+whitenoise==6.6.0
+
+# WebSockets (chat/tour guide live features)
+channels==4.3.2
+daphne==4.2.3
+asgiref==3.12.1
+
+# HTTP / data
+requests==2.32.3
+Pillow==12.3.0
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+joblib>=1.4
+networkx==3.3
+
+# Free translation tier (Google Translate endpoint, no API key needed).
+# If the install fails on your platform, the site still works — the
+# translation page then reports "no translation provider available".
+deep-translator>=1.11
