@@ -42,11 +42,13 @@ export async function predictBudget(data) {
   return res.data
 }
 
-// Translation
-export async function translateText(text, target_lang = "ne") {
+// Translation — the backend /translate/ contract uses `target_language`
+// (a `target_lang` payload is rejected with a 400, which broke the
+// Nepali/Hindi site-wide translation toggle).
+export async function translateText(text, target_language = "ne") {
   const res = await axiosClient.post("/translate/", {
     text: text,
-    target_lang: target_lang,
+    target_language: target_language,
   })
   return res.data
 }
