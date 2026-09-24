@@ -152,23 +152,26 @@ def _load_graph():
 # Risk calculation
 # ---------------------------------------------------------------------------
 
-def _node_risk_multiplier(node_data):
-    """
-    Find the nearest risk_features.csv row to a graph node and return
-    the corresponding risk multiplier.
-    """
+_risk_array_cache = None
+_risk_node_cache = {}
+
+
+def _risk_arrays():
+    """Vectorized view of the risk table, built once per process.
+
+    Returns (latitudes, longitudes, multipliers) as numpy arrays, or None
+    when the risk data is unavailable/malformed. Same data as _risk_df —
+    it only exists so nearest-row lookups run as one numpy vector op
+    instead of a pandas copy-and-scan per call."""
+
+    global _risk_array_cache
+
+    if _risk_array_cache is not None:
+        return _risk_array_cache
 
     if _risk_df is None:
-        return 1.0
-
-    if "lat" not in node_data or "lon" not in node_data:
-        return 1.0
-
-    try:
-        node_lat = float(node_data["lat"])
-        node_lon = float(node_data["lon"])
-    except (ValueError, TypeError):
-        return 1.0
+        _risk_array_cache = None
+        return None
 
     required_columns = {
         "latitude",
@@ -177,31 +180,71 @@ def _node_risk_multiplier(node_data):
     }
 
     if not required_columns.issubset(_risk_df.columns):
+        _risk_array_cache = None
+        return None
+
+    try:
+        import numpy as np
+
+        lats = _risk_df["latitude"].to_numpy(dtype=float)
+        lons = _risk_df["longitude"].to_numpy(dtype=float)
+        mults = np.array(
+            [
+                RISK_MULTIPLIER.get(str(cat).upper(), 1.0)
+                for cat in _risk_df["risk_category"]
+            ],
+            dtype=float,
+        )
+    except Exception:
+        _risk_array_cache = None
+        return None
+
+    _risk_array_cache = (lats, lons, mults)
+    return _risk_array_cache
+
+
+def _node_risk_multiplier(node_data):
+    """
+    Find the nearest risk_features.csv row to a graph node and return
+    the corresponding risk multiplier.
+
+    Same nearest-row rule as the original implementation (minimum squared
+    latitude/longitude distance, first row on ties), but the per-node
+    result is memoized and the row scan is a single vectorized numpy op.
+    The previous version copied and scanned the whole risk frame in
+    pandas on EVERY call — with 37k edges that made risk-weighted routing
+    take tens of seconds per request.
+    """
+
+    if "lat" not in node_data or "lon" not in node_data:
+        return 1.0
+
+    key = (node_data["lat"], node_data["lon"])
+    cached = _risk_node_cache.get(key)
+    if cached is not None:
+        return cached
+
+    try:
+        node_lat = float(node_data["lat"])
+        node_lon = float(node_data["lon"])
+    except (ValueError, TypeError):
+        return 1.0
+
+    arrays = _risk_arrays()
+    if arrays is None:
         return 1.0
 
     try:
+        import numpy as np
 
-        df = _risk_df.copy()
-
-        df["_d"] = (
-            (df["latitude"] - node_lat) ** 2
-            +
-            (df["longitude"] - node_lon) ** 2
-        )
-
-        nearest = df.loc[df["_d"].idxmin()]
-
-        category = str(
-            nearest.get("risk_category", "LOW")
-        ).upper()
-
-        return RISK_MULTIPLIER.get(
-            category,
-            1.0
-        )
-
+        lats, lons, mults = arrays
+        d = (lats - node_lat) ** 2 + (lons - node_lon) ** 2
+        result = float(mults[int(np.argmin(d))])
     except Exception:
         return 1.0
+
+    _risk_node_cache[key] = result
+    return result
 
 
 # ---------------------------------------------------------------------------

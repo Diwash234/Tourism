@@ -309,4 +309,15 @@ def route_alternatives(start_lat, start_lon, end_lat, end_lon,
             pass  # provider configured but failing: degrade exactly like the
             # primary route does — to the labelled bundled graph, never to
             # fabricated variety.
-    return _graph_alternatives(values, primary_route_type, _route_signature(primary_route))
+    # Bundled-graph alternatives are deterministic for the same endpoints
+    # and weighting, and recomputing them re-walks the whole graph — cache
+    # them exactly like route_metrics does (30 minutes).
+    cache_key = "route-alts:" + hashlib.sha256(
+        f"{values[0]},{values[1]},{values[2]},{values[3]}:{primary_route_type}".encode()
+    ).hexdigest()
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    alternatives = _graph_alternatives(values, primary_route_type, _route_signature(primary_route))
+    cache.set(cache_key, alternatives, timeout=1800)
+    return alternatives

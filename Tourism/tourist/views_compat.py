@@ -31,6 +31,32 @@ def _parse_float(value, field_name):
         raise ValueError(f"'{field_name}' must be a number.")
 
 
+def _canonical_locality(name):
+    """Resolve a city/locality name to its canonical municipality point.
+
+    City-level names ("Pokhara", "Kathmandu Metropolitan City") must route
+    to the recorded city centre — the same municipality index the place
+    search uses — instead of an arbitrary destination row that merely
+    mentions the city. Returns a plain dict (no Destination record is
+    fabricated) or None when the name is not a known municipality."""
+    from .location.administrative_boundaries import MUNICIPALITY_COORDINATES
+
+    q = str(name or "").strip().lower()
+    if not q:
+        return None
+    for suffix in ("", " municipality", " metropolitan city", " rural municipality"):
+        entry = MUNICIPALITY_COORDINATES.get(f"{q}{suffix}")
+        if entry:
+            return {
+                "name": f"{q.title()}{suffix.title()}" if suffix else q.title(),
+                "latitude": entry["lat"],
+                "longitude": entry["lng"],
+                "city": q.title(),
+                "address": f"{entry.get('district', '')}, {entry.get('province', '')}, Nepal".strip(", "),
+            }
+    return None
+
+
 class RecommendationsPersonalizedView(APIView):
     """
     GET /api/v1/recommendations/personalized?latitude=&longitude=&lat=&lng=&top_n=&interest=
@@ -198,6 +224,13 @@ class NearbyHospitalsView(APIView):
                 "district": h.district,
                 "is_24_hours": h.emergency_available,
                 "image_url": _stored_image_url(h),
+                # Provenance + freshness: safety-critical records must carry
+                # source metadata (never fabricated — stored values as-is).
+                "source_name": h.source_name or None,
+                "source_url": h.source_url or None,
+                "is_verified": bool(h.is_verified),
+                "verified_at": h.verified_at.isoformat() if h.verified_at else None,
+                "updated_at": h.updated_at.isoformat() if h.updated_at else None,
             })
 
         results.sort(key=lambda x: x["distance_km"])
@@ -254,6 +287,13 @@ class NearbyPoliceView(APIView):
                 "distance_km": round(d, 2),
                 "is_24_hours": p.emergency_available,
                 "image_url": _stored_image_url(p),
+                # Provenance + freshness: safety-critical records must carry
+                # source metadata (never fabricated — stored values as-is).
+                "source_name": p.source_name or None,
+                "source_url": p.source_url or None,
+                "is_verified": bool(p.is_verified),
+                "verified_at": p.verified_at.isoformat() if p.verified_at else None,
+                "updated_at": p.updated_at.isoformat() if p.updated_at else None,
             })
 
         results.sort(key=lambda x: x["distance_km"])
@@ -431,46 +471,77 @@ class NavigationRouteView(APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            candidates = Destination.objects.filter(
-                Q(name__icontains=destination_name)
-                | Q(city__icontains=destination_name)
-                | Q(country__icontains=destination_name)
-                | Q(slug__icontains=destination_name),
+            # Canonical locality-aware resolution — deterministic tiers,
+            # never an arbitrary .first() on a fuzzy match:
+            #   1. Exact destination record (name or slug, with coordinates)
+            #   2. Canonical municipality/locality point (city-level names
+            #      like "Pokhara" or "Kathmandu Metropolitan City" route to
+            #      the recorded city centre, not to an attraction that
+            #      merely mentions the city)
+            #   3. Fuzzy candidates: nearest to the traveller's start when
+            #      GPS is present; otherwise the alphabetically-first
+            #      deterministic match
+            exact = Destination.objects.filter(
+                Q(name__iexact=destination_name) | Q(slug__iexact=destination_name),
                 is_active=True,
-            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
-            if candidates.exists():
-                if start_lat is not None and start_lon is not None:
-                    destination_obj = min(
-                        candidates,
-                        key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude) or 1e9,
-                    )
-                else:
-                    destination_obj = candidates.first()
-                end_lat, end_lon = float(destination_obj.latitude), float(destination_obj.longitude)
+            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True).first()
+            if exact:
+                destination_obj = exact
+                end_lat, end_lon = float(exact.latitude), float(exact.longitude)
             else:
-                from .location.search_service import LocationSearchService
-                # Reject random nonexistent test strings
-                if "nonexistent" in destination_name.lower() or "xyz" in destination_name.lower():
-                    return Response(
-                        {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
-                resolved = LocationSearchService.resolve_single_place(destination_name)
-                if resolved and resolved.get("latitude") and resolved.get("longitude"):
-                    end_lat, end_lon = resolved["latitude"], resolved["longitude"]
+                locality = _canonical_locality(destination_name)
+                if locality:
                     destination_dict = {
-                        "id": resolved.get("destination_id", 99999),
-                        "name": resolved["name"],
-                        "city": resolved.get("city", "Pokhara"),
-                        "latitude": end_lat,
-                        "longitude": end_lon,
-                        "address": resolved.get("address", "Nepal"),
+                        "id": None,
+                        "name": locality["name"],
+                        "city": locality["city"],
+                        "latitude": locality["latitude"],
+                        "longitude": locality["longitude"],
+                        "address": locality["address"],
+                        "resolved_from": "canonical_locality",
                     }
+                    end_lat, end_lon = locality["latitude"], locality["longitude"]
                 else:
-                    return Response(
-                        {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
+                    candidates = Destination.objects.filter(
+                        Q(name__icontains=destination_name)
+                        | Q(city__icontains=destination_name)
+                        | Q(country__icontains=destination_name)
+                        | Q(slug__icontains=destination_name),
+                        is_active=True,
+                    ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+                    if candidates.exists():
+                        if start_lat is not None and start_lon is not None:
+                            destination_obj = min(
+                                candidates,
+                                key=lambda dest: haversine_distance(start_lat, start_lon, dest.latitude, dest.longitude) or 1e9,
+                            )
+                        else:
+                            destination_obj = candidates.order_by("name").first()
+                        end_lat, end_lon = float(destination_obj.latitude), float(destination_obj.longitude)
+                    else:
+                        from .location.search_service import LocationSearchService
+                        # Reject random nonexistent test strings
+                        if "nonexistent" in destination_name.lower() or "xyz" in destination_name.lower():
+                            return Response(
+                                {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
+                                status=status.HTTP_404_NOT_FOUND,
+                            )
+                        resolved = LocationSearchService.resolve_single_place(destination_name)
+                        if resolved and resolved.get("latitude") and resolved.get("longitude"):
+                            end_lat, end_lon = resolved["latitude"], resolved["longitude"]
+                            destination_dict = {
+                                "id": resolved.get("destination_id", 99999),
+                                "name": resolved["name"],
+                                "city": resolved.get("city", "Pokhara"),
+                                "latitude": end_lat,
+                                "longitude": end_lon,
+                                "address": resolved.get("address", "Nepal"),
+                            }
+                        else:
+                            return Response(
+                                {"detail": f"No destination with recorded coordinates matches '{destination_name}'."},
+                                status=status.HTTP_404_NOT_FOUND,
+                            )
         else:
             try:
                 end_lat = _parse_float(pick("end_latitude", "endLat", "end_lat", "destinationLat"), "end latitude")

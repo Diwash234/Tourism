@@ -70,18 +70,37 @@ class RecommendedDestinationsView(APIView):
             latitude = getattr(request.user, "latitude", None)
             longitude = getattr(request.user, "longitude", None)
 
-        # Get all approved destinations
-        destinations = DestinationListSerializer(
-            Destination.objects.filter(
-                is_active=True,
-                status=Destination.SubmissionStatus.APPROVED,
-            ),
-            many=True,
-            context={
-                "request": request,
-            },
-        ).data
-
+        # Compact, bounded catalogue payload: real public Destination rows
+        # with lean fields only — no galleries, no reviews, no related
+        # lookups. The full DestinationListSerializer used to serialise
+        # every approved destination (with photo previews) into this
+        # request, which is exactly the payload bloat the recommendation
+        # API must avoid; a `.values()` query keeps it a single index scan.
+        compact_rows = (
+            Destination.publicly_visible()
+            .exclude(latitude__isnull=True)
+            .exclude(longitude__isnull=True)
+            .order_by("-is_featured", "-average_rating", "-views_count")
+            .values(
+                "id", "name", "slug", "type", "city", "district",
+                "province", "latitude", "longitude", "average_rating",
+            )[:2000]
+        )
+        destinations = [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "slug": row["slug"],
+                "type": row["type"],
+                "city": row["city"],
+                "district": row["district"],
+                "province": row["province"],
+                "latitude": float(row["latitude"]),
+                "longitude": float(row["longitude"]),
+                "average_rating": float(row["average_rating"]) if row["average_rating"] is not None else None,
+            }
+            for row in compact_rows
+        ]
 
         payload = {
             **data,
@@ -111,11 +130,10 @@ class RecommendedDestinationsView(APIView):
 
 
         except requests.RequestException:
-            # Diverse fallback across categories & provinces
-            fallback_destinations = Destination.objects.filter(
-                is_active=True,
-                status=Destination.SubmissionStatus.APPROVED,
-            ).order_by(
+            # Diverse fallback across categories & provinces — the canonical
+            # public-visibility rule (approved AND active) on a compact,
+            # bounded slice; never fabricated rows.
+            fallback_destinations = Destination.publicly_visible().order_by(
                 "-is_featured", "-average_rating", "-views_count"
             )[:data["top_n"] * 2]
 
@@ -578,7 +596,7 @@ class ItineraryView(APIView):
         start_city = (data.get("start_city") or "Kathmandu").strip()
         district = (data.get("district") or "").strip()
 
-        qs = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        qs = Destination.publicly_visible()
 
         # A typed place may be a district, city or province ("Rolpa" is a
         # district, not a city) — match every level so district requests
@@ -780,8 +798,7 @@ class AIItineraryModificationView(APIView):
 
         elif action in {"more_culture", "culture"}:
             action_note = "Enriched with UNESCO heritage sites, durbar squares, and temple circuits."
-            heritage_dests = list(Destination.objects.filter(
-                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            heritage_dests = list(Destination.publicly_visible().filter(
                 category__slug__in=["heritage", "culture", "temples", "buddhist-sites"]
             )[: len(days_data) * 2])
             for idx, day in enumerate(days_data):
@@ -799,8 +816,7 @@ class AIItineraryModificationView(APIView):
 
         elif action in {"more_nature", "more_trekking", "hidden_gems"}:
             action_note = "Swapped crowded spots with quiet alpine lakes, trekking trails, and hidden gems."
-            nature_dests = list(Destination.objects.filter(
-                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            nature_dests = list(Destination.publicly_visible().filter(
                 category__slug__in=["natural-wonders", "trekking", "lakes", "viewpoints"]
             )[: len(days_data) * 2])
             for idx, day in enumerate(days_data):
@@ -827,8 +843,7 @@ class AIItineraryModificationView(APIView):
 
         elif action in {"replan", "impact_check", "weather_replan"}:
             action_note = "IMPACT DETECTED & AUTOMATIC REPLANNING APPLIED: Swapped outdoor high-altitude/water activities with indoor cultural heritage & tea houses."
-            indoor_dests = list(Destination.objects.filter(
-                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            indoor_dests = list(Destination.publicly_visible().filter(
                 category__slug__in=["museums", "culture", "heritage", "temples"]
             )[: len(days_data) * 2])
             for idx, day in enumerate(days_data):
