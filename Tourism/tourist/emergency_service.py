@@ -81,8 +81,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "image_url": _image_url(row),
             "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
-            "source_name": row.source_name or "Nepal hospital dataset",
-            "source_url": row.source_url or "https://mohp.gov.np/",
+            "source_name": row.source_name or "",
+            "source_url": row.source_url or "",
         }
 
     def police_item(row, distance, outside_radius):
@@ -96,8 +96,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "image_url": _image_url(row),
             "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
-            "source_name": row.source_name or "Nepal police station dataset",
-            "source_url": row.source_url or "https://nepalpolice.gov.np/",
+            "source_name": row.source_name or "",
+            "source_url": row.source_url or "",
         }
 
     hospitals = _nearest_rows(
@@ -108,7 +108,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     )
 
     local_contacts = []
-    contacts = EmergencyContact.objects.all()
+    contacts = EmergencyContact.objects.exclude(phone_number__in=["", None])
     for contact in contacts:
         distance = haversine_distance(latitude, longitude, float(contact.latitude), float(contact.longitude))
         local_contacts.append((distance, contact))
@@ -117,10 +117,11 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     for distance, contact in local_contacts:
         if len(specialized) >= limit:
             break
+        contact_phone, _ = clean_phone(contact.phone_number, "")
         specialized.append({
             "id": f"contact-{contact.id}", "type": contact.contact_type,
             "name": contact.name, "address": contact.address, "district": contact.city,
-            "phone_number": str(contact.phone_number),
+            "phone_number": contact_phone,
             "alternate_phone": str(contact.alternate_phone or ""),
             "latitude": float(contact.latitude), "longitude": float(contact.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
@@ -156,8 +157,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "opening_hours": service.opening_hours,
             "image_url": _image_url(service),
             "verified": service.is_verified, "verified_at": service.verified_at, "updated_at": service.updated_at,
-            "source_name": service.source_name or ("Admin verified" if service.osm_id.startswith("community/") else "OpenStreetMap"),
-            "source_url": service.source_url or ("https://www.openstreetmap.org/" if not service.osm_id.startswith("community/") else ""),
+            "source_name": service.source_name or "",
+            "source_url": service.source_url or "",
         })
 
     facility_counts = {

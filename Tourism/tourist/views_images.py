@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from .image_pipeline import resolve_place_image
 from .image_acquisition_pipeline import ImageAcquisitionPipeline
 from .models import Destination, DestinationImage
+from .permissions import IsAdminOrStaff
 
 
 def get_destination_by_slug_or_id(val):

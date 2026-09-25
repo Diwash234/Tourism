@@ -465,7 +465,7 @@ def serialize_emergency_record(kind, obj):
     }
 
 
-def publish_official_emergency(data, reviewer=None, verified=True):
+def publish_official_emergency(data, reviewer=None, verified=False):
     """Create an emergency record in the existing DB/CSV pipeline.
 
     ``verified`` is explicit. A staff member with only ``safety.add`` may
