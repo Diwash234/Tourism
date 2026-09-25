@@ -21,7 +21,7 @@ from .models import (
     ImportConflict, ContentProposal, DuplicateDecision,
 )
 from .permissions import IsAdminOrStaff
-from .serializers import InfrastructureSubmissionSerializer, FeaturedDestinationSerializer
+from .serializers import InfrastructureSubmissionSerializer, FeaturedDestinationSerializer, is_generated_postcard_url
 
 User = get_user_model()
 
@@ -791,7 +791,7 @@ class AdminDestinationDetailView(APIView):
             "coordinates": destination.latitude is not None and destination.longitude is not None,
             "category": destination.category_id is not None,
             "district": bool((destination.district or "").strip()),
-            "images": destination.gallery.filter(verification_status="approved").exists(),
+            "images": destination.gallery.filter(verification_status__in=PUBLIC_IMAGE_STATUSES).exists(),
             "opening_hours": bool((destination.opening_hours or "").strip()),
             "contact_or_website": bool((destination.website or "").strip()),
         }
@@ -3716,6 +3716,11 @@ class AdminPOICategoriesView(APIView):
         return Response({"message": "Nearby-place categories updated", "categories": get_poi_category_config()})
 
 
+# "verified" is a legacy status written by older image importers; the public serializers
+# already treat it as equivalent to "approved" (see the gallery filter in serializers.py).
+PUBLIC_IMAGE_STATUSES = ("approved", "verified")
+
+
 class AdminMediaLibraryView(APIView):
     permission_classes = [IsAdminOrStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -3757,7 +3762,11 @@ class AdminMediaLibraryView(APIView):
         qs=DestinationImage.objects.select_related("destination","uploaded_by").order_by("destination__name","ordering","id")
         q=request.query_params.get("q","");status_filter=request.query_params.get("status");source=request.query_params.get("source")
         if q: qs=qs.filter(Q(destination__name__icontains=q)|Q(caption__icontains=q)|Q(external_url__icontains=q))
-        if status_filter: qs=qs.filter(verification_status=status_filter)
+        if status_filter:
+            # Legacy imports stored publicly-visible photos as "verified"; treat them as approved
+            # so every live photo shows up under the Approved filter.
+            if status_filter in PUBLIC_IMAGE_STATUSES: qs=qs.filter(verification_status__in=PUBLIC_IMAGE_STATUSES)
+            else: qs=qs.filter(verification_status=status_filter)
         if source: qs=qs.filter(source=source)
         try:page=max(1,int(request.query_params.get("page",1)));size=min(100,max(12,int(request.query_params.get("page_size",30))))
         except ValueError:return Response({"detail":"Invalid pagination"},status=400)
@@ -3796,7 +3805,7 @@ class AdminMediaLibraryView(APIView):
         if action == "set_cover":
             # Promote this image to the destination's public cover. Moderation is
             # respected: only approved images can become the cover.
-            if image.verification_status != "approved":
+            if image.verification_status not in PUBLIC_IMAGE_STATUSES:
                 return Response({"detail": "Only approved images can be set as the cover — approve it in the verification queue first."}, status=400)
             from django.db import transaction
             with transaction.atomic():

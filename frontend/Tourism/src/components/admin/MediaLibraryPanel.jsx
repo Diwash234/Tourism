@@ -210,8 +210,8 @@ export default function MediaLibraryPanel() {
               {image.used_on?.length > 0 && <p className="mt-1 text-[10px] text-slate-500">Used on: {image.used_on.map((item) => item.label).join(" · ")}</p>}
               <p>{image.source} · {image.status} · position {image.ordering + 1}</p>
               <div className="mt-3 grid grid-cols-2 gap-1.5">
-                <button onClick={() => handleOpenEditMedia(image)} className={`${image.is_cover || image.status !== "approved" ? "col-span-2" : ""} rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-2 py-1.5 font-bold`}>Replace / Edit Image</button>
-                {!image.is_cover && image.status === "approved" && (
+                <button onClick={() => handleOpenEditMedia(image)} className={`${image.is_cover || !["approved", "verified"].includes(image.status) ? "col-span-2" : ""} rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-2 py-1.5 font-bold`}>Replace / Edit Image</button>
+                {!image.is_cover && ["approved", "verified"].includes(image.status) && (
                   <button onClick={() => handleSetCover(image)} className="rounded-lg bg-amber-500 text-white hover:bg-amber-400 px-2 py-1.5 font-bold">Set as cover</button>
                 )}
                 <button onClick={() => update(image, { verification_status: "approved", is_verified: true })} className="rounded-lg bg-emerald-700 px-2 py-1.5 font-bold text-white">Approve</button>

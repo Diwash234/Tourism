@@ -4234,3 +4234,92 @@ class SectionConfigSanitizerRegressionTests(TestCase):
         self.assertNotIn("<script>", rec["title"])
         self.assertNotIn("image_url", rec)  # javascript: URL dropped
         self.assertLessEqual(len(rec["highlights"]), 12)
+
+
+class MediaLibraryVerifiedStatusTests(TestCase):
+    """Legacy importers stored live photos as "verified". The Media Library's Approved
+    filter and the set-cover action must treat them exactly like "approved"."""
+
+    def setUp(self):
+        from .models import DestinationImage
+        cat = Category.objects.create(name="Media Status Test", slug="media-status-test")
+        self.dest = Destination.objects.create(
+            name="Media Status Fixture", category=cat, latitude=27.7, longitude=85.3,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            description="Media status fixture destination.",
+        )
+
+        def img(status, n):
+            return DestinationImage.objects.create(
+                destination=self.dest, external_url=f"https://example.com/{status}-{n}.jpg",
+                verification_status=status, ordering=n,
+            )
+        self.approved = img("approved", 1)
+        self.verified = img("verified", 2)
+        self.pending = img("pending", 3)
+        self.client_admin = APIClient()
+        self.client_admin.force_authenticate(user=make_superuser())
+
+    def test_approved_filter_includes_verified_photos(self):
+        resp = self.client_admin.get("/api/v1/admin/media-library/", {"status": "approved"})
+        self.assertEqual(resp.status_code, 200)
+        ids = {row["id"] for row in resp.json()["results"]}
+        self.assertEqual(ids, {self.approved.id, self.verified.id})
+
+    def test_pending_filter_is_unchanged(self):
+        resp = self.client_admin.get("/api/v1/admin/media-library/", {"status": "pending"})
+        self.assertEqual({row["id"] for row in resp.json()["results"]}, {self.pending.id})
+
+    def test_verified_photo_can_become_cover(self):
+        resp = self.client_admin.patch(
+            "/api/v1/admin/media-library/", {"id": self.verified.id, "action": "set_cover"}, format="json",
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.verified.refresh_from_db()
+        self.assertTrue(self.verified.is_cover)
+
+
+class ItineraryNearestServicesBoundingBoxTests(TestCase):
+    """_nearest_for_itinerary narrows with a SQL bounding box but must still return
+    the true nearest rows, widening the box for remote places."""
+
+    def setUp(self):
+        cat = Category.objects.create(name="BBox Test", slug="bbox-test")
+        self.dest = Destination.objects.create(
+            name="BBox Fixture", category=cat, latitude=27.7, longitude=85.3,
+            status=Destination.SubmissionStatus.APPROVED, is_active=True,
+            description="Bounding-box fixture destination.",
+        )
+
+    def _hospital(self, name, lat, lon):
+        return Hospital.objects.create(
+            destination=self.dest, name=name, address="Fixture", phone="01",
+            latitude=lat, longitude=lon, district="Fixture",
+        )
+
+    def _names(self, lat, lon):
+        from .views_ml import _nearest_for_itinerary
+        return [row["name"] for row in _nearest_for_itinerary(
+            Hospital.objects.all(), lat, lon, lambda row, d: {"name": row.name, "distance_km": d},
+        )]
+
+    def test_returns_nearest_two_in_order(self):
+        self._hospital("Near", 27.701, 85.301)
+        self._hospital("Mid", 27.72, 85.33)
+        self._hospital("Far", 28.2, 83.98)
+        self.assertEqual(self._names(27.7, 85.3), ["Near", "Mid"])
+
+    def test_widens_box_when_nothing_is_close(self):
+        # Only one row within the first 0.25 deg box, so the search must widen to find
+        # the second nearest instead of returning a single result.
+        self._hospital("Close", 29.97, 81.82)
+        self._hospital("Remote A", 29.27, 82.18)   # ~85 km away
+        self._hospital("Remote B", 27.70, 85.30)   # ~400 km away
+        self.assertEqual(self._names(29.9667, 81.8167), ["Close", "Remote A"])
+
+    def test_row_outside_box_corner_is_not_skipped(self):
+        # "Corner" sits inside the 0.25 deg box but farther away than "Edge", which lies
+        # just outside the box on a straight axis. The true nearest must still win.
+        self._hospital("Corner", 27.7 + 0.24, 85.3 + 0.24)  # ~36 km
+        self._hospital("Edge", 27.7 + 0.26, 85.3)            # ~29 km
+        self.assertEqual(self._names(27.7, 85.3)[0], "Edge")

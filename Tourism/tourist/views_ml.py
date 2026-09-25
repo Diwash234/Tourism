@@ -654,15 +654,52 @@ def _safe_file_url(field):
         return str(field) if field else None
 
 
-def _nearest_for_itinerary(rows, lat, lon, mapper):
+# Bounding-box half-widths (degrees) tried in order before exact distance ranking.
+# 0.25 deg is roughly 28 km of latitude in Nepal. Remote districts can have no service
+# that close, so the box widens step by step. The final ``None`` means "no box" (the
+# whole table) so a result is never lost; that full scan only happens as a last resort.
+_ITINERARY_BBOX_STEPS = (0.25, 1.0, None)
+
+
+def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
+    """Return the ``limit`` nearest rows to (lat, lon), mapped with ``mapper``.
+
+    ``rows`` must be a queryset with ``latitude``/``longitude`` fields. The query is
+    first narrowed with a SQL bounding box so only nearby candidates are
+    loaded into Python for haversine ranking, rather than every hotel or hospital
+    in the country.
+    """
+    lat, lon = float(lat), float(lon)
+    rows = rows.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+    candidates = []
+    for delta in _ITINERARY_BBOX_STEPS:
+        if delta is None:
+            candidates = list(rows)
+            break
+        lat_min, lat_max = lat - delta, lat + delta
+        lon_min, lon_max = lon - delta, lon + delta
+        candidates = list(rows.filter(
+            latitude__range=(lat_min, lat_max),
+            longitude__range=(lon_min, lon_max),
+        ))
+        # A box corner is farther away than its edge midpoint, so only trust this box
+        # when enough candidates sit inside its inscribed circle (radius = delta
+        # degrees of latitude); otherwise a nearer row could lie just outside it.
+        inscribed_km = delta * 111.0 * 0.85  # 0.85 = cos(~31.5 deg N), a safe bound for Nepal
+        inside = sum(
+            1 for row in candidates
+            if haversine_distance(lat, lon, row.latitude, row.longitude) <= inscribed_km
+        )
+        if inside >= limit:
+            break
     ranked = []
-    for row in rows:
+    for row in candidates:
         if row.latitude is None or row.longitude is None:
             continue
         distance = haversine_distance(lat, lon, row.latitude, row.longitude)
         ranked.append((distance, row))
     ranked.sort(key=lambda pair: pair[0])
-    return [mapper(row, round(distance, 2)) for distance, row in ranked[:2]]
+    return [mapper(row, round(distance, 2)) for distance, row in ranked[:limit]]
 
 
 def enrich_itinerary_with_services(payload):

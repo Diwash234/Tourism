@@ -1,22 +1,29 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link, useLocation } from "react-router-dom"
-import { FiCompass, FiShield, FiPhoneCall, FiArrowRight, FiZap } from "react-icons/fi"
+import { FiCompass, FiShield, FiArrowRight } from "react-icons/fi"
 
 export default function StickyCTA({ section = null }) {
   const [visible, setVisible] = useState(false)
+  const [nearFooter, setNearFooter] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 380) {
-        setVisible(true)
-      } else {
-        setVisible(false)
-      }
+      const scrollPosition = window.scrollY + window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+      // Hide the CTA 650px before the page bottom so it never covers footer links.
+      const nearBottom = documentHeight - scrollPosition < 650
+      setNearFooter(nearBottom)
+      setVisible(window.scrollY > 380 && !nearBottom)
     }
+    handleScroll()
     window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
+    window.addEventListener("resize", handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("resize", handleScroll)
+    }
   }, [])
 
   // Hide on admin or emergency page to avoid distraction
@@ -65,7 +72,12 @@ export default function StickyCTA({ section = null }) {
       </AnimatePresence>
 
       {/* Mobile Fixed Bottom Safe-Area Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-2xl pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+      <div
+        aria-hidden={nearFooter || undefined}
+        // React 18 has no `inert` prop typing; pass the string form so hidden links leave the tab order.
+        inert={nearFooter ? "" : undefined}
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-2xl pb-[max(0.65rem,env(safe-area-inset-bottom))] transition-transform duration-300 ${nearFooter ? "translate-y-full pointer-events-none" : "translate-y-0"}`}
+      >
         <Link
           to="/destinations"
           className="flex-1 py-2.5 px-3 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-[#102A2E]/20"
