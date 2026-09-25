@@ -1,111 +1,66 @@
-NEPAL TOURISM PLATFORM — DOWNLOADS
-====================================
+NEPAL YATRA — PUBLIC DATABASE DOWNLOADS
+======================================
 
-Files in this folder (kept intentionally small so the repo stays easy to clone):
-------------------------------------------------------------------------------
-1. nepal-tourism-database.sqlite3.gz  (~2.0 MB) — Compressed full SQLite DB snapshot
-2. README.txt                         — This file
+This directory contains the shareable, privacy-safe database artifact.  It is
+not a copy of the live operational database.
 
-Why only the compressed snapshot?
----------------------------------
-The full database is already committed at `Tourism/Tourism/db.sqlite3` (~15 MB).
-Keeping an *uncompressed copy* here as well made the GitHub repo >100 MB and
-slow to clone, so the duplicate copy and the stale zip bundles were removed.
+Files
+-----
 
-Regenerate anything you need from the committed DB:
+* nepal-tourism-database.sqlite3.gz — deterministic compressed SQLite snapshot
+* nepal-tourism-database.sqlite3.gz.sha256 — checksum for the archive
+* ../Tourism/dataset/verified_tourism_data.json — canonical JSON catalog used
+  to build the archive
+* ../Tourism/dataset/verified_tourism_data.json.sha256 — checksum for the JSON
+* ../Tourism/dataset/verified_tourism_data.schema.json — JSON contract
+* ../Tourism/dataset/verified_tourism_data.lock.json — release lock/counts
 
-  # uncompressed copy (same file as Tourism/db.sqlite3)
-  cp ../Tourism/db.sqlite3 nepal-tourism-database.sqlite3
+The JSON catalog and SQLite archive are generated as one pair.  The SQLite file
+is built into a fresh migrated database from the JSON, then both artifacts are
+compared record-for-record before publication.  A database row count or image
+count printed in an old report is not a source of truth; use the JSON metadata
+and checksums for the current release.
 
-  # compressed snapshot
-  gzip -9 -k -f ../Tourism/db.sqlite3 -c > nepal-tourism-database.sqlite3.gz
-
-  # full-project zip (backend + frontend source)
-  cd .. && zip -r downloads/nepal-tourism-full-project.zip Tourism \
-      -x "Tourism/db.sqlite3" "Tourism/.env" "*/node_modules/*" "*/__pycache__/*"
-
-  # images-only zip (curated landmark photo pack, if you need a copy)
-  cd frontend/Tourism && zip -r ../../downloads/nepal-images-only.zip public/images
-
-GitHub's hard limit is 100 MB per file; the committed DB (~15 MB) stays well
-under it, and future photo rows are just URL metadata (no binaries in SQLite),
-so the DB grows only a few KB per thousand photos.
-
-
-CURRENT SNAPSHOT
+Privacy boundary
 ----------------
-- 7,517 destinations
-- 2,963 verified real cover photos from Wikimedia Commons, Flickr and
-  WordPress.org (temples, stupas,
-  mountains, lakes, rivers, waterfalls, festivals, heritage, tea/coffee,
-  adventure, viewpoints …) + 274 curated AI landmark photos
-- SVG postcards only for places that have no public photo yet (mostly hotels)
-- Search autocorrect: typing "katmandu" suggests "Kathmandu" (did-you-mean), and
-  the A-Z bar filters destinations by first letter across all 7,517 places
-- Every destination has exactly 1 cover image
 
+The public snapshot excludes users, password hashes, sessions, JWTs, email
+verification data, device tokens, chat, bookings, orders, location history,
+notifications, audit/log records, drafts, reviewer IDs, local media paths, and
+unverified service records.  Do not publish `Tourism/db.sqlite3`; it is
+runtime state and is intentionally ignored by Git.
 
-DEFAULT ADMIN CREDENTIALS
--------------------------
-  Email:    admin123@gmail.com
-  Password: admin123
-  Role:     SUPER_ADMIN
+A missing image is shown as unavailable.  The catalog does not substitute a
+photo from another destination, and AI-generated or user-uploaded images are
+not promoted into the public verified-media set.
 
-After starting the site (./run.sh), log in at:
-  - Django Admin:   http://localhost:8000/admin
-  - Admin Dashboard: http://localhost:5173/admin-dashboard
+Build or verify
+---------------
 
+From the repository root, stop the application if the source database is being
+written, then run:
 
-IMAGE SYSTEM
-------------
-1. VERIFIED REAL PHOTOS (2,963): every approved cover carries a real
-   photo URL hotlinked from its platform (upload.wikimedia.org,
-   live.staticflickr.com, pd.w.org) with photographer + license attribution
-   stored in the DB and served by the API.
+    cd Tourism
+    python manage.py build_verified_snapshot \
+      --as-of 2026-09-25T23:59:59Z \
+      --force
 
-2. CURATED AI LANDMARK PHOTOS (274): 40+ famous Nepal landmarks
-   (Pashupatinath, Boudhanath, Swayambhunath, Dharahara, Kathmandu Durbar
-   Square, Bhaktapur, Patan, Phewa Lake, Davis Falls, World Peace Pagoda,
-   Everest Base Camp, Annapurna Base Camp, Langtang Valley, Lo Manthang,
-   Muktinath, Manakamana, Gosaikunda, Chitwan NP, Bardiya NP, Rara Lake,
-   Tilicho Lake, Phoksundo, Janakpur, Nagarkot, Lumbini, Pathibhara,
-   Rani Mahal, Gorkha Durbar, Kanchenjunga, Dhaulagiri, Chandragiri,
-   Ghandruk, Sarangkot, Dhulikhel, Khaptad NP …).
+The command takes an online SQLite backup, migrates only the temporary copy,
+exports the allowlisted JSON, creates a fresh database, loads the JSON, runs
+Django checks and SQLite integrity checks, and publishes the JSON/archive
+atomically.  It never copies the raw runtime file into the release.
 
-3. DETERMINISTIC UNIQUE SVG POSTCARDS: every destination without a public
-   photo gets a unique Nepal-themed SVG postcard generated live by Django,
-   keyed by name + category + district (vector, instant load, Nepal palette).
-   NO TWO destinations get the same postcard.
+Verify an existing pair without rebuilding:
 
-4. GALLERY IMAGE MODERATION QUEUE: gallery images start PENDING; admins
-   approve them at /admin or the Admin Dashboard.
+    cd Tourism
+    python manage.py verify_verified_snapshot \
+      ../Tourism/dataset/verified_tourism_data.json \
+      --database ../downloads/nepal-tourism-database.sqlite3
 
-5. COVERS ARE ALWAYS APPROVED so the site works out of the box.
+For a local development database, use a separate file and create an admin
+explicitly:
 
-6. STANDALONE IMAGE SERVER: 100k+ photo binaries live outside Git in
-   `image-server/images/` (served by a separate static server / CDN) — see
-   docs/IMAGE_SERVER.md.
+    python manage.py migrate
+    python manage.py createsuperuser
 
-
-ADMIN WORKFLOW FOR ADDING REAL IMAGES
---------------------------------------
-1. Log in to /admin or /admin-dashboard as admin123@gmail.com.
-2. Navigate to Destinations -> pick a place -> Images tab.
-3. Use "Discover images" or paste real URLs (Wikimedia Commons, Pexels, etc.).
-4. Mark the correct one as "cover", set others as gallery.
-5. Set verification_status = APPROVED for accurate photos, REJECTED for wrong ones.
-
-
-STARTING THE SITE
------------------
-cd /path/to/Tourism
-chmod +x run.sh
-./run.sh
-
-Then visit:
-  Frontend (Vite/React):  http://localhost:5173
-  Backend API (Django):   http://localhost:8000/api/v1/
-  Django Admin:           http://localhost:8000/admin   (admin123 / admin123)
-
-LAN access: both servers bind to 0.0.0.0 so other devices on your network can
-reach the site via your LAN IP (e.g. http://192.168.1.XX:5173).
+No default administrator credentials are shipped in the download.

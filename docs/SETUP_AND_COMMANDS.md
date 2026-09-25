@@ -57,43 +57,32 @@ cd frontend/Tourism && npm ci && cd ../..
 
 ## Database
 
-**The full dataset ships inside the repo.** `Tourism/db.sqlite3` (~54 MB:
-8,600+ destinations, 5,000+ hotels, hospital/police/bank directories, route
-diagnostics) is committed on purpose — a fresh clone is complete.
+The live `Tourism/db.sqlite3` is operational state and is intentionally not
+committed. It can contain users, sessions, tokens, logs, bookings, and local
+workflow data; do not publish or copy it directly.
 
-Just use the file as-is. **Do not delete it and do not rebuild it with
-`manage.py migrate`** — migrate only creates *empty* tables, which is exactly
-why a local run "shows no destinations, routes or nearby places".
-
-If you ever deleted or emptied it:
+For a shareable development catalog, use the versioned JSON and compressed
+SQLite pair:
 
 ```bash
-git checkout -- Tourism/db.sqlite3
-```
-
-Rebuilding from scratch (only if you have a real reason — the committed file
-is the source of truth) runs the same steps the file was built from:
-
-```bash
+# from the repository root
 cd Tourism
-../.venv/bin/python manage.py check
-../.venv/bin/python manage.py setup_system
+../.venv/bin/python manage.py verify_verified_snapshot \
+  dataset/verified_tourism_data.json \
+  --database ../downloads/nepal-tourism-database.sqlite3
 cd ..
 ```
 
-Manual equivalent:
+The JSON catalog, lock file, schema, checksums, and build procedure are
+documented in `docs/VERIFIED_DATA_SNAPSHOT.md`. A fresh operational database
+can be created with migrations, then populated from a reviewed catalog using
+`import_verified_snapshot`; never merge a public catalog into a populated
+runtime database.
 
-```bash
-cd Tourism
-../.venv/bin/python manage.py migrate
-../.venv/bin/python manage.py import_osm_destinations
-../.venv/bin/python manage.py fill_missing_place_coords
-../.venv/bin/python manage.py seed_e2e_features
-../.venv/bin/python manage.py createsuperuser
-cd ..
-```
-
-City and coordinate fills also live in `Tourism/dataset/destination_locations.json` (used by `fill_missing_place_coords`). Admin destination edits write both SQLite and that JSON. Missing fields stay empty (`Not recorded` in the UI). Do not run `update_city` — it reverse-geocodes and invents descriptions.
+`setup_system` is a local/bootstrap experiment and no longer seeds demo users
+or writes the legacy location projection unless `--with-demo` is explicitly
+passed. Missing fields stay empty (`Not recorded` in the UI). Do not run
+`update_city` — it reverse-geocodes and invents descriptions.
 
 ## Run
 
@@ -143,7 +132,7 @@ one of these four causes:
 | Symptom in the browser | Cause | Fix |
 | --- | --- | --- |
 | "connection refused" on every page | Django not running on port 8000 | `cd Tourism && python manage.py runserver 0.0.0.0:8000` (check the traceback if it exits — usually a missing `pip install -r Tourism/requirements.txt`) |
-| Pages load but zero destinations / empty map | `db.sqlite3` deleted or freshly migrated (empty tables) | `git checkout -- Tourism/db.sqlite3` then restart runserver |
+| Pages load but zero destinations / empty map | local runtime DB is empty or was replaced | load/build a reviewed catalog with `import_verified_snapshot` or `build_verified_snapshot`, then restart runserver |
 | White screen / hook errors in console | stale Vite cache | delete `frontend/Tourism/node_modules/.vite` and restart `npm run dev`; hard-refresh the browser |
 | 400 from the API in the console | frontend and backend versions out of sync | `git pull` both, restart both servers |
 
