@@ -25,10 +25,23 @@ jobs:
       - name: Verify published data artifact
         working-directory: Tourism
         run: |
-          set -euo pipefail
-          (cd dataset && sha256sum -c verified_tourism_data.json.sha256)
-          (cd ../downloads && sha256sum -c nepal-tourism-database.sqlite3.gz.sha256)
-          gzip -dc ../downloads/nepal-tourism-database.sqlite3.gz > /tmp/nepal-yatra-public.sqlite3
+          set -euxo pipefail
+          python - <<'PY'
+          import gzip
+          import hashlib
+          from pathlib import Path
+
+          def check(artifact, sidecar):
+              expected = sidecar.read_text(encoding="utf-8").split()[0]
+              actual = hashlib.sha256(artifact.read_bytes()).hexdigest()
+              print(f"{artifact}: {actual}")
+              assert actual == expected, f"checksum mismatch for {artifact}"
+
+          check(Path("dataset/verified_tourism_data.json"), Path("dataset/verified_tourism_data.json.sha256"))
+          check(Path("../downloads/nepal-tourism-database.sqlite3.gz"), Path("../downloads/nepal-tourism-database.sqlite3.gz.sha256"))
+          with gzip.open("../downloads/nepal-tourism-database.sqlite3.gz", "rb") as source:
+              Path("/tmp/nepal-yatra-public.sqlite3").write_bytes(source.read())
+          PY
           DB_NAME=/tmp/nepal-yatra-public.sqlite3 \
             python manage.py verify_verified_snapshot \
               dataset/verified_tourism_data.json \
