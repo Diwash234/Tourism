@@ -192,7 +192,8 @@ class IsAdminOrStaff(BasePermission):
     """Allows Super Admins, Admins, Tourism Admins, and Staff/Sub-admins."""
     ALLOWED_ROLES = {
         "admin", "super_admin", "tourism_admin", "staff",
-        "content_moderator", "district_manager", "guide",
+        "content_moderator", "district_manager", "guide", "police",
+        "hospital_staff", "rescue_team", "emergency_operator",
     }
 
     def has_permission(self, request, view):
@@ -265,17 +266,30 @@ class CanSubmitPlace(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        return bool(
-            request.user
-            and request.user.is_authenticated
-        )
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if not request.user.is_staff:
+            return True
+        if request.user.is_superuser or request.user.role in {"admin", "super_admin", "tourism_admin"}:
+            return True
+        action = {"POST": "add", "PUT": "change", "PATCH": "change", "DELETE": "delete"}.get(request.method, "change")
+        try:
+            return bool(request.user.capability_profile.allows("destinations", action))
+        except Exception:
+            return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
 
         if request.user.is_staff:
-            return True
+            from .views_admin import _require_destination_access
+            action = {"POST": "add", "PUT": "change", "PATCH": "change", "DELETE": "delete"}.get(request.method, "change")
+            try:
+                _require_destination_access(request, obj, "destinations", action)
+                return True
+            except Exception:
+                return False
 
         return (
             obj.created_by == request.user

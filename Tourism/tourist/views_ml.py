@@ -496,7 +496,7 @@ def enrich_itinerary_with_services(payload):
 
         day["nearby_services"] = {
             "hotels": _nearest_for_itinerary(
-                Hotel.objects.all(), lat, lon,
+                Hotel.objects.filter(is_active=True, is_verified=True), lat, lon,
                 lambda row, distance: {
                     "id": row.id, "name": row.name, "distance_km": distance,
                     "price_npr": float(row.price_per_night) if row.price_per_night is not None and row.currency == "NPR" else None,
@@ -504,15 +504,15 @@ def enrich_itinerary_with_services(payload):
                 },
             ),
             "hospitals": _nearest_for_itinerary(
-                Hospital.objects.all(), lat, lon,
+                Hospital.objects.filter(is_archived=False, is_verified=True), lat, lon,
                 lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone, "distance_km": distance},
             ),
             "police": _nearest_for_itinerary(
-                PoliceStation.objects.all(), lat, lon,
-                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone or "100", "distance_km": distance},
+                PoliceStation.objects.filter(is_archived=False, is_verified=True), lat, lon,
+                lambda row, distance: {"id": row.id, "name": row.name, "phone": row.phone, "distance_km": distance},
             ),
             "essentials": _nearest_for_itinerary(
-                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"]), lat, lon,
+                OSMEssentialService.objects.filter(category__in=["bank", "pharmacy", "fire_station", "ambulance"], is_archived=False, is_verified=True), lat, lon,
                 lambda row, distance: {"id": row.id, "type": row.category, "name": row.name, "phone": row.phone, "distance_km": distance},
             ),
         }

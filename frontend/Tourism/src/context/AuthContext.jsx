@@ -1,8 +1,14 @@
 import authApi from "../api/authApi"
-import React, { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom"
-import { isGuestPreview } from "../api/axiosClient"
+import { clearAuthStorage, isGuestPreview } from "../api/axiosClient"
 export const AuthContext = createContext(null)
+
+const ADMIN_ROLES = ["admin", "super_admin", "tourism_admin"]
+const STAFF_ROLES = [
+  "staff", "content_moderator", "district_manager", "hotel_manager",
+  "tourist_police", "police", "hospital_staff", "rescue_team", "emergency_operator",
+]
 
 export const AuthProvider = ({ children }) => {
   const location = useLocation()
@@ -20,6 +26,29 @@ export const AuthProvider = ({ children }) => {
   })
 
   const [loading, setLoading] = useState(true)
+  const [capabilities, setCapabilities] = useState({})
+  const [managedDistricts, setManagedDistricts] = useState([])
+
+  const loadCapabilities = (userData) => {
+    const role = String(userData?.role || "").toLowerCase()
+    if (userData?.is_superuser || ADMIN_ROLES.includes(role)) {
+      setCapabilities({})
+      setManagedDistricts([])
+      return Promise.resolve()
+    }
+    if (!userData || !STAFF_ROLES.includes(role)) {
+      setCapabilities({})
+      setManagedDistricts([])
+      return Promise.resolve()
+    }
+    return authApi.getCapabilities().then(({ data }) => {
+      setCapabilities(data?.capabilities || {})
+      setManagedDistricts(data?.managed_districts || [])
+    }).catch(() => {
+      setCapabilities({})
+      setManagedDistricts([])
+    })
+  }
 
   // "Session expired, sign in again" UX. axiosClient dispatches these when a
   // token refresh fails ("session-expired") or a stale session was silently
@@ -29,10 +58,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const onExpired = () => {
       setUser(null)
+      setCapabilities({})
+      setManagedDistricts([])
       setSessionNotice("expired")
     }
     const onDowngraded = () => {
       setUser(null)
+      setCapabilities({})
+      setManagedDistricts([])
       setSessionNotice("downgraded")
     }
     window.addEventListener("session-expired", onExpired)
@@ -74,6 +107,7 @@ export const AuthProvider = ({ children }) => {
           "user",
           JSON.stringify(data)
         )
+        loadCapabilities(data)
 
       })
       .catch(() => {
@@ -83,6 +117,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("access")
         localStorage.removeItem("refresh")
         localStorage.removeItem("user")
+        setCapabilities({})
+        setManagedDistricts([])
 
       })
       .finally(() => {
@@ -97,50 +133,18 @@ export const AuthProvider = ({ children }) => {
 
 
   const login = async (credentials) => {
-
-    const { data } = await authApi.login(credentials)
-
-
-    // Save JWT tokens from Django SimpleJWT
-    localStorage.setItem(
-      "access",
-      data.access
-    )
-
-    localStorage.setItem(
-      "refresh",
-      data.refresh
-    )
-
-
-    /*
-      If your login API returns user data,
-      save it.
-      Otherwise fetch current user from profile API.
-    */
-
-    let userData = data.user
-
-
-    if (!userData) {
-
-      const response = await authApi.getCurrentUser()
-
-      userData = response.data
-
+    try {
+      const { data } = await authApi.login(credentials)
+      const userData = data.user || (await authApi.getCurrentUser()).data
+      localStorage.setItem("user", JSON.stringify(userData))
+      setUser(userData)
+      loadCapabilities(userData)
+      return userData
+    } catch (error) {
+      clearAuthStorage()
+      setUser(null)
+      throw error
     }
-
-
-    localStorage.setItem(
-      "user",
-      JSON.stringify(userData)
-    )
-
-
-    setUser(userData)
-
-
-    return userData
   }
 
 
@@ -149,18 +153,19 @@ export const AuthProvider = ({ children }) => {
   // login(), just not obtained via the email/password endpoint. Reuses
   // the exact same storage steps rather than duplicating them.
   const loginWithTokens = async (data) => {
-    localStorage.setItem("access", data.access)
-    localStorage.setItem("refresh", data.refresh)
-
-    let userData = data.user
-    if (!userData) {
-      const response = await authApi.getCurrentUser()
-      userData = response.data
+    try {
+      localStorage.setItem("access", data.access)
+      localStorage.setItem("refresh", data.refresh)
+      const userData = data.user || (await authApi.getCurrentUser()).data
+      localStorage.setItem("user", JSON.stringify(userData))
+      setUser(userData)
+      loadCapabilities(userData)
+      return userData
+    } catch (error) {
+      clearAuthStorage()
+      setUser(null)
+      throw error
     }
-
-    localStorage.setItem("user", JSON.stringify(userData))
-    setUser(userData)
-    return userData
   }
 
 
@@ -174,6 +179,13 @@ export const AuthProvider = ({ children }) => {
   }
 
 
+
+  const updateUser = (nextUser) => {
+    setUser(nextUser)
+    loadCapabilities(nextUser)
+    if (nextUser) localStorage.setItem("user", JSON.stringify(nextUser))
+    else localStorage.removeItem("user")
+  }
 
   const logout = async () => {
 
@@ -191,6 +203,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("access")
     localStorage.removeItem("refresh")
     localStorage.removeItem("user")
+    setCapabilities({})
+    setManagedDistricts([])
 
 
     setUser(null)
@@ -203,27 +217,20 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!visibleUser
 
   const role = String(visibleUser?.role || "").toLowerCase()
-  const ADMIN_ROLES = ["admin", "super_admin", "tourism_admin"]
-  const STAFF_ROLES = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"]
 
-  // Staff Django is_staff flags must NOT unlock the Admin console.
+  // Staff Django is_staff flags must NOT unlock administrative modules by
+  // themselves. The server capability payload is the UI's visibility hint;
+  // backend checks remain authoritative.
   const isAdmin = !!(visibleUser && (ADMIN_ROLES.includes(role) || visibleUser.is_superuser === true))
   const isStaff = !!(visibleUser && (STAFF_ROLES.includes(role) || isAdmin))
+  const can = (module, action = "view") => {
+    if (isAdmin) return true
+    const actions = capabilities[module] || []
+    return actions.includes(action) || actions.includes("*")
+  }
   const isLocal =
     (visibleUser && (role === "local" || role === "local_guide" || visibleUser.is_local === true)) ||
     isAdmin
-
-  const STAFF_ROLES = ["staff", "content_moderator", "district_manager", "hotel_manager", "tourist_police"]
-  const isStaff =
-    (user && STAFF_ROLES.includes(user.role)) ||
-    user?.is_staff === true ||
-    isAdmin
-
-  const isLocal =
-    (user && (user.role === "local" || user.role === "local_guide" || user.is_local === true)) ||
-    isAdmin
-
-
 
   return (
 
@@ -231,6 +238,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         user: visibleUser,
         setUser,
+         updateUser,
         login,
         loginWithTokens,
         register,
@@ -239,6 +247,9 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         isStaff,
         isLocal,
+        capabilities,
+        managedDistricts,
+        can,
         loading,
         sessionNotice,
         dismissSessionNotice,
@@ -250,7 +261,7 @@ export const AuthProvider = ({ children }) => {
       {sessionNotice && (
         <div
           role="alert"
-          className="fixed bottom-4 left-1/2 z-[120] w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-amber-300 bg-white p-4 shadow-2xl dark:border-amber-500/40 dark:bg-slate-900"
+          className="ny-session-notice fixed bottom-4 left-1/2 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-amber-300 bg-white p-4 shadow-2xl dark:border-amber-500/40 dark:bg-slate-900"
         >
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             {sessionNotice === "expired"
@@ -264,14 +275,14 @@ export const AuthProvider = ({ children }) => {
             <a
               href="/login"
               onClick={dismissSessionNotice}
-              className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800"
+              className="ny-btn ny-btn-primary min-h-11 px-3 text-xs"
             >
               Sign in
             </a>
             <button
               type="button"
               onClick={dismissSessionNotice}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="ny-btn ny-btn-secondary min-h-11 px-3 text-xs"
             >
               Keep browsing
             </button>

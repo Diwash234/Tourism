@@ -142,7 +142,7 @@ const Language = () => {
 
   const copyPhrase = (text) => {
     navigator.clipboard.writeText(text)
-    showToast("Copied phrase to clipboard! 📋", "success")
+    showToast("Phrase copied to clipboard.", "success")
   }
 
   const handleAddPhrase = (e) => {
@@ -164,7 +164,7 @@ const Language = () => {
     }
 
     setPhrases([item, ...phrases])
-    showToast("New phrase added to your Nepal Phrasebook! 🎉", "success")
+    showToast("New phrase added to your Nepal Phrasebook.", "success")
     setShowAddModal(false)
     setNewPhrase({ category: "Greetings", english: "", ne: "", new: "", sherpa: "", mai: "" })
   }
@@ -182,7 +182,7 @@ const Language = () => {
   })
 
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="phrasebook" />
       {/* Header banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -19,6 +19,7 @@ import StaffRoute from "./routes/StaffRoute"
 // Public Pages
 import Landing from "./pages/Landing"
 import About from "./pages/About"
+import DynamicCMSPage from "./pages/DynamicCMSPage"
 import Contact from "./pages/Contact"
 import HowItWorks from "./pages/HowItWorks"
 import PrivacyPolicy from "./pages/PrivacyPolicy"
@@ -109,6 +110,14 @@ const DiagnosticsCenter = lazy(() => import("./pages/admin/DiagnosticsCenter"))
 const HotelAssignments = lazy(() => import("./pages/admin/HotelAssignments"))
 const AdminTasks = lazy(() => import("./pages/admin/Tasks"))
 
+const RouteLoading = () => (
+  <div className="container-app flex min-h-[320px] items-center justify-center py-12" role="status" aria-live="polite">
+    <div className="text-center"><span className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-[var(--ny-border)] border-t-[var(--ny-green)]" aria-hidden="true" /><p className="mt-3 text-sm text-[var(--ny-text-secondary)]">Loading this part of your journey…</p></div>
+  </div>
+)
+
+const LazyRoute = ({ children }) => <Suspense fallback={<RouteLoading />}>{children}</Suspense>
+
 
 function App() {
   useEffect(() => {
@@ -160,6 +169,7 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
+        <Route path="/page/:slug" element={<DynamicCMSPage />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/support" element={<CustomerSupport />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -171,14 +181,15 @@ function App() {
         {/* Destinations */}
         <Route path="/destinations" element={<DestinationList />} />
         <Route path="/destinations/:slug" element={<DestinationDetails />} />
-        <Route path="/districts" element={<DistrictsIndex />} />
-        <Route path="/districts/:districtName" element={<DistrictDetail />} />
+        <Route path="/districts" element={<LazyRoute><DistrictsIndex /></LazyRoute>} />
+        <Route path="/districts/:districtName" element={<LazyRoute><DistrictDetail /></LazyRoute>} />
         <Route path="/compare" element={<CompareDestinations />} />
         <Route path="/destinations/compare" element={<CompareDestinations />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/itinerary" element={<Itinerary />} />
+        <Route path="/itinerary" element={<LazyRoute><Itinerary /></LazyRoute>} />
         <Route path="/trip-planner" element={<Navigate to="/itinerary" replace />} />
         <Route path="/packages" element={<Packages />} />
+        <Route path="/recommendation" element={<Recommendation />} />
         <Route path="/guides" element={<Guides />} />
         <Route path="/guide-portal" element={<GuidePortal />} />
         <Route path="/tourism-jobs" element={<TourismJobs />} />
@@ -194,8 +205,20 @@ function App() {
         {/* Public Emergency */}
         <Route path="/emergency" element={<Emergency />} />
         <Route path="/safety/shared/:token" element={<SharedTripView />} />
+        {/* Public planning and safety tools. These pages keep their existing
+            data contracts but do not require an account to open. */}
+        <Route path="/budget-estimator" element={<BudgetEstimator />} />
+        <Route path="/risk-alerts" element={<RiskAlertDashboard />} />
+        <Route path="/navigation" element={<LazyRoute><Navigation /></LazyRoute>} />
+        <Route path="/distances" element={<LazyRoute><DistancesExplorer /></LazyRoute>} />
+        <Route path="/language" element={<Language />} />
+        <Route path="/nearby-places" element={<NearbyPlaces />} />
+        <Route path="/translation" element={<Translation />} />
+        <Route path="/discover-nepal" element={<DiscoverNepal />} />
+        <Route path="/explore-map" element={<LazyRoute><ExploreNepalMap /></LazyRoute>} />
+        <Route path="/hotels/search" element={<HotelSearch />} />
         {/* Travel planner — real routes between any two destinations (public) */}
-        <Route path="/travel" element={<TravelPlanner />} />
+        <Route path="/travel" element={<LazyRoute><TravelPlanner /></LazyRoute>} />
       </Route>
 
 
@@ -208,44 +231,11 @@ function App() {
           <Route path="/personal-details" element={<PersonalDetails />} />
           <Route path="/verify-phone" element={<VerifyPhone />} />
           <Route path="/hotels" element={<Hotels />} />
-          {/* Dedicated search endpoint (richer data: image_url, destination_name) */}
-          <Route path="/hotels/search" element={<HotelSearch />} />
           <Route path="/destinations/submit" element={<SubmitPlacePage />} />
           <Route path="/submit-service" element={<SubmitServicePage />} />
-          <Route path="/discover-nepal" element={<DiscoverNepal />} />
-          <Route path="/explore-map" element={<ExploreNepalMap />} />
-
-          <Route 
-            path="/recommendation" 
-            element={<Recommendation />} 
-          />
-
-          <Route 
-            path="/budget-estimator" 
-            element={<BudgetEstimator />} 
-          />
-
-          <Route 
-            path="/risk-alerts" 
-            element={<RiskAlertDashboard />} 
-          />
 
           <Route path="/family-safety" element={<FamilySafety />} />
           <Route path="/safety" element={<FamilySafety />} />
-
-          <Route path="/navigation" element={<Navigation />} />
-          <Route path="/distances" element={<DistancesExplorer />} />
-          <Route path="/language" element={<Language />} />
-
-          <Route 
-            path="/nearby-places" 
-            element={<NearbyPlaces />} 
-          />
-
-          <Route 
-            path="/translation" 
-            element={<Translation />} 
-          />
 
           <Route path="/settings" element={<Settings />} />
           <Route path="/favorites" element={<Favorites />} />
@@ -272,8 +262,7 @@ function App() {
       </Route>
 
       {/* Staff-only Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<StaffRoute />}>
+      <Route element={<StaffRoute />}>
           <Route element={<StaffLayout />}>
             <Route path="/staff" element={<StaffDashboard module="dashboard" />} />
             <Route path="/staff/destinations" element={<StaffDashboard module="destinations" />} />
@@ -289,32 +278,27 @@ function App() {
             <Route path="/staff/feedback" element={<StaffDashboard module="feedback" />} />
           </Route>
         </Route>
-      </Route>
 
       {/* Local Guide Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<LocalRoute />}>
+      <Route element={<LocalRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/local/dashboard" element={<LocalDashboard />} />
           </Route>
         </Route>
-      </Route>
 
 
       {/* Admin Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AdminRoute />}>
+      <Route element={<AdminRoute />}>
           <Route element={<AdminLayout />}>
             <Route 
               path="/admin" 
-              element={<AdminDashboard />} 
+              element={<LazyRoute><AdminDashboard /></LazyRoute>}
             />
-            <Route path="/admin/hotel-assignments" element={<HotelAssignments />} />
-            <Route path="/admin/tasks" element={<AdminTasks />} />
-            <Route path="/admin/diagnostics" element={<DiagnosticsCenter />} />
+            <Route path="/admin/hotel-assignments" element={<LazyRoute><HotelAssignments /></LazyRoute>} />
+            <Route path="/admin/tasks" element={<LazyRoute><AdminTasks /></LazyRoute>} />
+            <Route path="/admin/diagnostics" element={<LazyRoute><DiagnosticsCenter /></LazyRoute>} />
           </Route>
         </Route>
-      </Route>
 
 
       {/* 404 Page — wrapped in MainLayout for consistent Navbar + Footer */}

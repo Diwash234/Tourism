@@ -152,7 +152,7 @@ export default function UserFeedbackModal({ isOpen, onClose, destination = null 
                 <option value="recommendation_quality">🎯 Recommendation Quality & Relevance</option>
                 <option value="itinerary_quality">🗺️ Itinerary Structure & Schedule</option>
                 <option value="budget_accuracy">💵 Budget Accuracy & Prices</option>
-                <option value="route_quality">🚗 Route Navigation & Transport</option>
+                <option value="route_quality">Route navigation & transport</option>
                 <option value="bug_report">🐞 Bug Report / Technical Issue</option>
                 <option value="suggestion">💡 General Suggestion</option>
               </select>

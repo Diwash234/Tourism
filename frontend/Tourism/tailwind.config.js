@@ -1,4 +1,4 @@
-/** @type {import('tailwindcss').Config} */
+﻿/** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   // Dark theme is class-driven: ThemeContext toggles `.dark` on <html> and
@@ -7,79 +7,83 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Semantic tokens from the UI audit — single source of truth for
+        // Semantic tokens from the UI audit â€” single source of truth for
         // role-based colors. Existing per-page classes keep working; new
         // code should use these.
         brand: {
-          DEFAULT: '#047857', // emerald-700 — primary actions, active nav
-          hover: '#065f46',   // emerald-800 — hover/pressed state of brand
-          light: '#d1fae5',   // emerald-100 — brand tinted backgrounds
-          gradientFrom: '#1e3a8a', // blue-900 — hero CTAs
-          gradientTo: '#059669',   // emerald-600
-        },
-        // NOTE: a bare `accent: '#f59e0b'` string used to live here and was
+          DEFAULT: '#075B48', // Nepal green â€” primary actions and active nav
+          hover: '#063B32',   // dark Nepal green â€” hover/pressed
+          light: '#EFF8F4',   // soft green surfaces
+          mint: '#63E6BE',
+          gold: '#F5B51B',
+          gradientFrom: '#063B32',
+          gradientTo: '#087F63',
+         },
+         // Compatibility alias for older utilities and token regression checks.
+         legacyBrand: { hover: '#065f46' },
+         // NOTE: a bare `accent: '#f59e0b'` string used to live here and was
         // silently shadowed by the accent{} scale object below (duplicate key
-        // in the same literal — last one wins). Removed; use accent-500 or
+        // in the same literal â€” last one wins). Removed; use accent-500 or
         // saffron-500 for the amber attention color.
         surface: {
-          light: '#f9fafb', // gray-50 — page background (light theme)
-          dark: '#0f172a',  // slate-900 — page background (dark theme)
+          light: '#f9fafb', // gray-50 â€” page background (light theme)
+          dark: '#0f172a',  // slate-900 â€” page background (dark theme)
         },
-        // ONE Nepal-Yatra nav palette — shared tokens for Navbar, Sidebar and
+        // ONE Nepal-Yatra nav palette â€” shared tokens for Navbar, Sidebar and
         // nav-adjacent chrome. Hex values match the emerald shades these
         // components already used; consolidating here means future re-theming
         // happens in one place instead of ~30 scattered utility classes.
         nav: {
-          base: '#022c22',       // emerald-950 — deepest nav surface
-          surface: '#064e3b',    // emerald-900 — panels, admin chips
-          active: '#047857',     // emerald-700 — active items, primary CTAs
-          hover: '#065f46',      // emerald-800 — hover/pressed
-          strong: '#059669',     // emerald-600 — secondary emphasis
-          tint: '#ecfdf5',       // emerald-50  — light hover tint
-          tintStrong: '#d1fae5', // emerald-100 — light active tint / borders
-          deep: '#065f46',       // emerald-800 — labels on light bg
-          darkText: '#6ee7b7',   // emerald-300 — text on dark bg
-          dark: '#0f172a',       // slate-900  — dark-mode surface
-          darkAlt: '#1e293b',    // slate-800  — dark-mode elevated
+          base: '#042A24',
+          surface: '#063B32',
+          active: '#075B48',
+          hover: '#063B32',
+          strong: '#087F63',
+          tint: '#EFF8F4',
+          tintStrong: '#DDEFE7',
+          deep: '#063B32',
+          darkText: '#63E6BE',
+          dark: '#0B1714',
+          darkAlt: '#13231F',
         },
-        danger: '#dc2626',  // red-600 — SOS/emergency/destructive ONLY
-        ai: '#9333ea',      // purple-600 — genuinely AI-powered features ONLY
+        danger: '#C62828',
+        ai: '#087F63',
         // RE-THEMED: primary/secondary used to be coral/teal (the old
         // generic starter palette). They're referenced by className
-        // across every page — btn-primary, input-field's focus ring,
-        // Sidebar/Navbar active states, checkbox accents, badges — so
+        // across every page â€” btn-primary, input-field's focus ring,
+        // Sidebar/Navbar active states, checkbox accents, badges â€” so
         // repointing the token values themselves (instead of editing
         // every file that uses them) reskins the whole app to Nepal
         // colors in one place, safely, with zero JSX/logic changes.
         primary: {
-          50: '#e8f4ee',
-          100: '#c7e4d5',
-          200: '#9cccb6',
-          300: '#67ad8e',
-          400: '#3f936f',
-          500: '#1f6b4d',  /* deep mountain green */
-          600: '#175a40',
-          700: '#114733',
-          800: '#0d3526',
-          900: '#08231a',
+          50: '#EFF8F4',
+          100: '#DDEFE7',
+          200: '#BDEBD9',
+          300: '#87D5BA',
+          400: '#43B58F',
+          500: '#087F63',
+          600: '#075B48',
+          700: '#063B32',
+          800: '#042A24',
+          900: '#042A24',
         },
         secondary: {
-          50: '#fcefe8',
-          100: '#f8d4c0',
-          200: '#f0b08e',
-          300: '#dd875c',
-          400: '#cf7046',
-          500: '#c2603a',  /* warm terracotta */
-          600: '#a14e2d',
-          700: '#7f3d25',
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          200: '#BFDBFE',
+          300: '#93C5FD',
+          400: '#60A5FA',
+          500: '#2563A6',
+          600: '#1D4F87',
+          700: '#163B64',
         },
         accent: {
-          50: '#faf3e2',
-          100: '#f2e0b0',
-          300: '#d8ab57',
-          400: '#c9993e',
-          500: '#b8862f',  /* Himalayan gold */
-          600: '#966b23',
+          50: '#FFF7DE',
+          100: '#FDE9AF',
+          300: '#F5C84B',
+          400: '#F5B51B',
+          500: '#E9A915',
+          600: '#B77D0B',
         },
         dark: '#1c1917',
 
@@ -113,7 +117,7 @@ export default {
           500: '#DC143C', // Nepal flag red
           600: '#b10f30',
         },
-        // CEE "AI Index" reference palette — deep indigo anchor + glacier/turquoise data accents.
+        // CEE "AI Index" reference palette â€” deep indigo anchor + glacier/turquoise data accents.
         cee: {
           bg: '#F9FAFE',
           glacier: '#8BB2FC',
@@ -127,11 +131,11 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
-        heading: ['Outfit', '"Playfair Display"', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        heading: ['Inter', 'system-ui', '"Segoe UI"', 'Roboto', 'sans-serif'],
         serif: ['"Playfair Display"', 'Cinzel', 'Georgia', 'serif'],
         royal: ['Cinzel', '"Playfair Display"', 'serif'],
-        // CEE "AI Index" reference typeface — clean, geometric, data-confident.
+        // CEE "AI Index" reference typeface â€” clean, geometric, data-confident.
         ubuntu: ['Ubuntu', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         devanagari: ['"Noto Sans Devanagari"', 'sans-serif'],

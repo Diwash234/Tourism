@@ -2,7 +2,7 @@ import { FiPhoneCall, FiHome, FiShield, FiPlus } from "react-icons/fi"
 
 export default function NearbyServices({ hospitalInfo, hotelInfo, policeInfo }) {
   return (
-    <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl space-y-4">
+    <div className="ny-card p-6 space-y-4">
       <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
         <FiPhoneCall className="text-rose-600" /> Nearby Essential Services
       </h3>
@@ -12,7 +12,7 @@ export default function NearbyServices({ hospitalInfo, hotelInfo, policeInfo }) 
           <FiPhoneCall className="text-emerald-700 mt-0.5 shrink-0" size={15} />
           <div>
             <p className="font-bold text-gray-800">Nearest Hospital / Clinic</p>
-            <p className="text-[#102A2E] font-semibold mt-0.5">{hospitalInfo || "District Zonal Hospital"}</p>
+            <p className="text-[#102A2E] font-semibold mt-0.5">{hospitalInfo || "Information unavailable"}</p>
           </div>
         </div>
 
@@ -20,7 +20,7 @@ export default function NearbyServices({ hospitalInfo, hotelInfo, policeInfo }) 
           <FiHome className="text-emerald-700 mt-0.5 shrink-0" size={15} />
           <div>
             <p className="font-bold text-gray-800">Nearest Hotel / Lodge</p>
-            <p className="text-[#102A2E] font-semibold mt-0.5">{hotelInfo || "Nearby boutique lodge & homestays"}</p>
+            <p className="text-[#102A2E] font-semibold mt-0.5">{hotelInfo || "Information unavailable"}</p>
           </div>
         </div>
 
@@ -28,7 +28,7 @@ export default function NearbyServices({ hospitalInfo, hotelInfo, policeInfo }) 
           <FiShield className="text-emerald-700 mt-0.5 shrink-0" size={15} />
           <div>
             <p className="font-bold text-gray-800">Tourist Police Station</p>
-            <p className="text-[#102A2E] font-semibold mt-0.5">{policeInfo || "Tourist Police Helpdesk (1144)"}</p>
+            <p className="text-[#102A2E] font-semibold mt-0.5">{policeInfo || "Information unavailable"}</p>
           </div>
         </div>
       </div>

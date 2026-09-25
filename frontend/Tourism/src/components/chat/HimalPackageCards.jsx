@@ -12,7 +12,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
   return (
     <div className="max-w-[85%] mt-3 w-full space-y-2" data-testid="himal-package-cards">
       <p className="text-[11px] font-bold text-amber-900">
-        Live packages (request to book — no card numbers here):
+        Published packages (request to book — no card numbers here):
       </p>
       {offers.map((offer) => (
         <div
@@ -23,7 +23,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
           className="rounded-xl border border-amber-200 bg-white p-3 space-y-2"
         >
           <p className="text-[10px] font-black uppercase text-amber-800">
-            {offer.kind} · {offer.duration_days || 1} day(s)
+            {offer.kind || "Package"} · {offer.duration_days != null ? `${offer.duration_days} day(s)` : "Duration unavailable"}
             {offer.is_alternative ? " · alternative" : ""}
           </p>
           {offer.is_alternative && (
@@ -33,7 +33,7 @@ export default function HimalPackageCards({ offers, onAdd }) {
           )}
           <p className="font-bold text-slate-900 text-sm">{offer.title}</p>
           <p className="text-xs text-slate-500">
-            {offer.partner_name} · NPR {Number(offer.price_npr).toLocaleString()}
+            {offer.partner_name || "Provider not recorded"} · {offer.price_npr != null ? `NPR ${Number(offer.price_npr).toLocaleString()}` : "Price unavailable"}
           </p>
           <div className="flex gap-2">
             <Link

@@ -18,20 +18,19 @@ import budgetApi from "../api/budgetApi"
 import PieChartCard from "../components/charts/PieChartCard"
 import useToast from "../hooks/useToast"
 
-const EMERGENCY_RESERVE_RATE = 0.1
-
 const CURRENCIES = {
-  NPR: { symbol: "रू", rate: 133, label: "Nepali Rupee" },
-  USD: { symbol: "$", rate: 1, label: "US Dollar" },
-  INR: { symbol: "₹", rate: 83, label: "Indian Rupee" },
-  EUR: { symbol: "€", rate: 0.92, label: "Euro" },
-  GBP: { symbol: "£", rate: 0.79, label: "British Pound" },
+  NPR: { symbol: "रू", label: "Nepali Rupee" },
+  USD: { symbol: "$", label: "US Dollar" },
+  INR: { symbol: "₹", label: "Indian Rupee" },
+  EUR: { symbol: "€", label: "Euro" },
+  GBP: { symbol: "£", label: "British Pound" },
 }
 
-const formatMoney = (usd, currency) => {
-  const c = CURRENCIES[currency] || CURRENCIES.NPR
-  const v = Math.round((Number(usd) || 0) * c.rate)
-  return `${c.symbol}${v.toLocaleString()}`
+const formatMoney = (amount, currency) => {
+  if (amount == null || !Number.isFinite(Number(amount))) return "Unavailable"
+  if (!["NPR", "USD"].includes(currency)) return "Conversion unavailable"
+  const c = CURRENCIES[currency]
+  return `${c.symbol}${Math.round(Number(amount)).toLocaleString()}`
 }
 
 const CATEGORY_META = [
@@ -75,7 +74,7 @@ const BudgetEstimator = () => {
     formState: { isSubmitting },
   } = useForm({
     defaultValues: {
-      destination: "Pokhara",
+      destination: "",
       travelers: 1,
       days: 3,
       style: "mid",
@@ -83,6 +82,7 @@ const BudgetEstimator = () => {
   })
 
   const [estimate, setEstimate] = useState(null)
+  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [currency, setCurrency] = useState(
     () => localStorage.getItem("tourism_currency") || "NPR"
@@ -94,7 +94,10 @@ const BudgetEstimator = () => {
   const watched = useWatch({ control })
 
   useEffect(() => {
-    if (!watched?.destination) return
+    if (!watched?.destination?.trim()) {
+      const clearTimer = setTimeout(() => { setEstimate(null); setLoading(false) }, 0)
+      return () => clearTimeout(clearTimer)
+    }
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
@@ -113,44 +116,56 @@ const BudgetEstimator = () => {
   async function calculate(data) {
     const requestId = ++requestRef.current
     setLoading(true)
+    setError("")
+    setEstimate(null)
 
     try {
       const { data: result } = await budgetApi.estimate(data)
 
       if (requestId !== requestRef.current) return
 
-      const total = result.total_budget_usd ?? result.total ?? 0
+      const totalUsd = result.total_budget_usd ?? result.total ?? result.estimated_total ?? null
+      const dailyUsd = result.daily_cost_usd ?? (totalUsd != null ? Math.round(totalUsd / (data.days || 3)) : null)
+      const totalNpr = result.total_budget_npr ?? null
+      const dailyNpr = result.daily_budget_npr ?? (totalNpr != null ? Math.round(totalNpr / (data.days || 3)) : null)
+      const nprBreakdown = result.breakdown_npr || {}
 
-      const daily =
-        result.daily_cost_usd ??
-        (total ? Math.round(total / (data.days || 3)) : 0)
-
-      const accom = result.breakdown?.accommodation ?? result.accommodation ?? 0
-      const foodVal = result.breakdown?.food ?? result.food ?? 0
-      const transVal = (result.breakdown?.transport ?? result.transport ?? 0) + (result.breakdown?.local_transport ?? result.local_transport ?? 0)
-      const actVal = result.breakdown?.activities ?? Math.round(accom * 0.12)
-      const shopVal = result.breakdown?.shopping ?? Math.round(foodVal * 0.08)
+      const accom = result.breakdown?.accommodation ?? result.accommodation ?? null
+      const foodVal = result.breakdown?.food ?? result.food ?? null
+      const transportBase = result.breakdown?.transport ?? result.transport
+      const localTransport = result.breakdown?.local_transport ?? result.local_transport
+      const transVal = transportBase == null && localTransport == null ? null : Number(transportBase || 0) + Number(localTransport || 0)
+      const actVal = result.breakdown?.activities ?? result.activities ?? null
+      const shopVal = result.breakdown?.shopping ?? result.shopping ?? null
+      const nprTransportBase = nprBreakdown.transport
+      const nprLocalTransport = nprBreakdown.local_transport
+      const nprTransVal = nprTransportBase == null && nprLocalTransport == null ? null : Number(nprTransportBase || 0) + Number(nprLocalTransport || 0)
 
       setEstimate({
-        total: accom + foodVal + transVal + actVal + shopVal,
-        daily,
-        source: result.baseline_source || result.transport_basis || "estimate",
+        total: totalUsd,
+        daily: dailyUsd,
+        nprTotal: totalNpr,
+        nprDaily: dailyNpr,
+        source: result.baseline_source || result.source || "estimate",
         dataset: result.dataset || null,
         accommodation: accom,
         food: foodVal,
         transport: transVal,
         activities: actVal,
         shopping: shopVal,
+        nprAccommodation: nprBreakdown.accommodation ?? null,
+        nprFood: nprBreakdown.food ?? null,
+        nprTransport: nprTransVal,
+        nprActivities: nprBreakdown.activities ?? null,
+        nprShopping: nprBreakdown.shopping ?? null,
+        emergency_reserve: result.emergency_reserve_usd ?? result.emergency_reserve ?? null,
+        nprEmergencyReserve: nprBreakdown.emergency_reserve ?? result.emergency_reserve_npr ?? null,
       })
-    } catch (error) {
+    } catch (requestError) {
       if (requestId !== requestRef.current) return
-
-      showToast(
-        error.response?.data?.detail ||
-          error.response?.data?.error ||
-          "Could not calculate estimate. Backend not connected.",
-        "error"
-      )
+      const message = requestError.response?.data?.detail || requestError.response?.data?.error || "We could not calculate an estimate right now. Please try again."
+      setError(message)
+      showToast(message, "error")
     } finally {
       if (requestId === requestRef.current) setLoading(false)
     }
@@ -160,12 +175,34 @@ const BudgetEstimator = () => {
     calculate(data)
   }
 
-  const emergencyReserve = estimate
-    ? Math.round(estimate.total * EMERGENCY_RESERVE_RATE)
-    : 0
+  const estimateValues = estimate
+    ? currency === "NPR"
+      ? {
+          total: estimate.nprTotal,
+          accommodation: estimate.nprAccommodation,
+          food: estimate.nprFood,
+          transport: estimate.nprTransport,
+          activities: estimate.nprActivities,
+          shopping: estimate.nprShopping,
+          emergencyReserve: estimate.nprEmergencyReserve,
+        }
+      : currency === "USD"
+        ? {
+            total: estimate.total,
+            accommodation: estimate.accommodation,
+            food: estimate.food,
+            transport: estimate.transport,
+            activities: estimate.activities,
+            shopping: estimate.shopping,
+            emergencyReserve: estimate.emergency_reserve,
+          }
+        : { total: null, accommodation: null, food: null, transport: null, activities: null, shopping: null, emergencyReserve: null }
+    : null
+  const grandTotal = estimateValues?.total ?? null
+  const emergencyReserve = estimateValues?.emergencyReserve ?? null
 
   return (
-    <div className="container-app py-10 grid grid-cols-1 lg:grid-cols-2 gap-8 fade-in theme-orange">
+    <div className="ny-page container-app grid grid-cols-1 gap-8 py-6 sm:py-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <CMSPageIntro pageKey="budget-estimator" />
       {/* FORM */}
       <div>
@@ -183,7 +220,7 @@ const BudgetEstimator = () => {
               </label>
               <input
                 className="input-field mt-1"
-                placeholder="e.g. Pokhara"
+                placeholder="Enter a destination"
                 {...register("destination", { required: true })}
               />
             </div>
@@ -219,7 +256,6 @@ const BudgetEstimator = () => {
               <select className="input-field mt-1" {...register("style")}>
                 <option value="budget">Budget</option>
                 <option value="mid">Mid-range</option>
-                <option value="standard">Standard</option>
                 <option value="luxury">Luxury</option>
               </select>
             </div>
@@ -251,6 +287,7 @@ const BudgetEstimator = () => {
                 </option>
               ))}
             </select>
+            <p className="mt-2 text-xs leading-5 text-[var(--ny-text-muted)]">Only NPR and USD values are shown when returned by the estimate service. Other currency conversions remain unavailable.</p>
           </div>
 
           {loading && (
@@ -264,7 +301,13 @@ const BudgetEstimator = () => {
 
       {/* RESULT */}
       <div>
-        {estimate ? (
+        {error ? (
+          <div role="alert" className="ny-panel p-6 text-center">
+            <p className="font-bold text-[var(--ny-danger)]">Estimate unavailable</p>
+            <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">{error}</p>
+            <button type="button" onClick={() => calculate(watched)} className="ny-btn ny-btn-secondary mt-4">Try again</button>
+          </div>
+        ) : estimate ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -274,12 +317,11 @@ const BudgetEstimator = () => {
               <p className="text-sm text-gray-500">Estimated Total Cost</p>
 
               <p className="text-4xl font-extrabold text-saffron-600 my-1">
-                {formatMoney(estimate.total + emergencyReserve, currency)}
+                {formatMoney(grandTotal, currency)}
               </p>
 
               <p className="text-xs text-gray-500">
-                ≈ ${Math.round((estimate.total + emergencyReserve) || 0).toLocaleString()} USD ·{" "}
-                {formatMoney(estimate.total + emergencyReserve, currency)} {currency}
+                {currency === "USD" ? "USD estimate" : currency === "NPR" ? "NPR estimate" : "Selected currency conversion unavailable"}
               </p>
 
               {estimate.source === "dataset_csv" ? (
@@ -289,7 +331,9 @@ const BudgetEstimator = () => {
                     ? ` (${estimate.dataset.destinations}+ places)`
                     : ""}
                 </p>
-              ) : null}
+              ) : (
+                <p className="mt-3 text-[11px] text-[var(--ny-text-secondary)]">Source returned by the estimate service: {estimate.source || "not specified"}. Treat this as planning guidance, not a quoted price.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -302,7 +346,7 @@ const BudgetEstimator = () => {
                   <div>
                     <p className="text-xs text-gray-500">{label}</p>
                     <p className="font-bold text-dark text-sm">
-                      {formatMoney(estimate[key], currency)}
+                      {formatMoney(estimateValues?.[key], currency)}
                     </p>
                   </div>
                 </div>
@@ -313,7 +357,7 @@ const BudgetEstimator = () => {
                   <FiShield size={18} />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Emergency Reserve (10%)</p>
+                  <p className="text-xs text-gray-500 font-medium">Emergency reserve (if recorded)</p>
                   <p className="font-bold text-dark text-sm">
                     {formatMoney(emergencyReserve, currency)}
                   </p>
@@ -331,11 +375,11 @@ const BudgetEstimator = () => {
                 "Shopping & Souvenirs",
               ]}
               data={[
-                estimate.accommodation,
-                estimate.food,
-                estimate.transport,
-                estimate.activities,
-                estimate.shopping,
+                estimateValues?.accommodation,
+                estimateValues?.food,
+                estimateValues?.transport,
+                estimateValues?.activities,
+                estimateValues?.shopping,
               ]}
             />
           </motion.div>

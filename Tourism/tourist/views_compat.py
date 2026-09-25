@@ -118,11 +118,11 @@ class EmergencyContactsCompatView(APIView):
 
 def clean_phone(p_str, default="100"):
     if not p_str or str(p_str).lower() in {"nan", "none", "null"}:
-        return default, True
+        return default, bool(default)
     p = str(p_str).split(".")[0].strip()
     if p.endswith(".0"):
         p = p[:-2]
-    return (p, False) if len(p) > 2 else (default, True)
+    return (p, False) if len(p) > 2 else (default, bool(default))
 
 
 def _stored_image_url(obj):
@@ -180,11 +180,11 @@ class NearbyHospitalsView(APIView):
                 "image_url": None,
             })
 
-        for h in Hospital.objects.exclude(is_archived=True):
+        for h in Hospital.objects.filter(is_archived=False, is_verified=True):
             d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
             if d is None:
                 continue
-            phone, fallback = clean_phone(h.phone, "102")
+            phone, fallback = clean_phone(h.phone, "")
             results.append({
                 "id": f"hospital-{h.id}",
                 "name": h.name,
@@ -237,11 +237,11 @@ class NearbyPoliceView(APIView):
                 "image_url": None,
             })
 
-        for p in PoliceStation.objects.exclude(is_archived=True):
+        for p in PoliceStation.objects.filter(is_archived=False, is_verified=True):
             d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
             if d is None:
                 continue
-            phone, fallback = clean_phone(p.phone, "100")
+            phone, fallback = clean_phone(p.phone, "")
             results.append({
                 "id": f"police-{p.id}",
                 "name": p.name,

@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from .image_pipeline import resolve_place_image
 from .image_acquisition_pipeline import ImageAcquisitionPipeline
 from .models import Destination, DestinationImage
+from .permissions import IsAdminOrStaff
+from .serializers import DestinationImageSerializer
 
 
 def get_destination_by_slug_or_id(val):
@@ -78,9 +80,14 @@ class DestinationImagesListView(APIView):
         destination = get_destination_by_slug_or_id(slug)
         if not destination:
             return Response({"detail": f"Destination '{slug}' not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        pipeline = ImageAcquisitionPipeline()
-        images = pipeline.acquire_images_for_destination(destination, limit=14, force_refresh=False)
+        # This is a public read endpoint. Never call the acquisition pipeline
+        # here: doing so wrote external candidates into the database on an
+        # anonymous GET. Discovery/refresh are explicit authenticated admin
+        # actions below. Pending/rejected media is never public.
+        if not (request.user.is_authenticated and request.user.is_staff) and not Destination.publicly_visible(Destination.objects.filter(pk=destination.pk)).exists():
+            return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        photos = destination.gallery.filter(verification_status="approved", is_verified=True).order_by("-is_cover", "ordering", "id")[:14]
+        images = DestinationImageSerializer(photos, many=True, context={"request": request}).data
         return Response({
             "destination": destination.name,
             "count": len(images),
@@ -95,15 +102,25 @@ class DestinationImagesDiscoverView(APIView):
     Manually triggers multi-source image discovery across Wikimedia Commons,
     Openverse, Unsplash, Pexels, Flickr, and Pixabay.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminOrStaff]
 
     def post(self, request, slug):
+        from .views_admin import _require_destination_access
         destination = get_destination_by_slug_or_id(slug)
         if not destination:
             return Response({"detail": f"Destination '{slug}' not found."}, status=status.HTTP_404_NOT_FOUND)
-
+        _require_destination_access(request, destination, "images", "add")
         pipeline = ImageAcquisitionPipeline()
         images = pipeline.acquire_images_for_destination(destination, limit=14, force_refresh=False)
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="media",
+            severity="info", source="backend", action="media.discover",
+            message=f"Discovered {len(images)} image candidate(s) for {destination.name}",
+            object_type="Destination", object_id=str(destination.id),
+            extra={"candidate_count": len(images)},
+        )
         return Response({
             "destination": destination.name,
             "count": len(images),
@@ -118,15 +135,25 @@ class DestinationImagesRefreshView(APIView):
     POST /api/v1/destinations/<slug_or_id>/images/refresh/
     Manually triggers force refresh of image collection across all sources.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminOrStaff]
 
     def post(self, request, slug):
+        from .views_admin import _require_destination_access
         destination = get_destination_by_slug_or_id(slug)
         if not destination:
             return Response({"detail": f"Destination '{slug}' not found."}, status=status.HTTP_404_NOT_FOUND)
-
+        _require_destination_access(request, destination, "images", "add")
         pipeline = ImageAcquisitionPipeline()
         images = pipeline.acquire_images_for_destination(destination, limit=14, force_refresh=True)
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="media",
+            severity="info", source="backend", action="media.refresh",
+            message=f"Refreshed {len(images)} image candidate(s) for {destination.name}",
+            object_type="Destination", object_id=str(destination.id),
+            extra={"candidate_count": len(images)},
+        )
         return Response({
             "destination": destination.name,
             "count": len(images),
@@ -145,23 +172,38 @@ class DestinationImageSetCoverView(APIView):
     authentication (any logged-in user can pick; full admin moderation is
     enforced separately in the admin panel).
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrStaff]
 
     def post(self, request, slug, image_id):
+        from .views_admin import _require_destination_access
         destination = get_destination_by_slug_or_id(slug)
         if not destination:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        _require_destination_access(request, destination, "images", "change")
 
         image = destination.gallery.filter(id=image_id).first()
         if not image:
             return Response({"detail": "Image not found for this destination."}, status=status.HTTP_404_NOT_FOUND)
+        if image.verification_status != "approved":
+            return Response({"detail": "Only approved images can be set as the cover."}, status=status.HTTP_400_BAD_REQUEST)
 
         destination.gallery.filter(is_cover=True).exclude(id=image.id).update(is_cover=False)
         image.is_cover = True
         image.save(update_fields=["is_cover"])
 
-        cover_url = image.external_url
+        from .views_admin import _media_public_url, _sync_destination_json
+        cover_url = _media_public_url(image)
         Destination.objects.filter(pk=destination.pk).update(cover_image=cover_url or "")
+        _sync_destination_json(destination)
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="media",
+            severity="warning", source="backend", action="media.set_cover",
+            message=f"Set image #{image.id} as cover for {destination.name}",
+            object_type="DestinationImage", object_id=str(image.id),
+            extra={"destination_id": destination.id, "cover_url": cover_url},
+        )
 
         return Response({
             "message": "Cover image updated.",

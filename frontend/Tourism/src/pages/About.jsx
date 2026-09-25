@@ -1,86 +1,18 @@
-import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
-import { FiUsers, FiTarget, FiGlobe, FiArrowRight } from "react-icons/fi"
+import { FiArrowRight, FiCompass, FiGlobe, FiHeart, FiShield, FiUsers } from "react-icons/fi"
 import { APP_NAME } from "../utils/constants"
 import usePublicConfig from "../hooks/usePublicConfig"
 import CMSIntro from "../components/cms/CMSIntro"
 import PageHeader from "../components/common/PageHeader"
 
-const About = () => {
+const VALUES = [
+  [FiCompass, "Useful before you book", "We organise the information a traveller needs to make a confident first decision."],
+  [FiShield, "Clear about uncertainty", "When a record is missing, we say so rather than filling the gap with a guess."],
+  [FiHeart, "Rooted in Nepal", "The product is shaped around the country's landscapes, communities, languages and travel realities."],
+  [FiUsers, "Open to local knowledge", "Travellers and local contributors can help keep the catalogue useful, with review before publication."],
+]
+
+export default function About() {
   const { block } = usePublicConfig().pageCMS("about", ["intro", "page-intro"])
-  return (
-  <div className="container-app section-space fade-in theme-maroon">
-    <CMSIntro section={block("intro")} />
-    <PageHeader
-      title={<>About {APP_NAME}</>}
-      subtitle="Who we are, what we stand for, and how we help you travel Nepal safely."
-      icon={FiGlobe}
-    />
-
-    <p className="max-w-2xl mx-auto text-center text-gray-500 mb-8 sm:mb-10">
-      {APP_NAME} is a local tourism information portal built to help travelers
-      discover Nepal's destinations, plan budgets, stay safe, and navigate
-      confidently — all from a single platform.
-    </p>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 sm:mb-10">
-      {[
-        {
-          icon: FiTarget,
-          title: "Our Mission",
-          desc: "Make local travel planning simple, safe and data-driven for every tourist.",
-        },
-        {
-          icon: FiUsers,
-          title: "Our Community",
-          desc: "Thousands of travelers share reviews, tips and favorite spots every month.",
-        },
-        {
-          icon: FiGlobe,
-          title: "Our Reach",
-          desc: "Covering destinations across Nepal with real-time alerts and translations.",
-        },
-      ].map(({ icon: Icon, title, desc }) => (
-        <div key={title} className="card-base overflow-hidden p-6 text-center">
-          <div className="inline-flex p-3 rounded-full bg-forest-50 text-forest-500 mb-4">
-            <Icon size={24} />
-          </div>
-
-          <h3 className="font-semibold mb-2">
-            {title}
-          </h3>
-
-          <p className="text-sm text-gray-500">
-            {desc}
-          </p>
-        </div>
-      ))}
-    </div>
-
-
-    <div className="card-base overflow-hidden p-8 text-center bg-gradient-to-br from-himalaya-500 to-forest-600 text-white">
-
-      <h2 className="text-xl font-heading font-bold mb-2">
-        Ready to explore?
-      </h2>
-
-      <p className="text-white/80 mb-5 max-w-md mx-auto">
-        See Nepal's history, culture, festivals, and heritage in one place.
-      </p>
-
-
-      <Link
-        to="/discover-nepal"
-        className="inline-flex items-center gap-2 bg-white text-himalaya-600 font-semibold px-5 py-2.5 rounded-xl hover:-translate-y-0.5 transition-transform"
-      >
-        Discover Nepal
-        <FiArrowRight size={16} />
-      </Link>
-
-    </div>
-
-  </div>
-  )
+  return <div className="ny-page container-app section-space"><CMSIntro section={block("intro")} /><PageHeader title={`About ${APP_NAME}`} subtitle="A practical travel information platform for discovering Nepal, planning with context and finding support when you need it." icon={FiGlobe} /><div className="ny-reading text-center"><p className="text-base leading-7 text-[var(--ny-text-secondary)]">Nepal Yatra brings destinations, routes, budgets, stays and safety information into one calm journey — without pretending that every answer is available.</p></div><div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{VALUES.map(([Icon, title, description]) => <article key={title} className="ny-card flex h-full flex-col p-5"><span className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-md)] bg-[var(--ny-soft-green)] text-[var(--ny-green)]"><Icon size={20} aria-hidden="true" /></span><h2 className="mt-5 text-lg font-bold">{title}</h2><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">{description}</p></article>)}</div><section className="mt-12 rounded-[var(--ny-radius-xl)] bg-[var(--ny-green-dark)] p-7 text-white sm:p-10"><div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-semibold text-[#BDEBD9]">Start with a place</p><h2 className="mt-2 !text-2xl !text-white">See what Nepal Yatra can help you find.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#C7D9D2]">Explore the catalogue, compare destinations and build a trip around the way you actually want to travel.</p></div><Link to="/destinations" className="ny-btn ny-btn-accent shrink-0">Explore destinations <FiArrowRight size={16} aria-hidden="true" /></Link></div></section></div>
 }
-
-export default About

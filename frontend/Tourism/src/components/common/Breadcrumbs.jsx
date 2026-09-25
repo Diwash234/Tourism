@@ -8,11 +8,14 @@ export default function Breadcrumbs({ items = [] }) {
 
   // Generate breadcrumb list if not explicitly passed
   const pathnames = location.pathname.split("/").filter((x) => x)
-  const breadcrumbs = items.length > 0 ? items : pathnames.map((value, index) => {
+  const suppliedItems = items.length > 0 ? items : pathnames.map((value, index) => {
     const to = `/${pathnames.slice(0, index + 1).join("/")}`
     const label = value.charAt(0).toUpperCase() + value.slice(1).replace(/-/g, " ")
     return { label, to }
   })
+  // The component always renders the Home link. Do not repeat it when a page
+  // supplies its own root item.
+  const breadcrumbs = suppliedItems[0]?.to === "/" ? suppliedItems.slice(1) : suppliedItems
 
   if (breadcrumbs.length === 0) return null
 

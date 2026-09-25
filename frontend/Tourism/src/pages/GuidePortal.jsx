@@ -29,9 +29,11 @@ export default function GuidePortal() {
   const [applications, setApplications] = useState([])
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [busy, setBusy] = useState(false)
   const [requests, setRequests] = useState([])
   const [stats, setStats] = useState(null)
+  const [statsError, setStatsError] = useState("")
   const [busyId, setBusyId] = useState(null)
   const [declineFor, setDeclineFor] = useState(null)
   const [declineNote, setDeclineNote] = useState("")
@@ -44,9 +46,10 @@ export default function GuidePortal() {
   const load = useCallback(() => {
   if (!isAuthenticated) { setLoading(false); return }
     setLoading(true)
+    setLoadError("")
     Promise.all([
-      workforceApi.myApplications().catch(() => ({ data: { results: [] } })),
-      workforceApi.myGuideProfile().catch(() => ({ data: { exists: false } })),
+      workforceApi.myApplications().catch(() => { setLoadError("Applications could not be loaded."); return { data: { results: [] } } }),
+      workforceApi.myGuideProfile().catch((error) => { if (error.response?.status !== 404) setLoadError("Your guide profile could not be loaded."); return { data: { exists: false } } }),
     ]).then(([apps, prof]) => {
       setApplications(apps.data.results || [])
       setProfile(prof.data.exists ? prof.data : null)
@@ -56,8 +59,8 @@ export default function GuidePortal() {
           .then(({ data: d }) => setRequests(d.results || []))
           .catch(() => setRequests([]))
         workforceApi.guideStats()
-          .then(({ data: d }) => setStats(d))
-          .catch(() => setStats(null))
+          .then(({ data: d }) => { setStats(d); setStatsError("") })
+          .catch(() => { setStats(null); setStatsError("Stats are unavailable right now.") })
       } else if ((apps.data.results || []).length) {
         setTab("status")
       }
@@ -113,8 +116,8 @@ export default function GuidePortal() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#F7F8F5] flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl border p-10 text-center max-w-md">
+      <div className="ny-page min-h-screen bg-[var(--ny-bg)] flex items-center justify-center p-6">
+        <div className="ny-card p-8 text-center sm:p-10 max-w-md">
           <FiUser className="mx-auto text-4xl text-[#1D5146]" />
           <h1 className="text-2xl font-black text-slate-900 mt-3">Guide Portal</h1>
           <p className="text-sm text-slate-500 mt-2">Sign in with your Nepal Yatra account to apply as a guide, track your verification and manage your professional profile.</p>
@@ -129,7 +132,7 @@ export default function GuidePortal() {
     setBusyId(id)
     try {
       await workforceApi.bookingAction(id, action, note)
-      showToast(`Request ${action}ed`, "success")
+      showToast(`Request ${action === "accept" ? "accepted" : action === "decline" ? "declined" : action === "complete" ? "completed" : action + "d"}`, "success")
       const { data } = await workforceApi.myBookings("guide")
       setRequests(data.results || [])
     } catch (error) {
@@ -145,22 +148,23 @@ export default function GuidePortal() {
   const meta = latest ? STATUS_META[latest.status] : null
   const hasOpen = latest && ["applied", "under_review", "document_verification", "needs_info"].includes(latest.status)
 
-  const field = "w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]"
+  const field = "input-field"
 
   return (
-    <div className="min-h-screen bg-[#F7F8F5]">
-      <div className="max-w-4xl mx-auto px-4 py-10 space-y-5">
+    <div className="ny-page bg-[var(--ny-bg)]">
+      <div className="container-app max-w-6xl space-y-6 py-6 sm:py-8">
         <PageHeader
           theme="forest"
           title="Guide Portal"
           subtitle="Tourism workforce — apply, verify and manage your professional guide profile."
-          actions={<Link to="/guides" className="rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 px-4 py-2 text-sm font-bold text-white">Browse verified guides →</Link>}
+          actions={<Link to="/guides" className="ny-btn ny-btn-secondary min-h-10 text-xs">Browse guides <span aria-hidden="true">→</span></Link>}
         />
 
-        <div className="flex gap-1.5">
+        {loadError && <p className="rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-3 text-sm text-[var(--ny-danger)]" role="alert">{loadError}</p>}
+        <div className="ny-horizontal-scroll flex gap-2 pb-1">
           {[["apply", "Apply"], ["status", `My Applications${applications.length ? ` (${applications.length})` : ""}`], ["profile", profile ? "My Profile" : "Profile (after approval)"], ["requests", profile ? `Booking Requests${requests.filter((r) => r.status === "requested").length ? ` (${requests.filter((r) => r.status === "requested").length})` : ""}` : "Booking Requests"], ["stats", "Earnings & Stats"]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} aria-pressed={tab === id}
-              className={`px-4 py-2 rounded-full text-xs font-bold transition ${tab === id ? "bg-[#102A2E] text-white" : "bg-white border text-slate-600 hover:bg-slate-100"}`}>
+              className={`ny-btn min-h-10 shrink-0 px-3 text-xs ${tab === id ? "ny-btn-primary" : "ny-btn-secondary"}`}>
               {label}
             </button>
           ))}
@@ -281,14 +285,14 @@ export default function GuidePortal() {
                       )}
                       {b.status === "requested" && (
                         declineFor === b.id ? (
-                          <div className="flex gap-2 pt-1">
+                          <div className="flex flex-wrap gap-2 pt-1">
                             <input autoFocus className={field} placeholder="Reason for declining (required)" value={declineNote} onChange={(e) => setDeclineNote(e.target.value)} />
                             <button onClick={() => bookingAct(b.id, "decline", declineNote)} disabled={!declineNote.trim() || busyId === b.id}
                               className="px-4 py-2 bg-rose-600 disabled:opacity-40 text-white rounded-xl text-xs font-black whitespace-nowrap">Confirm Decline</button>
                             <button onClick={() => setDeclineFor(null)} className="px-3 py-2 border rounded-xl text-xs font-bold text-slate-500">Back</button>
                           </div>
                         ) : (
-                          <div className="flex gap-2 pt-1">
+                          <div className="flex flex-wrap gap-2 pt-1">
                             <button onClick={() => bookingAct(b.id, "accept")} disabled={busyId === b.id}
                               className="px-4 py-2 bg-[#1D5146] hover:bg-[#102A2E] disabled:opacity-40 text-white rounded-xl text-xs font-black">Accept</button>
                             <button onClick={() => setDeclineFor(b.id)}
@@ -356,7 +360,7 @@ export default function GuidePortal() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-400 animate-pulse">Loading your stats…</div>
+                  <div className="ny-empty">{statsError || "Your statistics are not available right now."}</div>
                 )
               ) : (
                 <div className="bg-white rounded-3xl border p-12 text-center text-sm text-slate-500">

@@ -104,7 +104,7 @@ def verify_commercial_license(license_str: str) -> tuple[bool, str]:
     for term in APPROVED_LICENSE_TERMS:
         if term in clean:
             return True, f"Verified Commercial Reusable: {license_str}"
-    return True, f"Verified Reusable: {license_str}"
+    return False, f"Rejected: Unrecognized usage-rights information for {license_str}"
 
 class ImageAcquisitionPipeline:
     """
@@ -203,10 +203,18 @@ class ImageAcquisitionPipeline:
             img_obj = self._save_provenance_to_db(destination, item, is_cover=(idx == 0))
             stored_items.append(self._serialize_image(img_obj))
 
-        # Ensure destination cover_image is set
+        # Only an already-approved media row may populate the public cover.
+        # Newly acquired candidates remain private until review.
         if stored_items and not destination.cover_image:
-            destination.cover_image = stored_items[0]["url"]
-            destination.save(update_fields=["cover_image"])
+            approved = destination.gallery.filter(verification_status="approved", is_verified=True).order_by("-is_cover", "ordering", "id").first()
+            if approved:
+                try:
+                    approved_url = approved.external_url or (approved.image.url if approved.image else "")
+                except (ValueError, AttributeError):
+                    approved_url = ""
+                if approved_url:
+                    destination.cover_image = approved_url
+                    destination.save(update_fields=["cover_image"])
 
         return stored_items
 
@@ -221,30 +229,41 @@ class ImageAcquisitionPipeline:
             external_url=url,
             defaults={
                 "caption": f"{destination.name} — {meta.get('author', 'Nepal Media Archive')}",
-                "is_cover": is_cover,
+                "is_cover": False,
                 "source": db_source,
-                "source_url": meta.get("sourceUrl", "https://commons.wikimedia.org"),
+                "source_url": meta.get("sourceUrl", ""),
                 "source_platform": source_val.upper(),
                 "photographer": meta.get("author", "Verified Contributor"),
                 "license_type": meta.get("license", "CC BY-SA 4.0"),
                 "attribution": f"Photo by {meta.get('author', 'Nepal Archive')} ({meta.get('license', 'CC')})",
-                "is_verified": True,
             }
         )
+        if created:
+            # Acquisition is discovery, not moderation. Every new candidate
+            # enters the review queue; only an explicit admin approval may
+            # make it public or promote it to a cover.
+            img_obj.verification_status = DestinationImage.ImageStatus.PENDING
+            img_obj.is_verified = False
+            img_obj.is_cover = False
+            img_obj.save(update_fields=["verification_status", "is_verified", "is_cover", "updated_at"])
         return img_obj
 
     def _serialize_image(self, img: DestinationImage) -> Dict[str, Any]:
         is_allowed, ver_note = verify_commercial_license(img.license_type)
+        try:
+            local_url = img.image.url if img.image else ""
+        except (ValueError, AttributeError):
+            local_url = ""
         return {
             "id": img.id,
-            "url": img.external_url or (img.image.url if img.image else ""),
-            "thumbnailUrl": img.external_url or (img.image.url if img.image else ""),
+            "url": img.external_url or local_url,
+            "thumbnailUrl": img.external_url or local_url,
             "source": img.source_platform.lower() if img.source_platform else img.source,
             "author": img.photographer or "Verified Contributor",
             "license": img.license_type or "CC BY-SA",
             "licenseVerification": ver_note,
             "isCommercialReusable": is_allowed,
-            "sourceUrl": img.source_url or "https://commons.wikimedia.org",
+            "sourceUrl": img.source_url or "",
             "isAiGenerated": img.source_platform.lower() == "ai" if img.source_platform else False,
             "caption": img.caption,
         }

@@ -19,6 +19,7 @@ const STATUS_COLORS = {
 const MyBookings = () => {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [reviewFormFor, setReviewFormFor] = useState(null)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
@@ -26,10 +27,11 @@ const MyBookings = () => {
 
   const load = () => {
     setLoading(true)
+    setLoadError("")
     bookingApi
       .getMyBookings()
       .then(({ data }) => setBookings(data.results || data || []))
-      .catch(() => setBookings([]))
+      .catch(() => { setBookings([]); setLoadError("Bookings could not be loaded right now.") })
       .finally(() => setLoading(false))
   }
 
@@ -59,28 +61,29 @@ const MyBookings = () => {
   if (loading) return <Loader />
 
   return (
-    <div className="container-app py-10">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="bookings" />
       <PageHeader title="My Bookings" subtitle="Your booking requests and their current status." icon={FiBriefcase} />
 
-      {bookings.length ? (
+      {loadError && <div role="alert" className="ny-panel border-[#E9B9B9] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]">{loadError} <button type="button" onClick={load} className="ml-2 font-semibold underline">Try again</button></div>}
+       {!loadError && bookings.length ? (
         <div className="space-y-4">
           {bookings.map((b) => (
             <div key={b.id} className="card-base p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-semibold">
                   <FiHome className="text-primary-500" />
-                  {b.hotel_name}
+                  {b.hotel_name || "Booking record"}
                 </div>
                 <span className={`text-sm font-semibold ${STATUS_COLORS[b.status] || ""}`}>
-                  {b.status.toUpperCase()}
+                  {(b.status || "unknown").toUpperCase()}
                 </span>
               </div>
               <p className="text-sm text-gray-500 flex items-center gap-1 mt-2">
-                <FiCalendar size={14} /> {b.check_in} → {b.check_out} · {b.guests} guest(s)
+                <FiCalendar size={14} /> {b.check_in || "Check-in unavailable"} → {b.check_out || "Check-out unavailable"} · {b.guests != null ? `${b.guests} guest(s)` : "Guest count unavailable"}
               </p>
               <p className="text-sm mt-1">
-                Total: <strong>{b.total_price} {b.currency}</strong>
+                Total: <strong>{b.total_price != null ? `${b.total_price} ${b.currency || ""}` : "Unavailable"}</strong>
               </p>
 
               <div className="flex gap-3 mt-3">
@@ -89,7 +92,7 @@ const MyBookings = () => {
                     Cancel booking
                   </button>
                 )}
-                {b.status === "completed" && (
+                {b.status === "completed" && b.hotel && (
                   <button
                     onClick={() => setReviewFormFor(reviewFormFor === b.id ? null : b.id)}
                     className="text-primary-500 text-sm hover:underline flex items-center gap-1"
@@ -120,7 +123,7 @@ const MyBookings = () => {
             </div>
           ))}
         </div>
-      ) : (
+      ) : loadError ? null : (
         <EmptyState title="No bookings yet" subtitle="Book a hotel from a destination page to see it here." />
       )}
     </div>

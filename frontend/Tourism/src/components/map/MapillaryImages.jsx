@@ -2,16 +2,11 @@ import { useEffect, useState } from "react"
 import { FiCamera, FiExternalLink, FiLoader } from "react-icons/fi"
 import { MAPILLARY_ACCESS_TOKEN } from "../../utils/constants"
 import configApi from "../../api/configApi"
+import EmptyState from "../common/EmptyState"
 
 const MAPILLARY_GRAPH_API = "https://graph.mapillary.com/images"
 
-const NEPAL_STREET_FALLBACKS = [
-  { id: "ktm-street", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/KATHMANDU_NEPAL_FEB_2013_%288581665041%29.jpg/960px-KATHMANDU_NEPAL_FEB_2013_%288581665041%29.jpg", title: "Kathmandu Valley Street View" },
-  { id: "pokhara-lakeside-street", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Panorama_view_of_Kathmandu.jpg/960px-Panorama_view_of_Kathmandu.jpg", title: "Pokhara Lakeside Corridor" },
-  { id: "highway-transit", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Sunkoshi_River_and_BP_Highway_Sindhuli.jpg/960px-Sunkoshi_River_and_BP_Highway_Sindhuli.jpg", title: "BP Highway Transit Route" },
-  { id: "mustang-trail", url: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/The_village_of_Tsarang.jpg/960px-The_village_of_Tsarang.jpg", title: "Mustang High-Altitude Corridor" },
-]
-
+// No stock imagery is substituted when the street-level service has no record.
 const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(false)
@@ -38,7 +33,7 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
       return () => clearTimeout(z)
     }
     if (!token) {
-      const z = setTimeout(() => { setImages(NEPAL_STREET_FALLBACKS.slice(0, limit)) }, 0)
+      const z = setTimeout(() => { setImages([]) }, 0)
       return () => clearTimeout(z)
     }
 
@@ -73,11 +68,11 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
               pano: img.is_pano,
             }
           })
-          setImages(items.length ? items.slice(0, limit) : NEPAL_STREET_FALLBACKS.slice(0, limit))
+          setImages(items.slice(0, limit))
         }
       })
       .catch(() => {
-        if (!ignore) setImages(NEPAL_STREET_FALLBACKS.slice(0, limit))
+        if (!ignore) setImages([])
       })
       .finally(() => {
         if (!ignore) setLoading(false)
@@ -97,7 +92,7 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
     )
   }
 
-  const itemsToDisplay = images.length ? images : NEPAL_STREET_FALLBACKS.slice(0, limit)
+  const itemsToDisplay = images
 
   return (
     <div className="space-y-2">
@@ -105,7 +100,7 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
         <span className="flex items-center gap-1.5"><FiCamera className="text-blue-600" /> Street-Level & Corridor Views</span>
         <span className="text-[10px] text-slate-400 font-mono">Nepal Transit Imagery</span>
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {!itemsToDisplay.length ? <EmptyState title="Street-level imagery unavailable" subtitle="No recorded imagery was returned for this location." /> : <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {itemsToDisplay.map((img, idx) => (
           <a
             key={img.id || idx}
@@ -126,7 +121,7 @@ const MapillaryImages = ({ latitude, longitude, radiusM = 400, limit = 6 }) => {
             </span>
           </a>
         ))}
-      </div>
+      </div>}
     </div>
   )
 }

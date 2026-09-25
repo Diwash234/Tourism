@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import useSeo from "../../hooks/useSeo"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -7,19 +7,18 @@ import {
   FiShield, FiHome, FiCoffee, FiShoppingBag, FiGlobe, FiClock,
   FiNavigation, FiLayers, FiMaximize2, FiChevronLeft, FiChevronRight,
   FiX, FiCalendar, FiActivity, FiAlertTriangle, FiCheckCircle,
-  FiTruck, FiCompass, FiExternalLink, FiInfo, FiBookOpen, FiShare2, FiSun
+  FiTruck, FiCompass, FiExternalLink, FiInfo, FiBookOpen, FiShare2, FiSun, FiImage
 } from "react-icons/fi"
 
 import destinationApi from "../../api/destinationApi"
 import emergencyApi from "../../api/emergencyApi"
-import budgetApi from "../../api/budgetApi"
 import userApi from "../../api/userApi"
 import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
 import { LOCATION_ICON_URL } from "../../utils/locationIcons"
+import { getDestinationImageUrl } from "../../utils/imageUtils"
 import { photoApi } from "../../services/api"
 import usePublicConfig from "../../hooks/usePublicConfig"
 import { CMSExtras } from "../../components/cms/CMSBlock"
-import { getDestinationImageUrl } from "../../utils/imageUtils"
 
 import MapView from "../../components/map/MapView"
 import GettingThereCard from "../../components/destination/GettingThereCard"
@@ -54,6 +53,11 @@ const POI_CATEGORY_ICONS = {
   peaks: "mountain",
 }
 
+const phoneHref = (value) => {
+  const normalized = String(value || "").replace(/[^\d+]/g, "")
+  return normalized ? `tel:${normalized}` : undefined
+}
+
 export default function DestinationDetails() {
   const { slug } = useParams()
   const navigate = useNavigate()
@@ -65,6 +69,7 @@ export default function DestinationDetails() {
   const [videoBusy, setVideoBusy] = useState(false)
 
   const [destination, setDestination] = useState(null)
+  const [loadError, setLoadError] = useState("")
   // Nearby & all destinations — nearest-first, paginated (radius covers all of Nepal)
   const [nearbyDests, setNearbyDests] = useState([])
   const [nearbyHasMore, setNearbyHasMore] = useState(false)
@@ -108,6 +113,7 @@ export default function DestinationDetails() {
 
   const fetchNearbyDestinations = async (page, dest) => {
     if (!dest || !hasValidCoords(dest.latitude, dest.longitude)) return
+    const requestId = ++nearbyRequestRef.current
     try {
       const { data } = await destinationApi.getNearbyDestinations({
         latitude: dest.latitude,
@@ -116,6 +122,7 @@ export default function DestinationDetails() {
         page,
         page_size: 12,
       })
+      if (requestId !== nearbyRequestRef.current) return
       const rows = data.results || []
       setNearbyDests((prev) => (page === 1 ? rows : [...prev, ...rows]))
       setNearbyHasMore(Boolean(data.next))
@@ -134,13 +141,16 @@ export default function DestinationDetails() {
   }, [destination?.id])
 
   const fetchNearbyPOIs = async (slug, radius) => {
+    const requestId = ++poiRequestRef.current
     setPoiError("")
     try {
       const { data } = await destinationApi.getNearbyPOIs(slug, { radius_km: radius })
+      if (requestId !== poiRequestRef.current) return
       setPois(data)
       const firstWithResults = Object.entries(data.categories || {}).find(([, v]) => v.results?.length)
       setPoiTab(firstWithResults ? firstWithResults[0] : Object.keys(data.categories || {})[0] || "hotels")
     } catch (error) {
+      if (requestId !== poiRequestRef.current) return
       setPois(null)
       setPoiError(error.response?.data?.detail || "Live map data (OpenStreetMap) is unavailable right now.")
     }
@@ -157,7 +167,6 @@ export default function DestinationDetails() {
     await fetchNearbyDestinations(nearbyPage + 1, destination)
     setNearbyBusy(false)
   }
-  const [budget, setBudget] = useState(null)
   const [essentials, setEssentials] = useState(null)
   const [emergency, setEmergency] = useState(null)
 
@@ -172,13 +181,34 @@ export default function DestinationDetails() {
   const [showReportModal, setShowReportModal] = useState(false)
 
   const [loading, setLoading] = useState(true)
-  const { position } = useGeolocation()
+  const [retry, setRetry] = useState(0)
+  const detailRequestRef = useRef(0)
+  const nearbyRequestRef = useRef(0)
+  const poiRequestRef = useRef(0)
+  const favoriteRequestRef = useRef(0)
+  const { position } = useGeolocation({ auto: false })
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
+    const requestId = ++detailRequestRef.current
+    nearbyRequestRef.current += 1
+    poiRequestRef.current += 1
+    favoriteRequestRef.current += 1
     setLoading(true)
+    setLoadError("")
+    setDestination(null)
+    setEssentials(null)
+    setEmergency(null)
+    setPois(null)
+    setPoiError("")
+    setNearbyDests([])
+    setNearbyHasMore(false)
+    setNearbyTotal(0)
+    setNearbyPage(1)
+    setIsFavorite(false)
+    setFavoriteRecordId(null)
 
     const params = {}
     if (position) {
@@ -190,10 +220,13 @@ export default function DestinationDetails() {
       destinationApi.getById(slug, params),
       destinationApi.getEssentials(slug, params),
       emergencyApi.forDestination(slug, { radius_km: 80, limit: 6 }),
-      budgetApi.estimate({ destination: slug, travelers: 1, days: 3 }),
-    ]).then(([destRes, essentialsRes, emergencyRes, budgetRes]) => {
+          ]).then(([destRes, essentialsRes, emergencyRes]) => {
+      if (requestId !== detailRequestRef.current) return
       if (destRes.status === "fulfilled") {
         setDestination(destRes.value.data)
+      } else {
+        const status = destRes.reason?.response?.status
+        setLoadError(status === 404 ? "This destination is not available in the catalogue." : "We could not load this destination right now.")
       }
       if (essentialsRes?.status === "fulfilled") {
         setEssentials(essentialsRes.value.data)
@@ -201,28 +234,28 @@ export default function DestinationDetails() {
       if (emergencyRes?.status === "fulfilled") {
         setEmergency(emergencyRes.value.data)
       }
-      if (budgetRes.status === "fulfilled") {
-        setBudget({
-          total: budgetRes.value.data.total_budget_usd ?? budgetRes.value.data.total ?? null,
-        })
-      }
-    }).finally(() => setLoading(false))
+    }).finally(() => { if (requestId === detailRequestRef.current) setLoading(false) })
     }, 0)
     return () => clearTimeout(t)
-  }, [slug, position])
+  }, [slug, position, retry])
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
+    const requestId = ++favoriteRequestRef.current
     if (!isAuthenticated || !destination?.id) return
     userApi.getFavorites()
       .then(({ data }) => {
+        if (requestId !== favoriteRequestRef.current) return
         const list = data.results || data || []
         const match = list.find((f) => f.destination === destination.id)
         if (match) {
           setIsFavorite(true)
           setFavoriteRecordId(match.id)
+        } else {
+          setIsFavorite(false)
+          setFavoriteRecordId(null)
         }
       })
       .catch(() => {})
@@ -279,7 +312,7 @@ export default function DestinationDetails() {
       "aggregateRating": destination.average_rating ? {
         "@type": "AggregateRating",
         "ratingValue": destination.average_rating,
-        "reviewCount": destination.ratings_count || 1,
+        ...(destination.ratings_count != null ? { reviewCount: destination.ratings_count } : {}),
       } : undefined,
     }
 
@@ -296,11 +329,25 @@ export default function DestinationDetails() {
   }, [destination])
 
   if (loading) return <Loader fullScreen />
+  if (!destination) {
+    return (
+      <div className="ny-page container-app section-space">
+        <div className="ny-panel mx-auto max-w-2xl p-8 text-center">
+          <h1 className="text-2xl font-bold">{loadError || "Destination unavailable"}</h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--ny-text-secondary)]">The destination may have moved, been archived, or the catalogue may be temporarily unavailable.</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link to="/destinations" className="ny-btn ny-btn-primary">Browse destinations</Link>
+            <button type="button" onClick={() => setRetry((value) => value + 1)} className="ny-btn ny-btn-secondary">Try again</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Compile all images with metadata. The hero prefers the real-photo
   // resolver (category-aware), so SVG-postcard covers never show on the page.
   const allImages = []
-  const heroUrl = getDestinationImageUrl(destination)
+  const heroUrl = destination.cover_image_url || destination.cover_image || null
   if (heroUrl) {
     allImages.push({
       url: heroUrl,
@@ -350,7 +397,7 @@ export default function DestinationDetails() {
   const level = RISK_LEVELS[riskCategory] || { label: INFO_UNAVAILABLE, color: "bg-gray-100 text-gray-700" }
 
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
+    <div className="ny-page container-app py-8 space-y-8 animate-fadeIn">
       <Breadcrumbs items={[
         { label: "Destinations", to: "/destinations" },
         { label: destination.name, to: `/destinations/${destination.slug}` }
@@ -389,12 +436,12 @@ export default function DestinationDetails() {
 
       {/* CIRCULAR 3D PHOTO GALLERY + copyright pill */}
       <div className="space-y-4">
-        <CircularGallery
+        {verifiedImageCount > 0 ? <CircularGallery
           title={destination.name}
           images={allImages.map((img) => ({ url: img.url, alt: img.caption, caption: img.caption }))}
           autoRotate
           className="h-[460px] sm:h-[540px]"
-        />
+        /> : <div className="ny-empty"><FiImage size={24} aria-hidden="true" /><h2 className="text-lg">No verified photos yet</h2><p>Destination media will appear here after it is reviewed and linked to this place.</p></div>}
         <div className="flex items-center justify-between text-[11px] text-stone-500 px-1 flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1">
@@ -450,13 +497,13 @@ export default function DestinationDetails() {
             } finally { setVideoBusy(false) }
           }}>
             <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} className="text-xs" />
-            <button type="submit" disabled={!videoFile || videoBusy} className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{videoBusy ? "Uploading…" : "Upload video"}</button>
+            <button type="submit" disabled={!videoFile || videoBusy} className="ny-btn ny-btn-primary min-h-11 text-xs">{videoBusy ? "Uploading…" : "Upload video"}</button>
           </form>
         )}
       </div>
 
       {/* Quick Geographic Distances & Transit Metrics Box */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-3xl bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white shadow-xl">
+      <div className="grid grid-cols-2 gap-3 rounded-[var(--ny-radius-lg)] border border-[var(--ny-green)] bg-[var(--ny-green-dark)] p-5 text-white shadow-[var(--ny-shadow-elevated)] sm:grid-cols-4 sm:gap-4">
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
           <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
@@ -503,7 +550,7 @@ export default function DestinationDetails() {
           {(destination.history || destination.cultural_significance || destination.religious_significance) && (
             <div className="card-base p-6 sm:p-8 space-y-5 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                🏛️ Cultural, Religious & Historical Heritage
+                Cultural, religious and historical heritage
               </h2>
 
               {destination.history && (
@@ -578,19 +625,19 @@ export default function DestinationDetails() {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-gray-600">
-                    <p>🚗 <b>Transit:</b> {rt.transport_mode || "Unavailable"}</p>
+                    <p><b>Transit:</b> {rt.transport_mode || "Unavailable"}</p>
                     <p>⏱️ <b>Duration:</b> {rt.approx_duration || "Unavailable"}</p>
                     <p>📏 <b>Distance:</b> {rt.distance_km != null ? `${rt.distance_km} km` : "Unavailable"}</p>
                     <p>🛣️ <b>Condition:</b> {rt.road_condition || "Not recently verified"}</p>
                   </div>
-                  {rt.key_stops && <p className="text-[11px] text-gray-500 pt-1 border-t">📍 <b>Key Stops:</b> {rt.key_stops}</p>}
-                  <p className="text-[10px] text-gray-400">Source: {rt.route_source || "Database route record"}</p>
+                  {rt.key_stops && <p className="text-[11px] text-gray-500 pt-1 border-t"><b>Key Stops:</b> {rt.key_stops}</p>}
+                  <p className="text-[10px] text-gray-400">Source: {rt.route_source || "Recorded route details"}</p>
                 </div>
               )) : (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-                  No verified destination-specific transit record is available. Use the GraphML navigation engine to calculate an approximate route from your current location.
-                  <button onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)} className="block mt-3 rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white">
-                    Calculate GraphML Route
+                  No verified destination-specific transit record is available. Use the route planner for an approximate route from your current location.
+                  <button type="button" onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)} className="ny-btn ny-btn-accent mt-3 min-h-11">
+                    Calculate a route
                   </button>
                 </div>
               )}
@@ -626,24 +673,24 @@ export default function DestinationDetails() {
 
           {/* Section 6: Interactive Map & Street-Level Imagery */}
           <div className="card-base p-6 shadow-xl border border-primary-100 rounded-3xl space-y-4 bg-white">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
                 <FiMapPin className="text-primary-600" /> Interactive Location & Satellite Map
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {hasValidCoords(destination.latitude, destination.longitude) && (
                   <button
                     onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
-                    className="rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white hover:bg-primary-800 flex items-center gap-1"
+                    className="ny-btn ny-btn-primary min-h-11 text-xs"
                   >
                     <FiNavigation /> Navigate here
                   </button>
                 )}
                 <button
                   onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
-                  className="text-xs font-bold text-primary-700 hover:text-primary-900 flex items-center gap-1"
+                  className="ny-btn ny-btn-ghost min-h-11 text-xs font-bold text-primary-700 hover:text-primary-900 flex items-center gap-1"
                 >
-                  <FiNavigation /> Open Tactical GTA Navigation ➔
+                  <FiNavigation /> Open route planner
                 </button>
               </div>
             </div>
@@ -709,23 +756,23 @@ export default function DestinationDetails() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                    ⭐ Featured 3 to 5-Star Stays & Official Offers
+                    ⭐ Featured stays & offers near {destination.name}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
-                    ✓ Verified Partner Stays
+                    Recorded partner stays
                   </span>
                 </div>
                 <h3 className="text-xl font-black text-white mt-1.5">
-                  Featured Hotels & Luxury Packages near {destination.name}
+                  Recorded stays & partner offers near {destination.name}
                 </h3>
                 <p className="text-xs text-slate-300">
-                  Curated boutique hotels, 5-star luxury resorts, and verified tour packages across {destination.city || destination.district || "Nepal"}.
+                  Recorded stays and tour options linked to {destination.city || destination.district || "this destination"}.
                 </p>
               </div>
 
               <Link
                 to="/hotels/search"
-                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black shadow-lg transition-all shrink-0"
+                className="ny-btn ny-btn-accent min-h-11 shrink-0 text-xs"
               >
                 Browse All Hotels ➔
               </Link>
@@ -733,28 +780,21 @@ export default function DestinationDetails() {
 
             {/* Hotel Ad Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {(destination.hotels && destination.hotels.length > 0
-                ? destination.hotels.slice(0, 3)
-                : [
-                    { name: `${destination.name} Imperial Resort`, rating: 4.9, price_per_night: 8500, stars: "⭐⭐⭐⭐⭐ 5-Star Luxury Resort" },
-                    { name: `Royal ${destination.name} Grand Hotel`, rating: 4.7, price_per_night: 5200, stars: "⭐⭐⭐⭐ 4-Star Comfort Stay" },
-                    { name: `Himalayan ${destination.name} Heritage Lodge`, rating: 4.5, price_per_night: 3200, stars: "⭐⭐⭐ 3-Star Boutique Hotel" },
-                  ]
-              ).map((h, i) => (
+              {(destination.hotels || []).slice(0, 3).map((h, i) => (
                 <div key={i} className="rounded-2xl bg-white/10 backdrop-blur border border-white/15 p-4 flex flex-col justify-between space-y-3">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-amber-300 block">
-                      {h.stars || (Number(h.rating) >= 4.8 ? "⭐⭐⭐⭐⭐ 5-Star Luxury" : Number(h.rating) >= 4.5 ? "⭐⭐⭐⭐ 4-Star Comfort" : "⭐⭐⭐ 3-Star Stay")}
+                      {h.stars || (h.rating != null ? `Rated ${h.rating}` : "Rating unavailable")}
                     </span>
                     <h4 className="font-extrabold text-sm text-white line-clamp-1">{h.name}</h4>
-                    <p className="text-[11px] text-slate-300">📍 {destination.city || destination.district || "Nepal"}</p>
+                    <p className="text-[11px] text-slate-300">{destination.city || destination.district || "Location unavailable"}</p>
                   </div>
 
                   <div className="pt-2 border-t border-white/10 flex items-center justify-between">
                     <div>
                       <span className="text-[10px] text-slate-400 block">From</span>
                       <span className="text-sm font-black text-amber-300">
-                        NPR {Number(h.price_per_night || 4500).toLocaleString()} <span className="text-[10px] font-normal text-slate-300">/ night</span>
+                        {h.price_per_night != null ? `${h.currency || "USD"} ${Number(h.price_per_night).toLocaleString()}` : "Price unavailable"} <span className="text-[10px] font-normal text-slate-300">{h.price_per_night != null ? "/ night" : ""}</span>
                       </span>
                     </div>
 
@@ -762,41 +802,29 @@ export default function DestinationDetails() {
                       to={h.id ? `/hotels` : `/hotels/search`}
                       className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] shadow transition-all"
                     >
-                      Book Room
+                      View stay
                     </Link>
                   </div>
                 </div>
               ))}
+              {!(destination.hotels || []).length && <p className="text-sm text-[#C7D9D2]">No hotel records are currently published for this destination. <Link to="/hotels/search" className="font-semibold text-[#BDEBD9] underline">Search the wider catalogue</Link>.</p>}
             </div>
 
-            {/* Travel Promotional Ad Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-emerald-500/20 border border-amber-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">🇳🇵 Nepal Yatra Sponsored Offer</span>
-                <p className="text-xs font-bold text-white mt-0.5">
-                  5-Day {destination.name} & Himalayan Sanctuary Tour (Includes 4-Star Hotel Stay, Daily Breakfast & Private Transport)
-                </p>
-              </div>
-              <Link
-                to="/packages"
-                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs shrink-0 shadow"
-              >
-                View Package Details ➔
-              </Link>
-            </div>
+            {/* Partner offers are shown only when published records exist. */}
+            {(destination.marketplace_listings?.length > 0) && <div className="rounded-[var(--ny-radius-md)] border border-white/15 bg-white/10 p-4 text-sm text-[#C7D9D2]">Published partner offers are available for this place. <Link to="/packages" className="font-semibold text-[#BDEBD9] underline">Browse packages</Link>.</div>}
           </div>
 
           {destination.marketplace_listings?.length > 0 && (
             <div className="card-base p-6 sm:p-8 space-y-4 shadow-xl border border-primary-100 rounded-3xl bg-white">
               <h2 className="text-2xl font-black text-gray-900">Packages & partner offers</h2>
-              <p className="text-sm text-gray-600">Published by the admin desk and approved hotels or operators. Add them to a trip — we never collect card numbers here.</p>
+              <p className="text-sm text-gray-600">Published by approved hotels and operators. Add them to a trip — we never collect card numbers here.</p>
               <div className="grid sm:grid-cols-2 gap-3">
                 {destination.marketplace_listings.map((offer) => (
                   <Link key={offer.id} to={`/packages/${offer.slug}`} className="rounded-2xl border border-emerald-100 p-4 hover:bg-emerald-50">
                     <p className="text-[10px] font-black uppercase text-emerald-800">{offer.kind}</p>
                     <p className="font-bold text-slate-900">{offer.title}</p>
                     <p className="text-xs text-slate-500">{offer.partner_name}</p>
-                    <p className="text-sm font-black mt-1">NPR {Number(offer.price_npr).toLocaleString()}</p>
+                    <p className="text-sm font-black mt-1">{offer.price_npr != null ? `NPR ${Number(offer.price_npr).toLocaleString()}` : "Price unavailable"}</p>
                   </Link>
                 ))}
               </div>
@@ -909,7 +937,7 @@ export default function DestinationDetails() {
                   <img src={LOCATION_ICON_URL("hospital")} alt="Hospital" draggable={false} className="w-6 h-6 mt-0.5 shrink-0" />
                   <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
-                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "102"}</p>
+                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_is_national_fallback ? "National fallback: " : ""}{row.phone_number || "Phone unavailable"}</p>
                   {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km · {formatCoords(row.latitude, row.longitude) || "coords not stored"}</p>}
                   </div>
                 </div>
@@ -919,26 +947,26 @@ export default function DestinationDetails() {
                   <img src={LOCATION_ICON_URL("police")} alt="Police" draggable={false} className="w-6 h-6 mt-0.5 shrink-0" />
                   <div className="min-w-0">
                   <p className="font-bold text-gray-800">{row.name}</p>
-                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_number || "100"}</p>
+                  <p className="text-primary-700 font-semibold mt-0.5">{row.phone_is_national_fallback ? "National fallback: " : ""}{row.phone_number || "Phone unavailable"}</p>
                   {row.distance_km != null && <p className="text-[11px] text-slate-500">{row.distance_km} km</p>}
                   </div>
                 </div>
               ))}
               {!(emergency?.hospitals?.length) && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-900">
-                  {destination.nearest_hospital_info || "No local hospital record is stored for this place. Use Ambulance 102."}
+                  {destination.nearest_hospital_info || "No local hospital record is stored for this place. Open Emergency services for verified contact options."}
                 </div>
               )}
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-950 font-bold text-center">
-                National hotlines: Tourist Police 1144 · Police 100 · Ambulance 102
+                {(emergency?.national_hotlines || []).length > 0 && <div className="space-y-2 border-t border-[var(--ny-border)] pt-3"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-danger)]">Verified national contacts</p>{(emergency.national_hotlines || []).map((item) => <a key={item.type || item.phone_number} href={item.phone_number ? phoneHref(item.phone_number) : undefined} className="flex items-center justify-between gap-3 rounded-[var(--ny-radius-sm)] bg-rose-50 px-3 py-2 text-rose-950 hover:bg-rose-100"><span className="min-w-0"><span className="block text-xs font-bold">{item.name}</span><span className="block text-[11px] text-rose-800/80">{item.description || "National emergency contact"}</span></span><strong className="shrink-0 text-sm">{item.phone_number || "Unavailable"}</strong></a>)}</div>}
               </div>
             </div>
 
             <button
               onClick={() => navigate("/emergency")}
-              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow transition-all"
+              className="ny-btn ny-btn-danger min-h-11 w-full justify-center text-xs"
             >
-              Open Live Emergency Sentinel
+              Open emergency directory
             </button>
           </div>
 
@@ -960,7 +988,7 @@ export default function DestinationDetails() {
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-primary-950">What's Actually Near {destination.name}</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Real places on the ground from OpenStreetMap — not limited to our database. Straight-line distances, nearest first.
+              Real places on the ground from OpenStreetMap — not limited to our catalogue. Straight-line distances, nearest first.
             </p>
           </div>
           <div className="flex gap-1 rounded-xl bg-primary-50 p-1">
@@ -1052,7 +1080,7 @@ export default function DestinationDetails() {
                     src={getDestinationImageUrl(d)}
                     alt={d.name}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    onError={(event) => { event.currentTarget.style.display = "none" }} className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
                   {d.distance_km != null && (
                     <span className="absolute top-2 left-2 bg-slate-900/85 text-amber-300 text-[10px] font-black px-2 py-1 rounded-full">
@@ -1062,7 +1090,7 @@ export default function DestinationDetails() {
                 </div>
                 <div className="p-3">
                   <p className="font-bold text-sm text-slate-900 truncate">{d.name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{d.display_city || d.city || d.district || "Nepal"}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{d.display_city || d.city || d.district || "Location unavailable"}</p>
                 </div>
               </Link>
             ))}
@@ -1130,23 +1158,23 @@ export default function DestinationDetails() {
                   </div>
                 )}
 
-                {/* 2. 24/7 Emergency Helplines */}
+                {/* 2. Emergency directory links */}
                 <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-2">
                   <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
-                    <FiShield /> 24/7 Emergency Numbers (Works without Internet)
+                    <FiShield /> Emergency contacts (see directory)
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
                       <span className="text-[10px] text-gray-500 block">Tourist Police</span>
-                      <b className="text-rose-700 text-sm">1144</b>
+                      <b className="text-rose-700 text-sm">See directory</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
                       <span className="text-[10px] text-gray-500 block">Nepal Police</span>
-                      <b className="text-rose-700 text-sm">100</b>
+                      <b className="text-rose-700 text-sm">See directory</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
                       <span className="text-[10px] text-gray-500 block">Ambulance</span>
-                      <b className="text-rose-700 text-sm">102</b>
+                      <b className="text-rose-700 text-sm">See directory</b>
                     </div>
                     <div className="bg-white p-2 rounded-xl border border-rose-200">
                       <span className="text-[10px] text-gray-500 block">Local rescue</span>
@@ -1167,7 +1195,7 @@ export default function DestinationDetails() {
                 {/* 4. Useful Local Phrases */}
                 <div className="p-4 rounded-2xl bg-stone-50 border border-slate-100 space-y-2">
                   <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
-                    🗣️ Essential Nepali Phrases
+                    Useful local phrases
                   </h4>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <div>• <b>Namaste:</b> Hello / Greetings</div>
@@ -1181,9 +1209,9 @@ export default function DestinationDetails() {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex justify-between items-center border-t pt-4">
+              <div className="flex flex-col items-start gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-gray-500 italic">Save or print this kit before leaving for remote areas with low cellular coverage.</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => window.print()}
                     className="px-5 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-800 text-white font-bold text-xs flex items-center gap-1.5 shadow"

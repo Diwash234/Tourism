@@ -17,6 +17,7 @@ import SafetyOpsPanel from "../components/admin/SafetyOpsPanel"
 import StaffGlobalSearch from "../components/admin/StaffGlobalSearch"
 
 const names = { destinations: "Destination Queue", images: "Image Review", budget: "Budget Surveys", safety: "Safety Reports", reviews: "Review Queue", hotels: "Assigned Hotels", restaurants: "Restaurant Queue", transportation: "Transport Routes", travel_plans: "Travel Plans", content: "Content Drafts", feedback: "Feedback Queue" }
+const modulePermissions = { destinations: "destinations", images: "images", budget: "budget", safety: "safety", reviews: "reviews", hotels: "hotels", restaurants: "restaurants", transportation: "transportation", travel_plans: "travel_plans", content: "content", feedback: "feedback" }
 const paths = Object.fromEntries(Object.keys(names).map(key => [key, `/staff/${key.replace("_", "-")}`]))
 const permits = (caps, module, action) => caps?.[module]?.includes(action) || caps?.[module]?.includes("*")
 
@@ -49,8 +50,9 @@ const greetingWord = () => { const h = new Date().getHours(); return h < 12 ? "G
 
 export default function StaffDashboard({ module = "dashboard" }) {
   const { showToast } = useToast()
-  const { user } = useAuth() || {}
+  const { user, can } = useAuth() || {}
   const canReview = ["admin", "super_admin", "tourism_admin"].includes(user?.role) || user?.is_superuser
+  const hasModuleAccess = canReview || module === "dashboard" || can?.(modulePermissions[module], "view")
   const [perf, setPerf] = useState(null)
   const [taskModal, setTaskModal] = useState(null)
   const [modalNote, setModalNote] = useState("")
@@ -59,7 +61,7 @@ export default function StaffDashboard({ module = "dashboard" }) {
   const [loading, setLoading] = useState(true)
   const loadInFlight = useRef(false)
   const load = useCallback(async () => {
-    if (loadInFlight.current) return
+    if (!hasModuleAccess || loadInFlight.current) return
     loadInFlight.current = true
     setLoading(true)
     try {
@@ -70,13 +72,24 @@ export default function StaffDashboard({ module = "dashboard" }) {
     }
     catch (error) { showToast(error.response?.data?.detail || "This workspace is not assigned to you", "error") }
     finally { setLoading(false); loadInFlight.current = false }
-  }, [module])
+  }, [module, hasModuleAccess])
   useEffect(() => {
     // Deferred one tick so the loader's synchronous setLoading(true) runs
     // outside the effect flush (react-hooks/set-state-in-effect).
     const t = setTimeout(() => load(), 0)
     return () => clearTimeout(t)
   }, [load])
+
+  if (!hasModuleAccess) {
+    return (
+      <div className="ny-panel mx-auto max-w-xl p-8 text-center">
+        <FiAlertCircle className="mx-auto text-[var(--ny-warning)]" size={28} aria-hidden="true" />
+        <h1 className="mt-4 text-xl font-bold">This workspace is not assigned to you</h1>
+        <p className="mt-2 text-sm text-[var(--ny-text-secondary)]">Ask an administrator to grant the required capability before opening this queue.</p>
+        <Link to="/staff" className="ny-btn ny-btn-secondary mt-5">Back to staff overview</Link>
+      </div>
+    )
+  }
 
   const act = async (payload, confirmation) => {
     if (confirmation && !window.confirm(confirmation)) return

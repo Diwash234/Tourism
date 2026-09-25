@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form"
 import CMSPageIntro from "../../components/cms/CMSPageIntro"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { FiUser, FiMail, FiPhone, FiLock, FiCheckCircle } from "react-icons/fi"
 import { motion } from "framer-motion"
@@ -11,6 +11,7 @@ import SocialLoginButtons from "./SocialLoginButtons"
 import PasswordStrengthField from "../../components/ui/PasswordStrengthField"
 import CrazyButton from "../../components/ui/CrazyButton"
 import LightRays from "../../components/ui/LightRays"
+import safeNextPath from "../../utils/safeNextPath"
 
 const Register = () => {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
@@ -18,6 +19,7 @@ const Register = () => {
   })
   const { showToast } = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(false)
   const password = watch("password")
   const confirm = watch("password_confirm")
@@ -40,7 +42,11 @@ const Register = () => {
         password_confirm: data.password_confirm,
       })
       showToast("Account created! Please check your email to verify your account.", "success")
-      navigate("/login")
+      const queryNext = safeNextPath(new URLSearchParams(location.search).get("next"))
+      const from = location.state?.from
+      const fromPath = from?.pathname ? `${from.pathname}${from.search || ""}${from.hash || ""}` : null
+      const next = queryNext || safeNextPath(fromPath) || "/dashboard"
+      navigate(`/login?next=${encodeURIComponent(next)}`)
     } catch (err) {
       const data = err?.response?.data
       // Round 21: show the ACTUAL reason, not a bare "Registration failed".

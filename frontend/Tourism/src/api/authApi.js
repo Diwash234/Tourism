@@ -46,6 +46,7 @@ const authApi = {
     axiosClient.post("/auth/logout/", { refresh: localStorage.getItem("refresh") }),
 
   getCurrentUser: () => axiosClient.get("/auth/profile/"),
+  getCapabilities: () => axiosClient.get("/auth/capabilities/"),
 
   // NEW: phone verification. IMPORTANT — this is NOT a "login with
   // phone OTP" flow. Checked views_auth.py directly: both endpoints

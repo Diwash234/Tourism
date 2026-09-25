@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { FiCompass, FiArrowRight, FiStar, FiMapPin, FiChevronLeft, FiChevronRight } from "react-icons/fi"
+import { FiCompass, FiArrowRight, FiChevronLeft, FiChevronRight } from "react-icons/fi"
 
 const HERO_TEMPLATES = [
   {
@@ -12,10 +12,10 @@ const HERO_TEMPLATES = [
     slug: "everest-base-camp",
     city: "Solukhumbu, Koshi",
     altitude: "8,849 m",
-    rating: 4.9,
+
     sideCards: [
-      { name: "Annapurna Sanctuary", rating: 4.8, img: "/images/destinations/annapurna/trek.jpg", slug: "annapurna-base-camp" },
-      { name: "Upper Mustang Kingdom", rating: 4.8, img: "/images/destinations/mustang/lo-manthang.jpg", slug: "lo-manthang-mustang" }
+      { name: "Annapurna Sanctuary",  img: "/images/destinations/annapurna/trek.jpg", slug: "annapurna-base-camp" },
+      { name: "Upper Mustang Kingdom",  img: "/images/destinations/mustang/lo-manthang.jpg", slug: "lo-manthang-mustang" }
     ]
   },
   {
@@ -27,10 +27,10 @@ const HERO_TEMPLATES = [
     slug: "annapurna-base-camp",
     city: "Kaski, Gandaki",
     altitude: "4,130 m",
-    rating: 4.8,
+
     sideCards: [
-      { name: "Upper Mustang Kingdom", rating: 4.8, img: "/images/destinations/mustang/lo-manthang.jpg", slug: "lo-manthang-mustang" },
-      { name: "Chitwan Wildlife Safari", rating: 4.7, img: "/images/destinations/chitwan/safari.jpg", slug: "chitwan-national-park" }
+      { name: "Upper Mustang Kingdom",  img: "/images/destinations/mustang/lo-manthang.jpg", slug: "lo-manthang-mustang" },
+      { name: "Chitwan Wildlife Safari",  img: "/images/destinations/chitwan/safari.jpg", slug: "chitwan-national-park" }
     ]
   },
   {
@@ -42,10 +42,10 @@ const HERO_TEMPLATES = [
     slug: "lo-manthang-mustang",
     city: "Mustang, Gandaki",
     altitude: "3,840 m",
-    rating: 4.8,
+
     sideCards: [
-      { name: "Rara Alpine Lake", rating: 4.9, img: "/images/destinations/rara/alpine-lake.jpg", slug: "rara-lake" },
-      { name: "Kathmandu Durbar Square", rating: 4.7, img: "/images/destinations/kathmandu/durbar-square.jpg", slug: "kathmandu-durbar-square" }
+      { name: "Rara Alpine Lake",  img: "/images/destinations/rara/alpine-lake.jpg", slug: "rara-lake" },
+      { name: "Kathmandu Durbar Square",  img: "/images/destinations/kathmandu/durbar-square.jpg", slug: "kathmandu-durbar-square" }
     ]
   },
   {
@@ -57,10 +57,10 @@ const HERO_TEMPLATES = [
     slug: "chitwan-national-park",
     city: "Chitwan, Bagmati",
     altitude: "415 m",
-    rating: 4.7,
+
     sideCards: [
-      { name: "Rara Alpine Lake", rating: 4.9, img: "/images/destinations/rara/alpine-lake.jpg", slug: "rara-lake" },
-      { name: "Everest Base Camp", rating: 4.9, img: "/images/destinations/everest/base-camp.jpg", slug: "everest-base-camp" }
+      { name: "Rara Alpine Lake",  img: "/images/destinations/rara/alpine-lake.jpg", slug: "rara-lake" },
+      { name: "Everest Base Camp",  img: "/images/destinations/everest/base-camp.jpg", slug: "everest-base-camp" }
     ]
   },
   {
@@ -72,10 +72,10 @@ const HERO_TEMPLATES = [
     slug: "rara-lake",
     city: "Mugu, Karnali",
     altitude: "2,990 m",
-    rating: 4.9,
+
     sideCards: [
-      { name: "Everest Base Camp", rating: 4.9, img: "/images/destinations/everest/base-camp.jpg", slug: "everest-base-camp" },
-      { name: "Annapurna Sanctuary", rating: 4.8, img: "/images/destinations/annapurna/trek.jpg", slug: "annapurna-base-camp" }
+      { name: "Everest Base Camp",  img: "/images/destinations/everest/base-camp.jpg", slug: "everest-base-camp" },
+      { name: "Annapurna Sanctuary",  img: "/images/destinations/annapurna/trek.jpg", slug: "annapurna-base-camp" }
     ]
   }
 ]
@@ -108,7 +108,7 @@ export default function HeroTemplateCarousel() {
       {/* Top Template Navigation Bar */}
       <div className="relative z-10 flex items-center justify-between pt-2">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D9C7A3] text-[#102A2E] text-xs font-black uppercase tracking-widest shadow-lg">
-          🇳🇵 {activeTemplate.city} · Altitude {activeTemplate.altitude}
+          {activeTemplate.city} · Altitude {activeTemplate.altitude}
         </div>
 
         {/* Carousel Arrow Controls */}
@@ -177,9 +177,6 @@ export default function HeroTemplateCarousel() {
                 className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#102A2E] via-transparent to-transparent opacity-90" />
-              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 text-amber-300 text-[10px] font-bold flex items-center gap-1 backdrop-blur">
-                <FiStar size={10} className="fill-amber-300" /> {sc.rating}
-              </div>
               <div className="absolute bottom-3 left-3 right-3 space-y-1 text-white">
                 <p className="text-xs font-black line-clamp-1 group-hover/card:text-[#D9C7A3] transition-colors">{sc.name}</p>
                 <span className="text-[10px] text-amber-300 font-bold flex items-center gap-0.5">

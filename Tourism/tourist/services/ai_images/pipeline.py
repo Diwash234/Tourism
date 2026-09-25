@@ -147,12 +147,15 @@ def generate_for_destination(destination: Destination, num_images: int = 4,
                     generation_job=job,
                     phash=phash or "",
                     **scores.as_dict(),
+                    # Generation produces candidates, not publication approval.
+                    # Only an explicit, capability-checked force request may mark
+                    # an asset approved; ordinary jobs remain private/pending.
                     verification_status=(
                         DestinationImage.ImageStatus.APPROVED
-                        if (scores.accepted() and not dup) or force
+                        if force and not dup
                         else DestinationImage.ImageStatus.PENDING
                     ),
-                    is_verified=scores.accepted() and not dup,
+                    is_verified=force and not dup,
                     copyright_status="ai_generated",
                     license_type="AI Generated — editorial use; not a photograph of a real event",
                 )
@@ -169,10 +172,11 @@ def generate_for_destination(destination: Destination, num_images: int = 4,
                         ImageTag.objects.get_or_create(image=image, tag=tag.strip().lower())
 
         job.status = ImageGenerationJob.Status.SUCCEEDED if created else ImageGenerationJob.Status.FAILED
-        if created:
-            # set first approved as cover if none
-            if not destination.cover_image:
-                first = next((c for c in created if c.is_verified), created[0])
+        if created and force and not destination.cover_image:
+            # Never promote a pending candidate. Explicit force approval is the
+            # only path that may set the first generated cover.
+            first = next((c for c in created if c.is_verified), None)
+            if first:
                 first.is_cover = True
                 first.save(update_fields=["is_cover"])
                 Destination.objects.filter(pk=destination.pk).update(cover_image=first.external_url)

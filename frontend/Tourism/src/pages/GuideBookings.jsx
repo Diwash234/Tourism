@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiCalendar, FiStar, FiX } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
+import useAuth from "../hooks/useAuth"
+import Loader from "../components/common/Loader"
+import EmptyState from "../components/common/EmptyState"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
 
@@ -19,6 +22,7 @@ const STATUS_STYLE = {
  */
 export default function GuideBookings() {
   const { showToast } = useToast()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
@@ -27,12 +31,13 @@ export default function GuideBookings() {
   const [text, setText] = useState("")
 
   const load = useCallback(() => {
+    if (!isAuthenticated) { setLoading(false); setBookings([]); return }
     setLoading(true)
     workforceApi.myBookings("tourist")
       .then(({ data: d }) => setBookings(d.results || []))
       .catch(() => setBookings([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [isAuthenticated])
 
   useEffect(() => {
     const t = setTimeout(() => load(), 0)
@@ -67,18 +72,23 @@ export default function GuideBookings() {
     }
   }
 
+  if (authLoading) return <div className="ny-page container-app py-10"><Loader /></div>
+  if (!isAuthenticated) return <div className="ny-page container-app max-w-2xl py-10"><EmptyState title="Sign in to view guide requests" subtitle="Guide bookings are tied to your Nepal Yatra account." action={<Link to="/login?next=/guide-bookings" className="ny-btn ny-btn-primary">Sign in</Link>} /></div>
+  if (loading) return <div className="ny-page container-app py-10"><Loader /></div>
+
   return (
-    <div className="min-h-screen bg-[#F7F8F5]">
+    <div className="ny-page bg-[var(--ny-bg)]">
       <PageHeader
-        title="My Guide Requests"
+        className="container-app max-w-5xl"
+         title="My Guide Requests"
         subtitle="Track booking requests to verified guides — cancel anytime before the trip, review it after."
       />
-      <div className="max-w-3xl mx-auto px-4 pb-16 -mt-6 space-y-3">
+      <div className="container-app max-w-5xl space-y-4 pb-10">
         <p className="text-sm text-slate-600">
           <Link to="/guides" className="font-bold text-[#1D5146] hover:underline">← Browse verified guides</Link>
         </p>
         {bookings.map((b) => (
-          <div key={b.id} className="bg-white rounded-3xl border shadow-sm p-5">
+          <div key={b.id} className="ny-card p-5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -115,7 +125,7 @@ export default function GuideBookings() {
           </div>
         ))}
         {!loading && !bookings.length && (
-          <div className="bg-white rounded-3xl border p-12 text-center">
+          <div className="ny-empty">
             <FiCalendar className="mx-auto text-3xl text-slate-300" />
             <p className="text-slate-600 font-bold mt-2">No guide requests yet.</p>
             <p className="text-xs text-slate-400 mt-1">Find a verified guide and request a booking — guides respond within the platform.</p>
@@ -135,7 +145,7 @@ export default function GuideBookings() {
                   aria-label={`${n} star${n === 1 ? "" : "s"}`} aria-checked={rating === n} role="radio">★</button>
               ))}
             </div>
-            <textarea rows={4} className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]"
+            <textarea rows={4} className="input-field"
               placeholder="What was the experience like? (optional)" value={text} onChange={(e) => setText(e.target.value)} />
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={() => setReviewFor(null)} className="flex-1 px-4 py-2.5 border rounded-xl text-sm font-bold text-slate-600">Cancel</button>

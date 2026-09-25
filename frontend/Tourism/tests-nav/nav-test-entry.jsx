@@ -293,10 +293,10 @@ export function mountLiveProbe(initialActive = true) {
   const container = document.createElement("div")
   document.body.appendChild(container)
   const root = createRoot(container)
-  let setActive = null
+  const setActiveRef = React.createRef()
   function Probe() {
     const [active, setA] = React.useState(initialActive)
-    setActive = setA
+    React.useEffect(() => { setActiveRef.current = setA }, [setA])
     const live = useLivePosition(active)
     return React.createElement(
       "div", null,
@@ -308,7 +308,7 @@ export function mountLiveProbe(initialActive = true) {
   React.act(() => { root.render(React.createElement(Probe)) })
   return {
     container,
-    setActive: (v) => React.act(() => setActive(v)),
+    setActive: (v) => React.act(() => setActiveRef.current?.(v)),
     unmount: () => React.act(() => root.render(null)),
   }
 }
@@ -417,6 +417,10 @@ export function mountTravellerShell() {
 }
 
 export function mountAdminShell() {
+  // The admin shell is rendered as an authenticated administrator in this
+  // harness. Capability filtering should be exercised with a real admin role,
+  // not an anonymous user (which correctly sees only dedicated tools).
+  window.localStorage.setItem("user", JSON.stringify({ role: "admin", username: "nav-admin" }))
   const container = document.createElement("div")
   document.body.appendChild(container)
   const root = createRoot(container)

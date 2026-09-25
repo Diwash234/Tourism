@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import useGeolocation from "../../hooks/useGeolocation"
 import { useI18n } from "../../i18n"
+import useAuth from "../../hooks/useAuth"
 import travelApi from "../../api/travelApi"
 import destinationApi from "../../api/destinationApi"
 import { formatDistance, formatDuration } from "../../utils/formatDistance"
@@ -13,6 +14,7 @@ import { formatDistance, formatDuration } from "../../utils/formatDistance"
  */
 export default function GettingThereCard({ destination }) {
   const { t } = useI18n()
+  const { isAuthenticated } = useAuth() || {}
   // auto: false — destination pages are public; GPS is only requested when
   // the traveller presses "Use my location" (privacy/consent §22/58).
   const { position, locating, retry: retryGeo } = useGeolocation({ auto: false })
@@ -84,7 +86,7 @@ export default function GettingThereCard({ destination }) {
     <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/40 dark:border-emerald-800 p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-          <span aria-hidden>🧭</span> {t("tp.title")} — {t("tp.get_route")}
+          {t("tp.title")} — {t("tp.get_route")}
         </h4>
         <div className="flex items-center gap-2">
           <button
@@ -92,14 +94,14 @@ export default function GettingThereCard({ destination }) {
             onClick={() => { setGpsMode(true); setOriginPick(null); setResult(null) }}
             className={`rounded-lg px-3 py-1.5 text-[11px] font-bold border transition ${gpsMode ? "bg-emerald-700 text-white border-emerald-700" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"}`}
           >
-            📍 {t("tp.origin.my_location")}
+            {t("tp.origin.my_location")}
           </button>
           <button
             type="button"
             onClick={() => { setGpsMode(false); setResult(null) }}
             className={`rounded-lg px-3 py-1.5 text-[11px] font-bold border transition ${!gpsMode ? "bg-emerald-700 text-white border-emerald-700" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"}`}
           >
-            🏛️ {t("tp.from")}
+            {t("tp.from")}
           </button>
         </div>
       </div>
@@ -166,10 +168,10 @@ export default function GettingThereCard({ destination }) {
               {t("tp.title")} ➔
             </Link>
             <Link
-              to={`/navigation?dest=${encodeURIComponent(destination.name)}`}
+              to={isAuthenticated ? `/navigation?dest=${encodeURIComponent(destination.name)}` : `/login?next=${encodeURIComponent(`/navigation?dest=${encodeURIComponent(destination.name)}`)}`}
               className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 text-[11px]"
             >
-              {t("tp.start_navigation")}
+              {isAuthenticated ? t("tp.start_navigation") : "Sign in to navigate"}
             </Link>
           </div>
         </div>

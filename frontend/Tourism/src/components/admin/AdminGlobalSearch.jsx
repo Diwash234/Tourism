@@ -14,11 +14,13 @@ const ROUTES = {
   navigation: () => "/admin?section=cms",
   image: () => "/admin?section=media_library",
   restaurant: () => "/admin?section=travel_services",
+  transfer: () => "/admin?section=transport_routes",
+  guide: () => "/admin?section=guide_verification",
   review: () => "/admin?section=review_moderation",
   listing: () => "/admin?section=marketplace",
   partner: () => "/admin?section=marketplace",
 }
-const FILTERS = ["", "destination", "page", "section", "image", "hotel", "user", "alert", "feedback", "navigation", "restaurant", "review", "listing", "partner"]
+const FILTERS = ["", "destination", "page", "section", "image", "hotel", "user", "alert", "feedback", "navigation", "restaurant", "transfer", "guide", "review", "listing", "partner"]
 
 export default function AdminGlobalSearch() {
   const navigate = useNavigate()
@@ -103,6 +105,11 @@ export default function AdminGlobalSearch() {
         className="w-full rounded-xl border border-emerald-200 bg-white py-2 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-500"
         placeholder="Search destinations, pages, images, hotels, users…"
         aria-label="Admin global search"
+         role="combobox"
+         aria-expanded={open}
+         aria-controls="admin-global-search-results"
+         aria-autocomplete="list"
+         aria-activedescendant={open && rows[active] ? `admin-search-option-${active}` : undefined}
       />
       {q && (
         <button onClick={() => { setQ(""); setRows([]) }} className="absolute right-3 top-2.5 text-slate-500" aria-label="Clear search">
@@ -110,7 +117,7 @@ export default function AdminGlobalSearch() {
         </button>
       )}
       {open && (
-        <div className="admin-search-results absolute left-0 right-0 z-[80] mt-2 max-h-[28rem] overflow-y-auto rounded-2xl border border-emerald-200 bg-white p-2 text-slate-900 shadow-2xl">
+        <div id="admin-global-search-results" role="listbox" aria-label="Admin search results" className="admin-search-results absolute left-0 right-0 z-[80] mt-2 max-h-[28rem] overflow-y-auto rounded-2xl border border-emerald-200 bg-white p-2 text-slate-900 shadow-2xl">
           <div className="mb-2 flex flex-wrap gap-1 px-2">
             {FILTERS.map((item) => (
               <button
@@ -122,9 +129,9 @@ export default function AdminGlobalSearch() {
               </button>
             ))}
           </div>
-          {loading && <p className="p-4 text-sm text-slate-300">Searching permitted modules…</p>}
+          {loading && <p role="status" className="p-4 text-sm text-slate-600">Searching permitted modules…</p>}
           {error && <p className="p-4 text-sm text-rose-700">{error}</p>}
-          {!loading && !error && !rows.length && <p className="p-4 text-sm text-slate-300">No permitted records found.</p>}
+          {!loading && !error && !rows.length && <p className="p-4 text-sm text-slate-600">No permitted records found.</p>}
           {Object.entries(grouped).map(([group, items]) => (
             <section key={group}>
               <h3 className="px-3 pb-1 pt-3 text-[10px] font-black uppercase tracking-widest text-emerald-800">{group}</h3>
@@ -133,6 +140,9 @@ export default function AdminGlobalSearch() {
                 return (
                   <button
                     key={`${group}-${row.id}`}
+                     id={`admin-search-option-${index}`}
+                     role="option"
+                     aria-selected={index === active}
                     onClick={() => choose(row)}
                     className={`w-full rounded-lg px-3 py-2 text-left text-sm ${index === active ? "bg-emerald-100 text-emerald-950" : "text-slate-800 hover:bg-emerald-50"}`}
                   >

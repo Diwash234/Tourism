@@ -138,7 +138,7 @@ export default function HomepageManagerPanel() {
   }
 
   const toggleSection = (section) =>
-    mutate({ resource: "sections", id: section.id, is_visible: !section.is_visible },
+    mutate({ resource: "sections", id: section.id, action: section.is_visible ? "unpublish" : "publish" },
       section.is_visible ? `“${section.title || section.key}” hidden on the public site` : `“${section.title || section.key}” shown on the public site`,
       `vis-${section.id}`)
 

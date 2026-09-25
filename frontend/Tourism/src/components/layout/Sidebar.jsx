@@ -8,7 +8,7 @@ import { UI_ICON } from "../../utils/uiIcons"
 import useAuth from "../../hooks/useAuth"
 import useSidebarState, { closeSidebar } from "../../hooks/useSidebarState"
 import { useI18n } from "../../i18n"
-import configApi from "../../api/configApi"
+import usePublicConfig from "../../hooks/usePublicConfig"
 import { userDisplayName, userRoleLabel } from "../../utils/placeUtils"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 
@@ -16,7 +16,7 @@ import LanguageSwitcher from "../common/LanguageSwitcher"
 // original duotone pictograms (node scripts/generate-ui-icons.mjs).
 const GROUPS = [
   {
-    label: "Explore", tk: "sidebar.explore",
+    label: "Discover", tk: "sidebar.explore",
     links: [
       { to: "/destinations", label: "Destinations", tk: "sidebar.destinations", icon: "pin", color: "forest" },
       { to: "/recommendation", label: "Recommended", tk: "sidebar.recommendations", icon: "star", color: "emerald" },
@@ -32,7 +32,7 @@ const GROUPS = [
     ],
   },
   {
-    label: "My Trips", tk: "sidebar.planning",
+    label: "Plan", tk: "sidebar.planning",
     links: [
       { to: "/itinerary", label: "Trip Planner & Itineraries", tk: "sidebar.trip_planner", icon: "calendar", color: "emerald" },
       { to: "/expenditure", label: "Expense Tracker", tk: "sidebar.expenditure", icon: "wallet", color: "emerald" },
@@ -44,7 +44,7 @@ const GROUPS = [
     ],
   },
   {
-    label: "Hotels", tk: "sidebar.hotels",
+    label: "Stay", tk: "sidebar.hotels",
     links: [
       { to: "/hotels/search", label: "Find Hotels", icon: "building", color: "saffron" },
       { to: "/hotels", label: "Saved Hotels", icon: "houses", color: "saffron", end: true },
@@ -89,20 +89,20 @@ const GROUPS = [
 const COLOR_MAP = {
   // Unified deep-green chips on the emerald-950 rail (matches the admin
   // dashboard green theme — one consistent green sidebar across the app).
-  himalaya: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  forest: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  saffron: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  nepalred: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  red: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  orange: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  pink: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  emerald: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  sky: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  violet: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  purple: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  terracotta: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  cyan: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
-  stone: "text-emerald-200 bg-emerald-800/70 group-hover:bg-emerald-700",
+  himalaya: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  forest: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  saffron: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  nepalred: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  red: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  orange: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  pink: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  emerald: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  sky: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  violet: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  purple: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  terracotta: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  cyan: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
+  stone: "text-[#BDEBD9] bg-white/10 group-hover:bg-white/15",
 }
 
 const isDesktop = () =>
@@ -113,6 +113,7 @@ const isDesktop = () =>
 export default function Sidebar() {
   const { isAuthenticated, user, isAdmin, isStaff, isLocal } = useAuth()
   const { t } = useI18n()
+  const { navigation } = usePublicConfig()
   const location = useLocation()
   const [managedItems, setManagedItems] = useState([])
   // Groups are click-controlled (brief §17): nothing auto-expands except the
@@ -122,8 +123,12 @@ export default function Sidebar() {
   // Icon-rail mode: desktop with the rail closed. On mobile !open simply
   // means the drawer is off-screen, so the same flat icon rendering is inert.
   const iconMode = !open
+  const drawerHidden = !open && !isDesktop()
 
-  useEffect(() => { configApi.getPublicConfig().then(({ data }) => setManagedItems((data.navigation || []).filter(item => item.location === "sidebar"))).catch(() => {}) }, [])
+  useEffect(() => {
+    const timer = setTimeout(() => setManagedItems((navigation || []).filter(item => item.location === "sidebar")), 0)
+    return () => clearTimeout(timer)
+  }, [navigation])
 
   const handleNav = () => {
     if (!isDesktop()) closeSidebar()
@@ -131,9 +136,8 @@ export default function Sidebar() {
 
   const PUBLIC_ROUTES = new Set([
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
-    "/distances",
-    "/explore-map", "/discover-nepal", "/packages", "/collaborate", "/hotels/search",
-    "/emergency", "/risk-alerts", "/navigation", "/language", "/translation", "/chatbot",
+    "/distances", "/itinerary", "/explore-map", "/discover-nepal", "/packages", "/guides", "/guide-portal", "/tourism-jobs", "/guide-bookings", "/collaborate", "/hotels/search",
+    "/emergency", "/risk-alerts", "/budget-estimator", "/navigation", "/language", "/translation", "/chatbot", "/travel",
     "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/login", "/register"
   ])
 
@@ -151,6 +155,10 @@ export default function Sidebar() {
         return true
       }),
   })).filter((g) => g.links.length > 0)
+  const dynamicLinks = managedItems
+    .filter(item => /^\/page\/[^/]+$/.test(String(item.route || "")))
+    .map(item => ({ to: item.route, label: item.label, icon: "file", end: true }))
+  if (dynamicLinks.length) visibleGroups.push({ label: "More pages", links: dynamicLinks })
 
   // Expand the group that owns the active route (brief §17/§20); other groups
   // keep whatever the user last chose. Deferred one tick: keeps synchronous
@@ -167,12 +175,12 @@ export default function Sidebar() {
   }, [location.pathname])
 
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group whitespace-nowrap ${
+    `flex min-h-11 items-center gap-3 rounded-[var(--ny-radius-sm)] px-3 text-xs font-semibold transition-all group whitespace-nowrap ${
       iconMode ? "lg:justify-center lg:px-1" : ""
     } ${
       isActive
-        ? "bg-emerald-700 text-white shadow-md"
-        : "text-emerald-100 hover:bg-emerald-800/70 hover:text-white"
+        ? "bg-[var(--ny-green)] text-white shadow-[0_4px_12px_rgba(7,91,72,0.24)]"
+        : "text-[#C7D9D2] hover:bg-white/10 hover:text-white"
     }`
 
   const renderLink = (link) => {
@@ -211,10 +219,9 @@ export default function Sidebar() {
 
       <aside
         id="sidebar-drawer"
-        aria-label="Main navigation"
-        className={`sidebar-drawer fixed top-16 bottom-0 left-0 z-40 w-64 max-w-[88vw] bg-emerald-950 border-r border-emerald-800 overflow-y-auto overscroll-contain overflow-x-hidden
-                   transform transition-[transform,width] duration-300 will-change-transform
-                   shadow-xl lg:shadow-none lg:max-w-none lg:translate-x-0 ${open ? "translate-x-0 lg:w-64" : "-translate-x-full lg:w-16"}`}
+        aria-label="Secondary navigation"
+        aria-hidden={drawerHidden || undefined}
+        className={`sidebar-drawer fixed bottom-0 left-0 top-16 z-50 w-60 max-w-[88vw] overflow-x-hidden overflow-y-auto overscroll-contain border-r border-white/10 bg-[var(--ny-green-deepest)] shadow-[var(--ny-shadow-elevated)] transition-[transform,width,visibility] duration-200 will-change-transform lg:max-w-none lg:translate-x-0 lg:shadow-none ${open ? "visible translate-x-0 lg:w-64" : "-translate-x-full lg:w-16"} ${drawerHidden ? "invisible" : "visible"}`}
         style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       >
         <div className={`space-y-5 ${iconMode ? "p-2 lg:p-1.5" : "p-4"}`}>
@@ -222,29 +229,29 @@ export default function Sidebar() {
           <RailToggle />
           <div className="flex items-center justify-between lg:hidden">
             <span className="text-sm font-bold text-white">Traveller menu</span>
-            <button onClick={closeSidebar} className="p-2 rounded-lg hover:bg-emerald-800 text-emerald-200" aria-label="Close menu">
+            <button type="button" onClick={closeSidebar} className="p-2 rounded-lg hover:bg-emerald-800 text-[#BDEBD9]" aria-label="Close menu">
               <BsX size={18} />
             </button>
           </div>
 
           {isAuthenticated ? (
-            <div className={`p-3.5 rounded-2xl bg-emerald-900 border border-emerald-800 flex items-center gap-3 ${iconMode ? "lg:justify-center lg:p-2" : ""}`}>
+            <div className={`p-3.5 rounded-2xl bg-[#063B32] border border-white/10 flex items-center gap-3 ${iconMode ? "lg:justify-center lg:p-2" : ""}`}>
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center text-sm shadow shrink-0">
                 {userDisplayName(user)?.[0]?.toUpperCase() || "T"}
               </div>
               <div className={`min-w-0 ${iconMode ? "lg:hidden" : ""}`}>
                 <p className="font-bold text-xs text-white truncate">{userDisplayName(user)}</p>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-800 text-emerald-200">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-800 text-[#BDEBD9]">
                   {userRoleLabel(user)}
                 </span>
               </div>
             </div>
           ) : (
-            <div className={`p-3 rounded-2xl bg-emerald-900 border border-emerald-800 flex gap-2 ${iconMode ? "lg:hidden" : ""}`}>
+            <div className={`p-3 rounded-2xl bg-[#063B32] border border-white/10 flex gap-2 ${iconMode ? "lg:hidden" : ""}`}>
               <Link to="/login" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500">
                 <BsBoxArrowInRight size={13} /> Login
               </Link>
-              <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-600 text-emerald-100 text-xs font-bold hover:bg-emerald-800">
+              <Link to="/register" onClick={handleNav} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-emerald-600 text-[#C7D9D2] text-xs font-bold hover:bg-emerald-800">
                 <BsPersonPlus size={13} /> Sign up
               </Link>
             </div>
@@ -270,7 +277,7 @@ export default function Sidebar() {
             <div className="space-y-2">
               {visibleGroups.map((grp, gi) => (
                 <div key={grp.label} className="space-y-0.5">
-                  {gi > 0 && <div className="mx-2 my-1.5 border-t border-emerald-800" aria-hidden="true" />}
+                  {gi > 0 && <div className="mx-2 my-1.5 border-t border-white/10" aria-hidden="true" />}
                   {grp.links.map(renderLink)}
                 </div>
               ))}
@@ -282,14 +289,14 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={() => setExpanded((value) => ({ ...value, [grp.label]: !value[grp.label] }))}
-                  className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-extrabold text-emerald-300 uppercase tracking-wider whitespace-nowrap"
+                  className="flex min-h-11 w-full items-center justify-between px-3 py-2 text-xs font-extrabold text-[#BDEBD9] uppercase tracking-wider whitespace-nowrap"
                   aria-expanded={expanded[grp.label] === true}
                 >
                   {grp.tk ? t(grp.tk) : grp.label}
                   {expanded[grp.label] === true ? <BsChevronDown size={14} /> : <BsChevronRight size={14} />}
                 </button>
                 {expanded[grp.label] === true && (
-                  <div className="space-y-0.5 border-l-2 border-emerald-700 ml-3 pl-1">
+                  <div className="space-y-0.5 border-l-2 border-white/15 ml-3 pl-1">
                     {grp.links.map(renderLink)}
                   </div>
                 )}
@@ -309,7 +316,7 @@ function RailToggle() {
     <button
       type="button"
       onClick={toggleCollapsed}
-      className="hidden lg:flex w-full items-center justify-center py-1.5 rounded-lg text-emerald-300 hover:bg-emerald-800 hover:text-white transition-colors"
+      className="hidden lg:flex w-full items-center justify-center py-1.5 rounded-lg text-[#BDEBD9] hover:bg-emerald-800 hover:text-white transition-colors"
       aria-label={open ? "Collapse sidebar to icons" : "Expand sidebar"}
       title={open ? "Collapse sidebar" : "Expand sidebar"}
     >

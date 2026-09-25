@@ -111,14 +111,14 @@ def build_destination_risk(destination):
         unsafe = sum(max(0, 10 - float(f.overall_safety_rating or 0)) for f in feedback) / len(feedback)
         historical_score = min(100.0, historical_score + unsafe * 3)
 
-    current = list(destination.current_hazards.filter(is_active=True).filter(
+    current = list(destination.current_hazards.filter(is_active=True, verified=True).filter(
         Q(expires_at__isnull=True) | Q(expires_at__gte=now)
     ))
 
     # Existing Alert records are also current-condition inputs. Match by city /
     # district first, then use a defensible 75 km proximity window.
     nearby_alerts = []
-    alert_qs = Alert.objects.filter(is_active=True).filter(Q(ends_at__isnull=True) | Q(ends_at__gte=now))
+    alert_qs = Alert.objects.filter(is_active=True, is_verified=True).filter(Q(ends_at__isnull=True) | Q(ends_at__gte=now))
     for alert in alert_qs[:200]:
         text_match = bool(
             (alert.city and alert.city.lower() in {(destination.city or "").lower(), (destination.district or "").lower()})

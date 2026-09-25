@@ -249,18 +249,23 @@ export default function CMSPanel() {
   const saveAndPublish = () => execute(
     async () => {
       const p = payload()
-      p.status = "published"
-      if (resource === "pages") p.is_enabled = true
-      if (resource === "sections") p.is_visible = true
-      if (resource === "navigation") p.is_active = true
-
-      const res = selected.id
-        ? await adminApi.updateCMS({ ...p, resource, id: selected.id })
-        : await adminApi.createCMS({ ...p, resource, template: resource === "pages" ? pageTemplate : undefined })
-
-      if (selected.id && ["pages", "sections"].includes(resource)) {
-        await adminApi.runCMSAction({ resource, id: selected.id, action: "publish" })
+      const isExisting = Boolean(selected.id)
+      if (isExisting) {
+        // Publication fields are workflow-controlled server-side. Save the
+        // editable payload first, then use the explicit publish action.
+        delete p.status; delete p.is_enabled; delete p.is_visible; delete p.is_active
+        delete p.route; delete p.key
+        await adminApi.updateCMS({ ...p, resource, id: selected.id })
+      } else {
+        p.status = "published"
+        if (resource === "pages") p.is_enabled = true
+        if (resource === "sections") p.is_visible = true
+        if (resource === "navigation") p.is_active = true
       }
+
+      const res = isExisting
+        ? await adminApi.runCMSAction({ resource, id: selected.id, action: "publish" })
+        : await adminApi.createCMS({ ...p, resource, template: resource === "pages" ? pageTemplate : undefined })
 
       notifyCmsUpdated()
       return res

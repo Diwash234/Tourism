@@ -1,21 +1,23 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import PageHeader from "../components/common/PageHeader"
 import { motion, AnimatePresence } from "framer-motion"
 import { Link } from "react-router-dom"
 import {
-  FiImage, FiMaximize2, FiX, FiChevronLeft, FiChevronRight,
-  FiMapPin, FiCompass, FiAward, FiExternalLink, FiSearch, FiFilter,
-  FiCamera,
+  FiMaximize2, FiX, FiChevronLeft, FiChevronRight,
+  FiCompass, FiSearch, FiCamera,
 } from "react-icons/fi"
+import EmptyState from "../components/common/EmptyState"
+import PlaceholderImage from "../components/common/PlaceholderImage"
+import SkeletonLoader from "../components/common/SkeletonLoader"
 
 const CATEGORY_FILTERS = [
-  { id: "all", label: "All Photos (100+)" },
-  { id: "mountain", label: "🏔️ Mountains & Alpine" },
-  { id: "lake", label: "🌊 Lakes & Waters" },
-  { id: "temple", label: "🏛️ Temples & Stupas" },
-  { id: "wildlife", label: "🐅 Wildlife & Safaris" },
-  { id: "heritage", label: "🏰 Heritage Cities" },
-  { id: "landscape", label: "🌿 Landscapes & Hills" },
+  { id: "all", label: "All photos" },
+  { id: "mountain", label: "Mountains & alpine" },
+  { id: "lake", label: "Lakes & waters" },
+  { id: "temple", label: "Temples & stupas" },
+  { id: "wildlife", label: "Wildlife" },
+  { id: "heritage", label: "Heritage" },
+  { id: "landscape", label: "Landscapes & hills" },
 ]
 
 import destinationApi from "../api/destinationApi"
@@ -39,17 +41,25 @@ export default function Gallery() {
   const [searchQuery, setSearchQuery] = useState("")
   const [destinationsMedia, setDestinationsMedia] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
+  const [galleryError, setGalleryError] = useState(false)
+  const [galleryRetry, setGalleryRetry] = useState(0)
 
   // Lightbox state
   const [activePhoto, setActivePhoto] = useState(null)
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
-  const [flatPhotoList, setFlatPhotoList] = useState([])
 
   // Load real backend destinations into gallery
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
+    setGalleryError(false)
+    setDestinationsMedia([])
+    let pendingRequests = 3
+    const finishRequest = () => {
+      pendingRequests -= 1
+      if (pendingRequests === 0) setGalleryLoading(false)
+    }
     destinationApi.getDestinations({ page_size: 100 })
       .then(({ data }) => {
         const list = data.results || data.items || data || []
@@ -88,7 +98,7 @@ export default function Gallery() {
           setDestinationsMedia((current) => [...current.filter((entry) => String(entry.key).startsWith("featured-")), ...dynamicEntries, ...current.filter((entry) => String(entry.key).startsWith("district-"))])
         }
       })
-      .catch(() => {})
+      .catch(() => setGalleryError(true)).finally(finishRequest)
 
     destinationApi.getFeaturedGallery()
       .then(({ data }) => {
@@ -112,7 +122,7 @@ export default function Gallery() {
         }).filter((entry) => entry.images.length)
         setDestinationsMedia((current) => [...featuredEntries, ...current.filter((entry) => !String(entry.key).startsWith("featured-"))])
       })
-      .catch(() => {})
+      .catch(() => setGalleryError(true)).finally(finishRequest)
 
     destinationApi.getDistrictGallery()
       .then(({ data }) => {
@@ -123,7 +133,7 @@ export default function Gallery() {
           location: `${group.district}, ${group.images?.[0]?.province || "Nepal"}`,
           category: normalizeGalleryCategory(group.images?.[0]?.category_name),
           tag: `🗺️ District Gallery · ${group.images.length} image${group.images.length === 1 ? "" : "s"}`,
-          description: `Five source-attributed views representing destinations, landscapes and cultural places connected with ${group.district} District.`,
+          description: `${group.images.length} source-attributed ${group.images.length === 1 ? "view" : "views"} representing destinations, landscapes and cultural places connected with ${group.district} District.`,
           images: group.images.map((media) => ({
             url: media.url, caption: media.caption || media.destination_name,
             category: normalizeGalleryCategory(media.category_name), photographer: media.photographer,
@@ -132,59 +142,51 @@ export default function Gallery() {
         }))
         setDestinationsMedia((current) => [...current.filter((entry) => !String(entry.key).startsWith("district-")), ...districtEntries])
       })
-      .catch(() => {})
-      .finally(() => setGalleryLoading(false))
+      .catch(() => setGalleryError(true)).finally(finishRequest)
     }, 0)
     return () => clearTimeout(t)
-  }, [])
-
-  // Flatten all photos for lightbox navigation
-  useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
-    const t = setTimeout(() => {
-    const all = []
-    destinationsMedia.forEach((d) => {
-      d.images.forEach((img) => {
-        all.push({
-          ...img,
-          destinationName: d.name,
-          slug: d.slug,
-          location: d.location,
-          photographer: img.photographer || "Source contributor",
-          license: img.license || "See source record",
-        })
-      })
-    })
-    setFlatPhotoList(all)
-    }, 0)
-    return () => clearTimeout(t)
-  }, [destinationsMedia])
+  }, [galleryRetry])
 
   const districtMedia = destinationsMedia.filter((dest) => String(dest.key).startsWith("district-") && dest.images.length)
+  const districtImageCount = districtMedia.reduce((sum, dest) => sum + dest.images.length, 0)
+  const averageDistrictImages = districtMedia.length ? Math.round(districtImageCount / districtMedia.length) : 0
 
-  const filteredDestinations = destinationsMedia.filter((dest) => {
-    const matchesCat = selectedCategory === "all" || dest.category === selectedCategory || dest.images.some(i => i.category === selectedCategory)
+  const filteredDestinations = destinationsMedia.map((dest) => {
     const matchesSearch = !searchQuery.trim() || dest.name.toLowerCase().includes(searchQuery.toLowerCase()) || dest.location.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesCat && matchesSearch
-  })
+    const images = selectedCategory === "all"
+      ? dest.images
+      : dest.images.filter((image) => image.category === selectedCategory || normalizeGalleryCategory(image.caption) === selectedCategory)
+    return matchesSearch && images.length ? { ...dest, images } : null
+  }).filter(Boolean)
 
-  const openLightbox = (photo, globalIndex) => {
+  const visibleFlatPhotoList = useMemo(() => filteredDestinations.flatMap((dest) => dest.images.map((image) => ({
+    ...image,
+    destinationName: dest.name,
+    slug: dest.slug,
+    location: dest.location,
+    photographer: image.photographer || "Attribution unavailable",
+    license: image.license || "License information unavailable",
+  }))), [filteredDestinations])
+
+  const openLightbox = (photo) => {
+    const index = visibleFlatPhotoList.findIndex((item) => item.url === photo.url)
     setActivePhoto(photo)
-    setActivePhotoIndex(globalIndex)
+    setActivePhotoIndex(index >= 0 ? index : 0)
   }
 
-  const nextPhoto = () => {
-    const nextIdx = (activePhotoIndex + 1) % flatPhotoList.length
+  const nextPhoto = useCallback(() => {
+    if (!visibleFlatPhotoList.length) return
+    const nextIdx = (activePhotoIndex + 1) % visibleFlatPhotoList.length
     setActivePhotoIndex(nextIdx)
-    setActivePhoto(flatPhotoList[nextIdx])
-  }
+    setActivePhoto(visibleFlatPhotoList[nextIdx])
+  }, [activePhotoIndex, visibleFlatPhotoList, setActivePhotoIndex, setActivePhoto])
 
-  const prevPhoto = () => {
-    const prevIdx = (activePhotoIndex - 1 + flatPhotoList.length) % flatPhotoList.length
+  const prevPhoto = useCallback(() => {
+    if (!visibleFlatPhotoList.length) return
+    const prevIdx = (activePhotoIndex - 1 + visibleFlatPhotoList.length) % visibleFlatPhotoList.length
     setActivePhotoIndex(prevIdx)
-    setActivePhoto(flatPhotoList[prevIdx])
-  }
+    setActivePhoto(visibleFlatPhotoList[prevIdx])
+  }, [activePhotoIndex, visibleFlatPhotoList, setActivePhotoIndex, setActivePhoto])
 
   // Keyboard navigation for Lightbox
   useEffect(() => {
@@ -196,61 +198,28 @@ export default function Gallery() {
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [activePhoto, activePhotoIndex, flatPhotoList])
+  }, [activePhoto, nextPhoto, prevPhoto])
 
   return (
-    <div className="container-app theme-indigo py-8 space-y-8 animate-fadeIn">
+    <div className="ny-page container-app space-y-8 py-6 sm:py-8">
       <CMSIntro section={cmsBlock("intro")} />
-      {/* Header */}
-      <div className="text-center max-w-3xl mx-auto space-y-2">
-        <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
-          Visual Media & Photo Story Archive
-        </span>
-        <PageHeader title="Nepal Destination Photography & Visual Stories" subtitle="Real photos from the Nepal Yatra media library." icon={FiCamera} />
-        <p className="text-sm text-gray-500">
-          Explore destination-linked and source-attributed photographs from all 77 districts and 7 provinces. Imported and corrected media remains manageable through the Admin Image Dashboard.
-        </p>
-      </div>
+      <header className="max-w-3xl">
+        <span className="ny-kicker">Visual stories</span>
+        <PageHeader title="Nepal in photographs" subtitle="Browse destination-linked images from the Nepal Yatra media library. Search by place, filter by subject, and open a photo for its available attribution details." icon={FiCamera} />
+      </header>
 
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#F7F8F5]/70 border border-[#E5E0D5] p-4 rounded-3xl">
-        {/* Category Pills */}
-        <div className="flex overflow-x-auto gap-2 w-full sm:w-auto no-scrollbar pb-1 sm:pb-0">
-          {CATEGORY_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setSelectedCategory(f.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                selectedCategory === f.id
-                  ? "bg-[#102A2E] text-white shadow-md shadow-[#102A2E]/20"
-                  : "bg-white text-gray-700 hover:bg-emerald-100/60 border border-[#E5E0D5]"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+      <section className="ny-panel p-4 sm:p-5" aria-label="Gallery filters"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div className="ny-horizontal-scroll flex w-full gap-2 lg:w-auto" role="tablist" aria-label="Photo categories">{CATEGORY_FILTERS.map((filter) => <button key={filter.id} type="button" role="tab" aria-controls="gallery-results" aria-selected={selectedCategory === filter.id} onClick={() => setSelectedCategory(filter.id)} className={`min-h-10 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition ${selectedCategory === filter.id ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)] hover:text-[var(--ny-green)]"}`}>{filter.label}</button>)}</div><div className="relative w-full lg:w-72"><FiSearch size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ny-text-muted)]" aria-hidden="true" /><label htmlFor="gallery-search" className="sr-only">Search photos</label><input id="gallery-search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search by place or district" className="input-field pl-10" /></div></div></section>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" size={15} />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by place or district..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-[#E5E0D5] rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-purple-600 shadow-sm"
-          />
-        </div>
-      </div>
-
-      {galleryLoading && <div className="rounded-3xl bg-[#F7F8F5] border border-[#E5E0D5] p-10 text-center text-[#1D5146] font-bold animate-pulse">Loading destination, mountain, lake and 77-district photo collections…</div>}
+      {galleryLoading && <SkeletonLoader count={6} type="card" />}
+      {galleryError && <div role="alert" className="ny-panel flex flex-col gap-3 border-[#E9D39A] bg-[var(--ny-soft-gold)] p-4 text-sm text-[var(--ny-warning)] sm:flex-row sm:items-center sm:justify-between"><span>Some gallery sources could not be loaded. Available photos are still shown below.</span><button type="button" onClick={() => setGalleryRetry((value) => value + 1)} className="ny-btn ny-btn-secondary min-h-11 shrink-0">Retry gallery</button></div>}
 
       {/* 77-district moving visual index */}
       {districtMedia.length > 0 && (
         <section className="overflow-hidden rounded-3xl bg-slate-950 py-5 border border-purple-900/40">
           <div className="px-5 mb-4 flex items-center justify-between">
             <div><p className="text-[10px] uppercase tracking-widest text-purple-300 font-black">All Nepal District Visual Index</p><h2 className="text-white font-black text-xl">77 District Photo Marquee</h2></div>
-            <span className="text-xs text-slate-400">5 images per district · swipe or browse below</span>
+            <span className="text-xs text-slate-400">{averageDistrictImages ? `${averageDistrictImages} images per district on average` : "District photo index"} · swipe or browse below</span>
           </div>
           <motion.div
             className="flex gap-3 w-max px-3"
@@ -259,7 +228,7 @@ export default function Gallery() {
           >
             {[...districtMedia, ...districtMedia].map((district, index) => (
               <button key={`${district.key}-${index}`} onClick={() => setSearchQuery(district.name.replace(" District", ""))} className="relative w-48 h-28 shrink-0 rounded-2xl overflow-hidden border border-white/10 group">
-                <img src={district.images[index % district.images.length]?.url} alt={district.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                <PlaceholderImage src={district.images[index % district.images.length]?.url} title={district.name} alt={district.name} className="h-full w-full transition-transform group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10" />
                 <span className="absolute bottom-2 left-3 text-white text-xs font-black">{district.name}</span>
               </button>
@@ -268,8 +237,9 @@ export default function Gallery() {
         </section>
       )}
 
-      {/* Destination Collections Grid */}
-      <div className="space-y-10">
+      {!galleryLoading && filteredDestinations.length === 0 && <EmptyState title="No photos found" subtitle="No published photos match this category or search yet." action={<button type="button" onClick={() => { setSelectedCategory("all"); setSearchQuery("") }} className="ny-btn ny-btn-primary">Clear gallery filters</button>} />}
+
+      {filteredDestinations.length > 0 && <div id="gallery-results" role="tabpanel" aria-label="Photo results" className="space-y-10">
         {filteredDestinations.map((dest) => (
           <div key={dest.key} className="space-y-3 bg-white p-6 rounded-3xl border border-[#E5E0D5] shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
@@ -284,41 +254,42 @@ export default function Gallery() {
                 {dest.description && <p className="text-xs text-gray-500 mt-1 max-w-3xl leading-relaxed">{dest.description}</p>}
               </div>
 
-              <Link
-                to={`/destinations/${dest.slug}`}
-                className="px-4 py-2 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs inline-flex items-center gap-1.5 shadow transition-all self-start sm:self-auto"
-              >
-                <FiCompass size={14} /> Explore Destination ➔
-              </Link>
+              {dest.slug ? (
+                <Link
+                  to={`/destinations/${dest.slug}`}
+                  className="ny-btn ny-btn-primary min-h-11 self-start text-xs sm:self-auto"
+                >
+                  <FiCompass size={14} aria-hidden="true" /> Explore destination
+                </Link>
+              ) : (
+                <span className="self-start text-sm text-[var(--ny-text-muted)] sm:self-auto">Destination link unavailable</span>
+              )}
             </div>
 
             {/* Photo Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               {dest.images.map((img, idx) => {
-                const globalIdx = flatPhotoList.findIndex((p) => p.url === img.url)
                 return (
-                  <motion.div
+                  <button
+                    type="button"
                     key={idx}
-                    whileHover={{ scale: 1.02 }}
-                    className="group relative rounded-2xl overflow-hidden bg-slate-900 shadow border border-gray-100 cursor-pointer flex flex-col justify-between"
+                    aria-label={`Open photo: ${img.caption || dest.name}`}
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-slate-900 text-left shadow-[var(--ny-shadow)]"
                     onClick={() => openLightbox({
                       ...img,
                       destinationName: dest.name,
                       slug: dest.slug,
                       location: dest.location,
-                      photographer: img.photographer || "Source contributor",
-                      license: img.license || "See source record",
-                    }, globalIdx)}
+                      photographer: img.photographer || "Attribution unavailable",
+                      license: img.license || "License information unavailable",
+                    })}
                   >
                     <div className="h-40 w-full relative overflow-hidden">
-                      <img
+                      <PlaceholderImage
                         src={img.url}
-                        alt={img.caption}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        title={img.caption || dest.name}
+                        alt={img.caption || dest.name}
+                        className="h-full w-full transition-transform duration-500 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
                         <span className="text-[10px] font-bold text-amber-300 flex items-center gap-1">
@@ -329,22 +300,22 @@ export default function Gallery() {
 
                     <div className="p-2 bg-white text-[11px] space-y-0.5">
                       <p className="font-bold text-gray-900 truncate">{img.caption}</p>
-                      <p className="text-[9px] text-emerald-600 font-mono truncate">{img.license || "Source attribution available"}</p>
+                      <p className="text-[9px] text-emerald-600 font-mono truncate">{img.license || "Attribution unavailable"}</p>
                     </div>
-                  </motion.div>
+                  </button>
                 )
               })}
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* FULLSCREEN LIGHTBOX MODAL */}
       <AnimatePresence>
         {activePhoto && (
-          <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md">
+          <div className="fixed inset-0 z-[90] flex flex-col justify-between bg-black/95 p-4 backdrop-blur-md sm:p-6" role="dialog" aria-modal="true" aria-label="Photo viewer">
             {/* Header */}
-            <div className="flex items-center justify-between text-white border-b border-white/10 pb-3">
+            <div className="flex flex-col items-start gap-3 text-white border-b border-white/10 pb-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-0.5">
                 <span className="font-black text-lg text-amber-300">{activePhoto.destinationName}</span>
                 <p className="text-xs text-gray-300">
@@ -352,40 +323,44 @@ export default function Gallery() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Link
+                {activePhoto.slug ? <Link
                   to={`/destinations/${activePhoto.slug}`}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs flex items-center gap-1"
+                  className="ny-btn ny-btn-primary min-h-11 text-xs"
                 >
-                  <FiCompass size={13} /> View Place Details
-                </Link>
+                  <FiCompass size={13} aria-hidden="true" /> View place details
+                </Link> : <span className="text-xs text-white/70">Place link unavailable</span>}
                 <button
+                  type="button"
+                  aria-label="Close photo viewer"
                   onClick={() => setActivePhoto(null)}
-                  className="p-2 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all"
+                  className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] text-white transition hover:bg-white/20"
                 >
-                  <FiX size={24} />
+                  <FiX size={24} aria-hidden="true" />
                 </button>
               </div>
             </div>
 
             {/* Main Center Image */}
             <div className="flex-1 flex items-center justify-center relative my-3">
-              <img
+              <PlaceholderImage
                 src={activePhoto.url}
+                title={activePhoto.destinationName}
                 alt={activePhoto.caption}
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                }}
-                className="max-h-[76vh] max-w-full object-contain rounded-2xl shadow-2xl"
+                className="max-h-[76vh] max-w-full !object-contain rounded-2xl shadow-2xl"
               />
               <button
+                type="button"
+                aria-label="Previous photo"
                 onClick={prevPhoto}
-                className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur transition-all"
+                className="absolute left-2 grid h-12 w-12 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/90 sm:left-6"
               >
                 <FiChevronLeft size={28} />
               </button>
               <button
+                type="button"
+                aria-label="Next photo"
                 onClick={nextPhoto}
-                className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur transition-all"
+                className="absolute right-2 grid h-12 w-12 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/90 sm:right-6"
               >
                 <FiChevronRight size={28} />
               </button>
@@ -393,9 +368,11 @@ export default function Gallery() {
 
             {/* Bottom Navigation Strip */}
             <div className="flex gap-2 overflow-x-auto justify-center pb-2 no-scrollbar">
-              {flatPhotoList.map((p, i) => (
+              {visibleFlatPhotoList.map((p, i) => (
                 <button
                   key={i}
+                  type="button"
+                  aria-label={`Open photo ${i + 1}`}
                   onClick={() => {
                     setActivePhotoIndex(i)
                     setActivePhoto(p)

@@ -1,106 +1,57 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+import { FiChevronRight, FiMapPin } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
-import { motion } from "framer-motion"
-import { FiMapPin, FiChevronRight } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
 import DestinationCard from "../components/cards/DestinationCard"
-import Loader from "../components/common/Loader"
+import SkeletonLoader from "../components/common/SkeletonLoader"
 import EmptyState from "../components/common/EmptyState"
 
-/**
- * ExploreNepalMap — Province → District(City) → Destination flow.
- * Honest disclaimer: the 7 zones below are a SIMPLIFIED SCHEMATIC
- * strip, not geographically accurate province boundaries — building a
- * real SVG map of Nepal's province borders would need actual GeoJSON
- * data this project doesn't have. Each zone links to a representative
- * city, same honest approach used in Footer.jsx (province isn't a
- * filterable backend field — checked tourist/filters.py).
- *
- * Once a destination is picked, this hands off to DestinationDetails.jsx
- * (/destinations/:slug), which already combines hotels, weather,
- * navigation, budget, and risk for that place in one view — no need to
- * duplicate that here.
- */
 const PROVINCES = [
-  { name: "Koshi", city: "Biratnagar", color: "bg-himalaya-500" },
-  { name: "Madhesh", city: "Janakpur", color: "bg-forest-500" },
-  { name: "Bagmati", city: "Kathmandu", color: "bg-saffron-500" },
-  { name: "Gandaki", city: "Pokhara", color: "bg-nepalred-500" },
-  { name: "Lumbini", city: "Butwal", color: "bg-himalaya-600" },
-  { name: "Karnali", city: "Surkhet", color: "bg-forest-600" },
-  { name: "Sudurpashchim", city: "Dhangadhi", color: "bg-saffron-600" },
+  { name: "Koshi", city: "Biratnagar", description: "Eastern tea hills, wetlands and sunrise viewpoints." },
+  { name: "Madhesh", city: "Janakpur", description: "Temple towns, Mithila culture and the southern plain." },
+  { name: "Bagmati", city: "Kathmandu", description: "Heritage squares, craft traditions and the valley." },
+  { name: "Gandaki", city: "Pokhara", description: "Lakes, Annapurna foothills and mountain paths." },
+  { name: "Lumbini", city: "Butwal", description: "Sacred gardens, monasteries and the Terai." },
+  { name: "Karnali", city: "Surkhet", description: "Remote valleys, national parks and western horizons." },
+  { name: "Sudurpashchim", city: "Dhangadhi", description: "Far-western landscapes, rivers and community places." },
 ]
 
 const ExploreNepalMap = () => {
   const [selected, setSelected] = useState(null)
   const [destinations, setDestinations] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
-    const t = setTimeout(() => {
-    if (!selected) return
-    setLoading(true)
-    destinationApi
-      .getAll({ province: selected.name, limit: 12 })
-      .then(({ data }) => setDestinations(data.results || data || []))
-      .catch(() => setDestinations([]))
-      .finally(() => setLoading(false))
+    if (!selected) return undefined
+    let active = true
+    const timer = setTimeout(() => {
+      setLoading(true)
+      setError("")
+      destinationApi.getAll({ province: selected.name, limit: 12 })
+        .then(({ data }) => { if (active) setDestinations(data.results || data || []) })
+        .catch(() => { if (active) { setDestinations([]); setError("We could not load this province's destination records right now.") } })
+        .finally(() => { if (active) setLoading(false) })
     }, 0)
-    return () => clearTimeout(t)
+    return () => { active = false; clearTimeout(timer) }
   }, [selected])
 
   return (
-    <div className="container-app py-10 fade-in">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="explore-map" />
-      <PageHeader title="Explore Nepal by Province" subtitle={<>Pick a province to narrow down destinations, then drill into any place for hotels, weather,
-        budget, and safety info all in one view.</>} icon={ FiMapPin } />
-      <p className="text-xs text-gray-400 mb-6">
-        Simplified schematic, not a precise geographic map — each zone links to that province's main city.
-      </p>
+      <PageHeader title="Explore Nepal by province" subtitle="Choose a province to see recorded places, then open a destination for its own travel details." icon={FiMapPin} />
+      <p className="text-sm text-[var(--ny-text-secondary)]">This is a province guide, not a precise boundary map. Destination records remain the source of truth.</p>
 
-      {/* Simplified schematic province strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-8">
-        {PROVINCES.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p)}
-            className={`relative rounded-xl h-20 text-white text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-transform hover:-translate-y-1 ${p.color} ${
-              selected?.name === p.name ? "ring-4 ring-saffron-300" : ""
-            }`}
-          >
-            <FiMapPin size={16} />
-            {p.name}
-          </button>
-        ))}
-      </div>
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Nepal provinces">
+        {PROVINCES.map((province) => {
+          const active = selected?.name === province.name
+          return <button key={province.name} type="button" onClick={() => setSelected(province)} className={`ny-card group flex min-h-36 flex-col items-start p-4 text-left ${active ? "border-[var(--ny-green)] bg-[var(--ny-soft-green)]" : ""}`} aria-pressed={active}><span className="grid h-10 w-10 place-items-center rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-green)] text-[var(--ny-green)]"><FiMapPin size={18} aria-hidden="true" /></span><span className="mt-3 font-bold">{province.name}</span><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">{province.description}</span><span className="mt-auto pt-3 text-xs font-semibold text-[var(--ny-green)]">Explore {province.city} <FiChevronRight size={13} className="inline transition group-hover:translate-x-0.5" aria-hidden="true" /></span></button>
+        })}
+      </section>
 
-      {selected && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-            <span className="font-semibold text-dark">{selected.name}</span>
-            <FiChevronRight size={14} />
-            <span>{selected.city} area</span>
-          </div>
-
-          {loading ? (
-            <Loader />
-          ) : destinations.length ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {destinations.map((d) => (
-                <DestinationCard key={d.id} destination={d} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title={`No destinations found near ${selected.city}`}
-              subtitle="Try another province, or check back once more destinations are added for this area."
-            />
-          )}
-        </motion.div>
-      )}
+      {selected && <section aria-live="polite" className="space-y-5"><div className="flex items-center gap-2 border-b border-[var(--ny-border)] pb-4 text-sm text-[var(--ny-text-secondary)]"><span className="font-semibold text-[var(--ny-text)]">{selected.name}</span><FiChevronRight size={14} aria-hidden="true" /><span>Destinations across {selected.name}</span></div>{loading ? <SkeletonLoader count={3} /> : error ? <div role="alert" className="ny-panel p-5 text-sm text-[var(--ny-danger)]">{error} <button type="button" onClick={() => setSelected({ ...selected })} className="ml-2 font-semibold underline">Retry</button></div> : destinations.length ? <motion.div layout className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">{destinations.map((destination) => <DestinationCard key={destination.id} destination={destination} />)}</motion.div> : <EmptyState title={`No destinations found for ${selected.name}`} subtitle="There are no published records for this province view yet. Try another province or browse the full catalogue." action={<button type="button" onClick={() => setSelected(null)} className="ny-btn ny-btn-secondary">Choose another province</button>} />}</section>}
     </div>
   )
 }

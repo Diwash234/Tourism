@@ -122,7 +122,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class StaffCapabilityProfile(TimeStampedModel):
     """Granular module/action permissions layered on the existing User role."""
     MODULES = ["dashboard", "tasks", "support", "destinations", "images", "content", "budget", "datasets", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "safety", "feedback", "audit", "users", "settings", "marketplace"]
-    ACTIONS = ["view", "add", "change", "delete", "approve", "export", "train", "assign"]
+    ACTIONS = ["view", "add", "change", "delete", "approve", "publish", "verify", "update", "export", "train", "assign"]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="capability_profile")
     capabilities = models.JSONField(default=dict, blank=True, help_text='{"destinations":["view","change"],"images":["view","approve"]}')
@@ -1275,7 +1275,7 @@ class Hospital(models.Model):
     district = models.CharField(max_length=100)
     image = models.ImageField(upload_to="services/hospitals/", blank=True, null=True)
     opening_hours = models.CharField(max_length=160, blank=True)
-    emergency_available = models.BooleanField(default=True)
+    emergency_available = models.BooleanField(default=False)
     source_name = models.CharField(max_length=160, blank=True)
     source_url = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
@@ -1303,7 +1303,7 @@ class PoliceStation(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     image = models.ImageField(upload_to="services/police/", blank=True, null=True)
     opening_hours = models.CharField(max_length=160, blank=True)
-    emergency_available = models.BooleanField(default=True)
+    emergency_available = models.BooleanField(default=False)
     source_name = models.CharField(max_length=160, blank=True)
     source_url = models.URLField(max_length=600, blank=True)
     is_verified = models.BooleanField(default=False)
@@ -2977,6 +2977,10 @@ class ManagedPage(TimeStampedModel):
     status = models.CharField(max_length=20, choices=[("draft","Draft"),("in_review","In Review"),("changes_requested","Changes Requested"),("approved","Approved"),("scheduled","Scheduled"),("published","Published")], default="published")
     scheduled_publish_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    published_snapshot = models.JSONField(
+        null=True, blank=True,
+        help_text="Frozen public page metadata. Draft edits never alter this snapshot until Publish.",
+    )
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_pages_updated")
 
     def __str__(self): return f"{self.title} ({self.route})"

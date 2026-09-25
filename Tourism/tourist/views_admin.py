@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
@@ -41,10 +41,14 @@ def _media_public_url(image):
 
     Replacing the stored file keeps the same media id (references survive)
     but browsers/CDNs may cache the old bytes at the same path, so local
-    Django-served files carry ?v=<updated_at epoch>. External URLs are
-    returned untouched (their hosts may reject unknown query strings)."""
+    Django-served files carry ?v=<updated_at epoch>. Standalone image-server
+    records are resolved here too; otherwise the central library displays a
+    blank card for an otherwise valid media row."""
+    from .image_server import image_server_url
     if image.external_url:
         return image.external_url
+    if image.image_path:
+        return image_server_url(image.image_path)
     if image.image:
         try:
             version = int(image.updated_at.timestamp())
@@ -54,6 +58,26 @@ def _media_public_url(image):
     return ""
 
 
+def _recompute_destination_cover(destination):
+    """Keep the denormalized cover consistent with approved media only."""
+    destination.refresh_from_db()
+    eligible = destination.gallery.filter(
+        verification_status=DestinationImage.ImageStatus.APPROVED,
+        is_verified=True,
+    ).order_by("-is_cover", "ordering", "id")
+    cover = eligible.first()
+    new_url = _media_public_url(cover) if cover else ""
+    if cover:
+        destination.gallery.exclude(pk=cover.pk).filter(is_cover=True).update(is_cover=False)
+        if not cover.is_cover:
+            cover.is_cover = True
+            cover.save(update_fields=["is_cover", "updated_at"])
+    if str(destination.cover_image or "") != new_url:
+        destination.cover_image = new_url
+        destination.save(update_fields=["cover_image", "updated_at"])
+    return new_url
+
+
 def _require_capability(request, module, action="view"):
     if not _has_capability(request, module, action):
         from rest_framework.exceptions import PermissionDenied
@@ -61,23 +85,89 @@ def _require_capability(request, module, action="view"):
 
 
 def _sync_destination_json(destination):
-    """Atomic JSON exchange snapshot for admin-edited destinations."""
+    """Persist the existing JSON exchange snapshot and invalidate public indexes.
+
+    The React public site reads the live database/API, but a few lightweight
+    server-side indexes (map points and the sitemap) are deliberately cached.
+    Clearing those two bounded keys here keeps an admin save immediately
+    visible without flushing unrelated application/session caches.
+    """
+    from django.core.cache import cache
     from .location_sync import sync_admin_destination_json
     sync_admin_destination_json(destination)
+    cache.delete("dest:map-points:v1")
+    cache.delete("seo:sitemap:v1")
+
+
+def _is_platform_admin(user):
+    return bool(user and user.is_authenticated and (
+        user.is_superuser or getattr(user, "role", "") in {"admin", "super_admin", "tourism_admin"}
+    ))
+
+
+def _managed_districts_for(user):
+    profile = getattr(user, "capability_profile", None)
+    districts = list(getattr(profile, "managed_districts", []) or [])
+    if not districts and getattr(user, "role", "") == "district_manager":
+        managed = getattr(user, "managed_district", "")
+        if managed:
+            districts = [managed]
+    return [str(value).strip().casefold() for value in districts if str(value).strip()]
+
+
+def _scope_destination_queryset(queryset, user):
+    """Apply district and hotel-assignment boundaries to admin destination data."""
+    if _is_platform_admin(user):
+        return queryset
+    districts = _managed_districts_for(user)
+    if districts:
+        from django.db.models import Q
+        scope = Q()
+        for district in districts:
+            scope |= Q(district__iexact=district) | Q(city__iexact=district)
+        return queryset.filter(scope)
+    if getattr(user, "role", "") == "hotel_manager":
+        from admin_panel.models import HotelAssignment
+        allowed = HotelAssignment.objects.filter(admin=user).values("hotel__destination_id")
+        return queryset.filter(id__in=allowed)
+    return queryset
+
+
+def _require_destination_access(request, destination, module, action="view"):
+    """Enforce module capability plus object-level district/assignment scope."""
+    _require_capability(request, module, action)
+    if _is_platform_admin(request.user):
+        return destination
+    districts = _managed_districts_for(request.user)
+    district = str(getattr(destination, "district", "") or "").casefold()
+    city = str(getattr(destination, "city", "") or "").casefold()
+    if districts and district not in districts and city not in districts:
+        raise PermissionDenied("This destination is outside your assigned district")
+    if getattr(request.user, "role", "") == "hotel_manager" and module != "hotels":
+        from admin_panel.models import HotelAssignment
+        allowed = HotelAssignment.objects.filter(admin=request.user, hotel__destination_id=destination.id).exists()
+        if not allowed:
+            raise PermissionDenied("This destination is outside your assigned hotels")
+    return destination
 
 
 class AdminStatsView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
-        total_destinations = Destination.objects.count()
-        pending_destinations = Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).count()
-        approved_destinations = Destination.objects.filter(status=Destination.SubmissionStatus.APPROVED).count()
+        _require_capability(request, "dashboard", "view")
+        destination_scope = _scope_destination_queryset(Destination.objects.all(), request.user)
+        total_destinations = destination_scope.count()
+        pending_destinations = destination_scope.filter(status=Destination.SubmissionStatus.PENDING).count()
+        approved_destinations = destination_scope.filter(status=Destination.SubmissionStatus.APPROVED).count()
         total_views = Destination.objects.aggregate(total=Sum("views_count"))["total"] or 0
         active_sos = SOSAlert.objects.filter(status=SOSAlert.Status.ACTIVE).count()
         pending_images = DestinationImage.objects.filter(
             Q(verification_status="pending") | Q(is_verified=False)
-        ).count()
+        )
+        if not _is_platform_admin(request.user):
+            pending_images = pending_images.filter(destination_id__in=destination_scope.values("id"))
+        pending_images = pending_images.count()
 
         return Response({
             "totalUsers": User.objects.count(),
@@ -181,6 +271,8 @@ class AdminUsersView(APIView):
             return Response({"detail": "Invalid role."}, status=400)
         if role in {User.Role.ADMIN, User.Role.SUPER_ADMIN, User.Role.TOURISM_ADMIN} and not request.user.is_superuser:
             return Response({"detail": "Only a super administrator may create administrator accounts."}, status=403)
+        if role != User.Role.TOURIST and not _is_platform_admin(request.user):
+            return Response({"detail": "Only platform administrators may create staff accounts."}, status=403)
         if not email or len(password) < 8:
             return Response({"detail": "A valid email and password of at least 8 characters are required."}, status=400)
         if User.objects.filter(email=email).exists():
@@ -224,6 +316,10 @@ class UpdateUserStatusView(APIView):
         if not user:
             return Response({"detail": "User not found."}, status=404)
         role = request.data.get("role")
+        if role is not None and not _is_platform_admin(request.user):
+            return Response({"detail": "Only platform administrators can assign staff roles."}, status=403)
+        if "is_verified" in request.data and not _has_capability(request, "users", "verify"):
+            return Response({"detail": "Missing users.verify capability."}, status=403)
         allowed, reason = _can_manage_user(request.user, user, role)
         if not allowed:
             return Response({"detail": reason}, status=403)
@@ -356,15 +452,19 @@ class AdminPendingPlacesView(APIView):
     def get(self, request):
         _require_capability(request, "destinations", "view")
         places = Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).select_related("category", "created_by")
-        if request.user.role == "district_manager":
-            places = places.filter(district__iexact=request.user.managed_district)
+        places = _scope_destination_queryset(places, request.user)
         data = []
         for p in places:
-            gallery_photos = [
-                img.image.url if img.image else img.external_url
-                for img in p.gallery.all()
-            ]
-            cover_url = p.cover_image.url if p.cover_image else (gallery_photos[0] if gallery_photos else None)
+            gallery_photos = []
+            for img in p.gallery.all():
+                try:
+                    gallery_photos.append(img.image.url if img.image else img.external_url)
+                except (ValueError, AttributeError):
+                    gallery_photos.append(img.external_url)
+            try:
+                cover_url = p.cover_image.url if p.cover_image else (gallery_photos[0] if gallery_photos else None)
+            except (ValueError, AttributeError):
+                cover_url = gallery_photos[0] if gallery_photos else None
 
             data.append({
                 "id": p.id,
@@ -409,6 +509,7 @@ class AdminPendingPlacesView(APIView):
             return Response({"detail": "Place not found."}, status=status.HTTP_404_NOT_FOUND)
         if request.user.role == "district_manager" and (place.district or "").lower() != (request.user.managed_district or "").lower():
             return Response({"detail": "District managers may only moderate their assigned district."}, status=403)
+        _require_destination_access(request, place, "destinations", "approve")
 
         if action_type == "approve":
             place.status = Destination.SubmissionStatus.APPROVED
@@ -430,7 +531,11 @@ class AdminPendingPlacesView(APIView):
             if "province" in request.data:
                 place.province = request.data["province"]
             if "district" in request.data:
-                place.district = request.data["district"]
+                new_district = str(request.data["district"] or "").strip()
+                if not _is_platform_admin(request.user) and _managed_districts_for(request.user):
+                    if new_district.casefold() not in _managed_districts_for(request.user):
+                        return Response({"detail": "You cannot move a place outside your assigned district."}, status=403)
+                place.district = new_district
             if "municipality" in request.data:
                 place.municipality = request.data["municipality"]
             if "ward_number" in request.data and request.data["ward_number"]:
@@ -448,7 +553,18 @@ class AdminPendingPlacesView(APIView):
             if "review_note" in request.data:
                 place.review_note = request.data["review_note"]
 
+            missing = []
+            if not (place.name or "").strip():
+                missing.append("name")
+            if not (place.description or "").strip():
+                missing.append("description")
+            if place.latitude is None or place.longitude is None:
+                missing.append("coordinates")
+            if missing:
+                return Response({"detail": f"Cannot publish: missing {', '.join(missing)}."}, status=400)
             place.save()
+            _sync_destination_json(place)
+            _dest_revision(place, "publish", request.user)
 
             # Record audit log
             DestinationAuditLog.objects.create(
@@ -469,6 +585,7 @@ class AdminPendingPlacesView(APIView):
             place.status = Destination.SubmissionStatus.REJECTED
             place.review_note = request.data.get("review_note", "Does not meet submission guidelines.")
             place.save()
+            _sync_destination_json(place)
 
             DestinationAuditLog.objects.create(
                 destination=place,
@@ -494,9 +611,14 @@ class AdminPendingImagesView(APIView):
         images = DestinationImage.objects.filter(
             Q(verification_status="pending") | Q(is_verified=False)
         ).select_related("destination", "uploaded_by")
+        if not _is_platform_admin(request.user):
+            images = images.filter(destination__in=_scope_destination_queryset(Destination.objects.all(), request.user))
         data = []
         for img in images:
-            img_url = img.image.url if img.image else img.external_url
+            try:
+                img_url = img.image.url if img.image else img.external_url
+            except (ValueError, AttributeError):
+                img_url = img.external_url
             data.append({
                 "id": img.id,
                 "destination_id": img.destination_id,
@@ -516,20 +638,31 @@ class AdminPendingImagesView(APIView):
             id = request.data.get("id")
         action_type = request.data.get("action", "approve")
         try:
-            img = DestinationImage.objects.get(id=id)
+            img = DestinationImage.objects.select_related("destination").get(id=id)
         except DestinationImage.DoesNotExist:
             return Response({"detail": "Image not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not _is_platform_admin(request.user):
+            _require_destination_access(request, img.destination, "images", "approve")
 
         if action_type == "approve":
             img.verification_status = "approved"
             img.is_verified = True
             img.save()
+            _recompute_destination_cover(img.destination)
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="image.approve", message=f"Approved image #{img.id}", object_type="DestinationImage", object_id=str(img.id), extra={"destination_id": img.destination_id})
             return Response({"message": "Image verified and added to destination gallery & recommendations."})
-        else:
+        elif action_type == "reject":
             img.verification_status = "rejected"
             img.is_verified = False
+            img.is_cover = False
             img.save()
+            _recompute_destination_cover(img.destination)
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="image.reject", message=f"Rejected image #{img.id}", object_type="DestinationImage", object_id=str(img.id), extra={"destination_id": img.destination_id})
             return Response({"message": "Image rejected."})
+        else:
+            return Response({"detail": "action must be approve or reject"}, status=400)
 
 
 class AdminEmergenciesView(APIView):
@@ -538,6 +671,13 @@ class AdminEmergenciesView(APIView):
     def get(self, request):
         _require_capability(request, "safety", "view")
         alerts = SOSAlert.objects.all().select_related("user").order_by("-triggered_at")
+        if not _is_platform_admin(request.user):
+            districts = _managed_districts_for(request.user)
+            if districts:
+                scope = Q()
+                for district in districts:
+                    scope |= Q(user__managed_district__iexact=district) | Q(user__city__iexact=district)
+                alerts = alerts.filter(scope)
         data = []
         for a in alerts:
             data.append({
@@ -560,10 +700,17 @@ class AdminEmergenciesView(APIView):
         if not id:
             id = request.data.get("id")
         try:
-            alert = SOSAlert.objects.get(id=id)
+            alert = SOSAlert.objects.select_related("user").get(id=id)
+            if not _is_platform_admin(request.user):
+                districts = _managed_districts_for(request.user)
+                district = str(getattr(alert.user, "managed_district", "") or getattr(alert.user, "city", "") or "").casefold()
+                if districts and district not in districts:
+                    return Response({"detail": "Emergency is outside your assigned district."}, status=403)
             alert.status = SOSAlert.Status.RESOLVED
             alert.resolved_at = timezone.now()
             alert.save()
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="safety", severity="warning", source="backend", action="sos.resolve", message=f"Resolved emergency #{alert.id}", object_type="SOSAlert", object_id=str(alert.id))
             return Response({"message": "Emergency marked as resolved."})
         except SOSAlert.DoesNotExist:
             return Response({"detail": "Emergency alert not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -585,10 +732,13 @@ class AdminDestinationsView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "destinations", "view")
         from django.db.models import Q
         from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-        qs = Destination.objects.all().select_related("category")
+        qs = _scope_destination_queryset(
+            Destination.objects.all().select_related("category"), request.user
+        )
 
         q = (request.query_params.get("q") or "").strip()
         if q:
@@ -701,6 +851,7 @@ class AdminDestinationsView(APIView):
     }
 
     def post(self, request):
+        _require_capability(request, "destinations", "add")
         from decimal import Decimal, InvalidOperation
 
         data = request.data
@@ -744,7 +895,10 @@ class AdminDestinationsView(APIView):
         # Saving to the database is NOT publishing: admin-created records
         # start as private drafts until explicitly published (§9).
         destination = Destination.objects.create(
-            status=Destination.SubmissionStatus.DRAFT, is_active=False, **fields)
+            status=Destination.SubmissionStatus.DRAFT, is_active=False,
+            created_by=request.user if request.user.is_authenticated else None,
+            provenance=Destination.Provenance.MANUAL,
+            source="Admin Control Center", **fields)
         category_id = data.get("category_id")
         if category_id:
             try:
@@ -773,10 +927,12 @@ class AdminDestinationDetailView(APIView):
 
     def get(self, request, id):
         """Return full destination data, images, and edit history for admin."""
+        _require_capability(request, "destinations", "view")
         try:
             destination = Destination.objects.get(id=id)
         except Destination.DoesNotExist:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        _require_destination_access(request, destination, "destinations", "view")
 
         from .location_sync import display_city, has_map_pin
         _is_public, _why_not = _public_explanation(destination)
@@ -787,7 +943,7 @@ class AdminDestinationDetailView(APIView):
             "coordinates": destination.latitude is not None and destination.longitude is not None,
             "category": destination.category_id is not None,
             "district": bool((destination.district or "").strip()),
-            "images": destination.gallery.filter(verification_status="approved").exists(),
+            "images": destination.gallery.filter(verification_status="approved", is_verified=True).exists(),
             "opening_hours": bool((destination.opening_hours or "").strip()),
             "contact_or_website": bool((destination.website or "").strip()),
         }
@@ -831,14 +987,14 @@ class AdminDestinationDetailView(APIView):
             "nearest_hospital_info": destination.nearest_hospital_info,
             "nearest_hotel_info": destination.nearest_hotel_info,
             "nearest_police_info": destination.nearest_police_info,
-            "pending_label": "Not recorded — we will update soon",
+            "pending_label": "Not recorded",
             "latitude": float(destination.latitude) if destination.latitude is not None else None,
             "longitude": float(destination.longitude) if destination.longitude is not None else None,
             "cover_image": _cover_of(destination),
             "gallery": [
                 {
                     "id": g.id,
-                    "url": g.external_url or (g.image.url if g.image else ""),
+                    "url": _media_public_url(g),
                     "caption": g.caption,
                     "is_cover": g.is_cover,
                     "source": g.source_platform or g.source,
@@ -862,7 +1018,8 @@ class AdminDestinationDetailView(APIView):
                 }
                 for v in destination.videos.all()[:50]
             ],
-            "history": [
+            "history": destination.history or "",
+            "audit_history": [
                 {
                     "id": h.id,
                     "action": h.action,
@@ -882,10 +1039,12 @@ class AdminDestinationDetailView(APIView):
         })
 
     def put(self, request, id):
+        _require_capability(request, "destinations", "change")
         try:
             destination = Destination.objects.get(id=id)
         except Destination.DoesNotExist:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        _require_destination_access(request, destination, "destinations", "change")
 
         from decimal import Decimal, InvalidOperation
         from .location_sync import _in_nepal
@@ -901,6 +1060,11 @@ class AdminDestinationDetailView(APIView):
             "seo_title", "meta_description", "og_image_url", "meta_robots", "search_visible",
         }
         payload = dict(request.data)
+        if "district" in payload and not _is_platform_admin(request.user):
+            requested_district = str(payload.get("district") or "").strip().casefold()
+            allowed_districts = _managed_districts_for(request.user)
+            if allowed_districts and requested_district not in allowed_districts:
+                return Response({"detail": "You cannot move a destination outside your assigned district."}, status=403)
         # Rich text editor hardening (same rule as CMS body): neutralize
         # javascript: URLs in admin-authored rich text fields.
         _rich_fields = ("description", "short_description", "history", "cultural_significance", "food_cuisine_info", "travel_safety_tips")
@@ -1013,11 +1177,13 @@ class AdminDestinationDetailView(APIView):
 
     def post(self, request, id):
         """Fill missing city/coords from other recorded destinations and write JSON."""
+        _require_capability(request, "destinations", "change")
         from .location_sync import fill_city_from_records, fill_coords_from_records, fill_ktm_distance
 
         destination = Destination.objects.filter(id=id).first()
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "destinations", "change")
         action = (request.data.get("action") or "").strip()
         if action != "fill_location":
             return Response({"detail": "Unsupported action. Use action=fill_location."}, status=400)
@@ -1038,6 +1204,8 @@ class AdminDestinationDetailView(APIView):
                 note=f"Filled recorded location fields: {', '.join(changed)}",
             )
         _sync_destination_json(destination)
+        if changed:
+            _dest_revision(destination, "update", request.user)
         message = (
             "Filled from recorded destinations and wrote dataset/data.json and destination_locations.json"
             if changed else
@@ -1056,9 +1224,12 @@ class AdminDestinationDetailView(APIView):
         _require_capability(request,"destinations","delete")
         destination=Destination.objects.filter(id=id).first()
         if not destination:return Response({"detail":"Destination not found"},status=404)
+        _require_destination_access(request, destination, "destinations", "delete")
         previous=destination.status;destination.status=Destination.SubmissionStatus.ARCHIVED;destination.is_active=False
         destination.save(update_fields=["status","is_active","updated_at"])
-        DestinationAuditLog.objects.create(destination=destination,actor=request.user,action=DestinationAuditLog.Action.EDITED,
+        _sync_destination_json(destination)
+        _dest_revision(destination, "archive", request.user)
+        DestinationAuditLog.objects.create(destination=destination,actor=request.user,action=DestinationAuditLog.Action.ARCHIVED,
             note="Destination archived; related bookings, reviews, routes and safety records retained",previous_status=previous,new_status=destination.status)
         return Response({"message":"Destination archived; related records were retained","id":destination.id})
 
@@ -1079,24 +1250,41 @@ class AdminDestinationImageView(APIView):
         return Destination.objects.filter(id=id).first()
 
     def post(self, request, id):
+        _require_capability(request, "images", "add")
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "add")
         uploaded_file = request.FILES.get("image") or request.FILES.get("file")
+        if uploaded_file:
+            if uploaded_file.size > 10 * 1024 * 1024:
+                return Response({"detail": "Image must be 10 MB or smaller."}, status=400)
+            try:
+                from PIL import Image
+                check = Image.open(uploaded_file); check.verify(); uploaded_file.seek(0)
+                if check.format not in {"JPEG", "PNG", "WEBP"}:
+                    raise ValueError("unsupported image format")
+            except Exception:
+                return Response({"detail": "Upload a valid JPEG, PNG or WebP image."}, status=400)
         image_url = (request.data.get("image_url") or request.data.get("url") or "").strip()
         if not image_url and not uploaded_file:
             return Response({"detail": "image file or image_url is required."}, status=400)
+        if image_url and not (image_url.startswith("https://") or image_url.startswith("/")):
+            return Response({"detail": "image_url must use HTTPS or an internal path."}, status=400)
 
         is_cover = str(request.data.get("is_cover", "")).lower() in {"1", "true", "yes", "on"}
-        if is_cover:
-            destination.gallery.filter(is_cover=True).update(is_cover=False)
-
+        requested_status = str(request.data.get("verification_status") or "").strip().lower()
+        if requested_status in {"approved", "verified"} and not _has_capability(request, "images", "approve"):
+            return Response({"detail": "Only a reviewer with images.approve can publish an image immediately."}, status=403)
+        if requested_status not in {"", "pending", "approved", "rejected", "verified"}:
+            return Response({"detail": "Invalid image verification status."}, status=400)
+        approved = requested_status in {"approved", "verified"} or (not requested_status and _has_capability(request, "images", "approve"))
         img = DestinationImage.objects.create(
             destination=destination,
             external_url=image_url if image_url.startswith("http") else "",
             image=uploaded_file or (image_url if image_url and not image_url.startswith("http") else None),
             caption=(request.data.get("caption") or destination.name)[:200],
-            is_cover=is_cover,
+            is_cover=is_cover and approved,
             source=DestinationImage.Source.ADMIN,
             source_url=request.data.get("source_url", "")[:500],
             source_platform=request.data.get("source", "admin")[:100],
@@ -1104,11 +1292,15 @@ class AdminDestinationImageView(APIView):
             license_type=request.data.get("license", "Admin-provided")[:100],
             uploaded_by=request.user if request.user.is_authenticated else None,
             copyright_status="verified_reusable" if request.data.get("reusable") else "admin_uploaded",
-            verification_status="approved",
-            is_verified=True,
+            verification_status="approved" if approved else "pending",
+            is_verified=approved,
         )
-        display_url = img.external_url or (img.image.url if img.image else "")
-        if is_cover or not destination.cover_image:
+        if is_cover and approved:
+            destination.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
+            img.is_cover = True
+            img.save(update_fields=["is_cover", "updated_at"])
+        display_url = _media_public_url(img)
+        if img.is_cover or (approved and not destination.cover_image):
             Destination.objects.filter(pk=destination.pk).update(cover_image=display_url)
 
         DestinationAuditLog.objects.create(
@@ -1119,9 +1311,13 @@ class AdminDestinationImageView(APIView):
         return Response({"message": "Image added", "image_id": img.id, "cover_url": display_url, "url": display_url}, status=201)
 
     def patch(self, request, id):
+        _require_capability(request, "images", "change")
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "change")
+        if any(field in request.data for field in ("verification_status", "is_verified")):
+            _require_capability(request, "images", "approve")
 
         image_id = request.data.get("image_id") or request.data.get("id")
         if image_id:
@@ -1131,11 +1327,22 @@ class AdminDestinationImageView(APIView):
 
             uploaded = request.FILES.get("image") or request.FILES.get("file")
             if uploaded:
+                if uploaded.size > 10 * 1024 * 1024:
+                    return Response({"detail": "Image must be 10 MB or smaller."}, status=400)
+                try:
+                    from PIL import Image
+                    check = Image.open(uploaded); check.verify(); uploaded.seek(0)
+                    if check.format not in {"JPEG", "PNG", "WEBP"}:
+                        raise ValueError("unsupported image format")
+                except Exception:
+                    return Response({"detail": "Upload a valid JPEG, PNG or WebP image."}, status=400)
                 img.image = uploaded
                 if "external_url" not in request.data and "url" not in request.data:
                     img.external_url = ""
 
             new_url = (request.data.get("external_url") or request.data.get("url") or request.data.get("image_url") or "").strip()
+            if new_url and not (new_url.startswith("https://") or new_url.startswith("/")):
+                return Response({"detail": "External image URL must use HTTPS or an internal path."}, status=400)
             if new_url and new_url.startswith("http"):
                 img.external_url = new_url
 
@@ -1151,16 +1358,21 @@ class AdminDestinationImageView(APIView):
                 try: img.ordering = int(request.data["ordering"])
                 except ValueError: pass
             if "verification_status" in request.data:
-                img.verification_status = str(request.data["verification_status"])
-                img.is_verified = (img.verification_status == "approved")
+                requested = str(request.data["verification_status"]).lower()
+                if requested not in {"approved", "pending", "rejected"}:
+                    return Response({"detail": "Invalid image verification status."}, status=400)
+                img.verification_status = requested
+                img.is_verified = (requested == "approved")
 
             make_cover = str(request.data.get("is_cover", "")).lower() in {"1", "true", "yes"}
+            if make_cover and img.verification_status != "approved":
+                return Response({"detail": "Only approved images can be set as cover."}, status=400)
             if make_cover:
                 destination.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
                 img.is_cover = True
 
             img.save()
-            cover = img.external_url or (img.image.url if img.image else "")
+            cover = _media_public_url(img)
             if make_cover:
                 Destination.objects.filter(pk=destination.pk).update(cover_image=cover)
 
@@ -1171,19 +1383,48 @@ class AdminDestinationImageView(APIView):
             _sync_destination_json(destination)
             return Response({"message": "Image replaced and database updated", "image_id": img.id, "cover_url": cover, "url": cover, "is_cover": img.is_cover})
 
-        # Directly change cover URL
+        # Directly change cover URL. It must point to an already-approved
+        # gallery row; arbitrary URLs are not publication-ready media.
         image_url = (request.data.get("image_url") or request.data.get("url") or "").strip()
         if image_url:
+            _require_capability(request, "images", "approve")
+            if not (image_url.startswith("https://") or image_url.startswith("/")):
+                return Response({"detail": "Cover URL must be HTTPS or an internal path."}, status=400)
+            approved = destination.gallery.filter(
+                external_url=image_url, verification_status="approved", is_verified=True,
+            ).first()
+            if not approved:
+                # A direct cover action is itself an explicit approval. Create
+                # the central media record rather than storing an untracked
+                # URL only on Destination.cover_image.
+                approved = DestinationImage.objects.create(
+                    destination=destination,
+                    external_url=image_url,
+                    source=DestinationImage.Source.ADMIN,
+                    source_platform="admin-cover",
+                    source_url="",
+                    license_type="Admin supplied",
+                    verification_status=DestinationImage.ImageStatus.APPROVED,
+                    is_verified=True,
+                    uploaded_by=request.user,
+                )
+            destination.gallery.filter(is_cover=True).exclude(id=approved.id).update(is_cover=False)
+            approved.is_cover = True
+            approved.save(update_fields=["is_cover"])
             Destination.objects.filter(pk=destination.pk).update(cover_image=image_url)
             _sync_destination_json(destination)
-            return Response({"message": "Cover URL updated", "cover_url": image_url, "url": image_url})
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="media.set_cover", message=f"Set cover image #{approved.id} for {destination.name}", object_type="DestinationImage", object_id=str(approved.id), extra={"destination_id": destination.id})
+            return Response({"message": "Cover URL updated", "cover_url": image_url, "url": image_url, "image_id": approved.id})
 
         return Response({"detail": "Provide image_id or image_url."}, status=400)
 
     def delete(self, request, id):
+        _require_capability(request, "images", "delete")
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "delete")
         image_id = request.data.get("image_id") or request.query_params.get("image_id")
         if not image_id:
             return Response({"detail": "image_id is required."}, status=400)
@@ -1191,14 +1432,21 @@ class AdminDestinationImageView(APIView):
         if not img:
             return Response({"detail": "Image not found."}, status=404)
         was_cover = img.is_cover
+        refs = _media_usage_references(img)
+        force = str(request.data.get("force", "")).lower() in {"1", "true", "yes"}
+        if refs and not force:
+            return Response({"detail": f"This image is used in {len(refs)} place(s). Review usage before deleting.", "references": refs, "usage_count": len(refs)}, status=409)
         img.delete()
         if was_cover:
-            next_img = destination.gallery.first()
-            new_cover = next_img.external_url if next_img and next_img.external_url else ""
+            next_img = destination.gallery.filter(verification_status="approved", is_verified=True).order_by("ordering", "id").first()
+            new_cover = _media_public_url(next_img) if next_img else ""
             if next_img:
                 next_img.is_cover = True
                 next_img.save(update_fields=["is_cover"])
             Destination.objects.filter(pk=destination.pk).update(cover_image=new_cover)
+        _sync_destination_json(destination)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="media.delete", message=f"Deleted destination image #{image_id}", object_type="DestinationImage", object_id=str(image_id), extra={"destination_id": destination.id, "forced": force})
         return Response({"message": "Image removed"})
 
 
@@ -1218,9 +1466,11 @@ class AdminDestinationVideoView(APIView):
         return video.video_url or ""
 
     def get(self, request, id):
+        _require_capability(request, "images", "view")
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "view")
         return Response({"videos": [{
             "id": video.id, "url": self._url(video, request), "title": video.title,
             "caption": video.caption, "verification_status": video.verification_status,
@@ -1233,6 +1483,7 @@ class AdminDestinationVideoView(APIView):
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "add")
         uploaded = request.FILES.get("video") or request.FILES.get("video_file") or request.FILES.get("file")
         video_url = (request.data.get("video_url") or request.data.get("url") or "").strip()
         if not uploaded and not video_url:
@@ -1246,7 +1497,7 @@ class AdminDestinationVideoView(APIView):
             title=(request.data.get("title") or destination.name)[:200],
             caption=(request.data.get("caption") or "")[:200],
             uploaded_by=request.user if request.user.is_authenticated else None,
-            verification_status="approved",
+            verification_status="approved" if _has_capability(request, "images", "approve") else "pending",
         )
         DestinationAuditLog.objects.create(
             destination=destination, actor=request.user if request.user.is_authenticated else None,
@@ -1259,16 +1510,25 @@ class AdminDestinationVideoView(APIView):
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "change")
         video = destination.videos.filter(id=request.data.get("video_id")).first()
         if not video:
             return Response({"detail": "Video not found."}, status=404)
         changed = []
+        if "verification_status" in request.data:
+            _require_capability(request, "images", "approve")
+            if request.data["verification_status"] not in {"approved", "pending", "rejected"}:
+                return Response({"detail": "Invalid video verification status."}, status=400)
         for field in ("title", "caption", "verification_status", "video_url"):
             if field in request.data:
+                if field == "video_url" and request.data[field] and not (str(request.data[field]).startswith("https://") or str(request.data[field]).startswith("/")):
+                    return Response({"detail": "Video URL must be HTTPS or an internal path."}, status=400)
                 setattr(video, field, request.data[field])
                 changed.append(field)
         if changed:
             video.save(update_fields=list(set(changed)))
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="video.update", message=f"Updated video #{video.id}", object_type="DestinationVideo", object_id=str(video.id), extra={"destination_id": destination.id, "changed": changed})
         return Response({"message": "Video updated", "changed": changed, "url": self._url(video, request)})
 
     def delete(self, request, id):
@@ -1276,11 +1536,15 @@ class AdminDestinationVideoView(APIView):
         destination = self._dest(id)
         if not destination:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "images", "delete")
         video_id = request.data.get("video_id") or request.query_params.get("video_id")
         video = destination.videos.filter(id=video_id).first()
         if not video:
             return Response({"detail": "Video not found."}, status=404)
+        video_id = video.id
         video.delete()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="video.delete", message=f"Deleted video #{video_id}", object_type="DestinationVideo", object_id=str(video_id), extra={"destination_id": destination.id})
         return Response({"message": "Video removed"})
 
 
@@ -1288,18 +1552,26 @@ def _cover_of(destination):
     raw = str(destination.cover_image or "").strip()
     if raw.startswith("http"):
         return raw
-    cover = destination.gallery.filter(is_cover=True).first()
-    if cover and cover.external_url:
-        return cover.external_url
-    from . import photo_catalog
-    return photo_catalog.resolve_cover_photo(destination)["url"]
+    cover = destination.gallery.filter(
+        is_cover=True, verification_status=DestinationImage.ImageStatus.APPROVED,
+        is_verified=True,
+    ).first()
+    return _media_public_url(cover) if cover else ""
 
 
 class AdminAlertsView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
+        _require_capability(request, "safety", "view")
         alerts = Alert.objects.all().order_by("-created_at")
+        if not _is_platform_admin(request.user):
+            districts = _managed_districts_for(request.user)
+            if districts:
+                scope = Q()
+                for district in districts:
+                    scope |= Q(district__iexact=district) | Q(city__iexact=district)
+                alerts = alerts.filter(scope)
         return Response([
             {
                 "id": a.id,
@@ -1315,8 +1587,39 @@ class AdminAlertsView(APIView):
         ])
 
     def post(self, request):
-        alert = Alert.objects.create(**request.data)
-        return Response({"id": alert.id, "message": "Alert created successfully"}, status=status.HTTP_201_CREATED)
+        _require_capability(request, "safety", "add")
+        allowed = {
+            "alert_type", "title", "description", "severity", "latitude", "longitude",
+            "city", "country", "source", "source_url", "is_verified", "radius_km",
+            "municipality", "district", "province", "is_active", "starts_at", "ends_at",
+        }
+        unknown = set(request.data) - allowed
+        if unknown:
+            return Response({"detail": f"Unsupported alert fields: {sorted(unknown)}"}, status=400)
+        if request.data.get("alert_type") not in Alert.AlertType.values:
+            return Response({"detail": "Invalid alert_type."}, status=400)
+        if request.data.get("severity", Alert.Severity.MODERATE) not in Alert.Severity.values:
+            return Response({"detail": "Invalid severity."}, status=400)
+        if not str(request.data.get("title") or "").strip() or not str(request.data.get("description") or "").strip():
+            return Response({"detail": "title and description are required."}, status=400)
+        data = request.data.copy()
+        if not _has_capability(request, "safety", "approve"):
+            data["is_verified"] = False
+        try:
+            alert = Alert(**data)
+            alert.full_clean()
+            alert.save()
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=400)
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="safety",
+            severity="warning", source="backend", action="alert.create",
+            message=f"Created safety alert #{alert.id}", object_type="Alert",
+            object_id=str(alert.id), extra={"verified": alert.is_verified, "district": alert.district},
+        )
+        return Response({"id": alert.id, "message": "Alert created successfully", "verified": alert.is_verified}, status=status.HTTP_201_CREATED)
 
 
 # ---------------------------------------------------------------------------
@@ -1418,6 +1721,7 @@ class AdminUserAccessActionView(APIView):
             _audit_user_change(request, u, "user.sessions.revoke", {}, {"tokens_removed": count})
             return Response({"message": "All recorded refresh sessions were revoked.", "tokens_removed": count})
         if action in {"verify", "unverify"}:
+            _require_capability(request, "users", "verify")
             before = {"is_verified": u.is_verified}
             u.is_verified = action == "verify"
             u.save(update_fields=["is_verified"])
@@ -1477,6 +1781,13 @@ class InfrastructureModerationView(APIView):
     def get(self, request, id=None):
         _require_capability(request, "destinations", "view")
         qs = InfrastructureSubmission.objects.select_related("submitted_by", "destination", "reviewed_by")
+        if not _is_platform_admin(request.user):
+            districts = _managed_districts_for(request.user)
+            if districts:
+                scope = Q()
+                for district in districts:
+                    scope |= Q(district__iexact=district) | Q(destination__district__iexact=district)
+                qs = qs.filter(scope)
         requested_status = request.query_params.get("status")
         if requested_status:
             qs = qs.filter(status=requested_status)
@@ -1489,9 +1800,16 @@ class InfrastructureModerationView(APIView):
 
     def post(self, request, id=None):
         _require_capability(request, "destinations", "approve")
-        item = InfrastructureSubmission.objects.filter(pk=id).first()
+        item = InfrastructureSubmission.objects.filter(pk=id).select_related("destination").first()
         if not item:
             return Response({"detail": "Submission not found."}, status=404)
+        if not _is_platform_admin(request.user):
+            if item.destination_id:
+                _require_destination_access(request, item.destination, "destinations", "approve")
+            else:
+                districts = _managed_districts_for(request.user)
+                if districts and str(item.district or "").casefold() not in districts:
+                    raise PermissionDenied("Submission is outside your assigned district")
         action = request.data.get("action")
         note = request.data.get("admin_note", "")
         if action == "approve":
@@ -1523,7 +1841,7 @@ class AdminRateAdjustmentsView(APIView):
                     "food_multiplier": 1.00,
                     "transport_multiplier": 1.00,
                     "accommodation_multiplier": 1.00,
-                    "last_synced_source": "Nepal Ministry of Culture, Tourism & Civil Aviation (MoCTCA) / NRB CPI Index",
+                    "last_synced_source": "Not configured — enter a reviewed source",
                     "last_updated": timezone.now().isoformat(),
                 }
             }
@@ -1532,24 +1850,30 @@ class AdminRateAdjustmentsView(APIView):
 
     def post(self, request):
         _require_capability(request, "datasets", "change")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Rate adjustments are restricted to platform administrators")
         data = request.data
-        setting, _ = SiteSetting.objects.get_or_create(key="budget_rate_adjustments")
-        val = setting.value or {}
         if data.get("fetch_official"):
-            val["last_synced_source"] = "Nepal Rastra Bank (NRB) Official CPI Index & MoCTCA Standard Fares (Synced)"
-            val["food_multiplier"] = 1.04
-            val["transport_multiplier"] = 1.06
-            val["accommodation_multiplier"] = 1.02
-        else:
+            return Response({"detail": "No live official-rate connector is configured. Submit reviewed multipliers with a source instead."}, status=501)
+        setting, _ = SiteSetting.objects.get_or_create(key="budget_rate_adjustments", defaults={"value": {}})
+        val = dict(setting.value or {})
+        source = str(data.get("source") or val.get("last_synced_source") or "").strip()
+        if not source or source.casefold().startswith("not configured"):
+            return Response({"detail": "A real, reviewable source is required for rate adjustments."}, status=400)
+        try:
             val["food_multiplier"] = max(0.5, min(3.0, float(data.get("food_multiplier", val.get("food_multiplier", 1.0)))))
             val["transport_multiplier"] = max(0.5, min(3.0, float(data.get("transport_multiplier", val.get("transport_multiplier", 1.0)))))
             val["accommodation_multiplier"] = max(0.5, min(3.0, float(data.get("accommodation_multiplier", val.get("accommodation_multiplier", 1.0)))))
-            val["last_synced_source"] = data.get("source", val.get("last_synced_source", "Admin Manual Adjustment"))
+        except (TypeError, ValueError):
+            return Response({"detail": "Rate multipliers must be numbers."}, status=400)
+        val["last_synced_source"] = source[:300]
         val["last_updated"] = timezone.now().isoformat()
         setting.value = val
         setting.updated_by = request.user
         setting.save()
-        return Response({"message": "Official rate adjustments updated", "settings": val})
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="data", severity="warning", source="backend", action="budget.rate_adjustments.update", message="Updated reviewed travel rate adjustments", object_type="SiteSetting", object_id="budget_rate_adjustments", extra={"source": source})
+        return Response({"message": "Reviewed rate adjustments updated", "settings": val})
 
 
 class MLDataPipelineView(APIView):
@@ -1568,6 +1892,8 @@ class MLDataPipelineView(APIView):
 
     def post(self, request):
         _require_capability(request, "datasets", "train" if request.data.get("train") else "export")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("ML exports and training are restricted to platform administrators")
         import subprocess
         import sys
         from pathlib import Path
@@ -1641,6 +1967,8 @@ class MLDataPipelineView(APIView):
                     training_run.output_log = str(exc)
                     training_run.completed_at = timezone.now()
                     training_run.save()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="data", severity="warning", source="backend", action="ml.pipeline.run", message="Ran verified-data ML pipeline", extra={"exported": exported, "training": results})
         return Response({"exported": exported, "training": results, "message": "Only admin-verified rows were exported."})
 
 
@@ -1678,10 +2006,10 @@ class AdminDataExplorerView(APIView):
         "newsletter_signups": ("tourist.NewsletterSignup", ["email","is_active"]),
         "marketplace_partners": ("tourist.MarketplacePartner", ["name","email","city","status"]),
         "marketplace_orders": ("tourist.MarketplaceOrder", ["reference","guest_email","guest_name","status"]),
-        "restaurants": ("tourist.Restaurant", ["name","destination__name","cuisine_type","city","status"]),
+        "restaurants": ("tourist.Restaurant", ["name","destination__name","address","status"]),
         "hospitals": ("tourist.Hospital", ["name","district","phone","address"]),
         "police_stations": ("tourist.PoliceStation", ["name","district","phone","address"]),
-        "transit_routes": ("tourist.DestinationTransitRoute", ["destination__name","mode","from_location","is_verified"]),
+        "transit_routes": ("tourist.DestinationTransitRoute", ["origin","destination__name","transport_mode","operator_name"]),
     }
 
     # Generic editing: only plain scalar model fields are ever editable.
@@ -1734,6 +2062,46 @@ class AdminDataExplorerView(APIView):
             return None
         return apps.get_model(self.RESOURCES[resource][0])
 
+    # The explorer is an inspection/reporting surface. Mutations must go
+    # through the domain-specific endpoints above (which enforce publication,
+    # assignment, and workflow rules); allowing arbitrary staff writes here
+    # would bypass those guarantees.
+    EXPLORER_WRITE_DENIED = {"audit_logs", "error_events", "bookings", "hotel_reviews"}
+    EXPLORER_MODULES = {
+        "destination_features": "destinations", "destination_images": "images",
+        "destination_translations": "content", "categories": "destinations",
+        "languages": "content", "hotels": "hotels", "reviews": "reviews",
+        "ratings": "reviews", "alerts": "safety", "current_hazards": "safety",
+        "emergency_contacts": "safety", "osm_services": "safety",
+        "osm_places": "destinations", "feedback": "feedback",
+        "feedback_evidence": "feedback", "restaurants": "restaurants",
+        "hospitals": "safety", "police_stations": "safety",
+        "transit_routes": "transportation", "marketplace_listings": "marketplace",
+        "marketplace_partners": "marketplace", "marketplace_orders": "marketplace",
+    }
+
+    def _authorize_explorer_write(self, request, resource, action):
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Generic explorer writes are disabled for staff; use the scoped management workspace.")
+        if resource in self.EXPLORER_WRITE_DENIED:
+            raise PermissionDenied("This record has a protected workflow and cannot be edited through the generic explorer.")
+        module = self.EXPLORER_MODULES.get(resource)
+        if not module:
+            raise PermissionDenied("This resource is read-only in the generic explorer.")
+        _require_capability(request, module, action)
+
+    @staticmethod
+    def _audit_explorer_change(request, obj, before, action, resource):
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="admin",
+            severity="warning", source="backend", action=f"explorer.{action}",
+            message=f"{action.title()} {resource} #{getattr(obj, 'pk', '')}",
+            object_type=obj.__class__.__name__, object_id=str(getattr(obj, "pk", "")),
+            extra={"before": before},
+        )
+
     def patch(self, request):
         """Generic row editing for every explorer resource.
 
@@ -1750,6 +2118,7 @@ class AdminDataExplorerView(APIView):
             return Response({"detail": "fields object is required"}, status=status.HTTP_400_BAD_REQUEST)
         if resource == "destinations":
             return Response({"detail": "Use the dedicated destination editor for destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        self._authorize_explorer_write(request, resource, "change")
         model = self._resource_model(resource)
         if model is None:
             return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1757,6 +2126,7 @@ class AdminDataExplorerView(APIView):
         if obj is None:
             return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
         editable = {f.name: f for f in self._editable_fields(model)}
+        before = {name: getattr(obj, name, None) for name in fields_in if name in editable}
         changed = []
         for name, raw in fields_in.items():
             field = editable.get(name)
@@ -1772,6 +2142,7 @@ class AdminDataExplorerView(APIView):
                 changed.append(name)
         if changed:
             obj.save()
+            self._audit_explorer_change(request, obj, before, "update", resource)
         return Response({"message": "Record updated", "changed": changed})
 
     def _coerce_field(self, field, raw):
@@ -1817,6 +2188,7 @@ class AdminDataExplorerView(APIView):
             return Response({"detail": "fields object is required"}, status=status.HTTP_400_BAD_REQUEST)
         if resource == "destinations":
             return Response({"detail": "Use the dedicated destination editor to create destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        self._authorize_explorer_write(request, resource, "add")
         model = self._resource_model(resource)
         if model is None:
             return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1837,6 +2209,7 @@ class AdminDataExplorerView(APIView):
                 obj = model.objects.create(**values)
         except IntegrityError as exc:
             return Response({"detail": f"Required fields are missing or invalid for {resource}: {str(exc).splitlines()[0][:160]}"}, status=status.HTTP_400_BAD_REQUEST)
+        self._audit_explorer_change(request, obj, {}, "create", resource)
         return Response({"message": "Record created", "id": obj.pk}, status=status.HTTP_201_CREATED)
 
     def delete(self, request):
@@ -1850,16 +2223,19 @@ class AdminDataExplorerView(APIView):
         row_id = request.query_params.get("id")
         if resource == "destinations":
             return Response({"detail": "Use the dedicated destination archive flow for destinations."}, status=status.HTTP_400_BAD_REQUEST)
+        self._authorize_explorer_write(request, resource, "delete")
         model = self._resource_model(resource)
         if model is None:
             return Response({"detail": "Unknown resource."}, status=status.HTTP_400_BAD_REQUEST)
         obj = model.objects.filter(pk=row_id).first()
         if obj is None:
             return Response({"detail": "Record not found."}, status=status.HTTP_404_NOT_FOUND)
+        before = {"record": str(obj)}
         try:
             obj.delete()
         except ProtectedError:
             return Response({"detail": "This record is referenced by other data and cannot be deleted. Edit or archive it instead."}, status=status.HTTP_409_CONFLICT)
+        self._audit_explorer_change(request, obj, before, "delete", resource)
         return Response({"message": "Record deleted"})
 
     def get(self, request):
@@ -1873,6 +2249,8 @@ class AdminDataExplorerView(APIView):
             profile = getattr(user, "capability_profile", None)
             if not profile or not profile.allows(module_map.get(resource, "settings"), "view"):
                 return Response({"detail": "Staff capability denied."}, status=403)
+            if resource in {"audit_logs", "error_events"}:
+                return Response({"detail": "System audit records are restricted to platform administrators."}, status=403)
         if resource not in self.RESOURCES:
             return Response({"detail": "Unknown resource."}, status=400)
         if request.query_params.get("schema"):
@@ -1884,7 +2262,13 @@ class AdminDataExplorerView(APIView):
         edit_id = request.query_params.get("edit_id")
         if edit_id:
             model = self._resource_model(resource)
-            obj = model.objects.filter(pk=edit_id).first()
+            obj_qs = model.objects.filter(pk=edit_id)
+            if not _is_platform_admin(request.user) and resource in {"destinations", "destination_features", "destination_images", "destination_translations", "hotels", "restaurants", "hospitals", "police_stations", "transit_routes"}:
+                allowed_ids = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+                obj_qs = obj_qs if resource == "destinations" else obj_qs.filter(destination_id__in=allowed_ids)
+                if resource == "destinations":
+                    obj_qs = obj_qs.filter(pk__in=allowed_ids)
+            obj = obj_qs.first()
             if obj is None:
                 return Response({"detail": "Record not found."}, status=404)
             values = {f.name: getattr(obj, f.name) for f in self._editable_fields(model)}
@@ -1892,6 +2276,12 @@ class AdminDataExplorerView(APIView):
         label, search_fields = self.RESOURCES[resource]
         model = apps.get_model(label)
         qs = model.objects.all().order_by("-pk")
+        if not _is_platform_admin(request.user) and resource in {"destinations", "destination_features", "destination_images", "destination_translations", "hotels", "restaurants", "hospitals", "police_stations", "transit_routes"}:
+            destination_qs = _scope_destination_queryset(Destination.objects.all(), request.user)
+            if resource in {"destinations", "destination_features", "destination_images", "destination_translations"}:
+                qs = qs.filter(destination_id__in=destination_qs.values("id")) if resource != "destinations" else destination_qs
+            else:
+                qs = qs.filter(destination_id__in=destination_qs.values("id"))
         query = request.query_params.get("q", "").strip()
         if query:
             search = Q()
@@ -1935,10 +2325,22 @@ class StaffWorkspaceView(APIView):
             districts.append(user.managed_district)
         return [value.strip() for value in districts if value and value.strip()]
 
+    def _in_districts(self, obj):
+        districts = [str(value).casefold() for value in self._districts(self.request.user)]
+        if not districts:
+            return True
+        destination = getattr(obj, "destination", None)
+        values = [getattr(destination, "district", ""), getattr(destination, "city", ""), getattr(obj, "district", ""), getattr(obj, "city", "")]
+        return any(str(value or "").casefold() in districts for value in values)
+
     def _scope_destinations(self, queryset, user, prefix=""):
         districts = self._districts(user)
         if districts:
-            return queryset.filter(**{f"{prefix}district__in": districts})
+            from django.db.models import Q
+            scope = Q()
+            for district in districts:
+                scope |= Q(**{f"{prefix}district__iexact": district}) | Q(**{f"{prefix}city__iexact": district})
+            return queryset.filter(scope)
         return queryset
 
     @staticmethod
@@ -2068,18 +2470,29 @@ class StaffWorkspaceView(APIView):
             task.completed_at = timezone.now() if action == "completed" else None
             task.save(update_fields=["status", "completed_at", "updated_at"])
             return Response({"message": "Task status updated", "status": task.status})
-        required = "approve" if action in {"approve", "reject", "publish", "verify"} else "delete" if action == "archive" else "change"
+        required = "publish" if action == "publish" else "approve" if action in {"approve", "reject", "verify"} else "delete" if action == "archive" else "change"
         _require_capability(request, module, required)
         districts = self._districts(request.user)
         if module == "destinations":
             obj = Destination.objects.filter(pk=object_id, status="pending").first()
-            if not obj or (districts and obj.district not in districts):
+            if not obj or not self._in_districts(obj):
                 return Response({"detail": "Record is outside your assigned queue"}, status=404)
-            obj.status = "approved" if action == "approve" else "rejected"; obj.is_active = action == "approve"; obj.save(update_fields=["status", "is_active", "updated_at"])
+            obj.status = "approved" if action == "approve" else "rejected"; obj.is_active = action == "approve"
+            if action == "approve":
+                missing = []
+                if not (obj.name or "").strip(): missing.append("name")
+                if not (obj.description or "").strip(): missing.append("description")
+                if obj.latitude is None or obj.longitude is None: missing.append("coordinates")
+                if missing:
+                    return Response({"detail": f"Cannot publish: missing {', '.join(missing)}."}, status=400)
+            obj.save(update_fields=["status", "is_active", "updated_at"])
+            _sync_destination_json(obj)
+            _dest_revision(obj, "publish" if action == "approve" else "update", request.user)
+            DestinationAuditLog.objects.create(destination=obj, actor=request.user, action=DestinationAuditLog.Action.APPROVED if action == "approve" else DestinationAuditLog.Action.REJECTED, note=f"Staff workspace {action}", previous_status="pending", new_status=obj.status)
         elif module == "images":
             if request.data.get("type") == "video":
                 obj = DestinationVideo.objects.select_related("destination").filter(pk=object_id).first()
-                if not obj or (districts and obj.destination.district not in districts):
+                if not obj or not self._in_districts(obj):
                     return Response({"detail": "Record is outside your assigned queue"}, status=404)
                 if action not in {"approve", "reject"}:
                     return Response({"detail": "Unsupported workspace action"}, status=400)
@@ -2087,7 +2500,7 @@ class StaffWorkspaceView(APIView):
                 obj.save(update_fields=["verification_status"])
             else:
                 obj = DestinationImage.objects.select_related("destination").filter(pk=object_id).first()
-                if not obj or (districts and obj.destination.district not in districts):
+                if not obj or not self._in_districts(obj):
                     return Response({"detail": "Record is outside your assigned queue"}, status=404)
                 obj.verification_status = "approved" if action == "approve" else "rejected"; obj.is_verified = action == "approve"; obj.save(update_fields=["verification_status", "is_verified"])
         elif module == "reviews":
@@ -2105,20 +2518,26 @@ class StaffWorkspaceView(APIView):
                 obj.moderation_status = "approved" if action == "approve" else "flagged"; obj.moderated_by = request.user; obj.moderated_at = timezone.now(); obj.save(update_fields=["moderation_status", "moderated_by", "moderated_at"])
             else:
                 obj = Review.objects.select_related("destination").filter(pk=object_id).first()
-                if not obj or (districts and obj.destination.district not in districts):
+                if not obj or not self._in_districts(obj):
                     return Response({"detail": "Record is outside your assigned queue"}, status=404)
                 obj.moderation_status = "approved" if action == "approve" else "flagged"; obj.is_flagged = action != "approve"; obj.moderated_by = request.user; obj.moderated_at = timezone.now(); obj.save(update_fields=["moderation_status", "is_flagged", "moderated_by", "moderated_at", "updated_at"])
         elif module == "restaurants":
             obj=Restaurant.objects.select_related("destination").filter(pk=object_id).first()
-            if not obj or (districts and obj.destination.district not in districts):return Response({"detail":"Record is outside your assigned queue"},status=404)
-            if action=="publish":obj.status="published"
-            elif action=="archive":obj.status="archived"
-            elif action=="verify":obj.is_verified=True
-            else:return Response({"detail":"Unsupported workspace action"},status=400)
-            obj.updated_by=request.user;obj.save()
+            if not obj or not self._in_districts(obj):return Response({"detail":"Record is outside your assigned queue"},status=404)
+            if action == "publish":
+                if request.data.get("verified") is False:
+                    return Response({"detail": "Publish requires a verified restaurant or a separate verification action."}, status=400)
+                obj.status = "published"
+                obj.is_verified = True
+            elif action == "archive": obj.status = "archived"
+            elif action == "verify": obj.is_verified = True
+            else: return Response({"detail": "Unsupported workspace action"}, status=400)
+            obj.updated_by = request.user
+            obj.save()
+            _sync_destination_json(obj.destination)
         elif module == "transportation":
             obj=DestinationTransitRoute.objects.select_related("destination").filter(pk=object_id).first()
-            if not obj or (districts and obj.destination.district not in districts):return Response({"detail":"Record is outside your assigned queue"},status=404)
+            if not obj or not self._in_districts(obj):return Response({"detail":"Record is outside your assigned queue"},status=404)
             if action=="verify":obj.is_verified=True
             elif action=="archive":obj.is_active=False
             else:return Response({"detail":"Unsupported workspace action"},status=400)
@@ -2143,6 +2562,9 @@ class StaffWorkspaceView(APIView):
                 return Response({"detail": "Unsupported workspace action"}, status=400)
             obj.updated_by = request.user
             obj.save()
+            if action == "publish":
+                from .cms_publishing import sync_published_snapshot
+                sync_published_snapshot(obj)
         else:
             return Response({"detail": "Unsupported workspace action"}, status=400)
         from audit.models import AuditLog
@@ -2353,6 +2775,11 @@ class AdminCMSView(APIView):
         "navigation": {"location", "label", "route", "icon", "parent_id", "allowed_roles", "display_order", "is_active"},
         "translations": {"target_resource", "object_id", "language_code", "content"},
     }
+    PUBLICATION_FIELDS = {
+        "status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible",
+        "is_active", "route", "key",
+    }
+    WORKFLOW_ACTIONS = {"publish", "unpublish", "schedule", "approve", "request_changes", "rollback"}
 
     def _validate_payload(self, resource, payload):
         import re
@@ -2434,10 +2861,9 @@ class AdminCMSView(APIView):
             snapshot=self._snapshot(resource, obj), action=action, created_by=user)
 
     def _publish_due(self):
-        from .cms_publishing import publish_due_sections
+        from .cms_publishing import publish_due_pages, publish_due_sections
         now = timezone.now()
-        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None)
+        publish_due_pages(now)
         publish_due_sections(now)
 
     @staticmethod
@@ -2562,12 +2988,28 @@ class AdminCMSView(APIView):
         if not model:
             return Response({"detail": "Unknown CMS resource"}, status=400)
         payload = {k: v for k, v in request.data.items() if k in self.FIELDS[resource]}
+        if resource in {"pages", "sections", "navigation"} and self.PUBLICATION_FIELDS.intersection(payload):
+            if resource == "navigation" and set(payload).issubset({"route", "key", "is_active", "allowed_roles", "display_order"}):
+                _require_capability(request, "content", "publish")
+            elif resource in {"pages", "sections"} and set(payload).issubset({"route", "key", "status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible"}):
+                _require_capability(request, "content", "publish")
+            elif resource in {"pages", "sections"} and "status" in payload:
+                _require_capability(request, "content", "publish")
+        if resource in {"pages", "sections"} and payload.get("status") == "published":
+            _require_capability(request, "content", "publish")
+        if resource == "navigation" and "is_active" not in payload:
+            payload["is_active"] = False
         if resource in {"pages", "sections"} and "status" not in payload:
             payload["status"] = "draft"
         try:
             self._validate_payload(resource, payload)
             if resource in {"pages", "sections"} and payload.get("status") not in {"draft", "scheduled", "published"}:
                 raise ValueError("Invalid publication status")
+            if resource in {"pages", "sections"} and payload.get("status") == "scheduled":
+                from django.utils.dateparse import parse_datetime
+                scheduled = parse_datetime(str(payload.get("scheduled_publish_at") or ""))
+                if not scheduled:
+                    raise ValueError("scheduled_publish_at is required for scheduled content")
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
         if resource == "navigation" and payload.get("parent_id"):
@@ -2586,6 +3028,12 @@ class AdminCMSView(APIView):
         template_key = request.data.get("template")
         if resource == "pages" and template_key:
             self._apply_template(obj, template_key, request.user)
+        if resource == "sections" and obj.status == "published":
+            from .cms_publishing import sync_published_snapshot
+            sync_published_snapshot(obj)
+        if resource == "pages" and obj.status == "published":
+            from .cms_publishing import sync_published_page
+            sync_published_page(obj)
         self._revision(resource, obj, request.user, "create")
         return Response({"id": obj.pk, "message": "Draft created" if resource in {"pages", "sections"} else "Created"}, status=201)
 
@@ -2877,7 +3325,10 @@ class AdminCMSView(APIView):
         # Role-differentiated workflow (spec §11): editing and submitting for
         # review need content.change; approving/publishing/rollback need the
         # stronger content.publish capability (admins always pass).
-        if request.data.get("action") in {"publish", "approve", "schedule", "rollback"}:
+        if request.data.get("action") in self.WORKFLOW_ACTIONS or (
+            request.data.get("resource") in {"pages", "sections", "navigation"}
+            and self.PUBLICATION_FIELDS.intersection(request.data)
+        ):
             _require_capability(request, "content", "publish")
         resource = request.data.get("resource")
         model = self.MODELS.get(resource)
@@ -2922,7 +3373,7 @@ class AdminCMSView(APIView):
                         image_url=sec.image_url, cta_text=sec.cta_text, cta_url=sec.cta_url,
                         icon=sec.icon, section_type=sec.section_type, layout_variant=sec.layout_variant,
                         config=dict(sec.config or {}), display_order=sec.display_order,
-                        is_visible=sec.is_visible, is_reusable=sec.is_reusable, status=sec.status,
+                        is_visible=sec.is_visible, is_reusable=sec.is_reusable, status="draft",
                     )
                 self._revision("pages", new_page, request.user, "create")
                 return Response({"id": new_page.pk, "message": "Page duplicated as draft", "record": self._row("pages", new_page)})
@@ -2965,9 +3416,31 @@ class AdminCMSView(APIView):
                        "scheduled_publish_at": None}
             action_name = action
         elif action in {"publish", "unpublish", "schedule"}:
-            if resource not in {"pages", "sections"}:
-                return Response({"detail": "Publication workflow applies to pages and sections"}, status=400)
-            if action == "schedule":
+            if resource not in {"pages", "sections", "navigation"}:
+                return Response({"detail": "Publication workflow applies to pages, sections and navigation"}, status=400)
+            if action == "publish" and resource == "navigation":
+                payload = {"is_active": True}
+                action_name = "publish"
+            elif action == "unpublish" and resource == "navigation":
+                payload = {"is_active": False}
+                action_name = "unpublish"
+            elif action == "publish":
+                payload = {"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None}
+                if resource == "pages":
+                    payload["is_enabled"] = True
+                elif resource == "sections":
+                    payload["is_visible"] = True
+                action_name = "publish"
+            elif action == "unpublish":
+                payload = {"status": "draft", "scheduled_publish_at": None, "published_at": None}
+                if resource == "pages":
+                    payload["is_enabled"] = False
+                elif resource == "sections":
+                    payload["is_visible"] = False
+                action_name = "unpublish"
+            elif action == "schedule":
+                if resource != "pages" and resource != "sections":
+                    return Response({"detail": "Only pages and sections can be scheduled"}, status=400)
                 from django.utils.dateparse import parse_datetime
                 scheduled = parse_datetime(str(request.data.get("scheduled_publish_at", "")))
                 if scheduled and timezone.is_naive(scheduled):
@@ -2975,14 +3448,25 @@ class AdminCMSView(APIView):
                 if not scheduled or scheduled <= timezone.now():
                     return Response({"detail": "Choose a valid future publication time"}, status=400)
                 payload = {"status": "scheduled", "scheduled_publish_at": scheduled, "published_at": None}
-            elif action == "publish":
-                payload = {"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None}
-            else:
-                payload = {"status": "draft", "scheduled_publish_at": None}
             action_name = action
         else:
             payload = {k: v for k, v in request.data.items() if k in self.FIELDS[resource]}
-            action_name = "update"
+            if resource == "sections" and set(payload).issubset({"is_visible"}):
+                action_name = "publish" if bool(payload.get("is_visible")) else "unpublish"
+                if action_name == "publish":
+                    payload.update({"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None})
+                else:
+                    payload.update({"status": "draft", "scheduled_publish_at": None, "published_at": None})
+            elif resource == "pages" and set(payload).issubset({"is_enabled"}):
+                action_name = "publish" if bool(payload.get("is_enabled")) else "unpublish"
+                if action_name == "publish":
+                    payload.update({"status": "published", "published_at": timezone.now(), "scheduled_publish_at": None})
+                else:
+                    payload.update({"status": "draft", "scheduled_publish_at": None, "published_at": None})
+            elif self.PUBLICATION_FIELDS.intersection(payload):
+                return Response({"detail": "Use an explicit publish/unpublish/schedule workflow action for publication fields."}, status=400)
+            else:
+                action_name = "update"
         validation_payload = payload
         if resource == "translations":
             validation_payload = {**self._snapshot(resource, obj), **payload}
@@ -3016,6 +3500,9 @@ class AdminCMSView(APIView):
             # admins preview before pressing Publish.
             from .cms_publishing import sync_published_snapshot
             sync_published_snapshot(obj)
+        if resource == "pages" and action_name in {"publish", "rollback"} and obj.status == "published":
+            from .cms_publishing import sync_published_page
+            sync_published_page(obj)
         revision = self._revision(resource, obj, request.user, action_name)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, category="admin", severity="info",
@@ -3040,8 +3527,8 @@ class AdminContentBlockView(APIView):
         data = data if isinstance(data, dict) else {}
         if block_type == "video":
             url = str(data.get("url") or "").strip()
-            if url and not url.startswith("http"):
-                return False, "Video URL must start with http:// or https://"
+            if url and not url.startswith("https://"):
+                return False, "Video URL must use HTTPS."
             if url:
                 from urllib.parse import urlparse
                 domain = urlparse(url).netloc.lower()
@@ -3084,6 +3571,17 @@ class AdminContentBlockView(APIView):
                 return False, "Map coordinates must be numeric latitude and longitude."
         return True, None
 
+    def _audit_block(self, request, block, action, before=None):
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="content",
+            severity="warning" if action == "delete" else "info", source="backend",
+            action=f"content_block.{action}", message=f"{action.title()} content block #{block.pk}",
+            object_type="ContentBlock", object_id=str(block.pk),
+            extra={"section_id": block.section_id, "before": before or {}},
+        )
+
     def get(self, request, section_id=None):
         _require_capability(request, "content", "view")
         section = ContentSection.objects.filter(pk=section_id).first()
@@ -3125,6 +3623,7 @@ class AdminContentBlockView(APIView):
             is_visible=bool(request.data.get("is_visible", True)),
             updated_by=request.user if request.user.is_authenticated else None,
         )
+        self._audit_block(request, block, "create")
         return Response({
             "message": "Content block created",
             "id": block.id,
@@ -3142,6 +3641,7 @@ class AdminContentBlockView(APIView):
         if not block:
             return Response({"detail": "Content block not found"}, status=404)
 
+        before = {"block_type": block.block_type, "title": block.title, "position": block.position, "data": block.data, "is_visible": block.is_visible}
         block_type = request.data.get("block_type", block.block_type)
         data = request.data.get("data", block.data)
         valid, err = self._validate_block_data(block_type, data)
@@ -3155,6 +3655,7 @@ class AdminContentBlockView(APIView):
         if "is_visible" in request.data: block.is_visible = bool(request.data["is_visible"])
         block.updated_by = request.user if request.user.is_authenticated else None
         block.save()
+        self._audit_block(request, block, "update", before)
 
         return Response({
             "message": "Content block updated",
@@ -3172,16 +3673,31 @@ class AdminContentBlockView(APIView):
         if not block:
             return Response({"detail": "Content block not found"}, status=404)
         block_id_val = block.id
+        section_id_val = block.section_id
         block.delete()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="content", severity="warning", source="backend", action="content_block.delete", message=f"Deleted content block #{block_id_val}", object_type="ContentBlock", object_id=str(block_id_val), extra={"section_id": section_id_val})
         return Response({"message": "Content block deleted", "id": block_id_val})
 
     def _reorder(self, request):
         items = request.data.get("items") or []
+        updated = 0
+        section_id = None
         for idx, item in enumerate(items):
             b_id = item.get("id") if isinstance(item, dict) else item
             pos = item.get("position", idx) if isinstance(item, dict) else idx
-            ContentBlock.objects.filter(pk=b_id).update(position=pos)
-        return Response({"message": "Block positions updated"})
+            block = ContentBlock.objects.filter(pk=b_id).select_related("section").first()
+            if not block:
+                continue
+            section_id = block.section_id
+            block.position = pos
+            block.updated_by = request.user
+            block.save(update_fields=["position", "updated_by", "updated_at"])
+            updated += 1
+        if section_id:
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="content", severity="info", source="backend", action="content_block.reorder", message=f"Reordered {updated} content block(s)", object_type="ContentSection", object_id=str(section_id), extra={"updated": updated})
+        return Response({"message": "Block positions updated", "updated": updated})
 
 
 class AdminReviewModerationView(APIView):
@@ -3201,6 +3717,15 @@ class AdminReviewModerationView(APIView):
             return Response({"detail": "Invalid pagination"}, status=400)
         destination = Review.objects.select_related("destination", "user")
         hotels = HotelReview.objects.select_related("hotel", "user")
+        if not _is_platform_admin(request.user):
+            districts = _managed_districts_for(request.user)
+            allowed_destinations = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+            destination = destination.filter(destination_id__in=allowed_destinations)
+            if districts:
+                hotels = hotels.filter(hotel__destination_id__in=allowed_destinations)
+            if request.user.role == "hotel_manager":
+                from admin_panel.models import HotelAssignment
+                hotels = hotels.filter(hotel_id__in=HotelAssignment.objects.filter(admin=request.user).values("hotel_id"))
         if state != "all":
             destination = destination.filter(moderation_status=state)
             hotels = hotels.filter(moderation_status=state)
@@ -3245,9 +3770,19 @@ class AdminReviewModerationView(APIView):
         target_status = {"approve": "approved", "flag": "flagged", "archive": "archived", "restore": "pending"}[action]
         updates = {"moderation_status": target_status, "moderation_note": (request.data.get("note") or "").strip(),
                    "moderated_by": request.user, "moderated_at": timezone.now()}
+        allowed = model.objects.filter(id__in=ids)
+        if not _is_platform_admin(request.user):
+            allowed_destinations = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+            if kind == "destination":
+                allowed = allowed.filter(destination_id__in=allowed_destinations)
+            else:
+                allowed = allowed.filter(hotel__destination_id__in=allowed_destinations)
+                if request.user.role == "hotel_manager":
+                    from admin_panel.models import HotelAssignment
+                    allowed = allowed.filter(hotel_id__in=HotelAssignment.objects.filter(admin=request.user).values("hotel_id"))
         if kind == "destination":
             updates["is_flagged"] = action == "flag"
-        updated = model.objects.filter(id__in=ids).update(**updates)
+        updated = allowed.update(**updates)
         from audit.models import AuditLog
         AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=request.user.role,
             category="moderation", severity="warning" if action in {"flag", "archive"} else "info", source="backend",
@@ -3349,6 +3884,13 @@ class AdminTravelServicesView(APIView):
             queryset=model.objects.select_related("user").order_by("-updated_at")
             if q:queryset=queryset.filter(Q(title__icontains=q)|Q(user__email__icontains=q)|Q(notes__icontains=q))
             if state:queryset=queryset.filter(status=state)
+        if not _is_platform_admin(request.user) and resource in {"restaurants", "transportation"}:
+            districts = _managed_districts_for(request.user)
+            if districts:
+                scope = Q()
+                for district in districts:
+                    scope |= Q(destination__district__iexact=district) | Q(destination__city__iexact=district)
+                queryset = queryset.filter(scope)
         try:page=max(1,int(request.query_params.get("page",1)));size=min(100,max(10,int(request.query_params.get("page_size",25))))
         except ValueError:return Response({"detail":"Invalid pagination"},status=400)
         count=queryset.count();rows=[]
@@ -3364,6 +3906,12 @@ class AdminTravelServicesView(APIView):
         model,module=config;action=request.data.get("action");required="approve" if action in {"publish","verify"} else "delete" if action=="archive" else "change";_require_capability(request,module,required)
         obj=model.objects.filter(pk=request.data.get("id")).first()
         if not obj:return Response({"detail":"Record not found"},status=404)
+        if not _is_platform_admin(request.user):
+            districts = _managed_districts_for(request.user)
+            destination = getattr(obj, "destination", None)
+            record_district = str(getattr(destination, "district", "") or getattr(obj, "district", "") or "").casefold()
+            if districts and record_district not in districts:
+                return Response({"detail":"Record is outside your assigned district"},status=403)
         before={"status":getattr(obj,"status",None),"is_verified":getattr(obj,"is_verified",None),"is_active":getattr(obj,"is_active",None)}
         if resource=="restaurants" and action in {"publish","archive","restore","verify"}:
             if action=="publish":obj.status="published"
@@ -3377,7 +3925,10 @@ class AdminTravelServicesView(APIView):
         elif resource=="travel_plans" and action in {"activate","complete","archive","restore"}:
             obj.status={"activate":"active","complete":"completed","archive":"archived","restore":"draft"}[action]
         else:return Response({"detail":"Unsupported action"},status=400)
-        obj.save();from audit.models import AuditLog
+        obj.save()
+        if getattr(obj, "destination_id", None):
+            _sync_destination_json(obj.destination)
+        from audit.models import AuditLog
         AuditLog.objects.create(user=request.user,user_email=request.user.email,actor_role=request.user.role,category="admin",severity="info",source="backend",action=f"{resource}.{action}",message=f"{action.title()} {resource} #{obj.id}",object_type=model.__name__,object_id=str(obj.id),extra={"before":before})
         return Response({"message":f"{action.title()} complete","id":obj.id})
 
@@ -3388,6 +3939,8 @@ class AdminRetentionPolicyView(APIView):
 
     def get(self,request):
         _require_capability(request,"settings","view")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Retention inventory is restricted to platform administrators")
         from .retention import get_policy,retention_inventory
         policy=get_policy();_,querysets=retention_inventory(policy)
         return Response({"policy":{"id":policy.id,**{field:getattr(policy,field) for field in self.FIELDS}},
@@ -3396,6 +3949,8 @@ class AdminRetentionPolicyView(APIView):
 
     def patch(self,request):
         _require_capability(request,"settings","change")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Only platform administrators can change retention policy")
         from .retention import get_policy
         policy=get_policy();before={field:getattr(policy,field) for field in self.FIELDS}
         for field in self.FIELDS:
@@ -3410,6 +3965,8 @@ class AdminRetentionPolicyView(APIView):
     def post(self,request):
         dry_run=bool(request.data.get("dry_run",True))
         _require_capability(request,"settings","view" if dry_run else "delete")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Retention execution is restricted to platform administrators")
         from .retention import apply_retention_policy
         result=apply_retention_policy(dry_run=dry_run)
         if not dry_run:
@@ -3422,6 +3979,8 @@ class AdminReportsView(APIView):
     permission_classes=[IsAdminOrStaff]
     def get(self,request):
         _require_capability(request,"audit","view")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Cross-module reports are restricted to platform administrators")
         from django.db.models import Count,Sum
         from django.db.models.functions import TruncMonth
         from django.utils.dateparse import parse_date
@@ -3460,6 +4019,8 @@ class AdminDatasetManagerView(APIView):
     }
     def get(self, request):
         _require_capability(request,"datasets","view")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Dataset files are restricted to platform administrators")
         import csv
         from pathlib import Path
         key=request.query_params.get("dataset")
@@ -3483,6 +4044,8 @@ class AdminDatasetManagerView(APIView):
         return Response({"dataset":key,"headers":headers,"count":len(all_rows),"page":page,"total_pages":max(1,(len(all_rows)+size-1)//size),"results":all_rows[start:start+size]})
     def post(self,request):
         _require_capability(request,"datasets","add")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Dataset imports are restricted to platform administrators")
         import csv,io,uuid
         from pathlib import Path
         key=request.data.get("dataset");uploaded=request.FILES.get("file")
@@ -3501,6 +4064,8 @@ class AdminDatasetManagerView(APIView):
         return Response({"valid":True,"token":token,"dataset":key,"row_count":len(rows),"headers":headers,"extra_headers":extra,"errors":errors[:100]},status=201)
     def put(self,request):
         _require_capability(request,"datasets","change")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Dataset imports are restricted to platform administrators")
         import os,shutil
         from pathlib import Path
         token=Path(str(request.data.get("token","")).strip()).name;key=request.data.get("dataset")
@@ -3593,6 +4158,35 @@ def _media_usage_references(image):
             if hit(value):
                 refs.append({"type": "Branding setting", "label": key, "id": setting.id})
     return refs
+
+
+def _replace_media_reference(value, old_needles, new_url):
+    """Recursively replace URL-like references without changing draft text."""
+    if isinstance(value, str):
+        return new_url if any(needle and needle in value for needle in old_needles) else value
+    if isinstance(value, list):
+        return [_replace_media_reference(item, old_needles, new_url) for item in value]
+    if isinstance(value, dict):
+        return {key: _replace_media_reference(item, old_needles, new_url) for key, item in value.items()}
+    return value
+
+
+def _refresh_published_media_snapshot(section, old_needles, new_url):
+    """Keep a published CMS section's snapshot in step with a media replacement.
+
+    Draft sections intentionally remain untouched. Published sections serve
+    ``published_snapshot``; updating only the live row would make an admin
+    image replacement appear saved in the control center but stale on the
+    traveller site.
+    """
+    if section.status != "published" or not isinstance(section.published_snapshot, dict):
+        return False
+    snapshot = _replace_media_reference(section.published_snapshot, old_needles, new_url)
+    if snapshot != section.published_snapshot:
+        section.published_snapshot = snapshot
+        section.save(update_fields=["published_snapshot", "updated_at"])
+        return True
+    return False
 
 
 class AdminTripInterestsView(APIView):
@@ -3693,10 +4287,14 @@ class AdminMediaLibraryView(APIView):
         from django.db.models import Max
         destination=Destination.objects.filter(pk=request.data.get("destination_id")).first()
         if not destination:return Response({"detail":"A valid destination is required"},status=400)
+        _require_destination_access(request, destination, "images", "add")
         uploaded=request.FILES.get("file");external_url=(request.data.get("external_url") or "").strip()
         if not uploaded and not external_url:return Response({"detail":"Choose an image file or provide an external HTTPS image URL"},status=400)
         if uploaded and external_url:return Response({"detail":"Upload a file or external URL, not both"},status=400)
         if external_url and not external_url.startswith("https://"):return Response({"detail":"External image URL must use HTTPS"},status=400)
+        source_url = str(request.data.get("source_url") or "").strip()
+        if source_url and not source_url.startswith("https://"):
+            return Response({"detail":"Source URL must use HTTPS"},status=400)
         if uploaded:
             if uploaded.size>10*1024*1024:return Response({"detail":"Image must be 10 MB or smaller"},status=400)
             try:
@@ -3707,7 +4305,7 @@ class AdminMediaLibraryView(APIView):
         ordering=(destination.gallery.aggregate(value=Max("ordering"))["value"] or 0)+1
         image=DestinationImage.objects.create(destination=destination,image=uploaded if uploaded else None,
             external_url=external_url,caption=(request.data.get("caption") or "")[:200],alt_text=(request.data.get("alt_text") or "")[:255],
-            source=DestinationImage.Source.ADMIN,source_url=(request.data.get("source_url") or None),source_platform="Admin upload",
+            source=DestinationImage.Source.ADMIN,source_url=(source_url or None),source_platform="Admin upload",
             license_type=(request.data.get("license") or "Admin supplied")[:100],copyright_status="pending_review",
             ordering=ordering,verification_status=DestinationImage.ImageStatus.PENDING,is_verified=False,uploaded_by=request.user)
         from audit.models import AuditLog
@@ -3718,11 +4316,15 @@ class AdminMediaLibraryView(APIView):
         _require_capability(request,"images","view")
         usage_of=request.query_params.get("usage_of")
         if usage_of:
-            image=DestinationImage.objects.filter(pk=usage_of).first()
+            image=DestinationImage.objects.filter(pk=usage_of).select_related("destination").first()
             if not image:return Response({"detail":"Image not found"},status=404)
+            _require_destination_access(request, image.destination, "images", "view")
             refs=_media_usage_references(image)
             return Response({"id":image.id,"references":refs,"total":len(refs)})
         qs=DestinationImage.objects.select_related("destination","uploaded_by").order_by("destination__name","ordering","id")
+        if not _is_platform_admin(request.user):
+            allowed_destinations = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+            qs = qs.filter(destination_id__in=allowed_destinations)
         q=request.query_params.get("q","");status_filter=request.query_params.get("status");source=request.query_params.get("source")
         if q: qs=qs.filter(Q(destination__name__icontains=q)|Q(caption__icontains=q)|Q(external_url__icontains=q))
         if status_filter: qs=qs.filter(verification_status=status_filter)
@@ -3745,10 +4347,20 @@ class AdminMediaLibraryView(APIView):
         ids=request.data.get("ids") or []
         action=request.data.get("action")
         if ids and action in {"approve","reject"}:
-            updated=DestinationImage.objects.filter(id__in=ids).update(verification_status="approved" if action=="approve" else "rejected",is_verified=action=="approve")
+            _require_capability(request,"images","approve")
+            allowed = DestinationImage.objects.filter(id__in=ids)
+            if not _is_platform_admin(request.user):
+                allowed_destinations = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+                allowed = allowed.filter(destination_id__in=allowed_destinations)
+            updated = allowed.update(verification_status="approved" if action=="approve" else "rejected",is_verified=action=="approve")
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning" if action == "reject" else "info", source="backend", action=f"image.bulk_{action}", message=f"Bulk {action} for {updated} image(s)", object_type="DestinationImage", extra={"ids": list(ids), "updated": updated})
             return Response({"message":f"Bulk {action} complete","updated":updated})
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()
         if not image:return Response({"detail":"Image not found"},status=404)
+        _require_destination_access(request, image.destination, "images", "change")
+        if any(field in request.data for field in ("verification_status", "is_verified")):
+            _require_capability(request,"images","approve")
         if action in {"move_up","move_down"}:
             from django.db import transaction
             with transaction.atomic():
@@ -3764,7 +4376,7 @@ class AdminMediaLibraryView(APIView):
         if action == "set_cover":
             # Promote this image to the destination's public cover. Moderation is
             # respected: only approved images can become the cover.
-            if image.verification_status != "approved":
+            if image.verification_status != "approved" or not image.is_verified:
                 return Response({"detail": "Only approved images can be set as the cover — approve it in the verification queue first."}, status=400)
             from django.db import transaction
             with transaction.atomic():
@@ -3775,6 +4387,8 @@ class AdminMediaLibraryView(APIView):
                 dest.cover_image = _media_public_url(image) or image.external_url or ""
                 dest.save(update_fields=["cover_image", "updated_at"])
             _sync_destination_json(dest)
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="media.set_cover", message=f"Set image #{image.id} as cover for {dest.name}", object_type="DestinationImage", object_id=str(image.id), extra={"destination_id": dest.id})
             return Response({"message": f"Cover updated for “{image.destination.name}” — visible on the public site", "id": image.id, "url": _media_public_url(image)})
         old_needles = []
         if image.image:
@@ -3785,13 +4399,34 @@ class AdminMediaLibraryView(APIView):
                 pass
         if image.external_url:
             old_needles.append(image.external_url)
+        if "external_url" in request.data:
+            candidate_url = str(request.data.get("external_url") or "").strip()
+            if candidate_url and not (candidate_url.startswith("https://") or candidate_url.startswith("/")):
+                return Response({"detail": "External image URL must use HTTPS or an internal path."}, status=400)
+        if "verification_status" in request.data and str(request.data["verification_status"]) not in {"approved", "pending", "rejected"}:
+            return Response({"detail": "Invalid image verification status."}, status=400)
         for field in ("caption", "alt_text", "external_url", "source_url", "photographer", "license_type", "ordering", "verification_status", "is_verified"):
             if field in request.data: setattr(image, field, request.data[field])
+        if "verification_status" in request.data:
+            image.is_verified = image.verification_status == "approved"
         uploaded = request.FILES.get("file")
         if uploaded:
+            if uploaded.size > 10 * 1024 * 1024:
+                return Response({"detail": "Image must be 10 MB or smaller"}, status=400)
+            try:
+                from PIL import Image
+                check = Image.open(uploaded); check.verify(); uploaded.seek(0)
+                if check.format not in {"JPEG", "PNG", "WEBP"}:
+                    raise ValueError("unsupported image format")
+            except Exception:
+                return Response({"detail": "Upload a valid JPEG, PNG or WebP image"}, status=400)
             image.image = uploaded
             if "external_url" not in request.data:
                 image.external_url = ""
+        if "external_url" in request.data:
+            external = str(request.data.get("external_url") or "").strip()
+            if external and not (external.startswith("https://") or external.startswith("/")):
+                return Response({"detail": "External image URL must use HTTPS or an internal path"}, status=400)
         if "crop_box" in request.data:
             box = request.data.get("crop_box") or {}
             if not isinstance(box, dict):
@@ -3810,6 +4445,8 @@ class AdminMediaLibraryView(APIView):
                 import logging
                 logging.getLogger(__name__).warning("Crop rewrite failed for DestinationImage %s", image.pk, exc_info=True)
         image.save()
+        if "verification_status" in request.data:
+            _recompute_destination_cover(image.destination)
         # Keep the destination's duplicated cover field in sync (single source
         # of truth): the public serializer prefers Destination.cover_image, so
         # replacing the media that IS the cover must update it too — otherwise
@@ -3842,23 +4479,37 @@ class AdminMediaLibraryView(APIView):
                     if _matches(section.image_url):
                         section.image_url = new_url
                         section.save(update_fields=["image_url", "updated_at"])
+                        _refresh_published_media_snapshot(section, stale, new_url)
                         propagated += 1
                 for page in ManagedPage.objects.exclude(og_image_url=""):
                     if _matches(page.og_image_url):
                         page.og_image_url = new_url
                         page.save(update_fields=["og_image_url", "updated_at"])
+                        if page.status == "published" and isinstance(page.published_snapshot, dict):
+                            page.published_snapshot = {**page.published_snapshot, "og_image_url": new_url}
+                            page.save(update_fields=["published_snapshot", "updated_at"])
                         propagated += 1
                 for slide in HeroSlide.objects.all():
                     if _matches(slide.image_url):
                         slide.image_url = new_url
                         slide.save(update_fields=["image_url", "updated_at"])
                         propagated += 1
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="media",
+            severity="info", source="backend", action="media.update",
+            message=f"Updated media #{image.id}", object_type="DestinationImage",
+            object_id=str(image.id),
+            extra={"destination_id": image.destination_id, "replacement": bool(uploaded or "external_url" in request.data or "crop_box" in request.data), "propagated_references": propagated},
+        )
         return Response({"message":"Media updated","id":image.id,"crop_box":image.crop_box or {},"url":new_url,
                          "propagated_references":propagated,"is_cover":image.is_cover})
     def delete(self, request):
         _require_capability(request,"images","delete")
         image=DestinationImage.objects.select_related("destination").filter(pk=request.data.get("id")).first()
         if not image:return Response({"detail":"Image not found"},status=404)
+        _require_destination_access(request, image.destination, "images", "delete")
         force=str(request.data.get("force","")).lower() in {"1","true","yes"}
         refs=_media_usage_references(image)
         if refs and not force:
@@ -3867,9 +4518,21 @@ class AdminMediaLibraryView(APIView):
             return Response({"detail":f"This image is used in {len(refs)} place(s). Review the usage list, then retry with force=true to delete anyway.","references":refs,"usage_count":len(refs)},status=409)
         destination=image.destination;was_cover=image.is_cover;image.delete()
         if was_cover:
-            replacement=destination.gallery.exclude(verification_status="rejected").order_by("ordering","id").first()
+            replacement=destination.gallery.filter(verification_status="approved",is_verified=True).order_by("ordering","id").first()
             if replacement:
                 replacement.is_cover=True;replacement.save(update_fields=["is_cover"])
+                destination.cover_image = _media_public_url(replacement)
+                destination.save(update_fields=["cover_image", "updated_at"])
+        _recompute_destination_cover(destination)
+        _sync_destination_json(destination)
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=request.user, user_email=request.user.email,
+            actor_role=getattr(request.user, "role", ""), category="media",
+            severity="warning", source="backend", action="media.delete",
+            message=f"Deleted media #{image.id}", object_type="DestinationImage",
+            object_id=str(image.id), extra={"destination_id": destination.id, "forced": force},
+        )
         return Response({"message":"Media deleted","replacement_cover_id":replacement.id if was_cover and replacement else None})
 
 
@@ -3891,6 +4554,12 @@ class AdminGlobalSearchView(APIView):
         def add(module,kind,queryset,label,snippet_fn=None):
             if kind_filter and kind_filter!=kind: return
             if not _has_capability(request,module,"view"):return
+            if not _is_platform_admin(request.user):
+                if queryset.model is Destination:
+                    queryset = _scope_destination_queryset(queryset, request.user)
+                elif hasattr(queryset.model, "destination"):
+                    allowed = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+                    queryset = queryset.filter(destination_id__in=allowed)
             for obj in queryset[:8]:
                 results.append({"type":kind,"id":obj.pk,"label":label(obj),"module":module,"snippet":snippet_fn(obj) if snippet_fn else ""})
         add("destinations","destination",Destination.objects.filter(Q(name__icontains=q)|Q(city__icontains=q)|Q(district__icontains=q)),lambda x:f"{x.name} · {x.district or x.city or 'Nepal'}",lambda x:snippet(x.short_description or x.description))
@@ -3986,18 +4655,18 @@ class PublicFeedbackCreateView(APIView):
     def get(self, request):
         if request.user.is_authenticated:
             qs = UserFeedback.objects.filter(user=request.user)
-            email_param = request.query_params.get("email")
-            if email_param:
+            email_param = (request.query_params.get("email") or "").strip()
+            if email_param and request.user.email and email_param.casefold() == request.user.email.casefold():
                 qs = qs | UserFeedback.objects.filter(email__iexact=email_param)
         else:
-            email = request.query_params.get("email")
+            email = (request.query_params.get("email") or "").strip()
             thread_id = request.query_params.get("id")
-            if thread_id:
-                qs = UserFeedback.objects.filter(pk=thread_id)
-            elif email:
-                qs = UserFeedback.objects.filter(email__iexact=email)
-            else:
+            if not email:
                 qs = UserFeedback.objects.none()
+            elif thread_id and str(thread_id).isdigit():
+                qs = UserFeedback.objects.filter(pk=int(thread_id), email__iexact=email)
+            else:
+                qs = UserFeedback.objects.filter(email__iexact=email)
 
         category = request.query_params.get("category")
         if category:
@@ -4121,9 +4790,13 @@ class FetchWebImagesView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
+        _require_capability(request, "images", "add")
         from tourist.services.image_search.search import search_destination_images
         target = request.data.get("destination")
-        num = int(request.data.get("num", 12))
+        try:
+            num = max(1, min(50, int(request.data.get("num", 12))))
+        except (TypeError, ValueError):
+            return Response({"detail": "num must be a number between 1 and 50"}, status=400)
         if not target:
             return Response({"detail": "destination (id, slug or name) required"}, status=400)
 
@@ -4132,6 +4805,7 @@ class FetchWebImagesView(APIView):
             or Destination.objects.filter(name__icontains=target).first()
         if not dest:
             return Response({"detail": "destination not found"}, status=404)
+        _require_destination_access(request, dest, "images", "add")
 
         hits = search_destination_images(dest, per_source=max(10, num), min_score=0.30)
         saved = 0
@@ -4140,7 +4814,7 @@ class FetchWebImagesView(APIView):
         for hit in hits[:num]:
             if hit.url in existing:
                 continue
-            is_cover = first and not dest.cover_image
+            is_cover = False
             img = DestinationImage.objects.create(
                 destination=dest,
                 external_url=hit.url,
@@ -4155,14 +4829,16 @@ class FetchWebImagesView(APIView):
                 is_cover=is_cover,
                 destination_match_score=round(hit.match_score, 3),
                 authenticity_score=0.9 if hit.source == "wikimedia" else 0.75,
-                verification_status=DestinationImage.ImageStatus.APPROVED,
+                verification_status=DestinationImage.ImageStatus.PENDING,
+                 is_verified=False,
             )
-            if is_cover:
-                dest.gallery.filter(is_cover=True).exclude(id=img.id).update(is_cover=False)
-                Destination.objects.filter(pk=dest.pk).update(cover_image=hit.url)
+            # Discovery candidates remain pending/private; cover promotion is
+            # an explicit approval action in the media library.
             existing.add(hit.url)
             saved += 1
             first = False
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.search", message=f"Discovered {saved} image candidate(s) for {dest.name}", object_type="Destination", object_id=str(dest.id), extra={"found": len(hits), "saved": saved})
         return Response({"destination": dest.name, "found": len(hits), "saved": saved})
 
 
@@ -4170,10 +4846,12 @@ class DeleteImageView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def delete(self, request, id):
+        _require_capability(request, "images", "delete")
         import json
-        img = DestinationImage.objects.filter(pk=id).first()
+        img = DestinationImage.objects.select_related("destination").filter(pk=id).first()
         if not img:
             return Response({"detail": "not found"}, status=404)
+        _require_destination_access(request, img.destination, "images", "delete")
         # Deletion protection (spec: media referenced by published pages must
         # not be blindly destroyed). Scan published CMS content for this exact
         # image URL; refuse unless the admin explicitly confirms with ?force=1.
@@ -4198,13 +4876,17 @@ class DeleteImageView(APIView):
                 }, status=409)
         was_cover = img.is_cover
         dest = img.destination
+        image_id = img.pk
         img.delete()
         if was_cover:
-            nxt = dest.gallery.first()
+            nxt = dest.gallery.filter(verification_status="approved", is_verified=True).order_by("ordering", "id").first()
             if nxt:
                 nxt.is_cover = True
                 nxt.save(update_fields=["is_cover"])
-                Destination.objects.filter(pk=dest.pk).update(cover_image=nxt.external_url or "")
+                Destination.objects.filter(pk=dest.pk).update(cover_image=_media_public_url(nxt))
+        _sync_destination_json(dest)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="media.delete", message=f"Deleted image #{image_id}", object_type="DestinationImage", object_id=str(image_id), extra={"destination_id": dest.id})
         return Response({"message": "deleted", "destination": dest.name})
 
 
@@ -4213,9 +4895,13 @@ class GenerateAIImagesView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
+        _require_capability(request, "images", "add")
         from tourist.services.image_generation.collector import collect_for_destination
         target = request.data.get("destination")
-        num = int(request.data.get("num", 12))
+        try:
+            num = max(1, min(50, int(request.data.get("num", 12))))
+        except (TypeError, ValueError):
+            return Response({"detail": "num must be a number between 1 and 50"}, status=400)
         if not target:
             return Response({"detail": "destination (id/slug/name) required"}, status=400)
         dest = (Destination.objects.filter(pk=target).first() if str(target).isdigit() else None) \
@@ -4223,6 +4909,7 @@ class GenerateAIImagesView(APIView):
             or Destination.objects.filter(name__icontains=target).first()
         if not dest:
             return Response({"detail": "destination not found"}, status=404)
+        _require_destination_access(request, dest, "images", "add")
 
         images = collect_for_destination(dest, num=num, use_ai=True, use_search=True)
         existing = set(dest.gallery.exclude(external_url="").values_list("external_url", flat=True))
@@ -4244,18 +4931,22 @@ class GenerateAIImagesView(APIView):
                 generation_provider="flux-pollinations" if img["source"] == "ai_generated" else "",
                 destination_match_score=img.get("match_score"),
                 copyright_status="ai_generated" if img["source"] == "ai_generated" else "web_search",
-                verification_status=DestinationImage.ImageStatus.APPROVED,
+                verification_status=DestinationImage.ImageStatus.PENDING,
+                 is_verified=False,
             )
             existing.add(img["url"])
             saved += 1
-        # set newest AI image as cover if requested
+        # Newly generated candidates remain private until an explicit
+        # images.approve action; never promote an unreviewed asset.
         if request.data.get("set_cover", True):
-            cover = dest.gallery.filter(source=DestinationImage.Source.AI_GENERATED).order_by("-created_at").first()
+            cover = dest.gallery.filter(source=DestinationImage.Source.AI_GENERATED, verification_status="approved", is_verified=True).order_by("-created_at").first()
             if cover:
                 dest.gallery.filter(is_cover=True).exclude(id=cover.id).update(is_cover=False)
                 cover.is_cover = True
                 cover.save(update_fields=["is_cover"])
                 Destination.objects.filter(pk=dest.pk).update(cover_image=cover.external_url)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.generate", message=f"Generated {saved} image candidate(s) for {dest.name}", object_type="Destination", object_id=str(dest.id), extra={"saved": saved})
         return Response({"destination": dest.name, "saved": saved,
                          "cover": str(dest.cover_image)[:80],
                          "total_gallery": dest.gallery.count()})
@@ -4266,9 +4957,13 @@ class DownloadAIImagesView(APIView):
     permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
+        _require_capability(request, "images", "add")
         from tourist.services.image_generation.downloader import fetch_images
         target = request.data.get("destination")
-        num = int(request.data.get("num", 10))
+        try:
+            num = max(1, min(50, int(request.data.get("num", 10))))
+        except (TypeError, ValueError):
+            return Response({"detail": "num must be a number between 1 and 50"}, status=400)
         if not target:
             return Response({"detail": "destination required"}, status=400)
         dest = (Destination.objects.filter(pk=target).first() if str(target).isdigit() else None) \
@@ -4276,6 +4971,7 @@ class DownloadAIImagesView(APIView):
             or Destination.objects.filter(name__icontains=target).first()
         if not dest:
             return Response({"detail": "destination not found"}, status=404)
+        _require_destination_access(request, dest, "images", "add")
         images = fetch_images(dest, num=num)
         saved = 0
         for img in images:
@@ -4295,14 +4991,17 @@ class DownloadAIImagesView(APIView):
                 generation_provider=img["provider"],
                 thumbnail_url=str(request.build_absolute_uri(settings.MEDIA_URL + img["file_path"])),
                 authenticity_score=0.9,
-                verification_status=DestinationImage.ImageStatus.APPROVED,
+                verification_status=DestinationImage.ImageStatus.PENDING,
+                 is_verified=False,
             )
-            if saved == 0 and not dest.cover_image:
+            if saved == 0 and not dest.cover_image and di.verification_status == "approved":
                 dest.gallery.filter(is_cover=True).exclude(id=di.id).update(is_cover=False)
                 di.is_cover = True
                 di.save(update_fields=["is_cover"])
                 Destination.objects.filter(pk=dest.pk).update(cover_image=img["file_path"])
             saved += 1
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="media.download_ai", message=f"Downloaded {saved} image candidate(s) for {dest.name}", object_type="Destination", object_id=str(dest.id), extra={"downloaded": len(images), "saved": saved})
         return Response({"destination": dest.name, "downloaded": len(images), "saved": saved})
 
 
@@ -4361,6 +5060,11 @@ class AdminServiceMediaView(APIView):
         for current in kinds:
             model = self.KINDS[current]
             qs = model.objects.all()
+            if not _is_platform_admin(request.user):
+                if current in {"hospital", "police"}:
+                    qs = qs.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
+                else:
+                    continue
             if current == "essential":
                 category = (request.query_params.get("category") or "").strip()
                 if category:
@@ -4407,6 +5111,16 @@ class AdminServiceMediaView(APIView):
         obj, error = self._get_object(kind, request.data.get("id"))
         if error:
             return error
+        if not _is_platform_admin(request.user):
+            destination = getattr(obj, "destination", None)
+            if kind in {"hospital", "police"} and destination:
+                _require_destination_access(request, destination, "images", "add")
+            elif kind == "hospital":
+                districts = _managed_districts_for(request.user)
+                if districts and str(getattr(obj, "district", "") or "").casefold() not in districts:
+                    raise PermissionDenied("Service is outside your assigned district")
+            elif kind == "essential":
+                raise PermissionDenied("Essential-service media is restricted to platform administrators")
         uploaded = request.FILES.get("file") or request.FILES.get("image")
         invalid = self._validate_upload(uploaded)
         if invalid:
@@ -4415,6 +5129,8 @@ class AdminServiceMediaView(APIView):
             obj.image.delete(save=False)
         obj.image = uploaded
         obj.save()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="info", source="backend", action="service_media.upload", message=f"Updated photo for {kind} #{obj.id}", object_type=model.__name__, object_id=str(obj.id))
         return Response({"message": "Photo saved", **self._row(kind, obj, request)}, status=201)
 
     def delete(self, request):
@@ -4424,10 +5140,22 @@ class AdminServiceMediaView(APIView):
         obj, error = self._get_object(kind, object_id)
         if error:
             return error
+        if not _is_platform_admin(request.user):
+            destination = getattr(obj, "destination", None)
+            if kind in {"hospital", "police"} and destination:
+                _require_destination_access(request, destination, "images", "delete")
+            elif kind == "hospital":
+                districts = _managed_districts_for(request.user)
+                if districts and str(getattr(obj, "district", "") or "").casefold() not in districts:
+                    raise PermissionDenied("Service is outside your assigned district")
+            elif kind == "essential":
+                raise PermissionDenied("Essential-service media is restricted to platform administrators")
         if obj.image:
             obj.image.delete(save=False)
             obj.image = None
             obj.save()
+            from audit.models import AuditLog
+            AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="service_media.delete", message=f"Removed photo for {kind} #{obj.id}", object_type=model.__name__, object_id=str(obj.id))
         return Response({"message": "Photo removed", **self._row(kind, obj, request)})
 
 
@@ -4538,19 +5266,40 @@ class AdminVisitorDeskView(APIView):
         _require_owner_desk(request, "view")
         query = (request.query_params.get("q") or "").strip()
         destinations = Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
+        destinations = _scope_destination_queryset(destinations, request.user)
         if query:
             destinations = destinations.filter(
                 Q(name__icontains=query) | Q(city__icontains=query) | Q(district__icontains=query) | Q(slug__icontains=query)
             )
-        featured = Destination.objects.filter(is_featured=True).order_by("-average_rating", "name")
-        notices = VisitorNotice.objects.select_related("destination", "updated_by").order_by("-updated_at")[:200]
+        featured = _scope_destination_queryset(Destination.objects.filter(is_featured=True), request.user).order_by("-average_rating", "name")
+        notices = VisitorNotice.objects.select_related("destination", "updated_by").order_by("-updated_at")
+        if not _is_platform_admin(request.user):
+            allowed_ids = _scope_destination_queryset(Destination.objects.all(), request.user).values("id")
+            notices = notices.filter(Q(destination_id__in=allowed_ids) | Q(destination_id__isnull=True))
+        notices = notices[:200]
+        pending_destinations = _scope_destination_queryset(Destination.objects.filter(status=Destination.SubmissionStatus.PENDING), request.user)
+        pending_images = DestinationImage.objects.filter(Q(verification_status="pending") | Q(is_verified=False))
+        if not _is_platform_admin(request.user):
+            pending_images = pending_images.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
+        active_sos = SOSAlert.objects.filter(status=SOSAlert.Status.ACTIVE)
+        open_feedback = UserFeedback.objects.exclude(status__in=["resolved", "closed", "archived"])
+        if not _is_platform_admin(request.user):
+            districts = _managed_districts_for(request.user)
+            if districts:
+                sos_scope = Q()
+                feedback_scope = Q()
+                for district in districts:
+                    sos_scope |= Q(user__managed_district__iexact=district) | Q(user__city__iexact=district)
+                    feedback_scope |= Q(destination__district__iexact=district) | Q(destination__city__iexact=district)
+                active_sos = active_sos.filter(sos_scope)
+                open_feedback = open_feedback.filter(feedback_scope)
         return Response({
             "queue": {
-                "pending_places": Destination.objects.filter(status=Destination.SubmissionStatus.PENDING).count(),
-                "pending_images": DestinationImage.objects.filter(Q(verification_status="pending") | Q(is_verified=False)).count(),
-                "active_sos": SOSAlert.objects.filter(status=SOSAlert.Status.ACTIVE).count(),
-                "open_feedback": UserFeedback.objects.exclude(status__in=["resolved", "closed", "archived"]).count(),
-                "published_notices": VisitorNotice.objects.filter(is_published=True).count(),
+                "pending_places": pending_destinations.count(),
+                "pending_images": pending_images.count(),
+                "active_sos": active_sos.count(),
+                "open_feedback": open_feedback.count(),
+                "published_notices": notices.filter(is_published=True).count(),
                 "featured_places": featured.count(),
             },
             "notices": [_visitor_notice_row(notice) for notice in notices],
@@ -4564,13 +5313,22 @@ class AdminVisitorDeskView(APIView):
             destination = Destination.objects.filter(pk=request.data.get("destination_id")).first()
             if not destination:
                 return Response({"detail": "destination not found"}, status=404)
+            _require_destination_access(request, destination, "destinations", "change")
+            before = destination.is_featured
             destination.is_featured = bool(request.data.get("is_featured", True))
             destination.save(update_fields=["is_featured", "updated_at"])
+            DestinationAuditLog.objects.create(destination=destination, actor=request.user, action=DestinationAuditLog.Action.EDITED, note=f"Featured destination toggled to {destination.is_featured}", field_changes=[{"field": "is_featured", "old": before, "new": destination.is_featured}])
+            _sync_destination_json(destination)
             return Response({
                 "message": f"{destination.name} {'pinned' if destination.is_featured else 'unpinned'} for travellers",
                 "destination": _featured_destination_row(destination),
             })
         _require_owner_desk(request, "add")
+        if request.data.get("destination_id") not in (None, "", 0, "0"):
+            destination = Destination.objects.filter(pk=request.data.get("destination_id")).first()
+            if not destination:
+                return Response({"detail": "destination not found"}, status=404)
+            _require_destination_access(request, destination, "destinations", "change")
         try:
             notice = self._apply_notice(None, request.data, request.user)
         except ValueError as exc:
@@ -4586,6 +5344,13 @@ class AdminVisitorDeskView(APIView):
         if not notice:
             return Response({"detail": "Notice not found"}, status=404)
         was_published = notice.is_published
+        if notice.destination_id:
+            _require_destination_access(request, notice.destination, "destinations", "change")
+        if request.data.get("destination_id") not in (None, "", 0, "0", notice.destination_id):
+            destination = Destination.objects.filter(pk=request.data.get("destination_id")).first()
+            if not destination:
+                return Response({"detail": "destination not found"}, status=404)
+            _require_destination_access(request, destination, "destinations", "change")
         try:
             notice = self._apply_notice(notice, request.data, request.user)
         except ValueError as exc:
@@ -4597,9 +5362,11 @@ class AdminVisitorDeskView(APIView):
     def delete(self, request):
         _require_owner_desk(request, "delete")
         notice_id = request.data.get("id") or request.query_params.get("id")
-        notice = VisitorNotice.objects.filter(pk=notice_id).first()
+        notice = VisitorNotice.objects.select_related("destination").filter(pk=notice_id).first()
         if not notice:
             return Response({"detail": "Notice not found"}, status=404)
+        if notice.destination_id:
+            _require_destination_access(request, notice.destination, "destinations", "delete")
         notice.delete()
         return Response({"message": "Notice removed"})
 
@@ -4617,10 +5384,13 @@ class AdminFeaturedDestinationView(APIView):
             item = FeaturedDestination.objects.filter(pk=pk).select_related("destination", "featured_media", "created_by", "updated_by").first()
             if not item:
                 return Response({"detail": "Featured destination configuration not found."}, status=404)
+            _require_destination_access(request, item.destination, "destinations", "view")
             return Response(FeaturedDestinationSerializer(item, context={"request": request}).data)
 
         query = (request.query_params.get("q") or "").strip()
         qs = FeaturedDestination.objects.select_related("destination", "featured_media", "created_by", "updated_by").all()
+        if not _is_platform_admin(request.user):
+            qs = qs.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
         if query:
             qs = qs.filter(
                 Q(title__icontains=query) | Q(short_description__icontains=query) | Q(destination__name__icontains=query) | Q(destination__city__icontains=query)
@@ -4640,18 +5410,24 @@ class AdminFeaturedDestinationView(APIView):
                 return Response({"detail": "items must be a list of {id, display_order}"}, status=400)
 
             updated_count = 0
+            allowed_qs = FeaturedDestination.objects.all()
+            if not _is_platform_admin(request.user):
+                allowed_qs = allowed_qs.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
             for item in order_list:
                 fid = item.get("id")
                 pos = item.get("display_order")
                 if fid is not None and pos is not None:
-                    FeaturedDestination.objects.filter(id=fid).update(display_order=pos, updated_at=timezone.now())
-                    updated_count += 1
+                    updated_count += allowed_qs.filter(id=fid).update(display_order=pos, updated_at=timezone.now())
 
             return Response({"message": f"Successfully reordered {updated_count} featured destinations."})
 
         _require_capability(request, "destinations", "add")
         serializer = FeaturedDestinationSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
+            destination = Destination.objects.filter(pk=serializer.validated_data.get("destination_id")).first()
+            if not destination:
+                return Response({"detail": "destination not found"}, status=400)
+            _require_destination_access(request, destination, "destinations", "add")
             featured = serializer.save(
                 created_by=request.user if request.user.is_authenticated else None,
                 updated_by=request.user if request.user.is_authenticated else None,
@@ -4671,10 +5447,16 @@ class AdminFeaturedDestinationView(APIView):
     def patch(self, request, pk=None):
         _require_capability(request, "destinations", "change")
         fid = pk or request.data.get("id")
-        featured = FeaturedDestination.objects.filter(pk=fid).first()
+        featured = FeaturedDestination.objects.filter(pk=fid).select_related("destination").first()
         if not featured:
             return Response({"detail": "Featured destination configuration not found."}, status=404)
+        _require_destination_access(request, featured.destination, "destinations", "change")
 
+        if request.data.get("destination_id") not in (None, "", 0, "0", featured.destination_id):
+            new_destination = Destination.objects.filter(pk=request.data.get("destination_id")).first()
+            if not new_destination:
+                return Response({"detail": "destination not found"}, status=404)
+            _require_destination_access(request, new_destination, "destinations", "change")
         serializer = FeaturedDestinationSerializer(featured, data=request.data, partial=True, context={"request": request})
         if serializer.is_valid():
             updated = serializer.save(updated_by=request.user if request.user.is_authenticated else None)
@@ -4694,9 +5476,10 @@ class AdminFeaturedDestinationView(APIView):
     def delete(self, request, pk=None):
         _require_capability(request, "destinations", "delete")
         fid = pk or request.data.get("id") or request.query_params.get("id")
-        featured = FeaturedDestination.objects.filter(pk=fid).first()
+        featured = FeaturedDestination.objects.filter(pk=fid).select_related("destination").first()
         if not featured:
             return Response({"detail": "Featured destination configuration not found."}, status=404)
+        _require_destination_access(request, featured.destination, "destinations", "delete")
 
         dest = featured.destination
         Destination.objects.filter(id=dest.id).update(is_featured=False, updated_at=timezone.now())
@@ -4723,6 +5506,7 @@ class PublicFeaturedDestinationView(APIView):
         qs = FeaturedDestination.objects.select_related("destination", "featured_media").filter(
             is_published=True,
             destination__is_active=True,
+            destination__status=Destination.SubmissionStatus.APPROVED,
         ).filter(
             Q(publish_start__isnull=True) | Q(publish_start__lte=now)
         ).filter(
@@ -4730,9 +5514,22 @@ class PublicFeaturedDestinationView(APIView):
         ).order_by("display_order", "-updated_at")
 
         items = []
+        def approved_cover(dest):
+            media = dest.gallery.filter(
+                verification_status=DestinationImage.ImageStatus.APPROVED,
+                is_verified=True,
+            ).order_by("-is_cover", "ordering", "id").first()
+            return _media_public_url(media) if media else ""
         if qs.exists():
             for f in qs:
                 dest = f.destination
+                image_url = ""
+                if f.featured_media and f.featured_media.verification_status == DestinationImage.ImageStatus.APPROVED and f.featured_media.is_verified:
+                    image_url = _media_public_url(f.featured_media)
+                elif f.featured_media_url and dest.gallery.filter(external_url=f.featured_media_url, verification_status=DestinationImage.ImageStatus.APPROVED, is_verified=True).exists():
+                    image_url = f.featured_media_url
+                if not image_url:
+                    image_url = approved_cover(dest)
                 items.append({
                     "id": f.id,
                     "destination_id": dest.id,
@@ -4743,14 +5540,14 @@ class PublicFeaturedDestinationView(APIView):
                     "destination_rating": dest.average_rating,
                     "title": f.effective_title,
                     "short_description": f.effective_description,
-                    "image_url": f.effective_image_url,
+                    "image_url": image_url,
                     "cta_label": f.cta_label or "Explore Destination",
                     "cta_url": f.effective_cta_url,
                     "display_order": f.display_order,
                     "is_published": True,
                 })
         else:
-            pinned = Destination.objects.filter(is_featured=True, is_active=True).order_by("-average_rating", "name")[:12]
+            pinned = Destination.objects.filter(is_featured=True, is_active=True, status=Destination.SubmissionStatus.APPROVED).order_by("-average_rating", "name")[:12]
             for idx, dest in enumerate(pinned):
                 items.append({
                     "id": dest.id,
@@ -4762,7 +5559,7 @@ class PublicFeaturedDestinationView(APIView):
                     "destination_rating": dest.average_rating,
                     "title": dest.name,
                     "short_description": dest.short_description or dest.description or "",
-                    "image_url": dest.cover_image.url if dest.cover_image else getattr(dest, "external_image_url", "") or "",
+                    "image_url": approved_cover(dest),
                     "cta_label": "Explore Destination",
                     "cta_url": f"/destinations/{dest.slug}",
                     "display_order": idx,
@@ -4800,7 +5597,7 @@ class AdminRedirectsView(APIView):
     @staticmethod
     def _clean_new_path(value):
         value = str(value or "").strip()
-        if not (value.startswith("/") or value.startswith("https://") or value.startswith("http://")):
+        if not (value.startswith("/") or value.startswith("https://")):
             raise ValidationError("Redirect-to must be a path starting with / or a full https:// URL.")
         if " " in value or len(value) > 240:
             raise ValidationError("Redirect-to contains invalid characters or is too long.")
@@ -4840,6 +5637,8 @@ class AdminRedirectsView(APIView):
             note=str(request.data.get("note", ""))[:240],
             updated_by=request.user,
         )
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="content", severity="warning", source="backend", action="redirect.create", message=f"Created redirect {old_path} → {new_path}", object_type="RedirectRule", object_id=str(rule.id))
         return Response({"message": "Redirect created", "data": self._serialize(rule)}, status=status.HTTP_201_CREATED)
 
     def patch(self, request):
@@ -4864,6 +5663,8 @@ class AdminRedirectsView(APIView):
             rule.note = str(request.data.get("note", ""))[:240]
         rule.updated_by = request.user
         rule.save()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="content", severity="warning", source="backend", action="redirect.update", message=f"Updated redirect {rule.old_path} → {rule.new_path}", object_type="RedirectRule", object_id=str(rule.id))
         return Response({"message": "Redirect updated", "data": self._serialize(rule)})
 
     def delete(self, request):
@@ -4871,7 +5672,11 @@ class AdminRedirectsView(APIView):
         rule = RedirectRule.objects.filter(id=request.query_params.get("id")).first()
         if not rule:
             return Response({"error": "Redirect not found"}, status=status.HTTP_404_NOT_FOUND)
+        rule_id = rule.id
+        old_path = rule.old_path
         rule.delete()
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="content", severity="warning", source="backend", action="redirect.delete", message=f"Deleted redirect {old_path}", object_type="RedirectRule", object_id=str(rule_id))
         return Response({"message": "Redirect deleted"})
 
 
@@ -4921,6 +5726,8 @@ class AdminImportConflictsView(APIView):
         d = request.query_params.get("destination")
         if d and d.isdigit():
             qs = qs.filter(destination_id=int(d))
+        if not _is_platform_admin(request.user):
+            qs = qs.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
         qs = qs[:200]
         return Response({
             "count": len(qs),
@@ -4954,6 +5761,7 @@ class AdminImportConflictsView(APIView):
         if not conflict:
             return Response({"detail": "Pending conflict not found."}, status=404)
         d = conflict.destination
+        _require_destination_access(request, d, "destinations", "approve")
         old_val = getattr(d, conflict.field, None)
         if action == "accept":
             new_val = conflict.incoming_value
@@ -5003,6 +5811,8 @@ class AdminApprovalCenterView(APIView):
     def get(self, request):
         _require_capability(request, "destinations", "approve")
         qs = ContentProposal.objects.filter(status="pending").select_related("destination", "submitted_by")
+        if not _is_platform_admin(request.user):
+            qs = qs.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
         return Response({
             "pending": qs.count(),
             "results": [{
@@ -5027,6 +5837,7 @@ class AdminApprovalCenterView(APIView):
         p = ContentProposal.objects.filter(id=pid, status="pending").first()
         if not p:
             return Response({"detail": "Pending proposal not found."}, status=404)
+        _require_destination_access(request, p.destination, "destinations", "approve")
         from django.utils import timezone as _tz
         from decimal import Decimal, InvalidOperation
         d = p.destination
@@ -5098,9 +5909,16 @@ class AdminDestinationBulkView(APIView):
         qs = Destination.objects.filter(id__in=ids)
         affected = []
         for d in qs:
+            _require_destination_access(request, d, "destinations", cap)
             previous = {"status": d.status, "is_active": d.is_active,
                         "coordinate_status": d.coordinate_status}
             if action == "publish":
+                missing = []
+                if not (d.name or "").strip(): missing.append("name")
+                if not (d.description or "").strip(): missing.append("description")
+                if d.latitude is None or d.longitude is None: missing.append("coordinates")
+                if missing:
+                    return Response({"detail": f"Cannot publish destination #{d.id}: missing {', '.join(missing)}."}, status=400)
                 d.status = Destination.SubmissionStatus.APPROVED
                 d.is_active = True
             elif action == "unpublish":
@@ -5125,21 +5943,24 @@ class AdminDestinationBulkView(APIView):
                     return Response({"detail": "Category not found."}, status=404)
                 d.category_id = int(cat_id)
             elif action == "delete":
+                # Deletion is retention-safe: archive the row so its audit and
+                # revision history survive. A hard delete is never exposed by
+                # this bulk endpoint.
+                d.status = Destination.SubmissionStatus.ARCHIVED
+                d.is_active = False
+                d.save(update_fields=["status", "is_active", "updated_at"])
+                _sync_destination_json(d)
+                _dest_revision(d, "update", request.user)
                 affected.append(d.id)
-                deleted_id = d.id
                 DestinationAuditLog.objects.create(
                     destination=d, actor=request.user,
-                    action=DestinationAuditLog.Action.EDITED,
-                    note=f"Bulk deleted: {reason}", reason=reason)
-                d.delete()
-                # prune the snapshot too, or the deleted record lingers
-                # in dataset/data.json as a ghost
-                from .location_sync import remove_admin_destination_json
-                remove_admin_destination_json(deleted_id)
+                    action=DestinationAuditLog.Action.ARCHIVED,
+                    note=f"Bulk delete safely archived: {reason}", reason=reason)
                 continue
             if action != "delete":
                 d.save()
                 _sync_destination_json(d)
+                _dest_revision(d, "publish" if action == "publish" else "update", request.user)
                 affected.append(d.id)
                 DestinationAuditLog.objects.create(
                     destination=d, actor=request.user,
@@ -5157,6 +5978,8 @@ class AdminDataIntegrityView(APIView):
 
     def get(self, request):
         _require_capability(request, "dashboard", "view")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Cross-district data integrity metrics are restricted to platform administrators")
         from django.db.models import Q
         from django.utils import timezone as _tz
         total = Destination.objects.count()
@@ -5199,6 +6022,8 @@ class AdminDuplicateCandidatesView(APIView):
 
     def get(self, request):
         _require_capability(request, "destinations", "view")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Cross-district duplicate search is restricted to platform administrators")
         from .duplicates import find_duplicates
         counts, results = find_duplicates(
             district=request.query_params.get("district"),
@@ -5215,6 +6040,8 @@ class AdminDuplicateCompareView(APIView):
 
     def get(self, request):
         _require_capability(request, "destinations", "view")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Cross-district duplicate comparison is restricted to platform administrators")
         from .duplicates import haversine_km
         a_id, b_id = request.query_params.get("a"), request.query_params.get("b")
         if not (a_id and b_id and a_id.isdigit() and b_id.isdigit()):
@@ -5250,6 +6077,8 @@ class AdminDuplicateDecisionView(APIView):
 
     def post(self, request):
         _require_capability(request, "destinations", "approve")
+        if not _is_platform_admin(request.user):
+            raise PermissionDenied("Cross-district duplicate decisions are restricted to platform administrators")
         a_id, b_id = request.data.get("a"), request.data.get("b")
         verdict = request.data.get("verdict")
         reason = str(request.data.get("reason") or "").strip()
@@ -5261,6 +6090,8 @@ class AdminDuplicateDecisionView(APIView):
         b = Destination.objects.filter(id=b_id).first()
         if not a or not b or a.id == b.id:
             return Response({"detail": "Two distinct destinations required."}, status=400)
+        _require_destination_access(request, a, "destinations", "approve")
+        _require_destination_access(request, b, "destinations", "approve")
 
         if verdict == "not_duplicate":
             decision, created = DuplicateDecision.objects.get_or_create(
@@ -5322,6 +6153,10 @@ class AdminDestinationRevisionsView(APIView):
         if not d_id or not d_id.isdigit():
             return Response({"detail": "destination id required."}, status=400)
         qs = CMSRevision.objects.filter(resource="destinations", object_id=int(d_id))
+        destination = Destination.objects.filter(pk=d_id).first()
+        if not destination:
+            return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, destination, "destinations", "view")
         rid = request.query_params.get("revision_id")
         if rid:
             rev = qs.filter(id=rid).first()
@@ -5350,6 +6185,7 @@ class AdminDestinationRevisionsView(APIView):
         d = Destination.objects.filter(id=d_id).first() if d_id else None
         if not d:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, d, "destinations", "approve")
         if action == "snapshot":
             rev = _dest_revision(d, "update", request.user)
             return Response({"message": "Snapshot stored", "revision_id": rev.id})
@@ -5432,6 +6268,7 @@ class AdminDestinationLifecycleView(APIView):
         d = Destination.objects.filter(id=id).first()
         if not d:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, d, "destinations", self.CAPS[action][1])
         previous = d.status
         if action == "publish":
             missing = []
@@ -5491,6 +6328,7 @@ class AdminDestinationPreviewView(APIView):
         d = Destination.objects.filter(id=id).first()
         if not d:
             return Response({"detail": "Destination not found."}, status=404)
+        _require_destination_access(request, d, "destinations", "view")
         from .serializers import DestinationDetailSerializer
         is_public, why = _public_explanation(d)
         return Response({
@@ -5508,8 +6346,11 @@ class AdminAuditActivityView(APIView):
 
     def get(self, request):
         _require_capability(request, "dashboard", "view")
-        qs = (DestinationAuditLog.objects.select_related("destination", "actor")
-              .order_by("-created_at")[:50])
+        _require_capability(request, "destinations", "view")
+        qs = DestinationAuditLog.objects.select_related("destination", "actor")
+        if not _is_platform_admin(request.user):
+            qs = qs.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), request.user).values("id"))
+        qs = qs.order_by("-created_at")[:50]
         return Response({"results": [{
             "id": log.id,
             "destination": {"id": log.destination_id, "name": log.destination.name},

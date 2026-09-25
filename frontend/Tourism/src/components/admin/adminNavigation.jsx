@@ -1,7 +1,7 @@
 import {
   BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
   BsCookie, BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
-  BsGlobe, BsHouseDoor, BsImage, BsLayoutTextWindow, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
+  BsGlobe, BsHouseDoor, BsImage, BsLayers, BsLayoutTextWindow, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
   BsSliders, BsTools, BsTranslate, BsTruck, BsSpeedometer2,
 } from "react-icons/bs"
 
@@ -20,6 +20,7 @@ export const ADMIN_NAV_GROUPS = [
     ["homepage_manager", "Homepage Manager", BsHouseDoor],
     ["redirects", "Redirects & URLs", BsLink45Deg],
     ["visitor_desk", "Announcements & Notices", BsMegaphone],
+     ["content_lifecycle", "Content Lifecycle & Quality", BsLayers],
     ["featured_destinations", "Featured Content Studio", BsStar],
     ["media_library", "Central Media Library", BsCollection, [
       { label: "Pending", query: { status: "pending" } },
@@ -52,6 +53,7 @@ export const ADMIN_NAV_GROUPS = [
     ["travel_services", "Restaurants, Transport & Plans", BsTruck],
     ["transport_routes", "Transportation & Routes", BsTruck],
     ["review_moderation", "Review Moderation", BsStar],
+     ["guide_verification", "Guide Verification", BsShieldLock],
     ["expenses", "Expense & Budget Data", BsBarChart],
   ]},
   { label: "People & Operations", items: [
@@ -87,11 +89,38 @@ export const ADMIN_NAV_GROUPS = [
     ["data_health", "Data Health & Provenance", BsShieldLock],
     ["data_explorer", "Database & Records", BsDatabase],
     ["datasets", "Dataset & CSV Manager", BsDatabase],
+     ["routing_provider", "Routing Provider", BsTruck],
     ["retention", "Retention & Deletion", BsGear],
   ]},
 ]
 
 export const ADMIN_PRIMARY_NAV = ["overview", "cms_overview", "reports", "users", "places", "media_library"]
+
+// Frontend navigation is capability-aware for usability only. The matching
+// backend capability check remains the security boundary.
+export const ADMIN_SECTION_CAPABILITIES = {
+  overview: "dashboard", cms_overview: "content", cms: "content", homepage_manager: "content",
+  redirects: "content", visitor_desk: "content", featured_destinations: "destinations",
+  media_library: "images", images: "images", image_pipeline: "images", branding: "settings",
+  header_navbar: "content", cookie_consent: "settings", category_translations: "destinations",
+  content_translations: "content", user_dashboard_control: "content", content_lifecycle: "destinations", ai_engine: "datasets",
+  places: "destinations", destination_features: "destinations", research: "datasets",
+  hotel_bookings: "hotels", marketplace: "marketplace", travel_services: ["restaurants", "transportation", "travel_plans"],
+  transport_routes: "transportation", review_moderation: "reviews", guide_verification: "marketplace", expenses: "budget",
+  users: "users", staff_permissions: "users", data_reports: "feedback", feedback_workspace: "feedback",
+  tracking: "safety", notification_settings: "settings", emergencies: "safety",
+  emergency_directory: "safety", infrastructure: "safety", risks: "safety", safety_management: "safety",
+  reports: "audit", data_health: "dashboard", data_explorer: "dashboard", datasets: "datasets",
+  retention: "settings", routing_provider: "settings",
+}
+
+export const canAccessAdminSection = (section, can) => {
+  const capability = ADMIN_SECTION_CAPABILITIES[section]
+  if (!capability) return true
+  const modules = Array.isArray(capability) ? capability : [capability]
+  return modules.some((module) => can(module, "view"))
+}
+
 export const adminSectionHref = (section, extra = {}) => {
   const target = extra.section || section
   const rest = { ...extra }

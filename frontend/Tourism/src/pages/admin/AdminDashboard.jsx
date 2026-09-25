@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import adminPanelApi from "../../api/adminPanelApi"
+import { ADMIN_NAV_GROUPS, canAccessAdminSection } from "../../components/admin/adminNavigation"
 import destinationApi from "../../api/destinationApi"
 import Loader from "../../components/common/Loader"
 import useToast from "../../hooks/useToast"
@@ -51,6 +52,7 @@ import DataHealthPanel from "../../components/admin/DataHealthPanel"
 import AdminRouteManagerPanel from "../../components/admin/AdminRouteManagerPanel"
 import GuideVerificationPanel from "../../components/admin/GuideVerificationPanel"
 import AdminReportManagerPanel from "../../components/admin/AdminReportManagerPanel"
+import RoutingProviderPanel from "../../components/admin/RoutingProviderPanel"
 import UserDashboardControlPanel from "../../components/admin/UserDashboardControlPanel"
 
 const ROLES = [
@@ -66,7 +68,7 @@ const ROLES = [
 ]
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
+  const { user, can } = useAuth()
   const { showToast } = useToast()
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -349,7 +351,7 @@ const AdminDashboard = () => {
   const handleDeleteImage = async (imageId) => {
     if (!confirm("Remove this image from the destination?")) return
     try {
-      await adminApi.deleteDestinationImage(imageId)
+      await adminApi.deleteDestinationImage(imageId, pipelineDestId)
       showToast("Image removed", "success")
       loadPipelineImages()
     } catch {
@@ -443,28 +445,29 @@ const AdminDashboard = () => {
   const fetchAllData = async () => {
     setLoading(true)
     try {
+      const requests = [
+        can("dashboard", "view") ? adminApi.getStats() : null,
+        can("users", "view") ? adminApi.getUsers() : null,
+        can("safety", "view") && can("users", "view") ? adminApi.getUserTracking() : null,
+        can("destinations", "view") ? adminApi.getPendingPlaces() : null,
+        can("images", "view") ? adminApi.getPendingImages() : null,
+        can("safety", "view") ? adminApi.getEmergencies() : null,
+        can("budget", "view") ? adminApi.getExpenseFeedbacks() : null,
+        can("safety", "view") ? adminApi.getRiskFeedbacks() : null,
+        can("destinations", "view") ? destinationApi.getCategories() : null,
+      ]
       const [statsRes, usersRes, trackRes, placesRes, imagesRes, emergRes, expRes, riskRes, catRes] =
-        await Promise.allSettled([
-          adminApi.getStats(),
-          adminApi.getUsers(),
-          adminApi.getUserTracking(),
-          adminApi.getPendingPlaces(),
-          adminApi.getPendingImages(),
-          adminApi.getEmergencies(),
-          adminApi.getExpenseFeedbacks(),
-          adminApi.getRiskFeedbacks(),
-          destinationApi.getCategories(),
-        ])
+        await Promise.allSettled(requests.map((request) => request || Promise.resolve(null)))
 
-      if (statsRes.status === "fulfilled") setStats(statsRes.value.data)
-      if (usersRes.status === "fulfilled") setUsers(usersRes.value.data)
-      if (trackRes.status === "fulfilled") setTracking(trackRes.value.data)
-      if (placesRes.status === "fulfilled") setPendingPlaces(placesRes.value.data)
-      if (imagesRes.status === "fulfilled") setPendingImages(imagesRes.value.data)
-      if (emergRes.status === "fulfilled") setEmergencies(emergRes.value.data)
-      if (expRes.status === "fulfilled") setExpenseReports(expRes.value.data.results || expRes.value.data || [])
-      if (riskRes.status === "fulfilled") setRiskReports(riskRes.value.data.results || riskRes.value.data || [])
-      if (catRes.status === "fulfilled") setCategories(catRes.value.data.results || catRes.value.data || [])
+      if (statsRes.status === "fulfilled" && statsRes.value) setStats(statsRes.value.data)
+      if (usersRes.status === "fulfilled" && usersRes.value) setUsers(usersRes.value.data)
+      if (trackRes.status === "fulfilled" && trackRes.value) setTracking(trackRes.value.data)
+      if (placesRes.status === "fulfilled" && placesRes.value) setPendingPlaces(placesRes.value.data)
+      if (imagesRes.status === "fulfilled" && imagesRes.value) setPendingImages(imagesRes.value.data)
+      if (emergRes.status === "fulfilled" && emergRes.value) setEmergencies(emergRes.value.data)
+      if (expRes.status === "fulfilled" && expRes.value) setExpenseReports(expRes.value.data.results || expRes.value.data || [])
+      if (riskRes.status === "fulfilled" && riskRes.value) setRiskReports(riskRes.value.data.results || riskRes.value.data || [])
+      if (catRes.status === "fulfilled" && catRes.value) setCategories(catRes.value.data.results || catRes.value.data || [])
     } catch (err) {
       console.error("Dashboard fetch error:", err)
     } finally {
@@ -627,6 +630,29 @@ const AdminDashboard = () => {
     )
   })
 
+  const knownSections = new Set(ADMIN_NAV_GROUPS.flatMap((group) => group.items.map(([section]) => section)))
+  if (activeTab !== "overview" && (!knownSections.has(activeTab) || !canAccessAdminSection(activeTab, can))) {
+    return (
+      <div className="ny-panel mx-auto max-w-xl p-8 text-center">
+        <h1 className="text-2xl font-bold">Admin section unavailable</h1>
+        <p className="mt-3 text-sm text-[var(--ny-text-secondary)]">This workspace section is not recognised. Choose an available section from the navigation.</p>
+        <button type="button" onClick={() => setActiveTab("overview")} className="ny-btn ny-btn-primary mt-5">Go to overview</button>
+      </div>
+    )
+  }
+
+  const mobileGroups = [
+    ["Overview", [["overview", "Overview & Stats"], ["content_lifecycle", "Content Lifecycle CMS"]]],
+    ["Content", [["places", "Place Approvals"], ["destination_features", "Destination Features"], ["category_translations", "Categories & Translations"], ["transport_routes", "Transportation & Routes"], ["featured_destinations", "Featured Destinations Studio"], ["travel_services", "Restaurants, Transport & Plans"], ["hotel_bookings", "Hotels & Bookings"], ["marketplace", "Packages & partners"]]],
+    ["Publication", [["cms_overview", "CMS Overview"], ["homepage_manager", "Website — Pages"], ["cms", "Website Content & Navigation"], ["header_navbar", "Header & Navbar"], ["redirects", "Redirects & URLs"], ["content_translations", "Content Translations"], ["user_dashboard_control", "User Dashboard Controls"], ["cookie_consent", "Cookie Consent"], ["visitor_desk", "Visitor notices & featured"]]],
+    ["Media", [["images", "Image Verification"], ["media_library", "Central Media Library"], ["image_pipeline", "Image Acquisition Pipeline"]]],
+    ["Data Management", [["data_explorer", "Database & Records"], ["data_health", "Data Health & Provenance"], ["datasets", "Dataset & CSV Manager"], ["research", "AI Destination Discovery"], ["ai_engine", "Central AI Engine Studio"]]],
+    ["Review", [["data_reports", "User Reports & Corrections"], ["review_moderation", "Review Moderation"], ["guide_verification", "Guide Verification"], ["reports", "Reports & Analytics"], ["feedback_workspace", "Feedback Workspace"], ["infrastructure", "Community Services & ML"]]],
+    ["Users & Access", [["users", "Users & Sub-Admins"], ["staff_permissions", "Staff Permissions"]]],
+    ["Audit & Safety", [["tracking", "Live Tracking & SOS"], ["emergencies", "Medical SOS"], ["emergency_directory", "Emergency directory"], ["safety_management", "Alerts & Safety"], ["risks", "Safety & Hazard ML"], ["expenses", "Expense ML Data"]]],
+    ["System", [["branding", "Branding & Theme"], ["notification_settings", "Notifications"], ["routing_provider", "Routing Provider"], ["retention", "Retention & Protected Deletion"]]],
+  ].map(([group, items]) => [group, items.filter(([id]) => canAccessAdminSection(id, can))]).filter(([, items]) => items.length)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 text-slate-900 transition-colors duration-500">
       {/* Top Banner */}
@@ -664,33 +690,23 @@ const AdminDashboard = () => {
             >
               <FiRefreshCw className={loading ? "animate-spin" : ""} size={14} /> Refresh
             </button>
-            <button
+            {can("users", "add") && <button
               onClick={() => setShowAddUserModal(true)}
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 transition-all whitespace-nowrap"
             >
               <FiPlus size={16} /> Add Sub-Admin / Staff
-            </button>
+            </button>}
           </div>
         </motion.div>
 
         <div className="lg:hidden rounded-xl border border-emerald-200 bg-white p-3">
           <label className="text-xs font-black uppercase text-emerald-800">Admin section
             <select value={activeTab} onChange={event=>setActiveTab(event.target.value)} className="input-field mt-1">
-              {[
-              ["Overview", [["overview","Overview & Stats"],["content_lifecycle","Content Lifecycle CMS"]]],
-              ["Content", [["places","Place Approvals"],["destination_features","Destination Features"],["category_translations","Categories & Translations"],["transport_routes","Transportation & Routes"],["featured_destinations","Featured Destinations Studio"],["travel_services","Restaurants, Transport & Plans"],["hotel_bookings","Hotels & Bookings"],["marketplace","Packages & partners"]]],
-              ["Publication", [["cms_overview","CMS Overview"],["homepage_manager","Website — Pages"],["cms","Website Content & Navigation"],["header_navbar","Header & Navbar"],["redirects","Redirects & URLs"],["content_translations","Content Translations"],["user_dashboard_control","User Dashboard Controls"],["cookie_consent","Cookie Consent"],["visitor_desk","Visitor notices & featured"]]],
-              ["Media", [["images","Image Verification"],["media_library","Central Media Library"],["image_pipeline","Image Acquisition Pipeline"]]],
-              ["Data Management", [["data_explorer","Database & Records"],["data_health","Data Health & Provenance"],["datasets","Dataset & CSV Manager"],["research","AI Destination Discovery"],["ai_engine","Central AI Engine Studio"]]],
-              ["Review", [["data_reports","User Reports & Corrections"],["review_moderation","Review Moderation"],["guide_verification","Guide Verification"],["reports","Reports & Analytics"],["feedback_workspace","Feedback Workspace"],["infrastructure","Community Services & ML"]]],
-              ["Users & Access", [["users","Users & Sub-admins"],["staff_permissions","Staff Permissions"]]],
-              ["Audit & Safety", [["tracking","Live Tracking & SOS"],["emergencies","Medical SOS"],["emergency_directory","Emergency directory"],["safety_management","Alerts & Safety"],["risks","Safety & Hazard ML"],["expenses","Expense ML Data"]]],
-              ["System", [["branding","Branding & Theme"],["notification_settings","Notifications"],["retention","Retention & Protected Deletion"]]],
-            ].map(([group, items]) => (
-              <optgroup key={group} label={group}>
-                {items.map(([id,label])=><option key={id} value={id}>{label}</option>)}
-              </optgroup>
-            ))}
+              {mobileGroups.map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                </optgroup>
+              ))}
             </select>
           </label>
         </div>
@@ -2085,6 +2101,7 @@ const AdminDashboard = () => {
         {activeTab === "safety_management" && <SafetyManagementPanel />}
         {activeTab === "notification_settings" && <NotificationSettingsPanel />}
         {activeTab === "retention" && <RetentionPolicyPanel />}
+        {activeTab === "routing_provider" && <RoutingProviderPanel />}
         {activeTab === "media_library" && <MediaLibraryPanel />}
         {activeTab === "datasets" && <DatasetManagerPanel />}
         {activeTab === "feedback_workspace" && <FeedbackWorkspace />}

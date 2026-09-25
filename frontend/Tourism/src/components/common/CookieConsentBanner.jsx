@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiCheck, FiX } from "react-icons/fi"
 import usePublicConfig from "../../hooks/usePublicConfig"
@@ -16,8 +16,21 @@ export default function CookieConsentBanner() {
   const { settings } = usePublicConfig()
   const consent = resolveCookieConsent(settings?.cookie_consent)
   const [hidden, setHidden] = useState(() => isCookieConsentDismissed(window.localStorage))
+  const [chatOpen, setChatOpen] = useState(false)
 
-  if (!consent.enabled || hidden) return null
+  useEffect(() => {
+    const onChatToggle = (event) => setChatOpen(Boolean(event.detail?.open))
+    window.addEventListener("ny-chat-toggle", onChatToggle)
+    return () => window.removeEventListener("ny-chat-toggle", onChatToggle)
+  }, [])
+
+  useEffect(() => {
+    const visible = consent.enabled && !hidden && !chatOpen
+    document.body.classList.toggle("ny-cookie-visible", visible)
+    return () => document.body.classList.remove("ny-cookie-visible")
+  }, [consent.enabled, hidden, chatOpen])
+
+  if (!consent.enabled || hidden || chatOpen) return null
 
   const accept = () => {
     dismissCookieConsent(window.localStorage)
@@ -27,8 +40,9 @@ export default function CookieConsentBanner() {
   return (
     <div
       role="region"
+      aria-live="polite"
       aria-label="Cookie consent"
-      className="fixed bottom-24 left-3 right-3 sm:left-auto sm:right-5 sm:max-w-md lg:bottom-3 z-[70] rounded-2xl border border-emerald-500/40 bg-slate-900/95 backdrop-blur p-4 shadow-2xl"
+      className="ny-cookie-banner fixed left-3 right-3 max-h-[34vh] overflow-y-auto rounded-[var(--ny-radius-lg)] border border-white/15 bg-[var(--ny-green-deepest)] p-4 text-white shadow-[var(--ny-shadow-elevated)] backdrop-blur lg:left-5 lg:right-auto lg:max-w-md"
     >
       <div className="flex items-start gap-3">
         <p className="text-xs leading-relaxed text-emerald-100 flex-1">
@@ -41,7 +55,7 @@ export default function CookieConsentBanner() {
           <button
             type="button"
             onClick={accept}
-            className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-emerald-400"
+            className="ny-btn ny-btn-accent min-h-11 px-3 text-xs"
           >
             <FiCheck size={13} /> Accept
           </button>
@@ -49,7 +63,7 @@ export default function CookieConsentBanner() {
             type="button"
             onClick={accept}
             aria-label="Dismiss cookie notice"
-            className="rounded-lg border border-emerald-500/40 p-1.5 text-emerald-200 hover:bg-emerald-500/20"
+            className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] border border-white/25 text-white hover:bg-white/10"
           >
             <FiX size={14} />
           </button>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiAlertTriangle, FiCheckCircle, FiX, FiSend } from "react-icons/fi"
+import { FiX, FiSend } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
 import useToast from "../../hooks/useToast"
 
@@ -37,8 +37,8 @@ export default function ReportErrorModal({ isOpen, onClose, destination, fieldNa
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-white">
+    <div className="ny-modal-layer fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="dark-surface max-w-lg w-full rounded-[var(--ny-radius-lg)] border border-slate-800 bg-slate-950 p-6 text-white shadow-2xl space-y-4">
         <div className="flex justify-between items-start border-b border-slate-800 pb-3">
           <div>
             <span className="text-[10px] font-black uppercase text-amber-400">Data Integrity Guard</span>
@@ -47,7 +47,7 @@ export default function ReportErrorModal({ isOpen, onClose, destination, fieldNa
               <p className="text-xs text-slate-400">Destination: <span className="text-white font-bold">{destination.name}</span></p>
             )}
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white">
+          <button type="button" onClick={onClose} aria-label="Close report dialog" className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] bg-slate-800 text-slate-400 hover:text-white">
             <FiX size={18} />
           </button>
         </div>
@@ -60,8 +60,8 @@ export default function ReportErrorModal({ isOpen, onClose, destination, fieldNa
               onChange={(e) => setReportType(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-400"
             >
-              <option value="map_location">📍 Wrong Map Location / Coordinates</option>
-              <option value="route">🚗 Incorrect Route / Transit Details</option>
+              <option value="map_location">Wrong map location / coordinates</option>
+              <option value="route">Incorrect route / transit details</option>
               <option value="fare">💵 Incorrect Fare / Ticket Cost</option>
               <option value="travel_time">⏱️ Wrong Distance / Travel Time</option>
               <option value="opening_hours">🕒 Outdated Opening Hours</option>

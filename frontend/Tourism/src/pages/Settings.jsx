@@ -69,7 +69,7 @@ const ChangePasswordCard = () => {
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-6"
+      className="ny-panel p-6 mt-6"
       aria-label="Change password"
     >
       <h3 className="font-semibold flex items-center gap-2 text-gray-900 mb-4">
@@ -129,7 +129,7 @@ const Settings = () => {
   } = useForm()
 
 
-  const { user, setUser } = useAuth()
+  const { user, updateUser } = useAuth()
   const { showToast } = useToast()
   const { isDark, toggleTheme } = useTheme()
 
@@ -235,7 +235,7 @@ const Settings = () => {
           preferred_language: selectedLanguage?.id || selectedLanguage?.language_id || null,
           currency,
         })
-        setUser(updated)
+        updateUser(updated)
       } catch (e) {
         // Language/currency profile write failed — the user must know instead
         // of getting a blanket "everything saved" toast (audit REQ-013).
@@ -271,13 +271,13 @@ const Settings = () => {
         y:0
       }}
 
-      className="container-app max-w-3xl py-6 sm:py-8"
+      className="ny-page container-app max-w-6xl space-y-6 py-6 sm:py-8"
 
     >
       <CMSPageIntro pageKey="settings" />
 
 
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" subtitle="Manage language, translation, currency and notification preferences for your Nepal Yatra workspace." />
 
 
 
@@ -600,7 +600,7 @@ const Settings = () => {
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-6"
+        className="ny-panel p-6 mt-6"
         aria-label="Appearance"
       >
         <h3 className="font-semibold flex items-center gap-2 text-gray-900 mb-4">
@@ -614,7 +614,7 @@ const Settings = () => {
           </div>
           <button
             type="button"
-            role="switch"
+            role="switch" aria-label="Dark theme"
             aria-checked={isDark}
             onClick={toggleTheme}
             className={`relative h-7 w-12 rounded-full transition-colors ${isDark ? "bg-emerald-600" : "bg-gray-300"}`}

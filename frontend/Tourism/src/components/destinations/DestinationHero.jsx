@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   FiMapPin,
@@ -8,22 +8,25 @@ import {
   FiSun,
   FiCompass,
   FiShield,
+  FiAlertCircle,
 } from "react-icons/fi"
 import { placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
 
 const FOCAL_CENTER = "center center"
 
-// Legibility scrim: bottom + left navy gradients so text/buttons never sit on
-// busy pixels, regardless of the photograph behind them.
+// Keep the image treatment readable over any destination photograph while
+// staying inside the shared Nepal Yatra green/gold visual language.
 const scrim = {
   background: [
-    "linear-gradient(to top, rgba(7,12,32,0.96) 0%, rgba(7,12,32,0.72) 45%, rgba(7,12,32,0.28) 78%, rgba(7,12,32,0.10) 100%)",
-    "linear-gradient(to right, rgba(7,12,32,0.88) 0%, rgba(7,12,32,0.40) 55%, rgba(7,12,32,0.10) 100%)",
-    "radial-gradient(120% 90% at 50% 8%, rgba(7,12,32,0) 55%, rgba(7,12,32,0.45) 100%)",
+    "linear-gradient(to top, rgba(4, 42, 36, 0.97) 0%, rgba(4, 42, 36, 0.78) 42%, rgba(4, 42, 36, 0.32) 76%, rgba(4, 42, 36, 0.12) 100%)",
+    "linear-gradient(to right, rgba(4, 42, 36, 0.86) 0%, rgba(4, 42, 36, 0.42) 56%, rgba(4, 42, 36, 0.08) 100%)",
+    "radial-gradient(120% 90% at 50% 8%, rgba(99, 230, 190, 0.05) 0%, rgba(4, 42, 36, 0.38) 100%)",
   ].join(", "),
 }
 
-const isHttp = (u) => typeof u === "string" && /^https?:\/\//i.test(u)
+const isHttp = (value) => typeof value === "string" && /^https?:\/\//i.test(value)
+const isRenderableImage = (value) =>
+  isHttp(value) || (typeof value === "string" && (value.startsWith("/media/") || value.startsWith("/images/")))
 
 export default function DestinationHero({
   destination,
@@ -34,152 +37,152 @@ export default function DestinationHero({
 }) {
   const navigate = useNavigate()
   const reduced = useRef(false)
+  const [bgIdx, setBgIdx] = useState(0)
 
-  // Rotate through the destination's own photographs (cover first).
+  // Rotate through the destination's own photographs. Do not substitute a
+  // different destination's image when the record has no verified media.
   const bgImages = useMemo(() => {
     if (!destination) return []
     const list = []
-    const push = (u) => { if (u && !list.includes(u)) list.push(u) }
+    const push = (value) => {
+      if (isRenderableImage(value) && !list.includes(value)) list.push(value)
+    }
     push(destination.cover_image_url || destination.cover_image)
-    ;(destination.images || []).forEach((u) => {
-      // Only rotate remote, loadable URLs or media paths; skip broken hosts.
-      if (isHttp(u) || u.startsWith("/media/")) push(u)
-    })
-    if (!list.length) push("/images/destinations/kathmandu/durbar-square.jpg")
+    ;(destination.images || []).forEach(push)
     return list
   }, [destination])
 
-  const [bgIdx, setBgIdx] = useState(0)
   useEffect(() => {
     reduced.current = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false
   }, [])
+
   useEffect(() => {
-    if (reduced.current || bgImages.length < 2) return
-    const t = setInterval(() => setBgIdx((p) => (p + 1) % bgImages.length), 8000)
-    return () => clearInterval(t)
+    if (reduced.current || bgImages.length < 2) return undefined
+    const timer = setInterval(() => setBgIdx((previous) => (previous + 1) % bgImages.length), 8000)
+    return () => clearInterval(timer)
   }, [bgImages.length])
 
   if (!destination) return null
 
+  const category = destination.category_name || destination.category?.name || "Nepal destination"
+  const risk = destination.risk_analysis?.risk_category || destination.active_alert?.severity || INFO_UNAVAILABLE
+  const stay = destination.recommended_days ? `${destination.recommended_days} days` : INFO_UNAVAILABLE
+  const distance = destination.distance_from_kathmandu_km != null
+    ? `${destination.distance_from_kathmandu_km} km`
+    : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE
+  const location = placeLocationLabel(destination)
+  const description = destination.short_description || destination.description || "Recorded destination information is available on this page."
+
   return (
-    <div className="relative w-full min-h-[520px] sm:min-h-[600px] rounded-3xl overflow-hidden shadow-2xl bg-[#070c20] text-white flex flex-col justify-end p-6 sm:p-10 lg:p-12 mb-8">
-      {/* Rotating photographic backdrop of this very destination */}
-      {bgImages.map((u, i) => (
+    <section
+      className="relative mb-8 flex min-h-[440px] w-full flex-col justify-end overflow-hidden rounded-[var(--ny-radius-lg)] bg-[var(--ny-green-deepest)] p-5 text-white shadow-[var(--ny-shadow-elevated)] sm:min-h-[520px] sm:p-8 lg:min-h-[560px] lg:p-10"
+      aria-labelledby="destination-hero-title"
+    >
+      {bgImages.length > 0 && bgImages.map((src, index) => (
         <img
-          key={u}
-          src={u}
-          alt={destination.name}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-out ${i === bgIdx ? "opacity-100 kenburns" : "opacity-0"}`}
+          key={src}
+          src={src}
+          alt={index === bgIdx ? destination.name : ""}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${index === bgIdx ? "opacity-100" : "opacity-0"}`}
           style={{ objectPosition: FOCAL_CENTER }}
-          loading={i === 0 ? "eager" : "lazy"}
-          onError={(e) => { e.currentTarget.style.visibility = "hidden" }}
+          loading={index === 0 ? "eager" : "lazy"}
+          onError={(event) => { event.currentTarget.style.visibility = "hidden" }}
+          aria-hidden={index !== bgIdx}
         />
       ))}
 
-      {/* High-contrast scrim guarantees readable text over any photo */}
+      {/* A quiet branded fallback remains useful when the record has no image. */}
+      {bgImages.length === 0 && (
+        <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" style={{ background: "radial-gradient(circle at 75% 20%, rgba(99,230,190,.18), transparent 30%), linear-gradient(135deg, #063b32, #042a24 65%, #075b48)" }} />
+      )}
       <div className="absolute inset-0" style={scrim} aria-hidden="true" />
 
-      {/* Hero Content Layer */}
-      <div className="relative z-10 space-y-4 max-w-4xl">
-        {/* Category & Region Pill Badges */}
+      <div className="relative z-10 max-w-5xl space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="px-3.5 py-1 rounded-full bg-[#D9C7A3] text-[#0d1330] text-xs font-black uppercase tracking-wider shadow">
-            {destination.category_name || destination.category?.name || "Himalayan Destination"}
+          <span className="inline-flex min-h-7 items-center rounded-full bg-[var(--ny-gold)] px-3 text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-green-deepest)]">
+            {category}
           </span>
           {destination.province && (
-            <span className="px-3 py-1 rounded-full bg-white/15 backdrop-blur text-stone-100 text-xs font-bold border border-white/20">
-              📍 {destination.province} Province
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur">
+              <FiMapPin size={13} aria-hidden="true" /> {destination.province} Province
             </span>
           )}
           {destination.altitude && (
-            <span className="px-3 py-1 rounded-full bg-white/15 backdrop-blur text-amber-300 text-xs font-bold border border-white/20">
-              🏔️ {destination.altitude}
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[var(--ny-gold)] backdrop-blur">
+              {destination.altitude}
             </span>
           )}
         </div>
 
-        {/* Destination Main Title */}
-        <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight break-words" style={{ textShadow: "0 2px 22px rgba(7,12,32,0.7)" }}>
+        <h1 id="destination-hero-title" className="!m-0 max-w-4xl !text-3xl !font-bold !text-white sm:!text-5xl">
           {destination.name}
         </h1>
 
-        {/* Location Subtitle */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-100 font-medium" style={{ textShadow: "0 1px 10px rgba(7,12,32,0.8)" }}>
-          <span className="flex items-center gap-1.5 font-bold text-[#D9C7A3]">
-            <FiMapPin className="text-[#D99048]" />
-            {placeLocationLabel(destination)}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-white/90">
+          <span className="flex items-center gap-1.5 font-bold text-[var(--ny-mint)]">
+            <FiMapPin size={15} aria-hidden="true" /> {location}
           </span>
-          {destination.district && (
-            <>
-              <span aria-hidden="true">•</span>
-              <span>District: <b className="text-white">{destination.district}</b></span>
-            </>
-          )}
+          {destination.district && <span>District: <strong className="text-white">{destination.district}</strong></span>}
         </div>
 
-        {/* Short Editorial Abstract */}
-        <p className="text-sm sm:text-base text-stone-100/90 leading-relaxed line-clamp-3 max-w-3xl" style={{ textShadow: "0 1px 8px rgba(7,12,32,0.8)" }}>
-          {destination.short_description || destination.description || "Discover mountains, ancient heritage, and vibrant local culture in this landmark Nepal destination."}
-        </p>
+        <p className="line-clamp-3 max-w-3xl text-sm leading-6 text-white/90 sm:text-base">{description}</p>
 
-        {/* Quick Travel Metrics Bar */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+        <div className="grid grid-cols-2 gap-2 pt-2 sm:gap-3 lg:grid-cols-4">
           {[
-            { label: "Recommended Stay", value: destination.recommended_days ? `${destination.recommended_days} Days` : INFO_UNAVAILABLE, icon: FiClock, tint: "text-[#D99048]" },
-            { label: "Best Season", value: destination.best_time_to_visit || INFO_UNAVAILABLE, icon: FiSun, tint: "text-amber-300" },
-            { label: "Distance from Kathmandu", value: destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE, icon: FiCompass, tint: "text-[#70B1AB]" },
-            { label: "Safety & Risk Level", value: destination.risk_analysis?.risk_category || "Moderate", icon: FiShield, tint: "text-emerald-300" },
-          ].map(({ label, value, icon: Icon, tint }) => (
-            <div key={label} className="p-3 rounded-2xl bg-[#0d1330]/55 backdrop-blur border border-white/15 text-xs">
-              <span className="text-[10px] uppercase font-bold text-stone-300 block">{label}</span>
-              <span className="text-sm font-black text-white flex items-center gap-1 mt-0.5">
-                <Icon className={tint} /> {value}
+            { label: "Recommended stay", value: stay, icon: FiClock },
+            { label: "Best season", value: destination.best_time_to_visit || INFO_UNAVAILABLE, icon: FiSun },
+            { label: "Distance from Kathmandu", value: distance, icon: FiCompass },
+            { label: "Safety / risk", value: risk, icon: FiShield },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="min-w-0 rounded-[var(--ny-radius-md)] border border-white/15 bg-black/20 p-3 backdrop-blur">
+              <span className="block text-[0.7rem] font-bold uppercase tracking-[0.08em] text-white/70">{label}</span>
+              <span className="mt-1 flex items-center gap-1.5 text-sm font-bold text-white">
+                <Icon className="h-4 w-4 shrink-0 text-[var(--ny-mint)]" aria-hidden="true" />
+                <span className="truncate">{value}</span>
               </span>
             </div>
           ))}
         </div>
 
-        {/* Action Buttons Row */}
-        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/15">
+        <div className="flex flex-wrap items-center gap-3 border-t border-white/15 pt-4">
           <button
-            onClick={() => navigate(`/trip-planner?dest=${encodeURIComponent(destination.slug)}`)}
-            className="px-6 py-3.5 rounded-2xl bg-[#D99048] hover:bg-amber-500 text-slate-950 font-black text-sm flex items-center gap-2 shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.03]"
+            type="button"
+            onClick={() => navigate(`/itinerary?dest=${encodeURIComponent(destination.slug || destination.name)}`)}
+            className="ny-btn ny-btn-accent"
           >
-            <FiCompass size={18} /> Plan This Journey
+            <FiCompass size={17} aria-hidden="true" /> Plan this journey
           </button>
-
           <button
+            type="button"
             onClick={() => navigate(`/navigation?dest=${encodeURIComponent(destination.name)}`)}
-            className="px-6 py-3.5 rounded-2xl bg-white hover:bg-stone-100 text-slate-950 font-black text-sm flex items-center gap-2 shadow-xl transition-all hover:scale-[1.03]"
+            className="ny-btn border-white/70 bg-white text-[var(--ny-green-deepest)] hover:border-white hover:bg-white/90"
           >
-            <FiNavigation size={18} className="text-[#0d1330]" /> Get Road Route
+            <FiNavigation size={17} aria-hidden="true" /> Get road route
           </button>
-
           {onOpenOfflineKit && (
-            <button
-              onClick={onOpenOfflineKit}
-              className="px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm border border-white/20 transition-all backdrop-blur"
-            >
-              🎒 Offline Kit
+            <button type="button" onClick={onOpenOfflineKit} className="ny-btn border-white/25 bg-white/10 text-white hover:bg-white/20">
+              Offline kit
             </button>
           )}
-
+          {onOpenReportModal && (
+            <button type="button" onClick={onOpenReportModal} className="ny-btn border-white/25 bg-white/10 text-white hover:bg-white/20">
+              <FiAlertCircle size={16} aria-hidden="true" /> Report an issue
+            </button>
+          )}
           {onToggleFavorite && (
             <button
+              type="button"
               onClick={onToggleFavorite}
-              className={`p-3.5 rounded-2xl border transition-all ${
-                isFavorite
-                  ? "bg-rose-500 border-rose-400 text-white shadow-lg"
-                  : "bg-white/15 hover:bg-white/25 border-white/20 text-white backdrop-blur"
-              }`}
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+              className={`ny-btn w-11 px-0 ${isFavorite ? "border-rose-300 bg-rose-500 text-white" : "border-white/25 bg-white/10 text-white hover:bg-white/20"}`}
+              title={isFavorite ? "Remove from favourites" : "Save to favourites"}
+              aria-label={isFavorite ? "Remove from favourites" : "Save to favourites"}
               aria-pressed={isFavorite}
             >
-              <FiHeart size={20} className={isFavorite ? "fill-white" : ""} />
+              <FiHeart size={19} className={isFavorite ? "fill-current" : ""} aria-hidden="true" />
             </button>
           )}
         </div>
       </div>
-    </div>
+    </section>
   )
 }

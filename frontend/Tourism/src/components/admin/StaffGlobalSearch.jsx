@@ -44,7 +44,7 @@ export default function StaffGlobalSearch() {
   const goto = (r) => {
     setResults(null)
     setQ("")
-    const known = ["destinations", "images", "hotels", "restaurants", "reviews", "feedback", "safety", "content", "marketplace", "users"]
+    const known = ["destinations", "images", "hotels", "restaurants", "transportation", "travel_plans", "reviews", "feedback", "safety", "content", "marketplace", "users"]
     navigate(known.includes(r.module) ? `/staff/${r.module}` : "/staff")
   }
 
@@ -60,13 +60,18 @@ export default function StaffGlobalSearch() {
           }}
           placeholder="Search everything you can access…"
           aria-label="Global search (results limited to your permissions)"
+           role="combobox"
+           aria-expanded={Boolean(results)}
+           aria-controls="staff-search-results"
+           aria-autocomplete="list"
+           onKeyDown={(event) => { if (event.key === "Escape") setResults(null) }}
           className="w-full text-sm focus:outline-none"
         />
       </div>
       {results && (
-        <div className="absolute z-40 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-80 overflow-y-auto">
+        <div id="staff-search-results" role="listbox" aria-label="Staff search results" className="absolute z-40 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-80 overflow-y-auto">
           {results.results.map((r) => (
-            <button key={`${r.type}-${r.id}`} onClick={() => goto(r)} className="w-full text-left px-3 py-2 hover:bg-slate-50 border-b last:border-0">
+            <button key={`${r.type}-${r.id}`} role="option" onClick={() => goto(r)} className="w-full text-left px-3 py-2 hover:bg-slate-50 border-b last:border-0">
               <p className="text-sm text-slate-800 font-bold truncate">{TYPE_ICON[r.type] || "🔎"} {r.label}</p>
               {r.snippet && <p className="text-xs text-slate-500 truncate">{r.snippet}</p>}
             </button>

@@ -64,7 +64,7 @@ const Favorites = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="container-app py-12 text-center max-w-md mx-auto space-y-4">
+      <div className="ny-page container-app mx-auto max-w-2xl space-y-5 py-10 text-center">
         <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl">
           <FiHeart />
         </div>
@@ -75,7 +75,7 @@ const Favorites = () => {
         <div className="pt-2">
           <Link
             to="/login?next=/favorites"
-            className="px-6 py-3 rounded-2xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-sm inline-flex items-center gap-2 shadow-lg shadow-purple-700/20 transition-all"
+            className="ny-btn ny-btn-primary"
           >
             <FiLogIn size={16} /> Log In to View Favourites
           </Link>
@@ -88,7 +88,7 @@ const Favorites = () => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="container-app py-8 space-y-6"
+      className="ny-page container-app space-y-6 py-6 sm:py-8"
     >
       <CMSPageIntro pageKey="favorites" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">

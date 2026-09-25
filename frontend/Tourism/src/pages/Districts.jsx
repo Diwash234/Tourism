@@ -42,7 +42,7 @@ export default function Districts() {
   }, [rows, query]);
 
   return (
-    <div className="min-h-screen bg-[#F7F8F5] dark:bg-nav-dark pb-16">
+    <div className="ny-page bg-[var(--ny-bg)] pb-16">
       <CMSPageIntro pageKey="districts" />
       <PageHeader
         title="Districts of Nepal"
@@ -107,7 +107,7 @@ export default function Districts() {
                 {row.province} · {row.destination_count > 0 ? `${row.destination_count} recorded places` : "Profile awaiting verified data"}
               </p>
               {row.elevation_m != null && (
-                <p className="text-[10px] text-gray-400 mt-0.5">⛰️ ~{row.elevation_m} m</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Elevation: ~{row.elevation_m} m</p>
               )}
             </Link>
           ))}
