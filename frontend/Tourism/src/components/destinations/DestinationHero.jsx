@@ -10,7 +10,7 @@ import {
   FiShield,
   FiAlertCircle,
 } from "react-icons/fi"
-import { placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
+import { placeLocationLabel, INFO_UNAVAILABLE } from "../../utils/placeUtils"
 
 const FOCAL_CENTER = "center center"
 
@@ -69,7 +69,7 @@ export default function DestinationHero({
   const stay = destination.recommended_days ? `${destination.recommended_days} days` : INFO_UNAVAILABLE
   const distance = destination.distance_from_kathmandu_km != null
     ? `${destination.distance_from_kathmandu_km} km`
-    : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE
+    : INFO_UNAVAILABLE
   const location = placeLocationLabel(destination)
   const description = destination.short_description || destination.description || "Recorded destination information is available on this page."
 

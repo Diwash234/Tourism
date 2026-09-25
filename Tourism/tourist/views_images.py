@@ -178,8 +178,11 @@ class DestinationImageSetCoverView(APIView):
         image.is_cover = True
         image.save(update_fields=["is_cover"])
 
-        cover_url = image.external_url or (image.image.url if image.image else "") or getattr(image, "image_path", "") or ""
+        cover_url = _media_public_url(image)
         Destination.objects.filter(pk=destination.pk).update(cover_image=cover_url or "")
+        _sync_destination_json(destination)
+        from audit.models import AuditLog
+        AuditLog.objects.create(user=request.user, user_email=request.user.email, actor_role=getattr(request.user, "role", ""), category="media", severity="warning", source="backend", action="media.set_cover", message=f"Set image #{image.id} as cover for {destination.name}", object_type="DestinationImage", object_id=str(image.id), extra={"destination_id": destination.id})
 
         return Response({
             "message": "Cover image updated.",

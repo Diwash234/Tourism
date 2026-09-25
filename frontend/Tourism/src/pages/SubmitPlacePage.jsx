@@ -582,7 +582,7 @@ export default function SubmitPlacePage() {
               </label>
               <input
                 className="input-field mt-1 text-sm"
-                placeholder="e.g. Pyuthan District Hospital (+977-86-460114)"
+                placeholder="e.g. name, address and verified contact number"
                 value={form.nearest_hospital_info}
                 onChange={(e) => update("nearest_hospital_info", e.target.value)}
               />
@@ -606,7 +606,7 @@ export default function SubmitPlacePage() {
               </label>
               <input
                 className="input-field mt-1 text-sm"
-                placeholder="e.g. Pyuthan Police Post (100)"
+                placeholder="e.g. name, address and verified contact number"
                 value={form.nearest_police_info}
                 onChange={(e) => update("nearest_police_info", e.target.value)}
               />

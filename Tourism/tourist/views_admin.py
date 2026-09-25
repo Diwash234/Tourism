@@ -2448,6 +2448,8 @@ class AdminCMSView(APIView):
         "destinations": {"name", "slug", "description", "short_description", "district", "province", "city_english", "latitude", "longitude", "status", "seo_title", "meta_description", "og_image_url"},
         "announcements": {"title", "message", "level", "is_active"},
     }
+    PUBLICATION_FIELDS = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible", "is_active", "route", "key"}
+    WORKFLOW_ACTIONS = {"publish", "unpublish", "schedule", "approve", "request_changes", "rollback"}
 
     def _validate_payload(self, resource, payload):
         import re
@@ -2537,10 +2539,9 @@ class AdminCMSView(APIView):
             snapshot=self._snapshot(resource, obj), action=action, created_by=user)
 
     def _publish_due(self):
-        from .cms_publishing import publish_due_sections
+        from .cms_publishing import publish_due_pages, publish_due_sections
         now = timezone.now()
-        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None)
+        publish_due_pages(now)
         publish_due_sections(now)
 
     @staticmethod

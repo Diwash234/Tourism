@@ -13,7 +13,7 @@ import {
 import destinationApi from "../../api/destinationApi"
 import emergencyApi from "../../api/emergencyApi"
 import userApi from "../../api/userApi"
-import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE, straightLineFromKathmandu } from "../../utils/placeUtils"
+import { formatCoords, hasValidCoords, placeLocationLabel, INFO_UNAVAILABLE } from "../../utils/placeUtils"
 import { LOCATION_ICON_URL } from "../../utils/locationIcons"
 import { getDestinationImageUrl } from "../../utils/imageUtils"
 import { photoApi } from "../../services/api"
@@ -506,7 +506,7 @@ export default function DestinationDetails() {
       <div className="grid grid-cols-2 gap-3 rounded-[var(--ny-radius-lg)] border border-[var(--ny-green)] bg-[var(--ny-green-dark)] p-5 text-white shadow-[var(--ny-shadow-elevated)] sm:grid-cols-4 sm:gap-4">
         <div>
           <span className="text-[10px] uppercase font-bold text-primary-100">From Kathmandu</span>
-          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
+          <p className="text-xl font-black mt-0.5">{destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : INFO_UNAVAILABLE}</p>
           <span className="text-[11px] text-amber-300 font-semibold">{destination.approx_travel_time || INFO_UNAVAILABLE}</span>
         </div>
         <div>
@@ -1188,7 +1188,7 @@ export default function DestinationDetails() {
                   <h4 className="font-bold text-sm text-amber-900 flex items-center gap-1.5">
                     <FiTruck /> Road Transit & Approximate Fares
                   </h4>
-                  <p><b>Distance from Kathmandu:</b> {destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : straightLineFromKathmandu(destination.latitude, destination.longitude) || INFO_UNAVAILABLE}</p>
+                  <p><b>Distance from Kathmandu:</b> {destination.distance_from_kathmandu_km != null ? `${destination.distance_from_kathmandu_km} km` : INFO_UNAVAILABLE}</p>
                   <p><b>Recorded transit fare:</b> {destination.transit_routes?.[0]?.estimated_fare_npr != null ? `NPR ${destination.transit_routes[0].estimated_fare_npr} (${destination.transit_routes[0].transport_mode || "recorded route"})` : "No transit fare is stored for this place"}</p>
                 </div>
 
