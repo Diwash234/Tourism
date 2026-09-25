@@ -659,6 +659,9 @@ def _safe_file_url(field):
 # that close, so the box widens step by step. The final ``None`` means "no box" (the
 # whole table) so a result is never lost; that full scan only happens as a last resort.
 _ITINERARY_BBOX_STEPS = (0.25, 1.0, None)
+# For small candidate sets (for example when only a few verified services exist) the
+# extra bounding-box queries cost more than they save, so those sets are scanned once.
+_ITINERARY_BBOX_MIN_ROWS = 300
 
 
 def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
@@ -672,7 +675,8 @@ def _nearest_for_itinerary(rows, lat, lon, mapper, limit=2):
     lat, lon = float(lat), float(lon)
     rows = rows.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
     candidates = []
-    for delta in _ITINERARY_BBOX_STEPS:
+    steps = _ITINERARY_BBOX_STEPS if rows.count() > _ITINERARY_BBOX_MIN_ROWS else (None,)
+    for delta in steps:
         if delta is None:
             candidates = list(rows)
             break

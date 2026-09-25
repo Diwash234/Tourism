@@ -12,6 +12,8 @@ Each test pins one previously-fixed behavior so it cannot silently regress:
   8. Plan a Trip dropdown exposes Destinations / Budget / Hotels / Risk Alerts
   9. CMS PATCH -> publish -> public config serves the new content
 """
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -4279,6 +4281,7 @@ class MediaLibraryVerifiedStatusTests(TestCase):
         self.assertTrue(self.verified.is_cover)
 
 
+@patch("tourist.views_ml._ITINERARY_BBOX_MIN_ROWS", 0)  # force the bounding-box path for tiny fixtures
 class ItineraryNearestServicesBoundingBoxTests(TestCase):
     """_nearest_for_itinerary narrows with a SQL bounding box but must still return
     the true nearest rows, widening the box for remote places."""
@@ -4323,3 +4326,9 @@ class ItineraryNearestServicesBoundingBoxTests(TestCase):
         self._hospital("Corner", 27.7 + 0.24, 85.3 + 0.24)  # ~36 km
         self._hospital("Edge", 27.7 + 0.26, 85.3)            # ~29 km
         self.assertEqual(self._names(27.7, 85.3)[0], "Edge")
+
+    def test_small_sets_skip_the_box_and_match(self):
+        self._hospital("Close", 29.97, 81.82)
+        self._hospital("Remote A", 29.27, 82.18)
+        with patch("tourist.views_ml._ITINERARY_BBOX_MIN_ROWS", 300):
+            self.assertEqual(self._names(29.9667, 81.8167), ["Close", "Remote A"])
