@@ -11,13 +11,14 @@ const COLORS = {
   critical: "bg-red-100 text-red-900 border-red-300",
 }
 
-function Badge({ level = "low" }) {
-  return <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${COLORS[level] || COLORS.low}`}>{level}</span>
+function Badge({ level = null }) {
+  const label = level || "Unavailable"
+  return <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${COLORS[level] || "border-slate-200 bg-slate-100 text-slate-600"}`}>{label}</span>
 }
 
 export default function DestinationRiskPanel() {
   const [params, setParams] = useSearchParams()
-  const [query, setQuery] = useState(params.get("destination") || "Pokhara")
+  const [query, setQuery] = useState(params.get("destination") || "")
   const [suggestions, setSuggestions] = useState([])
   const [risk, setRisk] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -81,7 +82,7 @@ export default function DestinationRiskPanel() {
               {suggestions.slice(0, 6).map((item) => <button type="button" key={item.id} onClick={() => assess(item.slug)} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 border-b last:border-0"><b>{item.name}</b><span className="text-xs text-gray-400 ml-2">{item.district}</span></button>)}
             </div>}
           </div>
-          <button disabled={loading} className="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-black disabled:opacity-50">{loading ? "Calculating…" : "Analyze"}</button>
+          <button disabled={loading} className="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-black disabled:opacity-50">{loading ? "Checking…" : "Check records"}</button>
         </form>
         {error && <p className="mt-2 text-xs text-rose-200">{error}</p>}
       </div>
@@ -89,7 +90,7 @@ export default function DestinationRiskPanel() {
       {risk && <div className="p-5 sm:p-6 space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><p className="text-xs font-bold uppercase text-gray-400">{risk.destination.district} · {risk.destination.province}</p><h3 className="text-2xl font-black text-gray-900">{risk.destination.name}</h3><p className="text-xs text-gray-500 mt-1">Calculated {new Date(risk.calculated_at).toLocaleString()}</p></div>
-          <div className={`rounded-2xl border p-4 min-w-48 ${COLORS[risk.overall.level]}`}><p className="text-[10px] font-black uppercase">Model risk indicator</p><div className="flex items-end gap-2"><b className="text-3xl">{risk.overall.score}</b><Badge level={risk.overall.level} /></div><p className="text-[10px] mt-1">Not an official warning</p></div>
+          <div className={`rounded-2xl border p-4 min-w-48 ${COLORS[risk.overall.level]}`}><p className="text-[10px] font-black uppercase">Service risk indicator</p><div className="flex items-end gap-2"><b className="text-3xl">{risk.overall.score}</b><Badge level={risk.overall.level} /></div><p className="text-[10px] mt-1">Not an official warning</p></div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-3">

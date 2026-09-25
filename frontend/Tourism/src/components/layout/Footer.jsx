@@ -1,274 +1,173 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  FiFacebook,
-  FiInstagram,
-  FiTwitter,
-  FiYoutube,
-  FiMapPin,
-  FiMail,
-  FiPhone,
-  FiBookOpen,
-} from "react-icons/fi";
+import { useState } from "react"
+import useAuth from "../../hooks/useAuth"
+import { Link } from "react-router-dom"
+import { FiArrowRight, FiFacebook, FiGlobe, FiInstagram, FiMail, FiMapPin, FiPhone, FiTwitter, FiYoutube } from "react-icons/fi"
+import { APP_NAME } from "../../utils/constants"
+import usePublicConfig from "../../hooks/usePublicConfig"
+import configApi from "../../api/configApi"
+import { CMSExtras } from "../cms/CMSBlock"
+import { EmblemImg, StupaImg, TopiImg, FlagImg, MapImg, CowImg, DanpheImg, RhododendronImg } from "../dashboard/NationalSymbols"
 
-import { APP_NAME } from "../../utils/constants";
-import usePublicConfig from "../../hooks/usePublicConfig";
-import configApi from "../../api/configApi";
-import { CMSExtras } from "../cms/CMSBlock";
+const PROVINCES = ["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"]
+const PUBLIC_FOOTER_PATHS = new Set([
+  "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal",
+  "/itinerary", "/budget-estimator", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
+  "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
+  "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support", "/how-it-works",
+])
 
-import {
-  FlagImg,
-  MapImg,
-  CowImg,
-  DanpheImg,
-  RhododendronImg,
-  EmblemImg,
-  TopiImg,
-  StupaImg,
-} from "../dashboard/NationalSymbols";
+const NATIONAL_SYMBOLS = [
+  ["National Flag", FlagImg],
+  ["Nepal Map", MapImg],
+  ["National Animal", CowImg],
+  ["Danphe", DanpheImg],
+  ["Lali Gurans", RhododendronImg],
+  ["National Emblem", EmblemImg],
+  ["Dhaka Topi", TopiImg],
+  ["Stupa", StupaImg],
+]
 
-const PROVINCE_CITY_LINKS = [
-  { name: "Koshi", city: "Biratnagar" },
-  { name: "Madhesh", city: "Janakpur" },
-  { name: "Bagmati", city: "Kathmandu" },
-  { name: "Gandaki", city: "Pokhara" },
-  { name: "Lumbini", city: "Butwal" },
-  { name: "Karnali", city: "Surkhet" },
-  { name: "Sudurpashchim", city: "Dhangadhi" },
-];
+const DEFAULT_EXPLORE = [
+  ["Destinations", "/destinations"],
+  ["Recommendations", "/recommendation"],
+  ["Photo Gallery", "/gallery"],
+  ["Compare Places", "/compare"],
+]
 
-const NATIONAL_ITEMS = [
-  { image: FlagImg, title: "National Flag" },
-  { image: MapImg, title: "Nepal Map" },
-  { image: CowImg, title: "National Animal" },
-  { image: DanpheImg, title: "Danphe Bird" },
-  { image: RhododendronImg, title: "Lali Gurans" },
-  { image: EmblemImg, title: "National Emblem" },
-  { image: TopiImg, title: "Dhaka Topi" },
-  { image: StupaImg, title: "Stupa" },
-];
+const DEFAULT_PLAN = [
+  ["Trip Planner", "/itinerary"],
+  ["Travel Packages", "/packages"],
+  ["Budget Estimator", "/budget-estimator"],
+  ["Hotels & Lodges", "/hotels/search"],
+]
 
 const Footer = () => {
-  const { branding, navigation, pageCMS } = usePublicConfig()
-  const { showBlock, copy, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "newsletter"])
-  const footerNav = (navigation || []).filter(item => item.location === "footer" && String(item.route || "").startsWith("/"))
-  
-  const filteredExtras = (extras || []).filter(
-    (sec) =>
-      sec?.key !== "tagline" &&
-      sec?.title !== "Footer note" &&
-      !sec?.body?.includes("Discover destinations, plan budgets")
-  )
-  
-  const rawTitle = branding.site_title || APP_NAME
-  const siteTitle = rawTitle.replace(/Digital Nepal Tourism Platform/g, "Nepal Yatra").replace(/Digital Nepal Tourism/g, "Nepal Yatra").replace(/Digital Nepal/g, "Nepal Yatra")
-  
-  const contactAddress = branding.contact_address || "Pokhara, Nepal"
-  const contactEmail = branding.contact_email || "support@tourists.app"
-  const contactPhone = branding.contact_phone || "+977-000-0000"
-
-  // Footer links are admin-managed (navigation rows with location "footer");
-  // the fallback keeps the column populated before any are created. The
-  // Company column skips routes already shown in Explore so nothing doubles.
-  const exploreLinks = footerNav.length
-    ? footerNav
-    : [
-        { label: "Destinations", route: "/destinations" },
-        { label: "Recommendations", route: "/recommendation" },
-        { label: "Budget Estimator", route: "/budget-estimator" },
-        { label: "Risk Alerts", route: "/risk-alerts" },
-      ]
-  const exploreRoutes = new Set(exploreLinks.map((item) => item.route))
-  const companyLinks = [
-    { label: "How It Works", route: "/how-it-works", bold: true },
-    { label: "Customer Support", route: "/support", bold: true },
-    { label: "About Us", route: "/about" },
-    { label: "Contact", route: "/contact" },
-    { label: "Privacy Policy", route: "/privacy" },
-    { label: "Terms of Service", route: "/terms" },
-    { label: "Emergency", route: "/emergency" },
-  ].filter((link) => !exploreRoutes.has(link.route))
-
-  // Newsletter signup (brief §6) — real backend store, message comes from
-  // the API response, never faked.
-  const [newsletterEmail, setNewsletterEmail] = useState("")
-  const [newsletterBusy, setNewsletterBusy] = useState(false)
+  const { isAuthenticated } = useAuth()
+  const { branding = {}, navigation = [], pageCMS } = usePublicConfig()
+  const { showBlock, extras } = pageCMS("footer", ["symbols", "explore", "provinces", "company", "contact", "newsletter"])
+  const [email, setEmail] = useState("")
+  const [subscribing, setSubscribing] = useState(false)
   const [newsletterMessage, setNewsletterMessage] = useState("")
 
-  const handleNewsletter = async (e) => {
-    e.preventDefault()
-    if (newsletterBusy) return
-    setNewsletterBusy(true)
+  const managed = (location) => (navigation || [])
+    .filter((item) => item.location === location && String(item.route || "").startsWith("/") && (isAuthenticated || PUBLIC_FOOTER_PATHS.has(item.route)))
+    .map((item) => [item.label, item.route])
+  const exploreLinks = managed("footer").length ? managed("footer") : DEFAULT_EXPLORE
+  const hasContact = Boolean(branding.contact_address || branding.contact_email || branding.contact_phone)
+
+  const subscribe = async (event) => {
+    event.preventDefault()
+    if (subscribing) return
+    setSubscribing(true)
     setNewsletterMessage("")
     try {
-      const res = await configApi.subscribeNewsletter(newsletterEmail.trim())
-      setNewsletterMessage(res.data?.message || "Subscribed — thank you!")
-      setNewsletterEmail("")
-    } catch (err) {
-      setNewsletterMessage(err.response?.data?.detail || "Could not subscribe — please try again.")
+      const response = await configApi.subscribeNewsletter(email.trim())
+      setNewsletterMessage(response.data?.message || "You are on the list.")
+      setEmail("")
+    } catch (error) {
+      setNewsletterMessage(error.response?.data?.detail || "We could not subscribe you right now.")
     } finally {
-      setNewsletterBusy(false)
+      setSubscribing(false)
     }
   }
 
   return (
-    <footer className="bg-[#03231b] text-gray-200 mt-16 border-t border-emerald-700/40">
-      <div className="h-1 bg-gradient-to-r from-emerald-700 via-emerald-400 to-emerald-700" />
-
-      {showBlock("symbols") && <div className="container-app py-8 border-b border-emerald-800/50">
-        <div className="grid grid-cols-4 md:grid-cols-8 gap-3 sm:gap-5">
-          {NATIONAL_ITEMS.map((item) => (
-            <div
-              key={item.title}
-              className="flex flex-col items-center text-center"
-            >
-              <img
-                src={item.image}
-                alt={item.title}
-                loading="lazy"
-                className="
-                  w-14
-                  h-14
-                  rounded-full
-                  object-cover
-                  border-2
-                  border-emerald-500/40
-                "
-              />
-              <span className="text-xs mt-2 text-gray-200 font-medium">
-                {item.title}
-              </span>
-            </div>
-          ))}
+    <footer className="mt-16 border-t border-[#B9CEC5] bg-[var(--ny-green-deepest)] text-[#EAF2EF]">
+      <div className="border-b border-white/10">
+        <div className="container-app grid gap-6 py-10 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <p className="ny-kicker !border !border-[#63E6BE]/30 !bg-white/10 !text-[#BDEBD9]">Plan with confidence</p>
+            <h2 className="mt-3 !text-2xl !text-white sm:!text-3xl">Your Nepal journey starts here.</h2>
+            <p className="mt-2 max-w-2xl text-sm text-[#C7D9D2]">Explore recorded places, shape an itinerary, and keep the information you need close while you travel.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/destinations" className="ny-btn ny-btn-accent">Explore Nepal <FiArrowRight size={16} aria-hidden="true" /></Link>
+            <Link to="/itinerary" className="ny-btn border border-white/30 bg-transparent text-white hover:border-white hover:bg-white/10">Build my trip</Link>
+          </div>
         </div>
-
-        <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <Link
-            to="/discover-nepal"
-            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow flex items-center justify-center gap-2 text-center transition-transform hover:scale-105"
-          >
-            <FiBookOpen size={16} /> See More — Explore All 26 National Symbols & Country Profile ➔
-          </Link>
-
-          <p className="text-sm italic text-emerald-200/90 font-semibold">
-            {copy("symbols", "body", "Discover Nepal — Beyond Everest")}
-          </p>
-        </div>
-      </div>}
-
-      <div className="container-app py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {showBlock("explore") && (
-          <div>
-            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("explore", "title", "Explore")}</h4>
-            <ul className="space-y-2 text-sm">
-              {exploreLinks.map((item) => (
-                <li key={item.route}><Link to={item.route} className="text-gray-300 hover:text-white transition-colors">{item.label}</Link></li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {showBlock("provinces") && (
-          <div>
-            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("provinces", "title", "Provinces")}</h4>
-            <ul className="space-y-2 text-sm">
-              {PROVINCE_CITY_LINKS.map((province) => (
-                <li key={province.name}>
-                  <Link to={`/destinations?q=${encodeURIComponent(province.city)}`} className="text-gray-300 hover:text-white transition-colors">{province.name}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {showBlock("company") && (
-          <div>
-            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("company", "title", "Company")}</h4>
-            <ul className="space-y-2 text-sm">
-              {companyLinks.map((link) => (
-                <li key={link.route}>
-                  <Link to={link.route} className={link.bold ? "text-white font-semibold hover:text-emerald-300 transition-colors" : "text-gray-300 hover:text-white transition-colors"}>{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 text-xs space-y-1 text-gray-300 font-medium">
-              <p>🚓 Police:<a href="tel:100" className="text-white font-bold ml-1">100</a></p>
-              <p>🚑 Ambulance:<a href="tel:102" className="text-white font-bold ml-1">102</a></p>
-              <p>🔥 Fire:<a href="tel:101" className="text-white font-bold ml-1">101</a></p>
-            </div>
-          </div>
-        )}
-
-        {showBlock("contact") && (
-          <div>
-            <h4 className="text-emerald-300 font-bold mb-3 text-sm uppercase tracking-wider">{copy("contact", "title", "Contact")}</h4>
-            <ul className="space-y-3 text-sm">
-              <li className="flex gap-2 items-start text-gray-300"><FiMapPin className="text-emerald-300 mt-0.5 shrink-0" /> {contactAddress}</li>
-              <li className="flex gap-2 items-center text-gray-300">
-                <FiMail className="text-emerald-300 shrink-0" />
-                <a href={`mailto:${contactEmail}`} className="hover:text-white transition-colors break-all">{contactEmail}</a>
-              </li>
-              <li className="flex gap-2 items-center text-gray-300">
-                <FiPhone className="text-emerald-300 shrink-0" />
-                <a href={`tel:${contactPhone.replace(/[^+\d]/g, "")}`} className="hover:text-white transition-colors">{contactPhone}</a>
-              </li>
-            </ul>
-            <div className="flex gap-4 mt-5 text-lg text-gray-300">
-              {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Facebook"><FiFacebook /></a>}
-              {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Instagram"><FiInstagram /></a>}
-              {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="X or Twitter"><FiTwitter /></a>}
-              {branding.youtube_url && <a href={branding.youtube_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="YouTube"><FiYoutube /></a>}
-            </div>
-          </div>
-        )}
       </div>
 
-      {showBlock("newsletter") && (
-        <div className="container-app pb-10">
-          <div className="rounded-2xl border border-emerald-700/50 bg-emerald-950/60 p-6 flex flex-col md:flex-row md:items-center gap-4">
-            <div className="mr-auto">
-              <h4 className="text-emerald-300 font-bold text-sm uppercase tracking-wider">{copy("newsletter", "title", "Travel Newsletter")}</h4>
-              <p className="text-sm text-gray-300 mt-1">{copy("newsletter", "subtitle", "Trip ideas, festivals and safety updates — straight to your inbox.")}</p>
+      {showBlock("symbols") && (
+        <section className="container-app border-b border-white/10 py-9" aria-labelledby="footer-symbols-title">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="footer-symbols-title" className="text-lg font-bold text-white">National symbols</h2>
+              <p className="mt-1 text-sm text-[#AFC5BC]">A small visual introduction to the identity of Nepal.</p>
             </div>
-            <form onSubmit={handleNewsletter} className="flex gap-2 w-full md:w-auto">
-              <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
-              <input
-                id="footer-newsletter-email"
-                type="email"
-                required
-                value={newsletterEmail}
-                onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="rounded-xl bg-[#042b21] border border-emerald-700/50 px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-full md:w-64"
-              />
-              <button
-                type="submit"
-                disabled={newsletterBusy}
-                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-[#03231b] font-bold text-sm px-4 py-2 whitespace-nowrap"
-              >
-                {newsletterBusy ? "Signing up…" : "Subscribe"}
-              </button>
-            </form>
+            <Link to="/discover-nepal" className="inline-flex items-center gap-2 text-sm font-semibold text-[#BDEBD9] hover:text-white">Explore Nepal's story <FiArrowRight size={15} aria-hidden="true" /></Link>
           </div>
-          {newsletterMessage && <p role="status" className="mt-2 text-sm font-bold text-emerald-300">{newsletterMessage}</p>}
-        </div>
+          <div className="mt-5 grid grid-cols-4 gap-3 sm:grid-cols-8">
+            {NATIONAL_SYMBOLS.map(([title, image]) => (
+              <div key={title} className="group text-center">
+                <div className="mx-auto grid h-14 w-14 place-items-center overflow-hidden rounded-full border border-[#63E6BE]/30 bg-white/10 transition group-hover:border-[#63E6BE] group-hover:bg-white/15">
+                  <img src={image} alt={title} loading="lazy" className="h-full w-full object-cover transition duration-200 group-hover:scale-105" />
+                </div>
+                <p className="mt-2 text-[11px] leading-4 text-[#C7D9D2]">{title}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
-      {filteredExtras?.length > 0 && <div className="container-app pb-8 text-gray-200"><CMSExtras sections={filteredExtras} /></div>}
+      <div className="container-app grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="sm:col-span-2 lg:col-span-1">
+          <Link to="/" className="inline-flex items-center gap-2 text-lg font-bold text-white"><FiGlobe size={20} className="text-[#63E6BE]" aria-hidden="true" />{APP_NAME}</Link>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-[#AFC5BC]">Discover Nepal beyond Everest — destinations, culture, adventure, wildlife and experiences across the country.</p>
+          {showBlock("newsletter") && (
+            <form onSubmit={subscribe} className="mt-5 max-w-sm">
+              <label htmlFor="footer-newsletter-email" className="text-sm font-semibold text-white">Travel notes, when there is something useful to share</label>
+              <div className="mt-2 flex gap-2">
+                <input id="footer-newsletter-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="min-w-0 flex-1 !border-white/20 !bg-white/10 !text-white" />
+                <button type="submit" disabled={subscribing} className="ny-btn ny-btn-accent shrink-0">{subscribing ? "Joining…" : "Join"}</button>
+              </div>
+              {newsletterMessage && <p className="mt-2 text-xs text-[#BDEBD9]" role="status">{newsletterMessage}</p>}
+            </form>
+          )}
+        </div>
 
-      <div className="border-t border-emerald-800/50 py-4 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} {siteTitle}. {branding.footer_text || "All rights reserved."}
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="ml-4 font-bold text-emerald-300 hover:text-white hover:underline">Back to top</button>
+        {showBlock("explore") && <FooterColumn title="Explore" links={exploreLinks} />}
+        {showBlock("explore") && <FooterColumn title="Plan" links={DEFAULT_PLAN} />}
+        {showBlock("company") && <FooterColumn title="Nepal Yatra" links={[["About", "/about"], ["How it works", "/how-it-works"], ["Contact", "/contact"], ["Support", "/support"], ["Emergency", "/emergency"]]} />}
+        {showBlock("provinces") && <FooterColumn title="Provinces" links={PROVINCES.map((province) => [province, `/destinations?q=${encodeURIComponent(province)}`])} />}
+
+        {showBlock("contact") && (
+          <section aria-labelledby="footer-contact-title">
+            <h2 id="footer-contact-title" className="text-sm font-bold text-[#BDEBD9]">Contact</h2>
+            {hasContact ? (
+              <ul className="mt-4 space-y-3 text-sm text-[#C7D9D2]">
+                {branding.contact_address && <li className="flex gap-2"><FiMapPin size={16} className="mt-0.5 shrink-0 text-[#63E6BE]" aria-hidden="true" />{branding.contact_address}</li>}
+                {branding.contact_email && <li className="flex items-center gap-2"><FiMail size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="break-all hover:text-white" href={`mailto:${branding.contact_email}`}>{branding.contact_email}</a></li>}
+                {branding.contact_phone && <li className="flex items-center gap-2"><FiPhone size={16} className="shrink-0 text-[#63E6BE]" aria-hidden="true" /><a className="hover:text-white" href={`tel:${String(branding.contact_phone).replace(/[^+\d]/g, "")}`}>{branding.contact_phone}</a></li>}
+              </ul>
+            ) : <p className="mt-4 text-sm text-[#AFC5BC]">Contact details are not currently published.</p>}
+            <div className="mt-5 flex gap-4 text-[#C7D9D2]">
+              {branding.facebook_url && <a href={branding.facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook"><FiFacebook size={19} /></a>}
+              {branding.instagram_url && <a href={branding.instagram_url} target="_blank" rel="noreferrer" aria-label="Instagram"><FiInstagram size={19} /></a>}
+              {branding.twitter_url && <a href={branding.twitter_url} target="_blank" rel="noreferrer" aria-label="X"><FiTwitter size={19} /></a>}
+              {branding.youtube_url && <a href={branding.youtube_url} target="_blank" rel="noreferrer" aria-label="YouTube"><FiYoutube size={19} /></a>}
+            </div>
+          </section>
+        )}
       </div>
-      <div className="px-4 pb-4 text-center text-[10px] leading-relaxed text-gray-500">
-        📍 Location icons:{" "}
-        <a href="https://twemoji.js.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300">
-          Twemoji
-        </a>{" "}
-        by Mozilla, licensed CC-BY 4.0. Map © OpenStreetMap contributors.
+
+      {extras?.length > 0 && <div className="container-app border-t border-white/10 py-6 text-sm text-[#C7D9D2]"><CMSExtras sections={extras} /></div>}
+      <div className="border-t border-white/10 py-4">
+        <div className="container-app flex flex-col gap-3 text-xs text-[#AFC5BC] sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} {APP_NAME}. {branding.footer_text || "All rights reserved."}</p>
+          <nav aria-label="Legal" className="flex flex-wrap gap-4"><Link to="/privacy" className="hover:text-white">Privacy</Link><Link to="/terms" className="hover:text-white">Terms</Link><Link to="/support" className="hover:text-white">Accessibility & support</Link><Link to="/how-it-works" className="hover:text-white">How it works</Link></nav>
+        </div>
       </div>
     </footer>
-  );
-};
+  )
+}
 
-export default Footer;
+const FooterColumn = ({ title, links }) => (
+  <section>
+    <h2 className="text-sm font-bold text-[#BDEBD9]">{title}</h2>
+    <ul className="mt-4 space-y-2.5 text-sm text-[#C7D9D2]">
+      {links.map(([label, route]) => <li key={`${label}-${route}`}><Link to={route} className="hover:text-white">{label}</Link></li>)}
+    </ul>
+  </section>
+)
+
+export default Footer

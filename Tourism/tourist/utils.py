@@ -1275,14 +1275,13 @@ def find_nearby_places(latitude, longitude, place_type=None, radius_km=10):
     )
 
 def get_destination_photos(destination):
-    """
-    Returns destination images.
-    Creates fallback image first if destination has no images.
-    """
+    """Return only reviewed media for a public destination response.
 
-    ensure_cover_photo(destination)
-
-    return list(destination.gallery.all())
+    Image discovery/acquisition is an explicit admin operation. A public GET
+    must not fetch external providers or create records as a side effect, and
+    pending/rejected uploads must remain private until moderation.
+    """
+    return list(destination.gallery.filter(verification_status="approved", is_verified=True))
 
 
 def register_photo_view(photo):
@@ -1313,6 +1312,8 @@ def maybe_promote_photo(photo):
 
     if (
         photo.source == DestinationImage.Source.ADMIN
+        or photo.verification_status != DestinationImage.ImageStatus.APPROVED
+        or not photo.is_verified
         or photo.view_count < settings.PHOTO_PROMOTION_IMPRESSION_THRESHOLD
     ):
         return

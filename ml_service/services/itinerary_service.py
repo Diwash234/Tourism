@@ -13,9 +13,8 @@ travel type, interests) and produces a day-by-day plan:
   - Travel legs between stops use the real road graph
     (model/route/nepal_graph.graphml) via route_engine.best_route so the
     distances/durations match the navigation feature.
-  - Budget is estimated per city (USD baselines in api/budget.py), scaled
-    by travelers / travel_type / budget_level, converted to NPR, and
-    checked against the user's budget_npr when provided.
+  - Budget values are shown only when a complete recorded CSV baseline exists;
+    no city fallback, static exchange rate or synthetic destination is used.
 
 The endpoint is a pure function of its inputs, so the frontend can call it
 on every form change (debounced) for "continuous" updates.
@@ -27,6 +26,7 @@ import math
 import pandas as pd
 
 from model.route.route_engine import best_route, haversine_km
+from model.budget import csv_baselines
 
 # One-time dataset load (cached in memory like the other engines).
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../ml_service
@@ -34,10 +34,7 @@ _DATASET_PATH = os.path.join(_BASE_DIR, "model", "recommendation", "destinations
 
 _destinations_df = None
 
-# Rough USD -> NPR rate used for display (no live FX dependency).
-USD_TO_NPR = 133.0
-
-# interest keyword -> dataset Tourism_Category values (from the actual CSV)
+# Interest keyword -> dataset Tourism_Category values (from the actual CSV)
 INTEREST_CATEGORIES = {
     "culture": ["museum", "artwork", "attraction", "theme_park"],
     "heritage": ["museum", "artwork", "attraction"],
@@ -49,18 +46,8 @@ INTEREST_CATEGORIES = {
     "trekking": ["alpine_hut", "camp_site", "viewpoint"],
 }
 
-# Per-day accommodation/food/transport baselines by known tourist city
-# (mirrors api/budget.py CITY_BASELINE_USD). Used to price each itinerary day.
-CITY_BASELINE_USD = {
-    "kathmandu": {"transport": 8, "food": 12, "accommodation": 20, "taxi": 6},
-    "pokhara": {"transport": 7, "food": 10, "accommodation": 18, "taxi": 5},
-    "chitwan": {"transport": 10, "food": 10, "accommodation": 22, "taxi": 6},
-    "lumbini": {"transport": 9, "food": 9, "accommodation": 16, "taxi": 5},
-    "nagarkot": {"transport": 12, "food": 11, "accommodation": 25, "taxi": 8},
-    "bandipur": {"transport": 11, "food": 9, "accommodation": 15, "taxi": 6},
-}
-DEFAULT_BASELINE_USD = {"transport": 10, "food": 15, "accommodation": 25, "taxi": 5}
-
+# These are model behavior parameters, not recorded prices. A day's budget
+# remains unavailable unless csv_baselines supplies a complete recorded base.
 STYLE_MULTIPLIER = {"budget": 0.75, "mid": 1.0, "standard": 1.0, "luxury": 1.8}
 
 # Per-person cost share by travel type (family/group share rooms & rides).
@@ -219,26 +206,20 @@ def _pick_cities(df, interests, days, start_city):
 
 
 def _per_day_budget_usd(city, days, travelers, budget_level, travel_type):
-    baseline = None
-    if city:
-        for key, b in CITY_BASELINE_USD.items():
-            if key in str(city).lower():
-                baseline = b
-                break
-    baseline = baseline or DEFAULT_BASELINE_USD
+    try:
+        baseline = csv_baselines.lookup_baseline(city=city)
+    except Exception:
+        baseline = None
+    if not baseline or any(baseline.get(key) is None for key in ("transport", "food", "accommodation", "taxi")):
+        return None
+
     style = STYLE_MULTIPLIER.get((budget_level or "mid").lower(), 1.0)
     person = TRAVEL_TYPE_PERSON_MULTIPLIER.get((travel_type or "solo").lower(), 1.0)
-
     per_person_per_day = (
-        baseline["food"]
-        + baseline["accommodation"]
-        + baseline["taxi"]
+        baseline["food"] + baseline["accommodation"] + baseline["taxi"]
     ) * style * person
-    # Transport is a one-time per-traveler cost shared across the trip; add a
-    # small daily share so longer trips naturally cost more overall.
     transport_share = (baseline["transport"] * style * person) / max(1, days)
-    per_day_usd = (per_person_per_day + transport_share) * travelers
-    return round(per_day_usd, 2)
+    return round((per_person_per_day + transport_share) * travelers, 2)
 
 
 def _day_theme(interests):
@@ -277,7 +258,7 @@ def build_rich_itinerary(
     start_city = _normalize_city(start_city)
     cities = _pick_cities(df, interests, days, start_city)
     if not cities:
-        cities = ["Kathmandu", "Pokhara"][: days]
+        return {"error": "No recorded destinations match the selected interests."}
 
     cat_col = "tourism_category" if "tourism_category" in df.columns else "category"
     cats = []
@@ -319,13 +300,7 @@ def build_rich_itinerary(
                 "category": str(row[cat_col]) if cat_col in row else "attraction",
             })
         if not chosen:
-            chosen.append({
-                "name": f"{city} exploration",
-                "city": city,
-                "latitude": None,
-                "longitude": None,
-                "category": "attraction",
-            })
+            return {"error": f"No recorded destination is available for {city} on this day."}
 
         daily_budget_usd = _per_day_budget_usd(city, days, travelers, budget_level, travel_type)
         itinerary.append({
@@ -333,7 +308,8 @@ def build_rich_itinerary(
             "city": city,
             "theme": _day_theme(interests),
             "destinations": chosen,
-            "daily_budget_npr": round(daily_budget_usd * USD_TO_NPR),
+            "daily_budget_usd": daily_budget_usd,
+            "daily_budget_npr": None,
         })
 
     # Travel legs between consecutive days using the real graphml road graph.
@@ -362,12 +338,13 @@ def build_rich_itinerary(
                 pass
         a["legs"] = legs
 
-    # Budget totals
-    total_usd = round(sum(d["daily_budget_npr"] for d in itinerary) / USD_TO_NPR, 2)
-    total_npr = round(sum(d["daily_budget_npr"] for d in itinerary))
+    # Budget totals remain unavailable unless every day has a recorded USD
+    # baseline. No static exchange rate is used to manufacture an NPR value.
+    daily_costs = [d.get("daily_budget_usd") for d in itinerary]
+    total_usd = round(sum(daily_costs), 2) if all(v is not None for v in daily_costs) else None
+    total_npr = None
+    per_person_npr = None
     fits_budget = None
-    if budget_npr:
-        fits_budget = total_npr <= float(budget_npr)
 
     return {
         "days": days,
@@ -379,7 +356,7 @@ def build_rich_itinerary(
         "start_city": start_city,
         "total_estimated_npr": total_npr,
         "total_estimated_usd": total_usd,
-        "per_person_npr": round(total_npr / travelers),
+        "per_person_npr": per_person_npr,
         "budget_npr": budget_npr,
         "fits_budget": fits_budget,
         "itinerary": itinerary,
@@ -404,18 +381,12 @@ def build_itinerary(destination_names: list[str], num_days: int) -> dict:
         if day_num == num_days:
             stops = destination_names[idx:]
         idx += per_day
-
-        leg_distances = []
-        for i in range(len(stops) - 1):
-            try:
-                r = best_route(
-                    28.0, 84.0, 28.1, 84.1, "fastest"  # placeholder; name-based below
-                )
-            except Exception:
-                r = {}
-            leg_distances.append({"from": stops[i], "to": stops[i + 1], "distance_km": r.get("distance_km")})
-
-        days.append({"day": day_num, "stops": stops, "legs": leg_distances})
+        days.append({
+            "day": day_num,
+            "stops": stops,
+            "legs": [],
+            "route_note": "Route distances and durations require recorded coordinates and the routing service.",
+        })
         if not stops:
             break
 

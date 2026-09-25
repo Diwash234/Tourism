@@ -1,93 +1,38 @@
 import { useEffect, useMemo, useState } from "react"
-import useSeo from "../hooks/useSeo"
-import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { Link } from "react-router-dom"
+import { FiMapPin } from "react-icons/fi"
 import axiosClient from "../api/axiosClient"
+import useSeo from "../hooks/useSeo"
+import PageHeader from "../components/common/PageHeader"
+import Breadcrumbs from "../components/common/Breadcrumbs"
+import SkeletonLoader from "../components/common/SkeletonLoader"
+import EmptyState from "../components/common/EmptyState"
+import ErrorState from "../components/ui/ErrorState"
 
-const STATUS_LABEL = {
-  well_covered: "Well covered",
-  partially_covered: "Partially covered",
-  limited_data: "Limited data",
-  no_verified_data: "No verified data yet",
-}
+const STATUS_LABEL = { well_covered: "Well covered", partially_covered: "Partially covered", limited_data: "Limited data", no_verified_data: "No verified data yet" }
 
-/** All 77 districts with real coverage counts from the database (§15). */
 export default function DistrictsIndex() {
-  useSeo({
-    title: "All 77 Districts of Nepal | Browse by Province",
-    description: "Explore every district of Nepal by province with verified tourism coverage — destinations, cities, hospitals and police from the live database.",
-    path: "/districts",
-  })
+  useSeo({ title: "All districts of Nepal | Browse by province", description: "Explore Nepal districts by province with recorded tourism coverage.", path: "/districts" })
   const [data, setData] = useState(null)
   const [error, setError] = useState("")
   const [province, setProvince] = useState("All")
 
-  useEffect(() => {
-    axiosClient
-      .get("/districts/")
-      .then((res) => setData(res.data))
-      .catch(() => setError("Could not load districts right now."))
-  }, [])
+  const load = () => {
+    setError("")
+    axiosClient.get("/districts/").then((response) => setData(response.data)).catch(() => setError("We couldn't load the district directory right now."))
+  }
+  useEffect(() => { const timer = setTimeout(load, 0); return () => clearTimeout(timer) }, [])
 
-  const rows = useMemo(() => {
-    if (!data) return []
-    return province === "All"
-      ? data.districts
-      : data.districts.filter((d) => d.province === province)
-  }, [data, province])
-
-  if (error) return <p className="p-8 text-rose-300">{error}</p>
-  if (!data)
-    return (
-      <p className="p-8 text-emerald-300">Loading Nepal's 77 districts…</p>
-    )
+  const rows = useMemo(() => data?.districts?.filter((district) => province === "All" || district.province === province) || [], [data, province])
+  if (error) return <div className="ny-page container-app py-10"><ErrorState message={error} onRetry={load} /></div>
+  if (!data) return <div className="container-app space-y-6 py-8"><SkeletonLoader count={6} /></div>
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8">
-      <CMSPageIntro pageKey="districts" />
-      <h1 className="text-3xl font-bold text-white">Explore Nepal by district</h1>
-      <p className="text-slate-300 mt-1 text-sm">
-        {data.count} districts · coverage reflects verified database records
-        only — nothing is artificially populated.
-      </p>
-
-      <div className="flex flex-wrap gap-2 mt-4">
-        {["All", ...Object.keys(data.provinces)].map((p) => (
-          <button
-            key={p}
-            onClick={() => setProvince(p)}
-            className={`px-3 py-1 rounded-full text-sm border ${
-              province === p
-                ? "bg-emerald-600 border-emerald-500 text-white"
-                : "bg-slate-800 border-slate-700 text-slate-300"
-            }`}
-          >
-            {p}
-            {p !== "All" && (
-              <span className="text-emerald-300 ml-1">
-                ({data.provinces[p]})
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
-        {rows.map((d) => (
-          <Link
-            key={d.name}
-            to={`/districts/${encodeURIComponent(d.name)}`}
-            className="rounded-xl bg-slate-800/70 border border-slate-700 p-4 hover:border-emerald-500 transition"
-          >
-            <p className="font-semibold text-white">{d.name}</p>
-            <p className="text-xs text-slate-400">{d.province} Province</p>
-            <p className="text-sm text-emerald-300 mt-1">
-              {d.public_destinations} destinations ·{" "}
-              {STATUS_LABEL[d.coverage_status] || d.coverage_status}
-            </p>
-          </Link>
-        ))}
-      </div>
-    </main>
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
+      <Breadcrumbs items={[{ label: "Districts", to: "/districts" }]} />
+      <PageHeader title="Explore Nepal by district" subtitle={`${data.count || data.districts?.length || 0} districts are available in the project directory. Coverage reflects recorded data, not a promise that every service is listed.`} icon={FiMapPin} />
+      <div className="ny-horizontal-scroll flex gap-2 border-b border-[var(--ny-border)] pb-4" role="group" aria-label="Filter districts by province">{["All", ...Object.keys(data.provinces || {})].map((item) => <button key={item} type="button" onClick={() => setProvince(item)} className={`min-h-10 whitespace-nowrap rounded-full border px-3 text-sm font-semibold ${province === item ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)]"}`} aria-pressed={province === item}>{item}{item !== "All" && <span className="ml-1 text-xs opacity-80">({data.provinces[item]})</span>}</button>)}</div>
+      {rows.length ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{rows.map((district) => <Link key={district.name} to={`/districts/${encodeURIComponent(district.name)}`} className="ny-card flex flex-col p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="font-bold">{district.name}</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">{district.province} Province</p></div><FiMapPin size={18} className="text-[var(--ny-green)]" aria-hidden="true" /></div><p className="mt-4 text-sm text-[var(--ny-text-secondary)]">{district.public_destinations != null ? `${district.public_destinations} destinations` : "Destination count unavailable"} · {STATUS_LABEL[district.coverage_status] || district.coverage_status || "Coverage unavailable"}</p><span className="mt-5 text-sm font-semibold text-[var(--ny-green)]">View district →</span></Link>)}</div> : <EmptyState title="No districts match this province" subtitle="Try another province filter." />}
+    </div>
   )
 }

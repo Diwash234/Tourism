@@ -3,6 +3,9 @@ import axiosClient from "./axiosClient"
 const adminApi = {
   getStats: () => axiosClient.get("/admin/stats"),
   getReports: (params) => axiosClient.get("/admin/reports/", { params }),
+  getRoutingProvider: () => axiosClient.get("/admin/routing-provider/"),
+  updateRoutingProvider: (payload) => axiosClient.patch("/admin/routing-provider/", payload),
+  testRoutingProvider: () => axiosClient.post("/admin/routing-provider/", { action: "test" }),
   getRetentionPolicy: () => axiosClient.get("/admin/retention/"),
   updateRetentionPolicy: (payload) => axiosClient.patch("/admin/retention/", payload),
   runRetentionPolicy: (dry_run = true) => axiosClient.post("/admin/retention/", { dry_run }),
@@ -54,28 +57,10 @@ const adminApi = {
   resolveEmergency: (id) => axiosClient.post(`/admin/emergencies/${id}/resolve/`),
 
   getExpenseFeedbacks: () => axiosClient.get("/expense-feedback/"),
-  submitExpenseFeedback: async (payload) => {
-    try {
-      return await axiosClient.post("/expense-feedback/", payload)
-    } catch {
-      const list = JSON.parse(localStorage.getItem("tourism_expense_feedback") || "[]")
-      const created = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() }
-      localStorage.setItem("tourism_expense_feedback", JSON.stringify([created, ...list]))
-      return { data: created }
-    }
-  },
+  submitExpenseFeedback: (payload) => axiosClient.post("/expense-feedback/", payload),
 
   getRiskFeedbacks: () => axiosClient.get("/risk-feedback/"),
-  submitRiskFeedback: async (payload) => {
-    try {
-      return await axiosClient.post("/risk-feedback/", payload)
-    } catch {
-      const list = JSON.parse(localStorage.getItem("tourism_risk_feedback") || "[]")
-      const created = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() }
-      localStorage.setItem("tourism_risk_feedback", JSON.stringify([created, ...list]))
-      return { data: created }
-    }
-  },
+  submitRiskFeedback: (payload) => axiosClient.post("/risk-feedback/", payload),
 
   getDestinations: (params) => axiosClient.get("/destinations/", { params }),
   getHotels: (params) => axiosClient.get("/hotels/", { params }),
@@ -85,6 +70,9 @@ const adminApi = {
   deleteHotel: (id) => axiosClient.delete(`/hotels/${id}/`),
   getBookings: (params) => axiosClient.get("/bookings/", { params }),
   updateBooking: (id, payload) => axiosClient.patch(`/bookings/${id}/`, payload),
+  confirmBooking: (id) => axiosClient.post(`/bookings/${id}/confirm/`),
+  cancelBooking: (id) => axiosClient.post(`/bookings/${id}/cancel/`),
+  completeBooking: (id) => axiosClient.post(`/bookings/${id}/complete/`),
   getHotelReviews: (params) => axiosClient.get("/hotel-reviews/", { params }),
   deleteHotelReview: (id) => axiosClient.delete(`/hotel-reviews/${id}/`),
   getDestinationFeatures: (params) => axiosClient.get("/admin/destination-features/", { params }),
@@ -142,7 +130,9 @@ const adminApi = {
     axiosClient.post("/admin/fetch-images/", { destination, num }),
   generateAIImages: (destination, num = 12) =>
     axiosClient.post("/admin/generate-ai-images/", { destination, num }),
-  deleteDestinationImage: (id) => axiosClient.delete(`/admin/images/${id}`),
+  deleteDestinationImage: (id, destinationId = null) => destinationId
+    ? axiosClient.delete(`/admin/destinations/${destinationId}/images`, { data: { image_id: id } })
+    : axiosClient.delete(`/admin/images/${id}`),
 
   // Users + verification + feedback
   getUserDetail: (id) => axiosClient.get(`/admin/users/${id}/`),

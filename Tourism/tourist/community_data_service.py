@@ -435,6 +435,12 @@ def resolve_service_destination(latitude, longitude, destination_id=None, distri
 def serialize_emergency_record(kind, obj):
     dest = getattr(obj, "destination", None)
     tags = getattr(obj, "raw_tags", None) or {}
+    image_url = ""
+    try:
+        if getattr(obj, "image", None):
+            image_url = obj.image.url
+    except (ValueError, AttributeError):
+        image_url = ""
     return {
         "kind": kind,
         "id": obj.id,
@@ -446,7 +452,11 @@ def serialize_emergency_record(kind, obj):
         "latitude": float(obj.latitude),
         "longitude": float(obj.longitude),
         "source_url": getattr(obj, "source_url", "") or "",
+        "source_name": getattr(obj, "source_name", "") or "",
+        "emergency_available": bool(getattr(obj, "emergency_available", False)),
+        "image_url": image_url,
         "verified": bool(getattr(obj, "is_verified", False)),
+        "verified_at": getattr(obj, "verified_at", None),
         "is_archived": bool(getattr(obj, "is_archived", False)),
         "destination_id": getattr(obj, "destination_id", None),
         "destination_name": dest.name if dest else "",
@@ -455,8 +465,13 @@ def serialize_emergency_record(kind, obj):
     }
 
 
-def publish_official_emergency(data, reviewer=None):
-    """Admin-entered hospital / police / pharmacy / fire row — DB + official CSVs."""
+def publish_official_emergency(data, reviewer=None, verified=False):
+    """Create an emergency record in the existing DB/CSV pipeline.
+
+    ``verified`` is explicit. A staff member with only ``safety.add`` may
+    submit a candidate, but cannot make it publicly verified by merely saving
+    the form. No placeholder emergency number is ever substituted.
+    """
     import uuid
 
     kind = str(data.get("kind") or "").strip().lower()
@@ -476,6 +491,8 @@ def publish_official_emergency(data, reviewer=None):
     if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
         raise ValueError("latitude/longitude out of range")
     phone = str(data.get("phone") or "").strip()[:50]
+    if kind in {"hospital", "police"} and not phone:
+        raise ValueError("A real phone number is required for hospitals and police stations; no placeholder number is allowed")
     address = str(data.get("address") or "").strip()[:300]
     district = str(data.get("district") or "").strip()[:100]
     province = str(data.get("province") or "").strip()[:120]
@@ -499,15 +516,44 @@ def publish_official_emergency(data, reviewer=None):
             kind=kind,
             csv_hit=bool(csv_existing),
         )
+    if not verified:
+        # Unverified candidates stay in the moderation database only. They
+        # must not be appended to CSV feeds that other public consumers read.
+        if kind == "hospital":
+            obj = Hospital.objects.create(
+                destination=destination, name=name[:200], address=address or district or "Nepal",
+                phone=phone, latitude=latitude, longitude=longitude,
+                district=district or (destination.district or ""),
+                opening_hours=opening_hours, source_name="Admin Control Center",
+                source_url=source_url, is_verified=False, verified_at=None, is_archived=False,
+            )
+        elif kind == "police":
+            obj = PoliceStation.objects.create(
+                destination=destination, name=name[:200], address=address or district or "Nepal",
+                phone=phone, latitude=latitude, longitude=longitude,
+                opening_hours=opening_hours, source_name="Admin Control Center",
+                source_url=source_url, is_verified=False, verified_at=None, is_archived=False,
+            )
+        else:
+            obj = OSMEssentialService.objects.create(
+                osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
+                phone=phone, latitude=latitude, longitude=longitude, address=address,
+                source_name="Admin Control Center", source_url=source_url,
+                is_verified=False, verified_at=None, opening_hours=opening_hours, is_archived=False,
+                emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
+                raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
+            )
+        return obj, {}
+
     csv_written = {}
     if kind == "hospital":
         with transaction.atomic():
             obj = Hospital.objects.create(
                 destination=destination, name=name[:200], address=address or district or "Nepal",
-                phone=phone or "102", latitude=latitude, longitude=longitude,
+                phone=phone, latitude=latitude, longitude=longitude,
                 district=district or (destination.district or ""),
-                opening_hours=opening_hours, source_name="Admin verified directory",
-                source_url=source_url, is_verified=True, verified_at=now, is_archived=False,
+                opening_hours=opening_hours, source_name="Admin Control Center",
+                source_url=source_url, is_verified=verified, verified_at=now if verified else None, is_archived=False,
             )
         hospital_fields = [
             "hospital_name", "address", "phone", "latitude", "longitude",
@@ -517,7 +563,7 @@ def publish_official_emergency(data, reviewer=None):
             "hospital_name": name, "address": address, "phone": phone,
             "latitude": latitude, "longitude": longitude, "district": district,
             "destination": destination.name if destination else city,
-            "province": province, "data_quality_score": 100,
+            "province": province, "data_quality_score": 100 if verified else 0,
         }
         for path in [
             ROOT / "Tourism" / "dataset" / "hospital_cleaned.csv",
@@ -528,9 +574,9 @@ def publish_official_emergency(data, reviewer=None):
         with transaction.atomic():
             obj = PoliceStation.objects.create(
                 destination=destination, name=name[:200], address=address or district or "Nepal",
-                phone=phone or "100", latitude=latitude, longitude=longitude,
-                opening_hours=opening_hours, source_name="Admin verified directory",
-                source_url=source_url, is_verified=True, verified_at=now, is_archived=False,
+                phone=phone, latitude=latitude, longitude=longitude,
+                opening_hours=opening_hours, source_name="Admin Control Center",
+                source_url=source_url, is_verified=verified, verified_at=now if verified else None, is_archived=False,
             )
         police_path = ROOT / "Tourism" / "dataset" / "police_station_cleaned.csv"
         police_fields = [
@@ -542,7 +588,7 @@ def publish_official_emergency(data, reviewer=None):
             "destination": destination.name if destination else city,
             "address": address, "phone": phone, "latitude": latitude, "longitude": longitude,
             "district": district or (destination.district if destination else ""),
-            "province": province, "data_quality_score": 100,
+            "province": province, "data_quality_score": 100 if verified else 0,
         }
         csv_written["police"] = _append_unique(
             police_path, police_fields, police_row, ["police_station", "latitude", "longitude"],
@@ -552,8 +598,8 @@ def publish_official_emergency(data, reviewer=None):
             obj = OSMEssentialService.objects.create(
                 osm_id=f"admin/{kind}/{uuid.uuid4().hex[:12]}", category=kind, name=name[:255],
                 phone=phone, latitude=latitude, longitude=longitude, address=address,
-                source_name="Admin verified directory", source_url=source_url,
-                is_verified=True, verified_at=now, opening_hours=opening_hours, is_archived=False,
+                source_name="Admin Control Center", source_url=source_url,
+                is_verified=verified, verified_at=now if verified else None, opening_hours=opening_hours, is_archived=False,
                 emergency_available=kind in {"fire_station", "ambulance", "blood_bank"},
                 raw_tags={"district": district, "province": province, "city": city, "source": "admin"},
             )

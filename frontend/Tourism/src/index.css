@@ -1,8 +1,18 @@
 :root {
-  --brand-primary: #0B3D91;
-  --brand-secondary: #F59E0B;
-  --brand-background: #F8FAFC;
+  /* Public API aliases. The --ny-* scale further down is the source of truth;
+     these names remain available to older components and CMS integrations. */
+  --brand-primary: #075B48;
+  --brand-primary-dark: #063B32;
+  --brand-primary-light: #087F63;
+  --brand-accent: #F5B51B;
+  --page-bg: #F7F8F6;
+  --brand-background: #F7F8F6;
   --brand-surface: #FFFFFF;
+  --surface: #FFFFFF;
+  --text-primary: #14221F;
+  --text-secondary: #60716C;
+  --text-muted: #87948F;
+  --border-color: #DDE7E2;
 }
 
 body { background-color: var(--brand-background); }
@@ -14,76 +24,103 @@ body { background-color: var(--brand-background); }
 @tailwind utilities;
 
 /* ==========================================
-   Theme Variables (Original Design)
+   Nepal Yatra design tokens
    ========================================== */
 
 :root {
-  /* ---- Nepal-inspired tourism palette ---- */
-  --text: #44403c;            /* warm stone-700 */
-  --text-h: #1c1917;          /* stone-900 */
-  --text-muted: #78716c;      /* stone-500 */
-  --bg: #faf8f4;             /* warm off-white */
-  --surface: #ffffff;
-  --border: #e7e2d8;          /* warm sand border */
-  --code-bg: #f4f3ec;
+  --ny-green: #075B48;
+  --ny-green-dark: #063B32;
+  --ny-green-deepest: #042A24;
+  --ny-emerald: #087F63;
+  --ny-mint: #63E6BE;
+  --ny-gold: #F5B51B;
+  --ny-warm-gold: #E9A915;
+  --ny-bg: #F7F8F6;
+  --ny-white: #FFFFFF;
+  --ny-soft-green: #EFF8F4;
+  --ny-soft-gold: #FFF7DE;
+  --ny-soft-red: #FFF0F0;
+  --ny-soft-blue: #EFF6FF;
+  --ny-text: #14221F;
+  --ny-text-secondary: #60716C;
+  --ny-text-muted: #87948F;
+  --ny-border: #DDE7E2;
+  --ny-danger: #C62828;
+  --ny-success: #16845B;
+  --ny-warning: #C98500;
+  --ny-info: #2563A6;
+  --ny-content-width: 1600px;
+  --ny-header-height: 4rem;
+  --ny-reading-width: 860px;
+  --ny-space-1: 4px;
+  --ny-space-2: 8px;
+  --ny-space-3: 12px;
+  --ny-space-4: 16px;
+  --ny-space-5: 24px;
+  --ny-space-6: 32px;
+  --ny-space-7: 48px;
+  --ny-space-8: 64px;
+  --ny-space-9: 80px;
+  --ny-space-10: 96px;
+  --ny-radius-sm: 8px;
+  --ny-radius-md: 12px;
+  --ny-radius-lg: 16px;
+  --ny-radius-xl: 24px;
+  --ny-shadow: 0 4px 18px rgba(20, 34, 31, 0.07);
+  --ny-shadow-elevated: 0 8px 30px rgba(20, 34, 31, 0.10);
+  --ny-z-header: 60;
+  --ny-z-sidebar: 50;
+  --ny-z-dropdown: 70;
+  --ny-z-modal: 90;
+  --ny-z-toast: 110;
 
-  /* Primary: deep mountain/forest green */
-  --primary: #1f6b4d;
-  --primary-dark: #16523a;
-  --primary-light: #e6f2ec;
-  --primary-bg: rgba(31, 107, 77, 0.08);
-  --primary-border: rgba(31, 107, 77, 0.4);
-
-  /* Secondary: warm terracotta */
-  --secondary: #c2603a;
-  --secondary-dark: #a14e2d;
-  --secondary-bg: rgba(194, 96, 58, 0.09);
-
-  /* Accent: Himalayan gold */
-  --accent: #b8862f;
-  --accent-bg: rgba(184, 134, 47, 0.1);
-  --accent-border: rgba(184, 134, 47, 0.5);
-
-  /* Status */
-  --success: #2f7d4f;
-  --success-bg: #e8f4ec;
-  --warning: #b8761e;
-  --warning-bg: #fbf1dd;
-  --danger: #b53d3d;
-  --danger-bg: #fae8e6;
-  --info: #34678c;
-  --info-bg: #e6eef4;
-
-  /* Legacy aliases (keep old accent vars for components that reference them) */
-  --accent-legacy: var(--accent);
-  --himalaya-blue: #4a7a9b;
-  --forest: var(--primary);
-  --terracotta: var(--secondary);
-  --gold: var(--accent);
-  --sand: #e7d9c0;
-
-  --shadow:
-    0 1px 3px rgba(28, 25, 23, 0.07),
-    0 8px 24px -10px rgba(28, 25, 23, 0.12);
-  --shadow-lg:
-    0 4px 12px rgba(28, 25, 23, 0.08),
-    0 20px 40px -16px rgba(28, 25, 23, 0.18);
-
-  --radius: 14px;
-  --radius-sm: 9px;
-  --radius-lg: 20px;
-
+  /* Legacy aliases used by existing feature code. */
+  --text: var(--ny-text);
+  --text-h: var(--ny-text);
+  --text-muted: var(--ny-text-muted);
+  --bg: var(--ny-bg);
+  --surface: var(--ny-white);
+  --border: var(--ny-border);
+  --code-bg: #F1F5F3;
+  --primary: var(--ny-green);
+  --primary-dark: var(--ny-green-dark);
+  --primary-light: var(--ny-soft-green);
+  --primary-bg: rgba(7, 91, 72, 0.08);
+  --primary-border: rgba(7, 91, 72, 0.35);
+  --secondary: var(--ny-emerald);
+  --secondary-dark: var(--ny-green-dark);
+  --secondary-bg: rgba(8, 127, 99, 0.08);
+  --accent: var(--ny-gold);
+  --accent-bg: rgba(245, 181, 27, 0.12);
+  --accent-border: rgba(245, 181, 27, 0.45);
+  --success: var(--ny-success);
+  --success-bg: #E8F6EF;
+  --warning: var(--ny-warning);
+  --warning-bg: var(--ny-soft-gold);
+  --danger: var(--ny-danger);
+  --danger-bg: var(--ny-soft-red);
+  --info: var(--ny-info);
+  --info-bg: var(--ny-soft-blue);
+  --accent-legacy: var(--ny-gold);
+  --himalaya-blue: #3F6F91;
+  --forest: var(--ny-emerald);
+  --terracotta: #B86B4B;
+  --gold: var(--ny-gold);
+  --sand: #E9F0EC;
+  --shadow: var(--ny-shadow);
+  --shadow-lg: var(--ny-shadow-elevated);
+  --radius: var(--ny-radius-lg);
+  --radius-sm: var(--ny-radius-sm);
+  --radius-lg: var(--ny-radius-xl);
   --sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --heading: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 16px/1.6 var(--sans);
-  letter-spacing: 0.01em;
-
+  letter-spacing: 0;
   color-scheme: light;
-  color: var(--text);
-  background: var(--brand-background, var(--bg));
-
+  color: var(--ny-text);
+  background: var(--ny-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -91,7 +128,7 @@ body { background-color: var(--brand-background); }
 }
 
 @media (min-width: 1024px) {
-  :root { font-size: 17px; }
+  :root { font-size: 16px; }
 }
 
 
@@ -112,7 +149,6 @@ html {
   -webkit-text-size-adjust: 100%;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 html,
@@ -129,12 +165,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.6;
-  overflow-x: hidden;
-}
-@media (min-width: 1024px) {
-  body { font-size: 18px; }
 }
 
 #root {
@@ -809,4 +841,433 @@ html.dark .border-\[\#E5E0D5\] { border-color: var(--border); }
   .nav-kbd {
     display: flex;
   }
+}
+
+/* ==========================================
+   Nepal Yatra — shared frontend system
+   The pages contain a long tail of legacy Tailwind utilities. These
+   deliberately small, high-value rules keep that content coherent while
+   allowing existing feature logic and CMS-managed markup to remain intact.
+   ========================================== */
+
+html {
+  scroll-padding-top: 5rem;
+  background: var(--ny-bg);
+}
+
+body {
+  background: var(--ny-bg);
+  color: var(--ny-text);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+body.sidebar-open { overflow: hidden; }
+body, button, input, select, textarea { letter-spacing: normal; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: none; }
+img { object-fit: cover; }
+
+#root { isolation: isolate; }
+
+.container-app {
+  width: 100%;
+  max-width: var(--ny-content-width) !important;
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+/* CMS/page intros are sometimes rendered inside an already constrained page
+   shell. Do not double the inset or animate the nested block. */
+.container-app .container-app {
+  max-width: none !important;
+  padding-inline: 0;
+  background: transparent;
+  animation: none;
+}
+.ny-reading { width: min(100%, var(--ny-reading-width)); margin-inline: auto; }
+.ny-page { min-width: 0; }
+.ny-section { width: 100%; }
+.ny-stack { display: flex; flex-direction: column; gap: 24px; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--heading);
+  color: var(--ny-text);
+  text-wrap: balance;
+}
+h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.12;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: clamp(1.55rem, 2.8vw, 2.25rem);
+  line-height: 1.18;
+  font-weight: 750;
+  letter-spacing: -0.018em;
+}
+h3 { font-size: 1.2rem; line-height: 1.3; font-weight: 700; }
+h4 { font-size: 1.05rem; line-height: 1.35; font-weight: 700; }
+p { font-size: 1rem; line-height: 1.65; }
+label { font-size: 0.875rem; line-height: 1.4; }
+
+/* Keep the shape language calm and repeatable. */
+.rounded-3xl { border-radius: var(--ny-radius-lg) !important; }
+.rounded-2xl { border-radius: var(--ny-radius-md) !important; }
+.rounded-xl { border-radius: var(--ny-radius-sm) !important; }
+.shadow-card { box-shadow: var(--ny-shadow) !important; }
+.shadow-xl, .shadow-2xl { box-shadow: var(--ny-shadow-elevated) !important; }
+.font-black { font-weight: 750 !important; }
+.font-extrabold { font-weight: 700 !important; }
+
+/* A few legacy components used 9–10px metadata. It is still metadata, but it
+   must remain readable on a phone and in high-contrast mode. */
+.text-\[8px\], .text-\[9px\], .text-\[10px\] { font-size: 0.75rem !important; line-height: 1.35 !important; }
+.text-\[11px\] { font-size: 0.8125rem !important; line-height: 1.4 !important; }
+
+.btn-primary,
+.btn-gradient,
+.btn-secondary,
+.btn-outline,
+.admin-primary-button,
+.admin-secondary-button {
+  min-height: 44px;
+  border-radius: var(--ny-radius-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.btn-primary,
+.btn-gradient,
+.admin-primary-button {
+  color: #fff !important;
+  background: var(--ny-green) !important;
+  border: 1px solid var(--ny-green);
+  box-shadow: 0 3px 10px rgba(7, 91, 72, 0.16) !important;
+}
+.btn-primary:hover,
+.btn-gradient:hover,
+.admin-primary-button:hover {
+  background: var(--ny-green-dark) !important;
+  border-color: var(--ny-green-dark);
+  box-shadow: 0 5px 14px rgba(7, 91, 72, 0.22) !important;
+  transform: translateY(-1px);
+}
+.btn-secondary,
+.btn-outline,
+.admin-secondary-button {
+  color: var(--ny-green) !important;
+  background: #fff !important;
+  border: 1px solid #B9CEC5 !important;
+  box-shadow: none !important;
+}
+.btn-secondary:hover,
+.btn-outline:hover,
+.admin-secondary-button:hover {
+  color: var(--ny-green-dark) !important;
+  background: var(--ny-soft-green) !important;
+  border-color: var(--ny-green) !important;
+}
+
+.ny-btn {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--ny-radius-sm);
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.ny-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.ny-btn-sm { min-height: 40px; padding: 8px 14px; font-size: 0.8125rem; }
+.ny-btn-lg { min-height: 48px; padding: 12px 22px; }
+.ny-btn-primary { color: #fff; background: var(--ny-green); border-color: var(--ny-green); box-shadow: 0 3px 10px rgba(7, 91, 72, 0.16); }
+.ny-btn-primary:hover:not(:disabled) { background: var(--ny-green-dark); border-color: var(--ny-green-dark); box-shadow: 0 5px 14px rgba(7, 91, 72, 0.22); transform: translateY(-1px); }
+.ny-btn-secondary { color: var(--ny-green); background: #fff; border-color: #B9CEC5; }
+.ny-btn-secondary:hover:not(:disabled) { color: var(--ny-green-dark); background: var(--ny-soft-green); border-color: var(--ny-green); }
+.ny-btn-ghost { color: var(--ny-green-dark); background: transparent; border-color: transparent; }
+.ny-btn-ghost:hover:not(:disabled) { background: var(--ny-soft-green); }
+.ny-btn-link { min-height: auto; padding: 4px 0; color: var(--ny-green); background: transparent; border: 0; }
+.ny-btn-link:hover:not(:disabled) { color: var(--ny-green-dark); text-decoration: underline; text-underline-offset: 3px; }
+.ny-btn-accent { color: var(--ny-green-deepest); background: var(--ny-gold); border-color: var(--ny-warm-gold); }
+.ny-btn-accent:hover:not(:disabled) { background: var(--ny-warm-gold); }
+.ny-btn-danger { color: #fff; background: var(--ny-danger); border-color: var(--ny-danger); }
+.ny-btn-danger:hover:not(:disabled) { background: #9E2020; }
+
+.input-field,
+input.input-field,
+select.input-field,
+textarea.input-field,
+.ny-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.ny-page select,
+.ny-page textarea,
+.admin-green-theme input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.admin-green-theme select,
+.admin-green-theme textarea {
+  min-height: 44px;
+  border-color: var(--ny-border) !important;
+  border-radius: var(--ny-radius-sm) !important;
+  color: var(--ny-text) !important;
+  background-color: #fff !important;
+}
+:where(.input-field, .ny-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), .ny-page select, .ny-page textarea, .admin-green-theme input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), .admin-green-theme select, .admin-green-theme textarea) { padding-inline: 14px; }
+.input-field::placeholder,
+.ny-page input::placeholder,
+.ny-page textarea::placeholder,
+.admin-green-theme input::placeholder,
+.admin-green-theme textarea::placeholder { color: var(--ny-text-muted) !important; }
+.input-field:focus,
+.ny-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+.ny-page select:focus,
+.ny-page textarea:focus,
+.admin-green-theme input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+.admin-green-theme select:focus,
+.admin-green-theme textarea:focus {
+  border-color: var(--ny-emerald) !important;
+  box-shadow: 0 0 0 3px rgba(8, 127, 99, 0.14) !important;
+  outline: none !important;
+}
+input[type="checkbox"],
+input[type="radio"] { accent-color: var(--ny-green); }
+textarea { resize: vertical; }
+
+/* The navigation is a dark surface, so its search control must not inherit
+   the light form background from the global input rule above. */
+.ny-header input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) {
+  min-height: 40px;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #fff !important;
+}
+.ny-header input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])::placeholder { color: #AFC5BC !important; }
+.ny-header input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus {
+  border-color: var(--ny-mint) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 0 0 3px rgba(99, 230, 190, 0.18) !important;
+}
+
+.card-base,
+.ny-card {
+  background: var(--ny-white) !important;
+  border: 1px solid var(--ny-border) !important;
+  border-radius: var(--ny-radius-lg) !important;
+  box-shadow: var(--ny-shadow) !important;
+  color: var(--ny-text) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.card-base:hover,
+.ny-card:hover {
+  border-color: #B9CEC5 !important;
+  box-shadow: var(--ny-shadow-elevated) !important;
+  transform: translateY(-2px);
+}
+.ny-card-no-hover:hover { transform: none !important; box-shadow: var(--ny-shadow) !important; border-color: var(--ny-border) !important; }
+.card-base:focus-within,
+.ny-card:focus-within { outline: 2px solid var(--ny-emerald); outline-offset: 2px; }
+
+.section-space { padding-block: 48px; }
+.section-head { margin-bottom: 24px; }
+.section-title { font-weight: 750; margin-bottom: 16px; padding-bottom: 0; }
+.section-title::after {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ny-gold);
+}
+
+/* Shared shell primitives used by new/updated public pages. */
+.ny-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--ny-soft-green);
+  color: var(--ny-green);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ny-panel { background: #fff; border: 1px solid var(--ny-border); border-radius: var(--ny-radius-lg); box-shadow: var(--ny-shadow); }
+.ny-divider { height: 1px; background: var(--ny-border); }
+.ny-empty {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  border: 1px dashed #B9CEC5;
+  border-radius: var(--ny-radius-lg);
+  background: #fff;
+  text-align: center;
+}
+.ny-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--ny-soft-green); color: var(--ny-green); }
+.ny-empty h2, .ny-empty h3 { margin: 0; font-size: 1.25rem; }
+.ny-empty p { max-width: 38rem; margin: 0; color: var(--ny-text-secondary); }
+.ny-skeleton {
+  overflow: hidden;
+  border-radius: var(--ny-radius-sm);
+  background: linear-gradient(90deg, #edf3f0 25%, #f7faf8 50%, #edf3f0 75%);
+  background-size: 200% 100%;
+  animation: ny-skeleton 1.4s ease-in-out infinite;
+}
+@keyframes ny-skeleton { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Avoid accidental page-level horizontal scroll while retaining intentional
+   horizontal scrollers such as filter rails and comparison tables. */
+.ny-page, .ny-app-shell, .ny-content { min-width: 0; max-width: 100%; }
+.ny-page { background: var(--ny-bg) !important; color: var(--ny-text) !important; }
+.ny-page .max-w-6xl, .ny-page .max-w-7xl, .ny-page .max-w-\[1400px\], .ny-page .max-w-\[1600px\] { max-width: var(--ny-content-width) !important; }
+.ny-page .max-w-5xl { max-width: 1200px !important; }
+.ny-header { background: var(--ny-green-deepest) !important; color: #fff !important; }
+.ny-header input { color: #fff !important; }
+.ny-header input::placeholder { color: #AFC5BC !important; }
+.ny-header .text-gray-900, .ny-header .text-slate-900, .ny-header .text-black { color: #fff !important; }
+
+/* Legacy public pages often used opaque slate/purple panels for what is
+   actually travel content. Keep their structure, but bring those surfaces
+   back to the same Nepal Yatra palette. */
+.ny-page .bg-slate-950, .ny-page .bg-slate-900, .ny-page .bg-gray-900 { background-color: var(--ny-green-dark) !important; color: #fff !important; }
+.ny-page .bg-slate-800, .ny-page .bg-slate-700 { background-color: var(--ny-green-deepest) !important; }
+.ny-page .bg-purple-50, .ny-page .bg-purple-100 { background-color: var(--ny-soft-green) !important; color: var(--ny-green-dark) !important; }
+.ny-page .text-purple-500, .ny-page .text-purple-600, .ny-page .text-purple-700, .ny-page .text-purple-900 { color: var(--ny-green) !important; }
+.ny-page .bg-orange-50, .ny-page .bg-amber-50 { background-color: var(--ny-soft-gold) !important; }
+.ny-page .bg-blue-50 { background-color: var(--ny-soft-blue) !important; }
+.ny-page .border-slate-200, .ny-page .border-gray-200 { border-color: var(--ny-border) !important; }
+.ny-skip-link { position: fixed; left: 16px; top: -64px; z-index: 200; border-radius: var(--ny-radius-sm); background: var(--ny-gold); color: var(--ny-green-deepest); padding: 10px 14px; font-weight: 750; transition: top 160ms ease; }
+.ny-skip-link:focus { top: 12px; }
+.ny-horizontal-scroll { overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+.ny-horizontal-scroll > * { min-width: max-content; }
+
+@media (min-width: 640px) { .container-app { padding-inline: 24px; } .section-space { padding-block: 64px; } }
+@media (min-width: 1024px) { .container-app { padding-inline: 32px; } .section-space { padding-block: 80px; } }
+@media (min-width: 1440px) { .container-app { padding-inline: 40px; } }
+@media (min-width: 1920px) { :root { --ny-content-width: 1760px; } }
+@media (min-width: 2560px) { :root { --ny-content-width: 1920px; } }
+@media (max-width: 767px) {
+  h1 { font-size: clamp(2rem, 9vw, 2.25rem); }
+  h2 { font-size: clamp(1.55rem, 7vw, 1.9rem); }
+  .section-space { padding-block: 40px; }
+  .card-base:hover, .ny-card:hover { transform: none; }
+  table { display: block; max-width: 100%; overflow-x: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Dark mode remains opt-in, but uses the same calm surfaces and never relies
+   on page-specific colour worlds. */
+.dark {
+  --ny-bg: #0B1714;
+  --ny-white: #13231F;
+  --ny-soft-green: #12352C;
+  --ny-soft-gold: #3A2E0B;
+  --ny-soft-red: #3B1A1A;
+  --ny-soft-blue: #142C3A;
+  --ny-text: #EAF2EF;
+  --ny-text-secondary: #B8CBC3;
+  --ny-text-muted: #9AB1A8;
+  --ny-border: #29443B;
+  --ny-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  --ny-shadow-elevated: 0 10px 32px rgba(0, 0, 0, 0.32);
+  --brand-background: #0B1714;
+  --brand-surface: #13231F;
+  --page-bg: #0B1714;
+}
+.dark body { background: var(--ny-bg); color: var(--ny-text); }
+.dark .card-base, .dark .ny-card, .dark .ny-panel, .dark .ny-empty { background: var(--ny-white) !important; border-color: var(--ny-border) !important; color: var(--ny-text) !important; }
+.dark h1, .dark h2, .dark h3, .dark h4 { color: #F3F8F6; }
+.dark .input-field, .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .dark select, .dark textarea { background: var(--ny-white) !important; color: var(--ny-text) !important; border-color: #3B5C51 !important; }
+.dark .btn-secondary, .dark .btn-outline { background: var(--ny-white) !important; color: #BDEBD9 !important; border-color: #477568 !important; }
+.dark .ny-empty p, .dark .text-gray-500, .dark .text-slate-500 { color: #AFC5BC !important; }
+.dark .ny-kicker { background: #12352C; color: #BDEBD9; }
+
+/* Shared control/overlay primitives. Keeping these named makes the bottom
+   chrome auditable and prevents each page from inventing another offset. */
+.ny-btn-md { min-height: 44px; padding: 10px 18px; font-size: 0.875rem; }
+.ny-bottom-nav { min-height: 4.5rem; background-color: var(--ny-green-deepest); }
+.ny-floating-chat {
+  right: 1rem;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  z-index: 65;
+}
+.ny-cookie-banner {
+  z-index: 70;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  background-color: var(--ny-green-deepest);
+}
+.ny-session-notice { z-index: 120; }
+.ny-modal-layer { z-index: 100; }
+.ny-header nav { height: auto; min-height: var(--ny-header-height); padding-top: env(safe-area-inset-top); }
+.sidebar-drawer, .sidebar-backdrop { top: var(--ny-header-height) !important; }
+.ny-app-main { padding-top: var(--ny-header-height) !important; }
+@supports (top: env(safe-area-inset-top)) {
+  :root { --ny-header-height: calc(4rem + env(safe-area-inset-top)); }
+}
+.dark-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark-surface select,
+.dark-surface textarea {
+  min-height: 44px;
+  border-color: #475569 !important;
+  border-radius: var(--ny-radius-sm) !important;
+  background: #0F172A !important;
+  color: #F8FAFC !important;
+}
+.dark-surface input::placeholder,
+.dark-surface textarea::placeholder { color: #94A3B8 !important; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+@media (max-width: 1023px) {
+  .ny-floating-chat {
+    right: 0.75rem;
+    bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+  .ny-cookie-banner {
+    top: auto;
+    bottom: calc(5.25rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    right: 0.75rem;
+    max-height: 28vh;
+  }
+  body.ny-cookie-visible .ny-floating-chat {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  body.ny-cookie-visible .ny-app-main {
+    padding-bottom: 12rem;
+  }
+  .ny-session-notice {
+    top: calc(var(--ny-header-height) + 0.75rem);
+    bottom: auto;
+  }
+}
+@media (max-width: 400px) {
+  .container-app { padding-inline: 12px; }
+  .ny-floating-chat { right: 0.5rem; }
+  .ny-navbar-secondary-action { display: none; }
+}
+@media (max-height: 600px) and (max-width: 1023px) {
+  .ny-floating-chat { bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
+  .ny-cookie-banner { top: auto; bottom: calc(4.75rem + env(safe-area-inset-bottom)); max-height: 34vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

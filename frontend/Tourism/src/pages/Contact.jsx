@@ -1,9 +1,10 @@
 import { useState } from "react"
-import PageHeader from "../components/common/PageHeader"
-import CMSPageIntro from "../components/cms/CMSPageIntro"
+import { Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { FiMail, FiPhone, FiMapPin, FiClock, FiShield } from "react-icons/fi"
+import PageHeader from "../components/common/PageHeader"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import useToast from "../hooks/useToast"
 import adminApi from "../api/adminApi"
 import usePublicConfig from "../hooks/usePublicConfig"
@@ -21,9 +22,10 @@ const Contact = () => {
     formState: { errors, isSubmitting },
   } = useForm()
 
-  const contactAddress = branding?.contact_address || "Pokhara, Gandaki, Nepal"
-  const contactEmail = branding?.contact_email || "support@tourists.app"
-  const contactPhone = branding?.contact_phone || "+977-000-0000"
+  const contactAddress = branding?.contact_address || ""
+  const contactEmail = branding?.contact_email || ""
+  const contactPhone = branding?.contact_phone || ""
+  const contactHours = branding?.contact_hours || ""
   const siteTitle = (branding?.site_title || "Nepal Yatra").replace(/Digital Nepal Tourism Platform/g, "Nepal Yatra")
 
   const onSubmit = async () => {
@@ -37,121 +39,125 @@ const Contact = () => {
       body.append("category", category || "correction")
       evidence.forEach((file) => body.append("evidence", file))
       await adminApi.sendFeedback(body)
-      showToast("Your report and evidence were sent to the admin review queue.", "success")
+      showToast("Your message was sent for review.", "success")
       reset()
       setEvidence([])
-    } catch (e) {
-      showToast(e?.response?.data?.detail || "Could not send message. Please try again.", "error")
+    } catch (error) {
+      showToast(error?.response?.data?.detail || "Could not send your message. Please try again.", "error")
     }
   }
 
   return (
-    <div className="container-app section-space grid grid-cols-1 md:grid-cols-2 gap-10 fade-in theme-indigo">
+    <div className="ny-page container-app section-space">
       <CMSPageIntro pageKey="contact" />
-      <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-        <div>
-          <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
-            Official Contact & Help Desk
-          </span>
-          <PageHeader title={<>Get in Touch with {siteTitle}</>} subtitle="Have questions about a destination, itinerary, or need customer support? Reach out to our team directly or send us feedback." />
-        </div>
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2 lg:gap-12">
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+          <div>
+            <span className="ny-kicker">Contact & help desk</span>
+            <PageHeader
+              title={<>Get in touch with {siteTitle}</>}
+              subtitle="Have a destination, itinerary or trip question? Send a message and the review team will follow up through the contact details you provide."
+            />
+          </div>
 
-        <div className="space-y-4 text-sm text-gray-700 p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
-          <p className="flex items-center gap-3 font-semibold">
-            <FiMail className="text-[#102A2E] text-lg shrink-0" />
-            <span>Official Email: <b>{contactEmail}</b></span>
-          </p>
+          <div className="ny-panel space-y-4 p-6 text-sm text-[var(--ny-text-secondary)]">
+            {contactEmail && (
+              <p className="flex items-center gap-3 font-semibold">
+                <FiMail className="shrink-0 text-lg text-[var(--ny-green)]" aria-hidden="true" />
+                <span>Email: <a className="text-[var(--ny-green)] hover:underline" href={`mailto:${contactEmail}`}><b>{contactEmail}</b></a></span>
+              </p>
+            )}
+            {contactPhone && (
+              <p className="flex items-center gap-3 font-semibold">
+                <FiPhone className="shrink-0 text-lg text-[var(--ny-green)]" aria-hidden="true" />
+                <span>Phone: <a className="text-[var(--ny-green)] hover:underline" href={`tel:${contactPhone}`}><b>{contactPhone}</b></a></span>
+              </p>
+            )}
+            {contactAddress && (
+              <p className="flex items-center gap-3 font-semibold">
+                <FiMapPin className="shrink-0 text-lg text-[var(--ny-green)]" aria-hidden="true" />
+                <span>Address: <b className="text-[var(--ny-text)]">{contactAddress}</b></span>
+              </p>
+            )}
+            {contactHours && (
+              <p className="flex items-center gap-3 text-sm">
+                <FiClock className="shrink-0 text-[var(--ny-green)]" aria-hidden="true" />
+                <span>Desk hours: <b className="text-[var(--ny-text)]">{contactHours}</b></span>
+              </p>
+            )}
+            {!contactEmail && !contactPhone && !contactAddress && !contactHours && (
+              <p className="text-sm text-[var(--ny-text-secondary)]">No public contact details are configured right now. Use the form and the review team will see your message.</p>
+            )}
+            <p className="flex items-center gap-3 border-t border-[var(--ny-border)] pt-4 text-sm">
+              <FiClock className="shrink-0 text-[var(--ny-green)]" aria-hidden="true" />
+              <span>For urgent situations, use the <Link to="/emergency" className="font-semibold text-[var(--ny-green)] hover:underline">emergency page</Link>.</span>
+            </p>
+          </div>
+        </motion.div>
 
-          <p className="flex items-center gap-3 font-semibold">
-            <FiPhone className="text-[#102A2E] text-lg shrink-0" />
-            <span>Support Phone: <b>{contactPhone}</b></span>
-          </p>
+        <motion.form
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          onSubmit={handleSubmit(onSubmit)}
+          className="ny-panel space-y-4 p-6 sm:p-8"
+          noValidate
+        >
+          <div>
+            <p className="ny-kicker">Send a message</p>
+            <h2 className="mt-2 flex items-center gap-2 text-xl font-bold">
+              <FiShield className="text-[var(--ny-green)]" aria-hidden="true" /> How can we help?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">Required fields are marked with an asterisk. Please do not include passwords or sensitive travel documents.</p>
+          </div>
 
-          <p className="flex items-center gap-3 font-semibold">
-            <FiMapPin className="text-[#102A2E] text-lg shrink-0" />
-            <span>Address: <b>{contactAddress}</b></span>
-          </p>
+          <div>
+            <label htmlFor="contact-name" className="mb-1 block text-sm font-semibold">Full name *</label>
+            <input id="contact-name" className="input-field" placeholder="Your full name" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? "contact-name-error" : undefined} {...register("name", { required: true })} />
+            {errors.name && <p id="contact-name-error" className="mt-1 text-sm text-rose-600">Name is required.</p>}
+          </div>
 
-          <p className="flex items-center gap-3 text-xs text-gray-500 pt-2 border-t">
-            <FiClock className="text-[#102A2E] shrink-0" />
-            <span>Desk Hours: <b>24/7 Traveler Help Desk & Admin Sentinel</b></span>
-          </p>
-        </div>
-      </motion.div>
+          <div>
+            <label htmlFor="contact-email" className="mb-1 block text-sm font-semibold">Email address *</label>
+            <input id="contact-email" className="input-field" type="email" placeholder="you@example.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "contact-email-error" : undefined} {...register("email", { required: "Email is required", pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" } })} />
+            {errors.email && <p id="contact-email-error" className="mt-1 text-sm text-rose-600">{errors.email.message}</p>}
+          </div>
 
-      <motion.form
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        onSubmit={handleSubmit(onSubmit)}
-        className="card-base p-6 sm:p-8 space-y-4 bg-white border border-slate-200 shadow-xl rounded-3xl"
-      >
-        <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
-          <FiShield className="text-[#102A2E]" /> Send Message to Admin Desk
-        </h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="contact-subject" className="mb-1 block text-sm font-semibold">Subject or place *</label>
+              <input id="contact-subject" className="input-field" placeholder="What is this about?" aria-invalid={Boolean(errors.subject)} {...register("subject", { required: true })} />
+              {errors.subject && <p className="mt-1 text-sm text-rose-600">Subject is required.</p>}
+            </div>
+            <div>
+              <label htmlFor="contact-category" className="mb-1 block text-sm font-semibold">Category</label>
+              <select id="contact-category" className="input-field" {...register("category")}>
+                <option value="general">General support inquiry</option>
+                <option value="correction">Correct information</option>
+                <option value="emergency_service">Emergency service feedback</option>
+                <option value="hotel_hospital">Hotel or hospital information</option>
+                <option value="route_distance">Route or distance problem</option>
+                <option value="risk_news">Risk or disaster news</option>
+              </select>
+            </div>
+          </div>
 
-        <div>
-          <input
-            className="input-field text-xs"
-            placeholder="Your Full Name *"
-            {...register("name", { required: true })}
-          />
-          {errors.name && <p className="text-xs text-rose-500 mt-1">Name is required</p>}
-        </div>
+          <div>
+            <label htmlFor="contact-message" className="mb-1 block text-sm font-semibold">Message *</label>
+            <textarea id="contact-message" rows={5} className="input-field" placeholder="Tell us what you need" aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "contact-message-error" : undefined} {...register("message", { required: true })} />
+            {errors.message && <p id="contact-message-error" className="mt-1 text-sm text-rose-600">Message is required.</p>}
+          </div>
 
-        <div>
-          <input
-            className="input-field text-xs"
-            placeholder="Email Address *"
-            {...register("email", { required: true })}
-          />
-          {errors.email && <p className="text-xs text-rose-500 mt-1">Email is required</p>}
-        </div>
+          <label className="block cursor-pointer rounded-[var(--ny-radius-md)] border-2 border-dashed border-[var(--ny-border)] p-4 text-center text-sm font-semibold text-[var(--ny-text-secondary)] transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]">
+            Attach evidence images or videos ({evidence.length}/8)
+            <input className="sr-only" type="file" multiple accept="image/*,video/*" onChange={(event) => setEvidence(Array.from(event.target.files || []).slice(0, 8))} />
+          </label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            className="input-field text-xs"
-            placeholder="Subject / Place Name *"
-            {...register("subject", { required: true })}
-          />
-          <select className="input-field text-xs" {...register("category")}>
-            <option value="general">General Support Inquiry</option>
-            <option value="correction">Correct wrong information</option>
-            <option value="emergency_service">Emergency service feedback</option>
-            <option value="hotel_hospital">Hotel / Hospital information</option>
-            <option value="route_distance">Route or distance problem</option>
-            <option value="risk_news">Risk / disaster news</option>
-          </select>
-        </div>
-
-        <div>
-          <textarea
-            rows={4}
-            className="input-field text-xs"
-            placeholder="Your Detailed Message / Question *"
-            {...register("message", { required: true })}
-          />
-          {errors.message && <p className="text-xs text-rose-500 mt-1">Message is required</p>}
-        </div>
-
-        <label className="block rounded-2xl border-2 border-dashed border-gray-200 p-4 text-center text-xs font-bold text-gray-500 cursor-pointer hover:border-[#2E6B5A]">
-          📎 Attach Evidence images/videos ({evidence.length}/8)
-          <input
-            hidden
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            onChange={(e) => setEvidence(Array.from(e.target.files).slice(0, 8))}
-          />
-        </label>
-
-        <button type="submit" className="btn-primary w-full py-3" disabled={isSubmitting}>
-          {isSubmitting ? "Sending..." : "Send Message to Admin"}
-        </button>
-
-        <p className="text-[11px] text-gray-400 text-center">
-          Submitted directly to the Admin support & feedback queue.
-        </p>
-      </motion.form>
+          <button type="submit" className="ny-btn ny-btn-primary w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Sending…" : "Send message"}
+          </button>
+          <p className="text-center text-sm text-[var(--ny-text-muted)]">Your message is sent for review. We will use the contact details you provide for any reply.</p>
+        </motion.form>
+      </div>
     </div>
   )
 }

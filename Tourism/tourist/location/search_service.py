@@ -275,7 +275,7 @@ class LocationSearchService:
                     "longitude": float(h.longitude),
                     "address": h.address or "Nepal",
                     "city": h.destination.city if getattr(h, "destination", None) else "Pokhara",
-                    "phone": h.phone or "102",
+                    "phone": h.phone or "",
                     "source": "verified_hospital",
                     "is_destination": False,
                 })
@@ -294,7 +294,7 @@ class LocationSearchService:
                     "longitude": float(p.longitude),
                     "address": p.address or "Nepal",
                     "city": p.destination.city if getattr(p, "destination", None) else "Pokhara",
-                    "phone": p.phone or "100",
+                    "phone": p.phone or "",
                     "source": "verified_police",
                     "is_destination": False,
                 })

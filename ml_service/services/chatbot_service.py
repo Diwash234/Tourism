@@ -7,10 +7,6 @@ import re
 
 from .emergency_service import get_nearest_emergency_contacts
 from .recommendation_service import recommend
-from model.budget.budget_engine import estimate_budget
-
-
-
 
 
 INTENT_PATTERNS = {
@@ -124,29 +120,13 @@ def handle_message(
     if intent == "budget":
 
 
-        estimate = estimate_budget(
-
-            num_destinations=3,
-
-            num_days=7,
-
-            avg_daily_cost_usd=30,
-
-            travel_style="mid_range"
-
-        )
-
-
         return {
 
-            "intent":
-            "budget",
+            "intent": "budget",
 
-            "reply":
-            "Estimated budget for a 7 day Nepal trip:",
+            "reply": "A budget is unavailable unless a recorded estimate is returned for the selected destination. Browse the catalogue or Budget Estimator for an honest result.",
 
-            "estimate":
-            estimate
+            "estimate": None
 
         }
 

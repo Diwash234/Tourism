@@ -55,7 +55,7 @@ const COMMAND_ITEMS = [
     id: "trip-planner",
     title: "My Trip Planner Workspace",
     category: "Plan",
-    path: "/trip-planner",
+    path: "/itinerary",
     icon: Calendar,
     description: "Build custom itineraries, reorder daily stops, and estimate budgets."
   },
@@ -63,7 +63,7 @@ const COMMAND_ITEMS = [
     id: "safety",
     title: "Travel Safety & Hazard Alerts",
     category: "Safety",
-    path: "/safety",
+    path: "/risk-alerts",
     icon: Shield,
     description: "DoR road conditions, DHM hydrological river alerts, and weather advisories."
   },
@@ -158,9 +158,12 @@ export default function CommandPalette() {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-20 px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 px-4 pt-20 backdrop-blur-sm animate-in fade-in duration-150" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsOpen(false) }}>
       <div
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        className="flex w-full max-w-2xl flex-col overflow-hidden rounded-[var(--ny-radius-lg)] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
@@ -168,6 +171,7 @@ export default function CommandPalette() {
           <Search className="w-5 h-5 text-slate-400 mr-3 shrink-0" />
           <input
             type="text"
+            aria-label="Search commands and destinations"
             autoFocus
             placeholder="Search commands, destinations, safety, maps... (Ctrl+K)"
             value={query}
@@ -176,6 +180,8 @@ export default function CommandPalette() {
             className="w-full bg-transparent text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none text-base"
           />
           <button
+            type="button"
+            aria-label="Close command palette"
             onClick={() => setIsOpen(false)}
             className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -184,7 +190,7 @@ export default function CommandPalette() {
         </div>
 
         {/* Command Items List */}
-        <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
+        <div role="listbox" aria-label="Available commands" className="max-h-[380px] overflow-y-auto p-2 space-y-1">
           {filteredItems.length === 0 ? (
             <div className="p-8 text-center text-slate-500 dark:text-slate-400">
               <Sparkles className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
@@ -196,11 +202,14 @@ export default function CommandPalette() {
               const Icon = item.icon
               const isSelected = index === selectedIndex
               return (
-                <div
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
                   key={item.id}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex w-full items-start gap-3 rounded-lg p-3 text-left cursor-pointer transition-colors ${
                     isSelected
                       ? "bg-rose-50 dark:bg-slate-800/80 border-l-4 border-[#C8102E]"
                       : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -228,7 +237,7 @@ export default function CommandPalette() {
                       {item.description}
                     </p>
                   </div>
-                </div>
+                </button>
               )
             })
           )}

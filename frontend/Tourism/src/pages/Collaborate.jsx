@@ -48,25 +48,25 @@ export default function Collaborate() {
   }
 
   return (
-    <div className="container-app py-10" data-testid="collaborate-page">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8" data-testid="collaborate-page">
       <CMSPageIntro pageKey="collaborate" />
       <PageHeader
-        title="Partner with Nepal Tourism"
-        subtitle="Submit your hotel or tour business for review. After approval you can add packages from the partner desk — an administrator still publishes each offer."
+        title="Partner with Nepal Yatra"
+        subtitle="Submit your hotel or tour business for review. After approval you can add packages from the partner desk; each offer is reviewed before publication."
         icon={FiBriefcase}
         theme="forest"
       />
       {done ? (
-        <div className="card-base p-8 max-w-xl space-y-3" data-testid="collaborate-success">
+        <div className="ny-panel p-6 max-w-xl space-y-3 sm:p-8" data-testid="collaborate-success">
           <h2 className="text-xl font-black">Application submitted successfully</h2>
           <p className="text-slate-600">Our team will review your application and contact you.</p>
           <div className="flex flex-wrap gap-2">
-            <Link to="/partner" className="btn-primary inline-flex">Open partner desk</Link>
-            <Link to="/packages" className="btn-outline inline-flex">Browse current packages</Link>
+            <Link to="/packages" className="ny-btn ny-btn-primary">Browse current packages</Link>
+            <Link to="/contact" className="ny-btn ny-btn-secondary">Contact the review team</Link>
           </div>
         </div>
       ) : (
-        <form onSubmit={submit} className="card-base p-6 max-w-xl space-y-3" data-testid="collaborate-form">
+        <form onSubmit={submit} className="ny-panel p-6 max-w-xl space-y-3" data-testid="collaborate-form">
           <input className="input-field" required name="name" data-testid="partner-name" placeholder="Business / hotel name" value={form.name} onChange={set("name")} />
           <select className="input-field" value={form.kind} onChange={set("kind")}>
             {KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}

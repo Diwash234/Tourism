@@ -15,15 +15,17 @@ const DashboardLayout = () => {
   const desktopPad = sidebarOpen ? "lg:pl-64" : "lg:pl-16"
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 w-full overflow-x-hidden">
+    <div className="ny-app-shell flex min-h-screen w-full flex-col overflow-x-hidden bg-[var(--ny-bg)] text-[var(--ny-text)] dark:bg-[#0B1714] dark:text-[#EAF2EF]">
+      <a href="#main-content" className="ny-skip-link">Skip to main content</a>
       <ElevationScrollProgress />
       <Navbar />
       <Sidebar />
       <div
+        id="main-content"
         key={location.pathname}
-        className={`flex-1 w-full flex flex-col justify-between pt-16 transition-[padding] duration-300 ${desktopPad}`}
+        className={`ny-app-main ny-page flex w-full flex-1 flex-col justify-between pb-28 pt-16 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}
       >
-        <div className="flex-1 min-w-0 px-3 sm:px-4 md:px-6 lg:px-8 py-5 md:py-8 max-w-[1600px] mx-auto w-full">
+        <div className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
           <Outlet />
         </div>
         <Footer />

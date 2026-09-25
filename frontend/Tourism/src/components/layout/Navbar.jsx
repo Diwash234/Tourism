@@ -14,7 +14,14 @@ import usePublicConfig from "../../hooks/usePublicConfig"
 import useTheme from "../../context/ThemeContext"
 import { resolveNavbarFeatures } from "../../utils/navbarFeatures"
 
-const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-emerald-100 hover:bg-emerald-800 hover:text-white transition-colors" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)
+const PUBLIC_NAV_PATHS = new Set([
+  "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal",
+  "/itinerary", "/budget-estimator", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
+  "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
+  "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support",
+])
+
+const NavChildren = ({ items, depth = 0, onNavigate }) => items.map(child => <div key={child.path}><NavLink to={child.path} onClick={onNavigate} className="block px-3 py-2 rounded-lg text-sm text-[#C7D9D2] hover:bg-white/10 hover:text-white transition-colors" style={{ paddingLeft: `${12 + depth * 14}px` }}>{child.label}</NavLink>{!!child.children?.length && <NavChildren items={child.children} depth={depth + 1} onNavigate={onNavigate}/>}</div>)
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -40,7 +47,11 @@ const Navbar = () => {
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
     const role = user?.role || "tourist"
-    const allowed = (navigation || []).filter(item => item.location === "navbar" && String(item.route).startsWith("/") && (!item.allowed_roles?.length || item.allowed_roles.includes(role)))
+    const allowed = (navigation || []).filter(item => {
+      const route = String(item.route || "")
+      const publicRoute = PUBLIC_NAV_PATHS.has(route) || /^\/page\/[^/]+$/.test(route)
+      return item.location === "navbar" && route.startsWith("/") && (!item.allowed_roles?.length || item.allowed_roles.includes(role)) && (isAuthenticated || publicRoute)
+    })
     if (!allowed.length) return setManagedLinks(NAV_LINKS)
     const nodes = new Map(allowed.map(item => [item.id, { path: item.route, label: item.label, children: [] }]))
     const roots = []
@@ -48,7 +59,7 @@ const Navbar = () => {
     setManagedLinks(roots)
     }, 0)
     return () => clearTimeout(t)
-  }, [navigation, user?.role])
+  }, [navigation, user?.role, isAuthenticated])
 
   // Close any open dropdown on route change or Escape key
   useEffect(() => {
@@ -93,14 +104,14 @@ const Navbar = () => {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[60] bg-emerald-950/95 backdrop-blur border-b border-emerald-800 shadow-lg shadow-emerald-950/30 w-full min-w-0">
-      <nav data-nav-root className="w-full mx-auto px-2 sm:px-3 lg:px-5 flex items-center gap-2 sm:gap-3 h-16 min-w-0 relative">
+    <header className="ny-header fixed inset-x-0 top-0 z-[60] min-w-0 w-full border-b border-white/10 text-white shadow-[0_4px_18px_rgba(4,42,36,0.16)] backdrop-blur">
+      <nav data-nav-root aria-label="Main navigation" className="relative mx-auto flex h-16 min-w-0 w-full items-center gap-2 px-2 sm:gap-3 sm:px-4 lg:px-6">
 
         {/* Sidebar Toggle */}
         <button
           type="button"
           onClick={toggleSidebar}
-          className="p-2 rounded-lg text-emerald-100 hover:text-white hover:bg-emerald-800 transition-colors shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
+          className="p-2 rounded-lg text-[#C7D9D2] hover:text-white hover:bg-white/10 transition-colors shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
           aria-label={sidebarOpen ? "Close sidebar menu" : "Open sidebar menu"}
           aria-expanded={sidebarOpen}
           aria-controls="sidebar-drawer"
@@ -124,15 +135,15 @@ const Navbar = () => {
         >
           <div className="relative flex-1 min-w-0">
             <FiSearch
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#63E6BE]"
               size={16}
             />
 
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search destinations, map, safety... (Ctrl+K)"
-              className="w-full text-sm rounded-full border border-emerald-700 bg-emerald-900/70 text-white placeholder:text-emerald-300/70 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              placeholder="Search destinations…"
+              className="w-full text-sm rounded-full border border-white/20 bg-white/10 text-white placeholder:text-[#AFC5BC] pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
 
@@ -143,7 +154,7 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-            className="nav-kbd hidden shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 rounded-md transition-colors"
+            className="nav-kbd hidden shrink-0 items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-[#BDEBD9] bg-[#063B32] hover:bg-white/10 border border-white/20 rounded-md transition-colors"
             title="Open Command Palette (Ctrl+K)"
           >
             <span>Ctrl</span>
@@ -157,7 +168,7 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => setSearchOpen((v) => !v)}
-            className="min-[1400px]:hidden p-2 rounded-lg text-emerald-100 hover:text-white hover:bg-emerald-800 transition-colors shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
+            className="min-[1400px]:hidden p-2 rounded-lg text-[#C7D9D2] hover:text-white hover:bg-white/10 transition-colors shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
             aria-label={searchOpen ? "Close search" : "Open search"}
             aria-expanded={searchOpen}
           >
@@ -169,18 +180,18 @@ const Navbar = () => {
             five links plus the user actions overflows tablet widths, so at
             md–lg the same tree stays reachable via the sidebar drawer
             (hamburger) and the bottom nav — nothing is ever lost. */}
-        <div className="hidden lg:flex items-center gap-2 xl:gap-4 shrink-0">
+        <div className="hidden min-[1280px]:flex items-center gap-2 xl:gap-4 shrink-0">
           {managedLinks.map((link, idx) => (
             <div key={link.id || `${link.path}-${idx}`} className="relative group" onMouseLeave={() => setOpenMenu(null)}>
               <div className="flex items-center gap-0.5">
-                <NavLink to={link.path} onClick={() => setOpenMenu(null)} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap rounded-lg px-2.5 py-2 ${isActive ? "bg-emerald-800 text-white" : "text-emerald-100 hover:bg-emerald-800 hover:text-white"}`}>{link.label}</NavLink>
+                <NavLink to={link.path} onClick={() => setOpenMenu(null)} className={({ isActive }) => `text-sm font-medium transition-colors whitespace-nowrap rounded-lg px-2.5 py-2 ${isActive ? "bg-white/10 text-white" : "text-[#C7D9D2] hover:bg-white/10 hover:text-white"}`}>{link.label}</NavLink>
                 {!!link.children?.length && (
                   <button
                     type="button"
                     aria-label={`Toggle ${link.label} menu`}
                     aria-expanded={openMenu === idx}
                     onClick={() => setOpenMenu(openMenu === idx ? null : idx)}
-                    className={`p-1 rounded transition-colors ${openMenu === idx ? "text-white" : "text-emerald-300 hover:text-white"}`}
+                    className={`p-1 rounded transition-colors ${openMenu === idx ? "text-white" : "text-[#BDEBD9] hover:text-white"}`}
                   >
                     <FiChevronDown size={14} className={`transition-transform ${openMenu === idx ? "rotate-180" : ""}`} />
                   </button>
@@ -188,7 +199,7 @@ const Navbar = () => {
               </div>
               {!!link.children?.length && (
                 <div className={`absolute top-full left-0 pt-3 min-w-52 z-50 ${openMenu === idx ? "block" : "hidden"}`}>
-                  <div className="bg-emerald-900 border border-emerald-700 shadow-xl shadow-emerald-950/50 rounded-xl p-2">
+                  <div className="bg-[#063B32] border border-white/20 shadow-xl shadow-emerald-950/50 rounded-xl p-2">
                     <NavChildren items={link.children} onNavigate={() => setOpenMenu(null)} />
                   </div>
                 </div>
@@ -221,7 +232,7 @@ const Navbar = () => {
               {features.theme_toggle && <button
                 type="button"
                 onClick={toggleTheme}
-                className="text-emerald-200 hover:text-white"
+                className="text-[#BDEBD9] hover:text-white"
                 aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
                 title={isDark ? "Light mode" : "Dark mode"}
               >
@@ -229,7 +240,7 @@ const Navbar = () => {
               </button>}
               {features.notifications && <Link
                 to="/notifications"
-                className="text-emerald-200 hover:text-white"
+                className="text-[#BDEBD9] hover:text-white"
                 aria-label="Notifications"
               >
                 <FiBell size={20} />
@@ -239,11 +250,11 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/login" className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-xl border border-emerald-600 text-white hover:bg-emerald-800 transition-colors">
+              <Link to="/login" className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-semibold px-4 py-2 rounded-[var(--ny-radius-sm)] border border-emerald-600 text-white hover:bg-white/10 transition-colors">
                 {t("nav.login")}
               </Link>
 
-              <Link to="/register" className="btn-primary text-sm py-1.5">
+              <Link to="/register" className="btn-primary min-h-11 text-sm py-2">
                 {t("nav.signup")}
               </Link>
             </>
@@ -259,7 +270,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800 transition-colors"
+              className="ny-navbar-secondary-action p-1.5 rounded-lg text-[#BDEBD9] hover:text-white hover:bg-white/10 transition-colors"
               aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
             >
               {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
@@ -268,7 +279,7 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               {features.notifications && (
-                <Link to="/notifications" className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800 transition-colors" aria-label="Notifications">
+                <Link to="/notifications" className="p-1.5 rounded-lg text-[#BDEBD9] hover:text-white hover:bg-white/10 transition-colors" aria-label="Notifications">
                   <FiBell size={18} />
                 </Link>
               )}
@@ -276,10 +287,10 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/login" className="text-xs font-bold px-2 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors">
+              <Link to="/login" className="text-xs font-bold px-2 py-2 min-h-11 rounded-lg bg-[var(--ny-green)] text-white hover:bg-emerald-500 transition-colors">
                 {t("nav.login")}
               </Link>
-              <Link to="/register" className="text-xs font-bold px-2 py-1.5 rounded-lg border border-emerald-600 text-emerald-100 hover:bg-emerald-800 transition-colors">
+              <Link to="/register" className="ny-navbar-secondary-action text-xs font-bold px-2 py-2 min-h-11 rounded-lg border border-emerald-600 text-[#C7D9D2] hover:bg-white/10 transition-colors">
                 {t("nav.signup")}
               </Link>
             </>
@@ -289,23 +300,23 @@ const Navbar = () => {
         {/* Expanding search bar (below 1400px). Full-width under the header
             so it never squeezes the other items. */}
         {searchOpen && (
-          <div className="min-[1400px]:hidden absolute top-full inset-x-0 bg-emerald-950/95 backdrop-blur border-b border-emerald-800 shadow-lg shadow-emerald-950/40 px-3 py-2.5 z-50">
+          <div className="min-[1400px]:hidden absolute top-full inset-x-0 bg-[var(--ny-green-deepest)] backdrop-blur border-b border-emerald-800 shadow-lg shadow-emerald-950/40 px-3 py-2.5 z-50">
             <form
               onSubmit={(e) => { setSearchOpen(false); handleSmartSearch(e) }}
               className="relative"
             >
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" size={16} />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#63E6BE]" size={16} />
               <input
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search destinations, map, safety..."
-                className="w-full text-sm rounded-full border border-emerald-700 bg-emerald-900/70 text-white placeholder:text-emerald-300/70 pl-9 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="Search destinations…"
+                className="w-full text-sm rounded-full border border-white/20 bg-white/10 text-white placeholder:text-[#AFC5BC] pl-9 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-emerald-300 hover:text-white hover:bg-emerald-800 transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-[#BDEBD9] hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Close search"
               >
                 <FiX size={16} />

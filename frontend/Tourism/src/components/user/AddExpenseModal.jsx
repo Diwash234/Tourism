@@ -87,10 +87,10 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-400"
               >
-                <option value="accommodation">🏨 Stay / Hotel</option>
-                <option value="food">🍛 Food & Dining</option>
+                <option value="accommodation">Stay / hotel</option>
+                <option value="food">Food & dining</option>
                 <option value="transportation">🚌 Transit / Taxi</option>
-                <option value="activities">🎟️ Permits & Entry</option>
+                <option value="activities">Permits & entry</option>
                 <option value="shopping">🛍️ Shopping / Gear</option>
                 <option value="other">ℹ️ Miscellaneous</option>
               </select>

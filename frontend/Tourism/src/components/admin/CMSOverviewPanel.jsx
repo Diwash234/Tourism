@@ -42,7 +42,7 @@ export default function CMSOverviewPanel() {
       adminApi.getVisitorDesk({})
         .then(({ data }) => {
           mark("notices", true)
-          const rows = data.results || data || []
+          const rows = data.notices || []
           if (!cancelled) setCounts((prev) => ({ ...(prev || {}), notices: Array.isArray(rows) ? rows.length : 0 }))
         })
         .catch(() => mark("notices", false))

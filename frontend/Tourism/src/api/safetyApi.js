@@ -38,7 +38,7 @@ const safetyApi = {
   // Trusted contact opens this using token
   getSharedTrip: (token) =>
     axiosClient.get(
-      `/safety/shared/${token}/`
+      `/safety/trip-share/${token}/`
     ),
 
 

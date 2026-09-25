@@ -1,162 +1,159 @@
-import { useEffect, useMemo, useState } from "react"
-import CMSPageIntro from "../components/cms/CMSPageIntro"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
-import {
-  FiPhoneCall, FiAlertTriangle, FiMapPin, FiNavigation, FiShield,
-  FiPlusSquare, FiActivity, FiSearch, FiCheckCircle, FiExternalLink
-} from "react-icons/fi"
-import useGeolocation from "../hooks/useGeolocation"
-import Loader from "../components/common/Loader"
+import { FiActivity, FiAlertTriangle, FiCheckCircle, FiExternalLink, FiMapPin, FiNavigation, FiPhoneCall, FiSearch, FiShield, FiTool } from "react-icons/fi"
+import CMSPageIntro from "../components/cms/CMSPageIntro"
 import Breadcrumbs from "../components/common/Breadcrumbs"
+import EmptyState from "../components/common/EmptyState"
+import SkeletonLoader from "../components/common/SkeletonLoader"
+import useGeolocation from "../hooks/useGeolocation"
+import useToast from "../hooks/useToast"
+import useAuth from "../hooks/useAuth"
 import safetyApi from "../api/safetyApi"
 import emergencyApi from "../api/emergencyApi"
 import destinationApi from "../api/destinationApi"
-import useToast from "../hooks/useToast"
 
 const TYPE_META = {
-  hospital: { label: "Hospital / Clinic", icon: "🏥", color: "bg-rose-100 text-rose-800", fallback: "102" },
-  police: { label: "Police Station", icon: "👮", color: "bg-blue-100 text-blue-800", fallback: "100" },
-  ambulance: { label: "Ambulance", icon: "🚑", color: "bg-emerald-100 text-emerald-800", fallback: "102" },
-  blood_bank: { label: "Blood Bank", icon: "🩸", color: "bg-red-100 text-red-800", fallback: "102" },
-  bank: { label: "Bank", icon: "🏦", color: "bg-cyan-100 text-cyan-800", fallback: "" },
-  atm: { label: "ATM", icon: "🏧", color: "bg-cyan-100 text-cyan-800", fallback: "" },
-  pharmacy: { label: "Pharmacy", icon: "💊", color: "bg-green-100 text-green-800", fallback: "102" },
-  fire_station: { label: "Fire & Rescue", icon: "🚒", color: "bg-orange-100 text-orange-800", fallback: "101" },
-  tourist_police: { label: "Tourist Police", icon: "🛡️", color: "bg-emerald-100 text-[#1D5146]", fallback: "1144" },
-  traffic_police: { label: "Traffic Police", icon: "🚦", color: "bg-slate-100 text-slate-800", fallback: "103" },
+  hospital: { label: "Hospital / clinic", icon: FiActivity, color: "bg-[var(--ny-soft-red)] text-[var(--ny-danger)]" },
+  police: { label: "Police station", icon: FiShield, color: "bg-[var(--ny-soft-blue)] text-[var(--ny-info)]" },
+  ambulance: { label: "Ambulance", icon: FiNavigation, color: "bg-[var(--ny-soft-green)] text-[var(--ny-green)]" },
+  blood_bank: { label: "Blood bank", icon: FiTool, color: "bg-[var(--ny-soft-red)] text-[var(--ny-danger)]" },
+  pharmacy: { label: "Pharmacy", icon: FiActivity, color: "bg-[var(--ny-soft-green)] text-[var(--ny-green)]" },
+  fire_station: { label: "Fire and rescue", icon: FiAlertTriangle, color: "bg-[var(--ny-soft-gold)] text-[var(--ny-warning)]" },
+  tourist_police: { label: "Tourist police", icon: FiShield, color: "bg-[var(--ny-soft-green)] text-[var(--ny-green)]" },
+  traffic_police: { label: "Traffic police", icon: FiNavigation, color: "bg-[var(--ny-soft-blue)] text-[var(--ny-info)]" },
 }
 
-const HOTLINE_COLORS = {
-  tourist_police: "from-purple-700 to-indigo-700", police: "from-blue-700 to-cyan-700",
-  ambulance: "from-rose-600 to-red-700", fire_station: "from-amber-500 to-orange-600",
-  traffic_police: "from-slate-700 to-gray-800",
-}
-
-function phoneHref(value) {
-  return `tel:${String(value || "").replace(/[^0-9+]/g, "")}`
-}
+const phoneHref = (value) => `tel:${String(value || "").replace(/[^0-9+]/g, "")}`
 
 function FacilityCard({ facility }) {
-  const meta = TYPE_META[facility.type] || TYPE_META.hospital
-  const directions = `https://www.google.com/maps/dir/?api=1&destination=${facility.latitude},${facility.longitude}`
+  const meta = TYPE_META[facility.type] || { label: "Emergency facility", icon: FiActivity, color: "bg-[var(--ny-soft-green)] text-[var(--ny-green)]" }
+  const Icon = meta.icon
+  const hasPhone = Boolean(facility.phone_number)
+  const hasCoordinates = facility.latitude != null && facility.longitude != null
+  const directions = hasCoordinates ? `https://www.google.com/maps/dir/?api=1&destination=${facility.latitude},${facility.longitude}` : null
   return (
-    <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-lg transition space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${meta.color}`}>{meta.icon} {meta.label}</span>
-        {facility.distance_km != null && <span className="text-xs font-black text-[#102A2E]">{facility.distance_km} km · ~{facility.estimated_travel_time_min} min</span>}
-      </div>
-      {facility.image_url && <img src={facility.image_url} alt={facility.name} className="h-32 w-full rounded-xl object-cover" />}
-      <div>
-        <h3 className="font-extrabold text-sm text-gray-900">{facility.name}</h3>
-        <p className="text-xs text-gray-500 mt-1 flex gap-1"><FiMapPin className="shrink-0 mt-0.5" />{facility.address || facility.district || "Nepal"}</p>
-      </div>
-      {facility.outside_requested_radius && <p className="text-[10px] rounded-lg bg-amber-50 text-amber-800 px-2 py-1">No service found inside the selected radius; showing the nearest known result.</p>}
-      {facility.phone_is_national_fallback && <p className="text-[10px] text-gray-500">Local phone unavailable in the source dataset — national {meta.label.toLowerCase()} line shown.</p>}
-      <div className="flex gap-2 pt-2 border-t">
-        {(facility.phone_number || meta.fallback) ? <a href={phoneHref(facility.phone_number || meta.fallback)} className="flex-1 rounded-xl bg-[#102A2E] text-white py-2 text-center text-xs font-black"><FiPhoneCall className="inline mr-1" />{facility.phone_number || meta.fallback}</a> : <span className="flex-1 rounded-xl bg-gray-100 text-gray-500 py-2 text-center text-xs font-bold">Phone unavailable</span>}
-        {facility.latitude != null && <Link to={`/navigation?dest=${encodeURIComponent(facility.name)}`} className="rounded-xl bg-emerald-700 text-white px-3 py-2 text-xs font-bold"><FiNavigation className="inline" /> Route</Link>}
-        {facility.latitude != null && <a href={directions} target="_blank" rel="noreferrer" className="rounded-xl border border-[#E5E0D5] text-[#1D5146] px-3 py-2 text-xs font-bold" title="Open in Google Maps"><FiExternalLink className="inline" /></a>}
-      </div>
-      <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
-        <span>{facility.verified ? "✓ Verified" : "Verification pending"}</span>
-        {facility.opening_hours && <span>· {facility.opening_hours}</span>}
-        {facility.updated_at && <span>· Updated {new Date(facility.updated_at).toLocaleDateString()}</span>}
-      </div>
-      {facility.source_url ? <a href={facility.source_url} target="_blank" rel="noreferrer" className="block text-[10px] text-gray-400 hover:underline">Source: {facility.source_name || "Emergency directory"} <FiExternalLink className="inline" /></a> : facility.source_name ? <p className="text-[10px] text-gray-400">Source: {facility.source_name}</p> : null}
+    <article className="ny-card flex h-full flex-col p-5">
+      <div className="flex items-start justify-between gap-3"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.color}`}><Icon size={13} aria-hidden="true" />{meta.label}</span>{facility.distance_km != null && <span className="shrink-0 text-xs font-semibold text-[var(--ny-text-secondary)]">{facility.distance_km} km{facility.estimated_travel_time_min != null ? ` · ~${facility.estimated_travel_time_min} min` : ""}</span>}</div>
+      {facility.image_url && <img src={facility.image_url} alt="" className="mt-4 h-32 w-full rounded-[var(--ny-radius-md)] object-cover" />}
+      <div className="mt-4 flex-1"><h3 className="text-base font-bold">{facility.name || "Facility name unavailable"}</h3><p className="mt-1 flex gap-1.5 text-sm text-[var(--ny-text-secondary)]"><FiMapPin size={14} className="mt-0.5 shrink-0 text-[var(--ny-green)]" aria-hidden="true" />{facility.address || facility.district || "Address unavailable"}</p></div>
+      {facility.outside_requested_radius && <p className="mt-3 rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-gold)] px-3 py-2 text-xs text-[var(--ny-warning)]">No service was found inside the selected radius; the nearest known result is shown.</p>}
+      {facility.phone_is_national_fallback && <p className="mt-2 text-xs text-[var(--ny-text-secondary)]">The local phone number is not recorded; use the verified national contacts panel for national assistance.</p>}
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--ny-border)] pt-4">{hasPhone ? <a href={phoneHref(facility.phone_number)} aria-label={`${facility.phone_is_national_fallback ? "National fallback" : "Call"} ${facility.name || "facility"}`} className="ny-btn ny-btn-danger min-h-10 flex-1 px-3"><FiPhoneCall size={15} aria-hidden="true" />{facility.phone_is_national_fallback ? "National fallback · " : ""}{facility.phone_number}</a> : <span className="ny-btn ny-btn-secondary min-h-10 flex-1 cursor-not-allowed">Phone unavailable</span>}{hasCoordinates && <Link to={`/navigation?dest=${encodeURIComponent(facility.name || "")}`} className="ny-btn ny-btn-secondary min-h-10 px-3"><FiNavigation size={15} aria-hidden="true" />Route</Link>}{directions && <a href={directions} target="_blank" rel="noreferrer" className="ny-btn ny-btn-secondary min-h-10 px-3" aria-label="Open facility in maps"><FiExternalLink size={15} aria-hidden="true" /></a>}</div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ny-text-muted)]"><span>{facility.verified ? "Verified record" : "Verification pending"}</span>{facility.opening_hours && <span>· {facility.opening_hours}</span>}{facility.updated_at && <span>· Updated {new Date(facility.updated_at).toLocaleDateString()}</span>}</div>
     </article>
   )
 }
 
 export default function Emergency() {
-  const { position } = useGeolocation()
+  const { position, locating, error: geoError, retry: requestLocation } = useGeolocation({ auto: false })
   const { showToast } = useToast()
+  const { isAuthenticated } = useAuth()
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState([])
+  const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const [directory, setDirectory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const [radius, setRadius] = useState(50)
   const [sosStatus, setSosStatus] = useState("")
+  const [nationalHotlines, setNationalHotlines] = useState([])
+  const [nationalLoading, setNationalLoading] = useState(true)
+  const [nationalError, setNationalError] = useState("")
   const [loadedInitial, setLoadedInitial] = useState(false)
+  const lookupRequestRef = useRef(0)
+  const sosRequestRef = useRef(0)
+  const selectedReference = params.get("destination")
+
+  const loadNationalHotlines = useCallback(() => {
+    setNationalLoading(true)
+    setNationalError("")
+    return emergencyApi.nationalHotlines()
+      .then(({ data }) => setNationalHotlines(Array.isArray(data?.national_hotlines) ? data.national_hotlines : []))
+      .catch(() => setNationalError("Verified national contacts could not be loaded. Try again or use the emergency services available to you locally."))
+      .finally(() => setNationalLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => loadNationalHotlines(), 0)
+    return () => clearTimeout(timer)
+  }, [loadNationalHotlines])
 
   const loadDestination = async (reference) => {
     if (!reference) return
+    const requestId = ++lookupRequestRef.current
+    sosRequestRef.current += 1
+    setSosStatus("")
+    setDirectory(null)
     setLoading(true)
     try {
       const { data } = await emergencyApi.forDestination(reference, { radius_km: radius, limit: 10 })
+      if (requestId !== lookupRequestRef.current) return
       setDirectory(data)
-      setQuery(data.location.destination_name)
-      setParams({ destination: data.location.destination_slug }, { replace: true })
+      setQuery(data.location?.destination_name || "")
+      setParams({ destination: data.location?.destination_slug || reference }, { replace: true })
       setSuggestions([])
+       setActiveSuggestion(-1)
     } catch (error) {
-      showToast(error.response?.data?.detail || "Destination emergency data unavailable", "error")
-    } finally { setLoading(false); setLoadedInitial(true) }
+      if (requestId !== lookupRequestRef.current) return
+      setDirectory(null)
+      showToast(error.response?.data?.detail || "Destination emergency data is unavailable.", "error")
+    } finally {
+      if (requestId === lookupRequestRef.current) {
+        setLoading(false)
+        setLoadedInitial(true)
+      }
+    }
   }
 
   const loadCoordinates = async (lat, lng) => {
+    const requestId = ++lookupRequestRef.current
+    sosRequestRef.current += 1
+    setSosStatus("")
+    setDirectory(null)
     setLoading(true)
     try {
       const { data } = await emergencyApi.nearby(lat, lng, { radius_km: radius, limit: 10 })
-      setDirectory(data); setQuery("")
-    } catch { showToast("Nearby emergency directory unavailable", "error") }
-    finally { setLoading(false); setLoadedInitial(true) }
+      if (requestId !== lookupRequestRef.current) return
+      setDirectory(data)
+      setQuery("")
+    } catch {
+      if (requestId !== lookupRequestRef.current) return
+      setDirectory(null)
+      showToast("Nearby emergency directory is unavailable.", "error")
+    } finally {
+      if (requestId === lookupRequestRef.current) {
+        setLoading(false)
+        setLoadedInitial(true)
+      }
+    }
   }
 
   useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
-    const t = setTimeout(() => {
-    const selected = params.get("destination")
-    if (selected && !loadedInitial) loadDestination(selected)
-    else if (position && !loadedInitial) loadCoordinates(position.lat, position.lng)
-    else if (!selected && !position && !loadedInitial) {
-      setLoading(false)
-      setLoadedInitial(true)
-    }
-     
+    const timer = setTimeout(() => {
+      if (selectedReference && !loadedInitial) loadDestination(selectedReference)
+      else if (position && !loadedInitial) loadCoordinates(position.lat, position.lng)
+      else if (!selectedReference && !position && !loadedInitial) { setLoading(false); setLoadedInitial(true) }
     }, 0)
-    return () => clearTimeout(t)
-  }, [position])
+    return () => clearTimeout(timer)
+  // The lookup functions intentionally use the current radius and toast
+  // context; the initial-location effect should run only for these inputs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position, selectedReference, loadedInitial])
 
   useEffect(() => {
-    if (query.length < 2 || query === directory?.location?.destination_name) {
-      const z = setTimeout(() => setSuggestions([]), 0)
-      return () => clearTimeout(z)
+    if (query.trim().length < 2 || query === directory?.location?.destination_name) {
+      const clearTimer = setTimeout(() => { setSuggestions([]); setActiveSuggestion(-1) }, 0)
+      return () => clearTimeout(clearTimer)
     }
-    const timer = setTimeout(() => destinationApi.autocomplete(query)
-      .then(({ data }) => setSuggestions(data.results || data || []))
-      .catch(() => setSuggestions([])), 220)
+    const timer = setTimeout(() => {
+      destinationApi.autocomplete(query)
+        .then(({ data }) => setSuggestions(data.results || data || []))
+        .catch(() => setSuggestions([]))
+        .finally(() => setActiveSuggestion(-1))
+    }, 220)
     return () => clearTimeout(timer)
   }, [query, directory])
-
-  const refreshRadius = () => {
-    if (directory?.location?.destination_slug) loadDestination(directory.location.destination_slug)
-    else if (directory?.location) loadCoordinates(directory.location.latitude, directory.location.longitude)
-  }
-
-  const handleSOS = async () => {
-    const location = directory?.location
-    if (!location) {
-      // No silent no-op: an SOS must carry coordinates to be locatable.
-      if (position) {
-        showToast("Loading your GPS position so the SOS includes coordinates…", "info")
-        loadCoordinates(position.lat, position.lng)
-      } else {
-        showToast("Search a destination or tap “Use my GPS” first — an SOS needs coordinates so responders can locate you.", "error")
-      }
-      return
-    }
-    setSosStatus("sending")
-    try {
-      await safetyApi.triggerSos({ latitude: location.latitude, longitude: location.longitude, message: `Emergency assistance requested${location.destination_name ? ` near ${location.destination_name}` : ""}.` })
-      setSosStatus("sent")
-      showToast("SOS recorded by the platform. Call 100/102/1144 for immediate dispatch.", "success")
-    } catch {
-      setSosStatus("call")
-      showToast("The platform could not confirm dispatch. Call 100, 102 or 1144 now.", "error")
-    }
-  }
 
   const facilities = useMemo(() => {
     if (!directory) return []
@@ -169,45 +166,96 @@ export default function Emergency() {
     return all.filter((item) => !["hospital", "police"].includes(item.type))
   }, [directory, activeTab])
 
+  const refreshRadius = () => {
+    if (directory?.location?.destination_slug) loadDestination(directory.location.destination_slug)
+    else if (directory?.location) loadCoordinates(directory.location.latitude, directory.location.longitude)
+  }
+
+  const handleSOS = async () => {
+    const location = directory?.location
+    if (!location) { showToast("Search a destination or use GPS first so the request has a location.", "info"); return }
+    const requestId = ++sosRequestRef.current
+    const requestedLocation = { ...location }
+    setSosStatus("sending")
+    try {
+      await safetyApi.triggerSos({ latitude: requestedLocation.latitude, longitude: requestedLocation.longitude, message: `Emergency assistance requested${requestedLocation.destination_name ? ` near ${requestedLocation.destination_name}` : ""}.` })
+      if (requestId !== sosRequestRef.current) return
+      setSosStatus("sent")
+      showToast("SOS request recorded. Use the verified contact options shown below for immediate help.", "success")
+    } catch {
+      if (requestId !== sosRequestRef.current) return
+      setSosStatus("error")
+      showToast("The platform could not confirm the request. Use a verified contact option below.", "error")
+    }
+  }
+
   const locationTitle = directory?.location?.destination_name || (directory?.location?.source === "coordinates" ? "your selected location" : "Nepal")
-  const risk = directory?.risk?.overall
+  const hotlines = directory?.national_hotlines?.length ? directory.national_hotlines : nationalHotlines
+  const counts = directory?.counts || {}
 
   return (
-    <div className="container-app py-8 space-y-7 animate-fadeIn" data-testid="emergency-page">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8" data-testid="emergency-page">
       <CMSPageIntro pageKey="emergency" />
-      <Breadcrumbs items={[{ label: "Emergency Services", to: "/emergency" }]} />
-
-      <section className="rounded-3xl bg-gradient-to-r from-rose-900 via-rose-800 to-purple-950 text-white p-6 sm:p-8 shadow-2xl">
-        <div className="flex flex-col lg:flex-row gap-6 justify-between">
-          <div><span className="rounded-full bg-rose-500/30 px-3 py-1 text-xs font-black uppercase">Nepal emergency locator</span><h1 className="text-3xl sm:text-4xl font-black mt-2">Nearest Help for Every Destination</h1><p className="text-sm text-rose-100 mt-2 max-w-2xl">Search any approved Nepal destination. Results are calculated from its coordinates and ranked by actual distance.</p></div>
-          <div className="shrink-0"><button onClick={handleSOS} disabled={sosStatus === "sending"} className="rounded-2xl bg-rose-600 hover:bg-rose-500 px-7 py-4 font-black shadow-xl disabled:opacity-60"><FiAlertTriangle className="inline mr-2" />{sosStatus === "sending" ? "Recording SOS…" : sosStatus === "sent" ? "SOS Recorded" : "Emergency SOS"}</button><p className="text-[10px] text-rose-200 mt-2 max-w-56">For immediate dispatch, always call 100, 102, or Tourist Police 1144.</p></div>
-        </div>
-      </section>
-
-      <section className="rounded-3xl bg-white border shadow-sm p-5 space-y-4">
-        <form onSubmit={(e) => { e.preventDefault(); loadDestination(query) }} className="relative flex gap-2">
-          <div className="relative flex-1"><FiSearch className="absolute left-4 top-3.5 text-gray-400" /><input className="input-field pl-11" data-testid="emergency-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Pokhara, Rara Lake, Mardi Himal, Janakpur…" />
-            {suggestions.length > 0 && <div className="absolute z-30 top-full mt-1 left-0 right-0 bg-white border rounded-xl shadow-2xl overflow-hidden">{suggestions.slice(0, 7).map((item) => <button type="button" key={item.id} onClick={() => loadDestination(item.slug)} className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b last:border-0"><b>{item.name}</b><span className="ml-2 text-xs text-gray-400">{item.district}, {item.province}</span></button>)}</div>}
+      <Breadcrumbs items={[{ label: "Emergency services", to: "/emergency" }]} />
+      <header className="overflow-hidden rounded-[var(--ny-radius-xl)] border border-[#E9B9B9] bg-[var(--ny-soft-red)]">
+        <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="ny-kicker !border !border-[#E9B9B9] !bg-white/70 !text-[var(--ny-danger)]">Safety first</p>
+            <h1 className="mt-3 !text-3xl !text-[var(--ny-text)] sm:!text-4xl">Nearest Help for Every Destination</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ny-text-secondary)]">Search an approved destination or share your location to see recorded hospitals, police and other emergency facilities nearby.</p>
           </div>
-          <button className="rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white px-6 font-black text-sm whitespace-nowrap">Find help</button>
-        </form>
-        <div className="flex flex-wrap items-center gap-3 text-xs"><button onClick={() => position && loadCoordinates(position.lat, position.lng)} className="rounded-lg border px-3 py-2 font-bold"><FiMapPin className="inline" /> Use my GPS</button><label className="font-bold text-gray-600">Radius <select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="ml-1 rounded-lg border p-2"><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option><option value="100">100 km</option><option value="200">200 km</option></select></label><button onClick={refreshRadius} className="text-emerald-700 font-black">Apply radius</button></div>
-      </section>
-
-      {loading ? <Loader /> : !directory ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-          Search an approved destination or enable GPS to load the recorded emergency directory. This page does not invent a default city.
+          <div className="shrink-0">
+            {isAuthenticated ? (
+              <button type="button" onClick={handleSOS} disabled={sosStatus === "sending"} className="ny-btn ny-btn-danger min-h-12 px-5"><FiAlertTriangle size={17} aria-hidden="true" />{sosStatus === "sending" ? "Recording request…" : sosStatus === "sent" ? "Request recorded" : "Request emergency help"}</button>
+            ) : (
+              <Link to={`/login?next=${encodeURIComponent("/emergency")}`} className="ny-btn ny-btn-danger min-h-12 px-5"><FiAlertTriangle size={17} aria-hidden="true" />Sign in to request an SOS</Link>
+            )}
+            <p className="mt-2 max-w-xs text-xs leading-5 text-[var(--ny-text-secondary)]">The platform records a request; it does not replace emergency dispatch.</p>
+          </div>
         </div>
-      ) : <>
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase text-gray-400">Emergency coverage around</p><h2 className="text-2xl font-black">{locationTitle}</h2><p className="text-xs text-gray-500">{directory.location.district} {directory.location.province && `· ${directory.location.province}`} · {directory.radius_km} km radius</p>{directory.location.coordinate_note && <p className="text-[10px] text-gray-400">Location basis: {directory.location.coordinate_note}</p>}{(directory.coverage_gap || (directory.counts?.hospitals_within_radius === 0 && directory.counts?.police_within_radius === 0)) && <p className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">There is no verified local hospital or police record for this place in the directory. National hotlines still work. You can <Link to="/submit-service" className="font-black underline">submit a facility</Link> for review.</p>}</div>{risk && <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"><p className="text-[10px] font-black uppercase text-amber-800">Risk model indicator</p><b className="text-xl uppercase text-amber-900">{risk.level} · {risk.score}</b><p className="text-[10px] text-amber-700">Not an official warning</p></div>}</div>
+      </header>
 
-        <section className="space-y-3"><h2 className="font-extrabold text-lg flex items-center gap-2"><FiPhoneCall className="text-rose-600" /> Verified national hotlines</h2><div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">{directory.national_hotlines.map((item) => <a key={item.type} href={phoneHref(item.phone_number)} className={`rounded-2xl p-4 text-white bg-gradient-to-br ${HOTLINE_COLORS[item.type]} shadow`}><span className="text-[10px] font-black uppercase opacity-80">{item.name}</span><b className="block text-2xl">{item.phone_number}</b><p className="text-[10px] opacity-75">{item.description}</p></a>)}</div></section>
+      <section className="ny-panel p-5 sm:p-6" aria-labelledby="emergency-search-title"><h2 id="emergency-search-title" className="text-xl">Find help near a destination</h2><form onSubmit={(event) => { event.preventDefault(); loadDestination(query) }} className="mt-4 flex flex-col gap-3 sm:flex-row"><div className="relative min-w-0 flex-1"><FiSearch size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ny-text-muted)]" aria-hidden="true" /><label htmlFor="emergency-search" className="sr-only">Search destination</label><input
+                  id="emergency-search"
+                  data-testid="emergency-search"
+                  className="input-field pl-11"
+                  value={query}
+                  onChange={(event) => { setQuery(event.target.value); setActiveSuggestion(-1) }}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown" && suggestions.length) { event.preventDefault(); setActiveSuggestion((value) => Math.min(value + 1, Math.min(suggestions.length, 7) - 1)) }
+                    if (event.key === "ArrowUp" && suggestions.length) { event.preventDefault(); setActiveSuggestion((value) => Math.max(value - 1, 0)) }
+                    if (event.key === "Enter" && activeSuggestion >= 0 && suggestions[activeSuggestion]) { event.preventDefault(); loadDestination(suggestions[activeSuggestion].slug) }
+                    if (event.key === "Escape") { setSuggestions([]); setActiveSuggestion(-1) }
+                  }}
+                  placeholder="Search Pokhara, Rara Lake, Janakpur…"
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={suggestions.length > 0}
+                  aria-controls="emergency-suggestions"
+                  aria-autocomplete="list"
+                  aria-activedescendant={activeSuggestion >= 0 ? `emergency-suggestion-${activeSuggestion}` : undefined}
+                />{suggestions.length > 0 && <div id="emergency-suggestions" role="listbox" aria-label="Destination suggestions" className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-white shadow-[var(--ny-shadow-elevated)]">{suggestions.slice(0, 7).map((item) => <button type="button" key={item.id} id={`emergency-suggestion-${suggestions.indexOf(item)}`} role="option" aria-selected={suggestions.indexOf(item) === activeSuggestion} onClick={() => loadDestination(item.slug)} className="flex w-full items-center justify-between gap-3 border-b border-[var(--ny-border)] px-4 py-3 text-left text-sm last:border-0 hover:bg-[var(--ny-soft-green)]"><span className="font-semibold">{item.name}</span><span className="truncate text-xs text-[var(--ny-text-secondary)]">{item.district || item.province || "Location unavailable"}</span></button>)}</div>}</div><button type="submit" className="ny-btn ny-btn-primary">Find help</button></form><div className="mt-4 flex flex-wrap items-center gap-3 text-sm"><button type="button" onClick={() => position ? loadCoordinates(position.lat, position.lng) : requestLocation()} disabled={locating} className="ny-btn ny-btn-secondary min-h-10 px-3"><FiMapPin size={15} aria-hidden="true" />{position ? "Use my GPS" : locating ? "Finding location…" : geoError ? "Try location again" : "Use my location"}</button><label className="flex items-center gap-2 font-semibold text-[var(--ny-text-secondary)]">Radius <select value={radius} onChange={(event) => setRadius(Number(event.target.value))} className="input-field min-h-10 w-auto py-2"><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option><option value="100">100 km</option><option value="200">200 km</option></select></label><button type="button" onClick={refreshRadius} disabled={!directory} className="text-sm font-semibold text-[var(--ny-green)] hover:underline">Apply radius</button></div></section>
 
-        <section className="rounded-3xl border bg-white p-5 space-y-4"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-black text-xl">Nearest emergency facilities</h2><p className="text-xs text-gray-500">Database coverage: {directory.counts.database_hospitals} hospitals · {directory.counts.database_police_stations} police stations</p></div><div className="flex flex-wrap gap-2">{[["all", "All"], ["hospital", `Hospitals (${directory.counts.hospitals_within_radius})`], ["police", `Police (${directory.counts.police_within_radius})`], ["pharmacy", `Pharmacy (${directory.counts.pharmacy_within_radius || 0})`], ["fire", `Fire (${directory.counts.fire_within_radius || 0})`], ["specialized", "Ambulance & other"]].map(([key, label]) => <button key={key} type="button" data-testid={`emergency-tab-${key}`} onClick={() => setActiveTab(key)} className={`rounded-xl px-3 py-2 text-xs font-bold ${activeTab === key ? "bg-[#102A2E] text-white" : "bg-gray-100"}`}>{label}</button>)}</div></div>
-          {facilities.length ? <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{facilities.map((facility) => <FacilityCard key={facility.id} facility={facility} />)}</div> : <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 text-sm text-amber-900 space-y-2"><p><FiActivity className="inline mr-2" />{activeTab === "pharmacy" ? "No verified pharmacy is currently listed for this area. This platform does not invent pharmacies. You can submit a pharmacy for admin verification." : "No local specialized record is available. Use national Ambulance 102 or Fire 101."}</p><Link to="/submit-service" className="inline-block font-black underline">Submit a facility</Link></div>}
+      {!directory && (
+        <section className="ny-panel p-5 sm:p-6" aria-labelledby="national-hotlines-title">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 id="national-hotlines-title" className="text-xl">Verified national contacts</h2>
+              <p className="mt-1 text-sm text-[var(--ny-text-secondary)]">These contacts are available without sharing a location. Use the number that matches your emergency.</p>
+            </div>
+            {nationalError && <button type="button" onClick={loadNationalHotlines} className="ny-btn ny-btn-secondary min-h-11 text-sm">Retry contacts</button>}
+          </div>
+          {nationalLoading ? <p className="mt-4 text-sm text-[var(--ny-text-secondary)]">Loading verified contacts…</p> : nationalError ? <p role="alert" className="mt-4 rounded-[var(--ny-radius-md)] border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{nationalError}</p> : hotlines.length > 0 ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{hotlines.map((item) => item.phone_number ? <a key={item.type || item.phone_number} href={phoneHref(item.phone_number)} className="ny-card flex flex-col p-4 transition hover:-translate-y-0.5"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-2xl text-[var(--ny-green)]">{item.phone_number}</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">{item.description || "Contact record"}</span></a> : <div key={item.type || item.name} className="ny-card flex flex-col p-4"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-lg text-[var(--ny-text-secondary)]">Phone unavailable</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">No verified number is listed.</span></div>)}</div> : <p className="mt-4 text-sm text-[var(--ny-text-secondary)]">No national contact records are currently available from the directory.</p>}
         </section>
+      )}
 
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900"><FiCheckCircle className="inline mr-1" /><b>Data note:</b> {directory.notice}</div>
+      {loading ? <SkeletonLoader count={3} type="card" /> : !directory ? <EmptyState title="Choose a place to see local help" subtitle="Search an approved destination or enable GPS. We do not guess a default city or invent facilities." action={<Link to="/destinations" className="ny-btn ny-btn-primary">Browse destinations</Link>} /> : <>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-muted)]">Emergency coverage around</p><h2 className="mt-1">{locationTitle}</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">{directory.location?.district || "Location unavailable"}{directory.location?.province ? ` · ${directory.location.province}` : ""} · {directory.radius_km || radius} km radius</p></div>{(directory.coverage_gap || (counts.hospitals_within_radius === 0 && counts.police_within_radius === 0)) && <p className="max-w-md rounded-[var(--ny-radius-md)] border border-[#E9D39A] bg-[var(--ny-soft-gold)] p-3 text-sm text-[var(--ny-warning)]">No verified local hospital or police record is available for this area. <Link to="/submit-service" className="font-semibold underline">Submit a facility for review.</Link></p>}</div>
+
+        {directory && hotlines.length > 0 && <section aria-labelledby="national-hotlines-title"><h2 id="national-hotlines-title" className="text-xl">Verified national contacts</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">These records are supplied by the emergency directory response.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{hotlines.map((item) => item.phone_number ? <a key={item.type || item.phone_number} href={phoneHref(item.phone_number)} className="ny-card flex flex-col p-4 transition hover:-translate-y-0.5"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-2xl text-[var(--ny-green)]">{item.phone_number}</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">{item.description || "Contact record"}</span></a> : <div key={item.type || item.name} className="ny-card flex flex-col p-4"><span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ny-text-secondary)]">{item.name}</span><strong className="mt-2 text-lg text-[var(--ny-text-secondary)]">Phone unavailable</strong><span className="mt-1 text-xs text-[var(--ny-text-secondary)]">No verified number is listed.</span></div>)}</div></section>}
+
+        <section className="ny-panel p-5 sm:p-6" aria-labelledby="facilities-title"><div className="flex flex-col gap-4 border-b border-[var(--ny-border)] pb-5 lg:flex-row lg:items-end lg:justify-between"><div><h2 id="facilities-title" className="text-xl">Nearest emergency facilities</h2><p className="mt-1 text-sm text-[var(--ny-text-secondary)]">Directory coverage: {counts.database_hospitals ?? "—"} hospitals · {counts.database_police_stations ?? "—"} police stations</p></div><div className="ny-horizontal-scroll flex gap-2" role="group" aria-label="Filter emergency facilities">{[["all", "All"], ["hospital", "Hospitals"], ["police", "Police"], ["pharmacy", "Pharmacy"], ["fire", "Fire"]].map(([key, label]) => <button key={key} data-testid={`emergency-tab-${key}`} type="button" onClick={() => setActiveTab(key)} className={`min-h-10 whitespace-nowrap rounded-full border px-3 text-xs font-semibold ${activeTab === key ? "border-[var(--ny-green)] bg-[var(--ny-green)] text-white" : "border-[var(--ny-border)] bg-white text-[var(--ny-text-secondary)] hover:bg-[var(--ny-soft-green)]"}`} aria-pressed={activeTab === key}>{label}</button>)}</div></div>{facilities.length ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{facilities.map((facility) => <FacilityCard key={facility.id || `${facility.type}-${facility.name}`} facility={facility} />)}</div> : <div className="mt-5"><EmptyState title="No facilities match this filter" subtitle="No verified local record is listed for this category and radius. The directory does not invent pharmacies or facilities." action={<Link to="/submit-service" className="ny-btn ny-btn-secondary">Submit a facility</Link>} /></div>}</section>
+        {directory.notice && <p className="flex items-start gap-2 rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-white p-4 text-sm text-[var(--ny-text-secondary)]"><FiCheckCircle size={16} className="mt-0.5 shrink-0 text-[var(--ny-success)]" aria-hidden="true" />{directory.notice}</p>}
       </>}
     </div>
   )

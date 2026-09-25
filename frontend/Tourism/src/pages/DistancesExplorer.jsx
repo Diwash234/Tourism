@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import L from "leaflet"
 import PageHeader from "../components/common/PageHeader"
-import CMSPageIntro from "../components/cms/CMSPageIntro"
 import { useI18n } from "../i18n"
 import useGeolocation from "../hooks/useGeolocation"
 import destinationApi from "../api/destinationApi"
@@ -10,7 +9,7 @@ import TurnByTurnNav from "../components/navigation/TurnByTurnNav"
 import { PlaceTypeIconImg } from "../utils/placeTypeIcons"
 import {
   haversineKmPrecise, compassPoint, compassArrow, formatDistanceKm,
-  KATHMANDU_COORDS, hasValidCoords,
+  hasValidCoords,
 } from "../utils/placeUtils"
 import { userIcon, destinationIcon } from "../components/map/icons"
 
@@ -34,13 +33,8 @@ export default function DistancesExplorer() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
 
-  // Origin: my GPS location, a chosen destination, or Kathmandu (assumed).
-  const [origin, setOrigin] = useState({
-    kind: "kathmandu",
-    lat: KATHMANDU_COORDS.lat,
-    lng: KATHMANDU_COORDS.lng,
-    label: t("dx.kathmandu_assumed"),
-  })
+  // Origin is intentionally unset until the visitor chooses GPS or a place.
+  const [origin, setOrigin] = useState(null)
   const [originQuery, setOriginQuery] = useState("")
   const [showOriginSuggest, setShowOriginSuggest] = useState(false)
 
@@ -77,7 +71,7 @@ export default function DistancesExplorer() {
 
   // --------------------------------------------------- distance + bearing
   const enriched = useMemo(() => {
-    if (!hasValidCoords(origin.lat, origin.lng)) return []
+    if (!origin || !hasValidCoords(origin.lat, origin.lng)) return []
     return points
       .map((p) => {
         const km = haversineKmPrecise(origin.lat, origin.lng, p.latitude, p.longitude)
@@ -85,7 +79,7 @@ export default function DistancesExplorer() {
       })
       .filter((p) => p.km != null)
       .sort((a, b) => a.km - b.km)
-  }, [points, origin.lat, origin.lng])
+  }, [points, origin?.lat, origin?.lng])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -125,9 +119,8 @@ export default function DistancesExplorer() {
   }, [])
 
   // Consent-gated GPS: the browser permission prompt only fires after this
-  // explicit click (brief §location consent). The fix is adopted the moment
-  // it arrives; a denied/unavailable fix leaves the assumed origin in place
-  // and the UI explains that.
+  // explicit click. A denied/unavailable fix leaves the origin unset and the
+  // UI explains that no distance ranking is available yet.
   const pendingGps = useRef(false)
   const requestGps = useCallback(() => {
     if (position && hasValidCoords(position.lat, position.lng)) {
@@ -195,7 +188,7 @@ export default function DistancesExplorer() {
       overlayRef.current.remove()
       overlayRef.current = null
     }
-    if (!hasValidCoords(origin.lat, origin.lng)) return
+    if (!origin || !hasValidCoords(origin.lat, origin.lng)) return
     const overlay = L.layerGroup().addTo(map)
     L.marker([origin.lat, origin.lng], {
       icon: origin.kind === "gps" ? userIcon : destinationIcon,
@@ -254,7 +247,7 @@ export default function DistancesExplorer() {
 
   // ------------------------------------------------------ directions call
   const getDirections = useCallback(async (dest) => {
-    if (!dest) return
+    if (!dest || !origin) return
     setSelected(dest)
     setRouteFor(dest)
     setRoute(null)
@@ -280,8 +273,7 @@ export default function DistancesExplorer() {
   const badge = primary ? gradeBadge(primary.grade) : null
 
   return (
-    <div className="space-y-6">
-      <CMSPageIntro pageKey="distances" />
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <PageHeader
         title={t("dx.title")}
         subtitle={t("dx.subtitle")}
@@ -301,8 +293,8 @@ export default function DistancesExplorer() {
             <div className="min-w-0">
               <p className="text-[11px] font-extrabold uppercase tracking-wide text-gray-400">{t("dx.origin")}</p>
               <p className="font-bold text-gray-900 truncate">
-                {origin.label}
-                {origin.kind === "kathmandu" && <span className="text-xs text-gray-400 font-semibold"> ({t("dx.kathmandu_assumed")})</span>}
+                {origin?.label || "Choose an origin"}
+
               </p>
             </div>
           </div>
@@ -350,7 +342,7 @@ export default function DistancesExplorer() {
           </div>
         </div>
 
-        {geoError && origin.kind !== "gps" && (
+        {geoError && origin?.kind !== "gps" && (
           <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{t("dx.location_denied")}</p>
         )}
 
@@ -398,7 +390,8 @@ export default function DistancesExplorer() {
           </div>
           <ol className="flex-1 overflow-y-auto divide-y divide-gray-50">
             {loading && <li className="p-5 text-sm text-gray-400 font-semibold">{t("dx.loading")}</li>}
-            {!loading && filtered.length === 0 && (
+            {!loading && !origin && <li className="p-5 text-sm text-gray-500 font-semibold">Choose an origin to rank destinations by distance.</li>}
+            {!loading && origin && filtered.length === 0 && (
               <li className="p-5 text-sm text-gray-400 font-semibold">{t("dx.no_results")}</li>
             )}
             {!loading && filtered.slice(0, visible).map((p) => {
@@ -457,7 +450,7 @@ export default function DistancesExplorer() {
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-base text-gray-900">{t("dx.directions")}</h3>
               <p className="text-xs text-gray-400 truncate">
-                {origin.label} → {routeFor?.name}
+                {origin?.label || "Choose an origin"} → {routeFor?.name}
               </p>
             </div>
             {badge && !routeLoading && (

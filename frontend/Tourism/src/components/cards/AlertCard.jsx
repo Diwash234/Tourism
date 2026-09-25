@@ -2,8 +2,8 @@ import { FiAlertTriangle, FiCheckCircle, FiExternalLink, FiMapPin } from "react-
 import { RISK_LEVELS } from "../../utils/constants"
 
 const AlertCard = ({ alert }) => {
-  const severity = (alert.severity || alert.level || "moderate").toUpperCase()
-  const level = RISK_LEVELS[severity] || RISK_LEVELS.MODERATE
+  const severity = (alert.severity || alert.level || "unknown").toUpperCase()
+  const level = RISK_LEVELS[severity] || { label: "Unavailable", color: "bg-slate-100 text-slate-600" }
   const location = [alert.city, alert.municipality, alert.district, alert.province].filter(Boolean).join(", ")
   return <article className="card-base p-4 flex gap-3 items-start">
     <div className={`p-2 rounded-full ${level.color}`}><FiAlertTriangle /></div>

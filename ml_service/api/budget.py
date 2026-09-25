@@ -3,26 +3,13 @@ from pydantic import BaseModel, model_validator
 from typing import Optional
 import math
 
-from model.budget.budget_engine import estimate_budget
 from model.budget import csv_baselines
 
 router = APIRouter()
 
 
-# ---------------------------------------------------------------------------
-# Calibrated per-city baseline daily costs (USD) for Nepal travel.
-# 1 USD = 133 NPR.
-# ---------------------------------------------------------------------------
-CITY_BASELINE_USD = {
-    "kathmandu":  {"transport": 6,  "food": 11, "accommodation": 18, "taxi": 4, "lat": 27.7172, "lon": 85.3240},
-    "pokhara":    {"transport": 5,  "food": 10, "accommodation": 15, "taxi": 3, "lat": 28.2096, "lon": 83.9856},
-    "chitwan":    {"transport": 7,  "food": 10, "accommodation": 16, "taxi": 4, "lat": 27.5291, "lon": 84.3542},
-    "lumbini":    {"transport": 6,  "food": 9,  "accommodation": 14, "taxi": 3, "lat": 27.4833, "lon": 83.2767},
-    "nagarkot":   {"transport": 8,  "food": 11, "accommodation": 20, "taxi": 4, "lat": 27.7172, "lon": 85.5202},
-    "bandipur":   {"transport": 6,  "food": 9,  "accommodation": 15, "taxi": 3, "lat": 27.9333, "lon": 84.4167},
-}
-DEFAULT_BASELINE = {"transport": 6, "food": 10, "accommodation": 16, "taxi": 3}
-
+# Budget values are accepted only from the recorded CSV baseline. There is no
+# hard-coded city fallback or static exchange rate in this service.
 STYLE_MULTIPLIER = {
     "budget": 0.75,
     "mid": 1.0,
@@ -36,21 +23,6 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     dlat, dlon = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
     a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-
-def _resolve_baseline(city, latitude, longitude):
-    city_key = (city or "").strip().lower()
-    if city_key in CITY_BASELINE_USD:
-        return CITY_BASELINE_USD[city_key], city_key
-
-    if latitude is not None and longitude is not None:
-        nearest_key = min(
-            CITY_BASELINE_USD,
-            key=lambda k: _haversine_km(latitude, longitude, CITY_BASELINE_USD[k]["lat"], CITY_BASELINE_USD[k]["lon"]),
-        )
-        return CITY_BASELINE_USD[nearest_key], nearest_key
-
-    return DEFAULT_BASELINE, None
 
 
 class BudgetRequest(BaseModel):
@@ -89,11 +61,6 @@ MIN_TRANSPORT_USD = 2.5
 
 @router.post("/predict-budget")
 def predict_budget(payload: BudgetRequest):
-    try:
-        baseline, matched_city = _resolve_baseline(payload.city, payload.latitude, payload.longitude)
-    except Exception:
-        baseline, matched_city = DEFAULT_BASELINE, None
-
     csv_baseline = None
     try:
         csv_baseline = csv_baselines.lookup_baseline(
@@ -104,46 +71,26 @@ def predict_budget(payload: BudgetRequest):
     except Exception:
         csv_baseline = None
 
-    baseline_source = "built_in"
-    if csv_baseline:
-        csv_accom = csv_baseline.get("accommodation")
-        csv_food = csv_baseline.get("food")
-        csv_trans = csv_baseline.get("transport")
-        csv_taxi = csv_baseline.get("taxi")
+    if not csv_baseline or any(csv_baseline.get(key) is None for key in ("transport", "food", "accommodation", "taxi")):
+        raise HTTPException(
+            status_code=503,
+            detail="No complete recorded budget baseline is available for this destination.",
+        )
 
-        if (payload.budget_level or "").lower() != "luxury":
-            if csv_accom and csv_accom > 20:
-                csv_accom = 15.0
-            if csv_food and csv_food > 15:
-                csv_food = 10.0
-            if csv_trans and csv_trans > 15:
-                csv_trans = 5.0
-            if csv_taxi and csv_taxi > 6:
-                csv_taxi = 3.0
-
-        baseline = {
-            "transport": csv_trans if csv_trans is not None else baseline["transport"],
-            "food": csv_food if csv_food is not None else baseline["food"],
-            "accommodation": csv_accom if csv_accom is not None else baseline["accommodation"],
-            "taxi": csv_taxi if csv_taxi is not None else baseline["taxi"],
-        }
-        baseline_source = "dataset_csv"
+    baseline = csv_baseline
+    baseline_source = "dataset_csv"
+    matched_city = None
 
     multiplier = STYLE_MULTIPLIER.get((payload.budget_level or "mid").lower(), 1.0)
     travelers = max(1, payload.travelers)
     days = max(1, payload.days)
 
-    USD_NPR_RATE = 133.0
-    def _to_usd(val):
-        if val is None:
-            return None
-        v = float(val)
-        return v / USD_NPR_RATE if v > 250 else v
-
-    t_override = _to_usd(payload.transport_cost)
-    f_override = _to_usd(payload.food_cost_day)
-    a_override = _to_usd(payload.accommodation_night)
-    x_override = _to_usd(payload.taxi_cost)
+    # Optional caller-supplied amounts are already denominated in USD by this
+    # API. No NPR conversion is inferred without a dated exchange-rate source.
+    t_override = payload.transport_cost
+    f_override = payload.food_cost_day
+    a_override = payload.accommodation_night
+    x_override = payload.taxi_cost
 
     distance_km = None
     if (
@@ -165,14 +112,17 @@ def predict_budget(payload: BudgetRequest):
     accommodation_total = accommodation * multiplier * max(1, round(travelers / 2)) * days
     combined_transport = (transport * travelers) + (taxi * travelers * days)
 
-    activities_total = round((accommodation_total * 0.12), 2)
-    shopping_total = round((food_total * 0.08), 2)
-    grand_total_usd = round(accommodation_total + food_total + combined_transport + activities_total + shopping_total, 2)
+    activities_total = None
+    shopping_total = None
+    known_cost_total_usd = round(accommodation_total + food_total + combined_transport, 2)
+    grand_total_usd = None
 
     result = {
         "total_budget_usd": grand_total_usd,
         "estimated_total": grand_total_usd,
-        "total_budget_npr": round(grand_total_usd * USD_NPR_RATE, 2),
+        "known_cost_total_usd": known_cost_total_usd,
+        "total_is_partial": True,
+        "total_budget_npr": None,
         "breakdown": {
             "accommodation": round(accommodation_total, 2),
             "food": round(food_total, 2),
@@ -182,13 +132,13 @@ def predict_budget(payload: BudgetRequest):
             "shopping": shopping_total,
         },
         "breakdown_npr": {
-            "accommodation": round(accommodation_total * USD_NPR_RATE, 2),
-            "food": round(food_total * USD_NPR_RATE, 2),
-            "transport": round(combined_transport * USD_NPR_RATE, 2),
-            "local_transport": 0,
-            "activities": round(activities_total * USD_NPR_RATE, 2),
-            "shopping": round(shopping_total * USD_NPR_RATE, 2),
-            "emergency_reserve": round(grand_total_usd * 0.10 * USD_NPR_RATE, 2),
+            "accommodation": None,
+            "food": None,
+            "transport": None,
+            "local_transport": None,
+            "activities": None,
+            "shopping": None,
+            "emergency_reserve": None,
         },
         "city": payload.city or payload.destination or matched_city,
         "matched_baseline_city": matched_city,

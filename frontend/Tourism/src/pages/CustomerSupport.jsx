@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from "react"
 import PageHeader from "../components/common/PageHeader"
 import {
   FiHeadphones, FiMessageSquare, FiSend, FiCheckCircle, FiPhoneCall,
-  FiMail, FiHelpCircle, FiShield, FiUser, FiPlus, FiRefreshCw, FiClock, FiCheck, FiAlertCircle,
-  FiLifeBuoy,
+  FiShield, FiUser, FiPlus, FiRefreshCw, FiLifeBuoy,
 } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import { ResponsiveContainer } from "../components/common/ResponsiveSystem"
-import UserFeedbackModal from "../components/user/UserFeedbackModal"
 import axiosClient from "../api/axiosClient"
 import useToast from "../hooks/useToast"
 import useAuth from "../hooks/useAuth"
@@ -17,12 +15,12 @@ export default function CustomerSupport() {
   const { showToast } = useToast()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState("chat") // 'chat', 'himal', 'emergency'
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
 
   // Live Chat state
   const [threads, setThreads] = useState([])
   const [selectedThread, setSelectedThread] = useState(null)
   const [loadingThreads, setLoadingThreads] = useState(false)
+  const [threadError, setThreadError] = useState("")
   const [replyText, setReplyText] = useState("")
   const [sendingReply, setSendingReply] = useState(false)
 
@@ -30,6 +28,7 @@ export default function CustomerSupport() {
   const [showNewTicketForm, setShowNewTicketForm] = useState(false)
   const [newSubject, setNewSubject] = useState("")
   const [newMessage, setNewMessage] = useState("")
+  const [newEmail, setNewEmail] = useState(user?.email || "")
   const [newCategory, setNewCategory] = useState("general")
   const [creatingTicket, setCreatingTicket] = useState(false)
 
@@ -37,6 +36,7 @@ export default function CustomerSupport() {
 
   const loadThreads = () => {
     setLoadingThreads(true)
+    setThreadError("")
     const url = user?.email ? `/feedback?email=${encodeURIComponent(user.email)}` : "/feedback"
     axiosClient.get(url)
       .then(({ data }) => {
@@ -49,7 +49,7 @@ export default function CustomerSupport() {
           setSelectedThread(list[0])
         }
       })
-      .catch(() => setThreads([]))
+      .catch(() => { setThreads([]); setThreadError("Support tickets could not be loaded.") })
       .finally(() => setLoadingThreads(false))
   }
 
@@ -68,20 +68,20 @@ export default function CustomerSupport() {
 
   const handleCreateTicket = async (e) => {
     e.preventDefault()
-    if (!newSubject.trim() || !newMessage.trim()) {
-      return showToast("Please provide both a subject and a message.", "error")
+    if (!newSubject.trim() || !newMessage.trim() || !newEmail.trim()) {
+      return showToast("Please provide your email, a subject and a message.", "error")
     }
 
     setCreatingTicket(true)
     try {
       const resp = await axiosClient.post("/feedback", {
         name: user?.full_name || "",
-        email: user?.email || "",
+        email: newEmail.trim(),
         subject: newSubject,
         message: newMessage,
         category: newCategory,
       })
-      showToast("Support ticket created! Admin team will reply shortly.", "success")
+      showToast("Support ticket created. The review team will follow up by email.", "success")
       setNewSubject("")
       setNewMessage("")
       setShowNewTicketForm(false)
@@ -124,33 +124,30 @@ export default function CustomerSupport() {
     <ResponsiveContainer className="py-8 space-y-8 animate-fadeIn">
       <Breadcrumbs items={[
         { label: "Home", to: "/" },
-        { label: "Customer Support & Admin Help Desk", to: "/support" }
+        { label: "Customer Support", to: "/support" }
       ]} />
 
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white p-8 sm:p-12 shadow-2xl border border-purple-800/30">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <span className="px-3.5 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-400/30">
-            24/7 Traveler Help Desk & Admin Support
-          </span>
-          <CMSPageIntro pageKey="customer-support" />
-          <PageHeader title="Customer Support & Admin Chat Center" subtitle="Talk to the support desk — real people, real tickets." icon={FiLifeBuoy} />
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Direct real-time communication channel with Nepal Yatra Admin and Field Support Staff. Ask questions, report trip issues, or request itinerary assistance.
-          </p>
-        </div>
+      {/* Support header uses the shared traveller page-header language. */}
+      <div>
+        <span className="ny-kicker">Support desk</span>
+        <CMSPageIntro pageKey="customer-support" />
+        <PageHeader
+          title="Customer support center"
+          subtitle="Ask a question, report a trip issue or request itinerary help. Tickets are kept here so you can return to the conversation."
+          icon={FiLifeBuoy}
+        />
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="flex border-b border-slate-200">
+      <div className="ny-horizontal-scroll flex border-b border-slate-200">
         <button
           type="button"
           onClick={() => setActiveTab("chat")}
-          className={`pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
-            activeTab === "chat" ? "border-purple-600 text-[#102A2E]" : "border-transparent text-slate-500 hover:text-slate-800"
+          className={`min-w-max pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "chat" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <FiMessageSquare size={18} /> Support Chat with Admin & Staff
+          <FiMessageSquare size={18} /> Support chat
           {threads.length > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-black">
               {threads.length}
@@ -161,8 +158,8 @@ export default function CustomerSupport() {
         <button
           type="button"
           onClick={() => setActiveTab("himal")}
-          className={`pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
-            activeTab === "himal" ? "border-purple-600 text-[#102A2E]" : "border-transparent text-slate-500 hover:text-slate-800"
+          className={`min-w-max pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "himal" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
           <FiHeadphones size={18} /> Himal AI Assistant
@@ -171,11 +168,11 @@ export default function CustomerSupport() {
         <button
           type="button"
           onClick={() => setActiveTab("emergency")}
-          className={`pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
-            activeTab === "emergency" ? "border-purple-600 text-[#102A2E]" : "border-transparent text-slate-500 hover:text-slate-800"
+          className={`min-w-max pb-3 px-5 font-bold text-sm sm:text-base flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === "emergency" ? "border-[var(--ny-green)] text-[var(--ny-green)]" : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <FiPhoneCall size={18} /> Emergency Helplines
+          <FiPhoneCall size={18} /> Emergency directory
         </button>
       </div>
 
@@ -190,7 +187,7 @@ export default function CustomerSupport() {
               <button
                 type="button"
                 onClick={loadThreads}
-                className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white"
+                className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] bg-slate-900 text-slate-400 hover:text-white"
                 title="Refresh threads"
               >
                 <FiRefreshCw size={14} className={loadingThreads ? "animate-spin" : ""} />
@@ -200,17 +197,21 @@ export default function CustomerSupport() {
             <button
               type="button"
               onClick={() => { setShowNewTicketForm(true); setSelectedThread(null); }}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#1D5146] hover:bg-[#102A2E] text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition-all"
+              className="ny-btn ny-btn-primary min-h-11 w-full text-xs"
             >
               <FiPlus size={16} /> Open New Support Ticket
             </button>
 
             <div className="flex-1 overflow-y-auto space-y-2 max-h-[460px] pr-1">
-              {threads.length === 0 ? (
+              {loadingThreads ? (
+                 <div className="p-6 text-center text-slate-400 text-xs"><FiRefreshCw className="mx-auto mb-2 animate-spin" size={18} />Loading support tickets…</div>
+               ) : threadError ? (
+                 <div className="p-6 text-center text-xs text-rose-200"><p>{threadError}</p><button type="button" onClick={loadThreads} className="mt-3 text-amber-300 underline">Try again</button></div>
+               ) : threads.length === 0 ? (
                 <div className="p-6 text-center text-slate-500 text-xs space-y-2">
                   <FiMessageSquare size={24} className="mx-auto text-slate-600" />
                   <p>No support tickets created yet.</p>
-                  <p className="text-[11px] text-slate-400">Click "Open New Support Ticket" to chat with Admin & Staff.</p>
+                  <p className="text-[11px] text-slate-400">Click "Open New Support Ticket" to start a conversation with the support team.</p>
                 </div>
               ) : (
                 threads.map((thread) => {
@@ -272,11 +273,16 @@ export default function CustomerSupport() {
                   >
                     <option value="general">💬 General Traveler Support & Inquiries</option>
                     <option value="trip_planner">🗺️ AI Trip Planner & Itinerary Help</option>
-                    <option value="booking">🏨 Hotel & Booking Support</option>
+                    <option value="booking">Hotel & booking support</option>
                     <option value="budget">💵 Budget & Expenditure Questions</option>
                     <option value="risk">⚠️ Safety & Transport Alerts</option>
                     <option value="bug_report">🐞 Bug Report / Technical Issue</option>
                   </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300 block" htmlFor="support-email">Email for replies *</label>
+                  <input id="support-email" type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="you@example.com" className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
                 </div>
 
                 <div className="space-y-1">
@@ -296,7 +302,7 @@ export default function CustomerSupport() {
                     rows="6"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Describe your inquiry or request for the Admin and Staff team..."
+                    placeholder="Describe your inquiry or request for the support team..."
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
                   />
                 </div>
@@ -305,9 +311,9 @@ export default function CustomerSupport() {
                   <button
                     type="submit"
                     disabled={creatingTicket}
-                    className="px-6 py-2.5 rounded-xl bg-[#1D5146] hover:bg-[#102A2E] text-white font-black flex items-center gap-2 shadow"
+                    className="ny-btn ny-btn-primary min-h-11"
                   >
-                    <FiSend size={14} /> {creatingTicket ? "Submitting..." : "Send Ticket to Admin & Staff"}
+                    <FiSend size={14} /> {creatingTicket ? "Submitting..." : "Send support ticket"}
                   </button>
                 </div>
               </form>
@@ -416,13 +422,13 @@ export default function CustomerSupport() {
               <FiHeadphones size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Himal AI 24/7 Virtual Tourism Guide</h2>
-              <p className="text-xs text-slate-600">Grounded in 8,522 verified Nepal destinations, hotel datasets, and real-time weather.</p>
+              <h2 className="text-xl font-bold text-slate-900">Travel assistant</h2>
+              <p className="text-xs text-slate-600">Use the assistant to discover recorded places and plan a route. It is not an emergency dispatch service.</p>
             </div>
           </div>
           <div className="p-6 rounded-2xl bg-slate-950 text-white space-y-4">
             <p className="text-sm text-slate-300 leading-relaxed">
-              Himal AI can assist you with instant answers about trekking permits, seasonal weather recommendations, regional transport fare estimates, and emergency contacts across all 77 districts.
+              The assistant can help you discover destinations, compare recorded details and shape an itinerary. Check the linked records for current operational information.
             </p>
             <a
               href="/chatbot"
@@ -434,7 +440,7 @@ export default function CustomerSupport() {
         </div>
       )}
 
-      {/* Tab 3: Emergency Helplines */}
+      {/* Tab 3: Emergency directory */}
       {activeTab === "emergency" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-3xl bg-amber-50 border border-amber-200 shadow-sm space-y-3">
@@ -442,9 +448,9 @@ export default function CustomerSupport() {
               <FiPhoneCall size={24} />
             </div>
             <h3 className="text-lg font-bold text-amber-950">Tourist Police Nepal</h3>
-            <p className="text-xs text-amber-800">24/7 Dedicated tourist assistance and security hotline.</p>
-            <a href="tel:1144" className="block text-center py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm shadow">
-              📞 Call 1144
+            <p className="text-xs text-amber-800">Recorded tourist assistance and security contacts.</p>
+            <a href="/emergency" className="block text-center py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm shadow">
+              View emergency directory
             </a>
           </div>
 
@@ -454,8 +460,8 @@ export default function CustomerSupport() {
             </div>
             <h3 className="text-lg font-bold text-rose-950">Nepal National Police</h3>
             <p className="text-xs text-rose-800">Emergency response for all immediate safety incidents.</p>
-            <a href="tel:100" className="block text-center py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm shadow">
-              📞 Call 100
+            <a href="/emergency" className="block text-center py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm shadow">
+              View emergency directory
             </a>
           </div>
 
@@ -464,18 +470,14 @@ export default function CustomerSupport() {
               <FiCheckCircle size={24} />
             </div>
             <h3 className="text-lg font-bold text-emerald-950">Ambulance & Medical</h3>
-            <p className="text-xs text-emerald-800">Medical emergency dispatch service across all provinces.</p>
-            <a href="tel:102" className="block text-center py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow">
-              📞 Call 102
+            <p className="text-xs text-emerald-800">Recorded medical and emergency contacts.</p>
+            <a href="/emergency" className="block text-center py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow">
+              View emergency directory
             </a>
           </div>
         </div>
       )}
 
-      <UserFeedbackModal
-        isOpen={showFeedbackModal}
-        onClose={() => setShowFeedbackModal(false)}
-      />
     </ResponsiveContainer>
   )
 }

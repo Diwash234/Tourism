@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form"
 import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
-import { FiMail, FiLock, FiShield, FiAlertTriangle } from "react-icons/fi"
+import { FiMail, FiLock, FiShield } from "react-icons/fi"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import safeNextPath from "../../utils/safeNextPath"
@@ -11,7 +11,7 @@ import SocialLoginButtons from "./SocialLoginButtons"
 
 export default function AdminLogin() {
   const { register, handleSubmit, formState: { errors } } = useForm()
-  const { login } = useAuth()
+  const { login, logout } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -26,6 +26,7 @@ export default function AdminLogin() {
         userData?.is_superuser === true ||
         ["admin", "super_admin", "tourism_admin"].includes(role)
       if (!isAdmin) {
+        await logout()
         showToast("Administrator access required. Staff should use the Staff login.", "error")
         return
       }

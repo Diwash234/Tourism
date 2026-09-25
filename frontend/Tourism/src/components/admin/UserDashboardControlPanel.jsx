@@ -16,6 +16,7 @@ import {
 import adminApi from "../../api/adminApi"
 import configApi from "../../api/configApi"
 import useToast from "../../hooks/useToast"
+import { notifyCmsUpdated } from "../../hooks/usePublicConfig"
 
 const DEFAULT_BLOCKS = [
   { key: "national-symbols", name: "Nepal National Symbols & Identity", description: "Shows coat of arms, rhododendron, Himalayan peaks, and cultural heritage symbols.", defaultEnabled: true },
@@ -63,10 +64,15 @@ export default function UserDashboardControlPanel() {
         })
         setBlocksState(newState)
       }
-      if (data?.visitor_notice) {
-        setAnnouncement(data.visitor_notice.message || "")
-        setAnnouncementType(data.visitor_notice.type || "info")
+      const notice = (data?.notices || []).find(item => item.is_published !== false)
+      if (notice) {
+        setAnnouncement(notice.body || notice.message || notice.title || "")
+        setAnnouncementType(notice.kind || notice.type || "info")
       }
+      const features = data?.settings?.dashboard_features || {}
+      setEnableFeedbackPrompt(features.feedback_prompt !== false)
+      setEnableAIReplanning(features.ai_replanning !== false)
+      setEnablePhotoUploads(features.photo_uploads !== false)
     } catch (err) {
       console.log("Error loading dashboard config:", err)
     } finally {
@@ -81,25 +87,42 @@ export default function UserDashboardControlPanel() {
   const handleSaveConfig = async () => {
     setSaving(true)
     try {
-      const activeSections = DEFAULT_BLOCKS.filter((b) => blocksState[b.key]).map((b) => ({
-        key: b.key,
-        title: b.name,
-      }))
-
-      await adminApi.updateCMS({
-        page_key: "dashboard",
-        sections: activeSections,
-      })
-
-      if (announcement.trim()) {
-        await adminApi.updateVisitorDesk({
-          notice_message: announcement.trim(),
-          notice_type: announcementType,
-          notice_active: true,
+      const { data: pageData } = await adminApi.getCMS("pages")
+      const dashboardPage = (pageData?.results || []).find((page) => page.key === "dashboard")
+      if (!dashboardPage) throw new Error("The dashboard CMS page is not configured yet.")
+      const { data: sectionData } = await adminApi.getCMS("sections", { page_id: dashboardPage.id })
+      const existing = new Map((sectionData?.results || []).map(section => [section.key, section]))
+      for (const block of DEFAULT_BLOCKS) {
+        const section = existing.get(block.key)
+        if (!section) continue
+        await adminApi.runCMSAction({
+          resource: "sections",
+          id: section.id,
+          action: blocksState[block.key] ? "publish" : "unpublish",
         })
       }
+      await adminApi.updateCMS({
+        resource: "settings",
+        key: "dashboard_features",
+        value: {
+          feedback_prompt: enableFeedbackPrompt,
+          ai_replanning: enableAIReplanning,
+          photo_uploads: enablePhotoUploads,
+        },
+        is_public: true,
+      })
+      notifyCmsUpdated()
+      if (announcement.trim()) {
+        const { data: deskData } = await adminApi.getVisitorDesk()
+        const existingNotice = (deskData?.notices || []).find(item => item.is_published !== false)
+        if (existingNotice) {
+          await adminApi.updateVisitorDesk({ id: existingNotice.id, title: "Traveller dashboard notice", kind: announcementType, body: announcement.trim(), is_published: true })
+        } else {
+          await adminApi.createVisitorNotice({ title: "Traveller dashboard notice", kind: announcementType, body: announcement.trim(), is_published: true })
+        }
+      }
 
-      showToast("User Dashboard layout & settings published live!", "success")
+      showToast("User Dashboard layout & settings saved", "success")
     } catch (err) {
       showToast(err.response?.data?.detail || "Could not publish dashboard configuration", "error")
     } finally {

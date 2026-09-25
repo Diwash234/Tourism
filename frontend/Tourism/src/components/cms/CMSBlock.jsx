@@ -1,6 +1,19 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import axiosClient from "../../api/axiosClient"
+import SafeHtml from "./SafeHtml"
+
+const safeHttpUrl = (value) => {
+  const raw = String(value || "").trim()
+  if (!raw) return ""
+  if (raw.startsWith("/")) return raw
+  try {
+    const url = new URL(raw)
+    return ["http:", "https:", "mailto:", "tel:"].includes(url.protocol) ? url.href : ""
+  } catch {
+    return ""
+  }
+}
 
 const embedUrl = (url = "") => {
   if (/youtube\.com\/watch\?v=/.test(url)) return url.replace("watch?v=", "embed/")
@@ -16,12 +29,12 @@ const effectClass = (effect) => ({
 }[effect] || "")
 
 const BG_STYLES = {
-  "gradient-emerald": "bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 text-white border-emerald-800/40 shadow-xl",
-  "dark-slate": "bg-slate-950 text-white border-slate-800 shadow-lg",
+  "gradient-emerald": "bg-[var(--ny-green-dark)] text-white border-[var(--ny-green)] shadow-xl",
+  "dark-slate": "bg-[var(--ny-green-deepest)] text-white border-[var(--ny-green)] shadow-lg",
   "clean-white": "bg-white text-slate-900 border-emerald-100/80 shadow-sm",
-  "saffron-warm": "bg-gradient-to-br from-amber-500 via-amber-400 to-amber-600 text-slate-950 border-amber-300 shadow-md",
-  "hero-dark": "bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white border-purple-800/30 shadow-2xl",
-  "border-accent": "bg-slate-900/90 text-white border-2 border-amber-400 shadow-lg",
+  "saffron-warm": "bg-[var(--ny-soft-gold)] text-[var(--ny-green-deepest)] border-amber-300 shadow-md",
+  "hero-dark": "bg-[var(--ny-green-dark)] text-white border-[var(--ny-green)] shadow-2xl",
+  "border-accent": "bg-[var(--ny-green-dark)] text-white border-2 border-[var(--ny-gold)] shadow-lg",
 }
 
 const PADDING_STYLES = {
@@ -89,20 +102,15 @@ export function ContentBlockItem({ block }) {
       return <p className={`text-base font-bold opacity-80 mt-1 text-${data.align || "left"}`}>{title || data.text}</p>
 
     case "rich_text":
-      return (
-        <div
-          className="prose prose-sm max-w-none mt-3"
-          dangerouslySetInnerHTML={{ __html: data.html || data.text || block.title || "" }}
-        />
-      )
+      return <SafeHtml html={data.html || data.text || block.title || ""} className="prose prose-sm max-w-none mt-3" />
 
     case "image": {
-      const url = data.url || data.image_url
+      const url = safeHttpUrl(data.url || data.image_url)
       if (!url) return null
       return (
         <figure className={`mt-4 my-3 flex flex-col items-${data.align === "center" ? "center" : "start"}`}>
           {data.link ? (
-            <a href={data.link} target="_blank" rel="noopener noreferrer">
+            <a href={safeHttpUrl(data.link) || "#"} target="_blank" rel="noopener noreferrer">
               <img src={url} alt={data.alt || title || ""} className="rounded-2xl object-cover max-h-96 shadow-md" style={{ width: data.width || "100%" }} />
             </a>
           ) : (
@@ -137,7 +145,7 @@ export function ContentBlockItem({ block }) {
       return (
         <div className={`mt-4 flex justify-${data.align === "center" ? "center" : "start"}`}>
           <a
-            href={data.url || "#"}
+            href={safeHttpUrl(data.url) || "#"}
             target={data.target || "_self"}
             rel={data.target === "_blank" ? "noopener noreferrer" : undefined}
             className={`px-5 py-2.5 rounded-xl text-sm shadow transition-all inline-flex items-center gap-2 ${btnStyle}`}
@@ -179,7 +187,7 @@ export function ContentBlockItem({ block }) {
     }
 
     case "video": {
-      const url = data.url || ""
+      const url = safeHttpUrl(data.url)
       if (!url) return null
       const src = embedUrl(url)
       return (
@@ -201,11 +209,14 @@ export function ContentBlockItem({ block }) {
     }
 
     case "map": {
-      const lat = data.latitude || 28.2096
-      const lng = data.longitude || 83.9856
+      const lat = Number(data.latitude)
+      const lng = Number(data.longitude)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) {
+        return <div className="ny-panel mt-4 p-4 text-sm text-[var(--ny-text-secondary)]">Map coordinates are not recorded for this content block.</div>
+      }
       return (
         <div className="mt-4 p-4 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-800">
-          <h4 className="font-bold text-sm text-amber-300">📍 {title || data.title || "Map Location"}</h4>
+          <h4 className="font-bold text-sm text-amber-300">{title || data.title || "Map location"}</h4>
           <p className="text-xs text-slate-300">Coordinates: {lat}, {lng} (Zoom: {data.zoom || 12})</p>
           {data.description && <p className="text-xs text-slate-400">{data.description}</p>}
         </div>
@@ -295,12 +306,7 @@ export function ContentBlockItem({ block }) {
       return <hr className="my-6 border-slate-200" />
 
     case "html":
-      return (
-        <div
-          className="mt-3 prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: data.html || data.text || "" }}
-        />
-      )
+      return <SafeHtml html={data.html || data.text || ""} className="mt-3 prose prose-sm max-w-none" />
 
     default:
       return null
@@ -326,7 +332,7 @@ export default function CMSBlock({ section }) {
   }
   const type = section.section_type || "text"
   const config = section.config || {}
-  const media = config.media_url || section.image_url
+  const media = safeHttpUrl(config.media_url || section.image_url)
   const fields = Array.isArray(config.fields) ? config.fields.filter((field) => FIELD_TYPES.has(field.field_type || "text")) : []
   const blocks = Array.isArray(section.blocks) ? section.blocks : []
 
@@ -368,7 +374,7 @@ export default function CMSBlock({ section }) {
           )}
           {type === "heading" && section.body && <p className="mt-3 text-base opacity-90">{section.body}</p>}
           {["text", "animation", "cards", "faq", "testimonials", "contact"].includes(type) && section.body && (
-            <div className="prose prose-sm mt-3 max-w-none" dangerouslySetInnerHTML={{ __html: section.body }} />
+            <SafeHtml html={section.body} className="prose prose-sm mt-3 max-w-none" />
           )}
           {type === "image" && media && <img src={media} alt="" className="mt-4 max-h-80 w-full rounded-2xl object-cover" />}
           {type === "gallery" && media && <img src={media} alt="" className="mt-4 max-h-64 w-full rounded-2xl object-cover" />}
@@ -414,11 +420,7 @@ export default function CMSBlock({ section }) {
               const form = new FormData(event.target)
               const message = fields.map((field) => `${field.label}: ${form.get(field.name) || ""}`).join("\n")
               try {
-                await fetch("/api/v1/feedback", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ subject: section.title || "Page form", message, category: "general" }),
-                })
+                await axiosClient.post("/feedback/", { subject: section.title || "Page form", message, category: "general" })
                 setSent(section.config?.success_message || "Received. An administrator will review this submission.")
                 event.target.reset()
               } catch {
@@ -442,7 +444,7 @@ export default function CMSBlock({ section }) {
             </form>
           )}
           {section.cta_text && section.cta_url && type !== "form" && (
-            <a href={section.cta_url} className="mt-4 inline-flex rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">{section.cta_text}</a>
+            <a href={safeHttpUrl(section.cta_url) || "#"} className="mt-4 inline-flex rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">{section.cta_text}</a>
           )}
         </>
       )}

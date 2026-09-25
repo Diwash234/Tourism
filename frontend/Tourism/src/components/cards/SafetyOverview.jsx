@@ -35,20 +35,20 @@ const SafetyOverview = ({
           </div>
           <div>
             <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              Regional Safety Sentinel
+              Alert activity
             </span>
-            <h3 className="font-black text-xl text-slate-900 mt-1">Nepal Travel Safety Index</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Composite score derived from fetched alerts, weather, and verified emergency facilities.</p>
+            <h3 className="font-black text-xl text-slate-900 mt-1">Alert activity overview</h3>
+            <p className="text-xs text-slate-500 mt-0.5">A simple indicator based on the alerts returned for this view. It is not a calibrated safety grade.</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 p-4 rounded-2xl self-start sm:self-auto">
           <div className="text-right">
-            <span className="text-[10px] text-emerald-800 font-black uppercase tracking-wider block">Safety Score</span>
+            <span className="text-[10px] text-emerald-800 font-black uppercase tracking-wider block">Alert activity index</span>
             <span className="text-3xl font-black text-emerald-700 font-mono">{hasScore ? `${displayScore}%` : "—"}</span>
           </div>
           <span className={`px-2.5 py-1 rounded-xl font-black text-xs uppercase shadow text-white ${!hasScore ? "bg-slate-400" : isHigh ? "bg-emerald-700" : "bg-amber-600"}`}>
-            {!hasScore ? "No data" : isHigh ? "Safe Zone" : "Advisory"}
+            {!hasScore ? "No data" : isHigh ? "Lower activity" : "Activity recorded"}
           </span>
         </div>
       </div>
@@ -56,9 +56,9 @@ const SafetyOverview = ({
       {/* Progress Indicator Bar */}
       <div className="space-y-2">
         <div className="flex justify-between items-center text-xs font-bold text-slate-600">
-          <span>Overall Safety Coverage</span>
+          <span>Current alert activity</span>
           <span className="text-emerald-700 font-black flex items-center gap-1">
-            <FiCheckCircle size={14} /> {hasScore ? (isHigh ? "Normal Condition" : "Elevated alert activity") : "Awaiting alert data"}
+            <FiCheckCircle size={14} /> {hasScore ? (isHigh ? "Lower activity" : "Activity recorded") : "Awaiting alert data"}
           </span>
         </div>
         <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">

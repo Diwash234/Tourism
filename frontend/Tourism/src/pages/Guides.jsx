@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiSearch, FiMapPin, FiAward, FiStar, FiRefreshCw, FiCalendar, FiMessageSquare } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
+import SkeletonLoader from "../components/common/SkeletonLoader"
+import EmptyState from "../components/common/EmptyState"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
@@ -20,6 +22,7 @@ export default function Guides() {
   const { showToast } = useToast()
   const [data, setData] = useState({ count: 0, results: [] })
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [q, setQ] = useState("")
   const [language, setLanguage] = useState("")
   const [region, setRegion] = useState("")
@@ -31,9 +34,10 @@ export default function Guides() {
 
   const load = useCallback(() => {
     setLoading(true)
+    setLoadError("")
     workforceApi.guides({ q: q || undefined, language: language || undefined, region: region || undefined })
       .then(({ data: d }) => setData(d))
-      .catch(() => setData({ count: 0, results: [] }))
+      .catch(() => { setData({ count: 0, results: [] }); setLoadError("Guide listings could not be loaded right now.") })
       .finally(() => setLoading(false))
   }, [q, language, region])
 
@@ -70,17 +74,17 @@ export default function Guides() {
     </span>
   )
 
-  const field = "w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]"
+  const field = "input-field"
 
   return (
-    <div className="min-h-screen bg-[#F7F8F5]">
+    <div className="ny-page bg-[var(--ny-bg)]">
       <PageHeader
         title="Verified Local Guides"
-        subtitle="Government-licensed, platform-verified guides across Nepal — trekking, cultural, wildlife and city specialists."
+        subtitle="Browse guides listed by the service, with review and booking details shown when the record provides them."
       />
       <CMSPageIntro pageKey="guides" />
       <div className="max-w-6xl mx-auto px-4 pb-16 -mt-6">
-        <div className="bg-white rounded-3xl border shadow-sm p-4 flex flex-col md:flex-row gap-3">
+        <div className="ny-panel flex flex-col gap-3 p-4 md:flex-row">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -88,10 +92,10 @@ export default function Guides() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search guides by name, skill or city…"
               aria-label="Search guides"
-              className="w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]"
+              className="input-field pl-10"
             />
           </div>
-          <select value={language} onChange={(e) => setLanguage(e.target.value)} aria-label="Filter by language" className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]">
+          <select value={language} onChange={(e) => setLanguage(e.target.value)} aria-label="Filter by language" className="input-field">
             <option value="">Any language</option>
             {LANGUAGES.map((l) => <option key={l}>{l}</option>)}
           </select>
@@ -102,7 +106,7 @@ export default function Guides() {
             aria-label="Filter by region"
             className="px-3 py-2.5 rounded-xl border text-sm w-full md:w-44 focus:outline-none focus:border-[#1D5146]"
           />
-          <button onClick={load} className="px-4 py-2.5 bg-[#1D5146] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+          <button onClick={load} className="ny-btn ny-btn-primary">
             <FiRefreshCw className={loading ? "animate-spin" : ""} /> Search
           </button>
         </div>
@@ -117,16 +121,17 @@ export default function Guides() {
           </span>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {loading && <SkeletonLoader count={6} />}
+         {!loading && <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {data.results.map((g) => (
-            <div key={g.id} className="bg-white rounded-3xl border shadow-sm p-5 flex flex-col gap-2 hover:shadow-md transition">
+            <div key={g.id} className="ny-card flex flex-col gap-2 p-5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-black text-slate-900">{g.name}</h3>
                   <p className="text-xs text-slate-500">{g.headline || "Tourism guide"}</p>
                 </div>
-                <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-black flex items-center gap-1 whitespace-nowrap">
-                  <FiAward /> VERIFIED
+                <span className={`text-[10px] px-2 py-1 rounded-full font-black flex items-center gap-1 whitespace-nowrap ${g.is_verified ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                  <FiAward /> {g.is_verified ? "VERIFIED" : "LISTED"}
                 </span>
               </div>
               <button onClick={() => toggleReviews(g.id)} className="flex items-center gap-2 text-left w-fit group" aria-expanded={reviewsFor === g.id}>
@@ -153,41 +158,33 @@ export default function Guides() {
               <p className="text-xs text-slate-600 line-clamp-3">{g.bio || "No bio provided yet."}</p>
               <div className="text-[11px] text-slate-500 space-y-1 mt-auto">
                 {g.base_city && <p className="flex items-center gap-1"><FiMapPin /> {g.base_city}</p>}
-                {g.languages?.length > 0 && <p>🗣️ {g.languages.join(", ")}</p>}
-                {g.specializations?.length > 0 && <p>⭐ {g.specializations.join(", ")}</p>}
-                {g.years_experience > 0 && <p>📅 {g.years_experience} years experience</p>}
+                {g.languages?.length > 0 && <p>Languages: {g.languages.join(", ")}</p>}
+                {g.specializations?.length > 0 && <p>Specialties: {g.specializations.join(", ")}</p>}
+                {g.years_experience > 0 && <p>Experience: {g.years_experience} years experience</p>}
               </div>
               <div className="flex items-center justify-between pt-2 border-t mt-2">
                 <span className="text-sm font-black text-[#1D5146]">
                   {g.daily_rate_npr ? `NPR ${Number(g.daily_rate_npr).toLocaleString()}/day` : "Rate on request"}
                 </span>
                 {isAuthenticated ? (
-                  <button onClick={() => setBooking(g)} className="px-3 py-1.5 bg-[#1D5146] hover:bg-[#102A2E] text-white rounded-xl text-[11px] font-black flex items-center gap-1.5">
+                  <button onClick={() => setBooking(g)} className="ny-btn ny-btn-primary min-h-10 px-3 text-xs">
                     <FiCalendar /> Request Booking
                   </button>
                 ) : (
-                  <Link to="/login" className="px-3 py-1.5 bg-[#1D5146] text-white rounded-xl text-[11px] font-black">Sign in to Book</Link>
+                  <Link to="/login" className="ny-btn ny-btn-primary min-h-10 px-3 text-xs">Sign in to Book</Link>
                 )}
               </div>
             </div>
           ))}
-        </div>
+        </div>}
 
-        {!loading && !data.results.length && (
-          <div className="bg-white rounded-3xl border p-12 text-center mt-4">
-            <FiStar className="mx-auto text-3xl text-slate-300" />
-            <p className="text-slate-600 font-bold mt-2">No verified guides match this search yet.</p>
-            <p className="text-xs text-slate-400 mt-1">Try removing filters — or apply to become Nepal&apos;s next verified guide.</p>
-            <Link to="/guide-portal" className="inline-block mt-4 px-5 py-2.5 bg-[#1D5146] text-white rounded-xl text-sm font-bold">
-              Apply as a Guide
-            </Link>
-          </div>
-        )}
+        {loadError && <p className="mt-4 rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]" role="alert">{loadError} <button type="button" onClick={load} className="ml-2 font-semibold underline">Try again</button></p>}
+         {!loading && !loadError && !data.results.length && <EmptyState title="No listed guides match this search" subtitle="Try removing a filter or apply to become a Nepal Yatra guide." action={<Link to="/guide-portal" className="ny-btn ny-btn-primary">Apply as a guide</Link>} />}
       </div>
 
       {booking && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <form onSubmit={submitBooking} className="bg-white rounded-3xl p-6 w-full max-w-md space-y-3">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+          <form onSubmit={submitBooking} className="ny-card w-full max-w-md space-y-3 p-6">
             <h3 className="font-black text-slate-900 flex items-center gap-2"><FiMessageSquare /> Request {booking.name}</h3>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs font-bold text-slate-600">Start date *

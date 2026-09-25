@@ -1,51 +1,52 @@
 import { useEffect, useState } from "react"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
-  FiMapPin, FiUploadCloud, FiClock, FiDollarSign, FiShield,
-  FiCompass, FiInfo, FiCheckCircle, FiCrosshair, FiHome, FiPhoneCall,
-  FiLayers, FiImage, FiX, FiEdit3
+  FiMapPin, FiUploadCloud, FiClock, FiShield,
+  FiCompass, FiInfo, FiCrosshair, FiHome, FiPhoneCall,
+  FiLayers, FiImage, FiEdit3
 } from "react-icons/fi"
 import { getCurrentPosition } from "../services/api.js"
 import destinationApi from "../api/destinationApi"
+import photoApi from "../services/photoApi"
 import useToast from "../hooks/useToast"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import {
   NEPAL_ALL_PROVINCES, NEPAL_ALL_DISTRICTS,
-  DISTRICT_DEFAULTS, geocodeNepalPlace, resolveFuzzyPlaceLocation
+  DISTRICT_DEFAULTS, resolveFuzzyPlaceLocation
 } from "../utils/nepalGeocoder"
 
 export default function SubmitPlacePage() {
   const { showToast } = useToast()
   const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState(null)
   const [autoGeocodeMatch, setAutoGeocodeMatch] = useState(null)
 
   // Administrative selection
-  const [selectedProvince, setSelectedProvince] = useState("Gandaki")
-  const [selectedDistrict, setSelectedDistrict] = useState("Kaski")
-  const [selectedMunicipality, setSelectedMunicipality] = useState("Pokhara Metropolitan City")
+  const [selectedProvince, setSelectedProvince] = useState("")
+  const [selectedDistrict, setSelectedDistrict] = useState("")
+  const [selectedMunicipality, setSelectedMunicipality] = useState("")
   const [manualMuniMode, setManualMuniMode] = useState(false)
   const [manualMuniText, setManualMuniText] = useState("")
-  const [selectedWard, setSelectedWard] = useState(6)
+  const [selectedWard, setSelectedWard] = useState("")
   const [villageTole, setVillageTole] = useState("")
 
   const [form, setForm] = useState({
     name: "",
     category: "",
-    district: "Kaski",
-    municipality: "Pokhara Metropolitan City",
-    ward_number: 6,
-    province: "Gandaki",
-    city: "Pokhara",
+    district: "",
+    municipality: "",
+    ward_number: "",
+    province: "",
+    city: "",
     latitude: "",
     longitude: "",
-    altitude: "822m",
-    entry_fee: "0",
-    opening_hours: "6:00 AM - 6:00 PM",
-    best_time_to_visit: "October to April",
+    altitude: "",
+    entry_fee: "",
+    opening_hours: "",
+    best_time_to_visit: "",
     short_description: "",
     description: "",
     history: "",
@@ -77,24 +78,23 @@ export default function SubmitPlacePage() {
     return () => clearTimeout(t)
   }, [])
 
-  // Auto-calculate coordinates when Administrative hierarchy changes
+  // Administrative selections are kept separate from coordinates. A district
+  // centre is not a verified point for a new place, so coordinates remain
+  // blank until the submitter uses GPS or enters them manually.
   useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
-    const muniNameToUse = manualMuniMode ? manualMuniText : selectedMunicipality
-    const geo = geocodeNepalPlace(selectedProvince, selectedDistrict, muniNameToUse, selectedWard)
-    setForm((prev) => ({
-      ...prev,
-      province: selectedProvince,
-      district: selectedDistrict,
-      municipality: muniNameToUse || selectedDistrict,
-      ward_number: selectedWard,
-      city: selectedDistrict,
-      latitude: geo.lat.toFixed(6),
-      longitude: geo.lng.toFixed(6),
-      altitude: geo.alt,
-    }))
+      const muniNameToUse = manualMuniMode ? manualMuniText : selectedMunicipality
+      setForm((prev) => ({
+        ...prev,
+        province: selectedProvince,
+        district: selectedDistrict,
+        municipality: muniNameToUse || "",
+        ward_number: selectedWard,
+        city: "",
+        latitude: "",
+        longitude: "",
+        altitude: "",
+      }))
     }, 0)
     return () => clearTimeout(t)
   }, [selectedProvince, selectedDistrict, selectedMunicipality, selectedWard, manualMuniMode, manualMuniText])
@@ -112,9 +112,9 @@ export default function SubmitPlacePage() {
         if (match.province) setSelectedProvince(match.province)
         setSelectedDistrict(match.district)
         if (match.municipality) setSelectedMunicipality(match.municipality)
-        update("latitude", match.latitude.toFixed(6))
-        update("longitude", match.longitude.toFixed(6))
-        update("altitude", match.altitude || "1,200m")
+        update("latitude", "")
+        update("longitude", "")
+        update("altitude", "")
       } else {
         setAutoGeocodeMatch(null)
       }
@@ -130,9 +130,9 @@ export default function SubmitPlacePage() {
       update("latitude", coords.latitude.toFixed(6))
       update("longitude", coords.longitude.toFixed(6))
       setStatus("GPS location locked successfully!")
-      showToast("GPS position acquired! 📍", "success")
+      showToast("GPS position acquired", "success")
     } else {
-      setStatus("Could not acquire device GPS. Geocoded coordinates used.")
+      setStatus("No device GPS position was acquired. You can enter coordinates manually or leave them blank.")
     }
   }
 
@@ -157,7 +157,6 @@ export default function SubmitPlacePage() {
     if (!form.name.trim()) return showToast("Place name is required", "error")
 
     setStatus("Validating details and uploading place...")
-    setLoading(true)
 
     // Sanitize numbers to prevent nan-08 errors
     const latRaw = form.latitude === "" || form.latitude == null ? null : parseFloat(form.latitude)
@@ -169,6 +168,7 @@ export default function SubmitPlacePage() {
       showToast("Coordinates must be inside Nepal (lat 26–31, lng 80–89) or left blank.", "error")
       return
     }
+    setSubmitting(true)
     const feeNum = parseFloat(form.entry_fee) || 0.0
     const muniFinal = manualMuniMode ? (manualMuniText.trim() || selectedDistrict) : selectedMunicipality
 
@@ -200,9 +200,23 @@ export default function SubmitPlacePage() {
     }
 
     try {
-      await destinationApi.submit(formData)
-      showToast("Place submitted successfully! Queued for Admin Verification. 🏔️", "success")
-      setStatus("Submission sent! An administrator will review your place, pictures, and coordinates in the Admin Dashboard.")
+      const { data: submittedDestination } = await destinationApi.submit(formData)
+       const uploadedGallery = galleryImages.slice(0, 5)
+       if (uploadedGallery.length && (submittedDestination?.slug || submittedDestination?.id)) {
+         const destinationRef = submittedDestination.slug || submittedDestination.id
+         const galleryResults = await Promise.allSettled(uploadedGallery.map((file) => {
+           const galleryForm = new FormData()
+           galleryForm.append("image", file)
+           galleryForm.append("caption", file.name)
+           return photoApi.upload(destinationRef, galleryForm)
+         }))
+         if (galleryResults.some((result) => result.status === "rejected")) {
+           showToast("Place submitted, but some additional photos need to be uploaded again.", "info")
+         }
+       }
+      showToast("Place submitted for review.", "success")
+      setStatus("Submission sent for review. An administrator will review your place, pictures and coordinates before publication.")
+       try { sessionStorage.setItem("nepal_yatra_submission_receipt", "place") } catch { /* private mode */ }
       setForm({
         name: "",
         category: categories[0]?.id || "",
@@ -213,8 +227,8 @@ export default function SubmitPlacePage() {
         city: selectedDistrict,
         latitude: "",
         longitude: "",
-        altitude: "822m",
-        entry_fee: "0",
+        altitude: "",
+        entry_fee: "",
         opening_hours: "",
         best_time_to_visit: "",
         short_description: "",
@@ -238,16 +252,16 @@ export default function SubmitPlacePage() {
       showToast(errorMsg, "error")
       setStatus(`Error: ${errorMsg}`)
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   const currentDistricts = NEPAL_ALL_DISTRICTS[selectedProvince] || []
   const distInfo = DISTRICT_DEFAULTS[selectedDistrict]
-  const currentMunicipalities = distInfo?.munis || [`${selectedDistrict} Municipality`, `${selectedDistrict} Rural Municipality`]
+  const currentMunicipalities = selectedDistrict ? (distInfo?.munis || [`${selectedDistrict} Municipality`, `${selectedDistrict} Rural Municipality`]) : []
 
   return (
-    <div className="container-app py-8 max-w-4xl animate-fadeIn space-y-6">
+    <div className="ny-page container-app max-w-5xl space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="submit-place" />
       <Breadcrumbs items={[{ label: "Submit a Place", to: "/destinations/submit" }]} />
 
@@ -255,9 +269,9 @@ export default function SubmitPlacePage() {
         <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
           All 77 Districts & 753 Local Bodies
         </span>
-        <PageHeader title="Submit a New Nepal Destination" subtitle="Share a place with evidence — admin approval keeps the map trustworthy." icon={FiMapPin} />
+        <PageHeader title="Submit a New Nepal Destination" subtitle="Share a place with evidence. Submissions are reviewed before they appear publicly." icon={FiMapPin} />
         <p className="text-gray-500 text-sm max-w-2xl mx-auto mt-1">
-          Select or manually enter any district, municipality, village, or ward across Nepal to auto-calculate coordinates, attach photos, and submit for Admin Verification.
+          Select or manually enter a district, municipality, village or ward, attach photos, and submit the record for review. Leave a field blank when it is not known.
         </p>
       </div>
 
@@ -265,7 +279,7 @@ export default function SubmitPlacePage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         onSubmit={handleSubmit}
-        className="card-base p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E5E0D5] rounded-3xl bg-white"
+        className="ny-panel p-5 sm:p-8"
       >
         {/* Section 1: Basic Details */}
         <div>
@@ -285,13 +299,13 @@ export default function SubmitPlacePage() {
               {autoGeocodeMatch && (
                 <div className="mt-2 p-2.5 rounded-xl bg-[#F7F8F5] border border-[#E5E0D5] text-xs text-[#102A2E] flex items-center justify-between">
                   <div>
-                    <span className="font-bold">⚡ Auto-Geocoded:</span> {autoGeocodeMatch.district}, {autoGeocodeMatch.province}
-                    <span className="text-[11px] text-[#102A2E] ml-2 font-mono">
-                      (GPS: {autoGeocodeMatch.latitude?.toFixed(4)}° N, {autoGeocodeMatch.longitude?.toFixed(4)}° E · Alt: {autoGeocodeMatch.altitude})
+                    <span className="font-bold">Administrative match:</span> {autoGeocodeMatch.district}, {autoGeocodeMatch.province}
+                    <span className="text-[11px] text-[#102A2E] ml-2">
+                      (Provide GPS or coordinates manually for an exact map point.)
                     </span>
                   </div>
                   <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                    {autoGeocodeMatch.confidence}% Match
+                    Name match
                   </span>
                 </div>
               )}
@@ -321,7 +335,7 @@ export default function SubmitPlacePage() {
                 <FiLayers className="text-emerald-700" /> 2. Administrative Location (77 Districts & Municipalities)
               </h3>
               <p className="text-[11px] text-gray-400">
-                Coordinates & altitude are auto-calculated. You can also toggle manual entry to type any custom Gaunpalika / Village.
+                Choose the administrative area, then use GPS or enter coordinates manually. A district centre is not treated as an exact place location.
               </p>
             </div>
 
@@ -350,7 +364,8 @@ export default function SubmitPlacePage() {
               <label className="font-semibold text-gray-700">Province *</label>
               <select
                 className="input-field mt-1 text-xs font-medium"
-                value={selectedProvince}
+                required
+                 value={selectedProvince}
                 onChange={(e) => {
                   const prov = e.target.value
                   setSelectedProvince(prov)
@@ -364,7 +379,8 @@ export default function SubmitPlacePage() {
                   }
                 }}
               >
-                {NEPAL_ALL_PROVINCES.map((p) => (
+                <option value="">Select province</option>
+                 {NEPAL_ALL_PROVINCES.map((p) => (
                   <option key={p} value={p}>{p} Province</option>
                 ))}
               </select>
@@ -374,7 +390,8 @@ export default function SubmitPlacePage() {
               <label className="font-semibold text-gray-700">District (77 Districts) *</label>
               <select
                 className="input-field mt-1 text-xs font-medium"
-                value={selectedDistrict}
+                required
+                 value={selectedDistrict}
                 onChange={(e) => {
                   const dist = e.target.value
                   setSelectedDistrict(dist)
@@ -386,7 +403,8 @@ export default function SubmitPlacePage() {
                   }
                 }}
               >
-                {currentDistricts.map((d) => (
+                <option value="">Select district</option>
+                   {currentDistricts.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
@@ -404,10 +422,12 @@ export default function SubmitPlacePage() {
               ) : (
                 <select
                   className="input-field mt-1 text-xs font-medium"
-                  value={selectedMunicipality}
+                  required
+                   value={selectedMunicipality}
                   onChange={(e) => setSelectedMunicipality(e.target.value)}
                 >
-                  {currentMunicipalities.map((m) => (
+                  <option value="">Select municipality</option>
+                     {currentMunicipalities.map((m) => (
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
@@ -422,7 +442,7 @@ export default function SubmitPlacePage() {
                 max={35}
                 className="input-field mt-1 text-xs font-bold text-[#102A2E]"
                 value={selectedWard}
-                onChange={(e) => setSelectedWard(parseInt(e.target.value, 10) || 1)}
+                onChange={(e) => setSelectedWard(e.target.value)}
               />
             </div>
           </div>
@@ -473,7 +493,7 @@ export default function SubmitPlacePage() {
             <div className="col-span-2 sm:col-span-1 flex flex-col justify-end">
               <span className="text-[10px] text-gray-500 font-bold uppercase">Location Geocode</span>
               <p className="text-xs font-extrabold text-[#102A2E] mt-1">
-                📍 {selectedDistrict}, Ward {selectedWard}
+                {selectedDistrict}, Ward {selectedWard}
               </p>
             </div>
           </div>
@@ -562,7 +582,7 @@ export default function SubmitPlacePage() {
               </label>
               <input
                 className="input-field mt-1 text-sm"
-                placeholder="e.g. Pyuthan District Hospital (+977-86-460114)"
+                placeholder="e.g. name, address and verified contact number"
                 value={form.nearest_hospital_info}
                 onChange={(e) => update("nearest_hospital_info", e.target.value)}
               />
@@ -586,7 +606,7 @@ export default function SubmitPlacePage() {
               </label>
               <input
                 className="input-field mt-1 text-sm"
-                placeholder="e.g. Pyuthan Police Post (100)"
+                placeholder="e.g. name, address and verified contact number"
                 value={form.nearest_police_info}
                 onChange={(e) => update("nearest_police_info", e.target.value)}
               />
@@ -641,10 +661,10 @@ export default function SubmitPlacePage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={submitting}
           className="btn-primary w-full py-4 text-base font-bold bg-gradient-to-r from-[#1f6b4d] to-[#14503a] hover:from-[#2a8562] hover:to-[#14503a] shadow-xl rounded-2xl text-white transition-all disabled:opacity-50"
         >
-          {loading ? "Submitting for Verification..." : "Submit Destination for Admin Approval"}
+          {submitting ? "Submitting for Verification..." : "Submit Destination for Admin Approval"}
         </button>
 
         {status && (

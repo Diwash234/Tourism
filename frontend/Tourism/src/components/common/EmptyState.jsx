@@ -1,14 +1,29 @@
 import { FiInbox } from "react-icons/fi"
 
-const EmptyState = ({ title = "Nothing here yet", subtitle = "", icon: Icon = FiInbox, action }) => (
-  <div className="flex flex-col items-center justify-center text-center py-16 text-gray-400">
-    <div className="p-4 bg-gray-50 rounded-full mb-4">
-      <Icon size={48} className="text-gray-300" />
-    </div>
-    <p className="font-semibold text-gray-600">{title}</p>
-    {subtitle && <p className="text-sm mt-1 max-w-md">{subtitle}</p>}
-    {action && <div className="mt-4">{action}</div>}
-  </div>
+/**
+ * One intentional empty state for catalogue, account, gallery and safety
+ * surfaces. It is deliberately compact so a missing API record never looks
+ * like a broken page.
+ */
+const EmptyState = ({
+  title = "Nothing here yet",
+  subtitle = "There is no information to show yet.",
+  icon: Icon = FiInbox,
+  action,
+  secondaryAction,
+  className = "",
+}) => (
+  <section className={`ny-empty ${className}`} role="status">
+    <span className="ny-empty-icon" aria-hidden="true"><Icon size={24} /></span>
+    <h2>{title}</h2>
+    {subtitle && <p>{subtitle}</p>}
+    {(action || secondaryAction) && (
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+        {action}
+        {secondaryAction}
+      </div>
+    )}
+  </section>
 )
 
 export default EmptyState

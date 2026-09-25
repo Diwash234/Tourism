@@ -3,27 +3,24 @@ import { FiTrendingUp, FiMapPin } from "react-icons/fi"
 import PlaceholderImage from "../common/PlaceholderImage"
 
 const RecommendationCard = ({ item }) => {
-  const matchScore = Math.round(((item.score || item.ml_score || 0)) * 100)
+  const rawScore = item.score ?? item.ml_score
+  const matchScore = rawScore == null ? null : Math.round(Number(rawScore) * 100)
 
   return (
     <div className="card-base overflow-hidden p-5">
       <div className="flex items-center gap-2 text-forest-600 text-sm font-semibold">
         <FiTrendingUp />
-        {matchScore}% match
+        {matchScore == null ? "Suggested for you" : `${matchScore}% match`}
       </div>
 
-      {item.cover_image_url ? (
-        <img src={item.cover_image_url} alt={item.name} className="w-full h-32 object-cover rounded-xl mt-3" />
-      ) : (
-        <PlaceholderImage seed={item.id || item.name} className="w-full h-32 rounded-xl mt-3" />
-      )}
+      <PlaceholderImage src={item.cover_image_url} title={item.name || "Destination"} alt={item.name || "Destination"} className="mt-3 h-32 w-full rounded-xl" />
 
       <h3 className="font-bold text-lg mt-3">{item.name || "Unknown Destination"}</h3>
 
       <p className="text-gray-500 text-sm">{item.category || item.category_name}</p>
 
       <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-        <FiMapPin size={14} /> {item.city || "Nepal"}
+        <FiMapPin size={14} /> {item.city || item.district || "Location unavailable"}
       </p>
 
       {item.slug ? (

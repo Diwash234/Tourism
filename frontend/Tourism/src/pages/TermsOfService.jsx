@@ -1,4 +1,3 @@
-import React from "react"
 import { FiFileText } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import Breadcrumbs from "../components/common/Breadcrumbs"
@@ -7,41 +6,23 @@ import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function TermsOfService() {
   return (
-    <ResponsiveContainer className="py-8 space-y-6">
-      <Breadcrumbs items={[
-        { label: "Home", to: "/" },
-        { label: "Terms of Service", to: "/terms" }
-      ]} />
-
-      <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/80 space-y-6 text-slate-800">
+    <ResponsiveContainer className="space-y-6 py-8">
+      <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Terms of Service", to: "/terms" }]} />
+      <div className="ny-reading ny-card p-6 text-[var(--ny-text)] sm:p-8">
         <div>
-          <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-bold uppercase">
-            Legal Terms & Conditions
-          </span>
+          <span className="ny-kicker">Legal terms & conditions</span>
           <CMSPageIntro pageKey="terms-of-service" />
-          <PageHeader title="Terms of Service" subtitle="Effective Date: August 2026 · Official Nepal Yatra Platform" icon={FiFileText} />
+          <PageHeader title="Terms of Service" subtitle="A clear summary of how to use Nepal Yatra and the limits of the information it provides." icon={FiFileText} />
         </div>
-
-        <div className="space-y-4 text-xs leading-relaxed text-slate-700 border-t border-slate-100 pt-4">
-          <section className="space-y-1">
-            <h2 className="text-base font-bold text-slate-900">1. Acceptance of Terms</h2>
-            <p>By accessing or using the Nepal Yatra platform, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use our services.</p>
-          </section>
-
-          <section className="space-y-1">
-            <h2 className="text-base font-bold text-slate-900">2. Travel Data & Honesty Policy</h2>
-            <p>Our platform displays verified tourism data from official administrative registries. Where coordinates, fares, or opening hours are unrecorded, they are marked as "Information unavailable" or "Route unavailable". Users must exercise personal judgment when traveling in high-altitude Himalayan regions.</p>
-          </section>
-
-          <section className="space-y-1">
-            <h2 className="text-base font-bold text-slate-900">3. User Conduct & Submissions</h2>
-            <p>Users submitting place suggestions, hotel reviews, or error reports guarantee that their submissions are accurate and free from copyright infringement. Spam, fraudulent reviews, or misleading coordinates are strictly prohibited.</p>
-          </section>
-
-          <section className="space-y-1">
-            <h2 className="text-base font-bold text-slate-900">4. Emergency & Helplines</h2>
-            <p>Emergency directory numbers (Tourist Police 1144, Nepal Police 100, Ambulance 102) are provided for traveler safety. In life-threatening emergencies, contact local authorities immediately.</p>
-          </section>
+        <div className="space-y-5 border-t border-[var(--ny-border)] pt-5 text-sm leading-7 text-[var(--ny-text-secondary)]">
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">1. Acceptance of terms</h2><p className="mt-1">By accessing or using Nepal Yatra, you agree to use the service lawfully and to follow these terms. If you do not agree, please do not use the service.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">2. Travel data and honesty</h2><p className="mt-1">The service displays recorded tourism information from the sources available to it. Where coordinates, fares or opening hours are unrecorded, they are marked as unavailable rather than replaced with a guess. Users must exercise personal judgment when travelling in high-altitude Himalayan regions.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">3. User conduct and submissions</h2><p className="mt-1">Place suggestions, reviews and error reports must be accurate, lawful and free from content you do not have the right to submit. Spam, fraudulent reviews, misleading coordinates and attempts to compromise the service are not permitted.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">4. Emergency information</h2><p className="mt-1">Emergency directory records may be shown when they are available. In a life-threatening emergency, contact the appropriate local authority immediately; Nepal Yatra does not replace emergency dispatch.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">5. Accounts</h2><p className="mt-1">Keep your sign-in details secure and tell us promptly if you believe an account has been used without permission. We may suspend an account when necessary to protect users, records or the service.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">6. Requests, payments and refunds</h2><p className="mt-1">A marketplace request is a request for service, not a payment or a guarantee of availability. Payment, cancellation, refund and booking arrangements are handled by the relevant provider under its own terms. Do not send card or password information through a feedback message.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">7. Third-party information</h2><p className="mt-1">Some links, maps, providers and directory records are operated by other parties. Their availability, prices, policies and safety information remain their responsibility. Confirm important details directly with the provider or local authority.</p></section>
+          <section><h2 className="text-lg font-bold text-[var(--ny-text)]">8. Questions and disputes</h2><p className="mt-1">Contact the team first so we can understand the issue and keep an accurate record. These terms do not limit rights or remedies that may be available under applicable law.</p></section>
         </div>
       </div>
     </ResponsiveContainer>

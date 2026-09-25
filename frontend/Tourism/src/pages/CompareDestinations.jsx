@@ -10,6 +10,7 @@ import {
   FiColumns,
 } from "react-icons/fi"
 import destinationApi from "../api/destinationApi"
+import EmptyState from "../components/common/EmptyState"
 import Loader from "../components/common/Loader"
 import useGeolocation from "../hooks/useGeolocation"
 import { formatCoords, hasValidCoords, placeLocationLabel } from "../utils/placeUtils"
@@ -42,8 +43,8 @@ const PRESETS = [
     ids: ["pashupatinath-temple", "lumbini-sacred-garden-maya-devi-temple", "janakpurdham-janaki-mandir"],
   },
   {
-    name: "Wildlife & Safaris",
-    ids: ["chitwan-national-park-info-office", "bandipur-heritage-hill-station", "ilam-tea-gardens-kanyam"],
+    name: "Wildlife & lowlands",
+    ids: ["chitwan-national-park-info-office", "bardiya-national-park", "koshi-tappu-wildlife-reserve"],
   },
 ]
 
@@ -71,12 +72,12 @@ function formatComparePlace(dest) {
     category: dest.category_name || dest.category?.name || dest.category || "Attraction",
     difficulty: dest.feature_profile?.difficulty || UNAVAILABLE,
     daily_budget_npr: budget?.estimated_daily_budget != null
-      ? `Recorded daily: ${budget.estimated_daily_budget}`
+      ? `Recorded daily: NPR ${budget.estimated_daily_budget}`
       : dest.budget_estimate != null
         ? `Recorded estimate: ${dest.budget_estimate}`
         : UNAVAILABLE,
     trip_budget_npr: budget?.estimated_trip_budget != null
-      ? `Recorded trip: ${budget.estimated_trip_budget}`
+      ? `Recorded trip: NPR ${budget.estimated_trip_budget}`
       : UNAVAILABLE,
     best_season: dest.recommended_season || dest.best_time_to_visit || UNAVAILABLE,
     distance_ktm: dest.distance_from_kathmandu_km != null
@@ -93,7 +94,7 @@ function formatComparePlace(dest) {
 }
 
 export default function CompareDestinations() {
-  const { position } = useGeolocation()
+  const { position, error: geoError, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const [searchParams] = useSearchParams()
   const requestedSlug = searchParams.get("dest") || searchParams.get("destination") || ""
   const [selectedDestinations, setSelectedDestinations] = useState([])
@@ -119,6 +120,8 @@ export default function CompareDestinations() {
   }, [searchQuery])
   const [showAddDropdown, setShowAddDropdown] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
+  const [retry, setRetry] = useState(0)
   const [presetError, setPresetError] = useState("")
 
   const loadBySlugs = async (slugs) => {
@@ -138,6 +141,7 @@ export default function CompareDestinations() {
   useEffect(() => {
     const bootstrap = async () => {
       setLoading(true)
+      setLoadError("")
       try {
         const { data } = await destinationApi.getDestinations({ page_size: 200 })
         const list = data.results || data || []
@@ -151,12 +155,13 @@ export default function CompareDestinations() {
         setSelectedDestinations([...fromQuery, ...extras].slice(0, 4))
       } catch {
         setSelectedDestinations([])
+         setLoadError("We could not load the destination catalogue for comparison.")
       } finally {
         setLoading(false)
       }
     }
     bootstrap()
-  }, [requestedSlug])
+  }, [requestedSlug, retry])
 
   const handleAddDestination = (dest) => {
     if (selectedDestinations.length >= 4) return
@@ -186,19 +191,15 @@ export default function CompareDestinations() {
   }
 
   if (loading && !selectedDestinations.length) return <Loader />
+  if (loadError && !selectedDestinations.length) return <div className="ny-page container-app py-10"><div className="ny-panel mx-auto max-w-xl p-6 text-center" role="alert"><p className="font-bold text-[var(--ny-danger)]">Comparison unavailable</p><p className="mt-2 text-sm text-[var(--ny-text-secondary)]">{loadError}</p><button type="button" onClick={() => setRetry((value) => value + 1)} className="ny-btn ny-btn-secondary mt-4">Try again</button></div></div>
 
   return (
-    <div className="container-app theme-gold py-8 space-y-6 animate-fadeIn">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="compare" />
-      <div className="text-center max-w-3xl mx-auto space-y-2">
-        <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-black uppercase tracking-wider">
-          Side-by-Side Comparison
-        </span>
-        <PageHeader title="Compare recorded Nepal destinations" icon={FiColumns} />
-        <p className="text-sm text-gray-500">
-          Only stored fields are shown. Empty values stay “Information unavailable”.
-        </p>
-      </div>
+      <header>
+        <span className="ny-kicker">Side-by-side comparison</span>
+        <PageHeader title="Compare recorded Nepal destinations" subtitle="Choose up to four places and scan the stored facts that matter for your trip. Missing values stay clearly marked as information unavailable." icon={FiColumns} />
+      </header>
 
       <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
         <span className="text-xs font-bold text-gray-400">Catalogue presets:</span>
@@ -206,7 +207,7 @@ export default function CompareDestinations() {
           <button
             key={p.name}
             onClick={() => handlePreset(p)}
-            className="px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-700 hover:border-purple-600 hover:text-[#102A2E] shadow-sm transition-all"
+            className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs"
           >
             {p.name}
           </button>
@@ -214,7 +215,8 @@ export default function CompareDestinations() {
       </div>
       {presetError && <p className="text-center text-xs text-amber-800">{presetError}</p>}
 
-      <div className="flex justify-between items-center bg-[#F7F8F5]/70 border border-[#E5E0D5] p-4 rounded-2xl">
+      <div className="ny-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <button type="button" onClick={retryGeo} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 self-start text-xs sm:self-auto"><FiNavigation size={15} aria-hidden="true" />{position ? "Location active" : locating ? "Finding location…" : geoError ? "Try location again" : "Use my location"}</button>
         <div>
           <p className="text-xs font-bold text-[#102A2E]">Comparing {selectedDestinations.length} of max 4 destinations</p>
           <p className="text-[11px] text-gray-500">Add any approved place from the live catalogue.</p>
@@ -260,17 +262,15 @@ export default function CompareDestinations() {
         )}
       </div>
 
-      {!selectedDestinations.length && (
-        <p className="text-center text-sm text-slate-600">No recorded destinations are available to compare yet.</p>
-      )}
+      {!selectedDestinations.length && <EmptyState title="No destinations selected" subtitle="Add places from the catalogue to compare their recorded information." action={<Link to="/destinations" className="ny-btn ny-btn-primary">Browse destinations</Link>} />}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
         {selectedDestinations.map((dest, idx) => (
           <motion.div
             key={dest.slug || idx}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl border border-[#E5E0D5] overflow-hidden shadow-xl flex flex-col justify-between"
+            className="ny-card flex flex-col overflow-hidden"
           >
             <div>
               <div className="h-44 w-full relative bg-slate-900 overflow-hidden">
@@ -285,6 +285,7 @@ export default function CompareDestinations() {
                     onClick={() => handleRemove(dest.slug)}
                     className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-rose-600 transition-colors"
                     title="Remove from comparison"
+                     aria-label={`Remove ${dest.name} from comparison`}
                   >
                     <FiX size={14} />
                   </button>
@@ -342,7 +343,7 @@ export default function CompareDestinations() {
                     <FiNavigation className="text-emerald-600" /> From Your GPS:
                   </span>
                   <p className="text-[11px] font-bold text-emerald-800">
-                    {hasValidCoords(dest.lat, dest.lng) && position?.lat && position?.lng
+                    {hasValidCoords(dest.lat, dest.lng) && position?.lat != null && position?.lng != null
                       ? `≈ ${calculateDistanceKm(position.lat, position.lng, dest.lat, dest.lng)} km away from you (straight line)`
                       : hasValidCoords(dest.lat, dest.lng)
                         ? `Coordinates ${formatCoords(dest.lat, dest.lng)} — enable location to measure`
@@ -364,13 +365,13 @@ export default function CompareDestinations() {
             <div className="p-4 pt-0 flex gap-2">
               <Link
                 to={`/destinations/${dest.slug}`}
-                className="flex-1 py-2.5 rounded-xl bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-xs text-center transition-colors shadow"
+                className="ny-btn ny-btn-primary flex-1"
               >
                 View details
               </Link>
               <Link
                 to={`/navigation?dest=${encodeURIComponent(dest.name)}`}
-                className="px-3.5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-gray-950 font-black text-xs text-center transition-colors shadow"
+                className="ny-btn ny-btn-secondary px-3.5"
                 title="Open navigation"
               >
                 Route

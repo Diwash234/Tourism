@@ -8,22 +8,10 @@ const STATUS_STYLE = {
   unavailable: "badge-risk-high",
 }
 
-// NEW: category color coding by price tier. Currency-aware because the
-// real backend data mixes USD and NPR (Hotel.currency field) — a flat
-// $30/$80 threshold would misclassify every NPR-priced hotel as
-// "luxury". Thresholds are a reasonable approximation, not from any
-// backend field (there's no tier field on the Hotel model).
-function getPriceTier(price, currency) {
-  if (price == null) return null
-  const isNPR = (currency || "").toUpperCase() === "NPR"
-  const [budgetMax, midMax] = isNPR ? [3000, 8000] : [30, 80]
-  if (price <= budgetMax) return { label: "Budget", className: "bg-forest-500" }
-  if (price <= midMax) return { label: "Mid-range", className: "bg-saffron-500" }
-  return { label: "Luxury", className: "bg-himalaya-500" }
-}
+// Price is shown only when the API record provides it. The backend does not
+// currently expose a verified price tier, so the UI does not infer one.
 
-/**
- * HotelCard
+/* HotelCard
  * Matches the real backend Hotel model fields (tourist/models.py Hotel +
  * HotelSerializer): id, destination, name, price_per_night, currency,
  * rating, booking_status, booking_url, address, latitude, longitude,
@@ -52,7 +40,6 @@ const HotelCard = ({ hotel, destinationName }) => {
     facilities,
   } = hotel
 
-  const tier = getPriceTier(price_per_night, currency)
   const gallery = Array.isArray(images) && images.length > 0 ? images : null
 
   return (
@@ -71,19 +58,19 @@ const HotelCard = ({ hotel, destinationName }) => {
           </div>
         )}
         {booking_status && (
-          <span className={`absolute top-3 right-3 ${STATUS_STYLE[booking_status?.toLowerCase()] || "badge-risk-moderate"}`}>
+          <span className={`absolute top-3 right-3 ${STATUS_STYLE[booking_status?.toLowerCase()] || "bg-slate-100 text-slate-600"}`}>
             {booking_status}
           </span>
         )}
-        {tier && (
-          <span className={`absolute bottom-3 left-3 text-white text-xs font-semibold px-2.5 py-1 rounded-full ${tier.className}`}>
-            {tier.label}
+        {hotel.amenities && (
+          <span className={`absolute bottom-3 left-3 text-white text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--ny-green)]`}>
+            Amenities listed
           </span>
         )}
       </div>
 
       <div className="p-4">
-        <h3 className="font-bold text-dark truncate">{name}</h3>
+        <h3 className="font-bold text-dark truncate">{name || "Hotel name unavailable"}</h3>
         {address && (
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 min-w-0">
             <FiMapPin size={14} className="shrink-0" />
@@ -114,41 +101,22 @@ const HotelCard = ({ hotel, destinationName }) => {
             <span className="text-xs font-normal text-gray-400">/night</span>
           </p>
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-            {latitude && longitude && (
+            {latitude != null && longitude != null && (
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600"
+                className="grid h-10 w-10 place-items-center rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-green)] text-[var(--ny-green)] transition hover:bg-[#DDEFE7]"
                 title="View on map"
+                aria-label={`View ${name} on map`}
               >
-                <FiNavigation size={14} />
+                <FiNavigation size={15} aria-hidden="true" />
               </a>
             )}
-            <a
-              href={`tel:${(hotel.phone_number || hotel.phone || "+977-61-520000").replace(/[^0-9+]/g, "")}`}
-              className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1"
-              title="Call Hotel Desk"
-            >
-              <FiPhoneCall size={12} />
-            </a>
-            <a
-              href={hotel.website_url || hotel.website || "https://nepalhotels.com"}
-              target="_blank"
-              rel="noreferrer"
-              className="px-2.5 py-1.5 rounded-lg bg-[#F7F8F5] hover:bg-emerald-100 text-[#102A2E] text-xs font-bold flex items-center gap-1"
-              title="Official Website"
-            >
-              <FiGlobe size={12} /> Web
-            </a>
-            <a
-              href={booking_url || hotel.website_url || hotel.website || "https://booking.com"}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-gradient text-xs px-3 py-1.5 rounded-lg font-bold"
-            >
-              Book Now
-            </a>
+            {hotel.phone_number && <a href={`tel:${String(hotel.phone_number).replace(/[^0-9+]/g, "")}`} className="grid h-10 w-10 place-items-center rounded-[var(--ny-radius-sm)] bg-[var(--ny-soft-green)] text-[var(--ny-green)] transition hover:bg-[#DDEFE7]" title="Call hotel desk" aria-label={`Call ${name}`}><FiPhoneCall size={15} aria-hidden="true" /></a>}
+            {hotel.website_url && <a href={hotel.website_url} target="_blank" rel="noreferrer" className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs" title="Official website"><FiGlobe size={14} aria-hidden="true" />Web</a>}
+            {booking_url && <a href={booking_url} target="_blank" rel="noreferrer" className="ny-btn ny-btn-primary min-h-10 px-3 text-xs">View booking</a>}
+            {!hotel.phone_number && !hotel.website_url && !booking_url && <span className="text-xs text-[var(--ny-text-secondary)]">Booking details unavailable</span>}
           </div>
         </div>
       </div>

@@ -145,13 +145,13 @@ class EmergencyContactsCompatView(APIView):
         return _nearest_contacts_response(request, contact_type=category or None)
 
 
-def clean_phone(p_str, default="100"):
+def clean_phone(p_str, default=None):
     if not p_str or str(p_str).lower() in {"nan", "none", "null"}:
-        return default, True
+        return default, False
     p = str(p_str).split(".")[0].strip()
     if p.endswith(".0"):
         p = p[:-2]
-    return (p, False) if len(p) > 2 else (default, True)
+    return (p, False) if len(p) > 2 else (None, False)
 
 
 def _stored_image_url(obj):
@@ -205,7 +205,7 @@ class NearbyHospitalsView(APIView):
                 "name": ec.name,
                 "contact_type": "hospital",
                 "address": ec.address,
-                "phone_number": str(ec.phone_number),
+                "phone_number": clean_phone(ec.phone_number)[0],
                 "phone_is_national_fallback": False,
                 "latitude": float(ec.latitude),
                 "longitude": float(ec.longitude),
@@ -215,11 +215,11 @@ class NearbyHospitalsView(APIView):
                 "image_url": None,
             })
 
-        for h in Hospital.objects.exclude(is_archived=True):
+        for h in Hospital.objects.filter(is_archived=False, is_verified=True):
             d = haversine_distance(lat, lon, float(h.latitude), float(h.longitude))
             if d is None:
                 continue
-            phone, fallback = clean_phone(h.phone, "102")
+            phone, fallback = clean_phone(h.phone, "")
             results.append({
                 "id": f"hospital-{h.id}",
                 "name": h.name,
@@ -270,7 +270,7 @@ class NearbyPoliceView(APIView):
                 "name": ec.name,
                 "contact_type": "police",
                 "address": ec.address,
-                "phone_number": str(ec.phone_number),
+                "phone_number": clean_phone(ec.phone_number)[0],
                 "phone_is_national_fallback": False,
                 "latitude": float(ec.latitude),
                 "longitude": float(ec.longitude),
@@ -279,11 +279,11 @@ class NearbyPoliceView(APIView):
                 "image_url": None,
             })
 
-        for p in PoliceStation.objects.exclude(is_archived=True):
+        for p in PoliceStation.objects.filter(is_archived=False, is_verified=True):
             d = haversine_distance(lat, lon, float(p.latitude), float(p.longitude))
             if d is None:
                 continue
-            phone, fallback = clean_phone(p.phone, "100")
+            phone, fallback = clean_phone(p.phone, "")
             results.append({
                 "id": f"police-{p.id}",
                 "name": p.name,

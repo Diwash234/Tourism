@@ -16,7 +16,7 @@ NATIONAL_HOTLINES = [
 def clean_phone(value, fallback):
     value = str(value or "").strip()
     if not value or value.lower() in {"nan", "none", "null"}:
-        return fallback, True
+        return fallback, bool(fallback)
     if value.endswith(".0"):
         value = value[:-2]
     value = value.replace(" ", "")
@@ -64,45 +64,51 @@ def _nearest_rows(rows, latitude, longitude, limit, radius_km, mapper):
 def build_emergency_directory(latitude, longitude, destination=None, radius_km=50, limit=8):
     latitude, longitude = float(latitude), float(longitude)
 
+    def _image_url(row):
+        try:
+            return row.image.url if row.image else None
+        except (ValueError, AttributeError):
+            return None
+
     def hospital_item(row, distance, outside_radius):
-        phone, fallback = clean_phone(row.phone, "102")
+        phone, fallback = clean_phone(row.phone, "")
         return {
             "id": f"hospital-{row.id}", "type": "hospital", "name": row.name,
             "address": row.address, "district": row.district,
             "phone_number": phone, "phone_is_national_fallback": fallback,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
-            "image_url": row.image.url if row.image else None,
+            "image_url": _image_url(row),
             "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
-            "source_name": row.source_name or "Nepal hospital dataset",
-            "source_url": row.source_url or "https://mohp.gov.np/",
+            "source_name": row.source_name or "",
+            "source_url": row.source_url or "",
         }
 
     def police_item(row, distance, outside_radius):
-        phone, fallback = clean_phone(row.phone, "100")
+        phone, fallback = clean_phone(row.phone, "")
         return {
             "id": f"police-{row.id}", "type": "police", "name": row.name,
             "address": row.address, "district": destination.district if destination else "",
             "phone_number": phone, "phone_is_national_fallback": fallback,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
-            "image_url": row.image.url if row.image else None,
+            "image_url": _image_url(row),
             "opening_hours": row.opening_hours, "emergency_available": row.emergency_available,
             "verified": row.is_verified, "verified_at": row.verified_at, "updated_at": row.updated_at,
-            "source_name": row.source_name or "Nepal police station dataset",
-            "source_url": row.source_url or "https://nepalpolice.gov.np/",
+            "source_name": row.source_name or "",
+            "source_url": row.source_url or "",
         }
 
     hospitals = _nearest_rows(
-        Hospital.objects.exclude(is_archived=True), latitude, longitude, limit, radius_km, hospital_item,
+        Hospital.objects.filter(is_archived=False, is_verified=True), latitude, longitude, limit, radius_km, hospital_item,
     )
     police = _nearest_rows(
-        PoliceStation.objects.exclude(is_archived=True), latitude, longitude, limit, radius_km, police_item,
+        PoliceStation.objects.filter(is_archived=False, is_verified=True), latitude, longitude, limit, radius_km, police_item,
     )
 
     local_contacts = []
-    contacts = EmergencyContact.objects.all()
+    contacts = EmergencyContact.objects.exclude(phone_number__in=["", None])
     for contact in contacts:
         distance = haversine_distance(latitude, longitude, float(contact.latitude), float(contact.longitude))
         local_contacts.append((distance, contact))
@@ -111,10 +117,11 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     for distance, contact in local_contacts:
         if len(specialized) >= limit:
             break
+        contact_phone, _ = clean_phone(contact.phone_number, "")
         specialized.append({
             "id": f"contact-{contact.id}", "type": contact.contact_type,
             "name": contact.name, "address": contact.address, "district": contact.city,
-            "phone_number": str(contact.phone_number),
+            "phone_number": contact_phone,
             "alternate_phone": str(contact.alternate_phone or ""),
             "latitude": float(contact.latitude), "longitude": float(contact.longitude),
             "distance_km": round(distance, 2), "outside_requested_radius": distance > radius_km,
@@ -127,7 +134,7 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
     # tourism-office records share the same accurate distance calculation.
     existing_ids = {item["id"] for item in specialized}
     osm_ranked = []
-    for service in OSMEssentialService.objects.exclude(is_archived=True).exclude(category__in=["hospital", "police"]):
+    for service in OSMEssentialService.objects.filter(is_archived=False, is_verified=True).exclude(category__in=["hospital", "police"]):
         distance = haversine_distance(latitude, longitude, float(service.latitude), float(service.longitude))
         osm_ranked.append((distance, service))
     osm_ranked.sort(key=lambda pair: pair[0])
@@ -148,10 +155,10 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             "travel_time_basis": "Road estimate at 30 km/h; verify navigation conditions",
             "is_24_hours": service.emergency_available,
             "opening_hours": service.opening_hours,
-            "image_url": service.image.url if service.image else None,
+            "image_url": _image_url(service),
             "verified": service.is_verified, "verified_at": service.verified_at, "updated_at": service.updated_at,
-            "source_name": service.source_name or ("Admin verified" if service.osm_id.startswith("community/") else "OpenStreetMap"),
-            "source_url": service.source_url or ("https://www.openstreetmap.org/" if not service.osm_id.startswith("community/") else ""),
+            "source_name": service.source_name or "",
+            "source_url": service.source_url or "",
         })
 
     facility_counts = {
@@ -161,8 +168,8 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
         "pharmacy_within_radius": sum(1 for item in specialized if item["type"] == "pharmacy" and not item["outside_requested_radius"]),
         "atm_bank_within_radius": sum(1 for item in specialized if item["type"] in {"atm", "bank"} and not item["outside_requested_radius"]),
         "fire_within_radius": sum(1 for item in specialized if item["type"] == "fire_station" and not item["outside_requested_radius"]),
-        "database_hospitals": Hospital.objects.exclude(is_archived=True).count(),
-        "database_police_stations": PoliceStation.objects.exclude(is_archived=True).count(),
+        "database_hospitals": Hospital.objects.filter(is_archived=False, is_verified=True).count(),
+        "database_police_stations": PoliceStation.objects.filter(is_archived=False, is_verified=True).count(),
     }
     coverage_gap = (
         facility_counts["hospitals_within_radius"] == 0

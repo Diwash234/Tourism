@@ -27,7 +27,7 @@ const timeAgo = (iso, now) => {
 }
 
 const FamilySafety = () => {
-  const { position } = useGeolocation()
+  const { position, locating, retry: requestLocation } = useGeolocation({ auto: false })
   const { showToast } = useToast()
   const { t } = useI18n()
   const [activeTrip, setActiveTrip] = useState(null)
@@ -44,6 +44,8 @@ const FamilySafety = () => {
   const [linkRelation, setLinkRelation] = useState("")
   const [linking, setLinking] = useState(false)
   const [loadingLinks, setLoadingLinks] = useState(true)
+  const [linksError, setLinksError] = useState("")
+  const [membersError, setMembersError] = useState("")
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000)
@@ -53,23 +55,25 @@ const FamilySafety = () => {
   const pingIntervalRef = useRef(null)
 
   const loadLinks = useCallback(async () => {
+    setLinksError("")
     try {
       const { data } = await familyApi.getLinks()
       setLinks(Array.isArray(data) ? data : data.results || [])
     } catch {
-      /* not logged in or offline */
+      setLinksError("Family links could not be loaded right now.")
     } finally {
       setLoadingLinks(false)
     }
   }, [])
 
   const loadMembers = useCallback(async () => {
+    setMembersError("")
     try {
       const { data } = await familyApi.getFamilyMembers()
       setMembers(Array.isArray(data) ? data : data.results || [])
       setLastUpdated(new Date())
     } catch {
-      /* ignore */
+      setMembersError("Family member status could not be refreshed right now.")
     }
   }, [])
 
@@ -108,16 +112,25 @@ const FamilySafety = () => {
 
   const stopSharing = async () => {
     if (!activeTrip) return
-    await safetyApi.endTrip(activeTrip.id)
-    clearInterval(pingIntervalRef.current)
-    setActiveTrip(null)
-    showToast("Location sharing stopped.", "success")
+    try {
+      await safetyApi.endTrip(activeTrip.id)
+      clearInterval(pingIntervalRef.current)
+      setActiveTrip(null)
+      showToast("Location sharing stopped.", "success")
+    } catch {
+      showToast("Sharing could not be stopped. Please try again.", "error")
+    }
   }
 
-  const copyShareLink = () => {
+  const copyShareLink = async () => {
+    if (!activeTrip?.share_token) return showToast("A share link is not available yet.", "info")
     const url = `${window.location.origin}/safety/shared/${activeTrip.share_token}`
-    navigator.clipboard.writeText(url)
-    showToast("Share link copied.", "success")
+    try {
+      await navigator.clipboard.writeText(url)
+      showToast("Share link copied.", "success")
+    } catch {
+      showToast("The share link could not be copied. Copy it from the browser address bar after opening it.", "error")
+    }
   }
 
   const triggerSos = async () => {
@@ -200,19 +213,21 @@ const FamilySafety = () => {
 
 
   return (
-    <div className="container-app py-10 max-w-5xl theme-amber-alt">
+    <div className="ny-page container-app max-w-6xl space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="family-safety" />
       <PageHeader title={<>{t("family.title")}</>} subtitle={<>Link your family members' accounts — they see your live location, trip history, and get
         notified instantly if you trigger an SOS. And you see theirs.</>} icon={ FiUsers } />
+
+      {(linksError || membersError) && <div role="alert" className="ny-panel border-[#E9B9B9] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]">{linksError || membersError}</div>}
 
       {/* SOS -- always visible */}
       <button
         onClick={triggerSos}
         disabled={sosLoading}
-        className="w-full bg-nepalred-500 hover:bg-nepalred-600 text-white font-bold py-4 rounded-xl2 flex items-center justify-center gap-2 mb-8 shadow-lg transition-colors"
+         className="ny-btn ny-btn-danger mb-8 w-full"
       >
         <FiAlertTriangle size={20} />
-        {sosLoading ? "Sending..." : `${t("family.trigger_sos")} 🚨`}
+        {sosLoading ? "Sending…" : t("family.trigger_sos")}
       </button>
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -223,10 +238,12 @@ const FamilySafety = () => {
           </h3>
           {!activeTrip ? (
             <>
-              <label className="text-xs font-medium text-gray-500">Trip label (optional)</label>
+              {!position && <button type="button" onClick={requestLocation} disabled={locating} className="ny-btn ny-btn-secondary mb-3 w-full"><FiMapPin size={15} aria-hidden="true" />{locating ? "Finding your location…" : "Enable location for live sharing"}</button>}
+               <label className="text-xs font-medium text-gray-500">Trip label (optional)</label>
               <input
                 className="input-field mt-1 mb-3"
-                placeholder="e.g. Annapurna trek, Day 3"
+                aria-label="Trip label"
+                 placeholder="e.g. Annapurna trek, Day 3"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
               />
@@ -267,13 +284,15 @@ const FamilySafety = () => {
           <form onSubmit={sendLinkRequest} className="space-y-2">
             <input
               className="input-field"
-              placeholder="Email or username of the family member"
+              aria-label="Family member email or username"
+               placeholder="Email or username of the family member"
               value={linkEmail}
               onChange={(e) => setLinkEmail(e.target.value)}
             />
             <input
               className="input-field"
-              placeholder="Relationship (e.g. Parent, Spouse, Sibling)"
+              aria-label="Relationship"
+               placeholder="Relationship (e.g. Parent, Spouse, Sibling)"
               value={linkRelation}
               onChange={(e) => setLinkRelation(e.target.value)}
             />
@@ -290,7 +309,7 @@ const FamilySafety = () => {
               {pendingReceived.map((l) => (
                 <div key={l.id} className="flex items-center justify-between gap-2 bg-amber-50 rounded-xl px-3 py-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{l.requester_name}</p>
+                    <p className="text-sm font-medium truncate">{l.requester_name || "Family member"}</p>
                     <p className="text-[11px] text-gray-500 truncate">{l.relationship || "wants to link as family"}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
@@ -320,7 +339,8 @@ const FamilySafety = () => {
         <span className="text-xs font-normal text-gray-400">({accepted.length})</span>
       </h3>
 
-      {accepted.length === 0 && (
+      {loadingLinks && links.length === 0 && <p className="ny-panel p-4 text-sm text-[var(--ny-text-secondary)]">Loading family links…</p>}
+      {!loadingLinks && accepted.length === 0 && (
         <div className="card-base p-8 text-center text-gray-400 text-sm">
           {t("family.no_members")} — use the form above to send your first link request.
         </div>
@@ -379,7 +399,7 @@ const FamilySafety = () => {
 
               {m?.active_sos?.length > 0 && (
                 <p className="mt-2 text-[11px] font-bold text-nepalred-600 bg-nepalred-50 rounded-lg px-2 py-1.5">
-                  🚨 ACTIVE SOS — {m.active_sos.length} alert{m.active_sos.length > 1 ? "s" : ""}!
+                  ACTIVE SOS — {m.active_sos.length} alert{m.active_sos.length > 1 ? "s" : ""}
                 </p>
               )}
 
@@ -407,7 +427,7 @@ const FamilySafety = () => {
           </p>
           {sent.filter((l) => l.status === "pending").map((l) => (
             <div key={l.id} className="flex items-center justify-between py-1.5 text-sm">
-              <span>{l.member_name} {l.relationship ? `(${l.relationship})` : ""}</span>
+              <span>{l.member_name || "Family member"} {l.relationship ? `(${l.relationship})` : ""}</span>
               <span className="text-xs text-amber-600 bg-amber-50 rounded-full px-2.5 py-1">
                 {t("family.pending")}
               </span>

@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import usePublicConfig from "../../hooks/usePublicConfig";
 import { Link } from "react-router-dom";
 import {
-  FiBookOpen, FiX, FiAward, FiCoffee, FiMap, FiSun,
-  FiCompass, FiTriangle, FiCheckCircle, FiInfo, FiLayers, FiCalendar
+  FiBookOpen, FiX, FiCompass
 } from "react-icons/fi";
 
 import FlagImg from "./flag,png.jfif";
@@ -85,9 +84,9 @@ export const ALL_26_NATIONAL_SYMBOLS = [
   
   { id: "tree", category: "National Tree", title: "National Tree (Peepal)", icon: "🌳", nepali: "पीपल (Peepal / Sacred Fig)", value: "Peepal tree (Ficus religiosa), revered for providing shade, continuous oxygen, and spiritual sanctuary.", image: SYMBOL_VISUALS.tree },
   { id: "fruit", category: "National Fruit", title: "National Fruit (Mango / Aap)", icon: "🍎", nepali: "आँप (Mango / Aap)", value: "Juicy Terai and mid-hill mangoes harvested during sunny summer months.", image: SYMBOL_VISUALS.fruit },
-  { id: "anthem", category: "National Anthem", title: "National Anthem (Sayaun Thunga)", icon: "🎵", nepali: "सयौं थुँगा फूलका हामी", value: "'Sayaun Thunga Phool Ka' celebrating national sovereignty and unity across 120+ ethnic groups.", image: SYMBOL_VISUALS.anthem },
+  { id: "anthem", category: "National Anthem", title: "National Anthem (Sayaun Thunga)", icon: "🎵", nepali: "सयौं थुँगा फूलका हामी", value: "'Sayaun Thunga Phool Ka' is the national anthem associated with sovereignty and unity.", image: SYMBOL_VISUALS.anthem },
   { id: "currency", category: "National Currency", title: "National Currency (NPR 1,000 Note)", icon: "💰", nepali: "नेपाली रुपैयाँ (NPR 1000)", value: "Nepali Rupee (NPR / Re / Rs), issued by Nepal Rastra Bank with Mt. Everest & twin elephants.", image: SYMBOL_VISUALS.currency },
-  { id: "language", category: "Official Language", title: "Official Language (Devanagari Script)", icon: "🗣️", nepali: "नेपाली भाषा (क, ख, ग, घ, ङ)", value: "Nepali (Devanagari script), spoken alongside 120+ indigenous languages across 77 districts.", image: SYMBOL_VISUALS.language },
+  { id: "language", category: "Official Language", title: "Official Language (Devanagari Script)", icon: "🗣️", nepali: "नेपाली भाषा (क, ख, ग, घ, ङ)", value: "Nepali (Devanagari script) is the official language; many communities use additional languages.", image: SYMBOL_VISUALS.language },
   { id: "capital", category: "Capital City", title: "Capital City (Kathmandu Valley)", icon: "🏛️", nepali: "काठमाडौं (Kathmandu)", value: "Kathmandu Valley (1,400m altitude), historic City of Temples and cultural crossroads.", image: SYMBOL_VISUALS.capital },
   { id: "governance", category: "Head of State / State", title: "State System & Governance", icon: "👑", nepali: "संघीय लोकतान्त्रिक गणतन्त्र", value: "Federal Democratic Republic of Nepal governed under the 2015 Constitution.", image: EmblemImg },
   { id: "sport", category: "National Sport", title: "National Sport (Volleyball)", icon: "🏞️", nepali: "भलिबल (Volleyball)", value: "Volleyball, officially declared national sport played in mountain villages and valley courts.", image: SYMBOL_VISUALS.sport },
@@ -146,22 +145,22 @@ export const DEFAULT_FESTIVALS = [
 ];
 
 export const PROVINCE_LINKS = [
-  { name: "Koshi", count: "826 recorded places", highlight: "Ilam Tea Gardens & Kanyam" },
-  { name: "Madhesh", count: "167 recorded places", highlight: "Janakpurdham & Janaki Mandir" },
-  { name: "Bagmati", count: "2,624 recorded places", highlight: "Boudhanath Stupa & Kathmandu" },
-  { name: "Gandaki", count: "2,621 recorded places", highlight: "Bandipur & Pokhara Lakes" },
-  { name: "Lumbini", count: "679 recorded places", highlight: "Lumbini Sacred Garden & Maya Devi" },
-  { name: "Karnali", count: "488 recorded places", highlight: "Rara Lake & National Park" },
-  { name: "Sudurpashchim", count: "194 recorded places", highlight: "Khaptad National Park & Shuklaphanta" },
+  { name: "Koshi", count: "Browse province places", highlight: "Ilam Tea Gardens & Kanyam" },
+  { name: "Madhesh", count: "Browse province places", highlight: "Janakpurdham & Janaki Mandir" },
+  { name: "Bagmati", count: "Browse province places", highlight: "Boudhanath Stupa & Kathmandu" },
+  { name: "Gandaki", count: "Browse province places", highlight: "Bandipur & Pokhara Lakes" },
+  { name: "Lumbini", count: "Browse province places", highlight: "Lumbini Sacred Garden & Maya Devi" },
+  { name: "Karnali", count: "Browse province places", highlight: "Rara Lake & National Park" },
+  { name: "Sudurpashchim", count: "Browse province places", highlight: "Khaptad National Park & Shuklaphanta" },
 ];
 
 const MARQUEE_ITEMS = [
-  "🏔️ Home to 8 of the world's 14 highest peaks",
-  "🛕 UNESCO World Heritage Sites",
-  "🐅 Chitwan wildlife and Bengal tigers",
-  "🪂 Pokhara paragliding destination",
-  "🎉 120+ ethnic groups and cultures",
-  "🍚 Dal Bhat Power, 24 Hour",
+  "Eight of the world's highest peaks",
+  "UNESCO World Heritage sites",
+  "Chitwan wildlife and Bengal tigers",
+  "Pokhara paragliding",
+  "Nepal's ethnic and cultural diversity",
+  "Dal Bhat: a staple meal",
 ];
 
 const NationalSymbols = () => {
@@ -179,39 +178,39 @@ const NationalSymbols = () => {
   const [activeModalTab, setActiveModalTab] = useState("symbols");
 
   return (
-    <section className="rounded-3xl overflow-hidden mb-8 shadow-xl border border-blue-900/40">
+    <section className="ny-panel mb-8 overflow-hidden">
       <div
         className="p-6 md:p-8 text-white space-y-6"
         style={{
           backgroundImage:
-            "linear-gradient(135deg,#0B3D91,#2b519e,#F59E0B)",
+            "linear-gradient(135deg,#042A24,#075B48,#0B6B55)",
         }}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow">
+            <span className="px-3 py-1 rounded-full ny-kicker !border !border-white/20 !bg-white/10 !text-[#BDEBD9]">
               Discover Nepal — Beyond Everest
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-1.5">
               Nepal's National Identity & Cultural Symbols
             </h2>
             <p className="text-white/80 text-xs sm:text-sm mt-0.5">
-              Official emblems, natural heritage, sacred animals, and national symbols.
+              National identity, natural heritage, sacred animals, and cultural references.
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={() => setShowFullModal(true)}
-              className="px-5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg transition-all hover:scale-105 flex items-center gap-2 shrink-0"
+              className="ny-btn ny-btn-accent min-h-11 justify-center px-4 text-xs sm:text-sm"
             >
-              <FiBookOpen size={16} /> See More & Explore All 26 Symbols ➔
+              <FiBookOpen size={16} /> Explore identity references
             </button>
 
             <Link
               to="/discover-nepal"
-              className="px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm shadow transition-all flex items-center gap-1.5 shrink-0 border border-white/20"
+              className="ny-btn min-h-11 justify-center border border-white/25 bg-white/10 px-4 text-xs text-white hover:bg-white/20 sm:text-sm"
             >
               <FiCompass size={14} /> Discover Page
             </Link>
@@ -220,13 +219,11 @@ const NationalSymbols = () => {
 
         {/* Inline Grid Preview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {summarySymbols.map(({ image, label, fact }, index) => (
-            <motion.div
+          {summarySymbols.map(({ image, label, fact }) => (
+            <button
+              type="button"
               key={label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.04 }}
-              className="bg-white/10 backdrop-blur rounded-2xl p-3.5 text-center border border-white/15 hover:bg-white/20 transition-all cursor-pointer"
+              className="rounded-[var(--ny-radius-md)] border border-white/15 bg-white/10 p-3.5 text-center backdrop-blur transition hover:bg-white/20"
               onClick={() => setShowFullModal(true)}
             >
               {image && (
@@ -238,7 +235,7 @@ const NationalSymbols = () => {
               )}
               <h3 className="text-sm font-extrabold text-white">{label}</h3>
               <p className="text-xs text-white/80 mt-0.5 leading-snug">{fact}</p>
-            </motion.div>
+            </button>
           ))}
         </div>
       </div>
@@ -256,12 +253,15 @@ const NationalSymbols = () => {
       {/* FULL COMPREHENSIVE NATIONAL SYMBOLS & MOUNTAIN ATLAS MODAL */}
       <AnimatePresence>
         {showFullModal && (
-          <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-3 sm:p-5 backdrop-blur-md">
+          <div className="ny-modal-layer fixed inset-0 flex items-center justify-center bg-black/85 p-3 backdrop-blur-md sm:p-5">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-slate-950 border border-slate-800 rounded-3xl max-w-5xl w-full p-6 sm:p-8 space-y-6 shadow-2xl text-white max-h-[92vh] flex flex-col"
+              role="dialog"
+               aria-modal="true"
+               aria-label="Nepal national identity and cultural symbols"
+               className="max-h-[92dvh] w-full max-w-5xl space-y-6 overflow-y-auto rounded-[var(--ny-radius-lg)] border border-slate-800 bg-slate-950 p-5 text-white shadow-2xl sm:p-8"
             >
               {/* Modal Header */}
               <div className="flex justify-between items-start border-b border-slate-800 pb-4">
@@ -270,16 +270,17 @@ const NationalSymbols = () => {
                     Nepal National Identity & Country Profile
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-black text-white mt-1.5">
-                    Official 26 National Symbols & 8,000m Mountain Atlas
+                    Identity & mountain atlas
                   </h3>
                   <p className="text-xs text-slate-300 mt-1">
-                    Structured country profile with real images, official symbols, 8,000m peaks, cuisine, and 7 provinces.
+                    A country profile with images, identity references, 8,000m peaks, cuisine, and 7 provinces.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowFullModal(false)}
-                  className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+                  aria-label="Close national symbols dialog"
+                   className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
                 >
                   <FiX size={20} />
                 </button>
@@ -294,7 +295,7 @@ const NationalSymbols = () => {
                     activeModalTab === "symbols" ? "bg-amber-400 text-slate-950 font-black shadow" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  🇳🇵 All 26 National Symbols
+                  🇳🇵 Identity references
                 </button>
                 <button
                   type="button"

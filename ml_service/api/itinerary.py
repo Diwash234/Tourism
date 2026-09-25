@@ -21,7 +21,7 @@ class RichItineraryRequest(BaseModel):
     travel_style: Optional[str] = "leisure"
     travel_type: Optional[str] = "solo"
     interests: Optional[List[str]] = None
-    start_city: Optional[str] = "Kathmandu"
+    start_city: Optional[str] = None
     destination_names: Optional[List[str]] = None
     num_days: Optional[int] = None
 
@@ -37,7 +37,7 @@ def generate_rich_itinerary(payload: RichItineraryRequest):
         travel_style=payload.travel_style or "leisure",
         travel_type=payload.travel_type or "solo",
         interests=payload.interests or ["culture"],
-        start_city=payload.start_city or "Kathmandu",
+        start_city=payload.start_city,
     )
 
 
@@ -55,7 +55,7 @@ def generate_build_itinerary(payload: RichItineraryRequest):
         travel_style=payload.travel_style or "leisure",
         travel_type=payload.travel_type or "solo",
         interests=payload.interests or ["culture"],
-        start_city=payload.start_city or "Kathmandu",
+        start_city=payload.start_city,
     )
 
 
@@ -65,7 +65,7 @@ def suggest_itinerary(
     travelers: int = Query(1, ge=1, le=50),
     budget_npr: Optional[float] = Query(None),
     interests: Optional[str] = Query("culture,nature"),
-    start_city: Optional[str] = Query("Kathmandu"),
+    start_city: Optional[str] = Query(None),
 ):
     interest_list = [i.strip() for i in interests.split(",") if i.strip()] if interests else ["culture"]
     return build_rich_itinerary(

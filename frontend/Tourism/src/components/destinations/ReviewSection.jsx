@@ -1,39 +1,15 @@
 import { FiStar, FiUser, FiSend, FiCheckCircle } from "react-icons/fi"
 import { useState } from "react"
 
-const DEFAULT_VERIFIED_REVIEWS = [
-  {
-    id: "rev-1",
-    user_name: "Aarav Sharma",
-    rating: 5,
-    comment: "Breathtaking views and warm mountain hospitality! The trail guidance and local weather alerts were super accurate.",
-    date: "2 days ago",
-  },
-  {
-    id: "rev-2",
-    user_name: "Sophia Chen",
-    rating: 5,
-    comment: "Incredible experience visiting the cultural heritage sites. Peaceful environment and wonderful local food!",
-    date: "1 week ago",
-  },
-  {
-    id: "rev-3",
-    user_name: "Anil Thapa",
-    rating: 5,
-    comment: "Highly recommended for families and solo trekkers alike. Reliable transport and safety information.",
-    date: "2 weeks ago",
-  }
-]
-
 export default function ReviewSection({ reviews = [], onAddReview }) {
   const [comment, setComment] = useState("")
-  const [rating, setRating] = useState(5)
+  const [rating, setRating] = useState(0)
 
-  const activeReviews = reviews.length ? reviews : DEFAULT_VERIFIED_REVIEWS
+  const activeReviews = Array.isArray(reviews) ? reviews : []
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!comment.trim()) return
+    if (!comment.trim() || !rating) return
     onAddReview?.({ comment, rating, user_name: "You (Traveler)" })
     setComment("")
   }
@@ -43,14 +19,14 @@ export default function ReviewSection({ reviews = [], onAddReview }) {
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
-            Verified Community Reviews
+            Published traveller reviews
           </span>
           <h3 className="font-extrabold text-xl text-gray-900 mt-1 flex items-center gap-2">
             <FiStar className="text-amber-500 fill-amber-500" /> Traveler Reviews & Ratings ({activeReviews.length})
           </h3>
         </div>
         <span className="text-xs text-slate-500 font-bold flex items-center gap-1">
-          <FiCheckCircle className="text-emerald-600" /> Admin Approved
+          <FiCheckCircle className="text-emerald-600" /> Published records only
         </span>
       </div>
 
@@ -61,15 +37,17 @@ export default function ReviewSection({ reviews = [], onAddReview }) {
             <button
               key={star}
               type="button"
+              aria-label={`Rate ${star} out of 5`}
               onClick={() => setRating(star)}
               className={`p-1 text-sm ${rating >= star ? "text-amber-500 fill-amber-500 font-bold" : "text-gray-300"}`}
             >
               ★
             </button>
           ))}
-          <span className="text-xs font-bold text-amber-700 ml-2">{rating} / 5 Stars</span>
+          <span className="text-xs font-bold text-amber-700 ml-2">{rating ? `${rating} / 5 Stars` : "Select a rating"}</span>
         </div>
         <textarea
+          aria-label="Your review"
           rows={3}
           placeholder="Share your travel experience, trail conditions, or local tips for fellow travelers..."
           className="input-field text-xs bg-white"
@@ -84,6 +62,7 @@ export default function ReviewSection({ reviews = [], onAddReview }) {
       </form>
 
       <div className="space-y-3">
+        {!activeReviews.length && <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">No published reviews are available for this place yet.</p>}
         {activeReviews.map((r, i) => (
           <div key={r.id || i} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 shadow-sm">
             <div className="flex items-center justify-between">
@@ -94,7 +73,7 @@ export default function ReviewSection({ reviews = [], onAddReview }) {
                 <b className="text-slate-900 text-xs">{r.user_name || "Traveler"}</b>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-amber-500 font-bold">{"★".repeat(r.rating || 5)}</span>
+                {r.rating != null ? <span className="text-amber-500 font-bold">{"★".repeat(Math.max(0, Math.min(5, Number(r.rating))))}</span> : <span className="text-xs text-slate-400">Rating unavailable</span>}
                 <span className="text-[10px] text-slate-400">{r.date || "Recent"}</span>
               </div>
             </div>

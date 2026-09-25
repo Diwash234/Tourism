@@ -131,7 +131,7 @@ export default function ProvinceMarquee() {
                 {card.image ? (
                   <img src={card.image} alt={card.title} loading="lazy" className="h-40 w-full object-cover" />
                 ) : (
-                  <div className="h-40 bg-emerald-50 flex items-center justify-center text-4xl">{card.emoji || "🏔️"}</div>
+                  <div className="h-40 bg-emerald-50 flex items-center justify-center text-sm font-semibold text-[var(--ny-green)]" aria-hidden="true">{card.emoji || "Nepal"}</div>
                 )}
                 <div className="p-4">
                   <h3 className="font-black text-[#172022]">{card.title}</h3>

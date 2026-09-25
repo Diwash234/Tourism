@@ -172,8 +172,8 @@ export default function TravelOptionsPanel({ originPayload, destinationName, des
           <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 mb-2">Before you go</h3>
           <ul className="space-y-1 text-[11px] text-slate-300">
             <li>🕐 Opening hours: <b className="text-white">{data.before_you_go.opening_hours}</b></li>
-            <li>🎟️ Entry fee: <b className="text-white">{data.before_you_go.entry_fee_npr != null ? `Rs. ${data.before_you_go.entry_fee_npr}` : UNAVAILABLE}</b></li>
-            <li>🗓️ Best time: <b className="text-white">{data.before_you_go.best_time_to_visit}</b></li>
+            <li>Entry fee: <b className="text-white">{data.before_you_go.entry_fee_npr != null ? `Rs. ${data.before_you_go.entry_fee_npr}` : UNAVAILABLE}</b></li>
+            <li>Best time: <b className="text-white">{data.before_you_go.best_time_to_visit}</b></li>
           </ul>
         </div>
       )}

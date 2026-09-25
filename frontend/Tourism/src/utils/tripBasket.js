@@ -45,5 +45,12 @@ export function clearTripBasket() {
 }
 
 export function basketTotal(items = getTripBasket()) {
-  return items.reduce((sum, row) => sum + Number(row.price_npr || 0) * Number(row.quantity || 1), 0)
+  if (!items.length) return null
+  let total = 0
+  for (const row of items) {
+    const price = Number(row.price_npr)
+    if (!Number.isFinite(price)) return null
+    total += price * Math.max(1, Number(row.quantity || 1))
+  }
+  return total
 }

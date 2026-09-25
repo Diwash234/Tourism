@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { FiBriefcase, FiMapPin, FiClock, FiDollarSign, FiSearch, FiCheckCircle } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+import SkeletonLoader from "../components/common/SkeletonLoader"
 import useAuth from "../hooks/useAuth"
 import useToast from "../hooks/useToast"
 import workforceApi from "../api/workforceApi"
@@ -24,6 +25,7 @@ export default function TourismJobs() {
   const [data, setData] = useState({ count: 0, results: [] })
   const [myApps, setMyApps] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [q, setQ] = useState("")
   const [role, setRole] = useState("")
   const [applyingTo, setApplyingTo] = useState(null)
@@ -32,8 +34,9 @@ export default function TourismJobs() {
 
   const load = useCallback(() => {
     setLoading(true)
+    setLoadError("")
     const jobsReq = workforceApi.jobs({ q: q || undefined, role_type: role || undefined })
-      .then(({ data: d }) => setData(d)).catch(() => setData({ count: 0, results: [] }))
+      .then(({ data: d }) => setData(d)).catch(() => { setData({ count: 0, results: [] }); setLoadError("Job listings could not be loaded right now.") })
     const appsReq = isAuthenticated
       ? workforceApi.myJobApplications().then(({ data: d }) => setMyApps(d.results || [])).catch(() => {})
       : Promise.resolve()
@@ -68,39 +71,42 @@ export default function TourismJobs() {
     }
   }
 
-  const field = "w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]"
+  const field = "input-field"
   const badge = {
     applied: "bg-sky-100 text-sky-700", shortlisted: "bg-amber-100 text-amber-800",
     hired: "bg-emerald-100 text-emerald-700", rejected: "bg-rose-100 text-rose-700",
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8F5]">
+    <div className="ny-page bg-[var(--ny-bg)]">
       <PageHeader
-        title="Tourism Work & Gigs"
+        className="container-app max-w-6xl"
+         title="Tourism Work & Gigs"
         subtitle="Seasonal and contract work across Nepal's tourism industry — guiding, hosting, content, support and more."
       />
       <CMSPageIntro pageKey="tourism-jobs" />
-      <div className="max-w-5xl mx-auto px-4 pb-16 -mt-6">
+      <div className="container-app max-w-6xl space-y-5 pb-10">
         <div className="bg-white rounded-3xl border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs by title, description or city…" aria-label="Search jobs"
-              className="w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]" />
+              className="input-field pl-10" />
           </div>
           <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Filter by role"
-            className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-[#1D5146]">
+            className="input-field">
             <option value="">All roles</option>
             {Object.entries(ROLE_LABEL).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
           </select>
         </div>
 
-        <div className="flex items-center justify-between mt-6 mb-3">
+        {loadError && <p className="rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-4 text-sm text-[var(--ny-danger)]" role="alert">{loadError} <button type="button" onClick={load} className="ml-2 font-semibold underline">Try again</button></p>}
+         <div className="flex items-center justify-between mt-6 mb-3">
           <p className="text-sm text-slate-600"><b>{data.count}</b> open position{data.count === 1 ? "" : "s"}</p>
-          <Link to="/guide-portal" className="text-sm font-bold text-[#1D5146] hover:underline">Become a verified guide →</Link>
+          <Link to="/guide-portal" className="text-sm font-bold text-[#1D5146] hover:underline">Apply as a guide →</Link>
         </div>
 
         <div className="space-y-3">
+          {loading ? <SkeletonLoader count={4} /> : <>
           {data.results.map((job) => (
             <div key={job.id} className="bg-white rounded-3xl border shadow-sm p-5">
               <div className="flex flex-col lg:flex-row lg:items-start gap-3">
@@ -115,7 +121,7 @@ export default function TourismJobs() {
                     {job.city && <span className="flex items-center gap-1"><FiMapPin /> {job.city}</span>}
                     {job.compensation && <span className="flex items-center gap-1"><FiDollarSign /> {job.compensation}</span>}
                     {job.application_deadline && <span className="flex items-center gap-1"><FiClock /> Apply by {job.application_deadline}</span>}
-                    <span className="flex items-center gap-1"><FiBriefcase /> {job.application_count} applicant{job.application_count === 1 ? "" : "s"}</span>
+                    {job.application_count != null && <span className="flex items-center gap-1"><FiBriefcase /> {job.application_count} applicant{job.application_count === 1 ? "" : "s"}</span>}
                   </div>
                   {job.skills?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -128,7 +134,7 @@ export default function TourismJobs() {
                 <div className="shrink-0">
                   {appliedJobIds.has(job.id) ? (
                     <span className={`inline-flex items-center gap-1 text-[10px] px-3 py-2 rounded-full font-black uppercase ${badge[statusOf(job.id)] || "bg-slate-100"}`}>
-                      <FiCheckCircle /> {statusOf(job.id)}
+                      <FiCheckCircle /> {statusOf(job.id) || "Application recorded"}
                     </span>
                   ) : isAuthenticated ? (
                     <button onClick={() => setApplyingTo(job)} className="px-4 py-2 bg-[#1D5146] hover:bg-[#102A2E] text-white rounded-xl text-xs font-black">
@@ -141,13 +147,14 @@ export default function TourismJobs() {
               </div>
             </div>
           ))}
-          {!loading && !data.results.length && (
-            <div className="bg-white rounded-3xl border p-12 text-center">
+          {!loading && !loadError && !data.results.length && (
+            <div className="ny-empty">
               <FiBriefcase className="mx-auto text-3xl text-slate-300" />
               <p className="text-slate-600 font-bold mt-2">No open positions match this search right now.</p>
-              <p className="text-xs text-slate-400 mt-1">Try a different role or check back soon — seasonal hiring peaks before spring and autumn trekking seasons.</p>
+              <p className="text-xs text-slate-400 mt-1">Try a different role or check back when new positions are published.</p>
             </div>
           )}
+          </>}
         </div>
 
         {isAuthenticated && myApps.length > 0 && (

@@ -1,4 +1,4 @@
-import React from "react"
+import Modal from "./Modal"
 
 /**
  * ResponsiveContainer — Standard constrained content wrapper.
@@ -7,7 +7,7 @@ import React from "react"
 export function ResponsiveContainer({ children, className = "", fullBgClass = "" }) {
   return (
     <div className={`w-full ${fullBgClass}`}>
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
+      <div className={`ny-page container-app max-w-[1600px] ${className}`}>
         {children}
       </div>
     </div>
@@ -44,27 +44,8 @@ export function ResponsiveGrid({ children, cols = 3, gap = 6, className = "" }) 
 }
 
 /**
- * ResponsiveModal — Accessible, touch-friendly modal primitive with max-width constraints.
+ * ResponsiveModal — delegates to the shared accessible modal primitive.
  */
-export function ResponsiveModal({ isOpen, onClose, title, children, maxWidth = "max-w-xl" }) {
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-      <div className={`bg-slate-950 border border-slate-800 rounded-3xl w-full ${maxWidth} p-6 sm:p-8 space-y-5 shadow-2xl text-white my-8 max-h-[90vh] overflow-y-auto`}>
-        <div className="flex justify-between items-start border-b border-slate-800 pb-4">
-          <h3 className="text-xl font-black text-white">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
-            aria-label="Close modal"
-          >
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
+export function ResponsiveModal(props) {
+  return <Modal {...props} />
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { Link } from "react-router-dom"
-import { FiPlus, FiRefreshCw, FiRadio, FiShield, FiAlertTriangle } from "react-icons/fi"
+import { FiPlus, FiRefreshCw, FiRadio, FiShield, FiAlertTriangle, FiEdit3 } from "react-icons/fi"
 import adminApi from "../../api/adminApi"
 import useToast from "../../hooks/useToast"
 
@@ -26,6 +26,10 @@ export default function EmergencyDirectoryPanel() {
   const [coverage, setCoverage] = useState({})
   const [query, setQuery] = useState("")
   const [kind, setKind] = useState("")
+  const [page, setPage] = useState(1)
+  const [pages, setPages] = useState(1)
+  const [editing, setEditing] = useState(null)
+  const [editForm, setEditForm] = useState({})
   const [loading, setLoading] = useState(true)
   const [lastUpdatedSec, setLastUpdatedSec] = useState(0)
 
@@ -34,8 +38,9 @@ export default function EmergencyDirectoryPanel() {
   const load = async (isBackground = false) => {
     if (!isBackground) setLoading(true)
     try {
-      const { data } = await adminApi.getEmergencyDirectory({ q: query, kind })
+      const { data } = await adminApi.getEmergencyDirectory({ q: query, kind, page, page_size: 50 })
       setRows(data.results || [])
+      setPages(data.pages || 1)
       const newPending = data.pending_submissions || []
       setPending(newPending)
       setCoverage(data.coverage || {})
@@ -88,6 +93,28 @@ export default function EmergencyDirectoryPanel() {
       } else {
         showToast(error.response?.data?.detail || "Could not save record", "error")
       }
+    }
+  }
+
+  const openEdit = (row) => {
+    setEditing(row)
+    setEditForm({
+      name: row.name || "", phone: row.phone || "", address: row.address || "",
+      district: row.district || "", opening_hours: row.opening_hours || "",
+      source_name: row.source_name || "", source_url: row.source_url || "",
+      latitude: row.latitude ?? "", longitude: row.longitude ?? "",
+    })
+  }
+
+  const saveEdit = async (event) => {
+    event.preventDefault()
+    try {
+      await adminApi.updateEmergencyDirectory({ kind: editing.kind, id: editing.id, ...editForm, action: "update" })
+      showToast("Emergency record updated", "success")
+      setEditing(null)
+      load(page)
+    } catch (error) {
+      showToast(error.response?.data?.detail || "Could not update record", "error")
     }
   }
 
@@ -186,7 +213,9 @@ export default function EmergencyDirectoryPanel() {
                 <p className="font-bold text-slate-900">{row.name}</p>
                 <p className="text-xs text-slate-500">{row.kind} · {row.district || row.destination_name || "Nepal"} · {row.phone || "no phone"}{row.is_archived ? " · archived" : ""}{row.verified ? " · verified" : ""}</p>
                 <p className="text-xs text-slate-500">{row.latitude}, {row.longitude}</p>
-                <div className="flex gap-2 mt-2">
+                 <p className="text-[10px] text-slate-400">Source: {row.source_name || "Not recorded"} · Updated {row.updated_at ? new Date(row.updated_at).toLocaleString() : "unknown"}</p>
+                 <div className="flex gap-2 mt-2">
+                   <button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 text-xs font-bold text-slate-700"><FiEdit3 /> Edit</button>
                   {!row.verified && <button type="button" onClick={() => act(row, "verify")} className="text-xs font-bold text-emerald-700">Verify</button>}
                   {!row.is_archived && <button type="button" onClick={() => act(row, "archive")} className="text-xs font-bold text-rose-700">Archive</button>}
                   {row.is_archived && <button type="button" onClick={() => act(row, "restore")} className="text-xs font-bold text-slate-700">Restore</button>}
@@ -195,7 +224,37 @@ export default function EmergencyDirectoryPanel() {
             ))}
           </div>
         </section>
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+          <span>Page {page} of {pages}</span>
+          <div className="flex gap-2">
+            <button type="button" disabled={page <= 1 || loading} onClick={() => { const next = page - 1; setPage(next); load(next) }} className="rounded-lg border border-slate-300 px-3 py-1 disabled:opacity-40">Previous</button>
+            <button type="button" disabled={page >= pages || loading} onClick={() => { const next = page + 1; setPage(next); load(next) }} className="rounded-lg border border-slate-300 px-3 py-1 disabled:opacity-40">Next</button>
+          </div>
+        </div>
       </div>
+      {editing && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/60 p-4">
+          <form onSubmit={saveEdit} className="w-full max-w-2xl space-y-3 rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div><p className="text-[10px] font-black uppercase text-rose-700">Emergency record</p><h3 className="text-xl font-black">Edit {editing.name}</h3></div>
+              <button type="button" onClick={() => setEditing(null)} className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold" aria-label="Close editor">Close</button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-bold">Name<input required className="input-field mt-1" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></label>
+              <label className="text-xs font-bold">Phone<input required className="input-field mt-1" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></label>
+              <label className="text-xs font-bold sm:col-span-2">Address<input className="input-field mt-1" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} /></label>
+              <label className="text-xs font-bold">District<input className="input-field mt-1" value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })} /></label>
+              <label className="text-xs font-bold">Opening hours<input className="input-field mt-1" value={editForm.opening_hours} onChange={(e) => setEditForm({ ...editForm, opening_hours: e.target.value })} /></label>
+              <label className="text-xs font-bold">Source name<input className="input-field mt-1" value={editForm.source_name} onChange={(e) => setEditForm({ ...editForm, source_name: e.target.value })} /></label>
+              <label className="text-xs font-bold">Source URL<input type="url" className="input-field mt-1" value={editForm.source_url} onChange={(e) => setEditForm({ ...editForm, source_url: e.target.value })} /></label>
+              <label className="text-xs font-bold">Latitude<input required type="number" step="any" className="input-field mt-1" value={editForm.latitude} onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })} /></label>
+              <label className="text-xs font-bold">Longitude<input required type="number" step="any" className="input-field mt-1" value={editForm.longitude} onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })} /></label>
+            </div>
+            <p className="text-[11px] text-slate-500">Changes are saved to the existing record and audited. Verification remains a separate action.</p>
+            <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditing(null)} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold">Cancel</button><button type="submit" className="rounded-xl bg-rose-700 px-5 py-2 text-xs font-black text-white">Save changes</button></div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
