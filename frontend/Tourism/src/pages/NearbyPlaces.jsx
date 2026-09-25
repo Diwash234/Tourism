@@ -70,7 +70,7 @@ const NearbyPlaces = () => {
   const origin = useMemo(
     () =>
       manualOrigin ||
-      (position ? { lat: position.lat, lng: position.lng, label: "Your location" } : { lat: 27.7172, lng: 85.3240, label: "Kathmandu (Default)" }),
+      (position ? { lat: position.lat, lng: position.lng, label: "Your location" } : null),
     [manualOrigin, position]
   )
 

@@ -3,7 +3,6 @@ from pydantic import BaseModel, model_validator
 from typing import Optional
 import math
 
-from model.budget.budget_engine import estimate_budget
 from model.budget import csv_baselines
 
 router = APIRouter()
@@ -113,13 +112,16 @@ def predict_budget(payload: BudgetRequest):
     accommodation_total = accommodation * multiplier * max(1, round(travelers / 2)) * days
     combined_transport = (transport * travelers) + (taxi * travelers * days)
 
-    activities_total = round((accommodation_total * 0.12), 2)
-    shopping_total = round((food_total * 0.08), 2)
-    grand_total_usd = round(accommodation_total + food_total + combined_transport + activities_total + shopping_total, 2)
+    activities_total = None
+    shopping_total = None
+    known_cost_total_usd = round(accommodation_total + food_total + combined_transport, 2)
+    grand_total_usd = None
 
     result = {
         "total_budget_usd": grand_total_usd,
         "estimated_total": grand_total_usd,
+        "known_cost_total_usd": known_cost_total_usd,
+        "total_is_partial": True,
         "total_budget_npr": None,
         "breakdown": {
             "accommodation": round(accommodation_total, 2),

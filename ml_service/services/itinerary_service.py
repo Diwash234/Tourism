@@ -345,8 +345,6 @@ def build_rich_itinerary(
     total_npr = None
     per_person_npr = None
     fits_budget = None
-    if total_usd is not None and budget_npr:
-        fits_budget = None
 
     return {
         "days": days,
