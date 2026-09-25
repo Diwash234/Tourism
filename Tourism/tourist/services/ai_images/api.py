@@ -79,6 +79,7 @@ def _img_dict(img: DestinationImage) -> dict:
 
 
 def _dest_dict(d: Destination) -> dict:
+    from tourist.serializers import public_destination_cover
     return {
         "id": d.id,
         "name": d.name,
@@ -89,7 +90,7 @@ def _dest_dict(d: Destination) -> dict:
         "latitude": float(d.latitude) if d.latitude else None,
         "longitude": float(d.longitude) if d.longitude else None,
         "description": (d.description or "")[:400],
-        "cover_image": str(d.cover_image) if d.cover_image else None,
+        "cover_image": public_destination_cover(d),
         "image_count": d.gallery.filter(
             verification_status=DestinationImage.ImageStatus.APPROVED,
             is_verified=True,

@@ -20,7 +20,7 @@ from .models import (
     OSMEssentialService, OSMTourismPlace, DestinationAuditLog,
     TravelExpenseFeedback, TravelRiskFeedback, InfrastructureSubmission, InfrastructureMedia,
     CurrentHazard, RiskIncident, RiskObservation, RecommendationEvent, RiskNewsReport,
-    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile,
+    SiteSetting, ManagedPage, ContentSection, ManagedNavigationItem, CMSContentTranslation, DestinationFeatureProfile, StaffCapabilityProfile,
     Restaurant, DestinationTransitRoute, TravelPlan, TravelPlanStop, HeroSlide,
     TravelerDocument, RedirectRule, NewsletterSignup,
 )
@@ -205,9 +205,8 @@ class PublicConfigView(APIView):
     def get(self, request):
         import re
         now = timezone.now()
-        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None)
-        from .cms_publishing import publish_due_sections
+        from .cms_publishing import publish_due_pages, publish_due_sections
+        publish_due_pages(now)
         publish_due_sections(now)
         language = request.query_params.get("lang", "en")
         if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
@@ -218,14 +217,25 @@ class PublicConfigView(APIView):
         page_rows = []
         for page in pages:
             page_translation = translations.get(("pages", page.id), {})
+            # Published page metadata is frozen independently of the live
+            # draft fields.  A partial/legacy snapshot is merged with safe
+            # live fallbacks so old records remain readable.
+            page_snap = page.published_snapshot if isinstance(page.published_snapshot, dict) else {}
+            page_content = {
+                "key": page.key, "route": page.route, "title": page.title,
+                "meta_description": page.meta_description, "seo_title": page.seo_title,
+                "og_image_url": page.og_image_url, "search_visible": page.search_visible,
+                "is_enabled": page.is_enabled,
+            }
+            page_content.update(page_snap)
             sections = []
-            for section in page.sections.filter(is_visible=True, status="published"):
+            for section in page.sections.filter(status="published"):
                 # Snapshot isolation: once a section has been published through
                 # the CMS, the public serves the frozen snapshot; later edits
                 # stay drafts until the next Publish. Sections that predate
                 # snapshots fall back to their live fields.
                 snap = section.published_snapshot if isinstance(section.published_snapshot, dict) else None
-                content = snap or {
+                content = {
                     "title": section.title, "subtitle": section.subtitle, "body": section.body,
                     "image_url": section.image_url, "cta_text": section.cta_text, "cta_url": section.cta_url,
                     "icon": section.icon, "section_type": section.section_type,
@@ -233,11 +243,18 @@ class PublicConfigView(APIView):
                     "config": section.config if isinstance(section.config, dict) else {},
                     "display_order": section.display_order,
                 }
-                section_config = content.get("config") or {}
+                if snap:
+                    content.update(snap)
+                # Visibility is part of the frozen public state for new
+                # snapshots; legacy snapshots without the key retain the
+                # live value for compatibility.
+                if not content.get("is_visible", section.is_visible):
+                    continue
+                section_config = content.get("config") if isinstance(content.get("config"), dict) else {}
                 if not _section_visible_for(section_config.get("visibility"), request.user, now):
                     continue
                 translated = translations.get(("sections", section.id), {})
-                if snap:
+                if snap and isinstance(snap.get("blocks"), list):
                     blocks = snap.get("blocks") or []
                 else:
                     blocks = [
@@ -247,21 +264,36 @@ class PublicConfigView(APIView):
                         }
                         for b in section.blocks.filter(is_visible=True).order_by("position", "id")
                     ]
-                sections.append({"id": section.id, "key": section.key,
-                    "title": translated.get("title", content["title"]), "subtitle": translated.get("subtitle", content["subtitle"]),
-                    "body": translated.get("body", content["body"]), "image_url": content["image_url"],
-                    "cta_text": translated.get("cta_text", content["cta_text"]), "cta_url": content["cta_url"],
-                    "icon": content["icon"], "section_type": content["section_type"],
-                    "layout_variant": content["layout_variant"], "config": content["config"],
-                    "display_order": content["display_order"],
-                    "blocks": blocks})
-            page_rows.append({"id": page.id, "key": page.key, "route": page.route,
-                "title": page_translation.get("title", page.title),
-                "seo_title": page.seo_title, "og_image_url": page.og_image_url,
-                "search_visible": page.search_visible,
-                "meta_description": page_translation.get("meta_description", page.meta_description), "sections": sections})
+                sections.append({
+                    "id": section.id, "key": section.key,
+                    "title": translated.get("title", content.get("title", "")),
+                    "subtitle": translated.get("subtitle", content.get("subtitle", "")),
+                    "body": translated.get("body", content.get("body", "")),
+                    "image_url": content.get("image_url", ""),
+                    "cta_text": translated.get("cta_text", content.get("cta_text", "")),
+                    "cta_url": content.get("cta_url", ""), "icon": content.get("icon", ""),
+                    "section_type": content.get("section_type", "text"),
+                    "layout_variant": content.get("layout_variant", "default"),
+                    "config": section_config, "display_order": content.get("display_order", 0),
+                    "blocks": blocks,
+                })
+            page_rows.append({
+                "id": page.id, "key": page_content.get("key", page.key),
+                "route": page_content.get("route", page.route),
+                "title": page_translation.get("title", page_content.get("title", page.title)),
+                "seo_title": page_content.get("seo_title", ""),
+                "og_image_url": page_content.get("og_image_url", ""),
+                "search_visible": page_content.get("search_visible", True),
+                "meta_description": page_translation.get("meta_description", page_content.get("meta_description", "")),
+                "sections": sections,
+            })
         navigation = []
         for item in ManagedNavigationItem.objects.filter(is_active=True):
+            allowed_roles = item.allowed_roles if isinstance(item.allowed_roles, list) else []
+            if allowed_roles:
+                current_role = "guest" if not getattr(request.user, "is_authenticated", False) else str(getattr(request.user, "role", "tourist") or "tourist").lower()
+                if current_role not in {str(role).lower() for role in allowed_roles}:
+                    continue
             translated = translations.get(("navigation", item.id), {})
             navigation.append({"id": item.id, "location": item.location,
                 "label": translated.get("label", item.label), "route": item.route, "icon": item.icon,
@@ -703,20 +735,18 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
     @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def photos(self, request, slug=None):
         """
-        GET  — the destination's photo gallery: local uploads (community +
-               admin, most-viewed/promoted first). If none exist yet, one
-               Unsplash/Wikimedia fallback image is fetched ONCE and cached
-               as a real gallery entry (source=unsplash/wikimedia) — see
-               tourist/utils.py::ensure_cover_photo() — so this never
-               re-hits the external API on subsequent calls.
-        POST — any authenticated user ("local people") can contribute a
-               photo here. It's tagged as a community upload and starts
-               un-promoted; if it becomes popular (crosses
-               PHOTO_PROMOTION_IMPRESSION_THRESHOLD views), it's
-               automatically promoted to the official cover photo — see
-               tourist/utils.py::maybe_promote_photo().
+        GET  — the destination's reviewed photo gallery. Public reads are
+               side-effect free; discovery/acquisition is an explicit staff
+               action through the media APIs.
+        POST — authenticated contributors may submit a photo; it is tagged as
+               a community candidate and remains private until moderation.
         """
         destination = self.get_object()
+        if request.user.is_authenticated and request.user.is_staff:
+            from .views_admin import _require_destination_access
+            _require_destination_access(request, destination, "images", "add")
+        elif not Destination.publicly_visible(Destination.objects.filter(pk=destination.pk)).exists():
+            return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if request.method == "POST":
             serializer = PhotoUploadSerializer(data={**request.data, "destination": destination.id}, context={"request": request})
@@ -909,6 +939,9 @@ class DestinationImageViewSet(viewsets.ModelViewSet):
                     destination__is_active=True,
                     destination__status=Destination.SubmissionStatus.APPROVED,
                 )
+                if user.is_authenticated:
+                    from .views_admin import _scope_destination_queryset
+                    queryset = queryset.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), user).values("id"))
             elif user.is_authenticated:
                 from .views_admin import _scope_destination_queryset
                 queryset = queryset.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), user).values("id"))
@@ -946,7 +979,7 @@ class HotelViewSet(viewsets.ModelViewSet):
         is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"}))
         if self.request.method in permissions.SAFE_METHODS and not is_platform_admin:
             queryset=queryset.filter(is_active=True, is_verified=True)
-        if user.is_authenticated and not is_platform_admin:
+        if user.is_authenticated and user.is_staff and not is_platform_admin:
             from admin_panel.models import HotelAssignment
             assigned_ids = HotelAssignment.objects.filter(admin=user).values_list("hotel_id", flat=True)
             queryset = queryset.filter(id__in=assigned_ids)
@@ -967,6 +1000,9 @@ class HotelViewSet(viewsets.ModelViewSet):
         _invalidate_public_content_caches()
 
     def perform_update(self, serializer):
+        if any(field in self.request.data for field in ("is_verified", "verified_at")):
+            from .views_admin import _require_capability
+            _require_capability(self.request, "hotels", "approve")
         before = {field: getattr(serializer.instance, field, None) for field in ("name", "address", "price_per_night", "booking_status", "is_active")}
         hotel = serializer.save()
         _invalidate_public_content_caches()
@@ -1000,7 +1036,15 @@ class HotelViewSet(viewsets.ModelViewSet):
             page_size = 24
 
         results = []
-        queryset = self.get_queryset().exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        box = bounding_box(lat, lon, radius_km)
+        # Nearby reads only need coordinates and the selected page of hotel
+        # records. Avoid the general list serializer's gallery prefetch and
+        # constrain the scan with a bounding box before doing Python distance
+        # calculations.
+        queryset = self.get_queryset().prefetch_related(None).filter(
+            latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
+            longitude__gte=box["min_lon"], longitude__lte=box["max_lon"],
+        )
         for hotel in queryset:
             distance = haversine_distance(lat, lon, hotel.latitude, hotel.longitude)
             if distance <= radius_km:
@@ -1027,8 +1071,8 @@ class RestaurantViewSet(viewsets.ModelViewSet):
         is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}))
         if self.request.method in permissions.SAFE_METHODS and not is_platform_admin:
             queryset = queryset.filter(status="published", is_verified=True)
-        if user.is_authenticated and not is_platform_admin:
-            profile = getattr(user, "capability_profile", None)
+        if user.is_authenticated and user.is_staff and not is_platform_admin:
+            profile = StaffCapabilityProfile.objects.filter(user=user).first()
             districts = list(getattr(profile, "managed_districts", []) or [])
             if districts:
                 scope = Q()
@@ -1067,9 +1111,9 @@ class TransitRouteViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = DestinationTransitRoute.objects.select_related("destination")
         if self.request.method in permissions.SAFE_METHODS:
-            queryset = queryset.filter(is_active=True)
+            queryset = queryset.filter(is_active=True, is_verified=True)
         user = self.request.user
-        if user.is_authenticated and not (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}):
+        if user.is_authenticated and user.is_staff and not (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}):
             from .views_admin import _scope_destination_queryset
             queryset = queryset.filter(destination_id__in=_scope_destination_queryset(Destination.objects.all(), user).values("id"))
         return queryset
@@ -1365,6 +1409,16 @@ class EmergencyContactViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
     filterset_class = EmergencyContactFilter
     search_fields = ["name", "city", "address"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset().exclude(phone_number__in=["", None])
+        if self.request.method in permissions.SAFE_METHODS:
+            from .views_admin import _has_capability
+            if not _has_capability(self.request, "safety", "approve"):
+                districts = list(getattr(getattr(self.request.user, "capability_profile", None), "managed_districts", []) or [])
+                if districts:
+                    queryset = queryset.filter(city__in=districts)
+        return queryset
+
     @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
     def nearest(self, request):
         """
@@ -1556,8 +1610,31 @@ class InfrastructureSubmissionViewSet(viewsets.ModelViewSet):
         qs = InfrastructureSubmission.objects.select_related("submitted_by", "destination", "reviewed_by")
         user = self.request.user
         if user.is_staff or user.role in {"admin", "super_admin", "tourism_admin", "content_moderator", "district_manager"}:
+            profile = StaffCapabilityProfile.objects.filter(user=user).first()
+            districts = list(getattr(profile, "managed_districts", []) or [])
+            if getattr(user, "managed_district", "") and user.managed_district not in districts:
+                districts.append(user.managed_district)
+            if districts and not (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}):
+                qs = qs.filter(district__in=districts)
             return qs
         return qs.filter(submitted_by=user)
+
+    def perform_create(self, serializer):
+        serializer.save(status=InfrastructureSubmission.Status.PENDING, submitted_by=self.request.user)
+
+    def perform_update(self, serializer):
+        if self.request.user.is_staff or self.request.user.role in {"admin", "super_admin", "tourism_admin", "content_moderator", "district_manager"}:
+            from .views_admin import _require_capability
+            _require_capability(self.request, "safety", "approve" if any(field in self.request.data for field in ("status", "reviewed_by", "reviewed_at", "published_object_id")) else "change")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not (self.request.user.is_staff or self.request.user.role in {"admin", "super_admin", "tourism_admin"}):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only staff may delete a submission")
+        from .views_admin import _require_capability
+        _require_capability(self.request, "safety", "delete")
+        instance.delete()
 
     @action(detail=True, methods=["post"], url_path="media")
     def upload_media(self, request, pk=None):
@@ -1592,7 +1669,7 @@ class ScopedFieldFeedbackMixin:
             return queryset.none()
         if user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
             return queryset
-        profile = getattr(user, "capability_profile", None)
+        profile = StaffCapabilityProfile.objects.filter(user=user).first()
         if profile and profile.allows(self.capability_module, "view"):
             districts = list(profile.managed_districts or [])
             if user.managed_district and user.managed_district not in districts:
@@ -1604,8 +1681,14 @@ class ScopedFieldFeedbackMixin:
         user = self.request.user
         if instance.user_id == user.id or user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}:
             return True
-        profile = getattr(user, "capability_profile", None)
-        return bool(profile and profile.allows(self.capability_module, "change"))
+        profile = StaffCapabilityProfile.objects.filter(user=user).first()
+        if not (profile and profile.allows(self.capability_module, "change")):
+            return False
+        districts = list(getattr(profile, "managed_districts", []) or [])
+        if getattr(user, "managed_district", "") and user.managed_district not in districts:
+            districts.append(user.managed_district)
+        destination = getattr(instance, "destination", None)
+        return not districts or (destination is not None and str(getattr(destination, "district", "") or "").casefold() in {d.casefold() for d in districts})
 
     def update(self, request, *args, **kwargs):
         if not self._can_change(self.get_object()):
@@ -1718,27 +1801,38 @@ class DestinationAutocompleteView(generics.ListAPIView):
         })
 
     @staticmethod
-    def _name_index():
-        """(name_lower, name, slug, category_slug) for every approved destination."""
+    def _name_index(prefix=""):
+        """Return a bounded, prefix-scoped name index for typo suggestions.
+
+        Building an index of every destination on the first arbitrary query
+        made autocomplete unnecessarily slow on a cold process. Candidate
+        lookup is now limited to names that share the first two characters,
+        and the result is capped so a broad query cannot scan the catalogue.
+        """
         from functools import lru_cache
 
-        @lru_cache(maxsize=1)
-        def build():
+        @lru_cache(maxsize=32)
+        def build(prefix_key):
+            qs = Destination.objects.filter(
+                is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            ).select_related("category")
+            if prefix_key:
+                qs = qs.filter(
+                    Q(name__istartswith=prefix_key) | Q(name__icontains=prefix_key)
+                )
             return [
                 (d.name.lower(), d.name, d.slug, d.category.slug if d.category_id else "")
-                for d in Destination.objects.filter(
-                    is_active=True, status=Destination.SubmissionStatus.APPROVED,
-                ).select_related("category")
+                for d in qs.order_by("name")[:500]
             ]
-        return build()
+        return build((prefix or "").strip().lower()[:2])
 
     def _autocorrect(self, q, results):
         """Fuzzy 'did you mean' correction against real destination names."""
         import difflib
 
         from .filters import ACCOMMODATION_SLUGS
-        index = self._name_index()
         norm = q.strip().lower()
+        index = self._name_index(norm[:2])
 
         def good(cand):
             # must be a close match AND share a real prefix with the typo,
@@ -3031,10 +3125,15 @@ class SitemapView(View):
                   "/about", "/contact", "/emergency", "/discover-nepal", "/explore-map",
                   "/how-it-works", "/knowledge-base"]
         locs = [f"{base}{path}" for path in static]
-        for page in ManagedPage.objects.filter(is_enabled=True, status="published").exclude(route=""):
-            route = page.route if page.route.startswith("/page/") or page.route in static else f"/page/{page.key}"
+        for page in ManagedPage.objects.filter(is_enabled=True, status="published"):
+            page_data = page.published_snapshot if isinstance(page.published_snapshot, dict) else {}
+            key = page_data.get("key") or page.key
+            page_route = page_data.get("route") or page.route
+            if not page_route:
+                continue
+            route = page_route if page_route.startswith("/page/") or page_route in static else f"/page/{key}"
             locs.append(f"{base}{route}")
-        for slug in Destination.objects.filter(status="published").values_list("slug", flat=True)[:5000]:
+        for slug in Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED).values_list("slug", flat=True)[:5000]:
             locs.append(f"{base}/destinations/{slug}")
         xml = "\n".join(
             ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']

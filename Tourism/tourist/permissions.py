@@ -158,7 +158,9 @@ class HasCapabilityOrReadOnly(BasePermission):
         module = getattr(view, "capability_module", None)
         action = {"POST":"add","PUT":"change","PATCH":"change","DELETE":"delete"}.get(request.method, "view")
         try:
-            return bool(module and user.capability_profile.allows(module, action))
+            from .models import StaffCapabilityProfile
+            profile = StaffCapabilityProfile.objects.filter(user=user).first()
+            return bool(module and profile and profile.allows(module, action))
         except Exception:
             return False
 
@@ -179,7 +181,9 @@ class HasCapability(BasePermission):
         if not module:
             return False
         try:
-            return user.capability_profile.allows(module, action)
+            from .models import StaffCapabilityProfile
+            profile = StaffCapabilityProfile.objects.filter(user=user).first()
+            return bool(profile and profile.allows(module, action))
         except Exception:
             return False
 
@@ -274,7 +278,9 @@ class CanSubmitPlace(permissions.BasePermission):
             return True
         action = {"POST": "add", "PUT": "change", "PATCH": "change", "DELETE": "delete"}.get(request.method, "change")
         try:
-            return bool(request.user.capability_profile.allows("destinations", action))
+            from .models import StaffCapabilityProfile
+            profile = StaffCapabilityProfile.objects.filter(user=request.user).first()
+            return bool(profile and profile.allows("destinations", action))
         except Exception:
             return False
 

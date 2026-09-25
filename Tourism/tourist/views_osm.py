@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import OSMEssentialService, OSMTourismPlace
+from .permissions import IsAdminOrStaff
 from .serializers import OSMEssentialServiceSerializer, OSMTourismPlaceSerializer
 from .services.overpass import sync_essential_services, sync_tourism_places
 from .utils import haversine_distance
@@ -31,7 +32,7 @@ def _parse_coords(params):
 
 
 class OSMEssentialServiceSyncView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
         from .views_admin import _require_capability
@@ -39,7 +40,12 @@ class OSMEssentialServiceSyncView(APIView):
         lat, lon = _parse_coords(request.data)
         if lat is None:
             return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
-        radius_m = int(request.data.get("radius_m", 5000))
+        try:
+            radius_m = int(request.data.get("radius_m", 5000))
+        except (TypeError, ValueError):
+            return Response({"detail": "radius_m must be a whole number."}, status=status.HTTP_400_BAD_REQUEST)
+        if not 100 <= radius_m <= 50000:
+            return Response({"detail": "radius_m must be between 100 and 50000."}, status=status.HTTP_400_BAD_REQUEST)
         created, updated = sync_essential_services(lat, lon, radius_m)
         return Response({"created": created, "updated": updated})
 
@@ -77,7 +83,7 @@ class OSMEssentialServiceNearbyView(APIView):
 
 
 class OSMTourismPlaceSyncView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminOrStaff]
 
     def post(self, request):
         from .views_admin import _require_capability
@@ -85,7 +91,12 @@ class OSMTourismPlaceSyncView(APIView):
         lat, lon = _parse_coords(request.data)
         if lat is None:
             return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
-        radius_m = int(request.data.get("radius_m", 5000))
+        try:
+            radius_m = int(request.data.get("radius_m", 5000))
+        except (TypeError, ValueError):
+            return Response({"detail": "radius_m must be a whole number."}, status=status.HTTP_400_BAD_REQUEST)
+        if not 100 <= radius_m <= 50000:
+            return Response({"detail": "radius_m must be between 100 and 50000."}, status=status.HTTP_400_BAD_REQUEST)
         created, updated = sync_tourism_places(lat, lon, radius_m)
         return Response({"created": created, "updated": updated})
 

@@ -142,6 +142,7 @@ def _database_from_url(url):
         return {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": name or str(BASE_DIR / "db.sqlite3"),
+            "OPTIONS": {"timeout": 20},
         }
     raise ValueError(
         f"Unsupported DATABASE_URL scheme {scheme!r}: use postgres:// or sqlite://")
@@ -210,9 +211,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Django never stores or transfers the large image dataset. The database only
 # stores relative paths (DestinationImage.image_path) and the full URL is built
 # from IMAGE_BASE_URL, which points at the static image server:
-#   dev:   IMAGE_BASE_URL=http://localhost:8000  (python -m http.server in image-server/)
+#   dev:   IMAGE_BASE_URL=http://localhost:8002  (python -m http.server in image-server/)
 #   prod:  IMAGE_BASE_URL=https://images.example.com  (Nginx serving image-server/images/)
-IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="http://localhost:8000").rstrip("/")
+IMAGE_BASE_URL = config("IMAGE_BASE_URL", default="http://localhost:8002").rstrip("/")
 # Local root of the image dataset (used by the import_images management command).
 IMAGE_SERVER_ROOT = config(
     "IMAGE_SERVER_ROOT",

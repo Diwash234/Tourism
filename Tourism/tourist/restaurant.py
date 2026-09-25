@@ -33,14 +33,9 @@ class RestaurantSerializer(serializers.ModelSerializer):
         if obj.external_image_url:
             return obj.external_image_url
 
-        if obj.destination and obj.destination.cover_image:
-            url = obj.destination.cover_image.url
-            return request.build_absolute_uri(url) if request else url
-
         if obj.destination:
-            photo = obj.destination.gallery.filter(is_cover=True).first()
-            if photo:
-                return photo.external_url
+            from .serializers import public_destination_cover
+            return public_destination_cover(obj.destination, request)
 
         return None
 
@@ -74,5 +69,6 @@ class RestaurantSearchView(generics.ListAPIView):
             | Q(destination__name__icontains=query)
             | Q(destination__city__icontains=query)
             | Q(cuisine_type__icontains=query)
-            | Q(address__icontains=query)
+            | Q(address__icontains=query),
+            status="published", is_verified=True,
         ).select_related("destination")[:20]

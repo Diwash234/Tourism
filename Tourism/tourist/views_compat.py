@@ -96,13 +96,15 @@ class RecommendationsPersonalizedView(APIView):
         context = {"request": request, "user_lat": lat, "user_lon": lon}
         results = DestinationListSerializer(destinations, many=True, context=context).data
 
-        # Add match scores
-        base_score = 0.98
-        for i, item in enumerate(results):
-            item["ml_score"] = round(max(0.80, base_score - (i * 0.02)), 2)
-            item["similarity_score"] = item["ml_score"]
+        # This compatibility endpoint is a deterministic catalog fallback,
+        # not an ML response. Do not invent confidence scores or claim an ML
+        # engine produced them.
+        for item in results:
+            item["ml_score"] = None
+            item["similarity_score"] = None
+            item["match_basis"] = "catalog_rank_and_recorded_filters"
 
-        return Response({"source": "ml_recommendation_engine", "results": results})
+        return Response({"source": "deterministic_public_catalog", "results": results})
 
 
 class BudgetSummaryView(APIView):

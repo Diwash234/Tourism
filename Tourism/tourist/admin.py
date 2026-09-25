@@ -236,14 +236,15 @@ def _make_image(dest, photo, *, is_cover):
     url = photo.get("url", "")
     if not url:
         return
-    if url.startswith("/images/"):
-        source = DestinationImage.Source.REFERENCE
-        authenticity = 0.95
-    elif "images.unsplash.com" in url:
+    if url.startswith("/images/") or url.startswith("/api/image/"):
+        return
+    if not photo.get("author") or not photo.get("license") or not photo.get("source_url"):
+        return
+    if "images.unsplash.com" in url:
         source = DestinationImage.Source.UNSPLASH
         authenticity = 0.65
     else:
-        source = DestinationImage.Source.UNSPLASH
+        source = DestinationImage.Source.ADMIN
         authenticity = 0.5
     DestinationImage.objects.get_or_create(
         destination=dest,
@@ -251,17 +252,17 @@ def _make_image(dest, photo, *, is_cover):
         defaults=dict(
             thumbnail_url=photo.get("thumb", url),
             caption=(photo.get("caption", "") or "")[:200],
-            is_cover=is_cover,
+            is_cover=False,
             source=source,
             source_url=photo.get("source_url", "")[:500],
             photographer=(photo.get("author", "") or "")[:150],
             license_type=(photo.get("license", "") or "")[:100],
-            copyright_status="verified_reusable",
+            copyright_status="pending_review",
             image_category="cover" if is_cover else "gallery",
-            verification_status=DestinationImage.ImageStatus.APPROVED,
-            is_verified=True,
-            authenticity_score=authenticity,
-            quality_score=0.8,
+            verification_status=DestinationImage.ImageStatus.PENDING,
+            is_verified=False,
+            authenticity_score=None,
+            quality_score=None,
             attribution=(photo.get("author", "") or "")[:120],
         ),
     )

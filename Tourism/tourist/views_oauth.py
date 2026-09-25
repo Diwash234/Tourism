@@ -63,16 +63,8 @@ class GoogleOAuthCallbackView(APIView):
         if not code:
             return Response({"detail": "code is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Handle fallback / demo code when Google secrets are unconfigured
-        if code.startswith("demo_") or not getattr(settings, "GOOGLE_CLIENT_SECRET", ""):
-            user = _get_or_link_user(
-                email="google.traveler@nepaltourism.gov.np",
-                provider=User.AuthProvider.GOOGLE,
-                provider_uid="google-sub-demo-1001",
-                first_name="Google",
-                last_name="Traveler",
-            )
-            return Response({**_issue_jwt_pair(user), "user": {"id": user.id, "email": user.email, "name": user.first_name}})
+        if not getattr(settings, "GOOGLE_CLIENT_SECRET", ""):
+            return Response({"detail": "Google login is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:
             token_response = requests.post(
@@ -110,15 +102,8 @@ class GoogleOAuthCallbackView(APIView):
             return Response({**_issue_jwt_pair(user), "user": {"id": user.id, "email": user.email, "name": user.first_name}})
 
         except (requests.RequestException, KeyError) as exc:
-            logger.warning("Google OAuth exchange failed: %s, falling back to verified Google traveler account", exc)
-            user = _get_or_link_user(
-                email="google.traveler@nepaltourism.gov.np",
-                provider=User.AuthProvider.GOOGLE,
-                provider_uid="google-sub-demo-1001",
-                first_name="Google",
-                last_name="Traveler",
-            )
-            return Response({**_issue_jwt_pair(user), "user": {"id": user.id, "email": user.email, "name": user.first_name}})
+            logger.warning("Google OAuth exchange failed: %s", exc)
+            return Response({"detail": "Google login exchange failed."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GithubOAuthCallbackView(APIView):
@@ -132,16 +117,8 @@ class GithubOAuthCallbackView(APIView):
         if not code:
             return Response({"detail": "code is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Handle fallback / demo code when GitHub secrets are unconfigured
-        if code.startswith("demo_") or not getattr(settings, "GITHUB_CLIENT_SECRET", ""):
-            user = _get_or_link_user(
-                email="github.traveler@nepaltourism.gov.np",
-                provider=User.AuthProvider.GITHUB,
-                provider_uid="github-id-demo-2002",
-                first_name="GitHub",
-                last_name="Traveler",
-            )
-            return Response({**_issue_jwt_pair(user), "user": {"id": user.id, "email": user.email, "name": user.first_name}})
+        if not getattr(settings, "GITHUB_CLIENT_SECRET", ""):
+            return Response({"detail": "GitHub login is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:
             token_response = requests.post(
@@ -193,12 +170,5 @@ class GithubOAuthCallbackView(APIView):
             return Response({**_issue_jwt_pair(user), "user": {"id": user.id, "email": user.email, "name": user.first_name}})
 
         except (requests.RequestException, KeyError) as exc:
-            logger.warning("GitHub OAuth exchange failed: %s, falling back to verified GitHub traveler account", exc)
-            user = _get_or_link_user(
-                email="github.traveler@nepaltourism.gov.np",
-                provider=User.AuthProvider.GITHUB,
-                provider_uid="github-id-demo-2002",
-                first_name="GitHub",
-                last_name="Traveler",
-            )
-            return Response({**_issue_jwt_pair(user), "user": {"id": user.id, "email": user.email, "name": user.first_name}})
+            logger.warning("GitHub OAuth exchange failed: %s", exc)
+            return Response({"detail": "GitHub login exchange failed."}, status=status.HTTP_400_BAD_REQUEST)
