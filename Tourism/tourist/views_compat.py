@@ -145,13 +145,13 @@ class EmergencyContactsCompatView(APIView):
         return _nearest_contacts_response(request, contact_type=category or None)
 
 
-def clean_phone(p_str, default="100"):
+def clean_phone(p_str, default=None):
     if not p_str or str(p_str).lower() in {"nan", "none", "null"}:
-        return default, bool(default)
+        return default, False
     p = str(p_str).split(".")[0].strip()
     if p.endswith(".0"):
         p = p[:-2]
-    return (p, False) if len(p) > 2 else (default, bool(default))
+    return (p, False) if len(p) > 2 else (None, False)
 
 
 def _stored_image_url(obj):
@@ -205,7 +205,7 @@ class NearbyHospitalsView(APIView):
                 "name": ec.name,
                 "contact_type": "hospital",
                 "address": ec.address,
-                "phone_number": str(ec.phone_number),
+                "phone_number": clean_phone(ec.phone_number)[0],
                 "phone_is_national_fallback": False,
                 "latitude": float(ec.latitude),
                 "longitude": float(ec.longitude),
@@ -270,7 +270,7 @@ class NearbyPoliceView(APIView):
                 "name": ec.name,
                 "contact_type": "police",
                 "address": ec.address,
-                "phone_number": str(ec.phone_number),
+                "phone_number": clean_phone(ec.phone_number)[0],
                 "phone_is_national_fallback": False,
                 "latitude": float(ec.latitude),
                 "longitude": float(ec.longitude),

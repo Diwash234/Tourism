@@ -209,6 +209,7 @@ class DistrictDetailView(APIView):
                 for station in police
             ],
             "emergency_numbers": {"police": "100", "ambulance": "102", "fire": "101"},
+            "emergency_numbers_source": "National emergency directory; verify current details before use.",
             "nearby_districts": nearby,
         }
         if not destinations.exists():

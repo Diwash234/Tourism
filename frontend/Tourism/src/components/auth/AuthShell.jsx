@@ -22,7 +22,7 @@ export default function AuthShell({ portal = "tourist", title, children, footer 
       </section>
       <main className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
         <div className="w-full max-w-md">
-          <div className="mb-6 flex items-center justify-center lg:hidden"><Link to="/"><TourismLogo size="sm" /></Link></div>
+          <div className="mb-6 flex items-center justify-center lg:hidden"><TourismLogo size="sm" /></div>
           <div className="ny-panel p-6 sm:p-8"><p className="ny-kicker">{theme.name}</p><h1 className="mt-4 !text-2xl">{title}</h1><p className="mt-2 text-sm text-[var(--ny-text-secondary)]">{theme.tagline}</p><div className="mt-6">{children}</div></div>
           <div className="mt-5 text-center text-sm text-[var(--ny-text-secondary)]"><Link to="/" className="font-semibold text-[var(--ny-green)] hover:underline">← Return to the travel site</Link></div>
           {footer}
