@@ -1075,10 +1075,10 @@ def write_payload(path: str | os.PathLike[str], payload: dict[str, Any]) -> Path
     temporary = target.with_name(target.name + ".tmp")
     serializable = dict(payload)
     serializable["records"] = _canonical_records(payload["records"])
-    temporary.write_text(
-        json.dumps(serializable, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    # Use explicit LF so the checksum is identical on Windows and Linux
+    # checkouts (Path.write_text otherwise applies platform newline translation).
+    with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(serializable, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     os.replace(temporary, target)
     return target
 
