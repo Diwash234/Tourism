@@ -7,7 +7,8 @@ import useToast from "../../hooks/useToast"
 import RichTextEditor from "./RichTextEditor"
 import CMSBlock, { CMSExtras } from "../cms/CMSBlock"
 
-const resources = ["settings", "pages", "sections", "navigation", "translations"]
+const resources = ["pages", "sections", "navigation", "settings", "translations"]
+const RESOURCE_LABELS = { pages: "Pages", sections: "Sections", navigation: "Header, Navigation & Menus", settings: "Site Settings & Branding", translations: "Translations" }
 const sectionTypes = ["text", "heading", "image", "gallery", "cards", "faq", "cta", "map", "video", "audio", "marquee", "animation", "media", "form", "table", "figure", "testimonials", "contact", "breadcrumbs", "search"]
 const fallbackTemplates = {
   blank: { label: "Blank" },
@@ -37,6 +38,8 @@ export default function CMSPanel() {
   const { showToast } = useToast()
   const [resource, setResource] = useState("pages")
   const [rows, setRows] = useState([])
+  const [pageRows, setPageRows] = useState([])
+  const [sectionPageId, setSectionPageId] = useState("")
   // Record-list search / status filter / sort (brief §22/§88) — client-side
   // over the loaded rows; reordering always operates on the FULL row order.
   const [listQuery, setListQuery] = useState("")
@@ -128,8 +131,9 @@ export default function CMSPanel() {
 
   const load = async (keepId) => {
     try {
-      const { data } = await adminApi.getCMS(resource)
+      const { data } = await adminApi.getCMS(resource, resource === "sections" && sectionPageId ? { page_id: sectionPageId } : undefined)
       setRows(data.results || [])
+      if (resource === "pages") setPageRows(data.results || [])
       if (keepId) {
         const current = (data.results || []).find(row => row.id === keepId)
         if (current) applyRow(current)
@@ -155,15 +159,17 @@ export default function CMSPanel() {
     load()
     }, 0)
     return () => clearTimeout(t)
-  }, [resource])
+  }, [resource, sectionPageId])
 
   useEffect(() => {
-    // Deferred one tick: keeps synchronous setState out of the effect
-    // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
-    adminApi.getCMS("pages", { templates: true }).then(({ data }) => {
-      if (data.templates) setCatalog(data.templates)
-    }).catch(() => setCatalog(fallbackTemplates))
+      Promise.all([
+        adminApi.getCMS("pages", { templates: true }),
+        adminApi.getCMS("pages"),
+      ]).then(([templatesResponse, pagesResponse]) => {
+        if (templatesResponse.data.templates) setCatalog(templatesResponse.data.templates)
+        setPageRows(pagesResponse.data.results || [])
+      }).catch(() => setCatalog(fallbackTemplates))
     }, 0)
     return () => clearTimeout(t)
   }, [])
@@ -286,7 +292,7 @@ export default function CMSPanel() {
     catch (error) { showToast(error.response?.data?.detail || "Preview failed", "error") }
   }
   const travellerPreviewSrc = () => {
-    const route = preview?.route || selected?.route || "/"
+    const route = preview?.route || preview?.page_route || selected?.route || selected?.page_route || "/"
     try {
       const url = new URL(route, window.location.origin)
       url.searchParams.set("as", "traveller")
@@ -349,7 +355,7 @@ export default function CMSPanel() {
               onClick={() => switchResource(item)}
               className={`block w-full text-left capitalize px-3 py-2.5 rounded-xl mb-1 ${resource === item ? "bg-emerald-700 text-white font-black" : "text-slate-300 hover:bg-emerald-50"}`}
             >
-              {item}
+              {RESOURCE_LABELS[item]}
             </button>
           ))}
           <button onClick={createNew} className="mt-4 w-full px-3 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
@@ -359,9 +365,20 @@ export default function CMSPanel() {
 
         <section className="bg-white border border-emerald-200 rounded-2xl overflow-hidden h-fit max-h-[72vh]">
           <div className="p-3 border-b border-emerald-100 flex justify-between">
-            <b className="capitalize">{resource} <span className="ml-1 text-xs font-normal text-emerald-700">({rows.length})</span></b>
+            <b>{RESOURCE_LABELS[resource]} <span className="ml-1 text-xs font-normal text-emerald-700">({rows.length})</span></b>
             <button onClick={() => load()} title="Refresh" aria-label="Refresh list"><FiRefreshCw /></button>
           </div>
+          {resource === "sections" && (
+            <div className="p-2 border-b border-emerald-100 bg-emerald-50">
+              <label className="block text-[11px] font-bold text-slate-700">
+                Page
+                <select value={sectionPageId} onChange={(event) => setSectionPageId(event.target.value)} className="input-field mt-1">
+                  <option value="">All pages</option>
+                  {pageRows.map((page) => <option key={page.id} value={page.id}>{page.title || page.key} · {page.route}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
           <div className="p-2 space-y-2 border-b border-emerald-100">
             <input
               value={listQuery}
@@ -446,7 +463,7 @@ export default function CMSPanel() {
               </div>
               {resource === "pages" && (
                 <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[1fr_auto_auto]">
-                  <label className="text-xs font-semibold text-slate-300">Page template
+                  <label className="text-xs font-semibold text-slate-700">Page template
                     <select className="input-field mt-1" value={pageTemplate} onChange={event => setPageTemplate(event.target.value)}>
                       {Object.entries(catalog).map(([key, item]) => <option key={key} value={key}>{item.label || key}</option>)}
                     </select>
@@ -461,7 +478,7 @@ export default function CMSPanel() {
                     </div>
                   )}
                   {selected.id && (
-                    <label className="sm:col-span-3 text-xs font-semibold text-slate-300">Import layout JSON (HTTPS pack)
+                    <label className="sm:col-span-3 text-xs font-semibold text-slate-700">Import layout JSON (HTTPS pack)
                       <div className="mt-1 flex gap-2">
                         <input className="input-field" value={layoutUrl} onChange={(e) => setLayoutUrl(e.target.value)} placeholder="https://example.com/layout.json" />
                         <button type="button" disabled={busy || !layoutUrl.startsWith("https://")} onClick={() => workflow("import_layout", { source_url: layoutUrl })} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">Import</button>
@@ -814,7 +831,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
   }
   const set = (key, next) => setJson(JSON.stringify({ ...value, [key]: next }, null, 2))
   const field = (key, label, type = "text") => (
-    <label key={key} className="text-xs font-semibold text-slate-300">
+    <label key={key} className="text-xs font-semibold text-slate-700">
       {label}
       {type === "textarea"
         ? <textarea rows="4" className="input-field mt-1" value={value[key] ?? ""} onChange={e => set(key, e.target.value)} />
@@ -831,7 +848,7 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
       {field("route", "Page route")}
       {field("meta_description", "Search description", "textarea")}
       {field("og_image_url", "Social image URL")}
-      <label className="text-xs font-semibold text-slate-300">Publication status
+      <label className="text-xs font-semibold text-slate-700">Publication status
         <select className="input-field mt-1" value={value.status || "draft"} onChange={e => set("status", e.target.value)}>
           <option>draft</option><option>scheduled</option><option>published</option>
         </select>
@@ -848,14 +865,14 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         {field("key", "Section key")}
         {field("title", "Section title")}
         {field("subtitle", "Subtitle")}
-        <label className="sm:col-span-2 text-xs font-semibold text-slate-300">Body content
+        <label className="sm:col-span-2 text-xs font-semibold text-slate-700">Body content
           <RichTextEditor value={value.body || ""} onChange={html => set("body", html)} />
         </label>
         {field("image_url", "Image URL")}
-        <label className="text-xs font-semibold text-slate-300">Media URL (HTTPS or /)
+        <label className="text-xs font-semibold text-slate-700">Media URL (HTTPS or /)
           <input className="input-field mt-1" value={value.config?.media_url || ""} onChange={e => set("config", { ...(value.config || {}), media_url: e.target.value })} />
         </label>
-        <label className="text-xs font-semibold text-slate-300">Background Theme / Style
+        <label className="text-xs font-semibold text-slate-700">Background Theme / Style
           <select className="input-field mt-1" value={value.config?.background_style || "clean-white"} onChange={e => set("config", { ...(value.config || {}), background_style: e.target.value })}>
             <option value="clean-white">Clean White (Standard Card)</option>
             <option value="gradient-emerald">Gradient Emerald (Himalayan Forest)</option>
@@ -865,14 +882,14 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
             <option value="border-accent">Border Accent (Gold Border Highlighting)</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Padding & Spacing
+        <label className="text-xs font-semibold text-slate-700">Padding & Spacing
           <select className="input-field mt-1" value={value.config?.padding_style || "medium"} onChange={e => set("config", { ...(value.config || {}), padding_style: e.target.value })}>
             <option value="compact">Compact (p-4)</option>
             <option value="medium">Medium (p-6)</option>
             <option value="spacious">Spacious (p-10)</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Text Size
+        <label className="text-xs font-semibold text-slate-700">Text Size
           <select className="input-field mt-1" value={value.config?.text_scale || "base"} onChange={e => set("config", { ...(value.config || {}), text_scale: e.target.value })}>
             <option value="sm">Small</option>
             <option value="base">Normal</option>
@@ -880,22 +897,22 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
             <option value="xl">Extra large</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Alignment
+        <label className="text-xs font-semibold text-slate-700">Alignment
           <select className="input-field mt-1" value={value.config?.align || "left"} onChange={e => set("config", { ...(value.config || {}), align: e.target.value })}>
             <option value="left">Left</option>
             <option value="center">Center</option>
             <option value="right">Right</option>
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Background Image (HTTPS, optional)
+        <label className="text-xs font-semibold text-slate-700">Background Image (HTTPS, optional)
           <input className="input-field mt-1" value={value.config?.bg_image || ""} onChange={e => set("config", { ...(value.config || {}), bg_image: e.target.value })} placeholder="https://…" />
         </label>
-        <label className="text-xs font-semibold text-slate-300">Animation
+        <label className="text-xs font-semibold text-slate-700">Animation
           <select className="input-field mt-1" value={value.config?.effect || "none"} onChange={e => set("config", { ...(value.config || {}), effect: e.target.value })}>
             {["none", "marquee", "fade", "slide"].map(item => <option key={item}>{item}</option>)}
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Placement
+        <label className="text-xs font-semibold text-slate-700">Placement
           <select className="input-field mt-1" value={value.config?.placement || "main"} onChange={e => set("config", { ...(value.config || {}), placement: e.target.value })}>
             {["main", "hero", "sidebar", "footer"].map(item => <option key={item}>{item}</option>)}
           </select>
@@ -905,12 +922,12 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
         {field("icon", "Icon")}
         <SectionConfigFields value={value} set={set} />
         <VisibilityFields value={value} set={set} />
-        <label className="text-xs font-semibold text-slate-300">Section type
+        <label className="text-xs font-semibold text-slate-700">Section type
           <select className="input-field mt-1" value={value.section_type || "text"} onChange={e => set("section_type", e.target.value)}>
             {sectionTypes.map(type => <option key={type}>{type}</option>)}
           </select>
         </label>
-        <label className="text-xs font-semibold text-slate-300">Layout Variant
+        <label className="text-xs font-semibold text-slate-700">Layout Variant
           <select className="input-field mt-1" value={value.layout_variant || "default"} onChange={e => set("layout_variant", e.target.value)}>
             {["default", "compact", "wide", "cards", "hero", "split"].map(item => <option key={item}>{item}</option>)}
           </select>
@@ -929,9 +946,9 @@ function CMSFriendlyEditor({ resource, json, setJson }) {
       </div>
     </div>
   )
-  if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-300">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-300">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
-  if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-300">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
-  return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-300">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
+  if (resource === "navigation") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-700">Location<select className="input-field mt-1" value={value.location || "navbar"} onChange={e => set("location", e.target.value)}><option>navbar</option><option>sidebar</option><option>footer</option></select></label>{field("label", "Visible label")}{field("route", "Internal route")}{field("parent_id", "Parent item ID")}{field("icon", "Icon")}{field("display_order", "Display order", "number")}<label className="text-xs font-semibold text-slate-700">Allowed roles (comma separated)<input className="input-field mt-1" value={(value.allowed_roles || []).join(", ")} onChange={e => set("allowed_roles", e.target.value.split(",").map(x => x.trim()).filter(Boolean))} /></label>{field("is_active", "Active", "checkbox")}</div>
+  if (resource === "translations") return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("target_resource", "Target type")}{field("object_id", "Target record ID", "number")}{field("language_code", "Language code")}<label className="text-xs font-semibold text-slate-700">Translated fields<textarea rows="5" className="input-field mt-1 font-mono" value={JSON.stringify(value.content || {}, null, 2)} onChange={e => { try { set("content", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
+  return <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">{field("key", "Setting key")}{field("description", "Description")}{field("is_public", "Public setting", "checkbox")}<label className="text-xs font-semibold text-slate-700">Structured value<textarea rows="6" className="input-field mt-1 font-mono" value={JSON.stringify(value.value || {}, null, 2)} onChange={e => { try { set("value", JSON.parse(e.target.value)) } catch { /* keep until valid */ } }} /></label></div>
 }
 
 export function ContentBlocksBuilder({ sectionId, onToast }) {

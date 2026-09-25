@@ -22,9 +22,10 @@ const Contact = () => {
     formState: { errors, isSubmitting },
   } = useForm()
 
-  const contactAddress = branding?.contact_address
-  const contactEmail = branding?.contact_email
-  const contactPhone = branding?.contact_phone
+  const contactAddress = branding?.contact_address || ""
+  const contactEmail = branding?.contact_email || ""
+  const contactPhone = branding?.contact_phone || ""
+  const contactHours = branding?.contact_hours || ""
   const siteTitle = (branding?.site_title || "Nepal Yatra").replace(/Digital Nepal Tourism Platform/g, "Nepal Yatra")
 
   const onSubmit = async () => {
@@ -78,7 +79,13 @@ const Contact = () => {
                 <span>Address: <b className="text-[var(--ny-text)]">{contactAddress}</b></span>
               </p>
             )}
-            {!contactEmail && !contactPhone && !contactAddress && (
+            {contactHours && (
+              <p className="flex items-center gap-3 text-sm">
+                <FiClock className="shrink-0 text-[var(--ny-green)]" aria-hidden="true" />
+                <span>Desk hours: <b className="text-[var(--ny-text)]">{contactHours}</b></span>
+              </p>
+            )}
+            {!contactEmail && !contactPhone && !contactAddress && !contactHours && (
               <p className="text-sm text-[var(--ny-text-secondary)]">No public contact details are configured right now. Use the form and the review team will see your message.</p>
             )}
             <p className="flex items-center gap-3 border-t border-[var(--ny-border)] pt-4 text-sm">

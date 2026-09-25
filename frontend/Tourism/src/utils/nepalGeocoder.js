@@ -1,7 +1,8 @@
 /**
- * Nepal Administrative Geocoder & Municipality/Ward Coordinate Calculator
- * Full coverage of all 7 Provinces, 77 Districts, Municipalities, Gaunpalikas,
- * and support for custom manual village / ward entry.
+ * Nepal administrative lookup helpers.
+ * The curated names help forms recognise administrative areas, but this module
+ * does not claim exact place coordinates. Verified GPS or API coordinates must
+ * be supplied separately.
  */
 
 export const NEPAL_ALL_PROVINCES = [
@@ -87,7 +88,7 @@ export const DISTRICT_DEFAULTS = {
   "Kailali": { lat: 28.6833, lng: 80.6000, alt: "182m", munis: ["Dhangadhi Sub-Metropolitan", "Tikapur Municipality", "Ghodaghodi Municipality (Ramsar Lake)", "Lamki Chuha", "Godawari", "Bhajani", "Gauriganga"] }
 }
 
-// Comprehensive Fuzzy, Acronym, and Phonetic Place Matrix for all 77 Districts & Landmarks
+// Legacy fuzzy name index used only to prefill administrative selections.
 export const NEPAL_FUZZY_PLACE_INDEX = [
   // Parbat / Bihadi
   {
@@ -403,7 +404,8 @@ export function resolveFuzzyPlaceLocation(query) {
 }
 
 /**
- * High-precision forward geocoder supporting all 77 districts and custom entries
+ * Administrative lookup deliberately returns no guessed point. A verified
+ * geocoder or the traveller's GPS must provide coordinates.
  */
 export function geocodeNepalPlace(_province, _district, _municipalityName = "", _wardNo = 1) {
   // Administrative names are useful for forms, but a district/ward centroid

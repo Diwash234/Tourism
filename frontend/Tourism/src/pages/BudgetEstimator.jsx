@@ -85,7 +85,7 @@ const BudgetEstimator = () => {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [currency, setCurrency] = useState(
-    () => localStorage.getItem("tourism_currency") || "NPR"
+    () => localStorage.getItem("tourism_currency") || "USD"
   )
   const { showToast } = useToast()
   const debounceRef = useRef(null)
