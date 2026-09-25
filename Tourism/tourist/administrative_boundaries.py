@@ -74,12 +74,6 @@ NEPAL_DISTRICTS_DATA = {
     "Kailali": {"province": "Sudurpashchim", "lat": 28.7167, "lng": 80.6000, "altitude": 180, "type": "Dhangadhi/Tikapur"},
     "Doti": {"province": "Sudurpashchim", "lat": 29.2667, "lng": 80.9833, "altitude": 1300, "type": "Khaptad National Park"},
 
-    # --- Completed to the full constitutional list of 77 districts ---
-    # Headquarters towns and approximate centre coordinates/elevations are
-    # public administrative facts (MoFAGA district profiles). Tourism
-    # descriptions are intentionally NOT included here; unverified fields
-    # must be marked unavailable downstream, never fabricated.
-
     # Koshi Province (completed)
     "Bhojpur": {"province": "Koshi", "lat": 27.1667, "lng": 87.0500, "altitude": 1200, "type": "Hill/Bhojpur Bazar"},
     "Dhankuta": {"province": "Koshi", "lat": 26.9833, "lng": 87.3333, "altitude": 1150, "type": "Hill/Mulghat Gateway"},
@@ -108,7 +102,7 @@ NEPAL_DISTRICTS_DATA = {
     # Lumbini Province (completed)
     "Arghakhanchi": {"province": "Lumbini", "lat": 27.8944, "lng": 83.1225, "altitude": 1200, "type": "Hill/Sandhikharka"},
     "Dang": {"province": "Lumbini", "lat": 28.0000, "lng": 82.4833, "altitude": 350, "type": "Inner Terai/Ghorahi (Deukhuri)"},
-    "Eastern Rukum": {"province": "Lumbini", "lat": 28.6500, "lng": 82.6500, "altitude": 1500, "type": "Himalayan/Rukumkot"},
+    "Rukum East": {"province": "Lumbini", "lat": 28.6500, "lng": 82.6500, "altitude": 1500, "type": "Himalayan/Rukumkot"},
     "Gulmi": {"province": "Lumbini", "lat": 28.0833, "lng": 83.3000, "altitude": 1100, "type": "Hill/Tamghas"},
     "Parasi": {"province": "Lumbini", "lat": 27.5333, "lng": 83.6667, "altitude": 100, "type": "Terai/Ramgram Stupa"},
     "Pyuthan": {"province": "Lumbini", "lat": 28.1000, "lng": 82.8500, "altitude": 1200, "type": "Hill/Khalanga"},
@@ -120,7 +114,7 @@ NEPAL_DISTRICTS_DATA = {
     "Jajarkot": {"province": "Karnali", "lat": 28.7333, "lng": 82.2000, "altitude": 1200, "type": "Hill/Khalanga"},
     "Kalikot": {"province": "Karnali", "lat": 29.1500, "lng": 81.6500, "altitude": 1300, "type": "Hill/Manma"},
     "Salyan": {"province": "Karnali", "lat": 28.3500, "lng": 82.1700, "altitude": 1300, "type": "Hill/Salyan Khalanga"},
-    "Western Rukum": {"province": "Karnali", "lat": 28.6258, "lng": 82.4331, "altitude": 1500, "type": "Himalayan/Musikot"},
+    "Rukum West": {"province": "Karnali", "lat": 28.6258, "lng": 82.4331, "altitude": 1500, "type": "Himalayan/Musikot"},
 
     # Sudurpashchim Province (completed)
     "Achham": {"province": "Sudurpashchim", "lat": 29.0500, "lng": 81.2800, "altitude": 900, "type": "Hill/Mangalsen"},
@@ -131,9 +125,15 @@ NEPAL_DISTRICTS_DATA = {
     "Darchula": {"province": "Sudurpashchim", "lat": 29.8500, "lng": 80.5300, "altitude": 900, "type": "Himalayan/Mahakali Khalanga"},
 }
 
+# Alias map for legacy / alternative district name spellings
+NEPAL_DISTRICT_ALIASES = {
+    "Eastern Rukum": "Rukum East",
+    "Western Rukum": "Rukum West",
+}
 
 def get_district_info(district_name: str) -> dict:
+    canonical = NEPAL_DISTRICT_ALIASES.get(district_name, district_name)
     for name, data in NEPAL_DISTRICTS_DATA.items():
-        if name.lower() == district_name.lower() or name.lower() in district_name.lower():
+        if name.lower() == canonical.lower() or name.lower() in canonical.lower():
             return {"district": name, **data}
     return None

@@ -60,6 +60,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Compress API/HTML responses (text/*, application/json, ...). Without
+    # this the 6,600-point map JSON (~1.2 MB) ships raw on every load —
+    # the single biggest "site feels slow" factor on mobile connections.
+    "django.middleware.gzip.GZipMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

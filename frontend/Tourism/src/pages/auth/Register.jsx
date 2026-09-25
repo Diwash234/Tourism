@@ -176,9 +176,11 @@ const Register = () => {
       {/* this page has its own divider above → hide the component's */}
       <div className="relative z-10"><SocialLoginButtons showDivider={false} /></div>
 
-      <p className="text-sm text-center text-stone-500 mt-6 relative z-10">
+      <p className="text-sm text-center text-stone-600 font-medium mt-6 relative z-10">
         Already have an account?{" "}
-        <Link to="/login" className="text-primary-700 font-bold hover:underline">Sign in</Link>
+        <Link to="/login" className="text-primary-700 font-extrabold hover:underline">
+          Sign In (Login)
+        </Link>
       </p>
     </AuthShell>
   )

@@ -44,7 +44,7 @@ def resolve_image_url(image_field, request=None):
     """
     Return a usable URL for an ImageField/FileField value that may actually
     hold an external URL. External URLs are returned as-is; local files are
-    resolved via .url (and made absolute when a request is available).
+    resolved via .url or prefixed relative paths.
     Returns None when there is no usable image.
     """
     if not image_field:
@@ -55,19 +55,25 @@ def resolve_image_url(image_field, request=None):
     if not raw:
         return None
 
-    if _is_external_url(raw):
-        return raw.strip()
-
-    # Absolute site URL (e.g. deterministic postcard route
-    # "/api/v1/postcard/...") — serve as-is, never via media storage.
-    if raw.startswith("/"):
-        return raw
-
-    # Genuinely local media file
-    try:
-        url = image_field.url
-    except (ValueError, AttributeError):
+    s = str(raw).strip()
+    if not s:
         return None
+
+    if _is_external_url(s):
+        return s
+
+    if s.startswith("/"):
+        url = s
+    elif s.startswith("media/"):
+        url = f"/{s}"
+    elif s.startswith("images/"):
+        url = f"/{s}"
+    else:
+        try:
+            url = image_field.url
+        except (ValueError, AttributeError):
+            url = f"/media/{s}"
+
     if request is not None:
         try:
             return request.build_absolute_uri(url)

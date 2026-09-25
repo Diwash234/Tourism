@@ -140,9 +140,13 @@ urlpatterns = [
 
     # Admin RBAC & Moderation endpoints
     path("admin/stats", views_admin.AdminStatsView.as_view(), name="admin-stats"),
+    path("admin/stats/", views_admin.AdminStatsView.as_view(), name="admin-stats-slash"),
     path("admin/users", views_admin.AdminUsersView.as_view(), name="admin-users"),
+    path("admin/users/", views_admin.AdminUsersView.as_view(), name="admin-users-slash"),
+    path("admin/users/<int:id>", views_admin.AdminUsersDetailView.as_view(), name="admin-user-detail-full-noslash"),
     path("admin/users/<int:id>/", views_admin.AdminUsersDetailView.as_view(), name="admin-user-detail-full"),
     path("admin/users/<int:id>/status", views_admin.UpdateUserStatusView.as_view(), name="admin-update-user-status"),
+    path("admin/users/<int:id>/status/", views_admin.UpdateUserStatusView.as_view(), name="admin-update-user-status-slash"),
     path("admin/users/<int:id>/actions", views_admin.AdminUserAccessActionView.as_view(), name="admin-user-access-action"),
     path("admin/users/<int:id>/send-verification", views_admin.AdminSendVerificationView.as_view(), name="admin-send-verification"),
     path("admin/data-explorer/", views_admin.AdminDataExplorerView.as_view(), name="admin-data-explorer"),

@@ -258,10 +258,10 @@ const Login = () => {
           <SocialLoginButtons />
         </div>
 
-        <p className="text-sm text-center text-gray-500 mt-6">
+        <p className="text-sm text-center text-gray-600 font-medium mt-6">
           Don't have an account?{" "}
-          <Link to="/register" className="text-emerald-700 font-bold hover:underline">
-            Sign Up
+          <Link to="/register" className="text-emerald-700 font-extrabold hover:underline">
+            Register (Sign Up)
           </Link>
         </p>
       </motion.div>

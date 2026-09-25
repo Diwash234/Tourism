@@ -45,13 +45,6 @@ from .utils import (
 )
 
 
-def _invalidate_public_content_caches():
-    """Invalidate only bounded public indexes touched by tourism edits."""
-    from django.core.cache import cache
-    cache.delete("dest:map-points:v1")
-    cache.delete("seo:sitemap:v1")
-
-
 class UserLocationContextMixin:
     """Injects the requesting user's lat/lon into serializer context for distance annotations."""
 
@@ -206,8 +199,9 @@ class PublicConfigView(APIView):
     def get(self, request):
         import re
         now = timezone.now()
-        from .cms_publishing import publish_due_pages, publish_due_sections
-        publish_due_pages(now)
+        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
+            status="published", published_at=now, scheduled_publish_at=None)
+        from .cms_publishing import publish_due_sections
         publish_due_sections(now)
         language = request.query_params.get("lang", "en")
         if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Z]{2})?", language):
@@ -218,12 +212,6 @@ class PublicConfigView(APIView):
         page_rows = []
         for page in pages:
             page_translation = translations.get(("pages", page.id), {})
-            page_content = page.published_snapshot if isinstance(page.published_snapshot, dict) else {
-                "key": page.key, "route": page.route,
-                "title": page.title, "meta_description": page.meta_description,
-                "seo_title": page.seo_title, "og_image_url": page.og_image_url,
-                "search_visible": page.search_visible, "is_enabled": page.is_enabled,
-            }
             sections = []
             for section in page.sections.filter(is_visible=True, status="published"):
                 # Snapshot isolation: once a section has been published through
@@ -254,22 +242,18 @@ class PublicConfigView(APIView):
                         for b in section.blocks.filter(is_visible=True).order_by("position", "id")
                     ]
                 sections.append({"id": section.id, "key": section.key,
-                    "title": translated.get("title", content.get("title", "")),
-                    "subtitle": translated.get("subtitle", content.get("subtitle", "")),
-                    "body": translated.get("body", content.get("body", "")),
-                    "image_url": content.get("image_url", ""),
-                    "cta_text": translated.get("cta_text", content.get("cta_text", "")),
-                    "cta_url": content.get("cta_url", ""),
-                    "icon": content.get("icon", ""), "section_type": content.get("section_type", "generic"),
-                    "layout_variant": content.get("layout_variant", "default"),
-                    "config": content.get("config") if isinstance(content.get("config"), dict) else {},
-                    "display_order": content.get("display_order", 0),
+                    "title": translated.get("title", content["title"]), "subtitle": translated.get("subtitle", content["subtitle"]),
+                    "body": translated.get("body", content["body"]), "image_url": content["image_url"],
+                    "cta_text": translated.get("cta_text", content["cta_text"]), "cta_url": content["cta_url"],
+                    "icon": content["icon"], "section_type": content["section_type"],
+                    "layout_variant": content["layout_variant"], "config": content["config"],
+                    "display_order": content["display_order"],
                     "blocks": blocks})
-            page_rows.append({"id": page.id, "key": page_content.get("key", page.key), "route": page_content.get("route", page.route),
-                "title": page_translation.get("title", page_content.get("title", "")),
-                "seo_title": page_content.get("seo_title", ""), "og_image_url": page_content.get("og_image_url", ""),
-                "search_visible": page_content.get("search_visible", True),
-                "meta_description": page_translation.get("meta_description", page_content.get("meta_description", "")), "sections": sections})
+            page_rows.append({"id": page.id, "key": page.key, "route": page.route,
+                "title": page_translation.get("title", page.title),
+                "seo_title": page.seo_title, "og_image_url": page.og_image_url,
+                "search_visible": page.search_visible,
+                "meta_description": page_translation.get("meta_description", page.meta_description), "sections": sections})
         navigation = []
         for item in ManagedNavigationItem.objects.filter(is_active=True):
             translated = translations.get(("navigation", item.id), {})
@@ -528,8 +512,8 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         user = self.request.user
         if getattr(self, "swagger_fake_view", False):
             return qs.none()
-        if user.is_authenticated and (user.is_superuser or (user.is_staff and user.role in {"admin", "super_admin", "tourism_admin"})):
-            return qs  # platform administrators may inspect the full corpus
+        if user.is_authenticated and user.is_staff:
+            return qs  # staff see everything, including pending submissions
         if user.is_authenticated:
             # Canonical public rule + this user's own submissions (any status)
             from django.db.models import Q
@@ -538,12 +522,11 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         else:
             qs = Destination.publicly_visible(qs)
 
-        # Default destination listing: show real attractions, not hotels/info/noise.
-        # Pass ?type=all or ?type=hotel to override (see DestinationFilter).
+        # Default destination listing: return all publicly visible destinations.
+        # Specific filtering by category or type is applied when query params are provided.
         if self.action == "list":
             requested_type = (self.request.query_params.get("type") or "").lower()
-            if requested_type not in ("all", "hotel", "hotels", "lodging", "accommodation", "stay",
-                                      "attraction", "attractions", "destination", "destinations"):
+            if requested_type in ("attraction", "attractions"):
                 from .filters import (
                     ACCOMMODATION_SLUGS, ACCOMMODATION_NAME_HINTS,
                     NON_ATTRACTION_SLUGS, NON_ATTRACTION_NAME_HINTS,
@@ -662,29 +645,15 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
     def approve(self, request, slug=None):
-        """Capability-scoped approval for a tourist-submitted place."""
-        from .views_admin import _require_capability, _require_destination_access
-        _require_capability(request, "destinations", "approve")
-        destination = Destination.objects.filter(slug=slug).first() if slug else Destination.objects.filter(pk=self.kwargs.get("pk")).first()
-        if not destination:
-            return Response({"detail": "Destination not found."}, status=404)
-        _require_destination_access(request, destination, "destinations", "approve")
+        """Admin-only: approve or reject a tourist-submitted place."""
+        destination = self.get_object()
         previous_status = destination.status
         serializer = DestinationApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         destination.status = serializer.validated_data["status"]
         destination.review_note = serializer.validated_data.get("review_note", "")
-        if destination.status == Destination.SubmissionStatus.APPROVED:
-            missing = []
-            if not (destination.name or "").strip(): missing.append("name")
-            if not (destination.description or "").strip(): missing.append("description")
-            if destination.latitude is None or destination.longitude is None: missing.append("coordinates")
-            if missing:
-                return Response({"detail": f"Cannot publish: missing {', '.join(missing)}."}, status=status.HTTP_400_BAD_REQUEST)
         destination.is_active = destination.status == Destination.SubmissionStatus.APPROVED
-        destination.save(update_fields=["status", "review_note", "is_active", "updated_at"])
-        from .views_admin import _sync_destination_json
-        _sync_destination_json(destination)
+        destination.save(update_fields=["status", "review_note", "is_active"])
 
         DestinationAuditLog.objects.create(
             destination=destination,
@@ -715,11 +684,18 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
     @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticatedOrReadOnly])
     def photos(self, request, slug=None):
         """
-        GET  — returns the approved, verified gallery without acquiring or
-               mutating media. Discovery/refresh are explicit admin actions.
+        GET  — the destination's photo gallery: local uploads (community +
+               admin, most-viewed/promoted first). If none exist yet, one
+               Unsplash/Wikimedia fallback image is fetched ONCE and cached
+               as a real gallery entry (source=unsplash/wikimedia) — see
+               tourist/utils.py::ensure_cover_photo() — so this never
+               re-hits the external API on subsequent calls.
         POST — any authenticated user ("local people") can contribute a
-               photo here. It starts unverified/pending and cannot become a
-               public cover without an explicit images.approve action.
+               photo here. It's tagged as a community upload and starts
+               un-promoted; if it becomes popular (crosses
+               PHOTO_PROMOTION_IMPRESSION_THRESHOLD views), it's
+               automatically promoted to the official cover photo — see
+               tourist/utils.py::maybe_promote_photo().
         """
         destination = self.get_object()
 
@@ -730,8 +706,9 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
             return Response(DestinationImageSerializer(photo, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
         photos = get_destination_photos(destination)
-        # Public reads are intentionally side-effect free. Impression tracking
-        # belongs to an explicit analytics event, never to an anonymous GET.
+        for photo in photos:
+            register_photo_view(photo)
+
         return Response({
             "photos": DestinationImageSerializer(photos, many=True, context={"request": request}).data,
         })
@@ -784,8 +761,8 @@ class DestinationViewSet(QueryParamAliasMixin, UserLocationContextMixin, viewset
         """
         destination = self.get_object()
 
-        hotels = HotelSerializer(destination.hotels.filter(is_active=True, is_verified=True).select_related("destination").prefetch_related("destination__gallery"), many=True, context={"request": request}).data
-        database_restaurants = RestaurantSerializer(destination.restaurants.filter(status="published", is_verified=True), many=True).data
+        hotels = HotelSerializer(destination.hotels.filter(is_active=True).select_related("destination").prefetch_related("destination__gallery"), many=True, context={"request": request}).data
+        database_restaurants = RestaurantSerializer(destination.restaurants.filter(status="published"), many=True).data
         external_restaurants = find_nearby_places(destination.latitude, destination.longitude, "restaurant")
         restaurants = database_restaurants or external_restaurants
         shops = find_nearby_places(destination.latitude, destination.longitude, "shop")
@@ -811,18 +788,15 @@ class DestinationResearchView(APIView):
     collects verified geocoding, descriptions, distances, transit routes,
     budgets, and verified reusable imagery with full licenses.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        from .views_admin import _require_capability
-        _require_capability(request, "destinations", "add")
         query = request.data.get("query", "").strip()
         if not query:
             return Response({"detail": "Query destination name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         from .research_engine import research_and_build_destination
-        from .views_admin import _has_capability, _is_platform_admin
-        auto_publish = _is_platform_admin(request.user) and _has_capability(request, "destinations", "approve")
+        auto_publish = request.user.is_authenticated and (request.user.is_staff or request.user.role in ["admin", "super_admin"])
         result = research_and_build_destination(query, auto_publish=auto_publish, actor=request.user if request.user.is_authenticated else None)
 
         dest_id = result.get("destination_id")
@@ -904,38 +878,6 @@ class DestinationImageViewSet(viewsets.ModelViewSet):
     capability_module = "images"
     filterset_fields = ["destination"]
 
-    def get_queryset(self):
-        queryset = super().get_queryset().select_related("destination")
-        if self.request.method in permissions.SAFE_METHODS:
-            user = self.request.user
-            if not (user.is_authenticated and (user.is_staff or user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"})):
-                queryset = queryset.filter(
-                    verification_status="approved", is_verified=True,
-                    destination__is_active=True,
-                    destination__status=Destination.SubmissionStatus.APPROVED,
-                )
-            elif user.is_authenticated and not (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}):
-                profile = getattr(user, "capability_profile", None)
-                districts = list(getattr(profile, "managed_districts", []) or [])
-                if districts:
-                    from django.db.models import Q
-                    scope = Q()
-                    for district in districts:
-                        scope |= Q(destination__district__iexact=district) | Q(destination__city__iexact=district)
-                    queryset = queryset.filter(scope)
-        return queryset
-
-    def perform_create(self, serializer):
-        destination = serializer.validated_data.get("destination")
-        if destination is not None:
-            from .views_admin import _require_destination_access
-            _require_destination_access(self.request, destination, "images", "add")
-        serializer.save(
-            verification_status=DestinationImage.ImageStatus.PENDING,
-            is_verified=False,
-            source=DestinationImage.Source.USER_UPLOAD,
-        )
-
 
 class HotelViewSet(viewsets.ModelViewSet):
     """
@@ -954,45 +896,13 @@ class HotelViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset=Hotel.objects.select_related("destination").prefetch_related("destination__gallery")
         user=self.request.user
-        is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}))
-        if self.request.method in permissions.SAFE_METHODS and not is_platform_admin:
-            queryset=queryset.filter(is_active=True, is_verified=True)
-        if user.is_authenticated and not is_platform_admin:
-            # Staff hotel operations are object-scoped by the existing
-            # assignment relation, even when the row-level capability is
-            # present. This prevents a hotel manager from editing hotel B.
-            from admin_panel.models import HotelAssignment
-            assigned_ids = HotelAssignment.objects.filter(admin=user).values_list("hotel_id", flat=True)
-            queryset = queryset.filter(id__in=assigned_ids)
+        if self.request.method in permissions.SAFE_METHODS and not (user.is_authenticated and (user.is_superuser or user.role in {"admin","super_admin","tourism_admin"})):
+            queryset=queryset.filter(is_active=True)
         return queryset
-
-    def perform_create(self, serializer):
-        request = self.request
-        user = request.user
-        is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}))
-        if not is_platform_admin:
-            from admin_panel.models import HotelAssignment
-            destination = serializer.validated_data.get("destination")
-            destination_id = getattr(destination, "id", destination)
-            if not HotelAssignment.objects.filter(admin=user, hotel__destination_id=destination_id).exists():
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("You may only create hotels in an assigned destination")
-        serializer.save(source=Hotel.Source.MANUAL)
-        _invalidate_public_content_caches()
-
-    def perform_update(self, serializer):
-        before = {field: getattr(serializer.instance, field, None) for field in ("name", "address", "price_per_night", "booking_status", "is_active")}
-        hotel = serializer.save()
-        _invalidate_public_content_caches()
-        from audit.logging_services import log_action
-        log_action(request=self.request, action="hotel.update", category="hotels", message=f"Hotel '{hotel.name}' updated", object_type="Hotel", object_id=str(hotel.id), extra={"before": before})
 
     def perform_destroy(self, instance):
         instance.is_active=False;instance.archived_at=timezone.now();instance.booking_status=Hotel.BookingStatus.UNAVAILABLE
         instance.save(update_fields=["is_active","archived_at","booking_status","updated_at"])
-        _invalidate_public_content_caches()
-        from audit.logging_services import log_action
-        log_action(request=self.request, action="hotel.archive", category="hotels", message=f"Hotel '{instance.name}' archived", object_type="Hotel", object_id=str(instance.id))
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
     def nearby(self, request):
@@ -1038,38 +948,18 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Restaurant.objects.select_related("destination")
         user = self.request.user
-        is_platform_admin = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}))
-        if self.request.method in permissions.SAFE_METHODS and not is_platform_admin:
-            queryset = queryset.filter(status="published", is_verified=True)
-        if user.is_authenticated and not is_platform_admin:
-            profile = getattr(user, "capability_profile", None)
-            districts = list(getattr(profile, "managed_districts", []) or [])
-            if districts:
-                from django.db.models import Q
-                scope = Q()
-                for district in districts:
-                    scope |= Q(destination__district__iexact=district) | Q(destination__city__iexact=district)
-                queryset = queryset.filter(scope)
+        if self.request.method in permissions.SAFE_METHODS and not (user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"})):
+            queryset = queryset.filter(status="published")
         return queryset
 
     def perform_create(self, serializer):
         serializer.save(updated_by=self.request.user, status="pending", is_verified=False)
 
     def perform_update(self, serializer):
-        if any(field in self.request.data for field in ("status", "is_verified")):
-            from .views_admin import _require_capability
-            _require_capability(self.request, "restaurants", "approve")
-        before = {field: getattr(serializer.instance, field, None) for field in ("name", "address", "phone", "status", "is_verified")}
-        restaurant = serializer.save(updated_by=self.request.user)
-        _invalidate_public_content_caches()
-        from audit.logging_services import log_action
-        log_action(request=self.request, action="restaurant.update", category="restaurants", message=f"Restaurant '{restaurant.name}' updated", object_type="Restaurant", object_id=str(restaurant.id), extra={"before": before})
+        serializer.save(updated_by=self.request.user)
 
     def perform_destroy(self, instance):
         instance.status="archived";instance.updated_by=self.request.user;instance.save(update_fields=["status","updated_by","updated_at"])
-        _invalidate_public_content_caches()
-        from audit.logging_services import log_action
-        log_action(request=self.request, action="restaurant.archive", category="restaurants", message=f"Restaurant '{instance.name}' archived", object_type="Restaurant", object_id=str(instance.id))
 
 
 class TransitRouteViewSet(viewsets.ModelViewSet):
@@ -1086,11 +976,7 @@ class TransitRouteViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer): serializer.save(updated_by=self.request.user, is_verified=False)
-    def perform_update(self, serializer):
-        if any(field in self.request.data for field in ("is_active", "is_verified")):
-            from .views_admin import _require_capability
-            _require_capability(self.request, "transportation", "approve")
-        serializer.save(updated_by=self.request.user)
+    def perform_update(self, serializer): serializer.save(updated_by=self.request.user)
     def perform_destroy(self, instance):
         instance.is_active=False;instance.updated_by=self.request.user;instance.save(update_fields=["is_active","updated_by","updated_at"])
 
@@ -1103,10 +989,7 @@ class TransitRouteViewSet(viewsets.ModelViewSet):
         must be deliberate curated routes, never silent overrides).
         """
         from audit.logging_services import log_action
-        from .views_admin import _require_capability, _require_destination_access
-        _require_capability(request, "transportation", "approve")
         route = self.get_object()
-        _require_destination_access(request, route.destination, "transportation", "approve")
         route.is_verified = True
         route.verified_at = timezone.now()
         route.confidence_level = "ADMIN_VERIFIED"
@@ -1127,10 +1010,7 @@ class TransitRouteViewSet(viewsets.ModelViewSet):
         """
         from audit.logging_services import log_action
         from .routing_service import route_metrics
-        from .views_admin import _require_capability, _require_destination_access
-        _require_capability(request, "transportation", "change")
         route = self.get_object()
-        _require_destination_access(request, route.destination, "transportation", "change")
         if None in (route.origin_latitude, route.origin_longitude, route.destination_latitude, route.destination_longitude):
             return Response({"detail": "This route record has no stored coordinates — recalculation impossible. Add coordinates first; information unavailable until then."}, status=400)
         metrics = route_metrics(float(route.origin_latitude), float(route.origin_longitude),
@@ -1320,28 +1200,6 @@ class AlertViewSet(UserLocationContextMixin, viewsets.ModelViewSet):
     filterset_class = AlertFilter
     search_fields = ["title", "description", "city"]
     ordering_fields = ["created_at", "severity"]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        user = self.request.user
-        is_platform = bool(user.is_authenticated and (user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}))
-        if self.request.method in permissions.SAFE_METHODS and not is_platform:
-            from .views_admin import _has_capability
-            if not _has_capability(self.request, "safety", "approve"):
-                queryset = queryset.filter(is_verified=True)
-        return queryset
-
-    def perform_create(self, serializer):
-        if "is_verified" in self.request.data:
-            from .views_admin import _require_capability
-            _require_capability(self.request, "safety", "approve")
-        return super().perform_create(serializer)
-
-    def perform_update(self, serializer):
-        if "is_verified" in self.request.data:
-            from .views_admin import _require_capability
-            _require_capability(self.request, "safety", "approve")
-        return super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         instance.is_active=False
@@ -1795,7 +1653,7 @@ class HotelSearchView(generics.ListAPIView):
             return Hotel.objects.none()
 
         return (
-            Hotel.objects.filter(is_active=True, is_verified=True).filter(
+            Hotel.objects.filter(is_active=True).filter(
                 Q(name__icontains=query)
                 | Q(destination__name__icontains=query)
                 | Q(destination__city__icontains=query)
@@ -1824,8 +1682,8 @@ class NearbyEmergencyServicesView(APIView):
 
     def get(self, request):
         try:
-            latitude = float(request.query_params["latitude"])
-            longitude = float(request.query_params["longitude"])
+            latitude = float(request.query_params.get("latitude") or request.query_params.get("lat"))
+            longitude = float(request.query_params.get("longitude") or request.query_params.get("lng"))
             radius_km = max(1, min(float(request.query_params.get("radius_km", 50)), 300))
             limit = max(1, min(int(request.query_params.get("limit", 8)), 25))
         except (KeyError, TypeError, ValueError):
@@ -1835,16 +1693,6 @@ class NearbyEmergencyServicesView(APIView):
             )
         from .emergency_service import build_emergency_directory
         return Response(build_emergency_directory(latitude, longitude, radius_km=radius_km, limit=limit))
-
-
-class NationalEmergencyHotlinesView(APIView):
-    """Return the verified national emergency contacts without requiring GPS."""
-
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        from .emergency_service import NATIONAL_HOTLINES
-        return Response({"national_hotlines": NATIONAL_HOTLINES})
 
 
 class NearbyPOIsView(APIView):
@@ -1957,7 +1805,7 @@ class DestinationNearbyPOIsView(APIView):
         "police": ('node["amenity"="police"]', "Police"),
         "pharmacies": ('node["amenity"="pharmacy"]', "Pharmacies"),
     }
-    DEFAULT_CATEGORIES = ["hotels", "hospitals", "temples", "viewpoints", "restaurants", "banks"]
+    DEFAULT_CATEGORIES = ["hotels", "hospitals", "police", "temples", "viewpoints", "restaurants", "banks"]
 
     @staticmethod
     def _categorize(tags):
@@ -1994,87 +1842,155 @@ class DestinationNearbyPOIsView(APIView):
         from name-matched approved destinations, category groups from
         categorized destinations, and banks/ATMs/pharmacies from the
         OSM-sourced essential-service directories (real imported
-        coordinates — never fabricated). Any category still without
-        offline records comes back empty with an explicit note.
-        """
-        from django.db.models import Q
+        coordinates — never fabricated).
 
-        from .models import Destination, Hospital, OSMEssentialService, PoliceStation
+        The directories are sparsely populated (a few hundred records for
+        the whole country), so a strict small-radius box returns empty for
+        most districts. Instead we EXPAND the search radius in steps until
+        each category finds records, and report the effective search radius
+        so the UI can say "nearest hospital 23 km away" rather than
+        pretending nothing exists. A category with no records even at the
+        maximum radius comes back empty with an explicit note."""
+        from .models import Destination, Hospital, OSMEssentialService, PoliceStation, Hotel, Restaurant
 
-        box = bounding_box(lat, lon, radius_km)
-        bbox = dict(latitude__gte=box["min_lat"], latitude__lte=box["max_lat"],
-                    longitude__gte=box["min_lon"], longitude__lte=box["max_lon"])
+        # Step radii: requested -> x2 -> x4 ... up to 150 km. Sparse
+        # national directories need the wider steps; the distance_km on
+        # every row stays truthful either way.
+        radii = []
+        r = max(1.0, float(radius_km))
+        while r <= 150.0:
+            radii.append(r)
+            r *= 2
+        if radii[-1] < 150.0:
+            radii.append(150.0)
 
-        def rows(pairs, source_label):
-            out = []
-            for name, rlat, rlon, extra in pairs:
-                if rlat is None or rlon is None:
-                    continue
-                d = haversine_distance(lat, lon, float(rlat), float(rlon))
-                if d <= radius_km:
-                    row = {"name": name, "distance_km": round(d, 2),
-                           "latitude": float(rlat), "longitude": float(rlon),
-                           "source": source_label}
-                    row.update(extra or {})
-                    out.append(row)
-            out.sort(key=lambda r: r["distance_km"])
-            return out[:10]
-
+        # Load each candidate set ONCE (no bounding-box pre-filter — the
+        # tables are small: <6k rows total) and distance-rank in Python so
+        # tier expansion never re-queries.
+        hospital_rows = [
+            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone})
+            for h in Hospital.objects.filter(is_archived=False)
+            if h.latitude is not None and h.longitude is not None
+        ]
+        police_rows = [
+            (p.name, float(p.latitude), float(p.longitude), {"phone": p.phone})
+            for p in PoliceStation.objects.filter(is_archived=False)
+            if p.latitude is not None and p.longitude is not None
+        ]
         dest_qs = Destination.objects.filter(
-            is_active=True, status=Destination.SubmissionStatus.APPROVED, **bbox)
+            is_active=True, status=Destination.SubmissionStatus.APPROVED
+        )
         stay_q = Q()
         for word in ("hotel", "lodge", "resort", "guest house", "guesthouse",
                      "homestay", "inn"):
             stay_q |= Q(name__icontains=word)
+        hotel_rows = [
+            (h.name, float(h.latitude), float(h.longitude), {"phone": h.phone, "address": h.address, "price": str(h.price_per_night) if h.price_per_night else None})
+            for h in Hotel.objects.filter(is_active=True).exclude(latitude=None).exclude(longitude=None)
+        ] + [
+            (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
+            for d in dest_qs.filter(stay_q).exclude(latitude=None).exclude(longitude=None)
+        ]
+        restaurant_rows = [
+            (r.name, float(r.latitude), float(r.longitude), {"phone": r.phone, "address": r.address, "cuisine": r.cuisine_types})
+            for r in Restaurant.objects.exclude(latitude=None).exclude(longitude=None)
+        ] + [
+            (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
+            for d in dest_qs.filter(category__slug__in=["food-culinary"]).exclude(latitude=None).exclude(longitude=None)
+        ]
         category_slugs = {"temples": ["temples"], "viewpoints": ["viewpoints"],
                           "restaurants": ["food-culinary"],
                           "peaks": ["mountains", "hills"]}
-
-        # OSM-sourced essential-service directories (imported, real
-        # coordinates, never fabricated): banks, ATMs, pharmacies.
+        category_rows = {}
+        for key, slugs in category_slugs.items():
+            category_rows[key] = [
+                (d.name, float(d.latitude), float(d.longitude), {"slug": d.slug})
+                for d in dest_qs.filter(category__slug__in=slugs)
+                if d.latitude is not None and d.longitude is not None
+            ]
         service_categories = {
             "banks": (["bank"], "Tourism database — bank directory (OSM-sourced)"),
             "atms": (["atm"], "Tourism database — ATM directory (OSM-sourced)"),
             "pharmacies": (["pharmacy"],
                            "Tourism database — pharmacy directory (OSM-sourced)"),
         }
+        service_rows = {
+            key: [
+                (s.name, float(s.latitude), float(s.longitude),
+                 {"phone": s.phone or None, "address": s.address or None})
+                for s in OSMEssentialService.objects.filter(
+                    category__in=cats, is_archived=False
+                ).exclude(name__icontains="name not recorded")
+                if s.latitude is not None and s.longitude is not None
+            ]
+            for key, (cats, _label) in service_categories.items()
+        }
+
+        source_for = {
+            "hospitals": "Tourism database — hospital directory",
+            "police": "Tourism database — police directory",
+            "hotels": "Tourism database — likely stays (name-matched)",
+            "temples": "Tourism database — admin-verified destinations",
+            "viewpoints": "Tourism database — admin-verified destinations",
+            "restaurants": "Tourism database — admin-verified destinations",
+            "peaks": "Tourism database — admin-verified destinations",
+        }
+
+        def candidate_pool(key):
+            if key == "hospitals":
+                return hospital_rows
+            if key == "police":
+                return police_rows
+            if key == "hotels":
+                return hotel_rows
+            if key == "restaurants":
+                return restaurant_rows
+            if key in category_rows:
+                return category_rows[key]
+            if key in service_rows:
+                return service_rows[key]
+            return []
+
+        def search(key):
+            """Nearest-first results with tiered radius expansion."""
+            pool = candidate_pool(key)
+            if not pool:
+                return [], radii[-1]
+            for radius in radii:
+                found = []
+                for name, rlat, rlon, extra in pool:
+                    d = haversine_distance(lat, lon, rlat, rlon)
+                    if d is not None and d <= radius:
+                        found.append({"name": name, "distance_km": round(d, 2),
+                                      "latitude": rlat, "longitude": rlon,
+                                      "source": source_for.get(key,
+                                                              service_categories.get(key, ("", "Tourism database"))[1])})
+                        found[-1].update(extra or {})
+                if found:
+                    found.sort(key=lambda row: row["distance_km"])
+                    # Collapse same-site duplicates: the same facility is
+                    # often recorded twice under slightly different names at
+                    # identical coordinates (88 hospital / 222 police pairs
+                    # in the current directories). Keep the nearest entry.
+                    seen_sites = set()
+                    unique = []
+                    for row in found:
+                        site = (round(row["latitude"], 3), round(row["longitude"], 3))
+                        if site in seen_sites:
+                            continue
+                        seen_sites.add(site)
+                        unique.append(row)
+                    return unique[:10], radius
+            return [], radii[-1]
 
         categories = {}
         for key in wanted:
-            if key == "hospitals":
-                data = rows(((h.name, h.latitude, h.longitude, {"phone": h.phone})
-                             for h in Hospital.objects.filter(is_archived=False, is_verified=True, **bbox)),
-                            "Tourism database — hospital directory")
-            elif key == "police":
-                data = rows(((p.name, p.latitude, p.longitude, {"phone": p.phone})
-                             for p in PoliceStation.objects.filter(is_archived=False, is_verified=True, **bbox)),
-                            "Tourism database — police directory")
-            elif key == "hotels":
-                data = rows(((d.name, d.latitude, d.longitude, {"slug": d.slug})
-                             for d in dest_qs.filter(stay_q)),
-                            "Tourism database — likely stays (name-matched)")
-            elif key in category_slugs:
-                data = rows(((d.name, d.latitude, d.longitude, {"slug": d.slug})
-                             for d in dest_qs.filter(
-                                 category__slug__in=category_slugs[key])),
-                            "Tourism database — admin-verified destinations")
-            elif key in service_categories:
-                svc_cats, svc_label = service_categories[key]
-                data = rows(((s.name, s.latitude, s.longitude,
-                              {"phone": s.phone or None,
-                               "address": s.address or None})
-                             for s in OSMEssentialService.objects.filter(
-                                 category__in=svc_cats, is_archived=False, is_verified=True,
-                                 **bbox)
-                             # skip anonymous OSM nodes (no real name)
-                             .exclude(name__icontains="name not recorded")),
-                            svc_label)
-            else:
-                data = []
-            entry = {"label": cls.CATEGORIES[key][1], "results": data}
+            data, searched_radius = search(key)
+            entry = {"label": cls.CATEGORIES[key][1], "results": data,
+                     "searched_radius_km": round(searched_radius, 1)}
             if not data:
-                entry["note"] = ("No offline records for this category — live "
-                                 "OpenStreetMap data is required for it.")
+                entry["note"] = (f"No offline records within {round(searched_radius)} km — "
+                                 "live OpenStreetMap data is required for this category here.")
             categories[key] = entry
 
         return {
@@ -2123,7 +2039,14 @@ class DestinationNearbyPOIsView(APIView):
             # Never a dead end: serve admin-managed database places instead
             # (hospitals, police, stays, category-matched destinations) with
             # clear provenance, so "nearby hospital/hotel" always answers.
+            # Cache the fallback too (short TTL) — otherwise every repeat
+            # visit re-pays the full 18 s Overpass failover when the
+            # network/OSM is unreachable, which made pages feel "very slow".
             payload = self._database_fallback(float(lat), float(lon), radius_km, wanted)
+            try:
+                cache.set(cache_key, payload, 300)
+            except Exception:  # pragma: no cover — cache backend failures
+                pass
             return Response({**payload, "destination": destination.name})
 
         grouped = {key: [] for key in wanted}
@@ -2146,12 +2069,30 @@ class DestinationNearbyPOIsView(APIView):
         for key in wanted:
             rows = sorted(grouped[key], key=lambda row: row["distance_km"])[:10]
             categories[key] = {"label": self.CATEGORIES[key][1], "results": rows}
+        # OSM amenity nodes are sparse in rural Nepal (a whole district may
+        # have zero hospital/bank nodes) while the admin-managed directories
+        # have nationwide coverage. When live OSM is empty for a category,
+        # supplement from those directories — per-row provenance stays
+        # truthful, and a category that exists nowhere stays honestly empty.
+        supplemented = [key for key in wanted if not categories[key]["results"]]
+        if supplemented:
+            fallback = self._database_fallback(float(lat), float(lon), radius_km, supplemented)
+            for key in supplemented:
+                fb_entry = fallback["categories"][key]
+                if fb_entry.get("results"):
+                    fb_entry["note"] = ("Live map data has no records here; showing "
+                                        "admin-managed database places instead.")
+                categories[key] = fb_entry
+            payload_source = ("OpenStreetMap (Overpass API), empty categories "
+                              "supplemented from the Tourism database")
+        else:
+            payload_source = "OpenStreetMap (Overpass API)"
         payload = {
             "latitude": lat,
             "longitude": lon,
             "radius_km": radius_km,
             "distance_note": "Straight-line distances from the destination coordinates.",
-            "source": "OpenStreetMap (Overpass API)",
+            "source": payload_source,
             "categories": categories,
         }
         # Cache the external OSM payload only; the admin-managed destination
@@ -2355,9 +2296,9 @@ class DistrictDetailView(APIView):
         ]
         top = pub.order_by("-average_rating", "-ratings_count", "name")[:10]
         hospitals = Hospital.objects.filter(
-            destination__district=match, is_archived=False, is_verified=True).select_related("destination")[:20]
+            destination__district=match).select_related("destination")[:20]
         police = PoliceStation.objects.filter(
-            destination__district=match, is_archived=False, is_verified=True).select_related("destination")[:20]
+            destination__district=match).select_related("destination")[:20]
         return Response({
             "district": match,
             "province": meta["province"],
@@ -2617,9 +2558,9 @@ class MoodRecommendationsView(generics.ListAPIView):
         qs = Destination.objects.filter(
             is_active=True, status=Destination.SubmissionStatus.APPROVED
         ).select_related("category", "risk_analysis").prefetch_related("transit_routes").annotate(
-            hospital_total=Count("hospitals", filter=Q(hospitals__is_archived=False, hospitals__is_verified=True), distinct=True),
-            police_total=Count("police_stations", filter=Q(police_stations__is_archived=False, police_stations__is_verified=True), distinct=True),
-            hotel_total=Count("hotels", filter=Q(hotels__is_active=True, hotels__is_verified=True), distinct=True),
+            hospital_total=Count("hospitals", distinct=True),
+            police_total=Count("police_stations", distinct=True),
+            hotel_total=Count("hotels", distinct=True),
         )
 
         exclude_slugs = set(ACCOMMODATION_SLUGS) | set(NON_ATTRACTION_SLUGS)
@@ -2646,7 +2587,7 @@ class MoodRecommendationsView(generics.ListAPIView):
         # Current sourced warnings are distinct from historical/model risk and
         # receive stronger, recency-appropriate ranking influence.
         from django.utils import timezone
-        active_hazards = CurrentHazard.objects.filter(is_active=True, verified=True).filter(
+        active_hazards = CurrentHazard.objects.filter(is_active=True).filter(
             Q(expires_at__isnull=True) | Q(expires_at__gte=timezone.now())
         ).values("destination_id", "severity", "verified", "source_type", "title")
         severity_order = {"low": 1, "moderate": 2, "high": 3, "critical": 4}
@@ -2949,15 +2890,10 @@ class SitemapView(View):
                   "/about", "/contact", "/emergency", "/discover-nepal", "/explore-map",
                   "/how-it-works", "/knowledge-base"]
         locs = [f"{base}{path}" for path in static]
-        for page in ManagedPage.objects.filter(is_enabled=True, status="published"):
-            content = page.published_snapshot if isinstance(page.published_snapshot, dict) else {}
-            route = str(content.get("route") or page.route or "")
-            key = str(content.get("key") or page.key or "")
-            if not route:
-                continue
-            route = route if route.startswith("/page/") or route in static else f"/page/{key}"
+        for page in ManagedPage.objects.filter(is_enabled=True, status="published").exclude(route=""):
+            route = page.route if page.route.startswith("/page/") or page.route in static else f"/page/{page.key}"
             locs.append(f"{base}{route}")
-        for slug in Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED).values_list("slug", flat=True)[:5000]:
+        for slug in Destination.objects.filter(status="published").values_list("slug", flat=True)[:5000]:
             locs.append(f"{base}/destinations/{slug}")
         xml = "\n".join(
             ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']

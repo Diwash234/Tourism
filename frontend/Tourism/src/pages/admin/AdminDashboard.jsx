@@ -840,6 +840,16 @@ const AdminDashboard = () => {
         {activeTab === "branding" && <BrandingPanel />}
         {activeTab === "visitor_desk" && <OwnerDeskPanel />}
         {activeTab === "cms" && <CMSPanel />}
+        {activeTab === "cms_pages" && <CMSPanel defaultResource="pages" />}
+        {activeTab === "cms_sections" && <CMSPanel defaultResource="sections" />}
+        {activeTab === "destinations" && <CMSPanel defaultResource="destinations" />}
+        {activeTab === "travel_content" && <CMSPanel defaultResource="travel_content" />}
+        {activeTab === "media_library" && <CMSPanel defaultResource="media_library" />}
+        {activeTab === "seo_metadata" && <CMSPanel defaultResource="seo_metadata" />}
+        {activeTab === "global_content" && <CMSPanel defaultResource="global_content" />}
+        {activeTab === "announcements" && <CMSPanel defaultResource="announcements" />}
+        {activeTab === "translations" && <CMSPanel defaultResource="translations" />}
+        {activeTab === "publishing" && <CMSPanel defaultResource="publishing" />}
         {activeTab === "cms_overview" && <CMSOverviewPanel />}
         {activeTab === "homepage_manager" && <HomepageManagerPanel />}
         {activeTab === "redirects" && <RedirectsPanel />}

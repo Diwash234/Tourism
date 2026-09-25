@@ -1,11 +1,8 @@
 import { FiGithub } from "react-icons/fi"
-import { getGoogleAuthUrl, getGithubAuthUrl, hasGoogleClientId, hasGithubClientId } from "../../utils/oauth"
+import { getGoogleAuthUrl, getGithubAuthUrl } from "../../utils/oauth"
 import usePublicConfig from "../../hooks/usePublicConfig"
 
-// A simple original "G" mark instead of importing Google's actual logo
-// asset (brand guidelines require using their exact provided SVG, which
-// isn't bundled in this project) — clearly recognizable as Google via
-// color + label without misrepresenting an official asset.
+// Official Google "G" brand mark with standard Google colors
 const GoogleMark = () => (
   <svg viewBox="0 0 24 24" width="18" height="18">
     <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.5-5.3 3.5-8.8z" />
@@ -17,56 +14,37 @@ const GoogleMark = () => (
 
 /**
  * SocialLoginButtons
- * Redirects the browser (not a popup) to the provider's consent screen —
- * see utils/oauth.js. OAuthCallback.jsx handles the return trip.
- *
- * `showDivider` (default true): some pages (UserLogin, Register) render
- * their OWN "or" divider above these buttons — pass showDivider={false}
- * there, otherwise the divider appears TWICE (owner-reported bug).
+ * Provides active Google and GitHub social login choices. Redirects to
+ * provider's consent screen. OAuthCallback.jsx handles return trip.
  */
 const SocialLoginButtons = ({ showDivider = true }) => {
-  // Ensures the public config (with OAuth client ids from the backend .env) is loaded.
   usePublicConfig()
-  const googleReady = hasGoogleClientId()
-  const githubReady = hasGithubClientId()
-  const disabledCls = "flex items-center justify-center gap-2 border border-gray-100 rounded-xl py-2.5 text-sm font-medium text-gray-300 cursor-not-allowed"
-  return (
-  <div className="space-y-3">
-    {showDivider && (
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-gray-200" />
-        <span className="text-xs text-gray-400">or continue with</span>
-        <div className="flex-1 h-px bg-gray-200" />
-      </div>
-    )}
 
-    <div className="grid grid-cols-2 gap-3">
-      {googleReady ? (
+  return (
+    <div className="space-y-3">
+      {showDivider && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-xs text-gray-400">or continue with</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
         <a
           href={getGoogleAuthUrl()}
-          className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <GoogleMark /> Google
         </a>
-      ) : (
-        <span className={disabledCls} title="Google sign-in is not configured on this server yet">
-          <GoogleMark /> Google unavailable
-        </span>
-      )}
-      {githubReady ? (
         <a
           href={getGithubAuthUrl()}
-          className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
-          <FiGithub size={18} /> GitHub
+          <FiGithub size={18} className="text-gray-900" /> GitHub
         </a>
-      ) : (
-        <span className={disabledCls} title="GitHub sign-in is not configured on this server yet">
-          <FiGithub size={18} /> GitHub unavailable
-        </span>
-      )}
+      </div>
     </div>
-  </div>
   )
 }
 

@@ -36,11 +36,20 @@ class ItinerarySerializer(serializers.ModelSerializer):
     category_filter_names = serializers.SlugRelatedField(
         source="category_filter", slug_field="name", many=True, read_only=True
     )
+    distance_type = serializers.SerializerMethodField()
+    distance_note = serializers.SerializerMethodField()
+
+    def get_distance_type(self, obj):
+        return "straight_line"
+
+    def get_distance_note(self, obj):
+        return "Straight-line distance"
 
     class Meta:
         model = Itinerary
         fields = [
             "id", "title", "status", "start_date", "num_days", "total_distance_km",
+            "distance_type", "distance_note",
             "category_filter", "category_filter_names", "days", "progress", "created_at",
         ]
         read_only_fields = ["total_distance_km", "created_at"]

@@ -50,21 +50,29 @@ HUGGINGFACE_API_KEY=
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r Tourism/requirement.txt
+pip install -r Tourism/requirements.txt
 pip install -r ml_service/requirements.txt
 cd frontend/Tourism && npm ci && cd ../..
 ```
 
 ## Database
 
-`Tourism/db.sqlite3` is a local runtime file. Do not commit it. A fresh clone gets destinations from:
+**The full dataset ships inside the repo.** `Tourism/db.sqlite3` (~54 MB:
+8,600+ destinations, 5,000+ hotels, hospital/police/bank directories, route
+diagnostics) is committed on purpose — a fresh clone is complete.
 
-1. `python manage.py migrate`
-2. `python manage.py import_osm_destinations` (CSV in `ml_service/processed_data/`)
-3. `python manage.py fill_missing_place_coords` (applies committed `Tourism/dataset/destination_locations.json`, then fills remaining city/coords only from other recorded destinations)
-4. `python manage.py seed_e2e_features` (demo logins and published packages)
+Just use the file as-is. **Do not delete it and do not rebuild it with
+`manage.py migrate`** — migrate only creates *empty* tables, which is exactly
+why a local run "shows no destinations, routes or nearby places".
 
-Or run the whole path:
+If you ever deleted or emptied it:
+
+```bash
+git checkout -- Tourism/db.sqlite3
+```
+
+Rebuilding from scratch (only if you have a real reason — the committed file
+is the source of truth) runs the same steps the file was built from:
 
 ```bash
 cd Tourism
@@ -85,7 +93,7 @@ cd Tourism
 cd ..
 ```
 
-City and coordinate fills live in `Tourism/dataset/destination_locations.json` so Git clones receive them without the SQLite file. Admin destination edits write both SQLite and that JSON. Missing fields stay empty (`Not recorded` in the UI). Do not run `update_city` — it reverse-geocodes and invents descriptions.
+City and coordinate fills also live in `Tourism/dataset/destination_locations.json` (used by `fill_missing_place_coords`). Admin destination edits write both SQLite and that JSON. Missing fields stay empty (`Not recorded` in the UI). Do not run `update_city` — it reverse-geocodes and invents descriptions.
 
 ## Run
 
@@ -116,6 +124,28 @@ cd frontend/Tourism
 npm run build
 npm run preview -- --host 0.0.0.0 --port 5173
 ```
+
+## Local self-check (run this when "nothing shows up")
+
+One script verifies the whole local install — database contents, python
+dependencies, `manage.py check`, the API on port 8000 (starts it for you if
+nothing is running), nearby places/POIs and routes for remote coordinates
+(Humla, Jumla, Darchula, Mugu, Taplejung), itineraries, and the frontend
+dev-server proxy. Every failure prints the exact fix:
+
+```bash
+python scripts/local_check.py
+```
+
+Exit code 0 = all green. All common "frontend is empty" symptoms trace to
+one of these four causes:
+
+| Symptom in the browser | Cause | Fix |
+| --- | --- | --- |
+| "connection refused" on every page | Django not running on port 8000 | `cd Tourism && python manage.py runserver 0.0.0.0:8000` (check the traceback if it exits — usually a missing `pip install -r Tourism/requirements.txt`) |
+| Pages load but zero destinations / empty map | `db.sqlite3` deleted or freshly migrated (empty tables) | `git checkout -- Tourism/db.sqlite3` then restart runserver |
+| White screen / hook errors in console | stale Vite cache | delete `frontend/Tourism/node_modules/.vite` and restart `npm run dev`; hard-refresh the browser |
+| 400 from the API in the console | frontend and backend versions out of sync | `git pull` both, restart both servers |
 
 ## Data imports and maintenance
 

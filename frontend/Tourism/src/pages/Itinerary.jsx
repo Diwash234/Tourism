@@ -114,7 +114,13 @@ function enrichPlanBudget(rawPlan, form) {
 
 const Itinerary = () => {
 
-  const [form, setForm] = useState(DEFAULT_FORM)
+  // /itinerary?city=Dolakha (linked from the 77-district pages) prefills the
+  // start city so every district can jump straight to its own itinerary.
+  const [searchParams] = useSearchParams()
+  const cityParam = (searchParams.get("city") || "").trim()
+  const [form, setForm] = useState(
+    () => (cityParam ? { ...DEFAULT_FORM, start_city: cityParam } : DEFAULT_FORM)
+  )
 
   const [plan, setPlan] = useState(null)
 
@@ -138,7 +144,6 @@ const Itinerary = () => {
 
   // Merged from the old TripPlanner: optional ?dest= focus, AI refinement, and a
   // custom-cost notepad. The rich dataset engine remains the source of truth.
-  const [searchParams] = useSearchParams()
   const focusDestination = (searchParams.get("dest") || "").replace(/[-_]/g, " ").trim()
 
   const [modifying, setModifying] = useState(false)

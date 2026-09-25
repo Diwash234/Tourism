@@ -56,7 +56,7 @@ Follow these steps to set up, train ML models, seed data, run tests, and launch 
    ```
 2. **Install Python dependencies**:
    ```bash
-   python3 -m pip install -r Tourism/requirement.txt -r ml_service/requirements.txt --break-system-packages
+   python3 -m pip install -r Tourism/requirements.txt -r ml_service/requirements.txt
    ```
 3. **Configure optional environment variables**:
    ```bash

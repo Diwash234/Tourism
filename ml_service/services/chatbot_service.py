@@ -7,10 +7,6 @@ import re
 
 from .emergency_service import get_nearest_emergency_contacts
 from .recommendation_service import recommend
-from model.budget.budget_engine import estimate_budget
-
-
-
 
 
 INTENT_PATTERNS = {
