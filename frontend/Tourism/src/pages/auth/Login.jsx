@@ -13,21 +13,21 @@ import SocialLoginButtons from "./SocialLoginButtons"
 const ROLE_PRESETS = [
   {
     id: "tourist",
-    label: "Tourist / User",
+    label: "Traveller",
     icon: FiUser,
     badge: "Public Portal",
     color: "from-blue-600 to-indigo-600",
   },
   {
     id: "staff",
-    label: "Staff / Sub-Admin",
+    label: "Staff",
     icon: FiBriefcase,
     badge: "Moderation Desk",
     color: "from-purple-600 to-rose-600",
   },
   {
     id: "admin",
-    label: "Admin / Super-Admin",
+    label: "Administrator",
     icon: FiShield,
     badge: "Full RBAC Control",
     color: "from-rose-600 to-amber-500",
@@ -121,7 +121,7 @@ const Login = () => {
         </div>
 
         {/* 3 Role Selection Badges */}
-        <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {ROLE_PRESETS.map((preset) => {
             const Icon = preset.icon
             const isSelected = selectedRole === preset.id
@@ -132,7 +132,7 @@ const Login = () => {
                 onClick={() => handleRolePreset(preset)}
                 className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
                   isSelected
-                    ? "border-purple-600 bg-[#F7F8F5]/80 shadow-md ring-2 ring-purple-400"
+                    ? "border-[var(--ny-green)] bg-[var(--ny-soft-green)] shadow-md ring-2 ring-[var(--ny-mint)]"
                     : "border-gray-200 hover:border-[#2E6B5A] bg-gray-50"
                 }`}
               >

@@ -1,17 +1,14 @@
-import { useForm } from "react-hook-form"
-import CMSPageIntro from "../../components/cms/CMSPageIntro"
-import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useState } from "react"
-import { FiMail, FiLock, FiUser, FiLogIn, FiAlertCircle, FiHelpCircle, FiSend } from "react-icons/fi"
-import { motion } from "framer-motion"
+import { useForm } from "react-hook-form"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { FiAlertCircle, FiHelpCircle, FiLock, FiLogIn, FiMail, FiSend, FiUser } from "react-icons/fi"
+import CMSPageIntro from "../../components/cms/CMSPageIntro"
 import useAuth from "../../hooks/useAuth"
 import useToast from "../../hooks/useToast"
 import authApi from "../../api/authApi"
 import safeNextPath from "../../utils/safeNextPath"
 import AuthShell from "../../components/auth/AuthShell"
 import SocialLoginButtons from "./SocialLoginButtons"
-import CrazyButton from "../../components/ui/CrazyButton"
-import LightRays from "../../components/ui/LightRays"
 
 export default function UserLogin() {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -20,199 +17,63 @@ export default function UserLogin() {
   const navigate = useNavigate()
   const location = useLocation()
   const [loading, setLoading] = useState(false)
-  // Specific failure reason from the backend (Round 21): the old UI only
-  // showed one vague toast for every failure ("No active account…").
-  const [loginError, setLoginError] = useState(null) // { code, detail }
-  // Verify / activate account (no login required)
+  const [loginError, setLoginError] = useState(null)
   const [verifyEmail, setVerifyEmail] = useState("")
   const [verifyBusy, setVerifyBusy] = useState(false)
-  const [verifyMsg, setVerifyMsg] = useState(null) // { text, ok }
+  const [verifyMsg, setVerifyMsg] = useState(null)
   const [showVerifyBox, setShowVerifyBox] = useState(false)
 
   const sendVerification = async () => {
-    const email = (verifyEmail || "").trim()
-    if (!email) {
-      setVerifyMsg({ text: "Enter your email, then press 'Send link'.", ok: false })
-      return
-    }
-    // Keep the email in the box until the request succeeds, so a failed
-    // send (throttled, network…) doesn't cost the user their input.
-    setVerifyBusy(true)
-    setVerifyMsg(null)
+    const email = verifyEmail.trim()
+    if (!email) { setVerifyMsg({ text: "Enter your email first.", ok: false }); return }
+    setVerifyBusy(true); setVerifyMsg(null)
     try {
       const { data } = await authApi.resendVerification(email)
       setVerifyEmail("")
       setVerifyMsg({ text: data.message || "Verification link sent — check your inbox.", ok: true })
-    } catch (err) {
-      const d = err?.response?.data
-      setVerifyMsg({ text: d?.detail || d?.message || "Could not send the verification email. Please try again.", ok: false })
-    } finally {
-      setVerifyBusy(false)
-    }
+    } catch (error) {
+      setVerifyMsg({ text: error.response?.data?.detail || "Could not send the verification email.", ok: false })
+    } finally { setVerifyBusy(false) }
   }
 
   const onSubmit = async (data) => {
-    setLoading(true)
-    setLoginError(null)
+    setLoading(true); setLoginError(null)
     try {
       const userData = await login(data)
-      showToast(`Welcome back, ${userData?.first_name || userData?.email || "traveller"}!`, "success")
-      if (userData?.is_verified === false) {
-        showToast("Your email is not verified yet — check your inbox, or resend the link below.", "warning")
-      }
-      const next = safeNextPath(new URLSearchParams(location.search).get("next"))
-      navigate(location.state?.from?.pathname || next || "/dashboard")
-    } catch (err) {
-      const d = err?.response?.data
-      const code = d?.code || ""
-      const detail = d?.detail || (typeof d === "string" && d ? d : "Invalid email or password. Please check and try again.")
-      setLoginError({ code, detail })
-      // Offer the verify option whenever the account exists but is
-      // unverified / needs activation.
-      if (code === "account_deactivated" || /verify/i.test(detail)) {
-        setShowVerifyBox(true)
-      }
+      showToast(`Welcome back, ${userData?.first_name || userData?.email || "traveller"}.`, "success")
+      if (userData?.is_verified === false) showToast("Your email is not verified yet — check your inbox.", "warning")
+      const queryNext = safeNextPath(new URLSearchParams(location.search).get("next"))
+      const from = location.state?.from
+      const fromPath = from?.pathname
+        ? `${from.pathname}${from.search || ""}${from.hash || ""}`
+        : null
+      navigate(queryNext || safeNextPath(fromPath) || "/dashboard")
+    } catch (error) {
+      const data = error?.response?.data
+      const code = data?.code || ""
+      setLoginError({ code, detail: data?.detail || (typeof data === "string" && data ? data : "Invalid email or password. Please check your details and try again.") })
+      if (code === "account_deactivated" || /verify/i.test(data?.detail || "")) setShowVerifyBox(true)
     } finally { setLoading(false) }
   }
 
   return (
     <AuthShell portal="tourist" title="Welcome back">
       <CMSPageIntro pageKey="auth-login" />
-      <div className="absolute inset-0 -z-0 overflow-hidden rounded-[2rem]">
-        <LightRays color="#1f6b4d" accent="#b8862f" intensity={0.22} speed={24} />
-      </div>
-
-      <p className="relative z-10 mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-        Traveller portal. Sign in with your email, or continue with Google or GitHub.
-      </p>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
-        <div className="relative">
-          <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input
-            type="email"
-            placeholder="Email address"
-            autoComplete="email"
-            data-testid="login-email"
-            className="input-field pl-11"
-            {...register("email", { required: "Email is required" })}
-          />
-          {errors.email && <p className="text-xs text-rose-600 mt-1">{errors.email.message}</p>}
-        </div>
-
-        <div className="relative">
-          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input
-            type="password"
-            placeholder="Password"
-            autoComplete="current-password"
-            data-testid="login-password"
-            className="input-field pl-11"
-            {...register("password", { required: "Password is required" })}
-          />
-          {errors.password && <p className="text-xs text-rose-600 mt-1">{errors.password.message}</p>}
-        </div>
-
-        {loginError && (
-          <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-            <div className="flex items-start gap-2">
-              <FiAlertCircle className="mt-0.5 shrink-0" size={16} />
-              <div>
-                <p className="font-medium">{loginError.detail}</p>
-                {loginError.code === "email_not_found" && (
-                  <p className="mt-1 text-xs">
-                    No account with this email yet?{" "}
-                    <Link to="/register" className="font-bold underline">Create one here</Link>.
-                  </p>
-                )}
-                {loginError.code === "wrong_password" && (
-                  <p className="mt-1 text-xs">
-                    You can also <Link to="/forgot-password" className="font-bold underline">reset your password</Link>.
-                  </p>
-                )}
-                {loginError.code === "account_deactivated" && (
-                  <p className="mt-1 text-xs">Support can reactivate your account — contact info is in the footer.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between text-xs text-stone-500">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" className="rounded accent-primary-600" /> Remember me
-          </label>
-          <Link to="/forgot-password" className="text-primary-700 hover:underline font-medium">Forgot password?</Link>
-        </div>
-
-        <motion.div whileTap={{ scale: 0.98 }}>
-          <CrazyButton type="submit" disabled={loading} data-testid="login-submit" className="w-full py-3 text-base">
-            {loading ? "Signing in..." : "Sign In"}
-            {!loading && <FiLogIn />}
-          </CrazyButton>
-        </motion.div>
+      <p className="mb-5 rounded-[var(--ny-radius-md)] bg-[var(--ny-soft-green)] px-3 py-2.5 text-sm text-[var(--ny-green-dark)]">Sign in to save places, build an itinerary and manage trip requests.</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div><label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold">Email address</label><div className="relative"><FiMail size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ny-text-muted)]" aria-hidden="true" /><input id="login-email" type="email" autoComplete="email" data-testid="login-email" className="input-field pl-11" placeholder="you@example.com" {...register("email", { required: "Email is required" })} /></div>{errors.email && <p className="mt-1 text-xs text-[var(--ny-danger)]">{errors.email.message}</p>}</div>
+        <div><label htmlFor="login-password" className="mb-1.5 block text-sm font-semibold">Password</label><div className="relative"><FiLock size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ny-text-muted)]" aria-hidden="true" /><input id="login-password" type="password" autoComplete="current-password" data-testid="login-password" className="input-field pl-11" placeholder="Your password" {...register("password", { required: "Password is required" })} /></div>{errors.password && <p className="mt-1 text-xs text-[var(--ny-danger)]">{errors.password.message}</p>}</div>
+        {loginError && <div role="alert" className="rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] p-3 text-sm text-[var(--ny-danger)]"><div className="flex gap-2"><FiAlertCircle size={17} className="mt-0.5 shrink-0" aria-hidden="true" /><div><p>{loginError.detail}</p>{loginError.code === "email_not_found" && <p className="mt-1 text-xs">No account with this email yet? <Link to="/register" className="font-semibold underline">Create one</Link>.</p>}{loginError.code === "wrong_password" && <p className="mt-1 text-xs">You can <Link to="/forgot-password" className="font-semibold underline">reset your password</Link>.</p>}</div></div></div>}
+        <div className="flex items-center justify-between gap-3 text-sm"><label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4" />Remember me</label><Link to="/forgot-password" className="font-semibold text-[var(--ny-green)] hover:underline">Forgot password?</Link></div>
+        <button type="submit" disabled={loading} data-testid="login-submit" className="ny-btn ny-btn-primary w-full">{loading ? "Signing in…" : "Sign in"}<FiLogIn size={17} aria-hidden="true" /></button>
       </form>
 
-      {/* Verify / activate account — the "activate account" option that
-          was missing: resend the verification link without logging in. */}
-      <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 relative z-10">
-        <button
-          type="button"
-          onClick={() => setShowVerifyBox(v => !v)}
-          className="flex w-full items-center gap-2 text-left text-sm font-bold text-amber-800"
-        >
-          <FiHelpCircle size={15} className="shrink-0" />
-          {showVerifyBox ? "Hide verification help" : "Didn't get a verification email? Activate account"}
-        </button>
-        {showVerifyBox && (
-          <div className="mt-2">
-            <p className="text-xs text-amber-700 leading-relaxed">
-              Signed up but the email never arrived (or the link expired)? Enter your
-              email and we'll send a fresh verification link.
-            </p>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="email"
-                value={verifyEmail}
-                onChange={(e) => setVerifyEmail(e.target.value)}
-                placeholder="Email you signed up with"
-                className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-              <button
-                type="button"
-                onClick={sendVerification}
-                disabled={verifyBusy}
-                className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-50"
-              >
-                <FiSend size={14} />
-                {verifyBusy ? "Sending…" : "Send link"}
-              </button>
-            </div>
-            {verifyMsg && (
-              <p className={`mt-2 text-xs font-medium ${verifyMsg.ok ? "text-emerald-700" : "text-rose-700"}`}>
-                {verifyMsg.text}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      <div className="mt-5 rounded-[var(--ny-radius-md)] border border-[#E9D39A] bg-[var(--ny-soft-gold)] p-3"><button type="button" onClick={() => setShowVerifyBox((value) => !value)} className="flex w-full items-center gap-2 text-left text-sm font-semibold text-[var(--ny-warning)]"><FiHelpCircle size={16} aria-hidden="true" />{showVerifyBox ? "Hide verification help" : "Didn't get a verification email?"}</button>{showVerifyBox && <div className="mt-3"><p className="text-xs leading-5 text-[var(--ny-text-secondary)]">Enter the address you used to register and we will send a fresh verification link.</p><div className="mt-2 flex gap-2"><label htmlFor="verify-email" className="sr-only">Email for verification</label><input id="verify-email" type="email" value={verifyEmail} onChange={(event) => setVerifyEmail(event.target.value)} placeholder="Email you registered with" className="input-field min-w-0 flex-1" /><button type="button" onClick={sendVerification} disabled={verifyBusy} className="ny-btn ny-btn-secondary shrink-0 px-3"><FiSend size={15} aria-hidden="true" />{verifyBusy ? "Sending…" : "Send"}</button></div>{verifyMsg && <p className={`mt-2 text-xs ${verifyMsg.ok ? "text-[var(--ny-success)]" : "text-[var(--ny-danger)]"}`} role="status">{verifyMsg.text}</p>}</div>}</div>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-stone-400 relative z-10">
-        <div className="flex-1 h-px bg-stone-200" /> or <div className="flex-1 h-px bg-stone-200" />
-      </div>
-      {/* this page has its own "or" divider above → hide the component's */}
-      <div className="relative z-10"><SocialLoginButtons showDivider={false} /></div>
-
-      <p className="text-sm text-center text-stone-500 mt-6 relative z-10">
-        New to Nepal Tourism?{" "}
-        <Link to="/register" className="text-primary-700 font-bold hover:underline">Create an account</Link>
-      </p>
-
-      <div className="mt-4 pt-4 border-t border-stone-100 text-center text-xs text-stone-400 space-x-3 relative z-10">
-        <Link to="/staff/login" className="hover:text-secondary-600 inline-flex items-center gap-1">
-          <FiUser size={12} /> Staff login
-        </Link>
-        <Link to="/admin/login" className="hover:text-stone-700">Admin login</Link>
-      </div>
+      <div className="my-5 flex items-center gap-3 text-xs text-[var(--ny-text-muted)]"><span className="h-px flex-1 bg-[var(--ny-border)]" />or<span className="h-px flex-1 bg-[var(--ny-border)]" /></div>
+      <SocialLoginButtons showDivider={false} />
+      <p className="mt-6 text-center text-sm text-[var(--ny-text-secondary)]">New to Nepal Yatra? <Link to="/register" className="font-semibold text-[var(--ny-green)] hover:underline">Create an account</Link></p>
+      <div className="mt-5 flex justify-center gap-4 border-t border-[var(--ny-border)] pt-4 text-xs text-[var(--ny-text-secondary)]"><Link to="/staff/login" className="inline-flex items-center gap-1 hover:text-[var(--ny-green)]"><FiUser size={13} aria-hidden="true" />Staff login</Link><Link to="/admin/login" className="hover:text-[var(--ny-green)]">Admin login</Link></div>
     </AuthShell>
   )
 }

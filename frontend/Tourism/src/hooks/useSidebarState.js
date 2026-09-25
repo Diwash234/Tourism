@@ -36,7 +36,10 @@ const readPersistedOpen = () => {
     const legacy = window.localStorage?.getItem(LEGACY_COLLAPSE_KEY)
     if (legacy !== null) return legacy !== "1"
   } catch { /* localStorage unavailable */ }
-  return true
+  // A compact rail gives laptop-sized screens the full canvas on first visit;
+  // wide desktop screens open the labelled rail by default. An explicit user
+  // preference always wins over this responsive default.
+  return typeof window !== "undefined" && window.innerWidth >= 1280
 }
 
 // Correct initial state per current viewport: saved rail preference on

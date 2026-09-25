@@ -74,6 +74,10 @@ const { act } = entry
 // browser would process a resize event.
 async function setWidth(px) {
   fakeWidth = px
+  // jsdom does not update innerWidth when the synthetic matchMedia source
+  // changes. The real browser does, and the sidebar's first-visit default uses
+  // it at the 1280px rail breakpoint.
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: px })
   await act(async () => {
     for (const mql of mqls) {
       const ev = { matches: mql.matches, media: mql.media }
@@ -92,6 +96,18 @@ const click = async (el) => {
     el.dispatchEvent(new window.MouseEvent("click", { bubbles: true }))
     await new Promise((r) => setTimeout(r, 10))
   })
+}
+
+// Nearby location is deliberately opt-in. Exercise the same explicit action a
+// visitor uses instead of relying on a mount-time permission prompt.
+async function optIntoNearbyLocation(container) {
+  const button = [...container.querySelectorAll("button")]
+    .find((candidate) => /Use My Location|Try Again/i.test(candidate.textContent))
+  if (!button) return false
+  await click(button)
+  await settle()
+  await settle()
+  return true
 }
 
 async function main() {
@@ -270,6 +286,9 @@ async function main() {
   const n1 = entry.mountNearbyPage()
   await settle()
   await settle()
+  check("nearby: initial state explains the location choice", /Choose a starting point/.test(n1.container.textContent))
+  check("nearby: asks for location before making a nearby request", entry.getNearbyCalls().length === 0)
+  await optIntoNearbyLocation(n1.container)
   const txt1 = n1.container.textContent
   check("nearby: renders destination cards from the API result set",
     /Patan Durbar Square/.test(txt1) && /Swayambhunath Stupa/.test(txt1))
@@ -296,6 +315,7 @@ async function main() {
   const n2 = entry.mountNearbyPage()
   await settle()
   await settle()
+  await optIntoNearbyLocation(n2.container)
   const txt2 = n2.container.textContent
   check("nearby: denial says location is off, never 'no nearby places'",
     /Location access is turned off/.test(txt2) && !/No nearby places found/i.test(txt2))
@@ -313,6 +333,7 @@ async function main() {
   const n3 = entry.mountNearbyPage()
   await settle()
   await settle()
+  await optIntoNearbyLocation(n3.container)
   check("nearby: API failure gets its own message",
     /couldn't be loaded/.test(n3.container.textContent))
   const retryBtn = [...n3.container.querySelectorAll("button")].find((b) => /Retry/.test(b.textContent))
@@ -330,6 +351,7 @@ async function main() {
   const n4 = entry.mountNearbyPage()
   await settle()
   await settle()
+  await optIntoNearbyLocation(n4.container)
   const txt4 = n4.container.textContent
   check("nearby: true empty states the radius, not a generic message",
     /No destinations found within 25 km/.test(txt4) && !/No nearby places found/i.test(txt4))
@@ -402,6 +424,7 @@ async function main() {
   const n6 = entry.mountNearbyPage()
   await settle()
   await settle()
+  await optIntoNearbyLocation(n6.container)
   const hotelsTab = tabButton(n6.container, "Hotels")
   check("nearby: Hotels tab is available", !!hotelsTab)
   await click(hotelsTab)
@@ -432,6 +455,7 @@ async function main() {
   const n7 = entry.mountNearbyPage()
   await settle()
   await settle()
+  await optIntoNearbyLocation(n7.container)
   const hospTab = tabButton(n7.container, "Hospitals")
   check("nearby: Hospitals tab is available", !!hospTab)
   await click(hospTab)
@@ -459,6 +483,7 @@ async function main() {
   const n8 = entry.mountNearbyPage()
   await settle()
   await settle()
+  await optIntoNearbyLocation(n8.container)
   await click(tabButton(n8.container, "Hotels"))
   await settle()
   await settle()

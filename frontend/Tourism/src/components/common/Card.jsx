@@ -1,7 +1,7 @@
-const Card = ({ children, className = "", hover = true }) => (
-  <div className={`card-base p-5 ${hover ? "" : "hover:shadow-none"} ${className}`}>
+const Card = ({ children, className = "", hover = true, as: Component = "div", ...props }) => (
+  <Component className={`ny-card ${hover ? "" : "ny-card-no-hover"} ${className}`} {...props}>
     {children}
-  </div>
+  </Component>
 )
 
 export default Card

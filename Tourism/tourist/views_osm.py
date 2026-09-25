@@ -34,6 +34,8 @@ class OSMEssentialServiceSyncView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from .views_admin import _require_capability
+        _require_capability(request, "safety", "add")
         lat, lon = _parse_coords(request.data)
         if lat is None:
             return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -52,7 +54,7 @@ class OSMEssentialServiceNearbyView(APIView):
         radius_km = float(request.query_params.get("radius_km", 10))
         category = request.query_params.get("category")
 
-        qs = OSMEssentialService.objects.exclude(is_archived=True)
+        qs = OSMEssentialService.objects.filter(is_archived=False, is_verified=True)
         if category:
             qs = qs.filter(category=category)
 
@@ -78,6 +80,8 @@ class OSMTourismPlaceSyncView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from .views_admin import _require_capability
+        _require_capability(request, "destinations", "add")
         lat, lon = _parse_coords(request.data)
         if lat is None:
             return Response({"detail": "latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)

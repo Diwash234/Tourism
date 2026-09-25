@@ -1,69 +1,17 @@
-import { motion } from "framer-motion"
-import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
-import { FiCheckCircle, FiCompass, FiPhoneCall, FiArrowRight, FiShield } from "react-icons/fi"
+import { FiArrowRight, FiCheckCircle, FiCompass, FiInfo, FiShield } from "react-icons/fi"
 import Breadcrumbs from "../components/common/Breadcrumbs"
-import { FadeIn, HoverCard } from "../components/common/MotionSystem"
+import PageHeader from "../components/common/PageHeader"
+import EmptyState from "../components/common/EmptyState"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
 export default function ThankYou() {
-  return (
-    <div className="container-app py-12 max-w-3xl animate-fadeIn">
-      <Breadcrumbs items={[{ label: "Submission Confirmed", to: "/thank-you" }]} />
+  let hasReceipt
+  try { hasReceipt = typeof window !== "undefined" && Boolean(window.sessionStorage.getItem("nepal_yatra_submission_receipt")) } catch { hasReceipt = false }
 
-      <FadeIn className="text-center space-y-6 card-base p-8 sm:p-12 rounded-3xl shadow-2xl border border-[#E5E0D5] bg-white">
-        <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10">
-          <FiCheckCircle size={44} />
-        </div>
+  if (!hasReceipt) {
+    return <div className="ny-page container-app mx-auto max-w-3xl space-y-6 py-8 sm:py-12"><Breadcrumbs items={[{ label: "Submission status", to: "/thank-you" }]} /><PageHeader title="Submission status" subtitle="Check whether a recent place or service submission has a receipt in this browser." icon={FiInfo} /><EmptyState icon={FiInfo} title="No submission receipt found" subtitle="This page does not have a receipt for a submission in this browser. If you just submitted a place or service, return to the form and check its confirmation message." action={<Link to="/contact" className="ny-btn ny-btn-primary">Contact the review team <FiArrowRight size={15} aria-hidden="true" /></Link>} secondaryAction={<Link to="/destinations" className="ny-btn ny-btn-secondary">Browse destinations</Link>} /></div>
+  }
 
-        <div>
-          <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#1D5146] text-xs font-bold uppercase tracking-wider">
-            Submission Received
-          </span>
-          <CMSPageIntro pageKey="thank-you" />
-          <PageHeader title="Dhanyabad! Your Submission is in Good Hands 🙏" subtitle="Our team reviews every submission before it goes live." icon={FiCheckCircle} />
-          <p className="text-gray-600 text-sm max-w-lg mx-auto mt-2 leading-relaxed">
-            Thank you for contributing to the Nepal Tourism portal. Your submission has been securely queued in the Admin Moderation & Verification Sentinel.
-          </p>
-        </div>
-
-        {/* Truthful Response-Time Promise */}
-        <div className="p-4 rounded-2xl bg-[#F7F8F5]/80 border border-[#E5E0D5] text-xs text-[#102A2E] flex items-center justify-center gap-2 max-w-md mx-auto">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span><b>Response Promise:</b> Moderation team reviews within <b>2 hours</b> · 24/7 Helpline: <b>1144</b></span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-4">
-          <HoverCard className="p-4 rounded-2xl border border-[#E5E0D5] bg-gradient-to-br from-white to-purple-50">
-            <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
-              <FiCompass className="text-[#102A2E]" /> Explore Destinations
-            </h4>
-            <p className="text-xs text-gray-500 mt-1">Browse recorded destinations across Nepal. Empty fields stay "Information unavailable".</p>
-            <Link to="/destinations" className="text-xs font-bold text-[#102A2E] hover:underline inline-block mt-2">
-              Browse Places ➔
-            </Link>
-          </HoverCard>
-
-          <HoverCard className="p-4 rounded-2xl border border-[#E5E0D5] bg-gradient-to-br from-white to-rose-50">
-            <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
-              <FiShield className="text-rose-600" /> Safety & Emergency
-            </h4>
-            <p className="text-xs text-gray-500 mt-1">Recorded hospitals and police, plus official numbers 1144, 100 and 102.</p>
-            <Link to="/emergency" className="text-xs font-bold text-rose-600 hover:underline inline-block mt-2">
-              Emergency Hub ➔
-            </Link>
-          </HoverCard>
-        </div>
-
-        <div className="pt-4 border-t border-gray-100 flex items-center justify-center gap-3">
-          <Link
-            to="/"
-            className="btn-primary px-8 py-3 bg-[#102A2E] hover:bg-[#1D5146] text-white font-bold text-sm rounded-xl shadow-lg"
-          >
-            Back to Homepage
-          </Link>
-        </div>
-      </FadeIn>
-    </div>
-  )
+  return <div className="ny-page container-app mx-auto max-w-3xl space-y-6 py-8 sm:py-12"><Breadcrumbs items={[{ label: "Submission confirmed", to: "/thank-you" }]} /><div className="ny-card p-7 text-center sm:p-12"><span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[var(--ny-soft-green)] text-[var(--ny-green)]"><FiCheckCircle size={42} aria-hidden="true" /></span><div className="mx-auto mt-6 max-w-2xl"><span className="ny-kicker">Submission received</span><CMSPageIntro pageKey="thank-you" /><PageHeader title="Thank you for contributing" subtitle="Your submission has been received and will be reviewed before it appears publicly." icon={FiCheckCircle} /><p className="mt-3 text-sm leading-6 text-[var(--ny-text-secondary)]">Review timing depends on the type of submission and the information provided. A submission is a request, not a guarantee that it will be published.</p></div><div className="mx-auto mt-6 flex max-w-lg items-start gap-3 rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-[var(--ny-soft-green)] p-4 text-left text-sm text-[var(--ny-text-secondary)]"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--ny-green)]" aria-hidden="true" /><span>Keep any supporting files safe to share and avoid including private personal information.</span></div><div className="mt-8 grid gap-4 text-left sm:grid-cols-2"><article className="ny-panel p-5"><h2 className="flex items-center gap-2 text-base font-bold"><FiCompass className="text-[var(--ny-green)]" aria-hidden="true" />Explore destinations</h2><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">Browse recorded places across Nepal. Missing fields remain marked as unavailable.</p><Link to="/destinations" className="ny-btn ny-btn-link mt-3 px-0">Browse places <FiArrowRight size={15} aria-hidden="true" /></Link></article><article className="ny-panel p-5"><h2 className="flex items-center gap-2 text-base font-bold"><FiShield className="text-[var(--ny-danger)]" aria-hidden="true" />Safety information</h2><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">Open the emergency page to search directory records available for a destination or location.</p><Link to="/emergency" className="ny-btn ny-btn-link mt-3 px-0 text-[var(--ny-danger)]">Emergency page <FiArrowRight size={15} aria-hidden="true" /></Link></article></div><div className="mt-8 border-t border-[var(--ny-border)] pt-6"><Link to="/" className="ny-btn ny-btn-primary">Back to homepage <FiArrowRight size={16} aria-hidden="true" /></Link></div></div></div>
 }

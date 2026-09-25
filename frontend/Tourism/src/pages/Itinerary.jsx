@@ -28,12 +28,12 @@ import useToast from "../hooks/useToast"
 const NOTE_CATEGORIES = ["Hotel", "Transport", "Food", "Activity", "Other"]
 
 const AI_MODIFICATIONS = [
-  ["cheaper", "💵 Make it cheaper"],
-  ["luxurious", "💎 Make it luxurious"],
-  ["more_culture", "🏛️ Add more culture"],
-  ["more_nature", "🌿 Add hidden nature"],
-  ["slower_pace", "☕ Slow down pace"],
-  ["replan", "🌦️ Weather / Impact Replan"],
+  ["cheaper", "Make it more affordable"],
+  ["luxurious", "Add more comfort"],
+  ["more_culture", "Add more culture"],
+  ["more_nature", "Add more nature"],
+  ["slower_pace", "Slow the pace"],
+  ["replan", "Replan around conditions"],
 ]
 
 
@@ -82,88 +82,34 @@ const DEFAULT_FORM = {
   travel_style: "culture",
   travel_type: "solo",
   interests: ["culture"],
-  start_city: "Kathmandu",
+  start_city: "",
 }
 
 
-const STYLE_EMOJI = {
-  leisure: "☕",
-  culture: "🏛️",
-  nature: "🌿",
-  adventure: "⛰️",
-  city: "🏙️",
-}
-
-
-function formatCleanPhone(phone, defaultFallback) {
-  if (!phone) return defaultFallback
-  let s = String(phone).replace(/\.0$/, "").trim()
-  if (s === "nan" || s === "null" || s === "None" || !s) return defaultFallback
-  return s
+function formatCleanPhone(phone) {
+  if (!phone) return null
+  const value = String(phone).replace(/\.0$/, "").trim()
+  return ["nan", "null", "None", ""].includes(value) ? null : value
 }
 
 function enrichPlanBudget(rawPlan, form) {
   if (!rawPlan) return null
   const travelers = Math.max(1, Number(rawPlan.travelers || form?.travelers || 1))
   const days = Math.max(1, Number(rawPlan.days || form?.days || 3))
-  const style = (rawPlan.budget_level || form?.budget_level || "mid").toLowerCase()
-
-  const baseDailyNpr = style === "budget" ? 3200 : style === "luxury" ? 12500 : 4900
-  const calculatedTotalNpr = Math.round(baseDailyNpr * days * travelers)
-  const totalNpr = rawPlan.total_estimated_npr || rawPlan.total_budget_npr || calculatedTotalNpr
-  const perPersonNpr = Math.round(totalNpr / travelers)
-  const totalUsd = rawPlan.total_estimated_usd || Math.round(totalNpr / 133)
-  const perPersonUsd = Math.round(totalUsd / travelers)
-
+  const totalNpr = rawPlan.total_estimated_npr ?? rawPlan.total_budget_npr ?? null
+  const perPersonNpr = totalNpr != null ? Math.round(Number(totalNpr) / travelers) : null
+  const totalUsd = rawPlan.total_estimated_usd ?? null
+  const perPersonUsd = totalUsd != null ? Math.round(Number(totalUsd) / travelers) : null
   const rawItinerary = Array.isArray(rawPlan.itinerary) ? rawPlan.itinerary : (Array.isArray(rawPlan.days_schedule) ? rawPlan.days_schedule : [])
-  const enrichedDays = rawItinerary.map((day, idx) => {
-    const dayBudgetNpr = day.daily_budget_npr || Math.round(totalNpr / days)
-
+  const enrichedDays = rawItinerary.map((day) => {
     const rawServices = day.nearby_services || {}
-    const rawHotels = rawServices.hotels || []
-    const rawHospitals = rawServices.hospitals || []
-    const rawPolice = rawServices.police || []
-
-    const cleanHotels = rawHotels.filter(h => {
-      const hname = (h.name || h.title || "").toLowerCase()
-      return !hname.includes("hospital") && !hname.includes("clinic") && !hname.includes("dental") && !hname.includes("medical")
-    })
-
-    const cleanHospitalsList = rawHospitals.map(h => ({
-      ...h,
-      phone: formatCleanPhone(h.phone || h.phone_number, "102")
-    }))
-
-    const cleanPoliceList = rawPolice.map(p => ({
-      ...p,
-      phone: formatCleanPhone(p.phone || p.phone_number, "100")
-    }))
-
-    return {
-      ...day,
-      daily_budget_npr: dayBudgetNpr,
-      nearby_services: {
-        ...rawServices,
-        hotels: cleanHotels.length ? cleanHotels : [
-          { id: `h1-${idx}`, name: "Kathmandu Palace Inn", distance_km: "0.8" },
-          { id: `h2-${idx}`, name: "Hotel Marshyangdi View", distance_km: "1.2" },
-        ],
-        hospitals: cleanHospitalsList,
-        police: cleanPoliceList,
-      }
-    }
+    const hotels = (rawServices.hotels || []).filter((hotel) => {
+      const name = (hotel.name || hotel.title || "").toLowerCase()
+      return !name.includes("hospital") && !name.includes("clinic") && !name.includes("dental") && !name.includes("medical")
+    }).map((hotel) => ({ ...hotel, phone: formatCleanPhone(hotel.phone || hotel.phone_number) }))
+    return { ...day, daily_budget_npr: day.daily_budget_npr ?? null, nearby_services: { ...rawServices, hotels, hospitals: (rawServices.hospitals || []).map((item) => ({ ...item, phone: formatCleanPhone(item.phone || item.phone_number) })), police: (rawServices.police || []).map((item) => ({ ...item, phone: formatCleanPhone(item.phone || item.phone_number) })) } }
   })
-
-  return {
-    ...rawPlan,
-    travelers,
-    days,
-    total_estimated_npr: totalNpr,
-    per_person_npr: perPersonNpr,
-    total_estimated_usd: totalUsd,
-    per_person_usd: perPersonUsd,
-    itinerary: enrichedDays,
-  }
+  return { ...rawPlan, travelers, days, total_estimated_npr: totalNpr, per_person_npr: perPersonNpr, total_estimated_usd: totalUsd, per_person_usd: perPersonUsd, itinerary: enrichedDays }
 }
 
 const Itinerary = () => {
@@ -212,7 +158,7 @@ const Itinerary = () => {
     setModifying(true)
     try {
       const { data } = await axiosClient.post("/ml/itinerary/modify/", { action, itinerary_data: plan })
-      setPlan((prev) => ({ ...prev, itinerary: data.itinerary || prev.itinerary, modificationNote: data.modification_note }))
+      setPlan((prev) => ({ ...prev, itinerary: data.itinerary || prev.itinerary, total_estimated_npr: null, total_estimated_usd: null, per_person_npr: null, per_person_usd: null, fits_budget: null, modificationNote: data.modification_note }))
       showToast(data.modification_note || `AI modification applied: ${action}`, "success")
     } catch {
       showToast("Could not modify itinerary.", "error")
@@ -222,8 +168,9 @@ const Itinerary = () => {
   }
 
   const addNote = () => {
-    if (!noteForm.label || !noteForm.amount) return
-    setNotes((prev) => [...prev, { id: Date.now(), category: noteForm.category, label: noteForm.label, amount: Number(noteForm.amount) }])
+    const amount = Number(noteForm.amount)
+    if (!noteForm.label?.trim() || !Number.isFinite(amount) || amount < 0) return
+    setNotes((prev) => [...prev, { id: Date.now(), category: noteForm.category, label: noteForm.label.trim(), amount }])
     setNoteForm({ category: "Hotel", label: "", amount: "" })
   }
   const removeNote = (id) => setNotes((prev) => prev.filter((n) => n.id !== id))
@@ -242,7 +189,7 @@ const Itinerary = () => {
     try {
       await itineraryApi.savePlan({ title: `${form.start_city} ${form.days}-day itinerary`, travelers: form.travelers,
         budget_npr: plan?.total_estimated_npr || form.budget_npr || null, interests: form.interests,
-        itinerary_data: plan, generation_source: "ml", notes: `${form.travel_style} · ${form.travel_type}` })
+        itinerary_data: plan, generation_source: plan?.source || "planner", notes: `${form.travel_style} · ${form.travel_type}${notes.length ? ` · Cost notes: ${notes.map((note) => `${note.label} (NPR ${note.amount})`).join("; ")}` : ""}` })
       showToast("Travel plan saved to your account", "success")
     } catch (saveError) {
       showToast(saveError.response?.status === 401 ? "Sign in to save this travel plan" : "Could not save travel plan", "error")
@@ -326,6 +273,11 @@ const Itinerary = () => {
     }
 
 
+    if (focusDestination && !form.start_city?.trim()) {
+      const focusTimer = setTimeout(() => setForm((current) => ({ ...current, start_city: focusDestination })), 0)
+      return () => clearTimeout(focusTimer)
+    }
+
     if(debounceRef.current){
       clearTimeout(debounceRef.current)
     }
@@ -333,6 +285,7 @@ const Itinerary = () => {
 
     debounceRef.current=setTimeout(()=>{
 
+      if (!form.start_city?.trim()) { lastRequestId.current += 1; setPlan(null); setError(""); setLoading(false); return }
       fetchPlan(form)
 
     },500)
@@ -347,7 +300,7 @@ const Itinerary = () => {
 
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[form])
+  },[form, focusDestination])
 
 
 
@@ -450,12 +403,12 @@ const Itinerary = () => {
   }
 
     return (
-    <div className="container-app py-10">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       {plan?.itinerary?.length > 0 && (
         <div className="mb-4 flex justify-end">
           <button onClick={navigateItinerary}
-            className="rounded-xl bg-primary-700 px-4 py-2 text-xs font-bold text-white hover:bg-primary-800">
-            🧭 Navigate this itinerary (real road routing)
+            className="ny-btn ny-btn-primary min-h-11">
+            Navigate this itinerary (real road routing)
           </button>
         </div>
       )}
@@ -468,7 +421,7 @@ const Itinerary = () => {
 
       {/* Controls */}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-5 mb-6">
 
 
         {/* Days */}
@@ -683,7 +636,8 @@ const Itinerary = () => {
               }
 
 
-              placeholder="Kathmandu"
+              required
+               placeholder="Enter a start city"
 
 
               className="input-field pl-11"
@@ -814,7 +768,7 @@ const Itinerary = () => {
 
             >
 
-              {STYLE_EMOJI[style.id]} {style.label}
+              {style.label}
 
 
             </button>
@@ -974,11 +928,10 @@ const Itinerary = () => {
       {
         error && (
 
-          <p className="text-sm text-nepalred-500 bg-nepalred-50 rounded-xl px-4 py-3 mb-4">
-
-            {error}
-
-          </p>
+          <div role="alert" className="mb-4 flex flex-col gap-3 rounded-[var(--ny-radius-md)] border border-[#E9B9B9] bg-[var(--ny-soft-red)] px-4 py-3 text-sm text-[var(--ny-danger)] sm:flex-row sm:items-center sm:justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => fetchPlan(form)} className="ny-btn ny-btn-secondary min-h-11 shrink-0 text-xs">Try again</button>
+          </div>
 
         )
       }
@@ -997,7 +950,7 @@ const Itinerary = () => {
                     key={act}
                     disabled={modifying}
                     onClick={() => handleApplyAIModification(act)}
-                    className="px-2.5 py-1 rounded-xl bg-white border border-gray-200 hover:border-emerald-500 text-gray-800 font-bold"
+                    className="min-h-11 rounded-xl border border-[var(--ny-border)] bg-white px-2.5 py-2 text-gray-800 font-bold transition hover:border-[var(--ny-green)] hover:bg-[var(--ny-soft-green)]"
                   >
                     {label}
                   </button>
@@ -1016,14 +969,14 @@ const Itinerary = () => {
                 <h3 className="font-bold text-sm text-gray-900">Trip Cost Notepad</h3>
                 <p className="text-xs text-gray-500">Add custom lodge rates or local flight quotes to your trip total.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <select className="input-field bg-white text-xs" value={noteForm.category} onChange={(e) => setNoteForm({ ...noteForm, category: e.target.value })}>
                   {NOTE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
-                <input className="input-field bg-white text-xs sm:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
+                <input className="input-field bg-white text-xs sm:col-span-1 lg:col-span-2" placeholder="e.g. Annapurna View Hotel" value={noteForm.label} onChange={(e) => setNoteForm({ ...noteForm, label: e.target.value })} />
                 <div className="flex gap-2">
-                  <input type="number" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
-                  <button onClick={addNote} className="bg-himalaya-600 hover:bg-himalaya-700 text-white p-2.5 rounded-xl shrink-0" aria-label="Add cost note"><FiPlus /></button>
+                  <input type="number" min="0" step="1" className="input-field bg-white text-xs" placeholder="रू" value={noteForm.amount} onChange={(e) => setNoteForm({ ...noteForm, amount: e.target.value })} />
+                  <button onClick={addNote} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-himalaya-600 text-white hover:bg-himalaya-700" aria-label="Add cost note"><FiPlus /></button>
                 </div>
               </div>
               {notes.length > 0 && (
@@ -1036,7 +989,7 @@ const Itinerary = () => {
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="font-bold text-gray-900">रू {n.amount.toLocaleString()}</span>
-                        <button onClick={() => removeNote(n.id)} className="text-gray-400 hover:text-rose-600" aria-label="Remove note"><FiTrash2 size={14} /></button>
+                        <button onClick={() => removeNote(n.id)} className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] text-gray-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remove note"><FiTrash2 size={14} /></button>
                       </div>
                     </div>
                   ))}
@@ -1045,7 +998,7 @@ const Itinerary = () => {
               )}
               <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                 <span className="font-bold text-sm text-gray-900">Grand Total (plan + notes)</span>
-                <span className="text-xl font-black text-himalaya-600">रू {grandTotalNpr.toLocaleString()}</span>
+                <span className="text-xl font-black text-himalaya-600">{plan?.total_estimated_npr != null ? `रू ${grandTotalNpr.toLocaleString()}` : `Notes: रू ${notesTotal.toLocaleString()}`}</span>
               </div>
             </div>
           </div>
@@ -1069,7 +1022,7 @@ const Itinerary = () => {
               y:0
             }}
 
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 mb-8"
 
           >
             <button onClick={savePlan} className="card-base p-4 text-left border-2 border-emerald-300 hover:bg-emerald-50">
@@ -1092,7 +1045,7 @@ const Itinerary = () => {
 
               <p className="text-xs text-gray-400">
 
-                ≈ ${plan.total_estimated_usd} USD
+                {plan.total_estimated_usd != null ? `≈ $${Number(plan.total_estimated_usd).toLocaleString()} USD` : "USD estimate unavailable"}
 
               </p>
 
@@ -1462,11 +1415,11 @@ const Itinerary = () => {
                   {day.nearby_services && (
                     <div className="mt-5 pt-4 border-t">
                       <h4 className="text-xs font-black uppercase tracking-wide text-gray-500 mb-3">Nearby planning & emergency services</h4>
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {[
-                          ["🏨 Stay", day.nearby_services.hotels],
-                          ["🏥 Hospital", day.nearby_services.hospitals],
-                          ["👮 Police", day.nearby_services.police],
+                          ["Stay", day.nearby_services.hotels],
+                          ["Hospital", day.nearby_services.hospitals],
+                          ["Police", day.nearby_services.police],
                           ["🏦 Essentials", day.nearby_services.essentials],
                         ].map(([label, services]) => (
                           <div key={label} className="rounded-xl bg-gray-50 p-3">

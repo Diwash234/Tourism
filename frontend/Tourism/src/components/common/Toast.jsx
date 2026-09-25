@@ -59,6 +59,8 @@ const Toast = ({ message, type = "info" }) => {
         x: 50,
       }}
 
+      role={type === "error" ? "alert" : "status"}
+      aria-live={type === "error" ? "assertive" : "polite"}
       className="
         flex
         items-center

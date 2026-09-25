@@ -311,6 +311,7 @@ urlpatterns = [
     path("destinations/<str:destination_ref>/nearby-pois/", views.DestinationNearbyPOIsView.as_view(), name="destination-nearby-pois"),
     path("nearby/pois/", views.NearbyPOIsView.as_view(), name="nearby-pois"),
     path("emergency/nearby/", views.NearbyEmergencyServicesView.as_view(), name="nearby-emergency-services"),
+    path("emergency/national-hotlines/", views.NationalEmergencyHotlinesView.as_view(), name="national-emergency-hotlines"),
     path("routing/metrics/", views.RouteMetricsView.as_view(), name="route-metrics"),
     # Deterministic Nepal-themed SVG postcards (no more repeated stock photos)
     path("postcard/<path:path_info>", views.destination_postcard, name="destination-postcard"),

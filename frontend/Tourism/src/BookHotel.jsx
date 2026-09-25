@@ -1,4 +1,3 @@
-import { useState } from "react"
 import CMSPageIntro from "./components/cms/CMSPageIntro"
 import { useParams, useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
@@ -17,6 +16,10 @@ const BookHotel = () => {
   const { register, handleSubmit, formState: { isSubmitting } } = useForm()
 
   const onSubmit = async (data) => {
+    if (data.checkOut <= data.checkIn) {
+      showToast("Check-out must be after check-in.", "error")
+      return
+    }
     try {
       await bookingApi.createBooking({
         hotel: hotelId,
@@ -33,7 +36,7 @@ const BookHotel = () => {
   }
 
   return (
-    <div className="container-app py-10 max-w-lg">
+    <div className="ny-page container-app py-10 max-w-lg">
       <CMSPageIntro pageKey="hotel-booking" />
       <h1 className="section-title flex items-center gap-2">
         <FiCalendar className="text-primary-500" /> Book This Hotel
@@ -42,21 +45,21 @@ const BookHotel = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="card-base p-6 space-y-4 mt-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-medium text-gray-500">Check-in</label>
-            <input type="date" className="input-field mt-1" {...register("checkIn", { required: true })} />
+            <label htmlFor="booking-check-in" className="text-xs font-medium text-gray-500">Check-in</label>
+            <input id="booking-check-in" type="date" className="input-field mt-1" {...register("checkIn", { required: true })} />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500">Check-out</label>
-            <input type="date" className="input-field mt-1" {...register("checkOut", { required: true })} />
+            <label htmlFor="booking-check-out" className="text-xs font-medium text-gray-500">Check-out</label>
+            <input id="booking-check-out" type="date" className="input-field mt-1" {...register("checkOut", { required: true })} />
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-500">Guests</label>
-          <input type="number" min={1} defaultValue={1} className="input-field mt-1" {...register("guests", { required: true })} />
+          <label htmlFor="booking-guests" className="text-xs font-medium text-gray-500">Guests</label>
+          <input id="booking-guests" type="number" min={1} defaultValue={1} className="input-field mt-1" {...register("guests", { required: true })} />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-500">Special requests (optional)</label>
-          <textarea className="input-field mt-1" {...register("specialRequests")} />
+          <label htmlFor="booking-special-requests" className="text-xs font-medium text-gray-500">Special requests (optional)</label>
+          <textarea id="booking-special-requests" className="input-field mt-1" {...register("specialRequests")} />
         </div>
         <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
           {isSubmitting ? "Booking..." : "Request Booking"}

@@ -12,7 +12,7 @@ from tourist.administrative_boundaries import NEPAL_DISTRICTS_DATA
 
 def run():
     print("--- Checking and fixing all destinations missing coordinates or province ---")
-    
+
     # 1. Fix missing lat/lng
     no_coords = Destination.objects.filter(latitude__isnull=True)
     print(f"Destinations missing coordinates: {no_coords.count()}")

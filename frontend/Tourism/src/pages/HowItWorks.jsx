@@ -1,413 +1,67 @@
 import { useState } from "react"
-import PageHeader from "../components/common/PageHeader"
 import { Link } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
-import {
-  FiHelpCircle, FiMapPin, FiCompass, FiShield, FiDollarSign,
-  FiBookOpen, FiUserCheck, FiCheckCircle, FiAlertCircle, FiInfo,
-  FiSearch, FiDatabase, FiCpu, FiMessageSquare, FiSettings,
-  FiLock, FiSliders, FiFileText, FiCalendar, FiArrowRight, FiChevronDown
-} from "react-icons/fi"
+import { AnimatePresence, motion } from "framer-motion"
+import { FiAlertCircle, FiArrowRight, FiBookOpen, FiCheckCircle, FiCompass, FiHelpCircle, FiInfo, FiLock, FiMapPin, FiMessageSquare, FiSearch, FiSettings, FiUserCheck, FiChevronDown } from "react-icons/fi"
+import PageHeader from "../components/common/PageHeader"
+import EmptyState from "../components/common/EmptyState"
 import Breadcrumbs from "../components/common/Breadcrumbs"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 
+const travellerTopics = [
+  { id: "discover", title: "Discover with context", icon: <FiCompass className="text-[var(--ny-green)] text-xl" />, content: "Destination pages bring together recorded places, location details, images and practical notes. The source and availability of each field are shown when available.", highlights: ["Browse by destination, district or category.", "Compare places before choosing a route.", "Use the catalogue when a field is not yet recorded."] },
+  { id: "honesty", title: "How we handle missing information", icon: <FiMapPin className="text-[var(--ny-green)] text-xl" />, content: "Nepal Yatra does not fill gaps with guessed coordinates, prices, opening hours or emergency details. An unavailable field is a deliberate state, not a failure.", highlights: ["Unverified coordinates are not placed on a map.", "Unrecorded costs and hours are not estimated for display.", "Travellers can report a correction or add evidence."] },
+  { id: "assistant", title: "Using the travel assistant", icon: <FiMessageSquare className="text-[var(--ny-green)] text-xl" />, content: "The assistant can help you find catalogue records and understand the information available on the site. It should not be treated as a source of unverified emergency or operational details.", highlights: ["Ask for a place, district or category.", "Review the linked record before making plans.", "Use the emergency directory for time-sensitive needs."] },
+  { id: "report", title: "Report a correction", icon: <FiAlertCircle className="text-[var(--ny-warning)] text-xl" />, content: "If a record looks inaccurate or a detail has changed, send a message with the place name and any evidence you have. The review team can assess the update before it is published.", highlights: ["Describe the field that needs attention.", "Attach a photo or document when safe and relevant.", "Avoid sharing private personal information."] },
+]
+
+const standardsTopics = [
+  { id: "records", title: "Keep records useful", icon: <FiBookOpen className="text-[var(--ny-green)] text-xl" />, content: "Content should describe a real place or service and make its location, ownership and source context clear wherever possible.", highlights: ["Use a specific place name.", "Keep district and province fields distinct.", "Prefer a source link or evidence note for corrections."] },
+  { id: "coordinates", title: "Coordinates need context", icon: <FiMapPin className="text-[var(--ny-green)] text-xl" />, content: "A coordinate is useful only when its source and intended meaning are clear. Do not use a district centre as a substitute for an unknown point.", highlights: ["Leave coordinates blank when they are unknown.", "Explain approximate or inaccessible locations.", "Do not publish a pin that could send someone to the wrong place."] },
+  { id: "costs", title: "Costs and schedules change", icon: <FiSettings className="text-[var(--ny-warning)] text-xl" />, content: "Prices, permits, hours and transport details can vary by season, provider and location. The interface should show the recorded value and its date or mark it unavailable.", highlights: ["Do not invent a price to make a card look complete.", "Record the currency and unit explicitly.", "Link to an official source when one is available."] },
+  { id: "privacy", title: "Protect people and privacy", icon: <FiLock className="text-[var(--ny-green)] text-xl" />, content: "Public content should avoid exposing private addresses, live trip links or personal information. Safety and account features should use the minimum data needed for their purpose.", highlights: ["Do not publish another traveller's personal details.", "Treat shared trip links as credentials.", "Remove sensitive evidence when it is no longer needed."] },
+]
+
+const faqs = [
+  { q: "Why does a destination say that a map location is unavailable?", a: "Precise coordinates may not be recorded or verified. Nepal Yatra leaves the map location unavailable rather than placing an uncertain pin at a district centre." },
+  { q: "Why are prices or opening hours unavailable?", a: "Those details can change and may differ by provider or season. If the record does not contain a reliable value, the page does not substitute a guess." },
+  { q: "Can I use the assistant for an emergency?", a: "Use the Emergency page and the verified directory records available there. The assistant is a discovery and planning tool, not an emergency dispatch service." },
+  { q: "How do I report an incorrect record?", a: "Use the Contact page or the destination feedback action. Include the place name, the field that needs attention and evidence when it is safe to share it." },
+  { q: "Can I add a place or service?", a: "Yes. Use the submission form available to signed-in travellers. A submission is a request for review, not a guarantee that it will be published." },
+]
+
 export default function HowItWorks() {
-  const [activeRole, setActiveRole] = useState("traveller") // 'traveller' or 'admin'
+  const [activeRole, setActiveRole] = useState("traveller")
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedFaq, setExpandedFaq] = useState(null)
-
-  const travellerTopics = [
-    {
-      id: "curation",
-      title: "How Destinations are Curated & Verified",
-      icon: <FiCompass className="text-emerald-700 text-xl" />,
-      content: `Our destination database is compiled from official Nepal Tourism Board registries, OpenStreetMap (OSM) spatial datasets, and verified local municipality archives across all 77 districts of Nepal. Places undergo strict data-cleaning pipelines before appearing live.`,
-      highlights: [
-        "Verified GPS coordinates from official cartographic surveys.",
-        "Categorization across Heritage, Nature, Trekking, Religious, and Adventure.",
-        "Administrative boundaries mapped down to Province, District, and Municipality."
-      ]
-    },
-    {
-      id: "honesty",
-      title: "Map Pins & Unrecorded Data Policy",
-      icon: <FiMapPin className="text-emerald-600 text-xl" />,
-      titleBadge: "Strict Honesty Standard",
-      content: `We enforce a strict Zero-Hallucination policy across the platform:`,
-      highlights: [
-        "Unmapped Places: Destinations lacking precise GPS coordinates do NOT get fake map pins placed in district centers. They are explicitly marked as 'Map location unavailable'.",
-        "Missing Costs / Schedules: If food, lodging, or transport rates are unverified, we display 'Information unavailable' rather than generating speculative prices.",
-        "Opening Hours & Seasons: Unverified operational hours or best seasons are marked as 'Information unavailable' to protect travelers from relying on invented information."
-      ]
-    },
-    {
-      id: "chatbot",
-      title: "Himal AI Assistant Capabilities & Limits",
-      icon: <FiMessageSquare className="text-blue-600 text-xl" />,
-      content: `Himal AI is your intelligent Nepal travel companion grounded strictly on verified platform data.`,
-      highlights: [
-        "Grounding: Answers are derived from live destination profiles, emergency directories, and trained budget regressors.",
-        "Honesty First: When asked about details missing from our database, Himal AI explicitly responds that the information is 'Information unavailable' rather than guessing.",
-        "Interactive Cards: Suggests real packages, trekking routes, and nearby police or hospital contacts."
-      ]
-    },
-    {
-      id: "reporting",
-      title: "How to Report Incorrect Information",
-      icon: <FiAlertCircle className="text-amber-600 text-xl" />,
-      content: `Found outdated phone numbers, wrong coordinates, or changed entry fees? Travelers can actively contribute to platform quality.`,
-      highlights: [
-        "Submit Place / Edit Suggestion: Click 'Submit Place' or 'Suggest Correction' on any destination page.",
-        "Review Process: Submissions are queued in the Admin Moderation Desk for field verification before publishing.",
-        "Community Badges: Verified contributors earn community trust ratings."
-      ]
-    }
-  ]
-
-  const adminTopics = [
-    {
-      id: "overview",
-      title: "Admin Dashboard Workspace Overview",
-      icon: <FiSettings className="text-emerald-700 text-xl" />,
-      content: `The Admin Workspace provides total control over platform content, destination datasets, CMS blocks, and user feedback queues.`,
-      highlights: [
-        "Destinations Catalog: Search, filter, edit, or approve all 6,400+ destinations.",
-        "Visitor Desk & Notices: Publish owner announcements, safety alerts, and seasonal notices.",
-        "Festival & Event Calendar: Schedule local festivals with accurate dates and cultural guidelines.",
-        "Data Quality & ML Sync: Manage destination JSON caches and feed updated data into prediction models."
-      ]
-    },
-    {
-      id: "editing",
-      title: "Adding & Editing Destinations Safely",
-      icon: <FiSliders className="text-emerald-600 text-xl" />,
-      titleBadge: "Admin Best Practices",
-      content: `When adding or updating destination records, strictly follow our content integrity principles:`,
-      highlights: [
-        "Coordinates Rule: Leave Latitude and Longitude blank if verified GPS coordinates are unavailable. The destination will safely present as 'Map location unavailable' without creating misleading map pins.",
-        "Empty Fields: If opening hours, entry fees, or contact numbers are unknown, leave them empty. The system will cleanly display 'Information unavailable'.",
-        "City vs District: Do not copy district names into the 'City' field unless it is a recognized town/city center."
-      ]
-    },
-    {
-      id: "festivals",
-      title: "Managing Visitor Notices & Festivals",
-      icon: <FiCalendar className="text-blue-600 text-xl" />,
-      content: `Promote local cultural events and emergency travel advisories across destination pages and landing banners.`,
-      highlights: [
-        "Visitor Notices: Add site alerts (e.g., trail maintenance, permit updates). Scheduled notices auto-expire.",
-        "Festivals Catalog: Link local festivals to specific destinations, complete with dates, dress codes, and photography guidelines.",
-        "Saved-Place Alerts: Publishing critical safety notices automatically notifies travelers who saved the destination."
-      ]
-    },
-    {
-      id: "moderation",
-      title: "Content Moderation & Data Quality Rules",
-      icon: <FiLock className="text-amber-600 text-xl" />,
-      content: `Maintain platform security, copyright compliance, and data privacy.`,
-      highlights: [
-        "Media Licenses: Ensure uploaded destination covers and gallery photos carry Creative Commons or official rights.",
-        "User Feedback & Approvals: Review tourist-submitted places and error reports from the Moderation Queue.",
-        "Zero Fabrication Standard: Reject submissions containing speculative prices or unverified locations."
-      ]
-    }
-  ]
-
-  const faqs = [
-    {
-      q: "Why do some destinations say 'Map location unavailable'?",
-      a: "Nepal's terrain includes remote alpine valleys and newly recognized heritage sites. If precise cartographic coordinates are not yet verified, we deliberately omit the map pin rather than showing a misleading fake location in the middle of a district center."
-    },
-    {
-      q: "Why do some costs or operating hours say 'Information unavailable'?",
-      a: "Trekking permit fees, local lodge prices, and shrine opening hours can vary seasonally. To prevent travelers from relying on inaccurate or invented data, unverified fields display 'Information unavailable' until confirmed by local authorities or site managers."
-    },
-    {
-      q: "How does Himal AI handle questions about missing data?",
-      a: "Himal AI is programmed never to hallucinate. If you ask about a price or schedule that is unrecorded in our dataset, it will openly tell you that the detail is not currently recorded."
-    },
-    {
-      q: "How can an administrator add missing coordinates or details?",
-      a: "Admins can log into the Admin Dashboard, navigate to the 'Destinations' tab, click 'Edit' on any record, fill in verified coordinates or operational details, and click 'Save Changes'. The updates instantly reflect across the platform."
-    },
-    {
-      q: "Are emergency contacts and medical directory numbers verified?",
-      a: "Yes. Emergency numbers (Tourist Police 1144, Nepal Police 100, Ambulance 102, and district hospital desks) are checked against official government emergency rosters across all 77 districts."
-    }
-  ]
-
-  const activeTopics = activeRole === "traveller" ? travellerTopics : adminTopics
-
-  const filteredTopics = activeTopics.filter((topic) =>
-    topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    topic.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    topic.highlights.some(h => h.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  const topics = activeRole === "traveller" ? travellerTopics : standardsTopics
+  const filteredTopics = topics.filter((topic) => `${topic.title} ${topic.content} ${topic.highlights.join(" ")}`.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
-    <div className="container-app py-8 space-y-8 animate-fadeIn">
-      <Breadcrumbs items={[
-        { label: "Home", to: "/" },
-        { label: "How This Works & Knowledge Base", to: "/how-it-works" }
-      ]} />
+    <div className="ny-page container-app space-y-8 py-6 sm:py-8">
+      <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "How it works", to: "/how-it-works" }]} />
+      <CMSPageIntro pageKey="how-it-works" />
+      <PageHeader title="How Nepal Yatra works" subtitle="A practical guide to discovering places, planning a route and understanding what our records can—and cannot—tell you." icon={FiBookOpen} />
 
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white p-8 sm:p-12 shadow-2xl border border-purple-800/30">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600/20 border border-purple-400/30 text-purple-300 text-xs font-semibold uppercase tracking-wider">
-            <FiBookOpen size={14} /> Knowledge Base & System Transparency
-          </div>
-
-          <CMSPageIntro pageKey="how-it-works" />
-
-          <PageHeader title="How Nepal Yatra Works" subtitle="From discovery to a planned trip — the whole journey." icon={FiInfo} />
-
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Discover how we curate authentic destination data, uphold our strict Zero-Hallucination policy, and empower both travelers and administrators.
-          </p>
-
-          {/* Role Switcher Tabs */}
-          <div className="pt-4 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setActiveRole("traveller")}
-              className={`px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2.5 transition-all shadow-lg ${
-                activeRole === "traveller"
-                  ? "bg-[#1D5146] text-white shadow-purple-600/30 scale-105"
-                  : "bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700"
-              }`}
-            >
-              <FiUserCheck size={18} /> For Travellers & Visitors
-            </button>
-
-            <button
-              onClick={() => setActiveRole("admin")}
-              className={`px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2.5 transition-all shadow-lg ${
-                activeRole === "admin"
-                  ? "bg-amber-500 text-slate-950 shadow-amber-500/30 scale-105"
-                  : "bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700"
-              }`}
-            >
-              <FiSettings size={18} /> For Administrators & Staff
-            </button>
-          </div>
+      <div className="flex flex-col gap-4 border-y border-[var(--ny-border)] py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Guide type">
+          <button type="button" role="tab" aria-selected={activeRole === "traveller"} onClick={() => setActiveRole("traveller")} className={`ny-btn ${activeRole === "traveller" ? "ny-btn-primary" : "ny-btn-secondary"}`}><FiUserCheck size={16} aria-hidden="true" />For travellers</button>
+          <button type="button" role="tab" aria-selected={activeRole === "standards"} onClick={() => setActiveRole("standards")} className={`ny-btn ${activeRole === "standards" ? "ny-btn-primary" : "ny-btn-secondary"}`}><FiSettings size={16} aria-hidden="true" />Content standards</button>
         </div>
-
-        <div className="absolute -bottom-12 -right-12 w-96 h-96 bg-[#1D5146]/10 rounded-full blur-3xl pointer-events-none" />
+        <p className="max-w-xl text-sm text-[var(--ny-text-secondary)]">Clear records are more useful than confident guesses. If a detail is missing, the interface says so.</p>
       </div>
 
-      {/* Search Bar & Role Info Callout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-        <div className="md:col-span-2 relative">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Search ${activeRole === "traveller" ? "traveller guide..." : "admin guidelines..."}`}
-            className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600 shadow-sm"
-          />
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-[#F7F8F5] border border-[#E5E0D5] flex items-center gap-3 text-xs text-[#102A2E] font-medium">
-          <FiInfo className="text-emerald-700 shrink-0" size={20} />
-          <span>
-            {activeRole === "traveller"
-              ? "Viewing Traveler Guide: Learn how data is verified and how map locations work."
-              : "Viewing Admin Guide: Operating guidelines for destination editing and content rules."}
-          </span>
-        </div>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.42fr)] md:items-center">
+        <div className="relative"><FiSearch size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ny-text-muted)]" aria-hidden="true" /><label htmlFor="guide-search" className="sr-only">Search this guide</label><input id="guide-search" className="input-field pl-11" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={activeRole === "traveller" ? "Search the traveller guide" : "Search content standards"} /></div>
+        <div className="flex items-start gap-3 rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-[var(--ny-soft-green)] p-4 text-sm text-[var(--ny-text-secondary)]"><FiInfo size={18} className="mt-0.5 shrink-0 text-[var(--ny-green)]" aria-hidden="true" /><span>{activeRole === "traveller" ? "Start with a place, then follow the links to its recorded details." : "These principles help contributors keep travel information accurate and safe."}</span></div>
       </div>
 
-      {/* Topics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredTopics.map((topic) => (
-          <motion.div
-            key={topic.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-slate-100/80 border border-slate-200/60 inline-flex">
-                  {topic.icon}
-                </div>
-                {topic.titleBadge && (
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                    {topic.titleBadge}
-                  </span>
-                )}
-              </div>
+      {filteredTopics.length > 0 ? <div className="grid gap-5 md:grid-cols-2">{filteredTopics.map((topic) => <motion.article key={topic.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="ny-card flex h-full flex-col p-6"><div className="flex items-start justify-between gap-4"><span className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-md)] bg-[var(--ny-soft-green)]">{topic.icon}</span></div><h2 className="mt-5 text-xl font-bold">{topic.title}</h2><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">{topic.content}</p><ul className="mt-5 space-y-3 border-t border-[var(--ny-border)] pt-4">{topic.highlights.map((highlight) => <li key={highlight} className="flex gap-2 text-sm text-[var(--ny-text-secondary)]"><FiCheckCircle size={16} className="mt-0.5 shrink-0 text-[var(--ny-green)]" aria-hidden="true" />{highlight}</li>)}</ul></motion.article>)}</div> : <EmptyState title="No matching guidance" subtitle="Try a different search term or switch between traveller guidance and content standards." action={<button type="button" className="ny-btn ny-btn-secondary" onClick={() => setSearchQuery("")}>Clear search</button>} />}
 
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                {topic.title}
-              </h3>
+      <section className="ny-panel overflow-hidden p-0"><div className="border-b border-[var(--ny-border)] p-6 sm:p-8"><p className="ny-kicker">What you may see</p><h2 className="mt-3">Honest data states</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ny-text-secondary)]">A missing field is shown as unavailable. It is never replaced with a sample value just to make a page look complete.</p></div><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-[var(--ny-soft-green)] text-xs uppercase tracking-wide text-[var(--ny-green)]"><tr><th className="px-5 py-3">Field or feature</th><th className="px-5 py-3">When it is not recorded</th><th className="px-5 py-3">What you see</th><th className="px-5 py-3">What you can do</th></tr></thead><tbody className="divide-y divide-[var(--ny-border)]"><tr><td className="px-5 py-4 font-semibold">Destination coordinates</td><td className="px-5 py-4 text-[var(--ny-text-secondary)]">No reliable point</td><td className="px-5 py-4"><span className="rounded-full bg-[var(--ny-soft-green)] px-2.5 py-1 text-xs font-semibold text-[var(--ny-green)]">Map location unavailable</span></td><td className="px-5 py-4"><Link to="/contact" className="font-semibold text-[var(--ny-green)] hover:underline">Report a correction</Link></td></tr><tr><td className="px-5 py-4 font-semibold">Cost or schedule</td><td className="px-5 py-4 text-[var(--ny-text-secondary)]">No current value</td><td className="px-5 py-4"><span className="rounded-full bg-[var(--ny-soft-gold)] px-2.5 py-1 text-xs font-semibold text-[var(--ny-warning)]">Information unavailable</span></td><td className="px-5 py-4">Check the linked provider or contact the operator.</td></tr><tr><td className="px-5 py-4 font-semibold">Emergency detail</td><td className="px-5 py-4 text-[var(--ny-text-secondary)]">No verified record</td><td className="px-5 py-4"><span className="rounded-full bg-[var(--ny-soft-red)] px-2.5 py-1 text-xs font-semibold text-[var(--ny-danger)]">Not listed</span></td><td className="px-5 py-4"><Link to="/emergency" className="font-semibold text-[var(--ny-green)] hover:underline">Open emergency page</Link></td></tr></tbody></table></div></section>
 
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                {topic.content}
-              </p>
+      <section className="ny-reading"><div className="mb-6 flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-md)] bg-[var(--ny-soft-green)] text-[var(--ny-green)]"><FiHelpCircle size={21} aria-hidden="true" /></span><div><h2>Frequently asked questions</h2><p className="text-sm text-[var(--ny-text-secondary)]">Short answers about records, corrections and planning.</p></div></div><div className="space-y-3">{faqs.map((faq, index) => { const open = expandedFaq === index; return <div key={faq.q} className="overflow-hidden rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-white"><button type="button" aria-expanded={open} onClick={() => setExpandedFaq(open ? null : index)} className="flex min-h-14 w-full items-center justify-between gap-4 px-4 py-4 text-left text-sm font-semibold text-[var(--ny-text)] hover:bg-[var(--ny-soft-green)]"><span>{faq.q}</span><FiChevronDown size={18} className={`shrink-0 text-[var(--ny-green)] transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" /></button><AnimatePresence initial={false}>{open && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><p className="border-t border-[var(--ny-border)] px-4 py-4 text-sm leading-6 text-[var(--ny-text-secondary)]">{faq.a}</p></motion.div>}</AnimatePresence></div> })}</div></section>
 
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                {topic.highlights.map((h, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
-                    <FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={14} />
-                    <span>{h}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {topic.id === "editing" && (
-              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
-                <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                  <FiAlertCircle /> Golden Rule for Admins
-                </div>
-                <p className="text-[11px] leading-snug">
-                  Never fabricate coordinates or costs. Empty fields gracefully render as "Information unavailable" or "Map location unavailable", which protects travelers.
-                </p>
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Honest Behavior Demonstration Matrix */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-          <div>
-            <span className="px-3 py-1 rounded-full bg-emerald-100 text-[#102A2E] text-xs font-bold uppercase tracking-wider">
-              Data Integrity
-            </span>
-            <h2 className="text-2xl font-black text-slate-900 mt-1">
-              Honest Data Behavior Standard
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 max-w-md">
-            Here is how our platform guarantees data honesty whenever verified details are missing from official datasets.
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 text-slate-900 uppercase font-bold text-[11px] border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4">Field / Feature</th>
-                <th className="py-3 px-4">When Data is Unverified</th>
-                <th className="py-3 px-4">System Behavior</th>
-                <th className="py-3 px-4">Admin Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-3 px-4 font-bold text-slate-900">Destination GPS Coordinates</td>
-                <td className="py-3 px-4 text-amber-700 font-medium">Latitude / Longitude Empty</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Map location unavailable</span></td>
-                <td className="py-3 px-4 text-slate-500">Edit destination & add verified GPS</td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-3 px-4 font-bold text-slate-900">Estimated Travel Cost</td>
-                <td className="py-3 px-4 text-amber-700 font-medium">No Budget Profile Recorded</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Cost information unavailable</span></td>
-                <td className="py-3 px-4 text-slate-500">Add budget profile in Admin Desk</td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-3 px-4 font-bold text-slate-900">Best Time to Visit</td>
-                <td className="py-3 px-4 text-amber-700 font-medium">Season Unrecorded</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Information unavailable</span></td>
-                <td className="py-3 px-4 text-slate-500">Update seasonal details</td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-3 px-4 font-bold text-slate-900">Opening Hours & Entry Fees</td>
-                <td className="py-3 px-4 text-amber-700 font-medium">Hours / Fees Unrecorded</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">Information unavailable</span></td>
-                <td className="py-3 px-4 text-slate-500">Fill in visitor desk hours</td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-3 px-4 font-bold text-slate-900">Festival & Event Notices</td>
-                <td className="py-3 px-4 text-amber-700 font-medium">No Active Festival Scheduled</td>
-                <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px]">No active notices</span></td>
-                <td className="py-3 px-4 text-slate-500">Publish notice via Visitor Desk</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Frequently Asked Questions */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-          <div className="p-3 rounded-2xl bg-emerald-100 text-[#102A2E]">
-            <FiHelpCircle size={22} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xs text-slate-500">Common questions from travelers and system administrators.</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {faqs.map((faq, idx) => {
-            const isOpen = expandedFaq === idx
-            return (
-              <div key={idx} className="border border-slate-200/80 rounded-2xl overflow-hidden transition-all">
-                <button
-                  onClick={() => setExpandedFaq(isOpen ? null : idx)}
-                  className="w-full text-left p-4 bg-slate-50/60 hover:bg-slate-100/60 flex items-center justify-between font-bold text-slate-900 text-sm gap-4"
-                >
-                  <span>{faq.q}</span>
-                  <FiChevronDown className={`shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180 text-emerald-700" : ""}`} size={18} />
-                </button>
-
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="p-4 bg-white text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100"
-                    >
-                      {faq.a}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Quick Action Footer Callouts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-[#14503a] via-[#1f6b4d] to-[#0a281d] text-white rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl border border-emerald-800/40">
-          <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">Ready to Explore?</span>
-          <h3 className="text-2xl font-black">Discover Nepal's Heritage & Peaks</h3>
-          <p className="text-slate-300 text-xs sm:text-sm">
-            Browse verified destinations across all 7 provinces with live weather, maps, and safety advisories.
-          </p>
-          <Link
-            to="/destinations"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#1D5146] hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition-all"
-          >
-            Explore All Destinations <FiArrowRight />
-          </Link>
-        </div>
-
-        <div className="bg-gradient-to-br from-slate-900 to-amber-950 text-white rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl border border-amber-800/40">
-          <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">Administrator Portal</span>
-          <h3 className="text-2xl font-black">Manage Places & Visitor Desk</h3>
-          <p className="text-slate-300 text-xs sm:text-sm">
-            Add destinations, publish festival notices, manage user feedback, and maintain platform data quality.
-          </p>
-          <Link
-            to="/admin"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/30 transition-all"
-          >
-            Open Admin Dashboard <FiArrowRight />
-          </Link>
-        </div>
-      </div>
+      <div className="grid gap-5 sm:grid-cols-2"><section className="rounded-[var(--ny-radius-xl)] bg-[var(--ny-green-dark)] p-6 text-white sm:p-8"><p className="text-xs font-semibold uppercase tracking-wider text-[#BDEBD9]">Ready to explore?</p><h2 className="mt-3 !text-2xl !text-white">Start with a place that inspires you.</h2><p className="mt-2 text-sm leading-6 text-[#C7D9D2]">Browse the catalogue, compare practical details and build a route at your own pace.</p><Link to="/destinations" className="ny-btn ny-btn-accent mt-6">Explore destinations <FiArrowRight size={16} aria-hidden="true" /></Link></section><section className="ny-panel p-6 sm:p-8"><p className="ny-kicker">Need a human response?</p><h2 className="mt-3">Send a question or correction.</h2><p className="mt-2 text-sm leading-6 text-[var(--ny-text-secondary)]">Include the place name and the detail that needs attention so the review can be useful.</p><Link to="/contact" className="ny-btn ny-btn-secondary mt-6">Contact the team <FiArrowRight size={16} aria-hidden="true" /></Link></section></div>
     </div>
   )
 }

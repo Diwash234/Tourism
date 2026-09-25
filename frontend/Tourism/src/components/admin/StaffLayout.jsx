@@ -5,6 +5,8 @@ import userApi from "../../api/userApi"
 import useAuth from "../../hooks/useAuth"
 import { userDisplayName } from "../../utils/placeUtils"
 
+const isDesktop = () => typeof window !== "undefined" && window.matchMedia?.("(min-width: 1024px)").matches
+
 const items = [
   { to: "/staff", label: "Operations Dashboard", icon: FiHome, module: "dashboard", end: true },
   { to: "/staff/destinations", label: "Destination Queue", icon: FiBriefcase, module: "destinations" },
@@ -25,6 +27,7 @@ export default function StaffLayout() {
   const [caps, setCaps] = useState({ dashboard: ["view"] })
   const [districts, setDistricts] = useState([])
   const { user, logout } = useAuth()
+  const drawerHidden = !open && !isDesktop()
 
   useEffect(() => {
     userApi.getCapabilities()
@@ -41,28 +44,29 @@ export default function StaffLayout() {
   return (
     <div className="staff-amber-theme min-h-screen bg-amber-50">
       <a href="#staff-main" className="admin-skip-link">Skip to staff content</a>
-      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 border-b border-amber-300 bg-amber-500 px-4 text-amber-950 shadow-sm">
-        <button onClick={() => setOpen(!open)} className="p-2 lg:hidden" aria-label="Open staff navigation">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-2 border-b border-amber-300 bg-amber-500 px-2 text-amber-950 shadow-sm sm:gap-3 sm:px-4">
+        <button onClick={() => setOpen(!open)} className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--ny-radius-sm)] hover:bg-amber-400 lg:hidden" aria-label="Open staff navigation">
           <FiMenu />
         </button>
         <FiBriefcase className="hidden sm:block" />
-        <b>Nepal Yatra Staff Operations</b>
+        <b className="hidden min-w-0 truncate sm:inline">Nepal Yatra Staff Operations</b>
         <span className="ml-auto hidden rounded-full bg-amber-800 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-100 sm:inline">Staff</span>
         <span className="hidden text-xs text-amber-950 sm:inline">{userDisplayName(user)}</span>
-        <Link to="/" className="whitespace-nowrap rounded-lg bg-white px-3 py-2 text-xs font-bold text-amber-900">Traveller site</Link>
-        <button onClick={logout} className="rounded-lg bg-rose-700 p-2 text-white" aria-label="Log out">
+        <Link to="/" className="hidden min-h-11 items-center whitespace-nowrap rounded-lg bg-white px-3 py-2 text-xs font-bold text-amber-900 sm:inline-flex">Traveller site</Link>
+        <button type="button" onClick={logout} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-rose-700 text-white" aria-label="Log out">
           <FiLogOut />
         </button>
       </header>
       <aside
         aria-label="Staff workspace navigation"
-        className={`fixed bottom-0 left-0 top-16 z-40 w-64 overflow-y-auto bg-amber-950 p-4 text-amber-50 transition-transform ${
+        aria-hidden={drawerHidden || undefined}
+        className={`fixed bottom-0 left-0 top-16 z-40 w-64 overflow-y-auto bg-amber-950 p-4 text-amber-50 transition-transform ${drawerHidden ? "invisible" : "visible"} ${
           open ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+        } lg:visible lg:translate-x-0`}
       >
         <div className="mb-3 flex justify-between text-white">
           <span className="font-black">Assigned Workspace</span>
-          <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close staff navigation">
+          <button type="button" onClick={() => setOpen(false)} className="grid h-11 w-11 place-items-center lg:hidden" aria-label="Close staff navigation">
             <FiX />
           </button>
         </div>
@@ -91,9 +95,9 @@ export default function StaffLayout() {
           Queues come from your assigned capabilities, districts, hotels and tasks. CMS, users and analytics stay in Admin.
         </p>
       </aside>
-      {open && <button className="fixed inset-0 top-16 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-label="Close overlay" />}
+      {open && <button type="button" className="fixed inset-0 top-16 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-label="Close overlay" />}
       <main id="staff-main" tabIndex="-1" className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-white pt-16 lg:pl-64">
-        <div className="p-3 sm:p-6">
+        <div className="mx-auto w-full max-w-[1600px] p-3 pb-24 sm:p-6 lg:pb-6">
           <Outlet />
         </div>
       </main>

@@ -21,27 +21,13 @@ from tourist.discovery_pipeline import haversine_distance_km
 
 logger = logging.getLogger(__name__)
 
-USD_TO_NPR = 133.0
-
-# Canonical coordinates for major hubs in Nepal
-CITY_COORDS = {
-    "kathmandu": (27.7172, 85.3240),
-    "pokhara": (28.2096, 83.9856),
-    "chitwan": (27.5341, 84.4530),
-    "lumbini": (27.4833, 83.2767),
-    "everest": (27.9881, 86.9250),
-    "ebc": (28.0042, 86.8570),
-    "lukla": (27.6878, 86.7314),
-    "mustang": (28.9985, 83.8473),
-    "jomsom": (28.7844, 83.7380),
-    "rara": (29.5375, 82.0911),
-    "langtang": (28.2140, 85.5714),
-    "janakpur": (26.7271, 85.9407),
-    "ilam": (26.9114, 87.9262),
-    "bandipur": (27.9333, 84.4167),
-    "nagarkot": (27.7172, 85.5202),
-    "bhaktapur": (27.6710, 85.4298),
-    "patan": (27.6644, 85.3188),
+# Common place words help package matching choose relevant published records.
+# Coordinates are resolved from the location service at request time; no
+# canonical coordinate guesses are stored here.
+CITY_WORDS = {
+    "kathmandu", "pokhara", "chitwan", "lumbini", "everest", "ebc", "lukla",
+    "mustang", "jomsom", "rara", "langtang", "janakpur", "ilam", "bandipur",
+    "nagarkot", "bhaktapur", "patan", "annapurna", "phewa",
 }
 
 
@@ -69,8 +55,7 @@ def find_matching_destinations(query: str, limit: int = 4) -> List[Destination]:
             break
 
     if not matches:
-        # Default to iconic destinations
-        matches = list(Destination.objects.filter(is_active=True).order_by("-average_rating")[:limit])
+        return []
 
     return matches[:limit]
 
@@ -83,11 +68,12 @@ def parse_trip_constraints(message: str):
     if days_match:
         days = max(1, min(60, int(days_match.group(1))))
     budget_npr = None
-    usd_match = re.search(r"\$\s*([\d,]+)", text)
+    _usd_match = re.search(r"\$\s*([\d,]+)", text)
     npr_match = re.search(r"(?:npr|rs\.?)\s*([\d,]+)", text)
-    if usd_match:
-        budget_npr = float(usd_match.group(1).replace(",", "")) * USD_TO_NPR
-    elif npr_match:
+    # NPR package records can be compared directly. A USD amount is retained
+    # as an intent signal only; without a dated exchange-rate source we do not
+    # manufacture an NPR value for matching or display.
+    if npr_match:
         budget_npr = float(npr_match.group(1).replace(",", ""))
     return days, budget_npr
 
@@ -99,11 +85,7 @@ def is_budget_trip_intent(message: str, days=None, budget_npr=None) -> bool:
     return bool((days and budget_npr) or (trip_words and budget_npr) or (days and under and trip_words))
 
 
-KNOWN_PLACE_WORDS = set(CITY_COORDS.keys()) | {
-    "annapurna", "mustang", "chitwan", "lumbini", "everest", "langtang",
-    "bandipur", "nagarkot", "bhaktapur", "patan", "ilam", "rara",
-    "janakpur", "kathmandu", "pokhara", "lukla", "jomsom", "phewa",
-}
+KNOWN_PLACE_WORDS = set(CITY_WORDS)
 
 
 def package_card(listing: MarketplaceListing, is_alternative: bool = False) -> dict:
@@ -114,7 +96,7 @@ def package_card(listing: MarketplaceListing, is_alternative: bool = False) -> d
         "kind": listing.kind,
         "price_npr": str(listing.price_npr),
         "duration_days": listing.duration_days,
-        "city": listing.city or (listing.destination.city if listing.destination else "Nepal"),
+        "city": listing.city or (listing.destination.city if listing.destination else "Location unavailable"),
         "partner_name": listing.partner.name,
         "summary": listing.summary,
         "image_url": listing.image_url,
@@ -152,7 +134,9 @@ def match_published_packages(query: str, days=None, budget_npr=None, limit: int 
         hay = _listing_haystack(listing)
         if dest_words and not any(word in hay for word in dest_words):
             continue
-        duration = listing.duration_days or 1
+        duration = listing.duration_days
+        if duration is None:
+            continue
         if days:
             if duration == days:
                 primaries.append(listing)
@@ -173,30 +157,29 @@ def match_published_packages(query: str, days=None, budget_npr=None, limit: int 
 
 
 def get_destination_image_url(dest: Destination) -> str:
-    """Returns the cover or first high-res image URL for a destination."""
+    """Return only media recorded for this destination.
+
+    A missing image is intentionally an empty value. Stock/AI imagery can
+    depict a different place, so it must never be presented as this record's
+    cover.
+    """
     img = dest.gallery.filter(is_cover=True).first() or dest.gallery.first()
-    if img:
-        return img.external_url or (img.image.url if img.image else "") or "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80"
-    return "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80"
+    if not img:
+        return ""
+    return img.external_url or (img.image.url if img.image else "")
 
 
 def generate_structured_itinerary(dest_name: str, days: int = 5, budget_npr: Optional[float] = None) -> Dict[str, Any]:
     """Generates day-by-day itinerary schedule with daily budgets and transit legs."""
     days = max(1, min(14, int(days)))
-    dest = Destination.objects.filter(name__icontains=dest_name).first() or Destination.objects.first()
+    dest = Destination.objects.filter(name__icontains=dest_name).first() if dest_name else None
 
     itinerary_days = []
-    base_daily_usd = 35.0
-    daily_npr = round(base_daily_usd * USD_TO_NPR)
 
     themes = [
-        ("Arrival & Cultural Immersion", "Explore the historic old quarters, local bazaars, and traditional stone courtyards."),
-        ("Scenic Viewpoint & Sunrise Hike", "Early morning sunrise viewpoint over the Himalayan snowline followed by nature trail hike."),
-        ("Heritage Monasteries & Sacred Sites", "Visit ancient pagoda temples, Tibetan gompas, and cultural artisan workshops."),
-        ("Adventure & Alpine Exploration", "Scenic boat ride, canyon trail, or high suspension bridge crossing with local tea rest-stops."),
-        ("Local Homestay & Organic Cuisine", "Experience authentic village hospitality, wood-fired organic Dal Bhat, and folklore music."),
-        ("Alpine Ridge & Photography Expedition", "Panoramic high-ridge hike capturing the Himalayan peaks and rhododendron valleys."),
-        ("Souvenirs & Farewell Sunset", "Shop for authentic Dhaka textiles, Pashmina, and organic Himalayan tea before departure."),
+        ("Arrival & orientation", "Confirm the arrival route and the places that are actually recorded for this destination."),
+        ("Recorded place visit", "Use the destination catalogue and local directory records to choose the next place."),
+        ("Plan a free day", "Add a nearby recorded place, rest, or an activity after confirming availability."),
     ]
 
     for d_num in range(1, days + 1):
@@ -204,22 +187,20 @@ def generate_structured_itinerary(dest_name: str, days: int = 5, budget_npr: Opt
         itinerary_days.append({
             "day": d_num,
             "title": f"Day {d_num}: {theme_title}",
-            "highlights": f"Explore {dest.name if dest else 'Nepal'} key landmarks. {theme_desc}",
-            "lodging": f"Heritage Eco-Lodge / Teahouse in {dest.city or dest.district or 'Nepal'}",
-            "daily_budget_npr": daily_npr,
-            "daily_budget_usd": base_daily_usd,
+            "highlights": theme_desc,
+            "lodging": None,
+            "daily_budget_npr": None,
+            "daily_budget_usd": None,
         })
-
-    total_npr = daily_npr * days
-    total_usd = round(total_npr / USD_TO_NPR, 2)
 
     return {
         "destination": dest.name if dest else dest_name,
         "days_count": days,
-        "total_estimated_npr": total_npr,
-        "total_estimated_usd": total_usd,
-        "fits_budget": (total_npr <= float(budget_npr)) if budget_npr else True,
+        "total_estimated_npr": None,
+        "total_estimated_usd": None,
+        "fits_budget": None,
         "schedule": itinerary_days,
+        "note": "A day-by-day structure is a planning scaffold. Costs, stays and availability must be confirmed from recorded or current sources.",
     }
 
 
@@ -296,8 +277,8 @@ def compute_distance_and_transit(origin_name: str, dest_name: str, origin_coords
             card["highway_corridor"] = None
             card["note"] = result["note"]
 
-    # Fares: curated transit fares first; otherwise an explicitly labelled
-    # fare-index estimate (never presented as a quoted price).
+    # Fares: only a recorded transit fare is shown. If none is available,
+    # the card leaves it unavailable rather than calculating a made-up quote.
     dest_id = dest.get("destination_id")
     if dest_id:
         transit = DestinationTransitRoute.objects.filter(
@@ -307,10 +288,8 @@ def compute_distance_and_transit(origin_name: str, dest_name: str, origin_coords
             card["fare_bus_npr"] = int(transit.estimated_fare_npr)
             card["fare_note"] = f"Curated fare ({transit.route_name or 'transit route'})"
 
-    if card["fare_bus_npr"] is None and card["road_distance_km"]:
-        card["fare_bus_npr"] = max(600, round(card["road_distance_km"] * 7.5))
-        card["fare_jeep_npr"] = max(1800, round(card["road_distance_km"] * 28.0))
-        card["fare_note"] = "Fare-index estimate — not a quoted price"
+    if card["fare_bus_npr"] is None:
+        card["fare_note"] = "Fare unavailable — no verified fare record was supplied"
 
     return card
 
@@ -327,13 +306,10 @@ def get_chatbot_reply(
     if not history:
         return {
             "reply": (
-                "Namaste! 🙏 I am **Himal AI**, your personal Nepal Travel Sentinel & Visual Guide.\n\n"
-                "Ask me about:\n"
-                "• 🏔️ **Destinations & Photos**: *'Show me pictures of Pokhara and Everest'*\n"
-                "• 📏 **Distance & Driving Times**: *'How far is Pokhara from Kathmandu?'*\n"
-                "• 🗓️ **Custom Itineraries**: *'Plan an 8-day trip to Mustang with budget NPR 50,000'*\n"
-                "• 💰 **Travel Budgets**: *'How much does a 5-day Annapurna trek cost?'*\n"
-                "• 🚨 **24/7 Emergency Helplines**: *'Nearest hospital and tourist police hotline'*"
+                "Namaste! I am **Himal AI**, your Nepal travel companion.\n\n"
+                "I can help you discover recorded destinations, compare published packages and shape an itinerary. "
+                "For urgent help, use the Emergency page and its available directory records.\n"
+                "Try: *'Show me recorded places in Pokhara'*, *'Help me compare two destinations'* or *'Plan a five-day trip'*."
             ),
             "destination_cards": [],
             "image_cards": [],
@@ -381,31 +357,34 @@ def get_chatbot_reply(
     matched_destinations = find_matching_destinations(msg_clean, limit=4)
     for dest in matched_destinations:
         img_url = get_destination_image_url(dest)
-        daily_usd = 35.0
-        if hasattr(dest, "budget_estimation") and dest.budget_estimation:
-            daily_usd = float(dest.budget_estimation.estimated_daily_budget or 35.0)
+        daily_usd = None
+        if hasattr(dest, "budget_estimation") and dest.budget_estimation and dest.budget_estimation.estimated_daily_budget is not None:
+            daily_usd = float(dest.budget_estimation.estimated_daily_budget)
 
         destination_cards.append({
             "id": dest.id,
             "name": dest.name,
             "slug": dest.slug,
             "image": img_url,
-            "category": dest.category.name if dest.category else "Attraction",
-            "rating": str(dest.average_rating or "4.9"),
-            "city": f"{dest.district or 'Nepal'}, {dest.province or 'Province'}",
-            "budget": f"NPR {round(daily_usd * USD_TO_NPR):,}/day",
-            "altitude": dest.altitude or "1,400m",
+            "category": dest.category.name if dest.category else "Destination",
+            "rating": str(dest.average_rating) if dest.average_rating is not None else None,
+            "city": ", ".join(part for part in [dest.district, dest.province] if part) or None,
+            "budget": f"USD {daily_usd:,.0f}/day (recorded estimate)" if daily_usd is not None else "Budget unavailable",
+            "altitude": dest.altitude or None,
         })
 
     # Pack Image Cards
     if is_image_intent or len(matched_destinations) > 0:
         for dest in matched_destinations[:3]:
             for img in dest.gallery.all()[:2]:
+                image_url = img.external_url or (img.image.url if img.image else "")
+                if not image_url:
+                    continue
                 image_cards.append({
-                    "url": img.external_url or (img.image.url if img.image else ""),
+                    "url": image_url,
                     "caption": img.caption or f"{dest.name} Scenic View",
-                    "photographer": img.photographer or "Verified Archive",
-                    "license": img.license_type or "CC BY-SA 4.0",
+                    "photographer": img.photographer or "Attribution unavailable",
+                    "license": img.license_type or "License not recorded",
                     "category": img.image_category or "Landscape",
                     "destination_name": dest.name,
                 })
@@ -435,31 +414,39 @@ def get_chatbot_reply(
     if is_itinerary_intent:
         days_match = re.search(r"(\d+)\s*(?:day|days)", msg_lower)
         days = int(days_match.group(1)) if days_match else 5
-        dest_for_plan = matched_destinations[0].name if matched_destinations else "Pokhara & Kathmandu"
+        dest_for_plan = matched_destinations[0].name if matched_destinations else ""
         budget_match = re.search(r"(?:npr|rs\.?|\$)\s*([\d,]+)", msg_lower)
         budget_val = float(budget_match.group(1).replace(",", "")) if budget_match else None
         itinerary_card = generate_structured_itinerary(dest_for_plan, days=days, budget_npr=budget_val)
 
-    # Pack Emergency Cards
-    if is_emergency_intent:
-        for h in Hospital.objects.exclude(is_archived=True)[:3]:
-            phone = str(h.phone or "").strip()
-            emergency_cards.append({
-                "name": h.name,
-                "type": "Emergency Hospital",
-                "phone": phone or "102",
-                "phone_is_national_fallback": not phone,
-                "district": h.district or "",
-            })
-        for p in PoliceStation.objects.exclude(is_archived=True)[:2]:
-            phone = str(p.phone or "").strip()
-            emergency_cards.append({
-                "name": p.name,
-                "type": "Tourist & Civil Police",
-                "phone": phone or "100",
-                "phone_is_national_fallback": not phone,
-                "district": p.destination.district if p.destination_id else "",
-            })
+    # Pack Emergency Cards only from verified records near an explicitly
+    # supplied position. Without coordinates, the assistant points to the
+    # location-aware directory instead of returning arbitrary national rows.
+    if is_emergency_intent and latitude is not None and longitude is not None:
+        nearby_records = []
+        for hospital in Hospital.objects.filter(is_archived=False, is_verified=True).select_related("destination")[:100]:
+            distance = haversine_distance_km(latitude, longitude, float(hospital.latitude), float(hospital.longitude))
+            phone = str(hospital.phone or "").strip()
+            if distance is not None and distance <= 50 and phone:
+                nearby_records.append((distance, {
+                    "name": hospital.name,
+                    "type": "Emergency Hospital",
+                    "phone": phone,
+                    "district": hospital.district or "",
+                    "distance_km": round(distance, 1),
+                }))
+        for station in PoliceStation.objects.filter(is_archived=False, is_verified=True).select_related("destination")[:100]:
+            distance = haversine_distance_km(latitude, longitude, float(station.latitude), float(station.longitude))
+            phone = str(station.phone or "").strip()
+            if distance is not None and distance <= 50 and phone:
+                nearby_records.append((distance, {
+                    "name": station.name,
+                    "type": "Tourist & Civil Police",
+                    "phone": phone,
+                    "district": station.destination.district if station.destination_id else "",
+                    "distance_km": round(distance, 1),
+                }))
+        emergency_cards = [card for _, card in sorted(nearby_records, key=lambda item: item[0])[:5]]
 
     # 1. Attempt calling configured AI providers (OpenRouter, Gemini, Grok, Groq, Hugging Face, OpenAI)
     # Package questions stay on the live marketplace so travellers see published offers.
@@ -509,29 +496,27 @@ def get_chatbot_reply(
                 )
                 ai_text_reply = "\n".join(lines)
         elif is_itinerary_intent and itinerary_card:
+            total = itinerary_card.get("total_estimated_npr")
+            total_text = f"NPR {total:,}" if total is not None else "Information unavailable"
             ai_text_reply = (
-                f"🗓️ **Custom {itinerary_card['days_count']}-Day Itinerary for {itinerary_card['destination']}**\n\n"
-                f"• **Total Estimated Cost:** `NPR {itinerary_card['total_estimated_npr']:,}` (~${itinerary_card['total_estimated_usd']} USD)\n\n"
+                f"🗓️ **Planning scaffold for {itinerary_card['destination'] or 'your route'}**\n\n"
+                f"• **Days:** {itinerary_card['days_count']}\n"
+                f"• **Cost:** {total_text}\n\n"
+                "The schedule is a starting structure, not a confirmed booking or quote. "
+                "Confirm current prices, stays, permits and availability with the relevant providers.\n\n"
             )
             for item in itinerary_card["schedule"]:
+                daily = item.get("daily_budget_npr")
+                daily_text = f"NPR {daily:,} (estimate)" if daily is not None else "Information unavailable"
                 ai_text_reply += (
                     f"📍 **{item['title']}**\n"
-                    f"   • *Activity:* {item['highlights']}\n"
-                    f"   • *Lodging:* {item['lodging']}\n"
-                    f"   • *Daily Budget:* NPR {item['daily_budget_npr']:,} (${item['daily_budget_usd']})\n\n"
+                    f"   • *Planning note:* {item['highlights']}\n"
+                    f"   • *Daily cost:* {daily_text}\n\n"
                 )
-            ai_text_reply += "💡 *Permits & Logistics:* Ensure you have valid TIMS and conservation park permits before departure!"
         elif is_emergency_intent:
             ai_text_reply = (
-                "🚨 **Nepal national emergency hotlines**\n\n"
-                "• **Tourist Police Nepal:** `1144`\n"
-                "• **Nepal Police:** `100`\n"
-                "• **Ambulance:** `102`\n"
-                "• **Fire Brigade:** `101`\n"
-                "• **Traffic Police:** `103`\n\n"
-                "Facility cards below use stored directory phones only. "
-                "If a local number is missing, the national 102 / 100 line is shown instead. "
-                "This assistant does not invent hospital or pharmacy numbers."
+                "For an emergency, open the Emergency page to search the directory records available for a destination or location. "
+                "The assistant does not replace local emergency dispatch, and a missing local phone number is left unavailable."
             )
         elif is_package_intent:
             primaries = [offer for offer in package_cards if not offer.get("is_alternative")]
@@ -573,37 +558,34 @@ def get_chatbot_reply(
                 )
         elif is_budget_intent:
             ai_text_reply = (
-                "💰 **Nepal Travel Budget Tiers (Per Person / Day)**:\n\n"
-                "1. **🎒 Backpacker / Solo:** `$20 - $35` (`NPR 2,700 - 4,700`)\n"
-                "   • Teahouse accommodation, Dal Bhat, public highway buses, self-guided hikes.\n\n"
-                "2. **🏨 Mid-Range / Comfort:** `$45 - $80` (`NPR 6,000 - 10,700`)\n"
-                "   • 3-star boutique hotels, tourist coaches / shared jeeps, cafe dining, licensed local guides.\n\n"
-                "3. **👑 Luxury / Heritage:** `$120+` (`NPR 16,000+`)\n"
-                "   • 5-star heritage resorts (Dwarika's, Tiger Tops), domestic flights, private Scorpio 4WD."
+                "Budget values depend on the destination, season, transport and provider. "
+                "I can show a budget only when a recorded estimate or published package price is available; "
+                "otherwise browse /packages or use the itinerary planner to confirm current costs."
             )
         elif matched_destinations:
             top_dest = matched_destinations[0]
-            daily_cost = 35.0
-            if hasattr(top_dest, "budget_estimation") and top_dest.budget_estimation:
-                daily_cost = float(top_dest.budget_estimation.estimated_daily_budget or 35.0)
-
+            daily_usd = None
+            if hasattr(top_dest, "budget_estimation") and top_dest.budget_estimation and top_dest.budget_estimation.estimated_daily_budget is not None:
+                daily_usd = float(top_dest.budget_estimation.estimated_daily_budget)
+            location = ", ".join(part for part in [top_dest.district, top_dest.province] if part) or "Location not recorded"
+            season = top_dest.best_time_to_visit or "Not recorded"
+            distance = f"{top_dest.distance_from_kathmandu_km} km from Kathmandu" if top_dest.distance_from_kathmandu_km is not None else "Distance from Kathmandu unavailable"
+            budget_text = f"USD {daily_usd:,.0f} / day (recorded estimate)" if daily_usd is not None else "Daily budget unavailable"
             ai_text_reply = (
-                f"🏔️ **{top_dest.name} ({top_dest.district or 'Nepal'}, {top_dest.province or 'Province'})**\n\n"
-                f"{top_dest.description}\n\n"
-                f"• **Elevation:** {top_dest.altitude or '1,400m'}\n"
-                f"• **Category:** {top_dest.category.name if top_dest.category else 'Attraction'}\n"
-                f"• **Best Season:** {top_dest.best_time_to_visit or 'October to April'}\n"
-                f"• **Estimated Daily Budget:** NPR {round(daily_cost * USD_TO_NPR):,} / day\n"
-                f"• **Distance from Kathmandu:** ~{top_dest.distance_from_kathmandu_km or 200} km\n\n"
-                f"Explore the interactive cards below for direct navigation routes and high-res verified imagery!"
+                f"**{top_dest.name} ({location})**\n\n"
+                f"{top_dest.description or 'Description unavailable'}\n\n"
+                f"• **Elevation:** {top_dest.altitude or 'Information unavailable'}\n"
+                f"• **Category:** {top_dest.category.name if top_dest.category else 'Destination'}\n"
+                f"• **Best season:** {season}\n"
+                f"• **Daily budget:** {budget_text}\n"
+                f"• **Distance from Kathmandu:** {distance}\n\n"
+                "Open the destination record for the details that are available."
             )
         else:
             ai_text_reply = (
-                "Namaste! 🙏 I can assist you across all aspects of Nepal travel:\n\n"
-                "• 📍 **5,900+ Destinations:** Deep cultural history, photography spots, and hidden trails.\n"
-                "• 📏 **Distance & Highway Corridors:** Real road mileage, driving hours, and public bus fares.\n"
-                "• 🗓️ **Day-by-Day Itineraries:** Custom trip schedules tailored to your duration and budget.\n"
-                "• 🛡️ **Safety & 24/7 Hotlines:** Direct dial to Tourist Police (1144), 100, and mountain rescue.\n\n"
+                "Namaste! I can help you discover recorded destinations, compare published packages, "
+                "and build a trip scaffold. Missing costs, schedules and emergency details stay unavailable. "
+                "For urgent help, use the Emergency page and its available directory records.\n\n"
                 "What destination or route would you like to explore?"
             )
 

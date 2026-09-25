@@ -1,44 +1,21 @@
 import { FiDollarSign } from "react-icons/fi"
 
-export default function BudgetInfo({ budgetEst, entryFee = 0 }) {
-  const dailyCost = budgetEst?.estimated_daily_budget || 45
-  const totalCost = budgetEst?.estimated_trip_budget || (dailyCost * 3)
+const money = (value, currency = "USD") => value == null ? "Not recorded" : `${currency} ${Number(value).toLocaleString()}`
+
+export default function BudgetInfo({ budgetEst, entryFee = null }) {
+  const dailyCost = budgetEst?.estimated_daily_budget ?? null
+  const totalCost = budgetEst?.estimated_trip_budget ?? null
+  const currency = budgetEst?.currency || "USD"
 
   return (
-    <div className="card-base p-6 shadow-xl border border-[#E5E0D5] rounded-3xl bg-gradient-to-br from-white to-purple-50/50 space-y-4">
-      <div className="flex items-center justify-between border-b pb-3">
-        <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-          <FiDollarSign className="text-emerald-600" /> Travel Budget Breakdown
-        </h3>
-        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">
-          ML Estimated
-        </span>
+    <section className="ny-card space-y-4 p-5" aria-labelledby="budget-breakdown-title">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--ny-border)] pb-3">
+        <h2 id="budget-breakdown-title" className="flex items-center gap-2 text-base font-bold"><FiDollarSign className="text-[var(--ny-green)]" aria-hidden="true" /> Travel budget information</h2>
+        <span className="rounded-full bg-[var(--ny-soft-green)] px-2.5 py-1 text-[10px] font-bold uppercase text-[var(--ny-green)]">Recorded estimate</span>
       </div>
-
-      <div>
-        <p className="text-xs text-gray-500">Estimated Daily Budget</p>
-        <p className="text-3xl font-black text-purple-950">${dailyCost} <span className="text-xs font-semibold text-gray-500">USD / day</span></p>
-        <p className="text-xs text-[#102A2E] font-bold mt-1">Approx. NPR {(dailyCost * 134).toLocaleString()}</p>
-      </div>
-
-      <div className="p-3.5 rounded-2xl bg-white border border-[#E5E0D5] text-xs space-y-2 text-gray-700">
-        <div className="flex justify-between">
-          <span>🏨 Hotel / Night:</span>
-          <b>${budgetEst?.accommodation_per_night || 20}</b>
-        </div>
-        <div className="flex justify-between">
-          <span>🍛 Food / Meals:</span>
-          <b>${budgetEst?.food_cost_per_day || 15}</b>
-        </div>
-        <div className="flex justify-between">
-          <span>🚗 Transit:</span>
-          <b>${budgetEst?.transport_cost || 10}</b>
-        </div>
-        <div className="flex justify-between">
-          <span>🎟️ Entry Fee:</span>
-          <b>NPR {entryFee || 0}</b>
-        </div>
-      </div>
-    </div>
+      <div><p className="text-xs text-[var(--ny-text-secondary)]">Estimated daily budget</p><p className="mt-1 text-3xl font-bold text-[var(--ny-text)]">{money(dailyCost, currency)} {dailyCost != null && <span className="text-xs font-semibold text-[var(--ny-text-secondary)]">/ day</span>}</p></div>
+      <div className="rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-white p-3.5 text-sm text-[var(--ny-text-secondary)]"><div className="flex justify-between gap-3"><span>Estimated trip total</span><b className="text-[var(--ny-text)]">{money(totalCost, currency)}</b></div><div className="mt-2 flex justify-between gap-3"><span>Accommodation / night</span><b className="text-[var(--ny-text)]">{money(budgetEst?.accommodation_per_night, currency)}</b></div><div className="mt-2 flex justify-between gap-3"><span>Food / day</span><b className="text-[var(--ny-text)]">{money(budgetEst?.food_cost_per_day, currency)}</b></div><div className="mt-2 flex justify-between gap-3"><span>Transport</span><b className="text-[var(--ny-text)]">{money(budgetEst?.transport_cost, currency)}</b></div><div className="mt-2 flex justify-between gap-3"><span>Entry fee</span><b className="text-[var(--ny-text)]">{entryFee == null ? "Not recorded" : `NPR ${Number(entryFee).toLocaleString()}`}</b></div></div>
+      <p className="text-xs leading-5 text-[var(--ny-text-secondary)]">These values are estimates only when supplied by the destination record. Confirm current prices, availability and currency with the relevant provider.</p>
+    </section>
   )
 }

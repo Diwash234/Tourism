@@ -61,7 +61,7 @@ const RESULT_TYPES = [
 ]
 
 const NearbyPlaces = () => {
-  const { position, error: geoError, code: geoCode, locating, retry: retryGeo } = useGeolocation()
+  const { position, error: geoError, code: geoCode, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const { isAuthenticated } = useAuth()
   const { showToast } = useToast()
 
@@ -70,7 +70,7 @@ const NearbyPlaces = () => {
   const origin = useMemo(
     () =>
       manualOrigin ||
-      (position ? { lat: position.lat, lng: position.lng, label: "Your location" } : { lat: 27.7172, lng: 85.3240, label: "Kathmandu (Default)" }),
+      (position ? { lat: position.lat, lng: position.lng, label: "Your location" } : null),
     [manualOrigin, position]
   )
 
@@ -227,6 +227,18 @@ const NearbyPlaces = () => {
     return () => clearTimeout(t)
   }, [query, pickerOpen])
 
+  useEffect(() => {
+    if (!pickerOpen) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setPickerOpen(false)
+        setQuery("")
+      }
+    }
+    window.addEventListener("keydown", closeOnEscape)
+    return () => window.removeEventListener("keydown", closeOnEscape)
+  }, [pickerOpen])
+
   const chooseOrigin = (dest) => {
     setManualOrigin({
       lat: Number(dest.latitude),
@@ -247,7 +259,7 @@ const NearbyPlaces = () => {
   // --- which panel to show: never collapse distinct failures into "empty"
   let panel
   if (!origin) {
-    panel = geoError ? (geoCode === 1 ? "denied" : "location_error") : "locating"
+    panel = geoError ? (geoCode === 1 ? "denied" : "location_error") : locating ? "locating" : "location_prompt"
   } else if (fetchState === "loading" || fetchState === "idle") {
     panel = "loading"
   } else if (fetchState === "error") {
@@ -267,16 +279,17 @@ const NearbyPlaces = () => {
       <button
         type="button"
         onClick={handleUseMyLocation}
-        className="btn-primary !px-4 !py-2 text-sm"
+        className="ny-btn ny-btn-primary min-h-11"
       >
-        <FiRefreshCw className="w-4 h-4" /> Try Again
+        {geoError ? <FiRefreshCw className="h-4 w-4" aria-hidden="true" /> : <FiCrosshair className="h-4 w-4" aria-hidden="true" />}
+        {geoError ? "Try Again" : "Use My Location"}
       </button>
       <button
         type="button"
         onClick={() => setPickerOpen(true)}
-        className="btn-outline !px-4 !py-2 text-sm"
+        className="ny-btn ny-btn-secondary min-h-11"
       >
-        <FiSearch className="w-4 h-4" /> Choose Location
+        <FiSearch className="h-4 w-4" aria-hidden="true" /> Choose Location
       </button>
     </div>
   )
@@ -290,7 +303,7 @@ const NearbyPlaces = () => {
     `https://www.google.com/maps/dir/?api=1&destination=${item.latitude},${item.longitude}`
 
   return (
-    <div className="container-app py-10 fade-in theme-forest">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="nearby-places" />
       <PageHeader title="Nearby Places" icon={FiMapPin} />
 
@@ -302,11 +315,12 @@ const NearbyPlaces = () => {
             type="button"
             role="tab"
             aria-selected={activeType === t.key}
+            aria-controls="nearby-results-panel"
             onClick={() => setActiveType(t.key)}
             className={
               activeType === t.key
-                ? "px-4 py-2 rounded-xl text-sm font-semibold bg-himalaya-600 text-white shadow-premium"
-                : "px-4 py-2 rounded-xl text-sm font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition-colors"
+                ? "min-h-11 rounded-xl bg-[var(--ny-green)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--ny-shadow)]"
+                : "min-h-11 rounded-xl border border-[var(--ny-border)] px-4 py-2 text-sm font-semibold text-[var(--ny-green)] transition-colors hover:bg-[var(--ny-soft-green)]"
             }
           >
             {t.label}
@@ -331,14 +345,14 @@ const NearbyPlaces = () => {
             type="button"
             onClick={handleUseMyLocation}
             aria-label="Use my current location"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition-colors"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--ny-border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ny-green)] transition-colors hover:bg-[var(--ny-soft-green)]"
           >
             <FiCrosshair className="w-4 h-4" /> Use My Location
           </button>
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition-colors"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--ny-border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ny-green)] transition-colors hover:bg-[var(--ny-soft-green)]"
           >
             <FiSearch className="w-4 h-4" /> Choose Location
           </button>
@@ -369,7 +383,16 @@ const NearbyPlaces = () => {
       </div>
 
       {/* Status panels — each failure mode gets its own message + recovery */}
-      <div aria-live="polite">
+      <div id="nearby-results-panel" role="tabpanel" aria-live="polite" aria-busy={panel === "loading" || panel === "locating"}>
+        {panel === "location_prompt" && (
+          <EmptyState
+            icon={FiMapPin}
+            title="Choose a starting point"
+            subtitle="Share your location or choose a destination to rank nearby hospitals, hotels and places by real distance."
+            action={locationActions}
+          />
+        )}
+
         {panel === "locating" && <Loader text={`Finding nearby ${noun}…`} />}
 
         {panel === "loading" && <Loader text={`Finding nearby ${noun}…`} />}
@@ -413,7 +436,7 @@ const NearbyPlaces = () => {
           <EmptyState
             icon={FiSearch}
             title={`No ${noun} found within ${radiusKm} km.`}
-            subtitle={`Nothing in our database is within ${radiusKm} km of ${origin?.label}. Try a larger radius or a different starting point.`}
+            subtitle={`No recorded places are within ${radiusKm} km of ${origin?.label}. Try a larger radius or a different starting point.`}
             action={
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {nextRadius && (
@@ -450,7 +473,7 @@ const NearbyPlaces = () => {
                 )}
                 {(poiData.verified_database_places || []).length > 0 && (
                   <div>
-                    <h3 className="text-sm font-bold text-emerald-900 mb-2">Verified destinations near you</h3>
+                    <h3 className="text-sm font-bold text-emerald-900 mb-2">Recorded destinations near you</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                       {poiData.verified_database_places.map((row) => (
                         <a key={row.slug} href={row.source_url} className="card-base p-4 hover:shadow-md transition">
@@ -599,7 +622,7 @@ const NearbyPlaces = () => {
                 type="button"
                 onClick={() => setPickerOpen(false)}
                 aria-label="Close location picker"
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                className="grid h-11 w-11 place-items-center rounded-[var(--ny-radius-sm)] text-[var(--ny-text-muted)] transition hover:bg-[var(--ny-soft-green)] hover:text-[var(--ny-green)]"
               >
                 <FiX className="w-5 h-5" />
               </button>
@@ -648,7 +671,7 @@ const NearbyPlaces = () => {
 
             {!searching && query.trim().length < 2 && (
               <p className="text-xs text-gray-400 py-3 text-center">
-                Type at least 2 characters — suggestions come from destinations in our database.
+                Type at least 2 characters — suggestions come from recorded destinations.
               </p>
             )}
           </div>

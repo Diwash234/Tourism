@@ -6,78 +6,11 @@
  * Backend base URL comes from VITE_API_BASE_URL (see .env.example) and
  * points at Django's /api/v1/ router (tourist/urls.py).
  */
-import axios from "axios";
+import axiosClient from "../api/axiosClient";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  // Never spin the UI forever on a hung backend/network (see axiosClient.js).
-  // Slow multipart uploads override this per-request with a longer timeout.
-  timeout: 20000,
-});
-
-// --- Attach the JWT access token to every request ---------------------
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// --- On a 401, try refreshing the access token once, then retry -------
-let isRefreshing = false;
-let pendingQueue = [];
-
-function resolvePending(token) {
-  pendingQueue.forEach(({ resolve }) => resolve(token));
-  pendingQueue = [];
-}
-
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const original = error.config;
-    if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(error);
-    }
-
-    if (isRefreshing) {
-      // Queue this request until the in-flight refresh finishes.
-      return new Promise((resolve) => {
-        pendingQueue.push({ resolve });
-      }).then((token) => {
-        original.headers.Authorization = `Bearer ${token}`;
-        return api(original);
-      });
-    }
-
-    original._retry = true;
-    isRefreshing = true;
-    try {
-      const refresh = localStorage.getItem("refresh");
-      if (!refresh) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("user");
-        return Promise.reject(error);
-      }
-      const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
-      localStorage.setItem("access", data.access);
-      resolvePending(data.access);
-      original.headers.Authorization = `Bearer ${data.access}`;
-      return api(original);
-    } catch (refreshError) {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
-    }
-  }
-);
+// All legacy service helpers now share the canonical client, including its
+// rotate-aware refresh and anonymous public-read recovery.
+const api = axiosClient;
 
 // ------------------------------------------------------------------
 // Auth

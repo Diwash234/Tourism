@@ -58,6 +58,12 @@ export const RISK_LEVELS = {
   },
 
 
+  CRITICAL: {
+    label: "Critical",
+    color: "bg-red-100 text-red-800",
+    badge: "badge-risk-high"
+  },
+
   HIGH: {
     label: "High",
     color: "bg-nepalred-50 text-nepalred-600",
@@ -99,14 +105,13 @@ export const NAV_LINKS = [
     { label: "Compare Places", path: "/compare" },
     { label: "Explore by Province", path: "/explore-map" },
   ] },
-  { label: "Plan a Trip", path: "/trip-planner", children: [
+  { label: "Plan a Trip", path: "/itinerary", children: [
     { label: "Itinerary", path: "/itinerary" },
     { label: "Budget Estimator", path: "/budget-estimator" },
-    { label: "Hotels", path: "/hotels" },
+    { label: "Find Hotels", path: "/hotels/search" },
   ] },
   { label: "Emergency Services", path: "/emergency", children: [
     { label: "Risk Alerts", path: "/risk-alerts" },
-    { label: "Family Safety", path: "/family-safety" },
     { label: "Emergency / SOS", path: "/emergency" },
   ] },
   { label: "About", path: "/about" },

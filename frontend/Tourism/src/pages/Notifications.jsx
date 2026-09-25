@@ -66,7 +66,7 @@ export default function Notifications() {
   const unread = notifications.filter((item) => !item.is_read).length
 
   return (
-    <div className="theme-amber-alt space-y-5">
+    <div className="ny-page space-y-5">
       <CMSPageIntro pageKey="notifications" />
       <PageHeader
         title="Notifications"
@@ -74,13 +74,13 @@ export default function Notifications() {
         icon={FiBell}
         actions={
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => all(true)} className="bg-white text-amber-700 text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-gray-100 flex items-center gap-1.5">
+            <button onClick={() => all(true)} className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs">
               <FiCheck /> Mark all read
             </button>
-            <button onClick={() => all(false)} className="bg-white text-amber-700 text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-gray-100 flex items-center gap-1.5">
+            <button onClick={() => all(false)} className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs">
               <FiMail /> Mark all unread
             </button>
-            <button onClick={load} className="bg-white text-amber-700 p-2 rounded-xl hover:bg-gray-100" aria-label="Refresh notifications">
+            <button onClick={load} className="ny-btn ny-btn-secondary min-h-10 px-3 text-xs" aria-label="Refresh notifications">
               <FiRefreshCw className={loading ? "animate-spin" : ""} />
             </button>
           </div>
@@ -92,7 +92,7 @@ export default function Notifications() {
       ) : loadError ? (
         <div className="card-base p-6 text-center">
           <p className="text-sm text-rose-600 mb-3">{loadError}</p>
-          <button onClick={load} className="px-4 py-2 bg-secondary-500 text-white rounded-xl text-sm font-bold">Retry</button>
+          <button onClick={load} className="ny-btn ny-btn-primary">Retry</button>
         </div>
       ) : notifications.length ? (
         <div className="space-y-2">

@@ -16,12 +16,13 @@ import useChatSocket from "./hooks/useChatSocket"
 import useToast from "./hooks/useToast"
 import HimalPackageCards from "./components/chat/HimalPackageCards"
 import { NOT_RECORDED, recordedCity } from "./utils/placeUtils"
+import PlaceholderImage from "./components/common/PlaceholderImage"
 
 const QUICK_COMMANDS = [
-  { label: "🏔️ Recorded destinations", prompt: "Show recorded destinations in Nepal" },
-  { label: "🚨 Emergency helplines", prompt: "What are the nearest hospitals and tourist police 1144 numbers?" },
-  { label: "🎒 Live travel packages", prompt: "What travel packages can I add to a trip?" },
-  { label: "💵 5-day trip under $500", prompt: "I want a 5-day trip to Nepal under $500" },
+  { label: "Recorded destinations", prompt: "Show recorded destinations in Nepal" },
+  { label: "Emergency directory", prompt: "Help me find recorded emergency services near a destination" },
+  { label: "Travel packages", prompt: "What travel packages can I add to a trip?" },
+  { label: "Plan a five-day trip", prompt: "Help me plan a five-day trip to Nepal" },
 ]
 
 export default function ChatBot() {
@@ -29,8 +30,8 @@ export default function ChatBot() {
     {
       role: "assistant",
       content:
-        "Namaste! 🙏 I am **Himal AI**, your personal Nepal Travel Companion & Intelligent Visual Guide.\n\n" +
-        "I answer from recorded destinations, published packages, and the emergency directory. Missing fields stay 'Information unavailable'.",
+        "Namaste! I am Himal AI, your Nepal travel companion.\n\n" +
+        "I can help you discover recorded destinations, published packages and practical trip information. Missing fields stay unavailable.",
       destination_cards: [],
       image_cards: [],
       itinerary_cards: null,
@@ -70,7 +71,7 @@ export default function ChatBot() {
     }
   })
 
-  const { position } = useGeolocation()
+  const { position, locating, retry: requestLocation } = useGeolocation({ auto: false })
   const chatBoxRef = useRef(null)
 
   useEffect(() => {
@@ -148,7 +149,7 @@ export default function ChatBot() {
         {
           role: "assistant",
           content:
-            "I can help you plan your journey across Nepal, find hotels, calculate budgets, and navigate mountain routes. Ask me anything!",
+            "I couldn't reach the travel service just now. Please try again, or browse the destination catalogue while the service is unavailable.",
           destination_cards: [],
           image_cards: [],
           itinerary_cards: null,
@@ -169,20 +170,20 @@ export default function ChatBot() {
   }
 
   return (
-    <div className="container-app py-8 animate-fadeIn" data-testid="himal-page">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8" data-testid="himal-page">
       <CMSPageIntro pageKey="chatbot" />
-      <div className="max-w-4xl mx-auto space-y-5">
+      <div className="mx-auto w-full max-w-6xl space-y-5">
         <div className="text-center">
-          <span className="px-3.5 py-1 rounded-full bg-primary-50 text-primary-800 text-xs font-black uppercase tracking-wider">
+          <span className="ny-kicker !border !border-[var(--ny-border)] !bg-[var(--ny-soft-green)] !text-[var(--ny-green)]">
             AI Travel Companion
           </span>
           <PageHeader title="Himal AI Assistant & Visual Guide" subtitle="Ask about destinations, safety, permits and more." icon={FiMessageCircle} />
           <p className="text-gray-500 text-sm mt-1">
-            Recorded destinations, published packages, and official emergency numbers
+            Recorded destinations, published packages and practical trip information
           </p>
-          <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Grounded AI Guarantee: Answers strictly from verified dataset records — missing data stays "Information unavailable".</span>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 opacity-70" />
+            <span>Recorded data first: I use available catalogue records and clearly mark missing details.</span><button type="button" onClick={requestLocation} disabled={locating} className="ny-btn ny-btn-secondary min-h-11 text-xs"><FiMapPin size={14} aria-hidden="true" />{position ? "Location shared" : locating ? "Finding location…" : "Use my location"}</button>
           </div>
         </div>
 
@@ -192,10 +193,10 @@ export default function ChatBot() {
             <button
               key={idx}
               type="button"
-              data-testid={qp.prompt.includes("under $500") ? "himal-quick-budget" : `himal-quick-${idx}`}
+              data-testid={qp.prompt.includes("five-day") ? "himal-quick-budget" : `himal-quick-${idx}`}
               onClick={() => handleSend(qp.prompt)}
               disabled={sending}
-              className="text-left bg-white hover:bg-primary-50 border border-primary-200/80 rounded-2xl px-4 py-3 transition-all shadow-sm hover:border-primary-400 hover:shadow"
+              className="ny-card min-h-11 px-4 py-3 text-left"
             >
               <span className="block text-xs font-bold text-primary-900">{qp.label}</span>
               <span className="block text-[11px] text-gray-500 mt-0.5 line-clamp-1">{qp.prompt}</span>
@@ -203,14 +204,14 @@ export default function ChatBot() {
           ))}
         </div>
 
-        <div className="card-base h-[680px] flex flex-col overflow-hidden border border-primary-100 shadow-2xl rounded-3xl bg-white">
-          <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-secondary-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
+        <div className="card-base flex min-h-[320px] flex-col overflow-hidden rounded-[var(--ny-radius-lg)] border border-[var(--ny-border)] bg-white shadow-[var(--ny-shadow-elevated)]" style={{ height: "min(680px, calc(100dvh - 8rem))" }}>
+          <div className="flex items-center justify-between bg-[var(--ny-green-dark)] px-5 py-4 text-white shadow-sm sm:px-6">
             <div>
               <h2 className="font-extrabold text-base flex items-center gap-2">
-                Himal AI Travel Sentinel 🙏
+                Himal AI travel assistant
               </h2>
               <p className="text-xs text-primary-100">
-                Connected to Knowledge Engine, Road Corridors & Visual Media Database
+                Available catalogue and route tools
               </p>
             </div>
             {position && (
@@ -263,17 +264,17 @@ export default function ChatBot() {
                         <p className="font-black text-amber-300 text-xs mt-0.5">{message.distance_cards.estimated_drive_time}</p>
                       </div>
                       <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
-                        <span className="text-primary-200">Public Bus:</span>
-                        <p className="font-black text-emerald-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_bus_npr?.toLocaleString()}</p>
+                        <span className="text-primary-200">Fare index:</span>
+                        <p className="font-black text-emerald-300 text-xs mt-0.5">{message.distance_cards.fare_bus_npr != null ? `NPR ${message.distance_cards.fare_bus_npr.toLocaleString()}` : "Unavailable"}</p>
                       </div>
                       <div className="bg-primary-900/40 p-2 rounded-xl border border-primary-800">
-                        <span className="text-primary-200">Private Jeep:</span>
-                        <p className="font-black text-cyan-300 text-xs mt-0.5">~NPR {message.distance_cards.fare_jeep_npr?.toLocaleString()}</p>
+                        <span className="text-primary-200">4WD fare index:</span>
+                        <p className="font-black text-cyan-300 text-xs mt-0.5">{message.distance_cards.fare_jeep_npr != null ? `NPR ${message.distance_cards.fare_jeep_npr.toLocaleString()}` : "Unavailable"}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1 text-[10px] text-primary-100">
-                      <span>Corridor: <b>{message.distance_cards.highway_corridor}</b></span>
+                      <span>{message.distance_cards.fare_note ? <b>{message.distance_cards.fare_note}</b> : "Fare unavailable unless a recorded route value is supplied."}</span>
                       <Link
                         to={`/navigation?origin=${encodeURIComponent(message.distance_cards.origin)}&dest=${encodeURIComponent(message.distance_cards.destination)}`}
                         className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-gray-950 font-black flex items-center gap-1 shadow"
@@ -293,7 +294,7 @@ export default function ChatBot() {
                           <FiCalendar /> {message.itinerary_cards.days_count}-Day Plan: {message.itinerary_cards.destination}
                         </h4>
                         <p className="text-[10px] text-gray-500">
-                          Total Budget: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Information unavailable"}</b>
+                          Planning estimate: <b>{message.itinerary_cards.total_estimated_npr != null ? `NPR ${message.itinerary_cards.total_estimated_npr.toLocaleString()}` : "Information unavailable"}</b>
                         </p>
                       </div>
                       <Link
@@ -309,7 +310,7 @@ export default function ChatBot() {
                         <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
                           <div className="flex justify-between font-bold text-gray-900">
                             <span>{item.title}</span>
-                            <span className="text-primary-700 font-mono">NPR {item.daily_budget_npr?.toLocaleString()}</span>
+                            <span className="text-primary-700 font-mono">{item.daily_budget_npr != null ? `NPR ${item.daily_budget_npr.toLocaleString()} (estimate)` : "Budget unavailable"}</span>
                           </div>
                           <p className="text-[10px] text-gray-600 mt-0.5">{item.highlights}</p>
                         </div>
@@ -318,24 +319,24 @@ export default function ChatBot() {
                   </div>
                 )}
 
-                {/* 3. Verified Photo Gallery Cards */}
+                {/* 3. Recorded photo gallery cards */}
                 {message.image_cards && message.image_cards.length > 0 && (
                   <div className="max-w-[85%] mt-3 w-full space-y-1.5">
                     <p className="text-[11px] font-bold text-primary-900 flex items-center gap-1">
-                      <FiImage /> Verified Photos & Attribution Credits:
+                      <FiImage /> Recorded photos & attribution:
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {message.image_cards.map((img, i) => (
                         <div key={i} className="rounded-xl overflow-hidden border border-primary-100 bg-white shadow-sm flex flex-col justify-between">
                           <div className="h-24 w-full relative bg-slate-900 overflow-hidden">
-                            <img src={img.url} alt={img.caption} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                            <PlaceholderImage src={img.url} title={img.caption} alt={img.caption} className="h-full w-full transition-transform hover:scale-105" />
                             <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[9px] font-bold">
                               {img.category}
                             </span>
                           </div>
                           <div className="p-1.5 text-[9px] text-gray-500">
                             <p className="font-bold text-gray-800 truncate">{img.caption}</p>
-                            <p className="text-[8px] text-emerald-600 truncate">✓ {img.license} ({img.photographer})</p>
+                            <p className="text-[11px] text-emerald-600 truncate">{[img.photographer, img.license].filter(Boolean).join(" · ") || "Attribution unavailable"}</p>
                           </div>
                         </div>
                       ))}
@@ -352,7 +353,7 @@ export default function ChatBot() {
                         className="bg-white rounded-2xl overflow-hidden border border-primary-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow"
                       >
                         <div className="h-32 w-full relative overflow-hidden bg-black">
-                          <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
+                          <PlaceholderImage src={card.image} title={card.name} alt={card.name} className="h-full w-full" />
                           <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur text-amber-300 text-[10px] font-bold">
                             {card.category}
                           </span>
@@ -360,9 +361,9 @@ export default function ChatBot() {
                         <div className="p-3 space-y-1.5">
                           <div className="flex justify-between items-start">
                             <h4 className="font-bold text-xs text-gray-900 leading-tight">{card.name}</h4>
-                            <span className="text-xs text-amber-500 font-bold">★ {card.rating}</span>
+                            <span className="text-xs text-amber-600 font-bold">{card.rating != null && card.rating !== "" ? `★ ${card.rating}` : "Rating unavailable"}</span>
                           </div>
-                          <p className="text-[10px] text-gray-500">{card.city} · <b>{card.budget}</b></p>
+                          <p className="text-[10px] text-gray-500">{card.city || "Location unavailable"} · <b>{card.budget != null && card.budget !== "" ? card.budget : "Budget unavailable"}</b></p>
                           <div className="flex gap-1.5 pt-1">
                             <Link
                               to={`/destinations/${card.slug}`}
@@ -392,7 +393,7 @@ export default function ChatBot() {
                 {message.emergency_cards && message.emergency_cards.length > 0 && (
                   <div className="max-w-[85%] mt-3 w-full bg-rose-50 border border-rose-200 p-3.5 rounded-2xl space-y-2">
                     <p className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
-                      <FiShield /> 24/7 Verified Emergency Contacts (1-Click Call):
+                      <FiShield /> Emergency directory contacts
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {message.emergency_cards.map((em, i) => (
@@ -402,10 +403,12 @@ export default function ChatBot() {
                             <span className="text-[10px] text-gray-500">{em.type} ({em.district})</span>
                           </div>
                           <a
-                            href={`tel:${em.phone}`}
+                            href={em.phone && !em.phone_is_national_fallback ? `tel:${em.phone}` : "#"}
+                             onClick={(event) => { if (!em.phone || em.phone_is_national_fallback) event.preventDefault() }}
+                             aria-disabled={!em.phone || Boolean(em.phone_is_national_fallback)}
                             className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1 shadow"
                           >
-                            <FiPhoneCall size={10} /> Call {em.phone}
+                            <FiPhoneCall size={10} /> {em.phone && !em.phone_is_national_fallback ? `Call ${em.phone}` : "No local phone recorded"}
                           </a>
                         </div>
                       ))}
@@ -418,7 +421,7 @@ export default function ChatBot() {
             {sending && (
               <div className="flex items-center gap-2 text-xs text-primary-700 font-bold italic">
                 <span className="w-2 h-2 rounded-full bg-primary-600 animate-bounce"></span>
-                Himal AI is researching knowledge engine, routes, and verified images...
+                Himal AI is looking through available records…
               </div>
             )}
           </div>

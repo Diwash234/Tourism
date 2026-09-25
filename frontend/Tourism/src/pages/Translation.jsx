@@ -711,7 +711,7 @@ label:language.name
 // UI continues in Part 1B
 return (
 
-<div className="container-app py-10">
+<div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="translation" />
 
 

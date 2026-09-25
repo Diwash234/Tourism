@@ -6,6 +6,7 @@ import safetyApi from "../api/safetyApi"
 import MapView from "../components/map/MapView"
 import Loader from "../components/common/Loader"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+import EmptyState from "../components/common/EmptyState"
 
 // How often this page re-fetches the latest position. Polling, matching
 // the backend's design (see safety/views.py) -- not a WebSocket.
@@ -55,16 +56,18 @@ const SharedTripView = () => {
 
   if (error) {
     return (
-      <div className="container-app section-space text-center">
-        <p className="text-gray-500">{error}</p>
+      <div className="ny-page container-app section-space">
+        <EmptyState title="Shared trip unavailable" subtitle={error} />
       </div>
     )
   }
 
+  if (!trip) return <div className="ny-page container-app section-space"><EmptyState title="Shared trip unavailable" subtitle="The shared trip record is empty or has expired." /></div>
+
   const ping = trip?.latest_ping
 
   return (
-    <div className="container-app py-10 max-w-2xl">
+    <div className="ny-page container-app max-w-4xl space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="shared-trip" />
       <PageHeader title={<>{trip.label || "Shared Trip"}</>} icon={ FiMapPin } />
 
@@ -72,13 +75,14 @@ const SharedTripView = () => {
         <>
           <p className="text-sm text-gray-500 mb-4 flex items-center gap-1">
             <FiClock size={14} /> Last updated: {new Date(ping.recorded_at).toLocaleTimeString()}
-            <span className="inline-block h-2 w-2 rounded-full bg-forest-500 ml-2 animate-pulse" />
+            <span className="inline-block h-2 w-2 rounded-full bg-forest-500 ml-2 opacity-70" />
           </p>
-          <div className="rounded-xl2 overflow-hidden shadow-premium">
+          <div className="overflow-hidden rounded-[var(--ny-radius-lg)] shadow-[var(--ny-shadow-elevated)]">
             <MapView
               center={{ lat: ping.latitude, lng: ping.longitude }}
               userLocation={{ lat: ping.latitude, lng: ping.longitude }}
               height="450px"
+               userLocationLabel="Trip owner's latest recorded position"
             />
           </div>
         </>

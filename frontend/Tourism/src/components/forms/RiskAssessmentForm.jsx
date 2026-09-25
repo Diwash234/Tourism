@@ -11,10 +11,10 @@ export default function RiskAssessmentForm({ onSuccess }) {
     became_sick: false,
     sickness_type: "",
     hazard_witnessed: "None",
-    transport_accessibility_rating: 4,
-    people_helpfulness_rating: 5,
-    greeting_behavior_rating: 5,
-    overall_safety_rating: 9.0,
+    transport_accessibility_rating: "",
+    people_helpfulness_rating: "",
+    greeting_behavior_rating: "",
+    overall_safety_rating: "",
     comments: "",
   })
 
@@ -24,7 +24,7 @@ export default function RiskAssessmentForm({ onSuccess }) {
     setLoading(true)
     try {
       await adminApi.submitRiskFeedback(form)
-      showToast("Safety & risk assessment submitted to ML Sentinel! 🛡️", "success")
+      showToast("Safety assessment submitted.", "success")
       onSuccess?.()
     } catch {
       showToast("Submission failed", "error")
@@ -89,7 +89,7 @@ export default function RiskAssessmentForm({ onSuccess }) {
             step={0.5}
             className="input-field mt-1 text-xs"
             value={form.overall_safety_rating}
-            onChange={(e) => setForm({ ...form, overall_safety_rating: parseFloat(e.target.value) || 9 })}
+            onChange={(e) => setForm({ ...form, overall_safety_rating: parseFloat(e.target.value) || "" })}
           />
         </div>
       </div>

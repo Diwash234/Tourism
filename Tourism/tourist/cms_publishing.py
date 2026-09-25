@@ -37,6 +37,39 @@ def sync_published_snapshot(section):
     return section.published_snapshot
 
 
+def page_snapshot(page):
+    """Frozen public metadata for a managed page."""
+    return {
+        "key": page.key,
+        "route": page.route,
+        "title": page.title,
+        "meta_description": page.meta_description,
+        "seo_title": page.seo_title,
+        "og_image_url": page.og_image_url,
+        "search_visible": page.search_visible,
+        "is_enabled": page.is_enabled,
+    }
+
+
+def sync_published_page(page):
+    page.published_snapshot = page_snapshot(page)
+    page.save(update_fields=["published_snapshot", "updated_at"])
+    return page.published_snapshot
+
+
+def publish_due_pages(now):
+    from .models import ManagedPage
+    count = 0
+    for page in ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now):
+        page.status = "published"
+        page.published_at = now
+        page.scheduled_publish_at = None
+        page.save(update_fields=["status", "published_at", "scheduled_publish_at", "updated_at"])
+        sync_published_page(page)
+        count += 1
+    return count
+
+
 def publish_due_sections(now):
     """Flip scheduled sections whose time has come, refreshing snapshots."""
     from .models import ContentSection

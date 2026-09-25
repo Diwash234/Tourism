@@ -110,7 +110,7 @@ class SitemapView(View):
 
         # Published, search-visible destinations straight from the database.
         qs = (
-            Destination.objects.filter(is_active=True)
+            Destination.objects.filter(is_active=True, status=Destination.SubmissionStatus.APPROVED)
             .exclude(search_visible=False)
             .exclude(meta_robots="noindex")
             .only("slug", "updated_at")

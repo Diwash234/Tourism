@@ -1,59 +1,27 @@
-const THEMES = {
-  // Nepal-themed palette: deep mountain green, terracotta, Himalayan gold
-  forest:  "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
-  mountain:"from-[#14503a] via-[#1f6b4d] to-[#0a281d]",
-  terracotta: "from-[#c2603a] via-[#a34a29] to-[#6d2f18]",
-  gold:    "from-[#b8862f] via-[#a3721f] to-[#6b4910]",
-  cream:   "from-[#faf8f4] via-[#efe8d9] to-[#e5dcc5]",
-  heritage:"from-[#7a1f1f] via-[#5a1515] to-[#2d0808]",
-  lake:    "from-[#2f6f7f] via-[#245864] to-[#12323a]",
-  // Legacy aliases (deprecated — kept so existing pages don't break)
-  coral:   "from-[#c2603a] via-[#a34a29] to-[#6d2f18]",
-  teal:    "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
-  amber:   "from-[#b8862f] via-[#a3721f] to-[#6b4910]",
-  emerald: "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
-  rose:    "from-[#c2603a] via-[#a34a29] to-[#6d2f18]",
-  red:     "from-[#7a1f1f] via-[#5a1515] to-[#2d0808]",
-  blue:    "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
-  cyan:    "from-[#2f6f7f] via-[#245864] to-[#12323a]",
-  purple:  "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
-  indigo:  "from-[#1f6b4d] via-[#2a8562] to-[#143b2c]",
-}
-
 /**
- * Colored gradient banner used to give each page/dashboard its own visual identity.
- * theme: forest | mountain | terracotta | gold | cream | heritage | lake
- *        (legacy: coral/teal/amber/emerald/rose/red map to the Nepal palette)
- * Every theme carries the lungta (prayer flag) strip + mountain-ridge silhouette.
+ * One traveller-facing page header. The old component exposed a different
+ * gradient for almost every page, which made the product feel like several
+ * applications. `theme` remains accepted for CMS/page compatibility, but all
+ * public pages now share the same quiet Nepal-green treatment.
  */
-const PageHeader = ({ title, subtitle, icon: Icon, theme = "forest", actions }) => (
-  <div className="relative overflow-hidden rounded-xl2 mb-8 shadow-card">
-    <div className={`bg-gradient-to-br ${THEMES[theme] || THEMES.forest} text-white p-6 pb-8 relative`}>
-      {/* Mountain-ridge silhouette, evokes the Himalayan skyline on every dashboard */}
-      <svg
-        className="absolute bottom-0 left-0 w-full h-16 opacity-20"
-        viewBox="0 0 1200 160"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M0,160 L0,90 L120,40 L220,100 L340,20 L460,90 L600,10 L740,95 L860,45 L980,110 L1100,55 L1200,90 L1200,160 Z"
-          fill="white"
-        />
-      </svg>
-
-      <div className="relative flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-semibold flex items-center gap-2">
-            {Icon && <Icon />} {title}
-          </h1>
-          {subtitle && <p className="text-white/85 text-sm mt-1 max-w-xl">{subtitle}</p>}
+const PageHeader = ({ title, subtitle, icon: Icon, actions, theme: _theme, eyebrow = "Nepal Yatra", className = "" }) => (
+  <header className={`ny-page-header relative mb-6 overflow-hidden rounded-[var(--ny-radius-lg)] bg-[var(--ny-green-dark)] text-white shadow-[var(--ny-shadow)] sm:mb-8 ${className}`}>
+    <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" style={{ background: "radial-gradient(circle at 85% 15%, rgba(99,230,190,0.18), transparent 32%), linear-gradient(120deg, transparent 0 55%, rgba(245,181,27,0.08) 100%)" }} />
+    <div className="relative flex flex-col gap-5 p-5 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-3">
+          {Icon && <span className="mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-[var(--ny-radius-md)] bg-white/10 text-[#BDEBD9]"><Icon size={20} aria-hidden="true" /></span>}
+          <div className="min-w-0">
+            {eyebrow && <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#BDEBD9]">{eyebrow}</p>}
+            <h1 className="!m-0 !text-white">{title}</h1>
+            {subtitle && <p className="mt-2 max-w-3xl text-[0.95rem] leading-6 text-[#C7D9D2]">{subtitle}</p>}
+          </div>
         </div>
-        {actions && <div className="relative flex items-center gap-2">{actions}</div>}
       </div>
+      {actions && <div className="flex w-full shrink-0 flex-wrap items-center gap-3 lg:w-auto lg:justify-end">{actions}</div>}
     </div>
-    <div className="lungta-strip" />
-  </div>
+    <div className="relative h-1 bg-[var(--ny-gold)]" aria-hidden="true" />
+  </header>
 )
 
 export default PageHeader

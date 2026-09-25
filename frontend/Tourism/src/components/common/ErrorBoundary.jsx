@@ -33,7 +33,7 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="card-base p-8 text-center max-w-xl mx-auto my-10">
+        <div className="ny-panel mx-auto my-10 max-w-xl p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
             <FiAlertTriangle size={28} />
           </div>
@@ -41,17 +41,11 @@ export default class ErrorBoundary extends Component {
             Something went wrong on this screen
           </h2>
           <p className="text-sm text-stone-600 mb-5">
-            The error has been reported automatically. You can try reloading
-            this section — your data is still safe.
+            The page could not be displayed. Your account and saved data were not changed. Try reloading this section.
           </p>
-          {this.state.error && (
-            <pre className="text-[11px] text-left bg-stone-50 border border-stone-200 rounded-lg p-3 mb-5 overflow-x-auto text-stone-700">
-              {String(this.state.error?.message || this.state.error)}
-            </pre>
-          )}
           <button
             onClick={this.handleReset}
-            className="btn-primary inline-flex items-center gap-2"
+            className="ny-btn ny-btn-primary inline-flex items-center gap-2"
           >
             <FiRefreshCw /> Reload this section
           </button>

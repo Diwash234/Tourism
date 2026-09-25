@@ -72,7 +72,7 @@ function unwrapList(response) {
 
 const Dashboard = () => {
   const { user } = useAuth()
-  const { pages, section, notices = [] } = usePublicConfig()
+  const { pages, section, notices = [], settings = {} } = usePublicConfig()
   const { showToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = searchParams.get("tab") || "overview"
@@ -81,10 +81,17 @@ const Dashboard = () => {
   const dashboardPage = pages?.find((page) => page.key === "dashboard")
   const managed = Boolean(dashboardPage?.sections?.length)
   const block = (key) => section("dashboard", key)
-  const showBlock = (key) => !managed || Boolean(block(key))
+  const dashboardFeatures = settings.dashboard_features || {}
+  const featureForBlock = {
+    "community-photos": "photo_uploads",
+  }
+  const showBlock = (key) => {
+    if (dashboardFeatures[featureForBlock[key]] === false) return false
+    return !managed || Boolean(block(key))
+  }
 
   const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false)
-  const { position } = useGeolocation()
+  const { position, locating: locatingUser, error: locationError, retry: requestLocation } = useGeolocation({ auto: false })
   const navigate = useNavigate()
 
   // Dashboard Data State
@@ -120,7 +127,7 @@ const Dashboard = () => {
     preferred_transport: "bus",
     group_type: "solo",
     dietary_needs: "none",
-    max_budget_npr: 50000,
+    max_budget_npr: "",
   })
   const [savingPrefs, setSavingPrefs] = useState(false)
 
@@ -221,7 +228,7 @@ const Dashboard = () => {
     const targetPlan = plan || selectedPlanForModify || travelPlans[0]
     if (!targetPlan) {
       showToast("No active itinerary selected to modify. Create one in Trip Planner first!", "info")
-      navigate("/trip-planner")
+      navigate("/itinerary")
       return
     }
 
@@ -233,10 +240,10 @@ const Dashboard = () => {
         itinerary: targetPlan.itinerary_data || targetPlan,
       })
 
-      showToast(`AI Modified Itinerary: "${actionPrompt}" applied!`, "success")
+      showToast(`Itinerary updated: "${actionPrompt}" applied.`, "success")
       loadDashboardData()
     } catch (err) {
-      showToast(err.response?.data?.detail || "AI modification failed.", "error")
+      showToast(err.response?.data?.detail || "Itinerary modification failed.", "error")
     } finally {
       setModifyingPlan(false)
     }
@@ -249,7 +256,7 @@ const Dashboard = () => {
     try {
       localStorage.setItem("nepal_yatra_user_preferences", JSON.stringify(preferencesForm))
       await userApi.updateProfile({
-        bio: `${preferencesForm.travel_style.toUpperCase()} traveler • ${preferencesForm.pace} pace • Budget NPR ${preferencesForm.max_budget_npr.toLocaleString()}`,
+        bio: `${String(preferencesForm.travel_style || "Travel style not set").toUpperCase()} traveler • ${preferencesForm.pace || "Pace not set"} pace${preferencesForm.max_budget_npr ? ` • Budget NPR ${Number(preferencesForm.max_budget_npr).toLocaleString()}` : " • Budget not set"}`,
       })
       showToast("Travel Preference Profile updated successfully!", "success")
     } catch (err) {
@@ -311,7 +318,7 @@ const Dashboard = () => {
   const activeBookingsCount = userBookings.filter((b) => b.status !== "cancelled").length
 
   return (
-    <div className="space-y-8 fade-in">
+    <div className="ny-page space-y-8">
       {/* 1. National Symbols Branding */}
       {showBlock("national-symbols") && <NationalSymbols />}
 
@@ -324,9 +331,15 @@ const Dashboard = () => {
               <span className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow">
                 Nepal Yatra Explorer
               </span>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold">
-                ✓ GPS Location Active
-              </span>
+              {position ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
+                  <FiMapPin size={13} aria-hidden="true" /> Location available
+                </span>
+              ) : (
+                <button type="button" onClick={requestLocation} className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20">
+                  <FiMapPin size={13} aria-hidden="true" /> {locatingUser ? "Finding location…" : "Enable location"}
+                </button>
+              )}
             </div>
             <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight">
               Namaste, {displayName(user)} 👋
@@ -355,20 +368,20 @@ const Dashboard = () => {
           {/* Quick Weather & Radar Widget */}
           <div className="shrink-0 bg-white/10 backdrop-blur border border-white/20 p-5 rounded-2xl space-y-3 min-w-[260px]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-amber-300">Live Weather</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold">GPS Location</span>
+              <span className="text-xs font-black uppercase tracking-wider text-amber-300">Local weather</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold">Location active</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-3xl font-black text-white">
-                {weather?.temperature_c ?? weather?.temperature ?? 22}°C
+                {weather?.temperature_c ?? weather?.temperature}°C
               </span>
               <div>
-                <p className="text-xs font-bold text-white capitalize">{weather?.description || weather?.condition || "Clear Skies"}</p>
-                <p className="text-[11px] text-slate-300">{weather?.location || "Nepal Highlands"}</p>
+                <p className="text-xs font-bold text-white capitalize">{weather?.description || weather?.condition || "Weather unavailable"}</p>
+                <p className="text-[11px] text-slate-300">{weather?.location || (locationError ? "Location unavailable" : "Enable location for local details")}</p>
               </div>
             </div>
             <div className="pt-2 border-t border-white/15 flex items-center justify-between text-[11px] text-slate-200">
-              <span>Safety Score: <b className="text-emerald-300">{scoreFromAlerts(alerts)}/100</b></span>
+              <span>Alert activity: <b className="text-emerald-300">{scoreFromAlerts(alerts) != null ? `${scoreFromAlerts(alerts)}/100` : "unavailable"}</b></span>
               <Link to="/risk-alerts" className="text-amber-300 font-bold hover:underline">View Alerts</Link>
             </div>
           </div>
@@ -448,10 +461,10 @@ const Dashboard = () => {
         <div className="flex items-center gap-2 min-w-max pb-2">
           {[
             { id: "overview", label: "🌟 Journey Hub & Highlights", icon: FiCompass },
-            { id: "itineraries", label: "🗺️ My Trips & AI Replanner", icon: FiCalendar, count: travelPlans.length },
-            { id: "bookings", label: "🏨 Bookings & Vouchers", icon: FiTag, count: activeBookingsCount },
+            { id: "itineraries", label: "🗺️ My trips & replanner", icon: FiCalendar, count: travelPlans.length },
+            { id: "bookings", label: "Bookings & requests", icon: FiTag, count: activeBookingsCount },
             { id: "preferences", label: "⚙️ Travel Preference Profile", icon: FiSliders },
-            { id: "feedback", label: "🛡️ Error Reports & Feedback", icon: FiShield, count: userReports.length },
+            { id: "feedback", label: "Error reports & feedback", icon: FiShield, count: userReports.length },
             { id: "community", label: "📸 Community Photo Desk", icon: FiImage },
           ].map((tab) => {
             const Icon = tab.icon
@@ -495,7 +508,7 @@ const Dashboard = () => {
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Link
-                to="/trip-planner"
+                to="/itinerary"
                 className="px-4 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs shadow transition-all hover:scale-105 flex items-center gap-1.5"
               >
                 <FiPlus size={14} /> Plan New Trip
@@ -533,17 +546,17 @@ const Dashboard = () => {
                     {travelPlans[0].title || travelPlans[0].destination_name || "Your Upcoming Nepal Journey"}
                   </h3>
                   <p className="text-xs text-emerald-200 mt-0.5">
-                    {travelPlans[0].num_days || 5} Days • Budget NPR {Number(travelPlans[0].estimated_cost_npr || 35000).toLocaleString()} • {travelPlans[0].travel_style || "Nature & Trekking"}
+                    {travelPlans[0].num_days != null ? `${travelPlans[0].num_days} days` : "Duration unavailable"} • {travelPlans[0].estimated_cost_npr != null ? `Budget NPR ${Number(travelPlans[0].estimated_cost_npr).toLocaleString()}` : "Budget unavailable"} • {travelPlans[0].travel_style || "Travel style not recorded"}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleModifyItinerary("🌦️ Weather / Impact Replan", travelPlans[0])}
+                    onClick={() => handleModifyItinerary("Weather / impact replan", travelPlans[0])}
                     disabled={modifyingPlan}
                     className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black shadow flex items-center gap-1.5"
                   >
-                    <FiZap size={14} /> {modifyingPlan ? "Replanning..." : "🌦️ Weather Replan"}
+                    <FiZap size={14} /> {modifyingPlan ? "Replanning..." : "Weather replan"}
                   </button>
                   <Link
                     to="/itinerary"
@@ -560,12 +573,12 @@ const Dashboard = () => {
           {showBlock("weather-budget") && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <WeatherCard
-                location={weather?.location || "Current Location"}
+                location={weather?.location}
                 temp_c={weather?.temperature_c ?? weather?.temperature}
-                condition={weather?.description || weather?.condition || "clear"}
+                condition={weather?.description || weather?.condition}
                 humidity={weather?.humidity}
                 wind_kmh={weather?.wind_kmh}
-                loading={!weather}
+                loading={false}
               />
               <BudgetCard label="Total Budget" amount={budget?.total} />
               <BudgetCard label="Spent" amount={budget?.spent} accent="forest" />
@@ -684,7 +697,7 @@ const Dashboard = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="section-title flex items-center gap-2">
-                  <FiCalendar className="text-blue-700" /> My Saved Travel Plans & AI Replanner
+                  <FiCalendar className="text-blue-700" /> My saved travel plans & replanner
                 </h2>
                 <p className="text-xs text-slate-500">
                   Read, review, and modify your custom Nepal itineraries with 1-click AI actions.
@@ -692,7 +705,7 @@ const Dashboard = () => {
               </div>
 
               <Link
-                to="/trip-planner"
+                to="/itinerary"
                 className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow flex items-center gap-1.5 shrink-0"
               >
                 <FiPlus size={16} /> Create New Itinerary
@@ -702,11 +715,11 @@ const Dashboard = () => {
             {/* AI Modification Toolbar */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-900 to-slate-900 text-white space-y-3">
               <p className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                <FiZap /> 1-Click AI Modification Studio (Applies directly to selected itinerary):
+                <FiZap /> Quick itinerary actions (applied to the selected plan):
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 {[
-                  { prompt: "Make it cheaper", label: "💰 Make It Cheaper" },
+                  { prompt: "Make it cheaper", label: "Make it more affordable" },
                   { prompt: "Make it luxurious", label: "✨ Make It Luxurious" },
                   { prompt: "Add culture", label: "🎨 Add Cultural Heritage" },
                   { prompt: "Add hidden nature", label: "🌿 Add Nature & Views" },
@@ -746,7 +759,7 @@ const Dashboard = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                            {plan.travel_style || "Trekking"}
+                            {plan.travel_style || "Trip style unavailable"}
                           </span>
                           <span className="text-xs text-slate-500 font-mono">
                             ID #{plan.id}
@@ -756,7 +769,7 @@ const Dashboard = () => {
                           {plan.title || plan.destination_name || "Custom Nepal Trip Plan"}
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          {plan.num_days || 5} Days • Estimated Budget: NPR {Number(plan.estimated_cost_npr || 40000).toLocaleString()}
+                          {plan.num_days != null ? `${plan.num_days} day${plan.num_days === 1 ? "" : "s"}` : "Duration unavailable"} • {plan.estimated_cost_npr != null ? `Estimated budget: NPR ${Number(plan.estimated_cost_npr).toLocaleString()}` : "Estimated budget unavailable"}
                         </p>
                       </div>
 
@@ -769,14 +782,14 @@ const Dashboard = () => {
                               : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200"
                           }`}
                         >
-                          {selectedPlanForModify?.id === plan.id ? "✓ Selected for AI" : "Select for AI"}
+                          {selectedPlanForModify?.id === plan.id ? "Selected to modify" : "Select to modify"}
                         </button>
 
                         <Link
                           to="/itinerary"
                           className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
                         >
-                          Full Details ➔
+                          Full details
                         </Link>
                       </div>
                     </div>
@@ -828,7 +841,7 @@ const Dashboard = () => {
             {userBookings.length === 0 ? (
               <EmptyState
                 title="No active bookings found"
-                subtitle="Search and reserve stays in Pokhara, Kathmandu, Chitwan, or Everest!"
+                subtitle="Search the stay catalogue and request a booking with the operator."
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -843,29 +856,29 @@ const Dashboard = () => {
                             ? "bg-amber-100 text-amber-800"
                             : "bg-slate-100 text-slate-600"
                         }`}>
-                          {b.status || "Confirmed"}
+                          {b.status || "Status unavailable"}
                         </span>
                         <h4 className="font-extrabold text-base text-slate-900 mt-1">
-                          {b.hotel_name || b.listing_title || "Hotel Reservation"}
+                          {b.hotel_name || b.listing_title || "Booking record"}
                         </h4>
                         <p className="text-xs text-slate-500">{b.guest_name || displayName(user)}</p>
                       </div>
 
                       <span className="text-lg font-black text-emerald-700">
-                        NPR {Number(b.total_cost || b.total_price || 0).toLocaleString()}
+                        {b.total_cost != null || b.total_price != null ? `NPR ${Number(b.total_cost ?? b.total_price).toLocaleString()}` : "Cost unavailable"}
                       </span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 text-xs text-slate-600 space-y-1">
                       <p><b>Check-in:</b> {b.check_in_date || b.start_date || "Information unavailable"}</p>
                       <p><b>Check-out:</b> {b.check_out_date || b.end_date || "Information unavailable"}</p>
-                      <p><b>Guests / Rooms:</b> {b.num_guests || 1} Guests • {b.num_rooms || 1} Room(s)</p>
+                      <p><b>Guests / Rooms:</b> {b.num_guests != null ? `${b.num_guests} Guests` : "Guests unavailable"} • {b.num_rooms != null ? `${b.num_rooms} Room(s)` : "Rooms unavailable"}</p>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                       <span className="font-mono text-slate-400">Ref: #{b.id}</span>
                       <button
-                        onClick={() => showToast("Booking voucher emailed to your account!", "info")}
+                        onClick={() => showToast("Booking details are available in your account.", "info")}
                         className="text-blue-700 font-bold hover:underline"
                       >
                         Download Voucher ➔
@@ -888,7 +901,7 @@ const Dashboard = () => {
                 <FiSliders className="text-emerald-700" /> Progressive Travel Preference Profile
               </h2>
               <p className="text-xs text-slate-500">
-                Configure your travel style, budget ceilings, dietary, and accessibility requirements. The AI recommendation engine uses these settings to personalize your travel picks.
+                Configure your travel style, budget ceilings, dietary, and accessibility requirements. These settings are used to tailor recommendations when the service has enough recorded information.
               </p>
             </div>
 
@@ -901,11 +914,11 @@ const Dashboard = () => {
                     onChange={(e) => setPreferencesForm({ ...preferencesForm, travel_style: e.target.value })}
                     className="input-field text-xs"
                   >
-                    <option value="nature">🏔️ Nature & Hiking</option>
-                    <option value="culture">🎨 Cultural & Pilgrimage</option>
-                    <option value="adventure">🪂 High Adventure & Wildlife</option>
-                    <option value="luxury">✨ Luxury & Spa Relaxation</option>
-                    <option value="backpacker">🎒 Backpacker & Budget</option>
+                    <option value="nature">Nature & hiking</option>
+                    <option value="culture">Culture & pilgrimage</option>
+                    <option value="adventure">High adventure & wildlife</option>
+                    <option value="luxury">Luxury & spa relaxation</option>
+                    <option value="backpacker">Backpacker & budget</option>
                   </select>
                 </div>
 
@@ -916,9 +929,9 @@ const Dashboard = () => {
                     onChange={(e) => setPreferencesForm({ ...preferencesForm, pace: e.target.value })}
                     className="input-field text-xs"
                   >
-                    <option value="relaxed">🧘 Relaxed & Leisurely</option>
-                    <option value="moderate">⚖️ Balanced & Moderate</option>
-                    <option value="fast">⚡ Fast-Paced & Intensive</option>
+                    <option value="relaxed">Relaxed & leisurely</option>
+                    <option value="moderate">Balanced & moderate</option>
+                    <option value="fast">Fast-paced & intensive</option>
                   </select>
                 </div>
 
@@ -929,10 +942,10 @@ const Dashboard = () => {
                     onChange={(e) => setPreferencesForm({ ...preferencesForm, preferred_transport: e.target.value })}
                     className="input-field text-xs"
                   >
-                    <option value="bus">🚌 Tourist Bus / Coach</option>
-                    <option value="jeep">🚙 Private SUV / 4WD Jeep</option>
-                    <option value="flight">✈️ Domestic Flight</option>
-                    <option value="trekking">🥾 Trekking Feeder Trails</option>
+                    <option value="bus">Tourist bus / coach</option>
+                    <option value="jeep">Private SUV / 4WD jeep</option>
+                    <option value="flight">Domestic flight</option>
+                    <option value="trekking">Trekking feeder trails</option>
                   </select>
                 </div>
               </div>
@@ -945,10 +958,10 @@ const Dashboard = () => {
                     onChange={(e) => setPreferencesForm({ ...preferencesForm, group_type: e.target.value })}
                     className="input-field text-xs"
                   >
-                    <option value="solo">👤 Solo Traveler</option>
-                    <option value="couple">👩‍❤️‍👨 Couple Journey</option>
-                    <option value="family">👨‍👩‍👧‍👦 Family with Children</option>
-                    <option value="friends">👯 Friends / Group Trek</option>
+                    <option value="solo">Solo traveller</option>
+                    <option value="couple">Couple journey</option>
+                    <option value="family">Family with children</option>
+                    <option value="friends">Friends / group trek</option>
                   </select>
                 </div>
 
@@ -956,9 +969,9 @@ const Dashboard = () => {
                   <label className="font-bold text-slate-700 block mb-1">Target Budget Ceiling (NPR)</label>
                   <input
                     type="number"
-                    step={5000}
+                    min="0" step={5000} placeholder="Not set"
                     value={preferencesForm.max_budget_npr}
-                    onChange={(e) => setPreferencesForm({ ...preferencesForm, max_budget_npr: Number(e.target.value) })}
+                    onChange={(e) => setPreferencesForm({ ...preferencesForm, max_budget_npr: e.target.value })}
                     className="input-field text-xs"
                   />
                 </div>

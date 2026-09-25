@@ -99,7 +99,7 @@ const PersonalDetails = () => {
   }
 
   return (
-    <div>
+    <div className="ny-page space-y-6">
       <CMSPageIntro pageKey="personal-details" />
       <PageHeader
         title="Personal Details"
@@ -109,7 +109,7 @@ const PersonalDetails = () => {
         actions={
           <button
             onClick={openAddForm}
-            className="bg-white text-indigo-600 font-semibold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-gray-100"
+            ny-btn ny-btn-secondary min-h-10 px-3 text-xs
           >
             <FiPlus /> Add Details
           </button>
@@ -165,7 +165,7 @@ const PersonalDetails = () => {
               <textarea rows={2} className="input-field mt-1" {...register("notes")} />
             </div>
             <div className="sm:col-span-2 flex gap-3">
-              <button type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl transition" disabled={isSubmitting}>
+              <button type="submit" className="ny-btn ny-btn-primary" disabled={isSubmitting}>
                 {isSubmitting ? "Saving..." : editingId ? "Update Details" : "Save Details"}
               </button>
               <button type="button" onClick={closeForm} className="btn-outline">Cancel</button>
@@ -179,7 +179,7 @@ const PersonalDetails = () => {
       ) : loadError ? (
         <div className="card-base p-6 text-center">
           <p className="text-sm text-rose-600 mb-3">{loadError}</p>
-          <button onClick={load} className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold">Retry</button>
+          <button onClick={load} className="ny-btn ny-btn-primary">Retry</button>
         </div>
       ) : details.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -202,9 +202,9 @@ const PersonalDetails = () => {
                 </div>
               </div>
               <div className="mt-3 text-sm text-gray-500 space-y-1">
-                {item.phone && <p>📞 {item.phone}</p>}
+                {item.phone && <p>Phone: {item.phone}</p>}
                 {item.idType && <p>{item.idType}: {item.idNumber || "—"}</p>}
-                {item.nationality && <p>🌍 {item.nationality}</p>}
+                {item.nationality && <p>Nationality: {item.nationality}</p>}
               </div>
             </div>
           ))}

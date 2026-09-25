@@ -24,22 +24,22 @@ import { formatDistance, formatDuration } from "../utils/formatDistance"
 import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
-  { id: "hospitals", label: "🏥 Hospitals" },
-  { id: "police", label: "🚓 Police" },
-  { id: "hotels", label: "🏨 Hotels" },
-  { id: "restaurants", label: "🍽️ Restaurants" },
-  { id: "cafes", label: "☕ Cafés" },
-  { id: "banks", label: "🏦 Banks" },
-  { id: "atms", label: "💳 ATMs" },
-  { id: "pharmacies", label: "💊 Pharmacies" },
-  { id: "stores", label: "🛒 Stores & Marts" },
-  { id: "gas_station", label: "⛽ Fuel Stations" },
-  { id: "bus_stop", label: "🚌 Bus Stops" },
-  { id: "attraction", label: "🏞️ Attractions" },
-  { id: "temple", label: "🛕 Temples" },
-  { id: "nature", label: "🌳 Nature & Parks" },
-  { id: "waterfall", label: "💦 Waterfalls" },
-  { id: "viewpoint", label: "🔭 Viewpoints" },
+  { id: "hospitals", label: "Hospitals" },
+  { id: "police", label: "Police" },
+  { id: "hotels", label: "Hotels" },
+  { id: "restaurants", label: "Restaurants" },
+  { id: "cafes", label: "Cafés" },
+  { id: "banks", label: "Banks" },
+  { id: "atms", label: "ATMs" },
+  { id: "pharmacies", label: "Pharmacies" },
+  { id: "stores", label: "Stores & marts" },
+  { id: "gas_station", label: "Fuel stations" },
+  { id: "bus_stop", label: "Bus stops" },
+  { id: "attraction", label: "Attractions" },
+  { id: "temple", label: "Temples" },
+  { id: "nature", label: "Nature & parks" },
+  { id: "waterfall", label: "Waterfalls" },
+  { id: "viewpoint", label: "Viewpoints" },
 ]
 
 const NEARBY_RADII_KM = [1, 5, 10, 25, 50, 100]
@@ -47,11 +47,11 @@ const NEARBY_RADII_KM = [1, 5, 10, 25, 50, 100]
 const OFF_ROUTE_THRESHOLD_KM = 0.3
 
 const TRANSPORT_MODES = [
-  { id: "Private Car / Taxi", label: "🚗 Private Car / Taxi", avgSpeed: 40 },
-  { id: "Tourist Bus", label: "🚌 Tourist Bus", avgSpeed: 30 },
-  { id: "Motorcycle", label: "🏍️ Motorcycle", avgSpeed: 45 },
-  { id: "Flight", label: "✈️ Mountain Flight", avgSpeed: 250 },
-  { id: "Walking / Trek", label: "🚶 Walking / Trek", avgSpeed: 5 },
+  { id: "Private Car / Taxi", label: "Private car / taxi", avgSpeed: 40 },
+  { id: "Tourist Bus", label: "Tourist bus", avgSpeed: 30 },
+  { id: "Motorcycle", label: "Motorcycle", avgSpeed: 45 },
+  { id: "Flight", label: "Mountain flight", avgSpeed: 250 },
+  { id: "Walking / Trek", label: "Walking / trek", avgSpeed: 5 },
 ]
 
 const haversineKm = (lat1, lng1, lat2, lng2) => {
@@ -65,40 +65,7 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-const DISTRICT_ALTITUDES = {
-  kathmandu: "1,400 m",
-  lalitpur: "1,400 m",
-  bhaktapur: "1,400 m",
-  kaski: "822 m",
-  pokhara: "822 m",
-  solukhumbu: "3,440 m",
-  mustang: "3,840 m",
-  manang: "3,519 m",
-  chitwan: "415 m",
-  bardiya: "152 m",
-  lumbini: "150 m",
-  ilam: "1,200 m",
-  tanahun: "1,030 m",
-  myagdi: "2,060 m",
-  gorkha: "1,060 m",
-  rasuwa: "2,030 m",
-  sindhupalchok: "1,450 m",
-  dolakha: "1,660 m",
-  darchula: "1,800 m",
-  dolpa: "2,280 m",
-  mugu: "2,990 m",
-  sankhuwasabha: "1,500 m",
-  taplejung: "1,820 m",
-}
-
-const getDistrictAltitude = (dest) => {
-  if (dest?.altitude) return dest.altitude
-  const key = (dest?.district || dest?.city || dest?.name || "").toLowerCase()
-  for (const [k, v] of Object.entries(DISTRICT_ALTITUDES)) {
-    if (key.includes(k)) return `${v} (district typical)`
-  }
-  return "Information unavailable"
-}
+const getDistrictAltitude = (dest) => dest?.altitude || "Information unavailable"
 
 const compassBearing = (lat1, lng1, lat2, lng2) => {
   if (!hasValidCoords(lat1, lng1) || !hasValidCoords(lat2, lng2)) return ""
@@ -138,7 +105,7 @@ const toAmenityCard = (row, origin) => {
 }
 
 export default function Navigation() {
-  const { position, error: geoError, locating, retry: retryGeo } = useGeolocation()
+  const { position, error: geoError, locating, retry: retryGeo } = useGeolocation({ auto: false })
   const [searchParams] = useSearchParams()
   const requestedDest = searchParams.get("dest") || searchParams.get("destination") || ""
   const requestedOrigin = searchParams.get("origin") || ""
@@ -357,7 +324,7 @@ export default function Navigation() {
       .then(({ data }) => {
         const before = data.previous?.distance_km != null ? `${Number(data.previous.distance_km).toFixed(1)} km` : "no stored distance"
         const after = data.current?.distance_km != null ? `${Number(data.current.distance_km).toFixed(1)} km (${data.current.duration_source})` : "information unavailable"
-        setRecalcMsg(`Recalculated: ${before} → ${after} · engine status: ${data.routing_status}`)
+        setRecalcMsg(`Route updated: ${before} → ${after}. The available map service provided the new route.`)
         loadMyRoutes(routesTab)
       })
       .catch((e) => setRecalcMsg(e.response?.data?.detail || "Recalculation failed"))
@@ -521,7 +488,7 @@ export default function Navigation() {
   }, [voiceOn, currentStepIdx, steps.length, currentStep.instruction])
 
   return (
-    <div className="container-app theme-himalaya py-6 space-y-6 animate-fadeIn" data-testid="navigation-page">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8" data-testid="navigation-page">
       <CMSPageIntro pageKey="navigation" />
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
@@ -611,7 +578,7 @@ export default function Navigation() {
                 className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold whitespace-nowrap flex items-center gap-1.5"
                 title={position ? "GPS fix acquired — click to use it as the origin" : locating ? "Requesting GPS permission…" : "Request browser GPS and use it as the origin"}
               >
-                <FiTarget size={13} /> {locating && !position ? "Locating…" : "📍 Use My Location"}
+                <FiTarget size={13} /> {locating && !position ? "Locating…" : "Use my location"}
               </button>
             </div>
 
@@ -690,7 +657,7 @@ export default function Navigation() {
           <div className="text-[11px] text-slate-500" role="status">
             {position ? (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>📍 GPS fix acquired ({position.lat.toFixed(4)}, {position.lng.toFixed(4)})</span>
+                <span>GPS fix acquired ({position.lat.toFixed(4)}, {position.lng.toFixed(4)})</span>
                 {position.accuracy != null && <span>Accuracy ±{Math.round(position.accuracy)} m</span>}
                 {position.altitude != null && <span>Altitude {Math.round(position.altitude)} m</span>}
                 {position.speed != null && <span>Speed {Math.round(position.speed * 3.6)} km/h</span>}
@@ -997,7 +964,7 @@ export default function Navigation() {
             stops={itineraryStops} />
           {itineraryStops && (
             <div className="mt-2 flex items-center justify-between text-xs font-semibold text-gray-600">
-              <span>🧭 Itinerary navigation: {itineraryStops.length + 1} ordered stops (real road routing)</span>
+              <span>Itinerary navigation: {itineraryStops.length + 1} ordered stops (real road routing)</span>
               <button onClick={() => { sessionStorage.removeItem("nav_itinerary_stops"); setItineraryStops(null) }}
                 className="text-gray-400 hover:text-gray-700">clear</button>
             </div>
@@ -1007,7 +974,7 @@ export default function Navigation() {
 
       {/* MAP & TURN-BY-TURN HUD DISPLAY */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card-base overflow-hidden rounded-3xl border border-[#E5E0D5] h-[500px] relative shadow-2xl">
+        <div className="relative h-[min(500px,65dvh)] min-h-[280px] overflow-hidden rounded-[var(--ny-radius-lg)] border border-[var(--ny-border)] shadow-[var(--ny-shadow)] lg:col-span-2">
           <MapView
             destination={destination}
             routeWaypoints={route}
@@ -1126,8 +1093,8 @@ export default function Navigation() {
                   <p className="text-slate-300 line-clamp-2">{destination.short_description}</p>
                 ) : null}
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
-                  {destination.entry_fee ? <span>🎟️ {destination.entry_fee}</span> : null}
-                  {destination.best_time_to_visit ? <span>🗓️ {destination.best_time_to_visit}</span> : null}
+                  {destination.entry_fee ? <span>{destination.entry_fee}</span> : null}
+                  {destination.best_time_to_visit ? <span>{destination.best_time_to_visit}</span> : null}
                   {destination.altitude != null ? <span>⛰️ {destination.altitude} m</span> : null}
                 </div>
                 <Link

@@ -40,17 +40,19 @@ const MainLayout = () => {
   }, [location.pathname, pages, branding])
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-white dark:bg-[#0c1220] dark:text-stone-300 overflow-x-hidden">
+    <div className="ny-app-shell flex min-h-screen w-full flex-col overflow-x-hidden bg-[var(--ny-bg)] text-[var(--ny-text)] dark:bg-[#0B1714] dark:text-[#EAF2EF]">
+      <a href="#main-content" className="ny-skip-link">Skip to main content</a>
       <ElevationScrollProgress />
       <Navbar />
       <Sidebar />
       <main
+        id="main-content"
         key={location.pathname}
-        className={`flex-1 w-full pt-16 transition-[padding] duration-300 ${desktopPad}`}
+        className={`ny-app-main ny-page flex-1 w-full pt-16 transition-[padding] duration-300 ${desktopPad}`}
       >
         <Outlet />
       </main>
-      <div className={`pb-16 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}>
+      <div className={`pb-28 transition-[padding] duration-300 lg:pb-0 ${desktopPad}`}>
         <Footer />
       </div>
       <MobileBottomNav />

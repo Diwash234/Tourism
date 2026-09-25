@@ -11,7 +11,7 @@ import SocialLoginButtons from "./SocialLoginButtons"
 
 export default function StaffLogin() {
   const { register, handleSubmit, formState: { errors } } = useForm()
-  const { login } = useAuth()
+  const { login, logout } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -29,6 +29,7 @@ export default function StaffLogin() {
         ["admin", "super_admin", "tourism_admin"].includes(role) ||
         userData?.is_superuser === true
       if (!isStaff) {
+        await logout()
         showToast("This account does not have staff privileges.", "error")
         return
       }

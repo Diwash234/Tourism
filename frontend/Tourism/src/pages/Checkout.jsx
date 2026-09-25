@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { FiShoppingBag, FiTrash2 } from "react-icons/fi"
 import PageHeader from "../components/common/PageHeader"
@@ -23,6 +23,19 @@ export default function Checkout() {
     notes: "",
     payment_method: "request",
   })
+
+  useEffect(() => {
+    if (!user) return undefined
+    const timer = setTimeout(() => {
+      setForm((current) => ({
+        ...current,
+        guest_name: current.guest_name || user.full_name || `${user.first_name || ""} ${user.last_name || ""}`.trim(),
+        guest_email: current.guest_email || user.email || "",
+        guest_phone: current.guest_phone || user.phone_number || "",
+      }))
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [user])
 
   const total = useMemo(() => basketTotal(items), [items])
   const remove = (id) => setItems(removeFromTripBasket(id))
@@ -51,11 +64,11 @@ export default function Checkout() {
   const days = result?.order?.duration_days
 
   return (
-    <div className="container-app py-10" data-testid="checkout-page">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8" data-testid="checkout-page">
       <CMSPageIntro pageKey="checkout" />
       <PageHeader
         title="Review & Request Booking"
-        subtitle="No payment is being processed on Nepal Tourism at this stage. Card numbers are never accepted here."
+        subtitle="No payment is being processed on Nepal Yatra at this stage. Card numbers are never accepted here."
         icon={FiShoppingBag}
         theme="gold"
       />
@@ -66,7 +79,7 @@ export default function Checkout() {
           <p className="text-slate-600">{titles}{days ? ` — ${days} days` : ""}</p>
           <p className="font-bold">Status: {result.order?.status_label || result.order?.status}</p>
           <p className="text-slate-600">{result.message}</p>
-          <p className="font-bold">Total NPR {result.order?.total_npr}</p>
+          <p className="font-bold">Total {result.order?.total_npr != null ? `NPR ${Number(result.order.total_npr).toLocaleString()}` : "unavailable"}</p>
           {form.payment_method === "external" && (
             <p className="text-sm text-slate-600">Payment will be completed securely through the partner.</p>
           )}
@@ -88,18 +101,18 @@ export default function Checkout() {
           <section className="card-base p-5 space-y-3">
             <h2 className="font-black">Trip basket</h2>
             {items.length === 0 && (
-              <p className="text-sm text-slate-600">Nothing here yet. <Link to="/packages" className="font-bold text-emerald-800">Browse packages</Link>.</p>
+              <p className="text-sm text-slate-600">Your trip basket is empty. Add a published package or stay before requesting a booking. <Link to="/packages" className="font-bold text-emerald-800">Browse packages</Link>.</p>
             )}
             {items.map((row) => (
               <div key={row.listing_id} className="flex justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                   <p className="font-bold">{row.title}</p>
-                  <p className="text-xs text-slate-500">{row.quantity} × NPR {Number(row.price_npr).toLocaleString()}</p>
+                  <p className="text-xs text-slate-500">{row.quantity} × {row.price_npr != null ? `NPR ${Number(row.price_npr).toLocaleString()}` : "Price unavailable"}</p>
                 </div>
                 <button type="button" onClick={() => remove(row.listing_id)} className="text-rose-700" aria-label="Remove"><FiTrash2 /></button>
               </div>
             ))}
-            <p className="text-xl font-black">Total NPR {total.toLocaleString()}</p>
+            <p className="text-xl font-black">Total {total != null ? `NPR ${total.toLocaleString()}` : "unavailable"}</p>
           </section>
           <form onSubmit={submit} className="card-base p-5 space-y-3" data-testid="checkout-form">
             {!isAuthenticated && (
@@ -119,7 +132,7 @@ export default function Checkout() {
               <legend className="font-bold text-slate-900">How do you want to proceed?</legend>
               <label className="flex gap-2 items-start">
                 <input type="radio" name="pay" checked={form.payment_method === "request"} onChange={() => setForm({ ...form, payment_method: "request" })} />
-                <span>Request to book — pay later with the operator. No payment is being processed on Nepal Tourism at this stage.</span>
+                <span>Request to book — pay later with the operator. No payment is being processed on Nepal Yatra at this stage.</span>
               </label>
               <label className="flex gap-2 items-start">
                 <input type="radio" name="pay" checked={form.payment_method === "external"} onChange={() => setForm({ ...form, payment_method: "external" })} />

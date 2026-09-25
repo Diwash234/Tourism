@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import configApi from "../api/configApi"
 import { useI18n } from "../i18n"
 
@@ -39,7 +39,23 @@ const load = lang => {
 
 function applyBranding(branding = {}) {
   const root = document.documentElement
-  const vars = { "--brand-primary": branding.primary_color, "--brand-secondary": branding.secondary_color, "--brand-background": branding.background_color, "--brand-surface": branding.surface_color }
+  const vars = {
+    "--brand-primary": branding.primary_color,
+    "--brand-primary-dark": branding.primary_color,
+    "--brand-primary-light": branding.primary_color,
+    "--brand-accent": branding.secondary_color,
+    "--brand-secondary": branding.secondary_color,
+    "--brand-background": branding.background_color,
+    "--brand-surface": branding.surface_color,
+    "--page-bg": branding.background_color,
+    "--ny-green": branding.primary_color,
+    "--ny-emerald": branding.primary_color,
+    "--ny-green-dark": branding.primary_color,
+    "--ny-green-deepest": branding.primary_color,
+    "--ny-gold": branding.secondary_color,
+    "--ny-bg": branding.background_color,
+    "--ny-white": branding.surface_color,
+  }
   Object.entries(vars).forEach(([key, value]) => value && root.style.setProperty(key, value))
   root.dataset.themePreset = branding.theme_preset || "himalayan"
   root.dataset.density = branding.density || "comfortable"
@@ -63,7 +79,7 @@ export default function usePublicConfig() {
     const t = setTimeout(() => { setData(caches.get(lang) || fallback); load(lang).then(setData) }, 0)
     return () => { languageListeners.delete(setData); clearTimeout(t) }
   }, [lang])
-  const branding = data.settings?.branding || {}
+  const branding = useMemo(() => data.settings?.branding || {}, [data.settings?.branding])
   useEffect(() => {
     const t = setTimeout(() => applyBranding(branding), 0)
     return () => clearTimeout(t)

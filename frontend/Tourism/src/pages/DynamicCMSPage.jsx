@@ -28,7 +28,7 @@ export default function DynamicCMSPage() {
     .slice()
     .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
   return (
-    <main className="min-h-screen bg-white">
+    <main className="ny-page min-h-screen bg-[var(--ny-bg)]">
       <header className="container-app pt-28 pb-8 text-center">
         <h1 className="text-3xl md:text-4xl font-black text-slate-900">{page.title}</h1>
         {page.meta_description && (

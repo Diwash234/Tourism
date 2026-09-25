@@ -87,14 +87,14 @@ const VerifyPhone = () => {
 
   if (!user?.phone_number) {
     return (
-      <div className="container-app section-space text-center">
-        <p className="text-gray-500">No phone number on file — add one in Settings first.</p>
+      <div className="ny-page container-app section-space text-center">
+        <p className="text-gray-500">No phone number is on file. Add one in Settings first.</p>
       </div>
     )
   }
 
   return (
-    <div className="container-app section-space max-w-md mx-auto fade-in">
+    <div className="ny-page container-app section-space mx-auto max-w-md">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-8 text-center">
         {verified ? (
           <>
@@ -112,8 +112,12 @@ const VerifyPhone = () => {
             <p className="text-sm text-gray-500 mb-6">Enter the code sent to {user.phone_number}</p>
 
             <form onSubmit={handleVerify} className="space-y-4">
+               <label htmlFor="phone-verification-code" className="sr-only">Phone verification code</label>
               <input
-                className="input-field text-center text-lg tracking-[0.5em]"
+                id="phone-verification-code"
+                 inputMode="numeric"
+                 autoComplete="one-time-code"
+                 className="input-field text-center text-lg tracking-[0.5em]"
                 placeholder="000000"
                 maxLength={6}
                 value={code}

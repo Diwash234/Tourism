@@ -67,6 +67,9 @@ export const ToastProvider = ({ children }) => {
 
 
       <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
         className="
           fixed
           top-20

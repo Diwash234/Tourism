@@ -60,6 +60,7 @@ const destinationApi = {
         radius_km: params.radius_km ?? 250,
         page: params.page,
         limit: params.limit,
+        ...(params.type ? { type: params.type } : {}),
       },
     }),
 

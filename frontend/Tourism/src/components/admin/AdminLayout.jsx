@@ -5,9 +5,15 @@ import TourismLogo from "../branding/TourismLogo"
 import AdminGlobalSearch from "./AdminGlobalSearch"
 import ProfileMenu from "../layout/ProfileMenu"
 import useMediaQuery from "../../hooks/useMediaQuery"
-import { ADMIN_NAV_GROUPS, ADMIN_PRIMARY_NAV, adminSectionHref, findAdminSection } from "./adminNavigation"
+import { ADMIN_NAV_GROUPS, ADMIN_PRIMARY_NAV, adminSectionHref, canAccessAdminSection, findAdminSection } from "./adminNavigation"
+import useAuth from "../../hooks/useAuth"
 
 export default function AdminLayout() {
+  const { isAdmin, can } = useAuth()
+  const visibleGroups = ADMIN_NAV_GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(([section]) => isAdmin || canAccessAdminSection(section, can)),
+  })).filter(group => group.items.length > 0)
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [open, setOpen] = useState(false) // mobile drawer
   const [collapsed, setCollapsed] = useState(() => {
@@ -29,6 +35,7 @@ export default function AdminLayout() {
   const [expanded, setExpanded] = useState({})
   const location = useLocation()
   const activeSection = new URLSearchParams(location.search).get("section") || "overview"
+  const drawerHidden = !open && !isDesktop
   const closeMobile = () => {
     if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) setOpen(false)
   }
@@ -47,7 +54,7 @@ export default function AdminLayout() {
   // Open only the group that owns the active section.
   useEffect(() => {
     const t = setTimeout(() => {
-      const owner = ADMIN_NAV_GROUPS.find((group) =>
+      const owner = visibleGroups.find((group) =>
         group.items.some(([section, , , children]) =>
           section === activeSection ||
           children?.some((child) => (child.query?.section || section) === activeSection)
@@ -61,19 +68,19 @@ export default function AdminLayout() {
   return (
     <div className="admin-green-theme min-h-screen bg-emerald-50 text-slate-900">
       <a href="#admin-main" className="admin-skip-link">Skip to admin content</a>
-      <header className="fixed inset-x-0 top-0 z-[100] flex h-16 items-center gap-3 overflow-visible border-b border-emerald-800 bg-emerald-950 px-3 text-white shadow-sm sm:px-5">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-3 overflow-visible border-b border-emerald-800 bg-emerald-950 px-3 text-white shadow-sm sm:px-5">
         <button
           onClick={toggleSidebar}
-          className="admin-icon-button !bg-emerald-800 !text-white"
+          className="admin-icon-button !min-h-11 !min-w-11 !bg-emerald-800 !text-white"
           aria-label={isDesktop ? (collapsed ? "Expand admin sidebar" : "Collapse admin sidebar to icons") : (open ? "Close admin navigation" : "Open admin navigation")}
           aria-expanded={isDesktop ? !collapsed : open}
           aria-controls="admin-navigation"
         >
           <FiMenu />
         </button>
-        <TourismLogo size="sm" to="/admin" showTagline={false} />
+        <TourismLogo size="sm" to="/admin" showTagline={false} responsiveText />
         <nav aria-label="Priority admin navigation" className="hidden items-center gap-1 xl:flex">
-          {ADMIN_PRIMARY_NAV.map((section) => {
+          {ADMIN_PRIMARY_NAV.filter(section => isAdmin || canAccessAdminSection(section, can)).map((section) => {
             const item = findAdminSection(section)
             if (!item) return null
             const Icon = item[2]
@@ -92,9 +99,9 @@ export default function AdminLayout() {
           })}
         </nav>
         <div className="mx-2 hidden min-w-0 max-w-md flex-1 lg:max-w-lg md:block"><AdminGlobalSearch /></div>
-        <div className="ml-auto flex items-center gap-2 text-xs">
+        <div className="ml-auto flex items-center gap-1.5 text-xs sm:gap-2">
           <span className="hidden rounded-full bg-emerald-800 px-2 py-1 font-black uppercase tracking-wide text-emerald-200 sm:inline">Admin</span>
-          <Link to="/" className="min-h-10 whitespace-nowrap rounded-lg bg-white px-3 py-2 font-bold text-emerald-950">Traveller site</Link>
+          <Link to="/" className="hidden min-h-11 items-center whitespace-nowrap rounded-lg bg-white px-3 py-2 font-bold text-emerald-950 sm:inline-flex">Traveller site</Link>
           <ProfileMenu variant="admin" />
         </div>
       </header>
@@ -102,9 +109,10 @@ export default function AdminLayout() {
       <aside
         id="admin-navigation"
         aria-label="Admin navigation"
-        className={`fixed bottom-0 top-16 z-[90] w-72 max-w-[90vw] overflow-y-auto overflow-x-hidden overscroll-contain border-r border-emerald-900 bg-emerald-950 text-emerald-50 shadow-lg transition-[transform,width] ${
+        aria-hidden={drawerHidden || undefined}
+        className={`fixed bottom-0 top-16 z-40 w-72 max-w-[90vw] overflow-y-auto overflow-x-hidden overscroll-contain border-r border-emerald-900 bg-emerald-950 text-emerald-50 shadow-lg transition-[transform,width] ${drawerHidden ? "invisible" : "visible"} ${
           open ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 ${collapsed ? "lg:w-16" : "lg:w-72"}`}
+        } lg:visible lg:translate-x-0 ${collapsed ? "lg:w-16" : "lg:w-72"}`}
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       >
         <nav className={`p-4 ${collapsed ? "lg:p-1.5" : ""}`}>
@@ -122,7 +130,7 @@ export default function AdminLayout() {
             <FiShield className="inline text-emerald-300" /> <b>Administrator workspace</b>
             <p className="mt-1 text-xs text-emerald-200">CMS, media, users, analytics and safety</p>
           </div>
-          {ADMIN_NAV_GROUPS.map((group) => (
+          {visibleGroups.map((group) => (
             <section key={group.label} className="mb-2">
               <button
                 onClick={() => setExpanded((value) => ({ ...value, [group.label]: !value[group.label] }))}
@@ -191,12 +199,12 @@ export default function AdminLayout() {
         </nav>
       </aside>
       {open && (
-        <button onClick={() => setOpen(false)} className="fixed inset-0 top-16 z-[80] bg-black/45 lg:hidden" aria-label="Close admin navigation overlay">
+        <button type="button" onClick={() => setOpen(false)} className="fixed inset-0 top-16 z-30 bg-black/45 lg:hidden" aria-label="Close admin navigation overlay">
           <FiX className="sr-only" />
         </button>
       )}
       <main id="admin-main" tabIndex="-1" className={`min-h-screen bg-gradient-to-br from-white via-emerald-50 to-green-100 pt-16 transition-[padding] duration-300 ${collapsed ? "lg:pl-16" : "lg:pl-72"}`}>
-        <div className="p-3 sm:p-6">
+        <div className="mx-auto w-full max-w-[1600px] p-3 pb-24 sm:p-6 lg:pb-6">
           <Outlet />
         </div>
       </main>

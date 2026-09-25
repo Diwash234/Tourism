@@ -29,7 +29,7 @@ function computeBadges({ placesVisited, districtsExplored, favoritesSaved }) {
 }
 
 const Profile = () => {
-  const { user, setUser } = useAuth()
+  const { user, updateUser } = useAuth()
   const { showToast } = useToast()
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm()
   const [loading, setLoading] = useState(true)
@@ -37,6 +37,7 @@ const Profile = () => {
   const fileInputRef = useRef(null)
 
   const [stats, setStats] = useState({ placesVisited: 0, districtsExplored: 0, favoritesSaved: 0, bookingsMade: 0 })
+  const [statsError, setStatsError] = useState("")
 
   useEffect(() => {
     userApi
@@ -50,7 +51,9 @@ const Profile = () => {
       favoriteApi.list(),
       bookingApi.getMyBookings(),
     ]).then(([historyRes, favRes, bookingRes]) => {
-      const history = historyRes.status === "fulfilled" ? (historyRes.value.data.results || historyRes.value.data || []) : []
+      const historyFailed = historyRes.status === "rejected" || favRes.status === "rejected" || bookingRes.status === "rejected"
+       setStatsError(historyFailed ? "Some travel statistics could not be loaded. The figures shown are limited to the records available in this session." : "")
+       const history = historyRes.status === "fulfilled" ? (historyRes.value.data.results || historyRes.value.data || []) : []
       const favorites = favRes.status === "fulfilled" ? (favRes.value.data.results || favRes.value.data || []) : []
       const bookings = bookingRes.status === "fulfilled" ? (bookingRes.value.data.results || bookingRes.value.data || []) : []
 
@@ -68,7 +71,7 @@ const Profile = () => {
   const onSubmit = async (data) => {
     try {
       const { data: updated } = await userApi.updateProfile(data)
-      setUser(updated)
+      updateUser(updated)
       showToast("Profile updated successfully", "success")
     } catch (err) {
       showToast(err?.response?.data?.message || "Update failed", "error")
@@ -83,7 +86,7 @@ const Profile = () => {
     setUploading(true)
     try {
       const { data: updated } = await userApi.uploadAvatar(file)
-      setUser(updated)
+      updateUser(updated)
       showToast("Profile photo updated", "success")
     } catch {
       showToast("Could not upload photo", "error")
@@ -97,7 +100,7 @@ const Profile = () => {
   const badges = computeBadges(stats)
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl fade-in space-y-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="ny-page mx-auto w-full max-w-5xl space-y-6">
       <CMSPageIntro pageKey="profile" />
       <PageHeader title="My Profile" />
 
@@ -107,8 +110,9 @@ const Profile = () => {
         <div className="relative flex items-center gap-4 mb-6">
           <div className="relative">
             <img
-              src={user?.profile_picture || "https://api.dicebear.com/7.x/initials/svg?seed=" + (user?.first_name || "User")}
-              alt="avatar"
+              src={user?.profile_picture || ""}
+              alt="Traveller profile photo"
+               onError={(event) => { event.currentTarget.style.visibility = "hidden" }}
               className="h-20 w-20 rounded-full object-cover border"
             />
             <button
@@ -166,6 +170,7 @@ const Profile = () => {
       <div className="card-base overflow-hidden p-6 relative overflow-hidden">
         <MandalaBackground className="w-64 h-64 -bottom-16 -left-16 opacity-40" />
         <h2 className="font-semibold mb-4 relative">Travel Stats</h2>
+         {statsError && <p className="relative mb-4 rounded-[var(--ny-radius-md)] border border-[var(--ny-border)] bg-[var(--ny-soft-gold)] p-3 text-xs text-[var(--ny-text-secondary)]">{statsError}</p>}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="mx-auto mb-1 w-10 h-10 rounded-full bg-himalaya-50 text-himalaya-500 flex items-center justify-center"><FiMapPin size={18} /></div>
@@ -189,7 +194,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {badges.length > 0 && (
+        {!statsError && badges.length > 0 && (
           <div className="relative mt-6 pt-6 border-t border-gray-100">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5"><FiAward className="text-saffron-500" /> Badges</h3>
             <div className="flex flex-wrap gap-2">

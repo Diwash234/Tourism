@@ -1,85 +1,24 @@
 import { useEffect, useState } from "react"
-import { FiStar, FiCheckCircle } from "react-icons/fi"
-import { SlideUp, HoverCard } from "../common/MotionSystem"
+import { FiStar } from "react-icons/fi"
 import axiosClient from "../../api/axiosClient"
-
-const DEFAULT_VERIFIED_REVIEWS = [
-  {
-    id: "rev-1",
-    user_name: "Aarav Sharma",
-    comment: "Breathtaking views of the Annapurna ranges and warm mountain hospitality! The trail guidance and local weather alerts were super accurate.",
-    rating: 5,
-  },
-  {
-    id: "rev-2",
-    user_name: "Sophia Chen",
-    comment: "Incredible experience visiting the UNESCO cultural heritage sites in Kathmandu and Bhaktapur. Peaceful environment and wonderful local food!",
-    rating: 5,
-  },
-  {
-    id: "rev-3",
-    user_name: "Anil Thapa",
-    comment: "Highly recommended for families and solo trekkers alike. Reliable transport options, budget estimates, and 24/7 safety information.",
-    rating: 5,
-  },
-]
+import EmptyState from "../common/EmptyState"
 
 export default function TestimonialsSection({ section = null }) {
   const [reviews, setReviews] = useState([])
-
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
+    let active = true
     axiosClient.get("/reviews/", { params: { page_size: 6, ordering: "-created_at" } })
-      .then(({ data }) => {
-        const rows = data.results || data || []
-        const list = (Array.isArray(rows) ? rows : []).filter((row) => row.comment)
-        setReviews(list.length ? list.slice(0, 3) : DEFAULT_VERIFIED_REVIEWS)
-      })
-      .catch(() => setReviews(DEFAULT_VERIFIED_REVIEWS))
+      .then(({ data }) => { if (active) setReviews((data.results || data || []).filter((row) => row.comment).slice(0, 3)) })
+      .catch(() => { if (active) setReviews([]) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [])
 
-  const displayReviews = reviews.length ? reviews : DEFAULT_VERIFIED_REVIEWS
-
   return (
-    <section className="container-app section-space bg-gradient-to-b from-transparent via-purple-50/40 to-transparent">
-      <SlideUp>
-        <div className="text-center max-w-2xl mx-auto section-head">
-          <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
-            Traveler Experience
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-            {section?.title || "Real Stories & Reviews from Nepal Travelers"}
-          </h2>
-          <p className="text-gray-600 text-sm mt-2">
-            {section?.subtitle || "Verified experiences and reviews shared by travelers exploring Nepal's 7 provinces."}
-          </p>
-        </div>
-      </SlideUp>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {displayReviews.map((t) => (
-          <HoverCard key={t.id} className="card-base p-7 rounded-3xl border border-[#E5E0D5]/80 shadow-xl bg-white flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
-                {"★".repeat(t.rating || 5)}
-              </div>
-              <p className="text-gray-700 text-xs sm:text-sm leading-relaxed italic">
-                "{t.comment}"
-              </p>
-            </div>
-            <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-              <div className="w-9 h-9 rounded-full bg-[#102A2E] text-white font-bold flex items-center justify-center text-xs">
-                {t.user_name ? t.user_name[0] : "T"}
-              </div>
-              <div>
-                <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1">
-                  {t.user_name || "Traveler"} <FiCheckCircle className="text-emerald-500" size={13} />
-                </h4>
-                <p className="text-[11px] text-gray-500">Verified Traveler Review</p>
-              </div>
-            </div>
-          </HoverCard>
-        ))}
-      </div>
+    <section className="container-app section-space" aria-labelledby="traveler-stories-title">
+      <div className="max-w-2xl"><p className="ny-kicker">Traveler notes</p><h2 id="traveler-stories-title" className="mt-2">{section?.title || "Stories from the route"}</h2><p className="mt-2 text-sm text-[var(--ny-text-secondary)]">{section?.subtitle || "Published reviews appear here when travellers choose to share them."}</p></div>
+      {loading ? <div className="mt-6 grid gap-5 md:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="ny-skeleton h-44" aria-hidden="true" />)}</div> : reviews.length ? <div className="mt-6 grid gap-5 md:grid-cols-3">{reviews.map((review) => <article key={review.id} className="ny-card flex h-full flex-col justify-between p-5"><div><div className="flex gap-1 text-[var(--ny-gold)]" aria-label={`${review.rating || "No"} out of 5 stars`}>{[1, 2, 3, 4, 5].map((star) => <FiStar key={star} size={15} className={star <= Number(review.rating || 0) ? "fill-current" : "opacity-30"} aria-hidden="true" />)}</div><p className="mt-4 text-sm leading-6 text-[var(--ny-text-secondary)]">“{review.comment}”</p></div><p className="mt-5 border-t border-[var(--ny-border)] pt-4 text-sm font-semibold">{review.user_name || "Traveller"}</p></article>)}</div> : <div className="mt-6"><EmptyState title="No published traveller stories yet" subtitle="Reviews will appear here after they are submitted and made available by the platform." /></div>}
     </section>
   )
 }

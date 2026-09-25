@@ -7,6 +7,7 @@ import userApi from "../api/userApi"
 import useToast from "../hooks/useToast"
 import { addToTripBasket } from "../utils/tripBasket"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
+import PlaceholderImage from "../components/common/PlaceholderImage"
 
 export default function PackageDetail() {
   const { slug } = useParams()
@@ -14,27 +15,36 @@ export default function PackageDetail() {
   const { showToast } = useToast()
   const [listing, setListing] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
     setLoading(true)
+    setError("")
     userApi.getMarketplaceListing(slug)
       .then(({ data }) => setListing(data))
-      .catch(() => setListing(null))
+      .catch((requestError) => {
+         setListing(null)
+         setError(requestError.response?.status === 404 ? "This package is no longer published." : "We could not load this package right now.")
+       })
       .finally(() => setLoading(false))
     }, 0)
     return () => clearTimeout(t)
-  }, [slug])
+  }, [slug, retry])
 
   if (loading) return <Loader fullScreen />
   if (!listing) {
     return (
-      <div className="container-app section-space text-center space-y-3">
-        <h2 className="text-2xl font-black">Offer not found</h2>
-        <p className="text-slate-600">It may be unpublished. Browse live packages instead.</p>
-        <Link to="/packages" className="btn-primary">Back to packages</Link>
+      <div className="ny-page container-app section-space text-center space-y-3">
+        <h2 className="text-2xl font-bold">{error || "Package unavailable"}</h2>
+        <p className="text-[var(--ny-text-secondary)]">{error ? "Please try again, or browse the currently published offers." : "This package may no longer be published."}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={() => setRetry((value) => value + 1)} className="ny-btn ny-btn-secondary">Try again</button>
+          <Link to="/packages" className="ny-btn ny-btn-primary">Back to packages</Link>
+        </div>
       </div>
     )
   }
@@ -48,13 +58,13 @@ export default function PackageDetail() {
   const lines = (text) => String(text || "").split("\n").map((line) => line.trim()).filter(Boolean)
 
   return (
-    <div className="container-app py-10 space-y-6">
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSPageIntro pageKey="package-detail" />
-      <PageHeader title={listing.title} subtitle={`${listing.partner_name} · ${listing.kind} · ${listing.city || listing.destination_name || "Nepal"}`} icon={FiPackage} theme="amber" />
+      <PageHeader title={listing.title} subtitle={`${listing.partner_name || "Provider not recorded"} · ${listing.kind || "Offer"} · ${listing.city || listing.destination_name || "Location unavailable"}`} icon={FiPackage} theme="amber" />
       <Link to="/packages" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-800"><FiArrowLeft /> All packages</Link>
       <div className="grid lg:grid-cols-[2fr_1fr] gap-6">
         <article className="card-base overflow-hidden">
-          {listing.image_url && <img src={listing.image_url} alt="" className="w-full h-64 object-cover" />}
+          <PlaceholderImage src={listing.image_url} title={listing.title} alt={listing.title} className="h-64 w-full" />
           <div className="p-6 space-y-4">
             <p className="text-slate-700 whitespace-pre-line">{listing.description || listing.summary}</p>
             {lines(listing.includes).length > 0 && (
@@ -77,8 +87,8 @@ export default function PackageDetail() {
           </div>
         </article>
         <aside className="card-base p-6 h-fit space-y-3">
-          <p className="text-3xl font-black">NPR {Number(listing.price_npr).toLocaleString()}</p>
-          <p className="text-sm text-slate-600">{listing.duration_days} day{listing.duration_days === 1 ? "" : "s"} · up to {listing.capacity} travellers</p>
+          <p className="text-3xl font-black">{listing.price_npr != null ? `NPR ${Number(listing.price_npr).toLocaleString()}` : "Price unavailable"}</p>
+          <p className="text-sm text-slate-600">{listing.duration_days ? `${listing.duration_days} day${listing.duration_days === 1 ? "" : "s"}` : "Duration unavailable"}{listing.capacity ? ` · up to ${listing.capacity} travellers` : ""}</p>
           <button type="button" data-testid="add-to-trip" onClick={add} className="btn-primary w-full">Add to trip & continue</button>
           {listing.external_url && (
             <a href={listing.external_url} target="_blank" rel="noreferrer" className="btn-outline w-full text-center">Partner site (HTTPS)</a>

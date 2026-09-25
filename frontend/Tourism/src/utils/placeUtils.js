@@ -1,7 +1,6 @@
 // Spec wording: when data genuinely cannot be obtained, the UI says
 // "Information unavailable" (never "not recorded", and never a fabricated
-// value). Calculable values must be derived instead — see haversineKm /
-// straightLineFromKathmandu below.
+// value). Calculable values are derived from explicit coordinates only.
 export const NOT_RECORDED = "Information unavailable"
 export const UPDATE_SOON = "We will update soon"
 
@@ -65,11 +64,6 @@ export function unwrapFavoriteDestination(row) {
 // data genuinely cannot be obtained) ------------------------------------------
 export const INFO_UNAVAILABLE = "Information unavailable"
 
-// Kathmandu Metropolitan City reference point (matches the internal geocoder
-// index) used to DERIVE straight-line distances when no curated road distance
-// is stored.
-export const KATHMANDU_COORDS = { lat: 27.7172, lng: 85.324 }
-
 export function haversineKm(lat1, lon1, lat2, lon2) {
   if (!hasValidCoords(lat1, lon1) || !hasValidCoords(lat2, lon2)) return null
   const R = 6371
@@ -79,13 +73,6 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
-}
-
-// Labelled straight-line distance from Kathmandu, or null when coordinates
-// are missing (caller then falls back to INFO_UNAVAILABLE).
-export function straightLineFromKathmandu(lat, lng) {
-  const km = haversineKm(KATHMANDU_COORDS.lat, KATHMANDU_COORDS.lng, lat, lng)
-  return km == null ? null : `≈ ${km} km (straight line)`
 }
 
 // Unrounded straight-line distance (meters precision for nearby places).

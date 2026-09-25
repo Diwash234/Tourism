@@ -110,7 +110,8 @@ const MapView = ({
   hospitals = [],
   policeStations = [],
   route = [],
-  height = "420px"
+  height = "420px",
+  userLocationLabel = "You are here"
 }) => {
   const [mapStyle, setMapStyle] = useState("detailed")
   const [measureMode, setMeasureMode] = useState(false)
@@ -212,7 +213,7 @@ const MapView = ({
       className="rounded-xl overflow-hidden shadow-card relative"
     >
       {/* Map Style Selector & Ruler Tool */}
-      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-1.5 shadow-md flex items-center gap-1.5 text-[11px] font-bold">
+      <div className="absolute left-3 right-3 top-3 z-[1000] flex max-h-24 flex-wrap items-center gap-1.5 overflow-y-auto rounded-[var(--ny-radius-md)] border border-slate-200 bg-white/95 p-1.5 text-[11px] font-bold shadow-md backdrop-blur">
         {Object.entries(TILE_PROVIDERS).map(([key, provider]) => (
           <button
             key={key}
@@ -260,7 +261,7 @@ const MapView = ({
 
       {/* Mapillary Badge */}
       {mapillaryToken && layers.mapillary && (
-        <div className="absolute right-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
+        <div className="absolute right-3 top-20 z-[1000] sm:top-3 rounded-lg bg-white/90 px-3 py-1 text-[10px] font-semibold text-gray-700 shadow-sm">
           Mapillary enabled
         </div>
       )}
@@ -307,7 +308,7 @@ const MapView = ({
             >
 
               <Popup>
-                You are here
+                {userLocationLabel}
               </Popup>
 
             </Marker>

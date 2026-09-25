@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .models import (
     Destination, Alert, DestinationImage, DestinationVideo, VisitHistory, Favorite, Review, Rating, Restaurant, DestinationTransitRoute, TravelPlan,
@@ -34,6 +34,74 @@ def _has_capability(request, module, action="view"):
         return True
     profile = getattr(user, "capability_profile", None)
     return bool(profile and profile.allows(module, action))
+
+
+def _is_platform_admin(user):
+    return bool(user and user.is_authenticated and (
+        user.is_superuser or getattr(user, "role", "") in {"admin", "super_admin", "tourism_admin"}
+    ))
+
+
+def _managed_districts_for(user):
+    profile = getattr(user, "capability_profile", None)
+    districts = list(getattr(profile, "managed_districts", []) or [])
+    if not districts and getattr(user, "role", "") == "district_manager":
+        managed = getattr(user, "managed_district", "")
+        districts = [managed] if managed else []
+    return [str(value).strip().casefold() for value in districts if str(value).strip()]
+
+
+def _scope_destination_queryset(queryset, user):
+    """Apply district and hotel-assignment boundaries to destination data."""
+    if _is_platform_admin(user):
+        return queryset
+    districts = _managed_districts_for(user)
+    if districts:
+        scope = Q()
+        for district in districts:
+            scope |= Q(district__iexact=district) | Q(city__iexact=district)
+        return queryset.filter(scope)
+    if getattr(user, "role", "") == "hotel_manager":
+        from admin_panel.models import HotelAssignment
+        allowed = HotelAssignment.objects.filter(admin=user).values("hotel__destination_id")
+        return queryset.filter(id__in=allowed)
+    return queryset
+
+
+def _require_destination_access(request, destination, module, action="view"):
+    _require_capability(request, module, action)
+    if _is_platform_admin(request.user):
+        return destination
+    districts = _managed_districts_for(request.user)
+    district = str(getattr(destination, "district", "") or "").casefold()
+    city = str(getattr(destination, "city", "") or "").casefold()
+    if districts and district not in districts and city not in districts:
+        raise PermissionDenied("This destination is outside your assigned district")
+    if getattr(request.user, "role", "") == "hotel_manager" and module != "hotels":
+        from admin_panel.models import HotelAssignment
+        if not HotelAssignment.objects.filter(admin=request.user, hotel__destination_id=destination.id).exists():
+            raise PermissionDenied("This destination is outside your assigned hotels")
+    return destination
+
+
+def _recompute_destination_cover(destination):
+    """Keep the denormalized cover consistent with approved media only."""
+    destination.refresh_from_db()
+    eligible = destination.gallery.filter(
+        verification_status=DestinationImage.ImageStatus.APPROVED,
+        is_verified=True,
+    ).order_by("-is_cover", "ordering", "id")
+    cover = eligible.first()
+    new_url = _media_public_url(cover) if cover else ""
+    if cover:
+        destination.gallery.exclude(pk=cover.pk).filter(is_cover=True).update(is_cover=False)
+        if not cover.is_cover:
+            cover.is_cover = True
+            cover.save(update_fields=["is_cover", "updated_at"])
+    if str(destination.cover_image or "") != new_url:
+        destination.cover_image = new_url
+        destination.save(update_fields=["cover_image", "updated_at"])
+    return new_url
 
 
 def _media_public_url(image):
@@ -67,7 +135,10 @@ def _require_capability(request, module, action="view"):
 def _sync_destination_json(destination):
     """Atomic JSON exchange snapshot for admin-edited destinations."""
     from .location_sync import sync_admin_destination_json
+    from django.core.cache import cache
     sync_admin_destination_json(destination)
+    cache.delete("dest:map-points:v1")
+    cache.delete("seo:sitemap:v1")
 
 
 class AdminStatsView(APIView):
@@ -2377,6 +2448,8 @@ class AdminCMSView(APIView):
         "destinations": {"name", "slug", "description", "short_description", "district", "province", "city_english", "latitude", "longitude", "status", "seo_title", "meta_description", "og_image_url"},
         "announcements": {"title", "message", "level", "is_active"},
     }
+    PUBLICATION_FIELDS = {"status", "scheduled_publish_at", "published_at", "is_enabled", "is_visible", "is_active", "route", "key"}
+    WORKFLOW_ACTIONS = {"publish", "unpublish", "schedule", "approve", "request_changes", "rollback"}
 
     def _validate_payload(self, resource, payload):
         import re
@@ -2466,10 +2539,9 @@ class AdminCMSView(APIView):
             snapshot=self._snapshot(resource, obj), action=action, created_by=user)
 
     def _publish_due(self):
-        from .cms_publishing import publish_due_sections
+        from .cms_publishing import publish_due_pages, publish_due_sections
         now = timezone.now()
-        ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now).update(
-            status="published", published_at=now, scheduled_publish_at=None)
+        publish_due_pages(now)
         publish_due_sections(now)
 
     @staticmethod

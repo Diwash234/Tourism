@@ -15,7 +15,7 @@ export default function HotelBookingPanel(){
     }, 0)
     return () => clearTimeout(t)
   }, [tab])
-  const status=async(row,value)=>{try{await adminApi.updateBooking(row.id,{status:value});showToast("Booking updated","success");load()}catch(error){showToast(error.response?.data?.detail||"Update failed","error")}}
+  const status=async(row,value)=>{const action={confirmed:"confirmBooking",cancelled:"cancelBooking",completed:"completeBooking"}[value];if(!action){showToast(`Unsupported booking transition: ${value}`,"error");return}try{await adminApi[action](row.id);showToast(`Booking ${value}`,"success");load()}catch(error){showToast(error.response?.data?.detail||"Update failed","error")}}
   const externalImage=async row=>{const value=window.prompt("Verified hotel image URL (HTTPS). Leave blank to use the labelled destination-area fallback.",row.external_image_url||"");if(value===null)return;try{await adminApi.updateHotel(row.id,{external_image_url:value.trim()});showToast("Hotel image updated","success");load()}catch(error){showToast(error.response?.data?.external_image_url?.[0]||"Image URL was rejected","error")}}
   const uploadImage=async(row,file)=>{if(!file)return;const body=new FormData();body.append("cover_image",file);try{await adminApi.uploadHotelImage(row.id,body);showToast("Hotel cover uploaded","success");load()}catch(error){showToast(error.response?.data?.cover_image?.[0]||"Hotel image upload failed","error")}}
   const searchDestinations=async(value)=>{setHotelForm(f=>({...f,destination:value}));if(value.trim().length<2){setDestOptions([]);return}try{const{data}=await adminApi.getDestinations({search:value.trim(),page_size:8});setDestOptions(data.results||[])}catch{setDestOptions([])}}

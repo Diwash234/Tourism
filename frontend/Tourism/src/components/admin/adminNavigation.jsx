@@ -1,105 +1,125 @@
 import {
   BsActivity, BsBarChart, BsBell, BsBriefcase, BsBuilding, BsChatDots, BsCollection,
   BsCookie, BsDatabase, BsExclamationTriangle, BsFileEarmarkText, BsGear, BsGeoAlt, BsHospital,
-  BsGlobe, BsHouseDoor, BsImage, BsLayoutTextWindow, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
+  BsGlobe, BsHouseDoor, BsImage, BsLayers, BsLayoutTextWindow, BsLink45Deg, BsMegaphone, BsPalette, BsPeople, BsPinMap, BsSearch, BsShieldLock, BsStar,
   BsSliders, BsTools, BsTranslate, BsTruck, BsSpeedometer2,
 } from "react-icons/bs"
 
-// Admin Control Center 10-Group Hierarchy
+// Admin navigation, grouped by WHAT THE WEBSITE MEANS to a non-technical
+// admin (Content & CMS / Travel / People / Safety / System) instead of by
+// implementation detail. Section ids are unchanged so existing
+// /admin?section=... links and bookmarks keep working; no section was
+// removed — every previous entry is present exactly once.
 export const ADMIN_NAV_GROUPS = [
-  { label: "1. Dashboard", items: [
+  { label: "Dashboard", items: [
     ["overview", "Overview & Stats", BsHouseDoor],
+  ]},
+  { label: "Content & CMS", items: [
     ["cms_overview", "CMS Overview", BsSpeedometer2],
-  ]},
-  { label: "2. CONTENT", items: [
-    ["cms_pages", "Website Pages", BsFileEarmarkText, [
-      { label: "Home Page", query: { section: "cms_pages", resource: "pages", page: "home" } },
-      { label: "About Page", query: { section: "cms_pages", resource: "pages", page: "about" } },
-      { label: "Destinations Page", query: { section: "cms_pages", resource: "pages", page: "destinations" } },
-      { label: "Trips & Packages", query: { section: "cms_pages", resource: "pages", page: "packages" } },
-      { label: "Recommendations", query: { section: "cms_pages", resource: "pages", page: "recommendation" } },
-      { label: "Travel Guides", query: { section: "cms_pages", resource: "pages", page: "guides" } },
-      { label: "Blog & Articles", query: { section: "cms_pages", resource: "pages", page: "blog" } },
-      { label: "FAQs & Support", query: { section: "cms_pages", resource: "pages", page: "faqs" } },
-      { label: "Contact Page", query: { section: "cms_pages", resource: "pages", page: "contact" } },
+    ["cms", "Pages, Sections & Menus", BsFileEarmarkText],
+    ["homepage_manager", "Homepage Manager", BsHouseDoor],
+    ["redirects", "Redirects & URLs", BsLink45Deg],
+    ["visitor_desk", "Announcements & Notices", BsMegaphone],
+     ["content_lifecycle", "Content Lifecycle & Quality", BsLayers],
+    ["featured_destinations", "Featured Content Studio", BsStar],
+    ["media_library", "Central Media Library", BsCollection, [
+      { label: "Pending", query: { status: "pending" } },
+      { label: "Approved", query: { status: "approved" } },
+      { label: "Rejected", query: { status: "rejected" } },
     ]],
-    ["cms_sections", "Page Sections", BsLayoutTextWindow, [
-      { label: "Hero Sections", query: { section: "cms_sections", resource: "sections", type: "hero" } },
-      { label: "Destination Sections", query: { section: "cms_sections", resource: "sections", type: "destinations" } },
-      { label: "Recommendation Sections", query: { section: "cms_sections", resource: "sections", type: "recommendations" } },
-      { label: "CTA Sections", query: { section: "cms_sections", resource: "sections", type: "cta" } },
-      { label: "Testimonials", query: { section: "cms_sections", resource: "sections", type: "testimonials" } },
-      { label: "Custom Sections", query: { section: "cms_sections", resource: "sections", type: "custom" } },
+    ["images", "Image Verification", BsImage, [
+      { label: "Pending", query: { status: "pending" } },
+      { label: "Approved", query: { section: "media_library", status: "approved" } },
+      { label: "Rejected", query: { section: "media_library", status: "rejected" } },
     ]],
-    ["header_navbar", "Header & Navigation", BsGlobe],
-    ["category_translations", "Categories & Translations", BsTranslate],
-    ["announcements", "Announcements", BsMegaphone],
-    ["visitor_desk", "Visitor Notices & Featured", BsStar],
-    ["cms", "CMS Section Manager", BsFileEarmarkText],
-  ]},
-  { label: "3. APPEARANCE", items: [
+    ["image_pipeline", "Image Acquisition Pipeline", BsTools],
     ["branding", "Branding & Theme", BsPalette],
-    ["homepage_manager", "Homepage Studio", BsHouseDoor],
-    ["user_dashboard_control", "User Dashboard Controls", BsSliders],
+    ["header_navbar", "Header & Navbar", BsLayoutTextWindow],
     ["cookie_consent", "Cookie Consent", BsCookie],
+    ["category_translations", "Categories & Translations", BsTranslate],
+    ["content_translations", "Content Translations", BsGlobe],
+    ["user_dashboard_control", "User Dashboard Controls", BsSliders],
+    ["ai_engine", "Central AI Engine Studio", BsStar],
   ]},
-  { label: "4. MEDIA", items: [
-    ["images", "Pending Image Approvals", BsImage],
-    ["media_library", "Central Media Library", BsCollection],
-    ["image_pipeline", "Multi-Source Acquisition", BsSearch],
-  ]},
-  { label: "5. TOURISM DATA", items: [
-    ["destinations", "All Destinations", BsPinMap, [
-      { label: "Approved Destinations", query: { section: "destinations", status: "approved" } },
-      { label: "Pending Approvals", query: { section: "places", status: "pending" } },
-      { label: "Featured Studio", query: { section: "featured_destinations" } },
+  { label: "Travel Management", items: [
+    ["places", "Place Approvals", BsPinMap, [
+      { label: "Pending places", query: { status: "pending" } },
+      { label: "Approved", query: { status: "approved" } },
     ]],
-    ["places", "Place Approvals", BsPinMap],
     ["destination_features", "Destination Features", BsStar],
-    ["hotel_bookings", "Hotels & Stays", BsBuilding],
-    ["travel_services", "Restaurants & Services", BsTruck],
-    ["transport_routes", "Transportation & Routes", BsTruck],
+    ["research", "AI Destination Discovery", BsSearch],
+    ["hotel_bookings", "Hotels & Bookings", BsBuilding],
     ["marketplace", "Travel Packages & Partners", BsBriefcase],
-  ]},
-  { label: "6. BOOKINGS & MARKETPLACE", items: [
-    ["hotel_bookings", "Hotel Bookings", BsBuilding],
-    ["marketplace", "Partners & Marketplace", BsBriefcase],
+    ["travel_services", "Restaurants, Transport & Plans", BsTruck],
+    ["transport_routes", "Transportation & Routes", BsTruck],
     ["review_moderation", "Review Moderation", BsStar],
-    ["guide_verification", "Guide Verification", BsShieldLock],
+     ["guide_verification", "Guide Verification", BsShieldLock],
+    ["expenses", "Expense & Budget Data", BsBarChart],
   ]},
-  { label: "7. PEOPLE", items: [
-    ["users", "Users & Sub-Admins", BsPeople, [
-      { label: "Pending Verification", query: { section: "users", verified: "false" } },
-      { label: "Verified Users", query: { section: "users", verified: "true" } },
-      { label: "Active Users", query: { section: "users", status: "active" } },
+  { label: "People & Operations", items: [
+    ["users", "Users", BsPeople, [
+      { label: "Pending verification", query: { verified: "false" } },
+      { label: "Verified", query: { verified: "true" } },
+      { label: "Active", query: { status: "active" } },
+      { label: "Inactive", query: { status: "inactive" } },
     ]],
-    ["staff_permissions", "Staff & Permissions", BsShieldLock],
-  ]},
-  { label: "8. SAFETY", items: [
-    ["emergencies", "Medical SOS", BsExclamationTriangle],
-    ["emergency_directory", "Emergency Directory", BsHospital],
-    ["infrastructure", "Community Services & ML", BsHospital],
-    ["risks", "Safety & Hazard ML", BsShieldLock],
-    ["safety_management", "Alerts & Safety", BsGeoAlt],
-    ["tracking", "Live Tracking & SOS", BsActivity],
-  ]},
-  { label: "9. COMMUNICATION", items: [
-    ["feedback_workspace", "Feedback Workspace", BsChatDots],
+    ["staff_permissions", "Staff", BsShieldLock, [
+      { label: "Pending verification", query: { section: "users", role: "staff", verified: "false" } },
+      { label: "Verified staff", query: { section: "users", role: "staff", verified: "true" } },
+      { label: "Active staff", query: { section: "users", role: "staff", status: "active" } },
+      { label: "Staff accounts", query: { section: "users", role: "staff" } },
+      { label: "Moderators", query: { section: "users", role: "content_moderator" } },
+      { label: "District managers", query: { section: "users", role: "district_manager" } },
+      { label: "Hotel managers", query: { section: "users", role: "hotel_manager" } },
+    ]],
     ["data_reports", "User Reports & Corrections", BsExclamationTriangle],
+    ["feedback_workspace", "Feedback", BsChatDots],
+    ["tracking", "Live Tracking & SOS", BsActivity],
     ["notification_settings", "Notifications", BsBell],
   ]},
-  { label: "10. SYSTEM", items: [
+  { label: "Safety & Emergency", items: [
+    ["emergencies", "Medical SOS", BsExclamationTriangle],
+    ["emergency_directory", "Emergency directory", BsHospital],
+    ["infrastructure", "Community Services, Photos & ML", BsHospital],
+    ["risks", "Safety & Hazard ML", BsShieldLock],
+    ["safety_management", "Alerts & Safety", BsGeoAlt],
+  ]},
+  { label: "System & Data", items: [
     ["reports", "Reports & Analytics", BsBarChart],
     ["data_health", "Data Health & Provenance", BsShieldLock],
     ["data_explorer", "Database & Records", BsDatabase],
     ["datasets", "Dataset & CSV Manager", BsDatabase],
-    ["research", "AI Destination Discovery", BsSearch],
-    ["ai_engine", "Central AI Engine Studio", BsTools],
+     ["routing_provider", "Routing Provider", BsTruck],
     ["retention", "Retention & Deletion", BsGear],
   ]},
 ]
 
 export const ADMIN_PRIMARY_NAV = ["overview", "cms_overview", "reports", "users", "places", "media_library"]
+
+// Frontend navigation is capability-aware for usability only. The matching
+// backend capability check remains the security boundary.
+export const ADMIN_SECTION_CAPABILITIES = {
+  overview: "dashboard", cms_overview: "content", cms: "content", homepage_manager: "content",
+  redirects: "content", visitor_desk: "content", featured_destinations: "destinations",
+  media_library: "images", images: "images", image_pipeline: "images", branding: "settings",
+  header_navbar: "content", cookie_consent: "settings", category_translations: "destinations",
+  content_translations: "content", user_dashboard_control: "content", content_lifecycle: "destinations", ai_engine: "datasets",
+  places: "destinations", destination_features: "destinations", research: "datasets",
+  hotel_bookings: "hotels", marketplace: "marketplace", travel_services: ["restaurants", "transportation", "travel_plans"],
+  transport_routes: "transportation", review_moderation: "reviews", guide_verification: "marketplace", expenses: "budget",
+  users: "users", staff_permissions: "users", data_reports: "feedback", feedback_workspace: "feedback",
+  tracking: "safety", notification_settings: "settings", emergencies: "safety",
+  emergency_directory: "safety", infrastructure: "safety", risks: "safety", safety_management: "safety",
+  reports: "audit", data_health: "dashboard", data_explorer: "dashboard", datasets: "datasets",
+  retention: "settings", routing_provider: "settings",
+}
+
+export const canAccessAdminSection = (section, can) => {
+  const capability = ADMIN_SECTION_CAPABILITIES[section]
+  if (!capability) return true
+  const modules = Array.isArray(capability) ? capability : [capability]
+  return modules.some((module) => can(module, "view"))
+}
 
 export const adminSectionHref = (section, extra = {}) => {
   const target = extra.section || section
@@ -109,5 +129,4 @@ export const adminSectionHref = (section, extra = {}) => {
   const query = params.toString()
   return query ? `/admin?${query}` : "/admin"
 }
-
 export const findAdminSection = section => ADMIN_NAV_GROUPS.flatMap(group => group.items).find(item => item[0] === section)

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import PageHeader from "../components/common/PageHeader"
-import CMSPageIntro from "../components/cms/CMSPageIntro"
 import usePublicConfig from "../hooks/usePublicConfig"
 import CMSIntro from "../components/cms/CMSIntro"
 import { FiSearch } from "react-icons/fi"
 import hotelService from "../services/hotelService"
 import HotelCard from "../components/cards/HotelCard"
-import Loader from "../components/common/Loader"
+import SkeletonLoader from "../components/common/SkeletonLoader"
 import EmptyState from "../components/common/EmptyState"
+import ErrorState from "../components/ui/ErrorState"
 
 const Hotels = () => {
   const { block: cmsBlock } = usePublicConfig().pageCMS("hotels", ["intro", "page-intro"])
@@ -15,12 +15,15 @@ const Hotels = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState("recommended")
+  const [error, setError] = useState("")
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     // Deferred one tick: keeps synchronous setState out of the effect
     // flush (react-hooks/set-state-in-effect) without changing behavior.
     const t = setTimeout(() => {
     setLoading(true)
+    setError("")
 
     const params = {}
 
@@ -35,20 +38,22 @@ const Hotels = () => {
 
     request
       .then(({ data }) => setHotels(data.results || data || []))
-      .catch(() => setHotels([]))
+      .catch((requestError) => {
+         setHotels([])
+         setError(requestError.response?.data?.detail || "We could not load the stay catalogue right now.")
+       })
       .finally(() => setLoading(false))
     }, 0)
     return () => clearTimeout(t)
-  }, [search, sort])
+  }, [search, sort, retry])
 
 
   return (
-    <div className="space-y-6 fade-in theme-gold">
-      <CMSPageIntro pageKey="hotels" />
+    <div className="ny-page container-app space-y-6 py-6 sm:py-8">
       <CMSIntro section={cmsBlock("intro")} />
 
       <div>
-        <PageHeader title="Hotels & Stays" subtitle="From mountain teahouses on the Annapurna & Everest trails to boutique heritage stays in Pokhara, Kathmandu, Lumbini, Janakpur, Chitwan, Rara & across all 7 provinces of Nepal." />
+        <PageHeader title="Hotels & Stays" subtitle="Search the live catalogue for recorded stays, prices and availability." />
       </div>
 
 
@@ -93,8 +98,10 @@ const Hotels = () => {
 
       {loading ? (
 
-        <Loader fullScreen={false}/>
+        <SkeletonLoader count={6} />
 
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => setRetry((value) => value + 1)} />
       ) : hotels.length ? (
 
         <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
@@ -113,8 +120,8 @@ const Hotels = () => {
       ) : (
 
         <EmptyState
-          title="No hotels found"
-          subtitle="Try a different search, or check back once hotels are imported."
+          title="No stays match your search"
+          subtitle="Try a broader place or property name, or browse the public stay search."
         />
 
       )}

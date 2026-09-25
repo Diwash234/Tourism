@@ -1,7 +1,8 @@
 /**
- * Nepal Administrative Geocoder & Municipality/Ward Coordinate Calculator
- * Full coverage of all 7 Provinces, 77 Districts, Municipalities, Gaunpalikas,
- * and support for custom manual village / ward entry.
+ * Nepal administrative lookup helpers.
+ * The curated names help forms recognise administrative areas, but this module
+ * does not claim exact place coordinates. Verified GPS or API coordinates must
+ * be supplied separately.
  */
 
 export const NEPAL_ALL_PROVINCES = [
@@ -87,7 +88,7 @@ export const DISTRICT_DEFAULTS = {
   "Kailali": { lat: 28.6833, lng: 80.6000, alt: "182m", munis: ["Dhangadhi Sub-Metropolitan", "Tikapur Municipality", "Ghodaghodi Municipality (Ramsar Lake)", "Lamki Chuha", "Godawari", "Bhajani", "Gauriganga"] }
 }
 
-// Comprehensive Fuzzy, Acronym, and Phonetic Place Matrix for all 77 Districts & Landmarks
+// Legacy fuzzy name index used only to prefill administrative selections.
 export const NEPAL_FUZZY_PLACE_INDEX = [
   // Parbat / Bihadi
   {
@@ -333,7 +334,8 @@ export const NEPAL_FUZZY_PLACE_INDEX = [
 /**
  * Intelligent Fuzzy Resolver:
  * Accepts ANY phonetic spelling, typo, or acronym (e.g. 'pkr', 'bihadi', 'walling', 'galeswor', 'chitwn', 'lumbni')
- * and returns canonical place data with auto-attached GPS coordinates, altitude, district, and province.
+ * and returns canonical administrative place data. Coordinates remain
+ * unavailable until a verified geocoder or the traveller's GPS supplies them.
  */
 export function resolveFuzzyPlaceLocation(query) {
   if (!query || typeof query !== "string") return null
@@ -349,17 +351,18 @@ export function resolveFuzzyPlaceLocation(query) {
         canonicalName: item.canonicalName,
         correctedName: item.correctedName,
         didYouMean: !isExact ? `Showing results for ${item.correctedName}, ${item.district} (matched from '${query}')` : null,
-        latitude: item.lat,
-        longitude: item.lng,
-        altitude: item.alt,
+        latitude: null,
+        longitude: null,
+        altitude: null,
+        coordinateSource: "unavailable",
         district: item.district,
         province: item.province,
         municipality: item.municipality,
         category: item.category,
         confidence: isExact ? 100 : 96,
-        image: item.image,
-        slug: item.slug,
-        description: item.description,
+        image: null,
+        slug: null,
+        description: null,
       }
     }
   }
@@ -381,17 +384,18 @@ export function resolveFuzzyPlaceLocation(query) {
         canonicalName: `${distName} District (${prov} Province)`,
         correctedName: distName,
         didYouMean: `Geocoded district center: ${distName}`,
-        latitude: info.lat,
-        longitude: info.lng,
-        altitude: info.alt,
+        latitude: null,
+        longitude: null,
+        altitude: null,
+        coordinateSource: "unavailable",
         district: distName,
         province: prov,
         municipality: info.munis[0] || "",
         category: "District Center",
         confidence: 90,
-        image: "/images/destinations/mustang/lo-manthang.jpg",
-        slug: distName.toLowerCase(),
-        description: `Official administrative center of ${distName} in ${prov} Province.`,
+        image: null,
+        slug: null,
+        description: null,
       }
     }
   }
@@ -400,23 +404,12 @@ export function resolveFuzzyPlaceLocation(query) {
 }
 
 /**
- * High-precision forward geocoder supporting all 77 districts and custom entries
+ * Administrative lookup deliberately returns no guessed point. A verified
+ * geocoder or the traveller's GPS must provide coordinates.
  */
-export function geocodeNepalPlace(province, district, municipalityName = "", wardNo = 1) {
-  const distInfo = DISTRICT_DEFAULTS[district]
-
-  let baseLat = distInfo?.lat || 28.2096
-  let baseLng = distInfo?.lng || 83.9856
-  let alt = distInfo?.alt || "1,400m"
-
-  const wardInt = parseInt(wardNo, 10) || 1
-  const latOffset = ((wardInt % 5) - 2) * 0.0035
-  const lngOffset = (Math.floor(wardInt / 5) - 1) * 0.0035
-
-  return {
-    lat: Number((baseLat + latOffset).toFixed(6)),
-    lng: Number((baseLng + lngOffset).toFixed(6)),
-    alt: alt,
-  }
+export function geocodeNepalPlace(_province, _district, _municipalityName = "", _wardNo = 1) {
+  // Administrative names are useful for forms, but a district/ward centroid
+  // is not a verified coordinate for a new place. Leave the point unknown.
+  return { lat: null, lng: null, alt: null, coordinateSource: "unavailable" }
 }
 

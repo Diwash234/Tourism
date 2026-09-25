@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import {
   BsArrowLeftRight, BsGeoAltFill, BsSpeedometer2,
   BsListCheck, BsSignpost2, BsPencil, BsPersonWalking, BsBicycle,
   BsCheckCircleFill, BsExclamationTriangle,
 } from "react-icons/bs"
+import { FiCompass, FiMapPin, FiNavigation } from "react-icons/fi"
+import EmptyState from "../components/common/EmptyState"
 import { motion } from "framer-motion"
 import MapView from "../components/map/MapView"
 import CMSPageIntro from "../components/cms/CMSPageIntro"
 import useGeolocation from "../hooks/useGeolocation"
 import { useI18n } from "../i18n"
 import useAuth from "../hooks/useAuth"
+import useToast from "../hooks/useToast"
 import destinationApi from "../api/destinationApi"
 import travelApi from "../api/travelApi"
 import { savedRoutesApi } from "../services/api"
@@ -22,8 +25,6 @@ const MODES = [
   { id: "walking", labelKey: "tp.mode.walk", icon: BsPersonWalking },
   { id: "cycling", labelKey: "tp.mode.cycle", icon: BsBicycle },
 ]
-
-const MODE_EMOJI = { driving: "🚗", walking: "🚶", cycling: "🚴", flight: "✈️", hiking: "🥾", motorcycle: "🏍️" }
 
 function gradeBadge(grade, t) {
   if (grade === "real-road") {
@@ -51,7 +52,7 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
   const { t } = useI18n()
   return (
     <div className="relative">
-      <label htmlFor={id} className="block text-[11px] font-black uppercase tracking-wider mb-1.5 text-slate-500 dark:text-slate-400">
+      <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-500 dark:text-slate-400">
         {label}
       </label>
       <div className="relative">
@@ -73,8 +74,7 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
           <button
             type="button"
             onClick={onPickLocation}
-            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border transition
-              border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="ny-btn ny-btn-ghost min-h-11 px-0 text-xs font-semibold"
           >
             <BsGeoAltFill className="text-[11px]" /> {pickLabel}
           </button>
@@ -88,6 +88,7 @@ function EndpointField({ id, label, icon, value, onChange, onPickLocation, pickL
 export default function TravelPlanner() {
   const { t } = useI18n()
   const { isAuthenticated } = useAuth() || {}
+  const { showToast } = useToast()
   // auto: false — /travel is a public page; GPS is only requested when the
   // traveller explicitly presses "Use my location" (privacy/consent §22/58).
   const { position, error: geoError, locating, retry: retryGeo } = useGeolocation({ auto: false })
@@ -106,7 +107,9 @@ export default function TravelPlanner() {
   const [showSteps, setShowSteps] = useState(true)
   const [between, setBetween] = useState(null)
   const [betweenLoading, setBetweenLoading] = useState(false)
+  const [betweenError, setBetweenError] = useState("")
   const [saved, setSaved] = useState(false)
+  const requestRef = useRef(0)
 
   // ---- destination autocomplete (real records only) ----------------------
   const useAutocomplete = (text, onPick) => {
@@ -166,37 +169,48 @@ export default function TravelPlanner() {
   const loadBetween = (slug) => {
     if (!slug) { setBetween(null); return }
     setBetweenLoading(true)
+    setBetweenError("")
     travelApi.travelBetween(slug, 12)
       .then(({ data }) => setBetween(data))
-      .catch(() => setBetween(null))
+      .catch(() => { setBetween(null); setBetweenError("Nearby travel options are unavailable right now.") })
       .finally(() => setBetweenLoading(false))
   }
 
-  const planRoute = async (m = mode) => {
-    const dest = destPick || (destinationText.trim() ? { kind: "name", name: destinationText.trim() } : null)
+  const planRoute = async (m = mode, selection = null) => {
+    const currentDest = selection?.destination ?? destPick ?? (destinationText.trim() ? { kind: "name", name: destinationText.trim() } : null)
+    const currentOrigin = selection?.origin ?? originPick
+    const currentOriginText = selection?.originText ?? originText
+    const usingGps = selection?.gpsUsed ?? gpsUsed
+    const requestId = ++requestRef.current
+    setResults(null)
+    setSaved(false)
+    const dest = currentDest
     if (!dest) { setError(t("tp.error.need_destination")); return }
-    if (gpsUsed && !position) {
+    if (usingGps && !position) {
       if (!locating) retryGeo()
       setError(locating ? t("tp.gps_pending") : t("tp.gps_pending"))
       return
     }
     setLoading(true)
+    setResults(null)
+    setSaved(false)
     setError("")
     setActiveAlt(null)
     try {
       const params = { mode: m, alternatives: 1 }
-      if (destPick?.slug) params.destination = destPick.slug
+      if (dest.slug) params.destination = dest.slug
       else params.destination = dest.name
-      if (gpsUsed && position) {
+      if (usingGps && position) {
         params.origin_lat = position.lat
         params.origin_lng = position.lng
         params.origin_name = "Current Location"
-      } else if (originPick?.slug) {
-        params.origin = originPick.slug
-      } else if (originText.trim()) {
-        params.origin = originText.trim()
+      } else if (currentOrigin?.slug) {
+        params.origin = currentOrigin.slug
+      } else if (currentOriginText.trim()) {
+        params.origin = currentOriginText.trim()
       }
       const { data } = await travelApi.plan(params)
+       if (requestId !== requestRef.current) return
       setResults(data)
       if (data?.destination?.slug) {
         setDestPick({ kind: "destination", slug: data.destination.slug, name: data.destination.name, latitude: data.destination.latitude, longitude: data.destination.longitude })
@@ -204,14 +218,17 @@ export default function TravelPlanner() {
         loadBetween(data.destination.slug)
       }
     } catch (err) {
-      const detail = err.response?.data?.detail
+      if (requestId !== requestRef.current) return
+       const detail = err.response?.data?.detail
       setError(detail || t("tp.error.generic"))
     } finally {
-      setLoading(false)
+      if (requestId === requestRef.current) setLoading(false)
     }
   }
 
   const useMyLocation = () => {
+    setResults(null)
+    setSaved(false)
     if (position) {
       setGpsUsed(true)
       setOriginPick(null)
@@ -225,6 +242,8 @@ export default function TravelPlanner() {
   }
 
   const swap = () => {
+    setResults(null)
+    setSaved(false)
     setOriginText(destinationText)
     setDestinationText(originText)
     setOriginPick(destPick)
@@ -244,7 +263,7 @@ export default function TravelPlanner() {
       distance_km: results.primary?.distance_km ?? null,
       duration_min: results.primary?.duration_min ?? null,
       duration_source: results.primary?.source || "",
-    }).then(() => setSaved(true)).catch(() => {})
+    }).then(() => setSaved(true)).catch(() => showToast("The route could not be saved. Please try again.", "error"))
   }
 
   const displayed = activeAlt != null && results?.alternatives?.[activeAlt]
@@ -270,27 +289,20 @@ export default function TravelPlanner() {
     return null
   }, [displayed?.geometry, results])
 
-  const navHref = results
+  const navigationPath = results
     ? `/navigation?dest=${encodeURIComponent(results.destination?.name || destinationText)}` +
       (gpsUsed ? `&origin=${encodeURIComponent(t("tp.origin.my_location"))}` : "")
     : "/navigation"
+  const navHref = navigationPath
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* ---------- header ---------- */}
-      <div className="bg-emerald-950 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-4xl font-black flex items-center gap-3">
-            <BsSignpost2 className="text-amber-400" /> {t("tp.title")}
-          </motion.h1>
-          <p className="mt-2 text-emerald-200 text-sm md:text-base max-w-3xl">{t("tp.subtitle")}</p>
-        </div>
-      </div>
+    <div className="ny-page bg-[var(--ny-bg)]">
+      <div className="container-app space-y-6 py-6 sm:py-8">
+        <header className="ny-panel overflow-hidden"><div className="h-1 bg-[var(--ny-gold)]" /><div className="flex flex-col gap-4 p-5 sm:p-7 md:flex-row md:items-center md:justify-between"><div><p className="ny-kicker">Plan a route</p><motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-2 flex items-center gap-2"><BsSignpost2 className="text-[var(--ny-green)]" aria-hidden="true" />{t("tp.title")}</motion.h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ny-text-secondary)]">{t("tp.subtitle")}</p></div><Link to={navHref} className="ny-btn ny-btn-secondary shrink-0"><FiCompass size={16} aria-hidden="true" />Open navigation</Link></div></header>
 
-      {/* Admin-editable intro / extra sections (renders nothing until written) */}
       <CMSPageIntro pageKey="travel" />
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <div className="space-y-8">
         {/* ---------- planner form ---------- */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-card p-5 md:p-6">
           <div className="grid md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
@@ -298,9 +310,9 @@ export default function TravelPlanner() {
               <EndpointField
                 id="tp-origin"
                 label={t("tp.from")}
-                icon={<span aria-hidden>📍</span>}
+                icon={<FiMapPin size={17} aria-hidden="true" />}
                 value={originText}
-                onChange={(v) => { setOriginText(v); setOriginPick(null); setGpsUsed(false) }}
+                onChange={(v) => { setResults(null); setSaved(false); setOriginText(v); setOriginPick(null); setGpsUsed(false) }}
                 onPickLocation={useMyLocation}
                 pickLabel={t("tp.origin.my_location")}
               />
@@ -311,7 +323,7 @@ export default function TravelPlanner() {
                 type="button"
                 onClick={swap}
                 title={t("tp.swap")}
-                className="rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-200 p-2.5 hover:bg-emerald-200 dark:hover:bg-emerald-800 border border-emerald-300 dark:border-emerald-700"
+                className="ny-btn ny-btn-secondary min-h-11 w-11 rounded-full px-0"
               >
                 <BsArrowLeftRight />
               </button>
@@ -320,9 +332,9 @@ export default function TravelPlanner() {
               <EndpointField
                 id="tp-destination"
                 label={t("tp.to")}
-                icon={<span aria-hidden>🏔️</span>}
+                icon={<FiNavigation size={17} aria-hidden="true" />}
                 value={destinationText}
-                onChange={(v) => { setDestinationText(v); setDestPick(null) }}
+                onChange={(v) => { setResults(null); setSaved(false); setDestinationText(v); setDestPick(null) }}
               />
               {destAc.dropdown("dest-suggest")}
             </div>
@@ -334,10 +346,10 @@ export default function TravelPlanner() {
               <button
                 key={m.id}
                 type="button"
-                onClick={() => setMode(m.id)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition
+                onClick={() => { setResults(null); setSaved(false); setMode(m.id) }}
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition
                   ${mode === m.id
-                    ? "bg-emerald-700 text-white border-emerald-700 shadow"
+                    ? "bg-[var(--ny-green)] text-white border-[var(--ny-green)] shadow"
                     : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-emerald-500"}`}
               >
                 <m.icon /> {t(m.labelKey)}
@@ -347,27 +359,29 @@ export default function TravelPlanner() {
               type="button"
               onClick={() => planRoute()}
               disabled={loading || !destinationText.trim()}
-              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black px-6 py-3 text-sm shadow transition"
+              className="ny-btn ny-btn-primary ml-auto"
             >
               {loading ? (
                 <><span className="inline-block w-4 h-4 border-2 border-slate-900/40 border-t-slate-900 rounded-full animate-spin" /> {t("tp.loading")}</>
               ) : (
-                <>🧭 {t("tp.get_route")}</>
+                <><FiCompass size={16} aria-hidden="true" /> {t("tp.get_route")}</>
               )}
             </button>
           </div>
 
           {geoError && (
-            <p className="mt-3 text-[12px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+            <p role="status" className="mt-3 text-[12px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
               {t("tp.gps_unavailable")}
             </p>
           )}
           {error && (
-            <p className="mt-3 text-[13px] font-bold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+            <p role="alert" className="mt-3 text-[13px] font-bold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
               {error}
             </p>
           )}
         </div>
+
+        {!loading && !results && !error && <EmptyState title="Choose a route to begin" subtitle="Enter a starting point and destination, choose a travel mode, then calculate the route." action={<Link to="/destinations" className="ny-btn ny-btn-secondary">Browse destinations</Link>} />}
 
         {/* ---------- results ---------- */}
         {results && displayed && (
@@ -383,11 +397,11 @@ export default function TravelPlanner() {
               </div>
               <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-wider text-slate-400">{t("tp.distance")}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("tp.distance")}</div>
                   <div className="text-3xl font-black text-emerald-700 dark:text-emerald-400">{formatDistance(displayed.distance_km)}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-wider text-slate-400">{t("tp.travel_time")}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("tp.travel_time")}</div>
                   <div className="text-3xl font-black text-slate-900 dark:text-white">{formatDuration(displayed.duration_min)}</div>
                 </div>
                 <div className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
@@ -395,14 +409,14 @@ export default function TravelPlanner() {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link to={navHref} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-5 py-2.5 text-sm shadow">
+                <Link to={navHref} className="ny-btn ny-btn-primary">
                   <BsSignpost2 /> {t("tp.start_navigation")}
                 </Link>
                 {isAuthenticated && (
                   <button
                     type="button"
                     onClick={saveRoute}
-                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 font-bold px-5 py-2.5 text-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/40"
+                    className="ny-btn ny-btn-secondary"
                   >
                     {saved ? <BsCheckCircleFill /> : <BsPencil />} {saved ? t("tp.saved") : t("tp.save_route")}
                   </button>
@@ -410,7 +424,7 @@ export default function TravelPlanner() {
                 <button
                   type="button"
                   onClick={() => setShowSteps((s) => !s)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold px-5 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="ny-btn ny-btn-secondary"
                 >
                   <BsListCheck /> {t("tp.turn_by_turn")} {showSteps ? "▴" : "▾"}
                 </button>
@@ -474,7 +488,7 @@ export default function TravelPlanner() {
                             onClick={() => setActiveAlt(activeAlt === i ? null : i)}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${activeAlt === i ? "bg-emerald-50 dark:bg-emerald-900/40" : "hover:bg-slate-50 dark:hover:bg-slate-800/60"}`}
                           >
-                            <span className="text-lg">{MODE_EMOJI[mode] || "🚗"}</span>
+                            <span className="text-lg">{<FiCompass size={18} className="text-[var(--ny-green)]" aria-hidden="true" />}</span>
                             <span className="flex-1">
                               <span className="block text-[13px] font-bold text-slate-800 dark:text-slate-200">
                                 {t("tp.route_option", { n: i + 2 })}
@@ -515,7 +529,7 @@ export default function TravelPlanner() {
                   {(results.modes || []).map((m) => (
                     <tr key={m.mode} className={m.mode === mode ? "bg-emerald-50/60 dark:bg-emerald-900/20" : ""}>
                       <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-200">
-                        {MODE_EMOJI[m.mode] || "🚗"} {m.label}
+                        {<FiCompass size={16} className="inline text-[var(--ny-green)]" aria-hidden="true" />} {m.label}
                       </td>
                       <td className="px-4 py-2.5 font-black text-slate-900 dark:text-white">{formatDistance(m.distance_m / 1000)}</td>
                       <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300">{formatDuration(m.duration_s / 60)}</td>
@@ -558,7 +572,7 @@ export default function TravelPlanner() {
             ) : between ? (
               <div className="grid md:grid-cols-2 gap-x-6 px-5 py-4">
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">{t("tp.provinces")}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t("tp.provinces")}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(between.provinces || {}).map(([p, v]) => (
                       <span key={p} className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 text-[11px] font-bold">
@@ -571,7 +585,7 @@ export default function TravelPlanner() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2">{t("tp.nearest")}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t("tp.nearest")}</div>
                   <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                     {(between.nearest || []).map((n) => (
                       <li key={n.id} className="flex items-center gap-3 py-2">
@@ -593,7 +607,7 @@ export default function TravelPlanner() {
                             setGpsUsed(false)
                             setDestPick({ kind: "destination", slug: n.slug, name: n.name, latitude: null, longitude: null })
                             setDestinationText(n.name)
-                            setTimeout(() => planRoute(mode), 0)
+                            planRoute(mode, { origin: destPick, originText: destPick?.name || "", destination: { kind: "destination", slug: n.slug, name: n.name, latitude: n.latitude, longitude: n.longitude }, gpsUsed: false })
                           }}
                           className="shrink-0 rounded-lg bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2.5 py-1.5 text-[11px] font-black hover:bg-emerald-200 dark:hover:bg-emerald-800"
                         >
@@ -605,15 +619,16 @@ export default function TravelPlanner() {
                 </div>
               </div>
             ) : (
-              <div className="px-5 py-8 text-center text-slate-400 text-sm font-semibold">—</div>
+              <div className="px-5 py-8 text-center text-slate-500 text-sm font-semibold">{betweenError || "No travel options are currently recorded."}</div>
             )}
           </div>
         )}
       </div>
     </div>
+    </div>
   )
 }
 
 function BsGlobeIcon() {
-  return <span aria-hidden>🌐</span>
+  return <FiCompass size={18} className="text-[var(--ny-green)]" aria-hidden="true" />
 }

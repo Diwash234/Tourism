@@ -69,9 +69,9 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
   )
   const center = position
     ? [position.latitude, position.longitude]
-    : destination
+    : destination?.latitude != null && destination?.longitude != null
       ? [destination.latitude, destination.longitude]
-      : [28.2096, 83.9856]
+      : null
 
   const busy = state === NAV_STATES.LOADING_ROUTE || state === NAV_STATES.GETTING_LOCATION
   const next = progress?.next_instruction
@@ -175,7 +175,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
         </div>
       )}
 
-      {(route || position) && (
+      {(route || position) && center && (
         <div className="h-[320px] relative">
           <MapContainer center={center} zoom={14} className="h-full w-full" scrollWheelZoom>
             <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -193,6 +193,12 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
             )}
           </MapContainer>
         </div>
+      )}
+
+      {(route || position) && !center && (
+        <p className="m-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Map point unavailable. Add a recorded destination coordinate or allow location access to view the route.
+        </p>
       )}
 
       {alternatives.length > 0 && state === NAV_STATES.ROUTE_PREVIEW && (

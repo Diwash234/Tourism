@@ -54,6 +54,13 @@ const useGeolocation = ({ auto = true } = {}) => {
     )
   }, [])
 
+  const clear = useCallback(() => {
+    setPosition(null)
+    setError(null)
+    setCode(null)
+    setLocating(false)
+  }, [])
+
   useEffect(() => {
     if (!auto) return undefined
     // Deferred one tick: keeps synchronous setState out of the effect flush
@@ -62,7 +69,7 @@ const useGeolocation = ({ auto = true } = {}) => {
     return () => clearTimeout(t)
   }, [auto, request])
 
-  return { position, error, code, locating, retry: request }
+  return { position, error, code, locating, retry: request, clear }
 }
 
 export default useGeolocation

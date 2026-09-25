@@ -1,21 +1,55 @@
-const variants = {
-  primary: "btn-primary",
-  outline: "btn-outline",
-  ghost: "text-dark hover:bg-gray-100 px-4 py-2 rounded-xl transition",
-  danger: "bg-nepalred-500 hover:bg-nepalred-600 text-white font-semibold px-5 py-2.5 rounded-xl transition",
+import { forwardRef } from "react"
+import { FiLoader } from "react-icons/fi"
+
+/**
+ * The one traveller-facing button primitive. Keep the old `loading` prop for
+ * existing callers while exposing the same visual contract as the newer UI
+ * button component.
+ */
+const VARIANTS = {
+  primary: "ny-btn-primary",
+  secondary: "ny-btn-secondary",
+  outline: "ny-btn-secondary",
+  ghost: "ny-btn-ghost",
+  link: "ny-btn-link",
+  accent: "ny-btn-accent",
+  danger: "ny-btn-danger",
 }
 
-const Button = ({ children, variant = "primary", loading = false, className = "", ...props }) => (
-  <button
-    className={`${variants[variant]} ${className} inline-flex items-center justify-center gap-2`}
-    disabled={loading || props.disabled}
-    {...props}
-  >
-    {loading && (
-      <span className="h-4 w-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-    )}
-    {children}
-  </button>
-)
+const SIZES = {
+  sm: "ny-btn-sm",
+  md: "ny-btn-md",
+  lg: "ny-btn-lg",
+}
+
+const Button = forwardRef(function Button(
+  {
+    children,
+    variant = "primary",
+    size = "md",
+    loading = false,
+    isLoading = false,
+    disabled = false,
+    className = "",
+    type = "button",
+    ...props
+  },
+  ref,
+) {
+  const busy = loading || isLoading
+  return (
+    <button
+      ref={ref}
+      type={type}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      className={`ny-btn ${VARIANTS[variant] || VARIANTS.primary} ${SIZES[size] || SIZES.md} ${className}`}
+      {...props}
+    >
+      {busy && <FiLoader aria-hidden="true" className="animate-spin" size={16} />}
+      <span>{children}</span>
+    </button>
+  )
+})
 
 export default Button
