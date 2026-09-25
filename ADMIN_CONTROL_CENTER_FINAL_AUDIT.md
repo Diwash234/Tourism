@@ -107,7 +107,7 @@ python manage.py migrate tourist 0080
 
 ## Merge and working-tree safety
 
-The observed branch is `main`. The repository contains additional pre-existing/unrelated working-tree changes (including bytecode, database, system-health, ML-service, and management-command files). They were not reset, discarded, or overwritten as part of this audit. Before any commit or push, review the complete diff and keep those unrelated changes separate.
+The observed branch is `main`, and the completed control-center changes are committed locally as `65d2d41` (`Complete admin control center security audit`). The repository still contains additional pre-existing/unrelated staged and unstaged changes (including bytecode, database, system-health, ML-service, verified-snapshot, and management-command files). They were not reset, discarded, or overwritten as part of this audit. No push was performed.
 
 ## Recommended next actions
 
