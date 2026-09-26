@@ -28,8 +28,8 @@ const CURRENCIES = {
 
 const formatMoney = (amount, currency) => {
   if (amount == null || !Number.isFinite(Number(amount))) return "Unavailable"
-  if (!["NPR", "USD"].includes(currency)) return "Conversion unavailable"
   const c = CURRENCIES[currency]
+  if (!c) return "Unavailable"
   return `${c.symbol}${Math.round(Number(amount)).toLocaleString()}`
 }
 
@@ -295,7 +295,7 @@ const BudgetEstimator = () => {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs leading-5 text-[var(--ny-text-muted)]">Only NPR and USD values are shown when returned by the estimate service. Other currency conversions remain unavailable.</p>
+            <p className="mt-2 text-xs leading-5 text-[var(--ny-text-muted)]">Currency values are shown only when the estimate service provides a verified conversion rate.</p>
           </div>
 
           {loading && (
@@ -329,7 +329,7 @@ const BudgetEstimator = () => {
               </p>
 
               <p className="text-xs text-gray-500">
-                {currency === "USD" ? "USD estimate" : currency === "NPR" ? "NPR estimate" : "Selected currency conversion unavailable"}
+                {currency === "USD" ? "USD estimate" : currency === "NPR" ? "NPR estimate" : "Selected currency conversion is not available from the verified estimate response"}
               </p>
 
               {estimate.source === "dataset_csv" ? (

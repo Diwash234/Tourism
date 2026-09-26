@@ -102,14 +102,20 @@ class Command(BaseCommand):
         for provider, cid in (("Google", getattr(settings, "GOOGLE_CLIENT_ID", "")),
                               ("GitHub", getattr(settings, "GITHUB_CLIENT_ID", ""))):
             if not cid:
-                warns.append(f"{provider} OAuth not configured: social sign-in buttons stay honestly disabled until set")
+                fails.append(f"{provider} OAuth is not configured: production social sign-in cannot be verified")
             else:
                 oks.append(f"{provider} OAuth credentials present")
 
-        if getattr(settings, "ROUTING_API_URL", ""):
+        routing_url = (getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "")).strip()
+        if routing_url:
             oks.append("Production road-routing provider configured")
         else:
-            fails.append("ROUTING_API_URL is empty: production navigation cannot claim verified road routing")
+            fails.append("ROUTING_BASE_URL/ROUTING_API_URL is empty: production navigation cannot claim verified road routing")
+
+        if not getattr(settings, "OPENWEATHER_API_KEY", ""):
+            fails.append("OPENWEATHER_API_KEY is missing: live weather cannot be verified in production")
+        if not getattr(settings, "DHM_FEED_URL", "") or not getattr(settings, "BIPAD_FEED_URL", ""):
+            fails.append("DHM_FEED_URL and BIPAD_FEED_URL are required for configured official weather/hazard feeds")
 
         backups_dir = Path(str(settings.BASE_DIR)) / "backups"
         if not backups_dir.exists() or not any(backups_dir.glob("*.gz")):

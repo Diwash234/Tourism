@@ -9,6 +9,8 @@ export default function SafeHtml({ html = "", className = "" }) {
   const clean = DOMPurify.sanitize(String(html || ""), {
     ALLOWED_TAGS: ["p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a", "h2", "h3", "h4", "blockquote", "span"],
     ALLOWED_ATTR: ["href", "title", "target", "rel"],
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+    FORCE_BODY: true,
   })
   return <div className={className} dangerouslySetInnerHTML={{ __html: clean }} />
 }

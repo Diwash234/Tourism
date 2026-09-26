@@ -13,6 +13,14 @@ from .models import (User, Category, Destination, Hotel, Review, EmailVerificati
                      ContentProposal, DuplicateDecision, CMSRevision, DestinationAuditLog)
 
 
+class GPSNavigationValidationTests(TestCase):
+    def test_shared_gps_coordinate_validation(self):
+        from .utils import has_valid_coordinates
+        self.assertTrue(has_valid_coordinates(27.7172, 85.3240))
+        self.assertFalse(has_valid_coordinates(10, 85.3240))
+        self.assertFalse(has_valid_coordinates(27.7172, 95))
+
+
 class AuthTests(APITestCase):
     def setUp(self):
         # Django's test runner shares the locmem cache across the whole
