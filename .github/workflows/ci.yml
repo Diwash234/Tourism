@@ -113,10 +113,10 @@ jobs:
   frontend:
     name: Frontend build + e2e layout tests
     runs-on: ubuntu-latest
-    # Hard ceiling. The layout suite is ~102 route x viewport checks and has to
-    # finish in minutes. It previously ran for 1h41m because every single check
-    # hit the 60s test timeout, twice over with CI retries.
-    timeout-minutes: 25
+    # Hard ceiling. This job builds the app and runs 266 layout checks; the
+    # measured run is ~7 minutes, so 30 leaves generous headroom while still
+    # bounding a genuine hang.
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
@@ -139,7 +139,13 @@ jobs:
         run: npx playwright install chromium
       - name: Run responsive layout/overlap tests
         working-directory: frontend/Tourism
-        run: npx playwright test e2e/layout.spec.js --reporter=list,json
+        # 266 route x viewport checks on the chromium project. The mobile and
+        # tablet projects are deliberately not run for this spec: it force-sets
+        # the viewport per test and already covers 375px and 768px, so they
+        # would triple the runtime without measuring anything new. With
+        # fullyParallel and 2 CI workers this lands near 7 minutes; the earlier
+        # serial, three-project run was killed at 1475s.
+        run: npx playwright test e2e/layout.spec.js --project=chromium --reporter=list,json
         env:
           CI: true
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results.json
