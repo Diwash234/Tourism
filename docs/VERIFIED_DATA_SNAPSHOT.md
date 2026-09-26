@@ -142,6 +142,32 @@ emergency page shows no pharmacies near Pokhara.
 
 Checksums live in `verified_tourism_data.lock.json` and the `.sha256` files.
 
+### Never "fix" a checksum mismatch by re-committing the file
+
+The release artifacts are declared `-text` in the repository `.gitattributes`, so
+Git stores and checks out their exact bytes on every platform. This matters:
+with the Windows default `core.autocrlf=true`, Git rewrites LF to CRLF on
+checkout, which changes those bytes and makes a working-tree hash disagree with
+the published `.sha256` even though nothing was actually modified. Observed
+locally on a clean checkout of a good commit:
+
+```
+sidecar 9be511a1a54a6461...
+on disk (CRLF checkout) -> mismatch
+```
+
+Re-committing the file to "fix" that would rewrite every published byte while
+the diff looked empty, breaking the download links and failing both the CI
+artifact check and `verify_verified_snapshot`. If you see a checksum mismatch:
+
+1. Confirm it is not a line-ending artifact by hashing the committed blob
+   instead of the working tree:
+   `git cat-file blob HEAD:Tourism/dataset/verified_tourism_data.json | sha256sum`
+2. If the blob matches, nothing is wrong - do not commit the file.
+3. If the blob genuinely differs, rebuild the release as a pair
+   (`build_verified_snapshot`) so the JSON, the SQLite archive and all three
+   checksum files are regenerated together. Never hand-edit a checksum.
+
 ## Use the shared database locally
 
 ```bash
