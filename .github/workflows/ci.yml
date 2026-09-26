@@ -39,6 +39,7 @@ jobs:
 
           check(Path("dataset/verified_tourism_data.json"), Path("dataset/verified_tourism_data.json.sha256"))
           check(Path("../downloads/nepal-tourism-database.sqlite3.gz"), Path("../downloads/nepal-tourism-database.sqlite3.gz.sha256"))
+          check(Path("../downloads/nepal-tourism-seed.sqlite3.gz"), Path("../downloads/nepal-tourism-seed.sqlite3.gz.sha256"))
           with gzip.open("../downloads/nepal-tourism-database.sqlite3.gz", "rb") as source:
               Path("/tmp/nepal-yatra-public.sqlite3").write_bytes(source.read())
           PY
@@ -46,6 +47,32 @@ jobs:
             python manage.py verify_verified_snapshot \
               dataset/verified_tourism_data.json \
               --database /tmp/nepal-yatra-public.sqlite3
+      - name: Verify public seed database is installable
+        working-directory: Tourism
+        run: |
+          set -euxo pipefail
+          # Fresh-clone path: a collaborator must be able to install the
+          # published seed database and land on a clean, populated database.
+          python manage.py install_public_seed_db --verify-only
+          python manage.py install_public_seed_db
+          python manage.py migrate --check
+          python - <<'PY'
+          import sqlite3
+
+          connection = sqlite3.connect("db.sqlite3")
+          try:
+              assert connection.execute("pragma integrity_check").fetchone()[0] == "ok"
+              assert not connection.execute("pragma foreign_key_check").fetchall()
+              users = connection.execute("select count(*) from tourist_user").fetchone()[0]
+              assert users == 0, f"seed database must not ship accounts, found {users}"
+              destinations = connection.execute(
+                  "select count(*) from tourist_destination"
+              ).fetchone()[0]
+              assert destinations > 1000, f"seed database looks empty: {destinations}"
+              print(f"seed ok: {destinations} destinations, {users} accounts")
+          finally:
+              connection.close()
+          PY
       - name: Run backend tests
         working-directory: Tourism
         run: python manage.py test --parallel 1
