@@ -13,4 +13,4 @@ Disallow: /my-bookings/
 Disallow: /settings/
 Disallow: /api/
 
-Sitemap: https://nepaltourism.gov.np/sitemap.xml
+Sitemap: /sitemap.xml
