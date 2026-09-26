@@ -329,7 +329,7 @@ const BudgetEstimator = () => {
               </p>
 
               <p className="text-xs text-gray-500">
-                {currency === "USD" ? "USD estimate" : currency === "NPR" ? "NPR estimate" : "Selected currency conversion unavailable"}
+                {currency === "USD" ? "USD estimate" : currency === "NPR" ? "NPR estimate" : "Selected currency conversion is not available from the verified estimate response"}
               </p>
 
               {estimate.source === "dataset_csv" ? (
