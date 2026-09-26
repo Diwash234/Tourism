@@ -73,15 +73,17 @@ jobs:
       - name: Install Playwright browser
         working-directory: frontend/Tourism
         run: npx playwright install chromium
-      - name: Run e2e layout/overlap tests
+      - name: Run responsive layout/overlap tests
         working-directory: frontend/Tourism
-        continue-on-error: true
         run: npx playwright test e2e/layout.spec.js --reporter=list,json
         env:
           CI: true
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results.json
       # GitHub's raw-log CDN is unreachable from some networks; publish the
       # results as a pinned PR comment so they are always retrievable.
+      - name: Run frontend lint
+        working-directory: frontend/Tourism
+        run: npm run lint -- --max-warnings=0
       - name: Report layout results to PR
         if: always()
         working-directory: frontend/Tourism
