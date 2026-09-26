@@ -11,10 +11,9 @@
 #   pip install -r Tourism/requirements.txt
 #   cd Tourism && python manage.py runserver 0.0.0.0:8000
 #
-# The database (Tourism/db.sqlite3) is committed in this repo — do NOT
-# delete it or re-migrate a fresh one unless you also run
-# `python manage.py setup_system` afterwards. See docs/SETUP_AND_COMMANDS.md
-# and `python scripts/local_check.py` (self-diagnostic).
+# The live database is runtime state and is not committed. For a shareable
+# local catalog, use the sanitized download or build a fresh database from
+# dataset/verified_tourism_data.json. See docs/VERIFIED_DATA_SNAPSHOT.md.
 # =============================================================================
 Automat==25.4.16
 Django==5.0.6

@@ -49,6 +49,9 @@ PLACE_KEYWORDS = {
 # 77-DISTRICT & ECO-ELEVATION HIGH-RESOLUTION NEPAL CDN REPOSITORY
 # Verified authentic, place-matched, high-resolution photography with full CC attribution
 # =============================================================================
+# Historical candidate catalogue retained for migration/audit reference only.
+# It is intentionally not used by resolve_place_image or any public endpoint:
+# entries do not establish a verified DestinationImage/provenance record.
 DISTRICT_AUTHENTIC_CDN = {
     # Koshi Province
     "taplejung": {
@@ -620,9 +623,10 @@ def resolve_place_image(
     context: str = "Nepal"
 ) -> Dict[str, Any]:
     """
-    Unified, reliable place media resolver.
-    Attempts external live APIs, and falls back to our 77-District & Topographic CDN Matrix.
-    Guarantees 100% geographic authenticity and ZERO stock portraits of people.
+    Attempts external providers that can identify a place and retain
+    provenance. It returns an explicit unavailable result rather than a
+    fabricated fallback image. Results are candidates until the explicit
+    staff acquisition/moderation workflow stores and approves them.
     """
     clean_name = str(name).strip()
     clean_dist = str(district).strip().lower().replace("district", "").strip()
@@ -638,53 +642,18 @@ def resolve_place_image(
         if geo_img:
             return geo_img
 
-    # 3. Match 77-District Authentic CDN Repository
-    if clean_dist and clean_dist in DISTRICT_AUTHENTIC_CDN:
-        item = DISTRICT_AUTHENTIC_CDN[clean_dist]
-        return {
-            "url": item["url"],
-            "thumbnail_url": item["url"],
-            "attribution": f"Photo: {item['photographer']} ({item['license']})",
-            "photographer": item["photographer"],
-            "license": item["license"],
-            "source": "district_cdn",
-            "source_platform": "Nepal Tourism Verified Media Archive",
-            "category": item["category"],
-        }
-
-    # Match by name keywords against 77 districts
-    name_lower = clean_name.lower()
-    for dist_key, item in DISTRICT_AUTHENTIC_CDN.items():
-        if dist_key in name_lower or dist_key in clean_dist:
-            return {
-                "url": item["url"],
-                "thumbnail_url": item["url"],
-                "attribution": f"Photo: {item['photographer']} ({item['license']})",
-                "photographer": item["photographer"],
-                "license": item["license"],
-                "source": "district_cdn",
-                "source_platform": "Nepal Tourism Verified Media Archive",
-                "category": item["category"],
-            }
-
-    # 4. Elevation / Eco-zone dynamic topography matching
-    if latitude and longitude and latitude > 28.0:
-        # High Himalayas
-        item = DISTRICT_AUTHENTIC_CDN["solukhumbu"]
-    elif latitude and longitude and latitude < 27.2:
-        # Terai / Subtropical
-        item = DISTRICT_AUTHENTIC_CDN["chitwan"]
-    else:
-        # Mid-Hills Valley
-        item = DISTRICT_AUTHENTIC_CDN["kaski"]
-
+    # Do not invent a place image when live providers cannot prove one. The
+    # legacy district matrix contains editorial/Unsplash suggestions without
+    # a verified media record; serving it would fabricate provenance. An
+    # explicit staff acquisition workflow can store a reviewed candidate.
     return {
-        "url": item["url"],
-        "thumbnail_url": item["url"],
-        "attribution": f"Photo: {item['photographer']} ({item['license']})",
-        "photographer": item["photographer"],
-        "license": item["license"],
-        "source": "eco_topography_cdn",
-        "source_platform": "Nepal Tourism Verified Media Archive",
-        "category": item["category"],
+        "url": "",
+        "thumbnail_url": "",
+        "attribution": "",
+        "photographer": "",
+        "license": "",
+        "source": "unavailable",
+        "source_platform": "",
+        "category": category or "",
+        "message": "No verified image with complete provenance is available.",
     }

@@ -6,23 +6,16 @@ Nepal destination photo resolver — curated, accurate, no more repetition.
 
 Design
 ------
-1. LANDMARKS first: hand-curated AI/bundled photos for 400+ named Nepal places.
-   These are the only "real" photos we ship, because we verified each one
-   depicts the actual named place (no generic mountains mislabeled as
-   Annapurna, no random rivers labelled Bhote Koshi).
-2. SVG postcard fallback: for every destination NOT in LANDMARKS, we generate
-   a deterministic, UNIQUE Nepal-themed SVG postcard keyed off the destination
-   name + category + district. Because the SVG is generated from a hash of
-   the destination identity, every destination gets its own distinct visual —
-   no more "same mountain / same boy biking / same swimming river" across
-   thousands of destinations.
-3. No more hotlinking to ~200 generic Unsplash URLs for 7000+ destinations.
-   Unsplash/Pexels/Wikimedia links can only be added through the admin
-   image pipeline (where they are moderated and approved per-destination).
-4. Gallery images default to PENDING status; covers use the curated/SVG image.
-
-This eliminates the root cause of user complaints: repeated generic stock
-photos being attached to unrelated destinations.
+1. Approved, destination-matched media from the database/verified pipeline is
+   the only source treated as real photography.
+2. The legacy numeric-ID photo manifest is disabled by default because its
+   historical entries were not reliably matched to destinations. It can only
+   be enabled explicitly for a controlled local migration.
+3. Bundled landmark entries may be AI/static assets, so they are also opt-in;
+   they are never presented as verified photography by default.
+4. When no approved real image exists, return a clearly non-photographic
+   deterministic SVG postcard (or no image at API boundaries), never another
+   destination's image.
 """
 
 from __future__ import annotations
@@ -35,17 +28,21 @@ import re
 from urllib.parse import quote
 
 # ---------------------------------------------------------------------------
-# Verified real-photo registry (Wikimedia Commons, checked against the
-# Commons API). Destination id -> photo dict. Loaded from
-# verified_wikimedia_photos.json so covers stay accurate and reproducible.
+# Legacy numeric-ID photo registry.
+#
+# The historical file was found to contain duplicate and semantically
+# mismatched assignments.  It is intentionally opt-in; the public path uses
+# approved database media with provenance instead.  Never enable this for a
+# public build without re-validating every entry against its destination.
 # ---------------------------------------------------------------------------
 _VERIFIED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "verified_wikimedia_photos.json")
 VERIFIED_WIKIMEDIA = {}
-try:
-    with open(_VERIFIED_PATH, encoding="utf-8") as _f:
-        VERIFIED_WIKIMEDIA = {int(k): v for k, v in json.load(_f).items()}
-except Exception:  # pragma: no cover - registry is optional
-    VERIFIED_WIKIMEDIA = {}
+if os.environ.get("NEPAL_YATRA_ENABLE_LEGACY_PHOTO_MANIFEST", "").strip() == "1":
+    try:
+        with open(_VERIFIED_PATH, encoding="utf-8") as _f:
+            VERIFIED_WIKIMEDIA = {int(k): v for k, v in json.load(_f).items()}
+    except Exception:  # pragma: no cover - legacy registry is optional
+        VERIFIED_WIKIMEDIA = {}
 
 
 logger = logging.getLogger(__name__)
@@ -607,12 +604,11 @@ def _verified_photo(dest_id):
 
 
 def resolve_cover_photo(destination):
-    """Return a cover photo dict for the destination.
+    """Return a real verified photo when explicitly available, else a postcard.
 
-    Priority:
-      1. Verified real photo from Wikimedia Commons (checked via Commons API).
-      2. Curated LANDMARK photo if name matches a known Nepal place.
-      3. Unique deterministic SVG postcard keyed to name+category+district+id.
+    The legacy landmark registry is not treated as real photography by
+    default. Approved database media is resolved by the serializers; this
+    helper is only a last-resort catalog/postcard generator.
     """
     name = getattr(destination, "name", "") or ""
     district = getattr(destination, "district", "") or ""
@@ -621,9 +617,13 @@ def resolve_cover_photo(destination):
     verified = _verified_photo(dest_id)
     if verified is not None:
         return verified
-    landmark = _match_landmark(name)
-    if landmark is not None:
-        return landmark
+    # The historical LANDMARKS table contains bundled/AI assets.  Keep it
+    # available for an explicit local migration, but do not silently label it
+    # as a verified photograph in the public fallback chain.
+    if os.environ.get("NEPAL_YATRA_ENABLE_BUNDLED_LANDMARKS", "").strip() == "1":
+        landmark = _match_landmark(name)
+        if landmark is not None:
+            return landmark
     if _is_accommodation(destination):
         return _postcard(name, "hotel", district or city, caption=name, dest_id=dest_id)
     cat_slug = _match_category(destination)
@@ -722,26 +722,26 @@ def _get_related_categories(cat_slug):
     return related_map.get(c, ["mountains", "lakes", "heritage", "wildlife", "forests", "villages"])
 
 
-REAL_HOTEL_PHOTOS = [
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Pukson.jpg/960px-Pukson.jpg", "Nepal Resort & Hotel"),
-    _p("/images/destinations/pokhara/fewatal.jpg", "Pokhara Lakeside Hotel"),
-    _p("/images/destinations/kathmandu/durbar-square.jpg", "Kathmandu Heritage Boutique Hotel"),
-    _p("/images/destinations/nagarkot/sunrise-view.jpg", "Nagarkot Sunrise Mountain Resort"),
-    _p("/images/destinations/bandipur/hilltop-village.jpg", "Bandipur Heritage Village Lodge"),
-    _p("/images/destinations/chitwan/safari.jpg", "Chitwan Jungle Wildlife Resort"),
-    _p("/images/destinations/annapurna/trek.jpg", "Annapurna Circuit Mountain Teahouse"),
-    _p("/images/destinations/bardiya/tiger-reserve.jpg", "Bardia Safari Eco Lodge"),
-    _p("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Tansen_at_sunset%2C_Palpa%2C_Nepal.jpg/960px-Tansen_at_sunset%2C_Palpa%2C_Nepal.jpg", "Tansen Hilltop Hotel"),
-]
-
 def resolve_hotel_photo(hotel):
+    """Use a hotel's own recorded image, never a shared/rotated fallback."""
     name = getattr(hotel, "name", "") or "Hotel"
-    city = getattr(hotel, "city", "") or ""
-    hid = getattr(hotel, "id", None) or 0
-    idx = (int(hid) + len(name)) % len(REAL_HOTEL_PHOTOS)
-    photo = dict(REAL_HOTEL_PHOTOS[idx])
-    photo["caption"] = name
-    return photo
+    city = getattr(hotel, "city", "") or getattr(hotel, "address", "") or ""
+    for field_name in ("external_image_url", "cover_image"):
+        value = str(getattr(hotel, field_name, "") or "").strip()
+        if value.startswith("https://") or value.startswith("/images/"):
+            return {
+                "url": value,
+                "thumb": value,
+                "source": "hotel_record",
+                "author": "Hotel record",
+                "license": "See recorded source",
+                "source_url": value,
+                "caption": name,
+                "tags": ["hotel", "recorded"],
+            }
+    # A generated postcard is explicitly not a photograph.  It prevents an
+    # unrelated hotel/landmark image from being presented as this property.
+    return _postcard(name, "hotel", city, caption=name, dest_id=getattr(hotel, "id", None))
 
 
 def resolve_poi_photo(poi_type="", poi_name="", seed=0):

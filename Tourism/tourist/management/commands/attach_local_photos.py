@@ -12,7 +12,9 @@ in the React public/ folder (committed to git, served by Vite), so they
 work out of the box after `git pull` with no media/ setup and no
 broken /media/... 404s.
 
-This command is IDEMPOTENT and SAFE to re-run.
+This legacy command is disabled unless ``--allow-unverified`` is supplied.
+It is retained only for controlled local migration experiments; the public
+pipeline does not use its AI/generic fallback media.
 
 Usage:
     python manage.py attach_local_photos
@@ -21,7 +23,7 @@ Usage:
     python manage.py attach_local_photos --limit 100
 """
 import os
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.conf import settings
 
@@ -126,12 +128,19 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--skip-local", action="store_true",
                             help="Skip attaching the 20 local AI photos; only top-up galleries.")
+        parser.add_argument("--allow-unverified", action="store_true",
+                            help="Explicitly allow legacy AI/generic fallback media (local experiments only).")
         parser.add_argument("--gallery-target", type=int, default=13,
                             help="Target gallery size per destination (default 13).")
         parser.add_argument("--limit", type=int, default=0,
                             help="Only process N destinations (for test runs).")
 
     def handle(self, *args, **options):
+        if not options.get("allow_unverified"):
+            raise CommandError(
+                "attach_local_photos uses legacy AI/generic fallback media and is disabled by default. "
+                "Use the approved image pipeline, or pass --allow-unverified for a local experiment."
+            )
         skip_local = options["skip_local"]
         target = options["gallery_target"]
         limit = options["limit"]

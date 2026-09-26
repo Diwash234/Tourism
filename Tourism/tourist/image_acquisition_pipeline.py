@@ -175,7 +175,7 @@ class ImageAcquisitionPipeline:
         if len(collected) < 10:
             try:
                 from . import photo_catalog
-                base = photo_catalog.resolve_cover_photo(destination)
+                base = None
                 # pull a varied set from the matching pool
                 cat = getattr(getattr(destination, "category", None), "name", "") or ""
                 pool = photo_catalog._category_pool(cat) or photo_catalog.GENERAL_PHOTOS
@@ -184,13 +184,19 @@ class ImageAcquisitionPipeline:
                         break
                     if any(c.get("url") == photo["url"] for c in collected):
                         continue
+                    if not photo.get("url") or not photo.get("author") or not photo.get("license") or not photo.get("source_url"):
+                        continue
+                    if str(photo.get("source_url", "")).startswith("static://") or photo.get("source") == "reference":
+                        continue
+                    if str(photo.get("url", "")).startswith(("/api/image/", "/images/generated/")):
+                        continue
                     collected.append({
                         "url": photo["url"],
                         "thumbnailUrl": photo.get("thumb") or photo["url"],
                         "source": photo.get("source", "curated"),
-                        "author": photo.get("author", "Nepal Tourism Photo Archive"),
-                        "license": photo.get("license", "Unsplash License"),
-                        "sourceUrl": photo.get("source_url", "https://unsplash.com"),
+                        "author": photo.get("author", ""),
+                        "license": photo.get("license", ""),
+                        "sourceUrl": photo.get("source_url", ""),
                         "isAiGenerated": False,
                         "relevance_score": 60,
                     })
@@ -228,14 +234,17 @@ class ImageAcquisitionPipeline:
             destination=destination,
             external_url=url,
             defaults={
-                "caption": f"{destination.name} — {meta.get('author', 'Nepal Media Archive')}",
+                "caption": f"{destination.name}" + (f" — {meta['author']}" if meta.get("author") else ""),
                 "is_cover": False,
                 "source": db_source,
                 "source_url": meta.get("sourceUrl", ""),
                 "source_platform": source_val.upper(),
-                "photographer": meta.get("author", "Verified Contributor"),
-                "license_type": meta.get("license", "CC BY-SA 4.0"),
-                "attribution": f"Photo by {meta.get('author', 'Nepal Archive')} ({meta.get('license', 'CC')})",
+                "photographer": meta.get("author", ""),
+                "license_type": meta.get("license", ""),
+                "attribution": (
+                    f"Photo by {meta['author']} ({meta['license']})"
+                    if meta.get("author") and meta.get("license") else ""
+                ),
             }
         )
         if created:
@@ -259,8 +268,8 @@ class ImageAcquisitionPipeline:
             "url": img.external_url or local_url,
             "thumbnailUrl": img.external_url or local_url,
             "source": img.source_platform.lower() if img.source_platform else img.source,
-            "author": img.photographer or "Verified Contributor",
-            "license": img.license_type or "CC BY-SA",
+            "author": img.photographer or "",
+            "license": img.license_type or "",
             "licenseVerification": ver_note,
             "isCommercialReusable": is_allowed,
             "sourceUrl": img.source_url or "",

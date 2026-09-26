@@ -1,9 +1,9 @@
 """
 One-command bootstrap of the entire Nepal tourism database.
 
-This is how the large dataset (6,900+ destinations and 80,000+ images) is
-distributed without committing a 380MB SQLite file to git. After cloning the
-repo, run:
+This is a local/bootstrap importer for the raw CSV feeds. It does not
+publish a database. For the privacy-safe shareable catalog, use
+``build_verified_snapshot`` after reviewing the source data.
 
     python manage.py setup_system
 
@@ -15,8 +15,13 @@ Steps:
   2. import OSM destinations (names, coordinates, categories)
   3. import hotels from hotel.csv
   4. enrich with descriptions
-  5. assign cover + gallery images (multi-source)
-  6. backfill search embeddings
+  5. fill only missing recorded locations (never read legacy JSON projections)
+  6. optionally seed local-only E2E users/packages with --with-demo
+  7. assign cover + gallery images (multi-source)
+  8. backfill search embeddings
+
+This command is for local/bootstrap experiments. It is not the public release
+path; use ``build_verified_snapshot`` for a shareable database.
 
 For actual AI image FILES (rather than external URLs), run separately:
     python manage.py download_ai_images --all --num 10
@@ -33,6 +38,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--skip-images", action="store_true",
                             help="Skip the image assignment step")
+        parser.add_argument("--with-demo", action="store_true",
+                            help="Explicitly add local E2E users/packages; never use for a public build")
         parser.add_argument("--noinput", action="store_true")
 
     def handle(self, *args, **options):
@@ -43,14 +50,20 @@ class Command(BaseCommand):
             ("Importing hotels from hotel.csv", ["import_hotels_csv"]),
             ("Importing hospital directory", ["import_hospital"]),
             ("Importing police directory", ["import_police"]),
-            ("Applying recorded city/coords from destination_locations.json",
-             ["fill_missing_place_coords"]),
-            ("Seeding demo logins and marketplace packages", ["seed_e2e_features"]),
+            ("Applying recorded city/coords from the current destination records",
+             ["fill_missing_place_coords", "--no-apply", "--no-export"]),
             ("Assigning cover & gallery images",
              ["assign_destination_photos", "--stale-only"]),
             ("Backfilling search embeddings",
              ["backfill_embeddings", "--destinations"]),
         ]
+
+        if options.get("with_demo"):
+            steps.insert(5, ("Seeding local-only demo logins and marketplace packages", ["seed_e2e_features"]))
+        else:
+            self.stdout.write(self.style.NOTICE(
+                "Skipping demo users/packages; pass --with-demo only for local E2E work."
+            ))
 
         if options["skip_images"]:
             steps = [s for s in steps if "image" not in s[0].lower()]

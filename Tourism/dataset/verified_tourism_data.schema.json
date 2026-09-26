@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nepal-yatra.example/schemas/verified-tourism-data-v1.json",
+  "title": "Nepal Yatra privacy-safe public data snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "format_version",
+    "policy_version",
+    "minimum_tourist_migration",
+    "as_of",
+    "identity_policy",
+    "policy",
+    "counts",
+    "records_sha256",
+    "records"
+  ],
+  "properties": {
+    "format": { "const": "nepal-yatra-public-data-snapshot" },
+    "format_version": { "const": 1 },
+    "policy_version": { "const": 1 },
+    "minimum_tourist_migration": { "const": "0080_backfill_managed_page_snapshots" },
+    "as_of": { "type": "string", "format": "date-time" },
+    "identity_policy": {
+      "type": "object",
+      "required": ["destination", "related_records"],
+      "properties": {
+        "destination": { "type": "string", "minLength": 1 },
+        "related_records": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "required": ["destinations", "services", "images", "privacy", "synthetic_records"],
+      "properties": {
+        "destinations": { "type": "string", "minLength": 1 },
+        "services": { "type": "string", "minLength": 1 },
+        "images": { "type": "string", "minLength": 1 },
+        "privacy": { "type": "string", "minLength": 1 },
+        "synthetic_records": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "records_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "records": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/record" }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "pk", "fields"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": [
+            "tourist.alert", "tourist.category", "tourist.cmscontenttranslation",
+            "tourist.contentblock", "tourist.contentsection", "tourist.currenthazard",
+            "tourist.destination", "tourist.destinationfeatureprofile",
+            "tourist.destinationimage", "tourist.destinationreferenceimage",
+            "tourist.destinationsource", "tourist.destinationsourcefield",
+            "tourist.destinationtransitroute", "tourist.destinationtranslation",
+            "tourist.destinationvideo", "tourist.district", "tourist.featureddestination",
+            "tourist.heroslide", "tourist.hospital", "tourist.hotel", "tourist.language",
+            "tourist.managednavigationitem", "tourist.managedpage",
+            "tourist.osmessentialservice", "tourist.osmtourismplace",
+            "tourist.policestation", "tourist.province", "tourist.redirectrule",
+            "tourist.restaurant", "tourist.riskincident", "tourist.routesegment",
+            "tourist.visitornotice"
+          ]
+        },
+        "pk": { "type": ["integer", "string"], "minLength": 1 },
+        "fields": { "type": "object" }
+      }
+    }
+  }
+}

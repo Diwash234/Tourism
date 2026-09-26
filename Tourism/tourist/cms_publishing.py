@@ -22,6 +22,7 @@ def section_snapshot(section):
         "layout_variant": section.layout_variant,
         "config": section.config if isinstance(section.config, dict) else {},
         "display_order": section.display_order,
+        "is_visible": section.is_visible,
         "blocks": [
             {"id": b.id, "block_type": b.block_type, "title": b.title,
              "position": b.position, "data": b.data, "is_visible": True}
@@ -62,9 +63,10 @@ def publish_due_pages(now):
     count = 0
     for page in ManagedPage.objects.filter(status="scheduled", scheduled_publish_at__lte=now):
         page.status = "published"
+        page.is_enabled = True
         page.published_at = now
         page.scheduled_publish_at = None
-        page.save(update_fields=["status", "published_at", "scheduled_publish_at", "updated_at"])
+        page.save(update_fields=["status", "is_enabled", "published_at", "scheduled_publish_at", "updated_at"])
         sync_published_page(page)
         count += 1
     return count

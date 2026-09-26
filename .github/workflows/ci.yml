@@ -17,11 +17,22 @@ jobs:
       - name: Install backend deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r Tourism/requirement.txt
+          pip install -r Tourism/requirements.txt
           pip install -r ml_service/requirements.txt
       - name: Django system check
         working-directory: Tourism
         run: python manage.py check
+      - name: Verify published data artifact
+        working-directory: Tourism
+        run: |
+          set -euo pipefail
+          (cd dataset && sha256sum -c verified_tourism_data.json.sha256)
+          (cd ../downloads && sha256sum -c nepal-tourism-database.sqlite3.gz.sha256)
+          gzip -dc ../downloads/nepal-tourism-database.sqlite3.gz > /tmp/nepal-yatra-public.sqlite3
+          DB_NAME=/tmp/nepal-yatra-public.sqlite3 \
+            python manage.py verify_verified_snapshot \
+              dataset/verified_tourism_data.json \
+              --database /tmp/nepal-yatra-public.sqlite3
       - name: Run backend tests
         working-directory: Tourism
         run: python manage.py test --parallel 1

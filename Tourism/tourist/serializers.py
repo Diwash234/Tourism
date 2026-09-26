@@ -1185,7 +1185,7 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         return HotelSerializer(obj.hotels.filter(is_active=True, is_verified=True), many=True, context=self.context).data
 
     def get_transit_routes(self, obj):
-        return DestinationTransitRouteSerializer(obj.transit_routes.filter(is_active=True), many=True, context=self.context).data
+        return DestinationTransitRouteSerializer(obj.transit_routes.filter(is_active=True, is_verified=True), many=True, context=self.context).data
 
     def get_restaurants(self, obj):
         queryset = obj.restaurants.filter(status="published", is_verified=True)
@@ -1238,11 +1238,6 @@ class DestinationDetailSerializer(serializers.ModelSerializer):
         urls = []
         seen = set()
         request = self.context.get("request")
-        if obj.cover_image:
-            cover = resolve_image_url(obj.cover_image, request)
-            if cover and not is_generated_postcard_url(cover) and image_url_matches_destination(obj, cover) is not False:
-                seen.add(cover)
-                urls.append(cover)
         photos = sorted(verified_destination_photos(obj),
                         key=lambda p: (0 if getattr(p, "is_cover", False) else 1,
                                        getattr(p, "ordering", 0) or 0, p.id))
@@ -1339,15 +1334,15 @@ class DestinationWriteSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         user = request.user
         validated_data["created_by"] = user
-        if user.is_staff:
-            # Staff-created destinations are published immediately.
-            validated_data["is_user_submitted"] = False
-            validated_data["status"] = Destination.SubmissionStatus.APPROVED
-        else:
-            # Tourist submissions wait for admin approval before going live.
-            validated_data["is_user_submitted"] = True
-            validated_data["status"] = Destination.SubmissionStatus.PENDING
-            validated_data["is_active"] = False
+        # Creating a destination is never itself a publication action. Staff
+        # records follow the same explicit review/publish lifecycle as
+        # community submissions; this prevents an accidental API POST from
+        # exposing a half-verified record.
+        validated_data["is_user_submitted"] = not bool(
+            user.is_superuser or user.role in {"admin", "super_admin", "tourism_admin"}
+        )
+        validated_data["status"] = Destination.SubmissionStatus.PENDING
+        validated_data["is_active"] = False
         destination = super().create(validated_data)
 
         DestinationAuditLog.objects.create(
@@ -1651,8 +1646,7 @@ class OSMEssentialServiceSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url) if request else obj.image.url
             except (ValueError, AttributeError):
                 pass
-        from . import photo_catalog
-        return photo_catalog.resolve_poi_photo(obj.category, obj.name, seed=obj.id)["url"]
+        return None
 
 
 class OSMTourismPlaceSerializer(serializers.ModelSerializer):

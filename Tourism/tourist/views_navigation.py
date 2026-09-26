@@ -63,10 +63,13 @@ class UserRouteCalculateView(APIView):
         dest_name = (data.get("destination_name") or data.get("destination") or data.get("destination_slug") or "").strip()
 
         destination = None
+        destination_qs = Destination.objects.all()
+        if not (request.user.is_authenticated and request.user.is_staff):
+            destination_qs = Destination.publicly_visible(destination_qs)
         if dest_id:
-            destination = Destination.objects.filter(pk=dest_id).first()
+            destination = destination_qs.filter(pk=dest_id).first()
         elif dest_slug:
-            destination = Destination.objects.filter(Q(slug=dest_slug) | Q(id=dest_slug if str(dest_slug).isdigit() else 0)).first()
+            destination = destination_qs.filter(Q(slug=dest_slug) | Q(id=dest_slug if str(dest_slug).isdigit() else 0)).first()
 
         origin_name = (data.get("origin_name") or data.get("origin") or "").strip()
         transport_mode = data.get("transport_mode") or "Private Car / Taxi"
@@ -507,6 +510,8 @@ class AdminCoordinateVerificationView(APIView):
         destination = Destination.objects.filter(pk=dest_id).first()
         if not destination:
             return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+        from .views_admin import _require_destination_access
+        _require_destination_access(request, destination, "destinations", "change")
 
         lat = request.data.get("latitude")
         lng = request.data.get("longitude")
@@ -1320,7 +1325,9 @@ class TravelOptionsView(APIView):
         slug = (data.get("destination_slug") or "").strip()
         name = (data.get("destination_name") or "").strip()
         if slug:
-            destination = Destination.objects.filter(slug=slug).first()
+            destination = Destination.objects.filter(
+                slug=slug, is_active=True, status=Destination.SubmissionStatus.APPROVED,
+            ).first()
         if destination is None and name:
             destination = Destination.objects.filter(
                 Q(name__icontains=name) | Q(city_english__iexact=name) | Q(district__iexact=name)

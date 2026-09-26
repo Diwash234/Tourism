@@ -71,11 +71,11 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
             return None
 
     def hospital_item(row, distance, outside_radius):
-        phone, fallback = clean_phone(row.phone, "")
+        phone, _ = clean_phone(row.phone, "")
         return {
             "id": f"hospital-{row.id}", "type": "hospital", "name": row.name,
             "address": row.address, "district": row.district,
-            "phone_number": phone, "phone_is_national_fallback": fallback,
+            "phone_number": phone, "phone_is_national_fallback": False,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
             "image_url": _image_url(row),
@@ -86,11 +86,11 @@ def build_emergency_directory(latitude, longitude, destination=None, radius_km=5
         }
 
     def police_item(row, distance, outside_radius):
-        phone, fallback = clean_phone(row.phone, "")
+        phone, _ = clean_phone(row.phone, "")
         return {
             "id": f"police-{row.id}", "type": "police", "name": row.name,
             "address": row.address, "district": destination.district if destination else "",
-            "phone_number": phone, "phone_is_national_fallback": fallback,
+            "phone_number": phone, "phone_is_national_fallback": False,
             "latitude": float(row.latitude), "longitude": float(row.longitude),
             "distance_km": distance, "outside_requested_radius": outside_radius,
             "image_url": _image_url(row),

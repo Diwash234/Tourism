@@ -27,12 +27,10 @@ class ImageResolveView(APIView):
     """
     GET /api/v1/images/resolve/?name=...&lat=...&lon=...&district=...&category=...
 
-    Scalable external place media resolver.
-    Returns authentic, location-verified, copyright-safe place photography
-    for all 77 districts and 50,000+ candidate places with zero people/portraits.
-    Cached for 30 days.
+    Staff-only candidate resolver. It never stores or publishes media; an
+    administrator must acquire, verify, and approve a candidate separately.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminOrStaff]
 
     def get(self, request):
         name = (request.query_params.get("name") or request.query_params.get("query") or "").strip()
@@ -49,7 +47,7 @@ class ImageResolveView(APIView):
         except (ValueError, TypeError):
             lat, lon = None, None
 
-        cache_key = f"img_res:{name.lower()}:{district.lower()}:{category.lower()}"
+        cache_key = f"img_res:v2:{name.lower()}:{district.lower()}:{category.lower()}:{province.lower()}:{lat}:{lon}"
         cached = cache.get(cache_key)
         if cached is not None:
             return Response({**cached, "cached": True})
@@ -73,15 +71,20 @@ class DestinationImagesListView(APIView):
     GET /api/v1/destinations/<slug_or_id>/images/
     Returns full multi-source image collection with complete legal provenance.
     """
-    permission_classes = [IsAdminOrStaff]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, slug):
         destination = get_destination_by_slug_or_id(slug)
         if not destination:
             return Response({"detail": f"Destination '{slug}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Public reads never acquire or mutate media.
-        if not (request.user.is_authenticated and request.user.is_staff) and not Destination.publicly_visible(Destination.objects.filter(pk=destination.pk)).exists():
+        # Public reads never acquire or mutate media. Staff reads still pass
+        # through the same capability/district object boundary as admin APIs.
+        if request.user.is_authenticated and request.user.is_staff:
+            from .views_admin import _is_platform_admin, _require_destination_access
+            if not _is_platform_admin(request.user):
+                _require_destination_access(request, destination, "images", "view")
+        elif not Destination.publicly_visible(Destination.objects.filter(pk=destination.pk)).exists():
             return Response({"detail": f"Destination '{slug}' not found."}, status=status.HTTP_404_NOT_FOUND)
         photos = destination.gallery.filter(
             verification_status="approved", is_verified=True,

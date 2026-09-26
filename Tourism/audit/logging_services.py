@@ -90,6 +90,18 @@ def log_action(
         object_type = object_type or obj.__class__.__name__
         object_id = object_id or getattr(obj, "pk", None)
 
+    # JSONField must receive only JSON-native values. Convert Decimal,
+    # dates, UUIDs, and lazy model values before constructing the row; doing
+    # this after save would leave an enclosing transaction broken when the
+    # adapter rejects a value.
+    if extra:
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        try:
+            extra = json.loads(json.dumps(extra, cls=DjangoJSONEncoder))
+        except (TypeError, ValueError):
+            extra = {"unserializable_audit_extra": repr(extra)[:2000]}
+
     entry = AuditLog(
         user=user,
         user_email=getattr(user, "email", None),
@@ -187,6 +199,14 @@ def log_error(
                 "occurrences", "last_seen", "error_message", "traceback",
             ])
             return existing
+
+        if extra:
+            import json
+            from django.core.serializers.json import DjangoJSONEncoder
+            try:
+                extra = json.loads(json.dumps(extra, cls=DjangoJSONEncoder))
+            except (TypeError, ValueError):
+                extra = {"unserializable_error_extra": repr(extra)[:2000]}
 
         ev = ErrorEvent(
             source=source,
