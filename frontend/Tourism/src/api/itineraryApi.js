@@ -7,7 +7,7 @@ import axiosClient from "./axiosClient"
 // It's a pure function of its inputs, so the Itinerary page calls it on
 // every form change (debounced) for continuous updates.
 const itineraryApi = {
-  build: (payload) => axiosClient.post("/ml/itinerary/", payload),
+  build: (payload, config = {}) => axiosClient.post("/ml/itinerary/", payload, config),
   savePlan: (payload) => axiosClient.post("/travel-plans/", payload),
   listPlans: () => axiosClient.get("/travel-plans/"),
 }
