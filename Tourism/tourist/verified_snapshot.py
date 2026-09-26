@@ -103,6 +103,9 @@ SENSITIVE_KEY = re.compile(
     r"(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|credential|private[_-]?key)"
 )
 IMAGE_PATH = re.compile(r"^/(?:images|media)/[A-Za-z0-9_./-]+$")
+
+# Cache of physical columns per (connection alias, database file, model).
+_DATABASE_COLUMNS_CACHE: dict[tuple, frozenset] = {}
 INTERNAL_ROUTE = re.compile(r"^/[A-Za-z0-9_./?=&%-]*$")
 
 ALLOWED_HTML_TAGS = {
@@ -485,6 +488,57 @@ def _strip_private_and_local_fields(record: dict[str, Any], model: type[models.M
     return result
 
 
+def _database_columns(model: models.Model) -> frozenset[str]:
+    """Physical column names that exist for this model in the connected database.
+
+    A published release is a snapshot in time: the code keeps moving afterwards
+    and may add nullable columns (media-review provenance, for example). The
+    release must still be verifiable against its own database, so a field the
+    database does not have is treated as absent rather than as an error.
+    """
+    from django.db import connection
+
+    key = (connection.alias, str(connection.settings_dict.get("NAME") or ""), model._meta.label_lower)
+    cached = _DATABASE_COLUMNS_CACHE.get(key)
+    if cached is not None:
+        return cached
+    try:
+        with connection.cursor() as cursor:
+            description = connection.introspection.get_table_description(
+                cursor, model._meta.db_table
+            )
+        columns = frozenset(column.name for column in description)
+    except Exception:
+        # An unreadable table must not be papered over; fall back to "assume
+        # every field exists" so the real error surfaces.
+        columns = frozenset()
+    _DATABASE_COLUMNS_CACHE[key] = columns
+    return columns
+
+
+def _absent_database_fields(model: models.Model) -> list[str]:
+    """Concrete fields this model declares but the database does not have."""
+    columns = _database_columns(model)
+    if not columns:
+        return []
+    declared = [field.attname for field in model._meta.concrete_fields]
+    return [name for name in declared if name not in columns]
+
+
+def defer_absent_fields(queryset):
+    """Drop model fields the connected database does not physically have.
+
+    A published release is a snapshot in time. The code keeps moving and may add
+    nullable columns afterwards (media-review provenance, for example), and the
+    release must still be verifiable against its own older schema instead of
+    failing on a column that did not exist when it was built.
+    """
+    absent = _absent_database_fields(queryset.model)
+    if absent:
+        return queryset.defer(*absent)
+    return queryset
+
+
 def _serialize(
     queryset: Iterable[models.Model],
     *,
@@ -492,9 +546,24 @@ def _serialize(
 ) -> list[dict[str, Any]]:
     model = queryset.model
     objects = queryset.order_by("pk")
+    absent = _absent_database_fields(model)
+    if absent:
+        # A published release predates columns added to the model afterwards.
+        # Select and serialize only what its own database actually has, so an
+        # old artifact still verifies against itself instead of failing on a
+        # column that did not exist when it was published.
+        objects = objects.defer(*absent)
+        fields = [
+            field.name
+            for field in model._meta.concrete_fields
+            if field.attname not in absent
+        ]
+    else:
+        fields = None
     serialized = serializers.serialize(
         "python",
         objects,
+        fields=fields,
         use_natural_foreign_keys=False,
         use_natural_primary_keys=False,
     )
@@ -523,6 +592,11 @@ def _public_destinations(as_of: datetime) -> tuple[list[Destination], set[int]]:
         longitude__gte=NEPAL_LNG_MIN,
         longitude__lte=NEPAL_LNG_MAX,
     ).select_related("category")
+    # Every queryset this exporter iterates must tolerate a release whose
+    # schema predates a later model column (elevation_m, media-review
+    # provenance, ...). Without this the SELECT itself fails on a column that
+    # did not exist when the artifact was published.
+    queryset = defer_absent_fields(queryset)
     destinations = []
     for destination in queryset.iterator(chunk_size=500):
         has_sourced_identity = bool(
@@ -543,7 +617,12 @@ def _public_destinations(as_of: datetime) -> tuple[list[Destination], set[int]]:
     return destinations, {destination.pk for destination in destinations}
 
 
-def _quality_scoped_images(destination_ids: set[int]) -> tuple[list[DestinationImage], set[int]]:
+def _quality_scoped_images(
+    destination_ids: set[int],
+    *,
+    media_gate: str | None = None,
+    require_provenance: bool | None = None,
+) -> tuple[list[DestinationImage], set[int]]:
     """Select publishable images under the active, configurable media gate.
 
     The gate lives in :mod:`tourist.media_review` so the build, the verifier and
@@ -552,12 +631,14 @@ def _quality_scoped_images(destination_ids: set[int]) -> tuple[list[DestinationI
     """
     from .media_review import image_gate_exclusion
 
-    queryset = DestinationImage.objects.filter(
-        destination_id__in=destination_ids,
-        is_verified=True,
-        verification_status="approved",
-        source__in=["wikimedia", "openverse"],
-    ).exclude(source_url="").exclude(external_url="")
+    queryset = defer_absent_fields(
+        DestinationImage.objects.filter(
+            destination_id__in=destination_ids,
+            is_verified=True,
+            verification_status="approved",
+            source__in=["wikimedia", "openverse"],
+        ).exclude(source_url="").exclude(external_url="")
+    )
     images = []
     for image in queryset.iterator(chunk_size=500):
         if not _safe_external_url(image.external_url, image=True):
@@ -566,7 +647,9 @@ def _quality_scoped_images(destination_ids: set[int]) -> tuple[list[DestinationI
             continue
         if not _has_no_synthetic_marker(image.alt_text, image.caption):
             continue
-        if image_gate_exclusion(image) is not None:
+        if image_gate_exclusion(
+            image, gate=media_gate, require_provenance=require_provenance
+        ) is not None:
             continue
         images.append(image)
     return images, {image.pk for image in images}
@@ -719,14 +802,18 @@ def _normalize_destination_record(obj: Destination, record: dict[str, Any]) -> d
     return record
 
 
-def _active_media_gate_token() -> str:
+def _active_media_gate_token(override: str | None = None) -> str:
     """The active canonical media rule as a machine-readable token."""
+    if override:
+        return override
     from .media_review import resolve_media_gate
 
     return resolve_media_gate()
 
 
-def _active_media_gate_requires_provenance() -> str:
+def _active_media_gate_requires_provenance(override: bool | None = None) -> str:
+    if override is not None:
+        return "true" if override else "false"
     from .media_review import requires_review_provenance
 
     return "true" if requires_review_provenance() else "false"
@@ -754,11 +841,20 @@ def _image_policy_description() -> str:
     )
 
 
-def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
+def build_snapshot_payload(
+    *,
+    as_of: datetime | None = None,
+    media_gate: str | None = None,
+    require_review_provenance: bool | None = None,
+) -> dict[str, Any]:
     """Build the canonical JSON-compatible snapshot from the active DB."""
     as_of = _as_aware(as_of)
     destinations, destination_ids = _public_destinations(as_of)
-    images, image_ids = _quality_scoped_images(destination_ids)
+    images, image_ids = _quality_scoped_images(
+        destination_ids,
+        media_gate=media_gate,
+        require_provenance=require_review_provenance,
+    )
     pages, sections, blocks = _published_cms_ids(as_of)
     page_ids = {page.pk for page in pages}
     section_ids = {section.pk for section in sections}
@@ -807,7 +903,13 @@ def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
                 is_verified=True,
             )
         ))
-        records.extend(_serialize(DestinationImage.objects.filter(pk__in=image_ids).select_related("destination")))
+        records.extend(
+            _serialize(
+                defer_absent_fields(
+                    DestinationImage.objects.filter(pk__in=image_ids).select_related("destination")
+                )
+            )
+        )
         records.extend(_serialize(
             DestinationReferenceImage.objects.filter(
                 destination_id__in=destination_ids,
@@ -996,8 +1098,10 @@ def build_snapshot_payload(*, as_of: datetime | None = None) -> dict[str, Any]:
             "destinations": "active, approved, non-user-submitted, sourced records with valid Nepal coordinates",
             "services": "active hotels, restaurants, hospitals, police, and essential services (coordinates, when present, must be inside Nepal); is_verified is copied as stored and unverified listings are labelled publicly",
             "images": _image_policy_description(),
-            "media_gate": _active_media_gate_token(),
-            "media_gate_requires_provenance": _active_media_gate_requires_provenance(),
+            "media_gate": _active_media_gate_token(media_gate),
+            "media_gate_requires_provenance": _active_media_gate_requires_provenance(
+                require_review_provenance
+            ),
             "media_gate_score_threshold": _active_media_gate_threshold(),
             "privacy": "users, tokens, sessions, logs, bookings, feedback, drafts, and local media paths excluded",
             "synthetic_records": "E2E/demo/fixture/test markers rejected",

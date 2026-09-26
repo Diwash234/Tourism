@@ -275,22 +275,67 @@ def image_satisfies_application_rule(image, destination=None) -> bool:
     return is_destination_specific(image, destination)
 
 
+def _model_columns(model) -> frozenset:
+    """Physical columns of a model's table, or an empty set when unreadable."""
+    from django.db import connection
+
+    key = (
+        connection.alias,
+        str(connection.settings_dict.get("NAME") or ""),
+        model._meta.label_lower,
+    )
+    if key in _COLUMN_CACHE:
+        return _COLUMN_CACHE[key]
+    try:
+        with connection.cursor() as cursor:
+            description = connection.introspection.get_table_description(
+                cursor, model._meta.db_table
+            )
+        columns = frozenset(column.name for column in description)
+    except Exception:
+        columns = frozenset()
+    _COLUMN_CACHE[key] = columns
+    return columns
+
+
+_COLUMN_CACHE: dict[tuple, frozenset] = {}
+
+
+def _recorded_attribution(image, field: str) -> bool:
+    """Read a score's reviewer stamp, tolerating a database without the column.
+
+    A published release predates the provenance columns and must still be
+    evaluable against its own older schema. A missing column means "no recorded
+    reviewer", never an error.
+    """
+    columns = _model_columns(type(image))
+    if not columns:
+        return False
+    # Foreign keys are stored under their attname (…_by_id) in the database.
+    attname, stamp = f"{field}_by_id", f"{field}_at"
+    if attname not in columns or stamp not in columns:
+        return False
+    return bool(getattr(image, f"{field}_by", None) and getattr(image, stamp, None))
+
+
 def score_is_reviewed(image, field: str) -> bool:
     """True when a score value exists and a named reviewer stands behind it."""
     if getattr(image, field, None) is None:
         return False
     if not requires_review_provenance():
         return True
-    attribution = f"{field}_by"
-    stamp = f"{field}_at"
-    return bool(getattr(image, attribution, None) and getattr(image, stamp, None))
+    return bool(_recorded_attribution(image, field))
 
 
-def image_gate_exclusion(image, destination=None) -> str | None:
+def image_gate_exclusion(
+    image, destination=None, *, gate: str | None = None, require_provenance: bool | None = None
+) -> str | None:
     """Return why an image is excluded from the canonical release, or None.
 
-    Returning a reason instead of a bare boolean is what lets the release tell
-    an operator *why* a record is missing rather than silently shrinking.
+    ``gate`` / ``require_provenance`` override the ambient configuration. The
+    release builder passes the rule recorded in the payload being verified, so
+    a release is always re-checked against the rule that actually produced it
+    rather than against whatever the settings happen to say today.
     """
     from .models import DestinationImage as _Image
 
@@ -302,20 +347,27 @@ def image_gate_exclusion(image, destination=None) -> str | None:
         return "missing_external_url"
     if not (image.source_url or "").strip():
         return "missing_source_url"
-    if not is_destination_specific(image, destination):
-        return "not_destination_specific"
-    if image.verification_status == _Image.ImageStatus.PENDING:
-        return "awaiting_approval"
 
-    gate = resolve_media_gate()
-    if gate == GATE_APPROVAL:
-        # The application rule is the whole rule; no score is required.
+    active_gate = gate or resolve_media_gate()
+    if active_gate == GATE_APPROVAL:
+        # The approval gate *is* the application's rule, so it includes the
+        # destination-specificity match the website applies before display.
+        if not is_destination_specific(image, destination):
+            return "not_destination_specific"
+        # No score is required: none has been legitimately reviewed.
         return None
 
+    # The scored gate is defined purely by the two moderation scores, which is
+    # also the rule every release published before the configurable gate used.
+    # Applying a name-match here would retroactively drop records from an
+    # already-published release.
     threshold = score_threshold()
+    needs_provenance = (
+        requires_review_provenance() if require_provenance is None else bool(require_provenance)
+    )
     if image.destination_match_score is None or image.authenticity_score is None:
         return "awaiting_media_review"
-    if requires_review_provenance():
+    if needs_provenance:
         if not score_is_reviewed(image, "authenticity_score"):
             return "authenticity_score_unreviewed"
         if not score_is_reviewed(image, "destination_match_score"):

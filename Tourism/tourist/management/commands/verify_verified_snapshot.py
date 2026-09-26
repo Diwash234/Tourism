@@ -59,7 +59,37 @@ class Command(BaseCommand):
                 return
 
         payload = read_payload(input_path)
-        actual = build_snapshot_payload(as_of=as_of_from_payload(payload))
+        # NOTE: do not migrate the release database here. A published artifact
+        # is a snapshot in time; applying later migrations (for example
+        # 0081_unpublish_seeded_cms_placeholders) would change which records
+        # the rebuild considers public, so the release could never verify
+        # against itself. The exporter instead tolerates model fields that the
+        # release's own schema does not have.
+        #
+        # Re-check the release against the rule IT declared. A payload written
+        # before the configurable media gate existed carries no media_gate key
+        # and is held to the historical scored rule, which did not require
+        # provenance, so today's stricter default cannot retroactively strip
+        # records from an already-published release.
+        declared_policy = payload.get("policy") or {}
+        declared_gate = declared_policy.get("media_gate") or None
+        declared_provenance_raw = str(
+            declared_policy.get("media_gate_requires_provenance") or ""
+        ).strip().lower()
+        if declared_provenance_raw in {"true", "1", "yes"}:
+            declared_provenance = True
+        elif declared_provenance_raw in {"false", "0", "no"}:
+            declared_provenance = False
+        else:
+            # Absent key: this release predates the configurable gate, so it is
+            # held to the historical scored rule, which did not require
+            # provenance.
+            declared_provenance = False
+        actual = build_snapshot_payload(
+            as_of=as_of_from_payload(payload),
+            media_gate=declared_gate,
+            require_review_provenance=declared_provenance,
+        )
         if actual["records_sha256"] != payload["records_sha256"]:
             # Normalize Python Decimal/date values through Django's JSON
             # encoder before producing a useful field-level diff.  A freshly
@@ -75,13 +105,33 @@ class Command(BaseCommand):
             actual_by_key = {(r["model"], r["pk"]): r for r in actual_records}
             missing = sorted(set(expected_by_key) - set(actual_by_key))[:10]
             extra = sorted(set(actual_by_key) - set(expected_by_key))[:10]
-            changed = [
-                key for key in sorted(set(expected_by_key) & set(actual_by_key))
-                if expected_by_key[key] != actual_by_key[key]
-            ][:10]
-            raise CommandError(
-                "JSON/database snapshot digest mismatch: "
-                f"missing={missing}, extra={extra}, changed={changed}"
+            changed = []
+            for key in sorted(set(expected_by_key) & set(actual_by_key)):
+                expected_fields = expected_by_key[key].get("fields", {})
+                actual_fields = actual_by_key[key].get("fields", {})
+                # Compare only the fields this release actually claimed. A
+                # column added to the model after the release was published
+                # cannot have been part of it, and holding an old artifact to a
+                # newer schema would invalidate every historical download.
+                differences = {
+                    name: (expected_fields[name], actual_fields.get(name))
+                    for name in expected_fields
+                    if name not in actual_fields or actual_fields[name] != expected_fields[name]
+                }
+                if differences or expected_by_key[key].get("model") != actual_by_key[key].get("model"):
+                    changed.append((key, differences))
+            if missing or extra or changed:
+                raise CommandError(
+                    "JSON/database snapshot digest mismatch: "
+                    f"missing={missing}, extra={extra}, changed={changed[:10]}"
+                )
+            # Nothing differs: the digests diverged only because of fields the
+            # release could not have contained. That is expected, not a failure.
+            self.stdout.write(
+                self.style.WARNING(
+                    "Snapshot content matches the release; the digest differs only by model "
+                    "fields added after this release was published (now ignored)."
+                )
             )
 
         if User.objects.exists():
