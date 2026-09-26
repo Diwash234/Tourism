@@ -1,22 +1,32 @@
 from typing import List, Optional, Union, Any
+
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from model.recommendation.recommendation_engine import recommend
 
 router = APIRouter()
 
+# Bounds on the request payload. Without them a client could ask for an
+# unbounded result count or push an arbitrarily large `destinations` array,
+# which is pure wasted work and memory on a single-process service.
+MAX_RESULTS = 50
+MAX_DESTINATIONS = 100
+MAX_INTEREST_LENGTH = 200
+
 
 class RecommendationRequest(BaseModel):
-    interest: Optional[Union[str, List[str]]] = None
-    interests: Optional[List[str]] = None
-    category: Optional[str] = None
-    limit: Optional[int] = None
-    top_n: Optional[int] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    interest: Optional[Union[str, List[str]]] = Field(
+        default=None, max_length=MAX_INTEREST_LENGTH
+    )
+    interests: Optional[List[str]] = Field(default=None, max_length=20)
+    category: Optional[str] = Field(default=None, max_length=MAX_INTEREST_LENGTH)
+    limit: Optional[int] = Field(default=None, ge=1, le=MAX_RESULTS)
+    top_n: Optional[int] = Field(default=None, ge=1, le=MAX_RESULTS)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     user_id: Optional[int] = None
-    destinations: Optional[List[Any]] = None
+    destinations: Optional[List[Any]] = Field(default=None, max_length=MAX_DESTINATIONS)
 
 
 @router.post("")
