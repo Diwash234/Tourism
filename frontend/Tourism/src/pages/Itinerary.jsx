@@ -207,7 +207,9 @@ const Itinerary = () => {
 
     const requestId = ++lastRequestId.current
 
-
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
 
     setError("")
@@ -217,7 +219,7 @@ const Itinerary = () => {
     try{
 
 
-      const {data}=await itineraryApi.build(payload)
+      const {data}=await itineraryApi.build(payload, { signal: controller.signal })
 
 
 
@@ -231,7 +233,7 @@ const Itinerary = () => {
 
     }catch(err){
 
-
+      if (err?.code === "ERR_CANCELED" || err?.name === "CanceledError" || err?.name === "AbortError") return
 
       if(requestId===lastRequestId.current){
 
