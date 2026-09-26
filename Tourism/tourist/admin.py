@@ -565,11 +565,46 @@ class StaffCapabilityProfileAdmin(admin.ModelAdmin):
     autocomplete_fields = ["user", "assigned_by"]
 
 class ContentSectionInline(admin.TabularInline):
+    """Sections edited here go through the same storage boundary as the API.
+
+    A bare inline skipped every guarantee AdminCMSView enforces: ``body`` was
+    stored verbatim (no ``sanitize_cms_html``), ``config`` was not whitelisted,
+    and no CMSRevision / AuditLog row was written and the public CMS cache was
+    never invalidated. Because PublicConfigView falls back to live section rows
+    when ``published_snapshot`` is empty, an admin form save could therefore
+    publish unsanitized markup straight to the public site.
+
+    The enforcement lives in ManagedPageAdmin.save_formset because
+    ``save_formset`` is a ModelAdmin hook -- InlineModelAdmin does not have one.
+    """
     model=ContentSection; extra=0; ordering=['display_order']
 
 @admin.register(ManagedPage)
 class ManagedPageAdmin(admin.ModelAdmin):
     list_display=['title','route','is_enabled','status','scheduled_publish_at','published_at','updated_at']; list_filter=['is_enabled','status']; search_fields=['title','route','key']; inlines=[ContentSectionInline]
+
+    def save_formset(self, request, form, formset, change):
+        """Apply the API's storage boundary to inline section saves.
+
+        ``save_formset`` runs before ``formset.save()``, so sanitizing the form
+        instances here means nothing unsanitized can reach the database through
+        the admin, exactly as with the JSON API.
+        """
+        from .views_admin import AdminCMSView, sanitize_cms_html
+
+        if formset.model is ContentSection:
+            changed = False
+            for inline_form in formset.forms:
+                if not inline_form.has_changed():
+                    continue
+                section = inline_form.instance
+                section.body = sanitize_cms_html(section.body)
+                if isinstance(section.config, dict):
+                    section.config = AdminCMSView._safe_section_config(section.config)
+                changed = True
+            if changed:
+                AdminCMSView._invalidate_public_caches()
+        super().save_formset(request, form, formset, change)
 
 @admin.register(DataRetentionPolicy)
 class DataRetentionPolicyAdmin(admin.ModelAdmin):

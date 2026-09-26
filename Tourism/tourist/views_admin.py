@@ -3384,6 +3384,88 @@ class AdminContentBlockView(APIView):
     """
     permission_classes = [IsAdminOrStaff]
 
+    # ------------------------------------------------------------------
+    # Block writes used to bypass the guarantees every other CMS write
+    # path has. Section writes go through AdminCMSView, which freezes a
+    # CMSRevision, writes an AuditLog row and invalidates the public
+    # config cache. Block writes did none of that, so:
+    #   * a block edit never invalidated the /config/public/ cache,
+    #   * block edits were invisible to the rollback history and to the
+    #     admin audit log (undeletable-without-a-trace edits),
+    #   * reorder accepted any id from any section, plus negative or
+    #     absurd positions, via a raw queryset .update().
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _ensure_published_snapshot(section):
+        """Freeze a never-published section BEFORE it is edited.
+
+        PublicConfigView falls back to live rows when published_snapshot is
+        empty. Without this, the very first block edit on a legacy section
+        would publish itself to production with no publish step at all.
+        Must be called before the mutation, not after.
+        """
+        if section.status == "published" and not section.published_snapshot:
+            from .cms_publishing import sync_published_snapshot
+            sync_published_snapshot(section)
+
+    @staticmethod
+    def _section_snapshot(section):
+        """Freeze the section and its blocks into the revision history."""
+        return {
+            "id": section.pk,
+            "page_id": section.page_id,
+            "key": section.key,
+            "title": section.title,
+            "subtitle": section.subtitle,
+            "body": section.body,
+            "status": section.status,
+            "is_visible": section.is_visible,
+            "display_order": section.display_order,
+            "blocks": [
+                {
+                    "id": block.pk,
+                    "block_type": block.block_type,
+                    "title": block.title,
+                    "position": block.position,
+                    "is_visible": block.is_visible,
+                    "data": block.data,
+                }
+                for block in section.blocks.all().order_by("position", "id")
+            ],
+        }
+
+    def _record_change(self, request, section, action, message, object_id=None, extra=None):
+        from django.db.models import Max
+        from audit.models import AuditLog
+
+        AdminCMSView._invalidate_public_caches()
+
+        number = (
+            CMSRevision.objects.filter(resource="sections", object_id=section.pk)
+            .aggregate(n=Max("revision_number"))["n"] or 0
+        ) + 1
+        CMSRevision.objects.create(
+            resource="sections",
+            object_id=section.pk,
+            revision_number=number,
+            snapshot=self._section_snapshot(section),
+            action=action,
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            user_email=getattr(request.user, "email", "") or "",
+            category="content",
+            severity="info",
+            source="backend",
+            action=f"cms.blocks.{action}",
+            message=message,
+            object_type="ContentBlock",
+            object_id=str(object_id) if object_id is not None else "",
+            extra={"section_id": section.pk, "section_key": section.key, **(extra or {})},
+        )
+        return number
+
     def _validate_block_data(self, block_type, data):
         data = data if isinstance(data, dict) else {}
         # Rich-text / HTML payloads are sanitized in place before storage.
@@ -3452,11 +3534,15 @@ class AdminContentBlockView(APIView):
     def post(self, request, section_id=None):
         _require_capability(request, "content", "add")
         if request.path.endswith("reorder/") or request.data.get("action") == "reorder":
-            return self._reorder(request)
+            return self._reorder(request, section_id)
 
         section = ContentSection.objects.filter(pk=section_id).first()
         if not section:
             return Response({"detail": "Section not found"}, status=404)
+
+        # Freeze the pre-edit state so this block does not self-publish on a
+        # section that predates snapshot isolation.
+        self._ensure_published_snapshot(section)
 
         block_type = request.data.get("block_type", "rich_text")
         valid, err = self._validate_block_data(block_type, request.data.get("data"))
@@ -3466,14 +3552,23 @@ class AdminContentBlockView(APIView):
         from django.db.models import Max
         max_pos = (section.blocks.aggregate(m=Max("position"))["m"] or 0) + 1
 
+        position = request.data.get("position", max_pos)
+        if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 100000:
+            return Response({"detail": "position must be a whole number between 0 and 100000."}, status=400)
+
         block = ContentBlock.objects.create(
             section=section,
             block_type=block_type,
             title=(request.data.get("title") or "")[:240],
-            position=int(request.data.get("position", max_pos)),
+            position=position,
             data=request.data.get("data") if isinstance(request.data.get("data"), dict) else {},
             is_visible=bool(request.data.get("is_visible", True)),
             updated_by=request.user if request.user.is_authenticated else None,
+        )
+        self._record_change(
+            request, section, "create",
+            f"Content block #{block.pk} ({block.block_type}) created in section #{section.pk}",
+            object_id=block.pk, extra={"block_type": block.block_type},
         )
         return Response({
             "message": "Content block created",
@@ -3492,19 +3587,35 @@ class AdminContentBlockView(APIView):
         if not block:
             return Response({"detail": "Content block not found"}, status=404)
 
+        section = block.section
+        self._ensure_published_snapshot(section)
+
         block_type = request.data.get("block_type", block.block_type)
         data = request.data.get("data", block.data)
         valid, err = self._validate_block_data(block_type, data)
         if not valid:
             return Response({"detail": err}, status=400)
 
+        if "position" in request.data:
+            position = request.data["position"]
+            if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 100000:
+                return Response({"detail": "position must be a whole number between 0 and 100000."}, status=400)
+
+        before = {"block_type": block.block_type, "title": block.title, "position": block.position, "data": block.data, "is_visible": block.is_visible}
+
         block.block_type = block_type
         if "title" in request.data: block.title = str(request.data["title"])[:240]
-        if "position" in request.data: block.position = int(request.data["position"])
+        if "position" in request.data: block.position = request.data["position"]
         if "data" in request.data: block.data = data if isinstance(data, dict) else {}
         if "is_visible" in request.data: block.is_visible = bool(request.data["is_visible"])
         block.updated_by = request.user if request.user.is_authenticated else None
         block.save()
+
+        self._record_change(
+            request, section, "update",
+            f"Content block #{block.pk} ({block.block_type}) updated in section #{section.pk}",
+            object_id=block.pk, extra={"block_type": block.block_type, "before": before},
+        )
 
         return Response({
             "message": "Content block updated",
@@ -3521,17 +3632,70 @@ class AdminContentBlockView(APIView):
         block = ContentBlock.objects.filter(pk=block_id).first()
         if not block:
             return Response({"detail": "Content block not found"}, status=404)
+        section = block.section
+        self._ensure_published_snapshot(section)
         block_id_val = block.id
+        block_type = block.block_type
         block.delete()
+        self._record_change(
+            request, section, "update",
+            f"Content block #{block_id_val} ({block_type}) deleted from section #{section.pk}",
+            object_id=block_id_val, extra={"block_type": block_type, "deleted": True},
+        )
         return Response({"message": "Content block deleted", "id": block_id_val})
 
-    def _reorder(self, request):
-        items = request.data.get("items") or []
+    def _reorder(self, request, section_id=None):
+        """Reorder blocks.
+
+        Previously a raw ``.filter(pk=b_id).update(position=pos)`` accepted any
+        block id from any section plus negative or absurd positions, with no
+        existence check and no audit trail. Now every item is validated and the
+        change is recorded like any other CMS write.
+        """
+        items = request.data.get("items")
+        if not isinstance(items, list) or len(items) > 500:
+            return Response({"detail": "items must be a list of at most 500 block positions."}, status=400)
+
+        section = ContentSection.objects.filter(pk=section_id).first() if section_id else None
+        if section_id and not section:
+            return Response({"detail": "Section not found"}, status=404)
+
+        resolved = []
         for idx, item in enumerate(items):
-            b_id = item.get("id") if isinstance(item, dict) else item
-            pos = item.get("position", idx) if isinstance(item, dict) else idx
-            ContentBlock.objects.filter(pk=b_id).update(position=pos)
-        return Response({"message": "Block positions updated"})
+            block_id = item.get("id") if isinstance(item, dict) else item
+            position = item.get("position", idx) if isinstance(item, dict) else idx
+            if isinstance(block_id, bool) or not isinstance(block_id, int):
+                return Response({"detail": f"items[{idx}].id must be a block id."}, status=400)
+            if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 100000:
+                return Response({"detail": f"items[{idx}].position must be a whole number between 0 and 100000."}, status=400)
+            block = ContentBlock.objects.filter(pk=block_id).select_related("section").first()
+            if not block:
+                return Response({"detail": f"items[{idx}]: block {block_id} does not exist."}, status=400)
+            if section is not None and block.section_id != section.pk:
+                return Response({"detail": f"items[{idx}]: block {block_id} does not belong to section {section.pk}."}, status=400)
+            resolved.append((block, position))
+
+        if not resolved:
+            return Response({"message": "Block positions updated", "updated": 0})
+
+        # Group by section so each one is frozen and audited exactly once.
+        by_section = {}
+        for block, position in resolved:
+            by_section.setdefault(block.section_id, []).append((block, position))
+
+        for target_section_id, entries in by_section.items():
+            target = section if (section is not None and section.pk == target_section_id) else entries[0][0].section
+            self._ensure_published_snapshot(target)
+            for block, position in entries:
+                block.position = position
+                block.updated_by = request.user if request.user.is_authenticated else None
+                block.save(update_fields=["position", "updated_by", "updated_at"])
+            self._record_change(
+                request, target, "update",
+                f"Reordered {len(entries)} content block(s) in section #{target_section_id}",
+                object_id=entries[0][0].pk, extra={"reordered": [b.pk for b, _ in entries]},
+            )
+        return Response({"message": "Block positions updated", "updated": len(resolved)})
 
 
 class AdminReviewModerationView(APIView):

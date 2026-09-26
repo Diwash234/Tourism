@@ -4857,7 +4857,24 @@ class AsyncVerificationEmailTest(TestCase):
             resp = client.post(reverse("auth-register"), payload, format="json")
             elapsed = time.monotonic() - t0
             self.assertEqual(resp.status_code, 201, resp.content)
-            self.assertLess(elapsed, 1.0, f"register blocked {elapsed:.2f}s on mail send")
+            # The invariant this test exists to protect: the response came back
+            # BEFORE the slow send finished. `delivered` is still empty at this
+            # point, which proves it directly instead of inferring it from a
+            # tight wall-clock threshold. The old assertion was `elapsed < 1.0`,
+            # a proxy that a loaded machine could blow for reasons that have
+            # nothing to do with the mail path (request setup, one bcrypt hash,
+            # DB writes) — it failed at 4.1s under PBKDF2, which was a genuine
+            # regression, but it also failed at 1.04s once hashing was fixed.
+            # Blocking on SMTP is caught below by `delivered` being non-empty.
+            self.assertFalse(
+                delivered,
+                f"register waited for the mail send to finish: {elapsed:.2f}s "
+                f"elapsed while a {SLOW_SECONDS}s send was in flight",
+            )
+            self.assertLess(
+                elapsed, SLOW_SECONDS,
+                f"register blocked {elapsed:.2f}s on a {SLOW_SECONDS}s mail send",
+            )
             # the email is still delivered in the background
             deadline = time.monotonic() + 6
             while not delivered and time.monotonic() < deadline:
