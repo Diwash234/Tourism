@@ -11,7 +11,7 @@ import { EmblemImg, StupaImg, TopiImg, FlagImg, MapImg, CowImg, DanpheImg, Rhodo
 const PROVINCES = ["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"]
 const PUBLIC_FOOTER_PATHS = new Set([
   "/", "/destinations", "/recommendation", "/gallery", "/compare", "/explore-map", "/discover-nepal",
-  "/itinerary", "/budget-estimator", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
+  "/itinerary", "/budget-estimator", "/before-you-travel", "/hotels/search", "/emergency", "/risk-alerts", "/navigation",
   "/distances", "/language", "/translation", "/nearby-places", "/packages", "/guides", "/guide-portal",
   "/tourism-jobs", "/guide-bookings", "/collaborate", "/chatbot", "/travel", "/about", "/contact", "/support", "/how-it-works",
 ])
@@ -38,6 +38,7 @@ const DEFAULT_PLAN = [
   ["Trip Planner", "/itinerary"],
   ["Travel Packages", "/packages"],
   ["Budget Estimator", "/budget-estimator"],
+  ["Before You Travel", "/before-you-travel"],
   ["Hotels & Lodges", "/hotels/search"],
 ]
 

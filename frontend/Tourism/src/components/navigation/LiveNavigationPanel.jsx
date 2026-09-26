@@ -4,6 +4,7 @@ import L from "leaflet"
 import { FiNavigation, FiRotateCcw, FiCheckCircle, FiX, FiMapPin } from "react-icons/fi"
 import useTurnByTurn, { NAV_STATES } from "../../hooks/useTurnByTurn"
 
+import { RouteQualityBadge, routeQuality } from "../../utils/routeQuality"
 import { makeUserArrowIcon } from "../map/icons"
 // Arrow pointer rotates with the GPS compass heading (flaticon arrow-map
 // style, original SVG). Static north-up arrow when heading is unknown.
@@ -142,11 +143,17 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
           {Math.round(context.weather.data.main?.temp ?? 0)}°C at route midpoint
         </p>
       )}
+      {route && (
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#E5E0D5]" data-testid="route-quality-row">
+          <RouteQualityBadge source={route.source} />
+          <span className="text-[11px] text-gray-600">{routeQuality(route.source).detail}</span>
+        </div>
+      )}
       {route && route.navigation_grade === false && (
         <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
           <p className="text-xs font-extrabold text-amber-800">⚠ Routing service unavailable</p>
           <p className="text-[11px] text-amber-700 mt-0.5">
-            This is an estimated route ({route.source}) and is <b>not suitable for
+            This is an estimated route ({routeQuality(route.source).label.toLowerCase()}) and is <b>not suitable for
             turn-by-turn navigation</b>. Preview and distances remain available.
           </p>
           <button onClick={preview}
@@ -224,7 +231,7 @@ export default function LiveNavigationPanel({ destination, mode = "driving", sto
       {legs && (
         <div className="px-4 py-2 text-[11px] font-bold text-gray-600 border-t border-[#E5E0D5]">
           Stop {activeLeg + 1} of {legs.length}: {legs[activeLeg]?.from?.name} → {legs[activeLeg]?.to?.name}
-          {legs[activeLeg]?.source !== "osrm" && <span className="ml-2 text-amber-600">({legs[activeLeg]?.source})</span>}
+          {legs[activeLeg]?.source && <RouteQualityBadge source={legs[activeLeg].source} className="ml-2" />}
         </div>
       )}
 

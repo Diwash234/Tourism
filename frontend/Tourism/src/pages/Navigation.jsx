@@ -21,6 +21,7 @@ import nearbyApi from "../api/nearbyApi"
 import destinationApi from "../api/destinationApi"
 import axiosClient from "../api/axiosClient"
 import { formatDistance, formatDuration } from "../utils/formatDistance"
+import { RouteQualityBadge, routeQuality } from "../utils/routeQuality"
 import { formatCoords, hasValidCoords, minDistanceToPathKm } from "../utils/placeUtils"
 
 const AMENITY_TABS = [
@@ -119,6 +120,7 @@ export default function Navigation() {
   const [durationMin, setDurationMin] = useState(null)
   const [durationNote, setDurationNote] = useState("")
   const [durationSource, setDurationSource] = useState("")
+  const [routeMeta, setRouteMeta] = useState({ source: "", note: "" })
   const [steps, setSteps] = useState([])
   const [routeAlerts, setRouteAlerts] = useState([])
   const [alertsLoaded, setAlertsLoaded] = useState(false)
@@ -206,6 +208,7 @@ export default function Navigation() {
       setDurationMin(response.data.duration_min ?? null)
       setDurationNote(response.data.duration_note || "")
       setDurationSource(response.data.duration_source || "")
+      setRouteMeta({ source: response.data.route_source || "", note: response.data.route_note || "" })
       setDistance(response.data.distance_km ?? null)
       setCurrentStepIdx(0)
 
@@ -249,6 +252,7 @@ export default function Navigation() {
       }
     } catch (err) {
       setRoute([])
+      setRouteMeta({ source: "", note: "" })
       setSteps([])
       setDistance(null)
       setDurationMin(null)
@@ -1039,6 +1043,12 @@ export default function Navigation() {
 
             {distance && (
               <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                {routeMeta.source && (
+                  <div className="col-span-2 flex flex-wrap items-center gap-2 rounded-2xl bg-white/95 p-2 text-left" data-testid="navigation-route-quality">
+                    <RouteQualityBadge source={routeMeta.source} />
+                    <span className="text-[11px] leading-4 text-slate-700">{routeQuality(routeMeta.source).detail}</span>
+                  </div>
+                )}
                 <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
                   <span className="text-[10px] text-slate-400 block font-bold">Total Distance</span>
                   <span className="text-lg font-black text-amber-300">{distance} km</span>

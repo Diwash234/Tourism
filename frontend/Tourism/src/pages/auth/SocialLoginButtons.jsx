@@ -1,5 +1,5 @@
 import { FiGithub } from "react-icons/fi"
-import { getGoogleAuthUrl, getGithubAuthUrl } from "../../utils/oauth"
+import { getGoogleAuthUrl, getGithubAuthUrl, hasGoogleClientId, hasGithubClientId } from "../../utils/oauth"
 import usePublicConfig from "../../hooks/usePublicConfig"
 
 // Official Google "G" brand mark with standard Google colors
@@ -19,6 +19,11 @@ const GoogleMark = () => (
  */
 const SocialLoginButtons = ({ showDivider = true }) => {
   usePublicConfig()
+  // Only offer providers that are actually configured -- an unconfigured
+  // button would just lead to "sign-in failed" (the API answers 503).
+  const google = hasGoogleClientId()
+  const github = hasGithubClientId()
+  if (!google && !github) return null
 
   return (
     <div className="space-y-3">
@@ -30,19 +35,19 @@ const SocialLoginButtons = ({ showDivider = true }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <a
+      <div className={`grid gap-3 ${google && github ? "grid-cols-2" : "grid-cols-1"}`}>
+        {google && <a
           href={getGoogleAuthUrl()}
           className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <GoogleMark /> Google
-        </a>
-        <a
+        </a>}
+        {github && <a
           href={getGithubAuthUrl()}
           className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <FiGithub size={18} className="text-gray-900" /> GitHub
-        </a>
+        </a>}
       </div>
     </div>
   )

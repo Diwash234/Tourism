@@ -575,7 +575,14 @@ class BudgetPredictionView(APIView):
                     "suggestions": ["Use a destination recorded in the catalogue."]
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                match = Destination.objects.filter(name__icontains=dest_str).first()
+                # Deterministic best match: exact name, then prefix, then
+                # substring -- among publicly visible places first. The
+                # matched place is echoed back so the UI can show it.
+                visible = Destination.publicly_visible()
+                match = (visible.filter(name__iexact=dest_str).first()
+                         or visible.filter(name__istartswith=dest_str).order_by("name").first()
+                         or visible.filter(name__icontains=dest_str).order_by("name").first()
+                         or Destination.objects.filter(name__iexact=dest_str).first())
                 if match:
                     data["destination"] = match.id
                 else:
@@ -632,14 +639,32 @@ class BudgetPredictionView(APIView):
 
 
         if result is None:
-            return Response(
-                {"detail": "Budget prediction service unavailable."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            if destination is None:
+                return Response(
+                    {"detail": "Budget prediction service unavailable."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            # Living-cost model is down, but the official visa / park /
+            # permit fees do not depend on it -- still return them, and say
+            # plainly that living costs are missing (never invent them).
+            partial = {"breakdown": {}, "known_cost_total_usd": None, "estimated_total": None, "total_budget_usd": None}
+            body = {
+                **partial,
+                "living_costs_available": False,
+                "living_costs_note": "The living-cost estimate service is unavailable right now, so hotel, food and transport costs are not included.",
+                **_official_budget_context(partial, data, destination),
+                "matched_destination": {"id": destination.id, "name": destination.name, "district": destination.district or ""},
+                "days": data.get("days"), "travelers": data.get("travelers"),
+            }
+            body["official_fees_only"] = True
+            return Response(body, status=status.HTTP_200_OK)
 
 
         flattened = dict(result)
         flattened.update(_official_budget_context(result, data, destination))
+        flattened["matched_destination"] = (
+            {"id": destination.id, "name": destination.name, "district": destination.district or ""}
+            if destination else None)
 
         flattened["total"] = result.get(
             "estimated_total"

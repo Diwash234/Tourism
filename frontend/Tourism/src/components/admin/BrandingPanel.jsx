@@ -152,7 +152,7 @@ export default function BrandingPanel() {
           </div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1.5 rounded-xl text-white font-black text-xs" style={{ background: branding.primary_color || "#C8102E" }}>
-              Book Now
+              Request booking
             </span>
             <span className="px-3 py-1.5 rounded-xl border font-black text-xs" style={{ color: branding.secondary_color || "#0B3D91", borderColor: branding.secondary_color || "#0B3D91" }}>
               Explore

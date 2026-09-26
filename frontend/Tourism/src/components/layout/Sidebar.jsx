@@ -54,6 +54,7 @@ const GROUPS = [
     label: "Safety", tk: "sidebar.safety",
     links: [
       { to: "/emergency", label: "Emergency / SOS", tk: "sidebar.emergency", icon: "warning", color: "red" },
+      { to: "/before-you-travel", label: "Before You Travel", icon: "check-square", color: "emerald" },
       { to: "/risk-alerts", label: "Travel Alerts", tk: "sidebar.risk", icon: "bell", color: "nepalred" },
       { to: "/family-safety", label: "Family Safety", icon: "people", color: "emerald" },
       { to: "/navigation", label: "Location", tk: "sidebar.navigation", icon: "navigate", color: "sky" },
@@ -137,7 +138,7 @@ export default function Sidebar() {
   const PUBLIC_ROUTES = new Set([
     "/", "/destinations", "/recommendation", "/gallery", "/compare", "/nearby-places",
     "/distances", "/itinerary", "/explore-map", "/discover-nepal", "/packages", "/guides", "/guide-portal", "/tourism-jobs", "/guide-bookings", "/collaborate", "/hotels/search",
-    "/emergency", "/risk-alerts", "/budget-estimator", "/navigation", "/language", "/translation", "/chatbot", "/travel",
+    "/emergency", "/risk-alerts", "/budget-estimator", "/before-you-travel", "/navigation", "/language", "/translation", "/chatbot", "/travel",
     "/about", "/contact", "/support", "/how-it-works", "/privacy", "/terms", "/login", "/register"
   ])
 

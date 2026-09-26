@@ -297,6 +297,8 @@ def fee_totals(fees: list, travelers: int, fx_snapshot=None) -> dict:
     unconverted = []
     lines = []
     for line in fees:
+        if line.get("source_key") and "source" not in line:
+            line = {**line, "source": _source(line["source_key"])}
         amount = line.get("amount_per_person")
         if amount is None:
             lines.append({**line, "amount_npr_per_person": None})

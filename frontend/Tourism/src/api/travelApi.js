@@ -1,19 +1,15 @@
-import axiosClient from "./axiosClient";
+import axiosClient from "./axiosClient"
 
-/**
- * Travel planner API — real routes BETWEEN any two destinations.
- *
- *  plan:          GET /api/v1/navigation/travel-plan/
- *    ?origin=<slug|id|place|—>            (or origin_lat/origin_lng for GPS)
- *    &destination=<slug|id|place>
- *    &mode=driving|walking|cycling|hiking|motorcycle
- *    &alternatives=1
- *  travelBetween: GET /api/v1/navigation/travel-between/?from=<slug>&limit=24
- */
+// Official traveller data served by Django:
+// - NRB exchange rates (Nepal Rastra Bank, dated)
+// - visa / TIMS / permit / park & heritage fees transcribed from
+//   immigration.gov.np and ntb.gov.np (each item carries its source URL)
 const travelApi = {
-  plan: (params = {}) => axiosClient.get("/navigation/travel-plan/", { params }),
-  travelBetween: (from, limit = 24) =>
-    axiosClient.get("/navigation/travel-between/", { params: { from, limit } }),
-};
+  fxRates: () => axiosClient.get("/fx/rates/"),
+  requirements: (nationality = "foreign") =>
+    axiosClient.get("/travel-requirements/", { params: { nationality } }),
+  destinationRequirements: (id, params = {}) =>
+    axiosClient.get(`/travel-requirements/destination/${id}/`, { params }),
+}
 
-export default travelApi;
+export default travelApi

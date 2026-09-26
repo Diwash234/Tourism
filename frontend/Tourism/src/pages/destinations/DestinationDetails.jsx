@@ -39,6 +39,7 @@ import CircularGallery from "../../components/ui/CircularGallery"
 import VisitorNoticeBanner from "../../components/common/VisitorNoticeBanner"
 
 import DestinationHero from "../../components/destinations/DestinationHero"
+import DestinationRequirementsPanel from "../../components/destinations/DestinationRequirementsPanel"
 
 // Real icon per nearby-POI category (Twemoji — Mozilla, CC-BY 4.0).
 const POI_CATEGORY_ICONS = {
@@ -644,6 +645,9 @@ export default function DestinationDetails() {
               )}
             </div>
           </div>
+
+          {/* Official permits, fees & altitude (immigration.gov.np / ntb.gov.np) */}
+          {destination.id ? <DestinationRequirementsPanel destinationId={destination.id} /> : null}
 
           {/* Section 5: Food, Cuisine & Safety Tips */}
           {(destination.food_cuisine_info || destination.travel_safety_tips) && (

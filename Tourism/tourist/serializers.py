@@ -500,6 +500,14 @@ class HospitalSerializer(serializers.ModelSerializer):
         model = Hospital
         fields = ["id", "name", "address", "phone", "latitude", "longitude", "district", "image_url", "opening_hours", "emergency_available", "source_name", "source_url", "is_verified", "verified_at", "updated_at"]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from .phone_quality import is_placeholder_phone
+
+        if is_placeholder_phone(data.get("phone")):
+            data["phone"] = ""  # templated dataset filler -- never shown as callable
+        return data
+
     def get_image_url(self, obj):
         if not obj.image:
             return None

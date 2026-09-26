@@ -94,7 +94,7 @@ async function run() {
 
   {
     const { res, text } = await request(`${WEB}/`, { headers: { Accept: "text/html" } })
-    if (res.ok && /Nepal Tourism Portal/i.test(text)) ok("landing HTML title")
+    if (res.ok && /Nepal Yatra/i.test(text)) ok("landing HTML title")
     else fail("landing HTML title", `status ${res.status}`)
   }
 

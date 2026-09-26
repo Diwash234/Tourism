@@ -12,6 +12,7 @@ const ROUTES = [
   "/hotels",
   "/emergency",
   "/budget-estimator",
+  "/before-you-travel",
   "/recommendation",
   "/itinerary",
   "/packages",

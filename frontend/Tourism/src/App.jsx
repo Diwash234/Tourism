@@ -80,6 +80,7 @@ import Expenditure from "./pages/Expenditure"
 import MySubmissions from "./pages/MySubmissions"
 import StaffDashboard from "./pages/StaffDashboard"
 const Itinerary = lazy(() => import("./pages/Itinerary"))
+const BeforeYouTravel = lazy(() => import("./pages/BeforeYouTravel"))
 import FamilySafety from "./pages/FamilySafety"
 import SharedTripView from "./pages/SharedTripView"
 
@@ -208,6 +209,7 @@ function App() {
         {/* Public planning and safety tools. These pages keep their existing
             data contracts but do not require an account to open. */}
         <Route path="/budget-estimator" element={<BudgetEstimator />} />
+        <Route path="/before-you-travel" element={<LazyRoute><BeforeYouTravel /></LazyRoute>} />
         <Route path="/risk-alerts" element={<RiskAlertDashboard />} />
         <Route path="/navigation" element={<LazyRoute><Navigation /></LazyRoute>} />
         <Route path="/distances" element={<LazyRoute><DistancesExplorer /></LazyRoute>} />

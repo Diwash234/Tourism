@@ -96,16 +96,17 @@ emergency page shows no pharmacies near Pokhara.
 |---|---|
 | Policy version | 2 |
 | Cutoff (`--as-of`) | `2026-09-26T00:00:00Z` |
-| Source database | `git show f92c128^:Tourism/db.sqlite3` (the last committed runtime DB, read-only) |
-| JSON records | 12,933 |
+| Source database | local runtime DB migrated through `0084` (online SQLite backup, read-only) |
+| JSON records | 12,873 |
 | Destinations | 6,075 |
 | Destination images | 723 (quality-scored) |
-| Hotels | 2,348 (all unverified, labelled) |
+| Hotels | 2,322 (all unverified, labelled; 26 hospitals misfiled as hotels archived by migration 0084) |
 | Restaurants | 265 |
-| Hospitals | 362 |
+| Hospitals | 362 (111 templated placeholder phone numbers such as `…-520123` blanked by migration 0084 — shown as "Phone unavailable") |
 | Police stations | 801 |
 | OSM essential services | 1,997 (banks 838, ATMs 346, hospitals 381, pharmacies 351, police 81) |
 | Districts / provinces | 77 / 7 |
+| CMS | 34 seeded placeholder sections hidden (migration 0081) |
 
 Checksums live in `verified_tourism_data.lock.json` and the `.sha256` files.
 
