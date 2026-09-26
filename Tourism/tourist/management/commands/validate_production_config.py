@@ -106,7 +106,8 @@ class Command(BaseCommand):
             else:
                 oks.append(f"{provider} OAuth credentials present")
 
-        if getattr(settings, "ROUTING_API_URL", ""):
+        routing_url = (getattr(settings, "ROUTING_BASE_URL", "") or getattr(settings, "ROUTING_API_URL", "")).strip()
+        if routing_url:
             oks.append("Production road-routing provider configured")
         else:
             fails.append("ROUTING_API_URL is empty: production navigation cannot claim verified road routing")
